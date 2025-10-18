@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -27,7 +28,31 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <header className="border-b bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
+            <Link href="/" className="font-semibold tracking-tight">
+              MASH
+            </Link>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <Link className="hover:text-foreground" href="/landing">
+                Landing
+              </Link>
+              <Link className="hover:text-foreground" href="/catalog">
+                Catalog
+              </Link>
+              <Link className="hover:text-foreground" href="/product">
+                Product
+              </Link>
+              <Link className="hover:text-foreground" href="/checkout">
+                Checkout
+              </Link>
+              <Link className="hover:text-foreground" href="/profile">
+                Profile
+              </Link>
+            </div>
+          </nav>
+        </header>
+        <main className="min-h-screen">{children}</main>
       </body>
     </html>
   );
