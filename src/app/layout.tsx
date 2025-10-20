@@ -30,24 +30,45 @@ export default function RootLayout({
       >
         <header className="border-b bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
           <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-            <Link href="/" className="font-semibold tracking-tight">
-              MASH
+            <Link href="/" className="font-semibold tracking-tight text-lg">
+              🍄 MASH
             </Link>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <Link className="hover:text-foreground" href="/landing">
-                Landing
+            <div className="flex flex-wrap items-center gap-6 text-sm">
+              <Link
+                className="hover:text-foreground transition-colors"
+                href="/products"
+              >
+                Products
               </Link>
-              <Link className="hover:text-foreground" href="/catalog">
-                Catalog
+              <Link
+                className="hover:text-foreground transition-colors"
+                href="/stores"
+              >
+                Growers
               </Link>
-              <Link className="hover:text-foreground" href="/product">
-                Product
+              <Link
+                className="hover:text-foreground transition-colors"
+                href="/community/recipes"
+              >
+                Recipes
               </Link>
-              <Link className="hover:text-foreground" href="/checkout">
-                Checkout
+              <Link
+                className="hover:text-foreground transition-colors"
+                href="/about"
+              >
+                About
               </Link>
-              <Link className="hover:text-foreground" href="/profile">
-                Profile
+              <Link
+                className="hover:text-foreground transition-colors"
+                href="/cart"
+              >
+                Cart
+              </Link>
+              <Link
+                className="hover:text-foreground transition-colors font-medium"
+                href="/login"
+              >
+                Login
               </Link>
             </div>
           </nav>

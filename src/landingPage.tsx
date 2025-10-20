@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,39 +12,42 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag, Truck, ShieldCheck, ArrowRight } from "lucide-react";
 
-export default function LandingPage() {
+export default function HomePage() {
   return (
     <div className="flex flex-col gap-12 px-4 py-10 md:px-8 lg:px-16">
       {/* Hero */}
       <section className="grid items-center gap-8 md:grid-cols-2">
         <div className="space-y-6">
           <Badge variant="secondary" className="rounded-full px-3 py-1">
-            New season drops are here
+            Fresh from local growers
           </Badge>
           <h1 className="text-balance text-4xl font-bold tracking-tight md:text-5xl">
-            Discover quality products at honest prices
+            Premium Mushrooms Direct from Philippine Growers
           </h1>
           <p className="text-muted-foreground text-lg">
-            Shop curated collections, fast delivery, and easy returns. Built
-            with shadcn/ui and Next.js.
+            Support local agriculture with fresh, organic mushrooms delivered to
+            your door. MASH connects you with trusted growers across the
+            Philippines.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Button size="lg">
-              Start shopping
-              <ArrowRight className="ml-1.5" />
+            <Button size="lg" asChild>
+              <Link href="/products">
+                Start shopping
+                <ArrowRight className="ml-1.5" />
+              </Link>
             </Button>
-            <Button size="lg" variant="outline">
-              View collections
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/stores">View growers</Link>
             </Button>
           </div>
           <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Truck className="size-4" />
-              Free shipping over $50
+              Free delivery Metro Manila
             </div>
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" />
-              30-day returns
+              Freshness guarantee
             </div>
           </div>
         </div>
@@ -57,14 +61,15 @@ export default function LandingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingBag className="size-5 text-primary" />
-              Wide selection
+              Fresh varieties
             </CardTitle>
             <CardDescription>
-              Thousands of products across fashion, home, and tech.
+              Oyster, shiitake, enoki, and specialty mushrooms from local farms.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Explore curated collections and trending picks updated weekly.
+            Browse curated selections updated daily as growers harvest fresh
+            batches.
           </CardContent>
         </Card>
 
@@ -72,14 +77,15 @@ export default function LandingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="size-5 text-primary" />
-              Fast delivery
+              Same-day delivery
             </CardTitle>
             <CardDescription>
-              Free shipping on qualifying orders and reliable tracking.
+              Get your mushrooms delivered fresh within Metro Manila.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Most orders ship within 24 hours from our regional warehouses.
+            Orders placed before 10 AM are delivered the same day with proper
+            cold chain.
           </CardContent>
         </Card>
 
@@ -87,14 +93,14 @@ export default function LandingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="size-5 text-primary" />
-              Secure checkout
+              Support local growers
             </CardTitle>
             <CardDescription>
-              Encrypted payments and buyer protection on every order.
+              Every purchase directly supports Philippine mushroom farmers.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Pay with your preferred method and enjoy hassle-free returns.
+            Meet the growers, learn their stories, and enjoy farm-fresh quality.
           </CardContent>
         </Card>
       </section>
