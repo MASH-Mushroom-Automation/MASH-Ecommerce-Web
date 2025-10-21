@@ -1,11 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CheckCircle } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -20,6 +29,9 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function CheckoutPage() {
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -37,6 +49,112 @@ export default function CheckoutPage() {
   const tax: number = 12;
   const shipping: number = 0;
   const total: number = subtotal + tax + shipping;
+
+  const handleCheckout = () => {
+    setShowSuccessModal(true);
+    // Auto-close modal and show summary after 2 seconds
+    setTimeout(() => {
+      setShowSuccessModal(false);
+      setShowSummary(true);
+    }, 2000);
+  };
+
+  // Show Checkout Summary Page
+  if (showSummary) {
+    return (
+      <div className="px-4 py-8 md:px-8 lg:px-16 min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+            Checkout Summary
+          </h1>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+            {/* Shipping Address */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <p className="font-semibold text-gray-700">Shipping Address:</p>
+                <p className="text-gray-900">
+                  Brgy 176-b Bagong Silang, Caloocan City METRO MANILA 1428
+                </p>
+              </div>
+              <div className="flex justify-between">
+                <p className="font-semibold text-gray-700">Contact:</p>
+                <p className="text-gray-900">
+                  Juanito Dela Cruz (+63) 956 955 2808
+                </p>
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className="border-t pt-6">
+              <p className="text-sm text-gray-600 mb-4">@FungiFreshFarms</p>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <p className="text-gray-800">Fresh White Oyster Mushrooms</p>
+                  <p className="font-semibold">₱120.00</p>
+                </div>
+                <div className="flex justify-between">
+                  <p className="text-gray-800">
+                    Vibrant Pink Oyster Mushrooms (2)
+                  </p>
+                  <p className="font-semibold">₱280.00</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div className="border-t pt-6 space-y-2">
+              <div className="flex justify-between">
+                <p className="text-gray-700">Subtotal (5)</p>
+                <p className="font-semibold">₱400.00</p>
+              </div>
+              <div className="flex justify-between">
+                <p className="text-gray-700">Tax</p>
+                <p className="font-semibold">₱12</p>
+              </div>
+              <div className="flex justify-between">
+                <p className="text-gray-700">Shipping Fee</p>
+                <p className="font-semibold">Free</p>
+              </div>
+              <div className="flex justify-between">
+                <p className="text-gray-700">Estimated Shipping Day</p>
+                <p className="font-semibold">1-3 Days</p>
+              </div>
+              <div className="flex justify-between">
+                <p className="text-gray-700">Payment Method</p>
+                <p className="font-semibold">Cash-on-Delivery (COD)</p>
+              </div>
+              <div className="flex justify-between border-t pt-3 mt-3">
+                <p className="font-bold text-gray-900">Total Fee</p>
+                <p className="font-bold text-gray-900">₱412.00</p>
+              </div>
+            </div>
+
+            {/* View Order Button */}
+            <Button className="w-full bg-[#354A3E] hover:bg-[#2A3A31] mt-6">
+              View Order
+            </Button>
+          </div>
+
+          {/* Footer Links */}
+          <div className="mt-6 flex justify-center space-x-6 text-sm">
+            <a href="#" className="text-gray-600 hover:underline">
+              Refund Policy
+            </a>
+            <a href="#" className="text-gray-600 hover:underline">
+              Shipping Policy
+            </a>
+            <a href="#" className="text-gray-600 hover:underline">
+              Privacy Policy
+            </a>
+            <a href="#" className="text-gray-600 hover:underline">
+              Terms of Service
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-8 md:px-8 lg:px-16">
@@ -281,13 +399,33 @@ export default function CheckoutPage() {
                 <p>Total Fee</p>
                 <p>₱{total.toFixed(2)}</p>
               </div>
-              <Button className="mt-6 w-full bg-[#354A3E] hover:bg-[#2A3A31]">
-                Checkout
+              <Button
+                onClick={handleCheckout}
+                className="mt-6 w-full bg-[#354A3E] hover:bg-[#2A3A31]"
+              >
+                Complete Purchase
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="flex flex-col items-center">
+            <div className="bg-[#6A994E] rounded-full p-4 mb-4">
+              <CheckCircle className="w-12 h-12 text-white" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-center">
+              Checkout successful!
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600 mt-2">
+              The seller(s) will be notified with your new order!
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

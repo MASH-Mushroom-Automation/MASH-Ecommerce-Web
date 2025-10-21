@@ -7,15 +7,8 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Search,
-  ShoppingCart,
-  Heart,
-  User,
-  Menu,
-  Facebook,
-  Instagram,
-} from "lucide-react";
+import CartDropdown from "./cart-dropdown";
+import { Search, Heart, User, Menu, Facebook, Instagram } from "lucide-react";
 
 interface NavLinkProps {
   label: string;
@@ -117,13 +110,7 @@ export function Header() {
 
         {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
-          <Link
-            href="/checkout"
-            className="flex items-center hover:text-[#6A994E] transition-colors group"
-          >
-            <ShoppingCart size={24} className="group-hover:text-[#6A994E]" />
-            <span className="text-sm ml-1 hidden sm:block">Cart</span>
-          </Link>
+          <CartDropdown />
 
           <Link
             href="/wishlist"
@@ -186,13 +173,9 @@ export function Header() {
                   </Link>
                 </nav>
                 <div className="border-t pt-4">
-                  <Link
-                    href="/checkout"
-                    className="flex items-center space-x-2 text-gray-600 hover:text-primary"
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                    <span>Cart</span>
-                  </Link>
+                  <div className="mb-2">
+                    <CartDropdown />
+                  </div>
                   <Link
                     href="#"
                     className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
