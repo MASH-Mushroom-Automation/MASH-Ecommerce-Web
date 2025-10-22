@@ -29,85 +29,89 @@ import {
 } from "@/components/ui/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Eye } from "lucide-react";
-
-// Sample order data
-// This would be replaced with API data in production
-const SELLER_ORDERS = [
-  {
-    id: "ORD-001",
-    date: "2025-10-20",
-    customer: "John Doe",
-    items: 3,
-    total: 450,
-    status: "Pending",
-  },
-  {
-    id: "ORD-002",
-    date: "2025-10-19",
-    customer: "Jane Smith",
-    items: 2,
-    total: 280,
-    status: "Processing",
-  },
-  {
-    id: "ORD-003",
-    date: "2025-10-18",
-    customer: "Mike Johnson",
-    items: 1,
-    total: 150,
-    status: "Shipped",
-  },
-  {
-    id: "ORD-004",
-    date: "2025-10-17",
-    customer: "Sarah Williams",
-    items: 4,
-    total: 520,
-    status: "Delivered",
-  },
-  {
-    id: "ORD-005",
-    date: "2025-10-16",
-    customer: "Robert Brown",
-    items: 2,
-    total: 300,
-    status: "Cancelled",
-  },
-];
+import { useSellerOrders } from "@/hooks/useSeller";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function SellerOrders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentTab, setCurrentTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter orders based on search term, status filter, and current tab
-  const filteredOrders = SELLER_ORDERS.filter((order) => {
-    const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      order.status.toLowerCase() === statusFilter.toLowerCase();
-
-    const matchesTab =
-      currentTab === "all" ||
-      (currentTab === "pending" && order.status === "Pending") ||
-      (currentTab === "processing" && order.status === "Processing") ||
-      (currentTab === "shipped" && order.status === "Shipped") ||
-      (currentTab === "delivered" && order.status === "Delivered") ||
-      (currentTab === "cancelled" && order.status === "Cancelled");
-
-    return matchesSearch && matchesStatus && matchesTab;
+  // Use CMS-ready hook for orders
+  const { orders, loading, error, pagination, refetch } = useSellerOrders({
+    page: currentPage,
+    limit: 10,
+    search: searchTerm,
+    status: statusFilter === "all" ? undefined : statusFilter,
   });
+
+  // Filter orders based on current tab
+  const filteredOrders =
+    orders?.filter((order) => {
+      const matchesTab =
+        currentTab === "all" ||
+        (currentTab === "pending" && order.status === "Pending") ||
+        (currentTab === "processing" && order.status === "Processing") ||
+        (currentTab === "shipped" && order.status === "Shipped") ||
+        (currentTab === "delivered" && order.status === "Delivered") ||
+        (currentTab === "cancelled" && order.status === "Cancelled");
+
+      return matchesTab;
+    }) || [];
 
   // Get counts for each status for the tabs
   const getStatusCount = (status: string) => {
-    return SELLER_ORDERS.filter(
+    if (!orders) return 0;
+    return orders.filter(
       (order) =>
         status === "all" || order.status.toLowerCase() === status.toLowerCase()
     ).length;
   };
+
+  // Handle search
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  // Handle status filter
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value);
+    setCurrentPage(1);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading orders: {error}</p>
+          <Button onClick={() => refetch()} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -124,22 +128,37 @@ export default function SellerOrders() {
             className="w-full"
           >
             <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
-              <TabsTrigger value="all">
+              <TabsTrigger value="all" onClick={() => handleTabChange("all")}>
                 All ({getStatusCount("all")})
               </TabsTrigger>
-              <TabsTrigger value="pending">
+              <TabsTrigger
+                value="pending"
+                onClick={() => handleTabChange("pending")}
+              >
                 Pending ({getStatusCount("pending")})
               </TabsTrigger>
-              <TabsTrigger value="processing">
+              <TabsTrigger
+                value="processing"
+                onClick={() => handleTabChange("processing")}
+              >
                 Processing ({getStatusCount("processing")})
               </TabsTrigger>
-              <TabsTrigger value="shipped">
+              <TabsTrigger
+                value="shipped"
+                onClick={() => handleTabChange("shipped")}
+              >
                 Shipped ({getStatusCount("shipped")})
               </TabsTrigger>
-              <TabsTrigger value="delivered">
+              <TabsTrigger
+                value="delivered"
+                onClick={() => handleTabChange("delivered")}
+              >
                 Delivered ({getStatusCount("delivered")})
               </TabsTrigger>
-              <TabsTrigger value="cancelled">
+              <TabsTrigger
+                value="cancelled"
+                onClick={() => handleTabChange("cancelled")}
+              >
                 Cancelled ({getStatusCount("cancelled")})
               </TabsTrigger>
             </TabsList>
@@ -153,12 +172,12 @@ export default function SellerOrders() {
                 placeholder="Search orders by ID or customer name..."
                 className="pl-9"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
               <div className="w-40">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -248,29 +267,58 @@ export default function SellerOrders() {
           </Table>
         </div>
 
-        <div className="py-4 border-t border-gray-200">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        {pagination && (
+          <div className="py-4 border-t border-gray-200">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) handlePageChange(currentPage - 1);
+                    }}
+                    className={
+                      currentPage <= 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
+                </PaginationItem>
+                {Array.from(
+                  { length: pagination.totalPages },
+                  (_, i) => i + 1
+                ).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === currentPage}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page);
+                      }}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < pagination.totalPages)
+                        handlePageChange(currentPage + 1);
+                    }}
+                    className={
+                      currentPage >= pagination.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* API Integration Comment */}

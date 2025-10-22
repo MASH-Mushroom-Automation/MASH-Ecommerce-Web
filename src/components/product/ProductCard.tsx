@@ -35,7 +35,7 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated()) {
-      window.location.href = "/auth/login";
+      window.location.href = "/login";
       return;
     }
     if (inWishlist) {

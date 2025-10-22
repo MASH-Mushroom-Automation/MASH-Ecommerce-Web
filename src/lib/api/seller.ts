@@ -383,4 +383,47 @@ export class SellerApi {
       success: true,
     };
   }
+
+  // Update product
+  static async updateProduct(
+    productId: string,
+    productData: Partial<SellerProduct>
+  ): Promise<ApiResponse<SellerProduct>> {
+    await delay(500);
+
+    // In a real application, you would make an API call to update the product
+    // For now, we'll just simulate the update
+
+    const updatedProduct: SellerProduct = {
+      id: productId,
+      name: productData.name || "Updated Product",
+      description: productData.description || "Updated description",
+      category: productData.category || "Fresh Mushroom",
+      price: productData.price || 0,
+      stock: productData.stock || 0,
+      status: productData.status || "Active",
+      image: productData.image || "/placeholder.png",
+      weight: productData.weight || "500g",
+      createdAt: "2025-01-15",
+      updatedAt: new Date().toISOString().split("T")[0],
+    };
+
+    return {
+      data: updatedProduct,
+      success: true,
+    };
+  }
+
+  // Delete product
+  static async deleteProduct(productId: string): Promise<ApiResponse<boolean>> {
+    await delay(500);
+
+    // In a real application, you would make an API call to delete the product
+    // For now, we'll just simulate the deletion
+
+    return {
+      data: true,
+      success: true,
+    };
+  }
 }

@@ -17,9 +17,17 @@ export default function WishlistPage() {
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch wishlist items when wishlistIds change
   useEffect(() => {
+    if (!isClient) return;
+
     const fetchWishlistItems = async () => {
       if (wishlistIds.length === 0) {
         setWishlistItems([]);
@@ -49,7 +57,21 @@ export default function WishlistPage() {
     };
 
     fetchWishlistItems();
-  }, [wishlistIds]);
+  }, [wishlistIds, isClient]);
+
+  // Show loading state while hydrating
+  if (!isClient) {
+    return (
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="text-center py-12">
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
+            <p className="text-gray-600">Loading your wishlist...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">

@@ -92,7 +92,7 @@ export function useSellerProducts(
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params.page, params.limit, params.search]);
 
   useEffect(() => {
     fetchProducts();
@@ -135,7 +135,7 @@ export function useSellerOrders(
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params.page, params.limit, params.status, params.search]);
 
   useEffect(() => {
     fetchOrders();
@@ -178,7 +178,7 @@ export function useSellerRefunds(
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params.page, params.limit, params.status]);
 
   useEffect(() => {
     fetchRefunds();

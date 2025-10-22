@@ -9,6 +9,7 @@ import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
+import { ProductApiResponse } from "@/types/api";
 import {
   LoadingSpinner,
   ProductCardSkeleton,
@@ -20,7 +21,7 @@ type Props = { params: Promise<{ id: string }> };
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
 
-function ProductDetailsContent({ product }: { product: any }) {
+function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(
     product.images?.[0] ?? product.image
@@ -30,7 +31,7 @@ function ProductDetailsContent({ product }: { product: any }) {
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
-      window.location.href = "/auth/login";
+      window.location.href = "/login";
       return;
     }
     if (inWishlist) {
@@ -67,7 +68,7 @@ function ProductDetailsContent({ product }: { product: any }) {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {allImages.slice(0, 4).map((img, index) => (
+              {allImages.slice(0, 4).map((img: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setActiveImage(img)}
@@ -207,7 +208,9 @@ function RelatedProductsSection({
 }: {
   currentProductId: string;
 }) {
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<ProductApiResponse[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {

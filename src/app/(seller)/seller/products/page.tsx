@@ -36,18 +36,47 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useSellerProducts } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SellerApi } from "@/lib/api/seller";
 
 export default function SellerProducts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
 
   // Use the seller products hook
   const { products, loading, error, pagination, refetch } = useSellerProducts({
     search: searchTerm || undefined,
   });
+
+  // Handle product deletion
+  const handleDeleteProduct = async (productId: string) => {
+    setDeletingProduct(productId);
+    try {
+      await SellerApi.deleteProduct(productId);
+
+      // Refresh the products list
+      refetch();
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      // You could show a toast notification here
+    } finally {
+      setDeletingProduct(null);
+    }
+  };
 
   // Filter products based on status and category
   const filteredProducts = products.filter((product) => {
@@ -218,10 +247,42 @@ export default function SellerProducts() {
                               Edit
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onSelect={(e) => e.preventDefault()}
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Delete Product
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "
+                                  {product.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDeleteProduct(product.id)
+                                  }
+                                  disabled={deletingProduct === product.id}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  {deletingProduct === product.id
+                                    ? "Deleting..."
+                                    : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
