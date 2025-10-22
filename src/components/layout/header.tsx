@@ -15,7 +15,11 @@ import {
   Menu,
   Facebook,
   Instagram,
+  Store,
 } from "lucide-react";
+import { CartDropdown } from "@/components/layout/cart-dropdown";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { Badge } from "@/components/ui/badge";
 
 interface NavLinkProps {
   label: string;
@@ -43,6 +47,7 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
 
 export function Header() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { wishlistCount } = useWishlist();
 
   const handleSearch = () => console.log("Searching for:", searchTerm);
 
@@ -52,10 +57,10 @@ export function Header() {
       <div className="bg-[#1E392A] text-white text-sm py-2">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
-            <Link href="#" className="hover:underline">
+            <Link href="/seller/dashboard" className="hover:underline">
               Seller Center
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/seller/dashboard" className="hover:underline">
               Start Selling
             </Link>
             <Link href="#" className="hover:underline">
@@ -117,24 +122,28 @@ export function Header() {
 
         {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
-          <Link
-            href="/checkout"
-            className="flex items-center hover:text-[#6A994E] transition-colors group"
-          >
-            <ShoppingCart size={24} className="group-hover:text-[#6A994E]" />
-            <span className="text-sm ml-1 hidden sm:block">Cart</span>
-          </Link>
+          <CartDropdown />
 
           <Link
             href="/wishlist"
-            className="flex items-center hover:text-[#6A994E] transition-colors group"
+            className="relative flex items-center hover:text-[#6A994E] transition-colors group"
           >
             <Heart size={24} className="group-hover:text-[#6A994E]" />
             <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
+            {wishlistCount > 0 && (
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
+                {wishlistCount}
+              </Badge>
+            )}
           </Link>
 
           <Link href="/login">
-            <Button variant="primary" size="lg" rounded="lg" className="flex items-center space-x-2">
+            <Button
+              variant="primary"
+              size="lg"
+              rounded="lg"
+              className="flex items-center space-x-2"
+            >
               <User size={20} />
               <span className="hidden sm:inline">Login</span>
             </Button>
@@ -194,11 +203,18 @@ export function Header() {
                     <span>Cart</span>
                   </Link>
                   <Link
-                    href="#"
+                    href="/wishlist"
                     className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
                   >
                     <Heart className="h-5 w-5" />
                     <span>Wishlist</span>
+                  </Link>
+                  <Link
+                    href="/seller/dashboard"
+                    className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                  >
+                    <Store className="h-5 w-5" />
+                    <span>Seller Dashboard</span>
                   </Link>
                   <Button variant="primary" className="mt-4 w-full">
                     <User className="mr-2 h-4 w-4" />

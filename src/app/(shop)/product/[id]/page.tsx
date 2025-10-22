@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, use } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
-import { getProductById } from "@/lib/products";
+import { ShoppingCart, Heart } from "lucide-react";
+import { getProductById, PRODUCTS } from "@/lib/products";
 import type { Product } from "@/lib/products";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { ProductCard } from "@/components/product/ProductCard";
+import { isAuthenticated } from "@/lib/auth";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
@@ -18,6 +21,20 @@ function ProductDetailsContent({ product }: { product: Product }) {
   const [activeImage, setActiveImage] = useState(
     product.images?.[0] ?? product.image
   );
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const inWishlist = isInWishlist(product.id);
+
+  const toggleWishlist = () => {
+    if (!isAuthenticated()) {
+      window.location.href = "/auth/login";
+      return;
+    }
+    if (inWishlist) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product.id);
+    }
+  };
 
   const allImages =
     product.images && product.images.length > 0
@@ -109,11 +126,27 @@ function ProductDetailsContent({ product }: { product: Product }) {
                 </Button>
               </div>
               <Button
-                className="w-full h-11 sm:h-12 flex-1 bg-[#1E392A] hover:bg-[#1E392A]/90 text-white font-semibold rounded-lg"
+                className="flex-1 h-11 sm:h-12 bg-[#1E392A] hover:bg-[#1E392A]/90 text-white font-semibold rounded-lg"
                 disabled={product.inStock === false}
               >
                 <ShoppingCart className="mr-2" size={20} />
                 Add to Cart
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleWishlist}
+                className="h-11 sm:h-12 w-11 sm:w-12 border-2 hover:bg-red-50 hover:border-red-500 transition-colors"
+                aria-label={
+                  inWishlist ? "Remove from wishlist" : "Add to wishlist"
+                }
+              >
+                <Heart
+                  className={cn(
+                    "h-5 w-5 transition-colors",
+                    inWishlist ? "fill-red-500 text-red-500" : "text-gray-600"
+                  )}
+                />
               </Button>
             </div>
           </div>
@@ -122,7 +155,9 @@ function ProductDetailsContent({ product }: { product: Product }) {
         {/* Description Section */}
         <section className="mt-6 sm:mt-8 lg:mt-12">
           <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Description</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Description
+            </h2>
             <div className="mt-3 sm:mt-4 text-gray-600 text-sm sm:text-base space-y-4 sm:space-y-6">
               <p className="leading-relaxed">
                 {product.description ||
@@ -163,83 +198,24 @@ function ProductDetailsContent({ product }: { product: Product }) {
           </h2>
           <div className="relative -mx-4 sm:mx-0">
             <div className="flex overflow-x-auto space-x-4 sm:space-x-6 px-4 sm:px-0 pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
-              {[
-                {
-                  id: 2,
-                  name: "King Oyster Mushrooms",
-                  grower: "AlingNena",
-                  price: 160.0,
-                  weight: "250g",
-                },
-                {
-                  id: 3,
-                  name: "Blue Oyster Mushrooms",
-                  grower: "TheMushroomPatch",
-                  price: 180.0,
-                  weight: "200g",
-                },
-                {
-                  id: 4,
-                  name: "Classic Grey Oyster",
-                  grower: "AlingNena",
-                  price: 110.0,
-                  weight: "250g",
-                },
-                {
-                  id: 5,
-                  name: "Golden Oyster Mushrooms",
-                  grower: "AlingNena",
-                  price: 130.0,
-                  weight: "250g",
-                },
-                {
-                  id: 6,
-                  name: "Dried Shiitake Mushrooms",
-                  grower: "FungiFreshFarms",
-                  price: 200.0,
-                  weight: "50g",
-                },
-              ].map((relatedProduct) => (
-                <div
-                  key={relatedProduct.id}
-                  className="snap-start shrink-0 w-[180px] sm:w-[220px] lg:w-[250px] group"
-                >
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-sm">
-                    <Image
-                      src="/placeholder.png"
-                      alt={relatedProduct.name}
-                      width={250}
-                      height={250}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              {PRODUCTS.filter((p) => p.id !== product.id)
+                .slice(0, 5)
+                .map((relatedProduct) => (
+                  <div
+                    key={relatedProduct.id}
+                    className="snap-start shrink-0 w-[180px] sm:w-[220px] lg:w-[250px]"
+                  >
+                    <ProductCard
+                      id={relatedProduct.id}
+                      name={relatedProduct.name}
+                      farm={relatedProduct.grower}
+                      price={relatedProduct.price}
+                      unit={relatedProduct.weight}
+                      image={relatedProduct.image}
+                      inStock={relatedProduct.inStock}
                     />
                   </div>
-                  <div className="mt-2 sm:mt-3">
-                    <div className="inline-block px-2 py-0.5 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs font-medium mb-1">
-                      @{relatedProduct.grower}
-                    </div>
-                    <h3 className="font-semibold text-sm sm:text-md line-clamp-2 h-10 sm:h-12">
-                      {relatedProduct.name}
-                    </h3>
-                    <div className="flex justify-between items-center mt-2 gap-2">
-                      <div className="flex flex-col">
-                        <p className="text-sm sm:text-base font-bold text-[#1E392A]">
-                          ₱{relatedProduct.price.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          / {relatedProduct.weight}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-8 w-8 sm:h-9 sm:w-9 bg-[#1E392A] text-white hover:bg-[#1E392A]/90 flex-shrink-0"
-                      >
-                        <ShoppingCart size={14} className="sm:w-4 sm:h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </section>
@@ -249,7 +225,8 @@ function ProductDetailsContent({ product }: { product: Product }) {
 }
 
 export default function ProductDetailsRoute({ params }: Props) {
-  const product = getProductById(params.id);
+  const { id } = use(params);
+  const product = getProductById(id);
   if (!product) return notFound();
   return <ProductDetailsContent product={product} />;
 }

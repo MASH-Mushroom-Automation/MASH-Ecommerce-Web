@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { Facebook, Instagram } from "lucide-react";
 
 export function SimpleHeader() {
@@ -13,10 +12,10 @@ export function SimpleHeader() {
       <div className="bg-[#1E392A] text-white text-sm py-2">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
-            <Link href="#" className="hover:underline">
+            <Link href="/seller/dashboard" className="hover:underline">
               Seller Center
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/seller/dashboard" className="hover:underline">
               Start Selling
             </Link>
             <Link href="#" className="hover:underline">

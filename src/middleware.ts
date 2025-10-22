@@ -3,10 +3,12 @@ import type { NextRequest } from "next/server";
 
 // Define protected routes that require authentication
 const protectedRoutes = [
-  "/profile",
-  "/checkout",
+ "/profile",
+  /*"/checkout",
   "/onboarding",
-];
+  "/wishlist",
+  "/seller",
+*/];
 
 // Define auth routes that authenticated users shouldn't access
 const authRoutes = [
@@ -24,11 +26,17 @@ const publicRoutes = [
   "/product",
   "/about",
   "/grower",
+  "/contact",
+  "/faq",
+  "/privacy",
+  "/terms",
+  "/shipping-info",
+  "/returns-policy",
 ];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Get authentication token from cookies
   // TODO: Replace with your actual auth token name
   const authToken = request.cookies.get("auth-token")?.value;
@@ -43,7 +51,9 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   // Check if the current path is public
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute && !isAuthenticated) {

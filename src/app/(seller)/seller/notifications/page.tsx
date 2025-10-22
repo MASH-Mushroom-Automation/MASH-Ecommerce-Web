@@ -1,0 +1,362 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Bell,
+  Check,
+  X,
+  Filter,
+  Search,
+  MoreHorizontal,
+  ArrowLeft,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+// Sample notification data
+const SAMPLE_NOTIFICATIONS = [
+  {
+    id: "1",
+    title: "New Order Received",
+    message:
+      "You have received a new order for 5kg Oyster Mushrooms from John Doe",
+    time: "2 minutes ago",
+    isRead: false,
+    type: "order",
+    priority: "high",
+  },
+  {
+    id: "2",
+    title: "Payment Confirmed",
+    message: "Payment of ₱2,500 has been confirmed for Order #12345",
+    time: "1 hour ago",
+    isRead: false,
+    type: "payment",
+    priority: "high",
+  },
+  {
+    id: "3",
+    title: "Product Review",
+    message: "Customer left a 5-star review for your Shiitake Mushrooms",
+    time: "3 hours ago",
+    isRead: true,
+    type: "review",
+    priority: "medium",
+  },
+  {
+    id: "4",
+    title: "Low Stock Alert",
+    message: "Your Enoki Mushrooms are running low (only 2kg left)",
+    time: "1 day ago",
+    isRead: true,
+    type: "alert",
+    priority: "high",
+  },
+  {
+    id: "5",
+    title: "Weekly Sales Report",
+    message: "Your sales increased by 15% this week compared to last week",
+    time: "2 days ago",
+    isRead: true,
+    type: "report",
+    priority: "low",
+  },
+  {
+    id: "6",
+    title: "New Customer Registration",
+    message: "A new customer has registered and is interested in your products",
+    time: "3 days ago",
+    isRead: true,
+    type: "customer",
+    priority: "medium",
+  },
+  {
+    id: "7",
+    title: "Shipping Update",
+    message: "Order #12346 has been shipped and is on its way to the customer",
+    time: "4 days ago",
+    isRead: true,
+    type: "shipping",
+    priority: "medium",
+  },
+  {
+    id: "8",
+    title: "Monthly Performance",
+    message:
+      "Your store performance for this month is excellent! Keep up the good work.",
+    time: "1 week ago",
+    isRead: true,
+    type: "performance",
+    priority: "low",
+  },
+];
+
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case "order":
+      return "🛒";
+    case "payment":
+      return "💰";
+    case "review":
+      return "⭐";
+    case "alert":
+      return "⚠️";
+    case "report":
+      return "📊";
+    case "customer":
+      return "👤";
+    case "shipping":
+      return "🚚";
+    case "performance":
+      return "📈";
+    default:
+      return "🔔";
+  }
+};
+
+const getNotificationColor = (type: string) => {
+  switch (type) {
+    case "order":
+      return "bg-[#6A994E] text-white";
+    case "payment":
+      return "bg-green-500 text-white";
+    case "review":
+      return "bg-yellow-500 text-white";
+    case "alert":
+      return "bg-orange-500 text-white";
+    case "report":
+      return "bg-blue-500 text-white";
+    case "customer":
+      return "bg-purple-500 text-white";
+    case "shipping":
+      return "bg-indigo-500 text-white";
+    case "performance":
+      return "bg-emerald-500 text-white";
+    default:
+      return "bg-gray-500 text-white";
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "high":
+      return "bg-red-100 text-red-800 border-red-200";
+    case "medium":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "low":
+      return "bg-green-100 text-green-800 border-green-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+};
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const totalCount = notifications.length;
+
+  const markAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const filteredNotifications = notifications.filter((notification) => {
+    const matchesSearch =
+      notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notification.message.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesFilter =
+      filterType === "all" ||
+      (filterType === "unread" && !notification.isRead) ||
+      (filterType === "read" && notification.isRead) ||
+      notification.type === filterType;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const notificationTypes = [
+    { value: "all", label: "All" },
+    { value: "unread", label: "Unread" },
+    { value: "read", label: "Read" },
+    { value: "order", label: "Orders" },
+    { value: "payment", label: "Payments" },
+    { value: "review", label: "Reviews" },
+    { value: "alert", label: "Alerts" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/seller/dashboard">
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+            <p className="text-gray-600">
+              {unreadCount} unread • {totalCount} total
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          {unreadCount > 0 && (
+            <Button
+              onClick={markAllAsRead}
+              className="bg-[#6A994E] hover:bg-[#1E392A] text-white"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Mark All Read
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search notifications..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6A994E] focus:border-transparent"
+              >
+                {notificationTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications List */}
+      <div className="space-y-4">
+        {filteredNotifications.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Bell size={48} className="mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No notifications found
+              </h3>
+              <p className="text-gray-500">
+                {searchTerm || filterType !== "all"
+                  ? "Try adjusting your search or filter criteria"
+                  : "You're all caught up! No notifications at the moment."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredNotifications.map((notification) => (
+            <Card
+              key={notification.id}
+              className={`transition-all hover:shadow-md ${
+                !notification.isRead ? "border-l-4 border-l-[#6A994E]" : ""
+              }`}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4">
+                  <div
+                    className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-lg ${getNotificationColor(
+                      notification.type
+                    )}`}
+                  >
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {notification.title}
+                          </h3>
+                          {!notification.isRead && (
+                            <Badge className="bg-[#6A994E] text-white">
+                              New
+                            </Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={getPriorityColor(notification.priority)}
+                          >
+                            {notification.priority}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-600 mb-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          {notification.time}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        {!notification.isRead && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => markAsRead(notification.id)}
+                            className="text-gray-400 hover:text-[#6A994E]"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeNotification(notification.id)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

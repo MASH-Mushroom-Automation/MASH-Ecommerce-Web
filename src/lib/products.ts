@@ -28,7 +28,7 @@ export const PRODUCTS: Product[] = [
     ],
     image: "/placeholder.png",
     category: "Fresh Mushroom",
-    grower: "Simply Fresh Farm",
+    grower: "FungiFreshFarms",
     tag: "New",
     inStock: true,
   },
@@ -47,7 +47,7 @@ export const PRODUCTS: Product[] = [
     ],
     image: "/placeholder.png",
     category: "Fresh Mushroom",
-    grower: "Simply Fresh Farm",
+    grower: "FungiFreshFarms",
     inStock: true,
   },
   {
@@ -65,7 +65,27 @@ export const PRODUCTS: Product[] = [
     ],
     image: "/placeholder.png",
     category: "Fresh Mushroom",
-    grower: "The Mushroom Patch Cultivation",
+    grower: "TheMushroomPatchBukidnon",
+    inStock: true,
+  },
+  {
+    id: "4",
+    name: "DIY Mushroom Growing Kit",
+    description:
+      "Everything you need to grow your own oyster mushrooms at home! Perfect for beginners.",
+    price: 350,
+    weight: "1 kit",
+    images: [
+      "/placeholder.png",
+      "/placeholder.png",
+      "/placeholder.png",
+      "/placeholder.png",
+    ],
+    image: "/placeholder.png",
+    category: "Growing Kits",
+    grower: "KingFarms",
+    tag: "Popular",
+    inStock: true,
   },
   {
     id: "9",
@@ -82,7 +102,8 @@ export const PRODUCTS: Product[] = [
     ],
     image: "/placeholder.png",
     category: "Mushroom Products",
-    grower: "Simply Fresh Farm",
+    grower: "FungiFreshFarms",
+    inStock: true,
   },
 ];
 
