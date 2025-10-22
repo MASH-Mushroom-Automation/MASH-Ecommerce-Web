@@ -68,13 +68,13 @@ export function Header() {
             </Link>
           </div>
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="#" className="hover:underline">
+            <Link href="/blog" className="hover:underline">
               BLOG
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/faq" className="hover:underline">
               FAQ
             </Link>
-            <Link href="#" className="hover:underline">
+            <Link href="/contact" className="hover:underline">
               CONTACT US
             </Link>
 

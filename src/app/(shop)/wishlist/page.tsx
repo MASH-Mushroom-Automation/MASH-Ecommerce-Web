@@ -4,15 +4,52 @@ import Link from "next/link";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
-import { PRODUCTS } from "@/lib/products";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useProducts } from "@/hooks/useProducts";
+import {
+  ProductGridSkeleton,
+  LoadingSpinner,
+} from "@/components/ui/loading-spinner";
+import { useState, useEffect } from "react";
 
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist } = useWishlist();
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const wishlistItems = PRODUCTS.filter((product) =>
-    wishlistIds.includes(product.id)
-  );
+  // Fetch wishlist items when wishlistIds change
+  useEffect(() => {
+    const fetchWishlistItems = async () => {
+      if (wishlistIds.length === 0) {
+        setWishlistItems([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Fetch all products and filter by wishlist IDs
+        const { ProductsApi } = await import("@/lib/api/products");
+        const response = await ProductsApi.getProducts({ limit: 1000 }); // Get all products
+        const filtered = response.data.filter((product) =>
+          wishlistIds.includes(product.id)
+        );
+        setWishlistItems(filtered);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load wishlist"
+        );
+        setWishlistItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlistItems();
+  }, [wishlistIds]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -40,8 +77,19 @@ export default function WishlistPage() {
           )}
         </div>
 
-        {/* Empty State */}
-        {wishlistItems.length === 0 ? (
+        {/* Loading State */}
+        {loading ? (
+          <div className="text-center py-12">
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
+            <p className="text-gray-600">Loading your wishlist...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <p className="text-red-600 mb-4">Error: {error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        ) : wishlistItems.length === 0 ? (
+          /* Empty State */
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">

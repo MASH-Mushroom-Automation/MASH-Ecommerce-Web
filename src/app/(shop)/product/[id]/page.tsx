@@ -5,18 +5,22 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart } from "lucide-react";
-import { getProductById, PRODUCTS } from "@/lib/products";
-import type { Product } from "@/lib/products";
+import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
+import {
+  LoadingSpinner,
+  ProductCardSkeleton,
+} from "@/components/ui/loading-spinner";
+import { ProductsApi } from "@/lib/api/products";
 
 type Props = { params: Promise<{ id: string }> };
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
 
-function ProductDetailsContent({ product }: { product: Product }) {
+function ProductDetailsContent({ product }: { product: any }) {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(
     product.images?.[0] ?? product.image
@@ -192,41 +196,96 @@ function ProductDetailsContent({ product }: { product: Product }) {
         </section>
 
         {/* Related Products Section */}
-        <section className="mt-6 sm:mt-8 lg:mt-12">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 px-1">
-            Related Products
-          </h2>
-          <div className="relative -mx-4 sm:mx-0">
-            <div className="flex overflow-x-auto space-x-4 sm:space-x-6 px-4 sm:px-0 pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
-              {PRODUCTS.filter((p) => p.id !== product.id)
-                .slice(0, 5)
-                .map((relatedProduct) => (
-                  <div
-                    key={relatedProduct.id}
-                    className="snap-start shrink-0 w-[180px] sm:w-[220px] lg:w-[250px]"
-                  >
-                    <ProductCard
-                      id={relatedProduct.id}
-                      name={relatedProduct.name}
-                      farm={relatedProduct.grower}
-                      price={relatedProduct.price}
-                      unit={relatedProduct.weight}
-                      image={relatedProduct.image}
-                      inStock={relatedProduct.inStock}
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
-        </section>
+        <RelatedProductsSection currentProductId={product.id} />
       </main>
     </div>
   );
 }
 
+function RelatedProductsSection({
+  currentProductId,
+}: {
+  currentProductId: string;
+}) {
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      try {
+        const response = await ProductsApi.getProducts({ limit: 5 });
+        const filtered = response.data.filter((p) => p.id !== currentProductId);
+        setRelatedProducts(filtered);
+      } catch (error) {
+        console.error("Failed to fetch related products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [currentProductId]);
+
+  return (
+    <section className="mt-6 sm:mt-8 lg:mt-12">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 px-1">
+        Related Products
+      </h2>
+      <div className="relative -mx-4 sm:mx-0">
+        {loading ? (
+          <div className="flex space-x-4 sm:space-x-6 px-4 sm:px-0 pb-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="snap-start shrink-0 w-[180px] sm:w-[220px] lg:w-[250px]"
+              >
+                <ProductCardSkeleton />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex overflow-x-auto space-x-4 sm:space-x-6 px-4 sm:px-0 pb-4 scroll-smooth snap-x snap-mandatory scrollbar-hide">
+            {relatedProducts.map((relatedProduct) => (
+              <div
+                key={relatedProduct.id}
+                className="snap-start shrink-0 w-[180px] sm:w-[220px] lg:w-[250px]"
+              >
+                <ProductCard
+                  id={relatedProduct.id}
+                  name={relatedProduct.name}
+                  farm={relatedProduct.grower}
+                  price={relatedProduct.price}
+                  unit={relatedProduct.weight}
+                  image={relatedProduct.image}
+                  inStock={relatedProduct.inStock}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function ProductDetailsRoute({ params }: Props) {
   const { id } = use(params);
-  const product = getProductById(id);
-  if (!product) return notFound();
+  const { product, loading, error } = useProduct(id);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return notFound();
+  }
+
   return <ProductDetailsContent product={product} />;
 }

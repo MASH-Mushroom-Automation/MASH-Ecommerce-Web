@@ -6,6 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem } from "@/components/ui/form";
+import { useCart } from "@/hooks/useCart";
+import { useProducts } from "@/hooks/useProducts";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useState, useEffect } from "react";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -20,6 +24,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function CheckoutPage() {
+  const { items, summary, loading: cartLoading } = useCart();
+  const [cartProducts, setCartProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -33,15 +42,48 @@ export default function CheckoutPage() {
     },
   });
 
-  const subtotal: number = 400;
-  const tax: number = 12;
-  const shipping: number = 0;
-  const total: number = subtotal + tax + shipping;
+  // Fetch product details for cart items
+  useEffect(() => {
+    const fetchCartProducts = async () => {
+      if (items.length === 0) {
+        setCartProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { ProductsApi } = await import("@/lib/api/products");
+        const productPromises = items.map((item) =>
+          ProductsApi.getProductById(item.productId)
+        );
+        const responses = await Promise.all(productPromises);
+        const products = responses
+          .filter((response) => response.success && response.data)
+          .map((response) => response.data!);
+
+        setCartProducts(products);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load cart items"
+        );
+        setCartProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCartProducts();
+  }, [items]);
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6 sm:py-8 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Checkout</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          Checkout
+        </h1>
         <div className="lg:flex lg:gap-8 xl:gap-12">
           {/* Left: Form */}
           <div className="lg:w-3/5 w-full space-y-6 sm:space-y-8 mb-8 lg:mb-0">
@@ -85,7 +127,9 @@ export default function CheckoutPage() {
                               onChange={() => field.onChange("delivery")}
                               className="sr-only"
                             />
-                            <span className="text-sm sm:text-base font-medium">Delivery</span>
+                            <span className="text-sm sm:text-base font-medium">
+                              Delivery
+                            </span>
                           </label>
                         </FormItem>
                       )}
@@ -109,7 +153,9 @@ export default function CheckoutPage() {
                               onChange={() => field.onChange("pickup")}
                               className="sr-only"
                             />
-                            <span className="text-sm sm:text-base font-medium">Pick up</span>
+                            <span className="text-sm sm:text-base font-medium">
+                              Pick up
+                            </span>
                           </label>
                         </FormItem>
                       )}
@@ -155,7 +201,9 @@ export default function CheckoutPage() {
                             </h4>
                           </div>
                           <div className="text-gray-700 space-y-1 text-sm sm:text-base">
-                            <p className="font-medium">Juanito Dela Cruz · (+63) 956 955 2808</p>
+                            <p className="font-medium">
+                              Juanito Dela Cruz · (+63) 956 955 2808
+                            </p>
                             <p>
                               Brgy 176-D, Bagong Silang, Caloocan City METRO
                               MANILA 1428
@@ -182,7 +230,9 @@ export default function CheckoutPage() {
                             onChange={() => field.onChange("add_new")}
                             className="sr-only"
                           />
-                          <span className="text-sm sm:text-base font-medium">Add a new address</span>
+                          <span className="text-sm sm:text-base font-medium">
+                            Add a new address
+                          </span>
                         </label>
                       </FormItem>
                     )}
@@ -193,7 +243,10 @@ export default function CheckoutPage() {
 
             {/* Nav buttons */}
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-              <Button variant="outline" className="w-full sm:w-auto px-8 py-3 border-gray-300">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto px-8 py-3 border-gray-300"
+              >
                 Back
               </Button>
               <Button className="w-full sm:w-auto px-8 py-3 bg-[#1E392A] hover:bg-[#1E392A]/90 font-semibold">
@@ -225,57 +278,83 @@ export default function CheckoutPage() {
                 Summary
               </h2>
               <div className="mt-4 space-y-4">
-                <div className="flex items-start gap-3">
-                  <Image
-                    src="/placeholder.png"
-                    alt="White Oyster Mushrooms"
-                    width={56}
-                    height={56}
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-md object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm sm:text-base line-clamp-2">
-                      Fresh White Oyster Mushrooms
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1">Quantity: 1</p>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <LoadingSpinner className="mx-auto mb-4" />
+                    <p className="text-gray-600">Loading cart items...</p>
                   </div>
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base flex-shrink-0">₱120.00</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Image
-                    src="/placeholder.png"
-                    alt="Pink Oyster Mushrooms"
-                    width={56}
-                    height={56}
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-md object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm sm:text-base line-clamp-2">
-                      Vibrant Pink Oyster Mushrooms
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1">Quantity: 2</p>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-600 mb-4">Error: {error}</p>
+                    <Button onClick={() => window.location.reload()}>
+                      Try Again
+                    </Button>
                   </div>
-                  <p className="font-semibold text-gray-900 text-sm sm:text-base flex-shrink-0">₱280.00</p>
-                </div>
+                ) : cartProducts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">Your cart is empty</p>
+                  </div>
+                ) : (
+                  cartProducts.map((product) => {
+                    const cartItem = items.find(
+                      (item) => item.productId === product.id
+                    );
+                    if (!cartItem) return null;
+
+                    return (
+                      <div key={product.id} className="flex items-start gap-3">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={56}
+                          height={56}
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-md object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm sm:text-base line-clamp-2">
+                            {product.name}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                            Quantity: {cartItem.quantity}
+                          </p>
+                        </div>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base flex-shrink-0">
+                          ₱{(product.price * cartItem.quantity).toFixed(2)}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-4 space-y-2 text-sm sm:text-base text-gray-700">
                 <div className="flex justify-between">
-                  <p>Subtotal (5)</p>
-                  <p className="font-medium">₱{subtotal.toFixed(2)}</p>
+                  <p>
+                    Subtotal (
+                    {summary.items.reduce(
+                      (sum, item) => sum + item.quantity,
+                      0
+                    )}
+                    )
+                  </p>
+                  <p className="font-medium">₱{summary.subtotal.toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between">
                   <p>Tax</p>
-                  <p className="font-medium">₱{tax.toFixed(2)}</p>
+                  <p className="font-medium">₱{summary.tax.toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between">
                   <p>Shipping Fee</p>
-                  <p className="font-medium text-green-600">{shipping === 0 ? "Free" : `₱${shipping.toFixed(2)}`}</p>
+                  <p className="font-medium text-green-600">
+                    {summary.shipping === 0
+                      ? "Free"
+                      : `₱${summary.shipping.toFixed(2)}`}
+                  </p>
                 </div>
               </div>
               <div className="mt-4 border-t border-gray-200 pt-4 flex justify-between items-center font-bold text-gray-900 text-base sm:text-lg">
                 <p>Total Fee</p>
-                <p>₱{total.toFixed(2)}</p>
+                <p>₱{summary.total.toFixed(2)}</p>
               </div>
             </div>
           </div>

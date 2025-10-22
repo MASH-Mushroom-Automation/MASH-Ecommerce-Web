@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { PRODUCTS } from "@/lib/products";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
 import {
@@ -16,9 +15,16 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SlidersHorizontal, Grid, List } from "lucide-react";
-
-// Using shared mock data for now; replace with API calls later
-const MUSHROOM_PRODUCTS = PRODUCTS;
+import {
+  useProducts,
+  useProductCategories,
+  useProductGrowers,
+} from "@/hooks/useProducts";
+import {
+  ProductGridSkeleton,
+  LoadingSpinner,
+} from "@/components/ui/loading-spinner";
+import { ProductsListParams } from "@/types/api";
 
 export default function ProductCatalogPage() {
   // Filter states
@@ -31,34 +37,56 @@ export default function ProductCatalogPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Get unique categories and growers
-  const categories = Array.from(
-    new Set(MUSHROOM_PRODUCTS.map((p) => p.category))
-  );
-  const growers = Array.from(new Set(MUSHROOM_PRODUCTS.map((p) => p.grower)));
+  // API parameters
+  const [apiParams, setApiParams] = useState<ProductsListParams>({
+    page: 1,
+    limit: itemsPerPage,
+    minPrice: 0,
+    maxPrice: 12000,
+  });
 
-  const filtered = useMemo(() => {
-    const res = MUSHROOM_PRODUCTS.filter((p) => {
-      const categoryMatch =
-        selectedCategories.length === 0 ||
-        selectedCategories.includes(p.category);
-      const growerMatch =
-        selectedGrowers.length === 0 || selectedGrowers.includes(p.grower);
-      const priceMatch = p.price >= priceRange[0] && p.price <= priceRange[1];
-      return categoryMatch && growerMatch && priceMatch;
-    });
+  // Fetch data using custom hooks
+  const { products, loading, error, pagination, setParams } =
+    useProducts(apiParams);
+  const { categories, loading: categoriesLoading } = useProductCategories();
+  const { growers, loading: growersLoading } = useProductGrowers();
 
-    if (sort === "price-asc") res.sort((a, b) => a.price - b.price);
-    if (sort === "price-desc") res.sort((a, b) => b.price - a.price);
-    return res;
+  // Update API parameters when filters change
+  useEffect(() => {
+    const newParams: ProductsListParams = {
+      page: currentPage,
+      limit: itemsPerPage,
+      minPrice: priceRange[0],
+      maxPrice: priceRange[1],
+      category:
+        selectedCategories.length > 0 ? selectedCategories[0] : undefined,
+      grower: selectedGrowers.length > 0 ? selectedGrowers[0] : undefined,
+    };
+
+    // Handle sorting
+    if (sort === "price-asc") {
+      newParams.sortBy = "price";
+      newParams.sortOrder = "asc";
+    } else if (sort === "price-desc") {
+      newParams.sortBy = "price";
+      newParams.sortOrder = "desc";
+    }
+
+    setApiParams(newParams);
+    setParams(newParams);
+  }, [
+    selectedCategories,
+    selectedGrowers,
+    priceRange,
+    sort,
+    currentPage,
+    setParams,
+  ]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
   }, [selectedCategories, selectedGrowers, priceRange, sort]);
-
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedProducts = filtered.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -337,80 +365,100 @@ export default function ProductCatalogPage() {
             </div>
 
             {/* Product Grid */}
-            <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-              {paginatedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  farm={product.grower}
-                  price={product.price}
-                  unit={product.weight}
-                  image={product.image}
-                  inStock={true}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <ProductGridSkeleton count={itemsPerPage} />
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-600 mb-4">
+                  Error loading products: {error}
+                </p>
+                <Button onClick={() => window.location.reload()}>
+                  Try Again
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    name={product.name}
+                    farm={product.grower}
+                    price={product.price}
+                    unit={product.weight}
+                    image={product.image}
+                    inStock={product.inStock !== false}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex justify-center items-center gap-2 mt-8">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="bg-white"
-              >
-                «
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="bg-white"
-              >
-                ‹
-              </Button>
-              {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
-                const page = i + 1;
-                return (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="icon"
-                    onClick={() => setCurrentPage(page)}
-                    className={
-                      currentPage === page
-                        ? "bg-[#1E392A] text-white hover:bg-[#1E392A]/90"
-                        : "bg-white"
-                    }
-                  >
-                    {page}
-                  </Button>
-                );
-              })}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="bg-white"
-              >
-                ›
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="bg-white"
-              >
-                »
-              </Button>
-            </div>
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="bg-white"
+                >
+                  «
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="bg-white"
+                >
+                  ‹
+                </Button>
+                {Array.from(
+                  { length: Math.min(7, pagination.totalPages) },
+                  (_, i) => {
+                    const page = i + 1;
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => setCurrentPage(page)}
+                        className={
+                          currentPage === page
+                            ? "bg-[#1E392A] text-white hover:bg-[#1E392A]/90"
+                            : "bg-white"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    );
+                  }
+                )}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(pagination.totalPages, p + 1)
+                    )
+                  }
+                  disabled={currentPage === pagination.totalPages}
+                  className="bg-white"
+                >
+                  ›
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                  className="bg-white"
+                >
+                  »
+                </Button>
+              </div>
+            )}
           </main>
         </div>
       </div>

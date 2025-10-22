@@ -14,31 +14,10 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { Leaf, Truck, Heart } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
-import { PRODUCTS } from "@/lib/products";
+import { useHomePageData } from "@/hooks/useMain";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-const MOCK_GROWERS = [
-  {
-    id: 1,
-    name: "Fungi Fresh Farms",
-    tagline: "Urban-grown gourmet mushrooms for the modern kitchen.",
-    location: "Caloocan City, Metro Manila",
-    logo: "/placeholder.png",
-  },
-  {
-    id: 2,
-    name: "The Mushroom Patch Bukidnon",
-    tagline: "From the cool highlands of Bukidnon, delivered to your door.",
-    location: "Lantapan, Bukidnon",
-    logo: "/placeholder.png",
-  },
-  {
-    id: 3,
-    name: "Kabutehan ni Aling Nena",
-    tagline: "Traditional mushroom growing with a mother's touch.",
-    location: "Antipolo, Rizal",
-    logo: "/placeholder.png",
-  },
-];
+// This will be replaced with dynamic data from the hook
 
 const HeroSection: React.FC = () => {
   const slides = [
@@ -122,43 +101,85 @@ const HeroSection: React.FC = () => {
   );
 };
 
-const FeaturedProductsSection: React.FC = () => (
-  <section className="py-12 sm:py-16 lg:py-20 bg-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-8 sm:mb-12">
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
-          Our Bestsellers
-        </h2>
-        <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-          Hand-picked favorites from our local growers, loved by our community.
-        </p>
-      </div>
+const FeaturedProductsSection: React.FC = () => {
+  const { homeData, loading, error } = useHomePageData();
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-        {PRODUCTS.slice(0, 4).map((product) => (
-          <ProductCard
-            key={product.id}
-            id={product.id}
-            name={product.name}
-            farm={product.grower}
-            price={product.price}
-            unit={product.weight}
-            image={product.image}
-            inStock={product.inStock}
-          />
-        ))}
-      </div>
+  if (loading) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+              Our Bestsellers
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              Hand-picked favorites from our local growers, loved by our
+              community.
+            </p>
+          </div>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <LoadingSpinner size="lg" className="mx-auto mb-4" />
+              <p className="text-gray-600">Loading featured products...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-      <div className="text-center mt-8 sm:mt-12">
-        <Link href="/catalog">
-          <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
-            View More Products
-          </Button>
-        </Link>
+  if (error) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error: {error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            Our Bestsellers
+          </h2>
+          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            Hand-picked favorites from our local growers, loved by our
+            community.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          {homeData?.featuredProducts?.slice(0, 4).map((product) => (
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              farm={product.grower}
+              price={product.price}
+              unit={product.weight}
+              image={product.image}
+              inStock={product.inStock}
+            />
+          ))}
+        </div>
+
+        <div className="text-center mt-8 sm:mt-12">
+          <Link href="/catalog">
+            <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
+              View More Products
+            </Button>
+          </Link>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 const FeatureItem: React.FC<{
   icon: React.ReactNode;
@@ -209,14 +230,20 @@ const WhyMASHSection: React.FC = () => (
   </section>
 );
 
-const GrowerCard: React.FC<{ grower: (typeof MOCK_GROWERS)[0] }> = ({
-  grower,
-}) => (
+const GrowerCard: React.FC<{
+  grower: {
+    id: number;
+    name: string;
+    logo?: string;
+    location?: string;
+    tagline?: string;
+  };
+}> = ({ grower }) => (
   <Card className="border-t-8 border-t-[#6A994E]">
     <CardContent className="p-6 text-center">
       <div className="flex justify-center mb-4">
         <Image
-          src={grower.logo}
+          src={grower.logo || "/placeholder.png"}
           alt={grower.name}
           width={64}
           height={64}
@@ -226,9 +253,11 @@ const GrowerCard: React.FC<{ grower: (typeof MOCK_GROWERS)[0] }> = ({
       <h3 className="text-2xl font-semibold mb-1 text-[#212121]">
         {grower.name}
       </h3>
-      <p className="text-gray-500 text-sm mb-3">{grower.location}</p>
+      <p className="text-gray-500 text-sm mb-3">
+        {grower.location || "Location not specified"}
+      </p>
       <p className="text-gray-600 text-sm italic mb-4">
-        &ldquo;{grower.tagline}&rdquo;
+        &ldquo;{grower.tagline || "Quality mushrooms from local growers"}&rdquo;
       </p>
       <div className="flex justify-center gap-4 mt-4">
         <Link
@@ -248,34 +277,74 @@ const GrowerCard: React.FC<{ grower: (typeof MOCK_GROWERS)[0] }> = ({
   </Card>
 );
 
-const FeaturedGrowersSection: React.FC = () => (
-  <section className="py-12 sm:py-16 lg:py-20 bg-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-8 sm:mb-12">
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
-          Meet Our Growers
-        </h2>
-        <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-          The passionate farmers behind your food.
-        </p>
-      </div>
+const FeaturedGrowersSection: React.FC = () => {
+  const { homeData, loading, error } = useHomePageData();
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-        {MOCK_GROWERS.map((grower) => (
-          <GrowerCard key={grower.id} grower={grower} />
-        ))}
-      </div>
+  if (loading) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+              Meet Our Growers
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              The passionate farmers behind your food.
+            </p>
+          </div>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <LoadingSpinner size="lg" className="mx-auto mb-4" />
+              <p className="text-gray-600">Loading growers...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-      <div className="text-center mt-8 sm:mt-12">
-        <Link href="/grower">
-          <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
-            View All Growers
-          </Button>
-        </Link>
+  if (error) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error: {error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            Meet Our Growers
+          </h2>
+          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            The passionate farmers behind your food.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          {homeData?.topGrowers?.slice(0, 3).map((grower) => (
+            <GrowerCard key={grower.id} grower={grower} />
+          ))}
+        </div>
+
+        <div className="text-center mt-8 sm:mt-12">
+          <Link href="/grower">
+            <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
+              View All Growers
+            </Button>
+          </Link>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default function Home() {
   return (

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Home, MapPin, Phone, Clock, Send } from "lucide-react";
+import { useGrowers } from "@/hooks/useMain";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // --- TYPE DEFINITIONS ---
 type Grower = {
@@ -16,41 +18,7 @@ type Grower = {
   };
 };
 
-// --- MOCK DATA ---
-const growers: Grower[] = [
-  {
-    id: 1,
-    name: "Fungi Fresh Farms",
-    address: "Caloocan City, Metro Manila",
-    phone: "+63 956 955 2808",
-    hours: "7AM to 9PM, MON-FRI",
-    coords: { lat: 14.7583, lng: 121.0453 }, // Approx. coordinates for Caloocan
-  },
-  {
-    id: 2,
-    name: "The Mushroom Patch Bukidnon",
-    address: "Lantapan, Bukidnon",
-    phone: "+63 922 524 1234",
-    hours: "7AM to 9PM, MON-FRI",
-    coords: { lat: 8.0811, lng: 125.0119 }, // Approx. coordinates for Lantapan
-  },
-  {
-    id: 3,
-    name: "Kabutehan ni Aling Nena",
-    address: "Antipolo, Rizal",
-    phone: "+63 966 552 3612",
-    hours: "7AM to 9PM, MON-FRI",
-    coords: { lat: 14.5864, lng: 121.1754 }, // Approx. coordinates for Antipolo
-  },
-  {
-    id: 4,
-    name: "Shroomarket",
-    address: "Malate, Manila",
-    phone: "+63 917 252 7378",
-    hours: "7AM to 9PM, MON-FRI",
-    coords: { lat: 14.5699, lng: 120.9929 }, // Approx. coordinates for Malate
-  },
-];
+// This will be replaced with dynamic data from the hook
 
 // --- HELPER & UI COMPONENTS ---
 
@@ -85,7 +53,60 @@ const GrowerInfoRow = ({
 
 // --- MAIN GROWERS PAGE COMPONENT ---
 export default function GrowersPage() {
-  const [selectedGrower, setSelectedGrower] = useState<Grower>(growers[0]);
+  const { growers, loading, error } = useGrowers();
+  const [selectedGrower, setSelectedGrower] = useState<Grower | null>(null);
+
+  // Set the first grower as selected when data loads
+  React.useEffect(() => {
+    if (growers.length > 0 && !selectedGrower) {
+      setSelectedGrower(growers[0]);
+    }
+  }, [growers, selectedGrower]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white font-['Roboto']">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <LoadingSpinner size="lg" className="mx-auto mb-4" />
+              <p className="text-gray-600">Loading growers...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white font-['Roboto']">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error: {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedGrower) {
+    return (
+      <div className="min-h-screen bg-white font-['Roboto']">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <p className="text-gray-600">No growers found.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const mapEmbedUrl = `https://maps.google.com/maps?q=${selectedGrower.coords.lat},${selectedGrower.coords.lng}&hl=en&z=14&output=embed`;
 

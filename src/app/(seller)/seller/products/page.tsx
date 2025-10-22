@@ -36,67 +36,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// Sample product data for seller products
-// This would be replaced with API data in production
-const SELLER_PRODUCTS = [
-  {
-    id: "1",
-    name: "Fresh White Oyster Mushrooms",
-    image: "/placeholder.png",
-    price: 120,
-    stock: 50,
-    category: "Fresh Mushroom",
-    status: "Active",
-  },
-  {
-    id: "2",
-    name: "Vibrant Pink Oyster Mushrooms",
-    image: "/placeholder.png",
-    price: 140,
-    stock: 30,
-    category: "Fresh Mushroom",
-    status: "Active",
-  },
-  {
-    id: "3",
-    name: "Blue Oyster Mushrooms",
-    image: "/placeholder.png",
-    price: 150,
-    stock: 0,
-    category: "Fresh Mushroom",
-    status: "Out of Stock",
-  },
-  {
-    id: "4",
-    name: "DIY Mushroom Growing Kit",
-    image: "/placeholder.png",
-    price: 350,
-    stock: 15,
-    category: "Growing Kits",
-    status: "Active",
-  },
-  {
-    id: "5",
-    name: "Crispy Mushroom Chicharon",
-    image: "/placeholder.png",
-    price: 150,
-    stock: 25,
-    category: "Mushroom Products",
-    status: "Active",
-  },
-];
+import { useSellerProducts } from "@/hooks/useSeller";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function SellerProducts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Filter products based on search term and filters
-  const filteredProducts = SELLER_PRODUCTS.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // Use the seller products hook
+  const { products, loading, error, pagination, refetch } = useSellerProducts({
+    search: searchTerm || undefined,
+  });
+
+  // Filter products based on status and category
+  const filteredProducts = products.filter((product) => {
     const matchesStatus =
       statusFilter === "all" ||
       product.status.toLowerCase() === statusFilter.toLowerCase();
@@ -104,8 +58,28 @@ export default function SellerProducts() {
       categoryFilter === "all" ||
       product.category.toLowerCase() === categoryFilter.toLowerCase();
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesStatus && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">Error: {error}</p>
+        <Button onClick={() => refetch()}>Try Again</Button>
+      </div>
+    );
+  }
 
   return (
     <div>

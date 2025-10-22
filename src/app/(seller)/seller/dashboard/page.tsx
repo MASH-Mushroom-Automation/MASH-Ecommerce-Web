@@ -32,7 +32,6 @@ import {
   Line,
 } from "recharts";
 import {
-  TrendingUp,
   Package,
   ShoppingBag,
   DollarSign,
@@ -41,64 +40,33 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-
-// Sample data for charts and statistics
-// This would be replaced with API data in production
-const salesData = [
-  { name: "Mon", sales: 4000 },
-  { name: "Tue", sales: 3000 },
-  { name: "Wed", sales: 5000 },
-  { name: "Thu", sales: 2780 },
-  { name: "Fri", sales: 1890 },
-  { name: "Sat", sales: 6390 },
-  { name: "Sun", sales: 3490 },
-];
-
-const productPerformanceData = [
-  {
-    name: "Fresh White Oyster Mushrooms",
-    sales: 120,
-    stock: 50,
-    revenue: 14400,
-  },
-  {
-    name: "Vibrant Pink Oyster Mushrooms",
-    sales: 85,
-    stock: 30,
-    revenue: 11900,
-  },
-  { name: "Blue Oyster Mushrooms", sales: 65, stock: 0, revenue: 9750 },
-  { name: "DIY Mushroom Growing Kit", sales: 45, stock: 15, revenue: 15750 },
-];
-
-const recentOrders = [
-  {
-    id: "ORD-001",
-    date: "2025-10-20",
-    customer: "John Doe",
-    items: 3,
-    total: 450,
-    status: "Pending",
-  },
-  {
-    id: "ORD-002",
-    date: "2025-10-19",
-    customer: "Jane Smith",
-    items: 2,
-    total: 280,
-    status: "Processing",
-  },
-  {
-    id: "ORD-003",
-    date: "2025-10-18",
-    customer: "Mike Johnson",
-    items: 1,
-    total: 150,
-    status: "Shipped",
-  },
-];
+import { useSellerDashboard } from "@/hooks/useSeller";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function SellerDashboard() {
+  const { stats, salesData, productPerformance, recentOrders, loading, error } =
+    useSellerDashboard();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">Error: {error}</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -112,33 +80,33 @@ export default function SellerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           title="Total Sales"
-          value="₱42,390"
-          change="+12.5%"
+          value={`₱${stats?.totalSales.toLocaleString() || "0"}`}
+          change={`+${stats?.salesGrowth || 0}%`}
           trend="up"
           description="vs. last month"
           icon={<DollarSign className="h-5 w-5" />}
         />
         <StatsCard
           title="Orders"
-          value="153"
-          change="+8.2%"
+          value={stats?.totalOrders.toString() || "0"}
+          change={`+${stats?.orderGrowth || 0}%`}
           trend="up"
           description="vs. last month"
           icon={<ShoppingBag className="h-5 w-5" />}
         />
         <StatsCard
           title="Products"
-          value="24"
+          value={stats?.totalProducts.toString() || "0"}
           change="+4"
           trend="up"
           description="new this month"
           icon={<Package className="h-5 w-5" />}
         />
         <StatsCard
-          title="Customers"
-          value="1,205"
-          change="-2.3%"
-          trend="down"
+          title="Revenue"
+          value={`₱${stats?.totalRevenue.toLocaleString() || "0"}`}
+          change={`+${stats?.revenueGrowth || 0}%`}
+          trend="up"
           description="vs. last month"
           icon={<Users className="h-5 w-5" />}
         />
@@ -256,7 +224,7 @@ export default function SellerDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {productPerformanceData.map((product) => (
+              {productPerformance.map((product) => (
                 <TableRow key={product.name}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-right">{product.sales}</TableCell>
