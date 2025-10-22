@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,25 +12,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Mail, Phone, MapPin, Facebook, MessageCircle } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
+  const ContactSchema = z.object({
+    name: z.string().min(2, "Full name is required"),
+    email: z.string().email("Enter a valid email address"),
+    subject: z.enum([
+      "order",
+      "delivery",
+      "product",
+      "refund",
+      "partnership",
+      "other",
+    ]),
+    message: z
+      .string()
+      .min(10, "Please provide more details (min 10 characters)"),
   });
-  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement actual form submission
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 3000);
+  type ContactForm = z.infer<typeof ContactSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactForm>({
+    resolver: zodResolver(ContactSchema),
+    defaultValues: { name: "", email: "", message: "" },
+  });
+
+  const onSubmit = async (values: ContactForm) => {
+    void values;
+    try {
+      // TODO: Implement actual form submission
+      await new Promise((r) => setTimeout(r, 700));
+      toast.success("Message sent", {
+        description: "We'll get back to you within 24 hours.",
+      });
+      reset();
+    } catch {
+      toast.error("Failed to send message", {
+        description: "Please try again later.",
+      });
+    }
   };
 
   return (
@@ -96,92 +124,96 @@ export default function ContactPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {submitted ? (
-                <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-6 text-center">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-3 text-green-600" />
-                  <h3 className="font-semibold text-lg mb-2">Message Sent!</h3>
-                  <p className="text-sm">
-                    Thank you for contacting us. We&apos;ll get back to you
-                    within 24 hours.
-                  </p>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Juan Dela Cruz"
+                    {...register("name")}
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      required
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="Juan Dela Cruz"
-                    />
-                  </div>
 
-                  <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="juan@example.com"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="juan@example.com"
+                    {...register("email")}
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
 
-                  <div>
-                    <Label htmlFor="subject">Subject *</Label>
-                    <Select
-                      value={formData.subject}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, subject: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="order">Order Inquiry</SelectItem>
-                        <SelectItem value="delivery">Delivery Issue</SelectItem>
-                        <SelectItem value="product">
-                          Product Question
-                        </SelectItem>
-                        <SelectItem value="refund">Refund Request</SelectItem>
-                        <SelectItem value="partnership">
-                          Partnership/Grower
-                        </SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label htmlFor="subject">Subject *</Label>
+                  <Controller
+                    name="subject"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="order">Order Inquiry</SelectItem>
+                          <SelectItem value="delivery">
+                            Delivery Issue
+                          </SelectItem>
+                          <SelectItem value="product">
+                            Product Question
+                          </SelectItem>
+                          <SelectItem value="refund">Refund Request</SelectItem>
+                          <SelectItem value="partnership">
+                            Partnership/Grower
+                          </SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.subject && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.subject.message}
+                    </p>
+                  )}
+                </div>
 
-                  <div>
-                    <Label htmlFor="message">Message *</Label>
-                    <Textarea
-                      id="message"
-                      required
-                      value={formData.message}
-                      onChange={(e) =>
-                        setFormData({ ...formData, message: e.target.value })
-                      }
-                      placeholder="Tell us how we can help you..."
-                      rows={6}
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="message">Message *</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Tell us how we can help you..."
+                    rows={6}
+                    {...register("message")}
+                  />
+                  {errors.message && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.message.message}
+                    </p>
+                  )}
+                </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full bg-[#6A994E] hover:bg-[#5A8A3E]"
-                  >
-                    Send Message
-                  </Button>
-                </form>
-              )}
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#6A994E] hover:bg-[#5A8A3E]"
+                >
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

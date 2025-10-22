@@ -5,6 +5,7 @@ import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
 
 const AUTH_ROUTES = [
@@ -40,6 +41,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         )}
         <main className="flex-1">{children}</main>
         <Footer />
+        {/* Global toast portal */}
+        <Toaster position="top-right" richColors closeButton />
       </div>
     </WishlistProvider>
   );

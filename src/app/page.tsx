@@ -27,7 +27,6 @@ const HeroSection: React.FC = () => {
   ];
 
   const [api, setApi] = React.useState<CarouselApi>();
-  const [current, setCurrent] = React.useState(0);
 
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
@@ -36,10 +35,9 @@ const HeroSection: React.FC = () => {
   React.useEffect(() => {
     if (!api) return;
 
-    setCurrent(api.selectedScrollSnap());
-
+    // Track carousel changes if needed in the future
     api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
+      // Could be used for analytics or other side effects
     });
   }, [api]);
 

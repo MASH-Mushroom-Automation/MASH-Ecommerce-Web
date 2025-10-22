@@ -1,24 +1,51 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+const ForgotPasswordSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+});
+
+type ForgotPasswordForm = z.infer<typeof ForgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordForm>({
+    resolver: zodResolver(ForgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Password reset requested for:", email);
-    // Redirect to verification page
-    window.location.href = "/verify-otp";
+  const onSubmit = async (values: ForgotPasswordForm) => {
+    try {
+      // TODO: integrate API to send OTP
+      await new Promise((r) => setTimeout(r, 500));
+      toast.success("OTP sent", {
+        description: `We sent a code to ${values.email}`,
+      });
+      router.push("/verify-otp");
+    } catch {
+      toast.error("Failed to send OTP", {
+        description: "Please try again in a moment.",
+      });
+    }
   };
 
   const handleCancel = () => {
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   return (
@@ -56,7 +83,7 @@ export default function ForgotPasswordPage() {
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email Input */}
             <div>
               <label
@@ -68,20 +95,24 @@ export default function ForgotPasswordPage() {
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 className="w-full"
                 placeholder="Enter your email"
-                required
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Send OTP Button */}
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
             >
-              Send OTP
+              {isSubmitting ? "Sending..." : "Send OTP"}
             </Button>
 
             {/* Cancel Button */}

@@ -4,10 +4,12 @@ import React, { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { KeyRound } from "lucide-react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function VerifyOTPPage() {
+  const router = useRouter();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -30,21 +32,44 @@ export default function VerifyOTPPage() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpCode = otp.join("");
-    console.log("Verifying OTP:", otpCode);
-    // Redirect to reset password page
-    window.location.href = "/reset-password";
+    if (otpCode.length !== 4 || /\D/.test(otpCode)) {
+      toast.error("Invalid code", {
+        description: "Please enter the 4-digit code.",
+      });
+      return;
+    }
+    try {
+      // TODO: verify OTP via API
+      await new Promise((r) => setTimeout(r, 400));
+      toast.success("Verified", {
+        description: "Code accepted. Create a new password.",
+      });
+      router.push("/reset-password");
+    } catch {
+      toast.error("Verification failed", {
+        description: "Please try again or resend a new code.",
+      });
+    }
   };
 
-  const handleResend = () => {
-    console.log("Resending OTP");
-    setOtp(["", "", "", ""]);
-    inputRefs.current[0]?.focus();
+  const handleResend = async () => {
+    try {
+      // TODO: resend OTP via API
+      await new Promise((r) => setTimeout(r, 300));
+      toast.info("Code resent", { description: "We sent a new 4-digit code." });
+      setOtp(["", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch {
+      toast.error("Unable to resend", {
+        description: "Please wait a moment and try again.",
+      });
+    }
   };
 
   const handleCancel = () => {
-    window.location.href = "/forgot-password";
+    router.push("/forgot-password");
   };
 
   return (
@@ -84,9 +109,9 @@ export default function VerifyOTPPage() {
           {/* OTP Input */}
           <div className="flex justify-center gap-4 mb-6">
             {otp.map((digit, index) => (
-              <Input
+              <input
                 key={index}
-                ref={(el) => {
+                ref={(el: HTMLInputElement | null) => {
                   inputRefs.current[index] = el;
                 }}
                 type="text"
@@ -95,7 +120,7 @@ export default function VerifyOTPPage() {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-16 h-16 text-center text-2xl font-semibold"
+                className="w-16 h-16 text-center text-2xl font-semibold border border-input bg-background ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
               />
             ))}
           </div>

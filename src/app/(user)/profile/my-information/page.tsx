@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { User, MapPin, Check, Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface UserInfoForm {
   firstName: string;
@@ -136,8 +137,12 @@ export default function MyInformationPage() {
       }));
 
       setShowSuccessModal(true);
+      toast.success("Your profile has been updated.");
     } catch (err) {
       setSaveError(
+        err instanceof Error ? err.message : "Failed to save changes"
+      );
+      toast.error(
         err instanceof Error ? err.message : "Failed to save changes"
       );
     } finally {
@@ -150,6 +155,7 @@ export default function MyInformationPage() {
     setUserInfo(originalUserInfo);
     setAddress(originalAddress);
     setSaveError(null);
+    toast("Changes discarded.");
   };
 
   if (loading) {

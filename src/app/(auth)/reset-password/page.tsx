@@ -1,27 +1,59 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound } from "lucide-react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+const ResetSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password is too long"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type ResetForm = z.infer<typeof ResetSchema>;
 
 export default function ResetPasswordPage() {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<ResetForm>({
+    resolver: zodResolver(ResetSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
+  const onSubmit = async (_values: ResetForm) => {
+    void _values;
+    try {
+      // TODO: call API to reset password
+      await new Promise((r) => setTimeout(r, 600));
+      toast.success("Password updated", {
+        description: "You can now sign in with your new password.",
+      });
+      reset();
+      router.push("/reset-success");
+    } catch {
+      toast.error("Failed to reset password", {
+        description: "Please try again.",
+      });
     }
-
-    console.log("Password reset submitted");
-    // Redirect to success page
-    window.location.href = "/reset-success";
   };
 
   return (
@@ -59,7 +91,7 @@ export default function ResetPasswordPage() {
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Password Input */}
             <div>
               <label
@@ -71,12 +103,15 @@ export default function ResetPasswordPage() {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password")}
                 className="w-full"
                 placeholder="Create a new password"
-                required
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Confirm Password Input */}
@@ -90,20 +125,24 @@ export default function ResetPasswordPage() {
               <Input
                 id="confirmPassword"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                {...register("confirmPassword")}
                 className="w-full"
                 placeholder="Confirm your new password"
-                required
               />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             {/* Reset Button */}
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
             >
-              Reset Password
+              {isSubmitting ? "Saving..." : "Reset Password"}
             </Button>
           </form>
         </div>

@@ -5,16 +5,14 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useWishlist } from "@/contexts/WishlistContext";
-import { useProducts } from "@/hooks/useProducts";
-import {
-  ProductGridSkeleton,
-  LoadingSpinner,
-} from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect } from "react";
+import type { ProductApiResponse } from "@/types/api";
+import { toast } from "sonner";
 
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist } = useWishlist();
-  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<ProductApiResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -48,6 +46,9 @@ export default function WishlistPage() {
         setWishlistItems(filtered);
       } catch (err) {
         setError(
+          err instanceof Error ? err.message : "Failed to load wishlist"
+        );
+        toast.error(
           err instanceof Error ? err.message : "Failed to load wishlist"
         );
         setWishlistItems([]);
@@ -91,7 +92,10 @@ export default function WishlistPage() {
           {wishlistItems.length > 0 && (
             <Button
               variant="outline"
-              onClick={clearWishlist}
+              onClick={() => {
+                clearWishlist();
+                toast.success("Wishlist cleared.");
+              }}
               className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700"
             >
               Clear All

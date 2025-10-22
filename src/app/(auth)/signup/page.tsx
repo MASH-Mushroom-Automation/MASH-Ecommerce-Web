@@ -1,40 +1,69 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { User } from "lucide-react";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Enter a valid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Confirm your password"),
+    terms: z.boolean().refine((v) => v === true, {
+      message: "You must agree to Terms & Conditions",
+    }),
+    privacy: z.boolean().refine((v) => v === true, {
+      message: "You must accept the Privacy Policy",
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
+
+type SignupForm = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupForm>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      terms: false,
+      privacy: false,
+    },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle signup logic here
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
+  const onSubmit: SubmitHandler<SignupForm> = async (data) => {
+    try {
+      // TODO: Replace with real signup request
+      // await AuthApi.signup(data)
+      toast.success(
+        `Welcome, ${data.firstName}! Account created successfully.`
+      );
+      // Optionally redirect to verify/ login
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Unable to create account"
+      );
     }
-    if (!agreeTerms || !agreePrivacy) {
-      alert("Please accept the terms and privacy policy");
-      return;
-    }
-    console.log("Signup attempt:", {
-      firstName,
-      lastName,
-      email,
-      password,
-      agreeTerms,
-      agreePrivacy,
-    });
   };
 
   const handleGoogleSignUp = () => {
@@ -71,7 +100,7 @@ export default function SignupPage() {
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* First Name Input */}
             <div>
               <label
@@ -83,12 +112,15 @@ export default function SignupPage() {
               <Input
                 id="firstName"
                 type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                {...register("firstName")}
                 className="w-full"
                 placeholder="Enter your first name"
-                required
               />
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
 
             {/* Last Name Input */}
@@ -102,12 +134,15 @@ export default function SignupPage() {
               <Input
                 id="lastName"
                 type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                {...register("lastName")}
                 className="w-full"
                 placeholder="Enter your last name"
-                required
               />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
 
             {/* Email Input */}
@@ -121,12 +156,15 @@ export default function SignupPage() {
               <Input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 className="w-full"
                 placeholder="Enter your email"
-                required
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password Input */}
@@ -140,12 +178,15 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password")}
                 className="w-full"
                 placeholder="Create a password"
-                required
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Confirm Password Input */}
@@ -159,24 +200,31 @@ export default function SignupPage() {
               <Input
                 id="confirmPassword"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                {...register("confirmPassword")}
                 className="w-full"
                 placeholder="Confirm your password"
-                required
               />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             {/* Terms & Conditions */}
             <div className="space-y-3">
               <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={agreeTerms}
-                  onCheckedChange={(checked) =>
-                    setAgreeTerms(checked as boolean)
-                  }
-                  className="mt-1"
+                <Controller
+                  name="terms"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="terms"
+                      checked={!!field.value}
+                      onCheckedChange={(checked) => field.onChange(!!checked)}
+                      className="mt-1"
+                    />
+                  )}
                 />
                 <label
                   htmlFor="terms"
@@ -192,15 +240,24 @@ export default function SignupPage() {
                   .
                 </label>
               </div>
+              {errors.terms && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.terms.message}
+                </p>
+              )}
 
               <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="privacy"
-                  checked={agreePrivacy}
-                  onCheckedChange={(checked) =>
-                    setAgreePrivacy(checked as boolean)
-                  }
-                  className="mt-1"
+                <Controller
+                  name="privacy"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="privacy"
+                      checked={!!field.value}
+                      onCheckedChange={(checked) => field.onChange(!!checked)}
+                      className="mt-1"
+                    />
+                  )}
                 />
                 <label
                   htmlFor="privacy"
@@ -217,14 +274,20 @@ export default function SignupPage() {
                   .
                 </label>
               </div>
+              {errors.privacy && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.privacy.message}
+                </p>
+              )}
             </div>
 
             {/* Create Account Button */}
             <Button
               type="submit"
               className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              disabled={isSubmitting}
             >
-              Create Account
+              {isSubmitting ? "Creating Account..." : "Create Account"}
             </Button>
 
             {/* Divider */}
