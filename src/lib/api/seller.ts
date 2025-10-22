@@ -45,7 +45,7 @@ const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
   {
     id: "1",
     name: "Fresh White Oyster Mushrooms",
-    image: "/placeholder.png",
+    image: "/white.jpg",
     price: 120,
     stock: 50,
     category: "Fresh Mushroom",
@@ -54,7 +54,7 @@ const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
   {
     id: "2",
     name: "Vibrant Pink Oyster Mushrooms",
-    image: "/placeholder.png",
+    image: "/Pink-Oyster-1.webp",
     price: 140,
     stock: 30,
     category: "Fresh Mushroom",

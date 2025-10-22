@@ -32,7 +32,7 @@ export function CartDropdown() {
       price: 120,
       unit: "250g",
       quantity: 2,
-      image: "/placeholder.png",
+      image: "/white.jpg",
       grower: "FungiFreshFarms",
     },
     {
@@ -41,7 +41,7 @@ export function CartDropdown() {
       price: 140,
       unit: "250g",
       quantity: 1,
-      image: "/placeholder.png",
+      image: "/Pink-Oyster-1.webp",
       grower: "FungiFreshFarms",
     },
   ]);

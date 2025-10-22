@@ -22,14 +22,14 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 const HeroSection: React.FC = () => {
   const slides = [
     "/Hero Section.png",
-    "/Hero Section.png",
-    "/Hero Section.png",
+    "/hero-1.jpg",
+    "/hero-2.jpg",
   ];
 
   const [api, setApi] = React.useState<CarouselApi>();
 
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
+    Autoplay({ delay: 7000, stopOnInteraction: true })
   );
 
   React.useEffect(() => {

@@ -7,7 +7,7 @@ export default function AboutPage() {
     { name: "Ma. Catherine H. Bae", role: "Front-end Developer" },
     { name: "Jin Harold A. Failana", role: "Hardware Programmer" },
     { name: "Jhon Keneth Ryan B. Namias", role: "Back-end Developer" },
-    { name: "Emmanuel L. Pabua", role: "Database Administrator" },
+    { name: "Emannuel L. Pabua", role: "Database Administrator" },
     { name: "Ronan Renz T. Valencia", role: "Full Stack Developer" },
   ];
 
