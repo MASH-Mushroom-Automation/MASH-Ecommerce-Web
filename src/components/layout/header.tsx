@@ -47,7 +47,7 @@ export function Header() {
   const handleSearch = () => console.log("Searching for:", searchTerm);
 
   return (
-    <header className="bg-white shadow-md font-['Roboto'] sticky top-0 z-50">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
       {/* 1. Top Bar: Seller/Info Links - Dark Green Background */}
       <div className="bg-[#1E392A] text-white text-sm py-2">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
@@ -97,7 +97,7 @@ export function Header() {
 
         {/* Search Bar (Centered) */}
         <div className="flex-1 max-w-xl mx-8 hidden lg:block">
-          <div className="relative flex items-center border border-gray-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#6A994E]">
+          <div className="relative flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#6A994E]/50">
             <input
               type="text"
               placeholder="Oyster Mushroom."
@@ -134,7 +134,7 @@ export function Header() {
           </Link>
 
           <Link href="/login">
-            <Button className="flex items-center space-x-2 px-6 py-3 rounded-xl transition-transform transform hover:scale-[1.02] bg-[#1E392A] text-white font-semibold shadow-md hover:bg-[#1E392A]/90">
+            <Button variant="primary" size="lg" rounded="lg" className="flex items-center space-x-2">
               <User size={20} />
               <span className="hidden sm:inline">Login</span>
             </Button>
@@ -200,7 +200,7 @@ export function Header() {
                     <Heart className="h-5 w-5" />
                     <span>Wishlist</span>
                   </Link>
-                  <Button className="mt-4 w-full bg-[#4A5C40] hover:bg-[#3A4C30]">
+                  <Button variant="primary" className="mt-4 w-full">
                     <User className="mr-2 h-4 w-4" />
                     Login
                   </Button>
