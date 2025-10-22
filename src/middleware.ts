@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Define protected routes that require authentication
-const protectedRoutes = ["/profile", "/checkout", "/onboarding", "/seller"];
+const protectedRoutes = [
+  "/checkout",
+  "/onboarding",
+  "/seller",
+  "/profile/my-information",
+  "/profile/order-history",
+];
 
 // Define auth routes that authenticated users shouldn't access
 const authRoutes = [
