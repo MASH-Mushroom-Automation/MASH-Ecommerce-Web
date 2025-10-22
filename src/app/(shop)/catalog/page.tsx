@@ -181,14 +181,19 @@ export default function ProductCatalogPage() {
               {/* Mobile Filter Button */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    className="lg:hidden w-full sm:w-auto"
+                  >
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     Filters
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-full sm:w-80 p-0">
                   <div className="p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6">Filters</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">
+                      Filters
+                    </h2>
                     <div className="space-y-6">
                       {/* Categories */}
                       <div>
@@ -197,7 +202,10 @@ export default function ProductCatalogPage() {
                         </h3>
                         <div className="space-y-3">
                           {categories.map((category) => (
-                            <div key={category} className="flex items-center space-x-3">
+                            <div
+                              key={category}
+                              className="flex items-center space-x-3"
+                            >
                               <Checkbox
                                 id={`mobile-category-${category}`}
                                 checked={selectedCategories.includes(category)}
@@ -221,7 +229,10 @@ export default function ProductCatalogPage() {
                         </h3>
                         <div className="space-y-3">
                           {growers.map((grower) => (
-                            <div key={grower} className="flex items-center space-x-3">
+                            <div
+                              key={grower}
+                              className="flex items-center space-x-3"
+                            >
                               <Checkbox
                                 id={`mobile-grower-${grower}`}
                                 checked={selectedGrowers.includes(grower)}
@@ -250,7 +261,12 @@ export default function ProductCatalogPage() {
                               placeholder="From"
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                               value={priceRange[0]}
-                              onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                              onChange={(e) =>
+                                setPriceRange([
+                                  Number(e.target.value),
+                                  priceRange[1],
+                                ])
+                              }
                             />
                             <span className="text-gray-500">-</span>
                             <input
@@ -258,7 +274,12 @@ export default function ProductCatalogPage() {
                               placeholder="To"
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                               value={priceRange[1]}
-                              onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                              onChange={(e) =>
+                                setPriceRange([
+                                  priceRange[0],
+                                  Number(e.target.value),
+                                ])
+                              }
                             />
                           </div>
                           <Slider

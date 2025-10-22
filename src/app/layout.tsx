@@ -50,7 +50,8 @@ export default function RootLayout({
       <head>
         <title>MASH Market</title>
         <meta name="description" content="Mushroom E-Commerce" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/Logo  v6 - Market.png" type="image/png" />
       </head>
       <body className={`${roboto.variable} antialiased`}>
         <WishlistProvider>
