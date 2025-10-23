@@ -5,7 +5,20 @@ import { UserProfile, UserOnboardingData, ApiResponse } from "@/types/api";
 
 // Profile hooks
 export function useUserProfile() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  // Try to hydrate profile from storage for instant UI update after login
+  const getStoredUser = (): UserProfile | null => {
+    try {
+      if (typeof window !== "undefined") {
+        const s = sessionStorage.getItem("user") || localStorage.getItem("user");
+        if (s) return JSON.parse(s) as UserProfile;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return null;
+  };
+
+  const [profile, setProfile] = useState<UserProfile | null>(getStoredUser());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,8 +27,15 @@ export function useUserProfile() {
     setError(null);
 
     try {
-      const response = await UserApi.getProfile();
-      setProfile(response.data);
+      // Prefer hitting the local API route which proxies to the backend and
+      // attaches auth from cookies (avoids CORS and ensures server-side auth).
+      const res = await fetch("/api/user/profile", { method: "GET" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to fetch profile");
+      }
+      const data = json?.data ?? json;
+      setProfile(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch profile");
       setProfile(null);
@@ -27,13 +47,23 @@ export function useUserProfile() {
   const updateProfile = useCallback(
     async (profileData: Partial<UserProfile>) => {
       try {
-        const response = await UserApi.updateProfile(profileData);
-        setProfile(response.data);
-        return response;
+        const res = await fetch("/api/user/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileData),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(json?.error || "Failed to update profile");
+        const data = json?.data ?? json;
+        setProfile(data);
+        // update storage
+        try {
+          localStorage.setItem("user", JSON.stringify(data));
+          sessionStorage.setItem("user", JSON.stringify(data));
+        } catch {}
+        return { data, success: true };
       } catch (err) {
-        throw new Error(
-          err instanceof Error ? err.message : "Failed to update profile"
-        );
+        throw new Error(err instanceof Error ? err.message : "Failed to update profile");
       }
     },
     []
@@ -41,13 +71,19 @@ export function useUserProfile() {
 
   const uploadAvatar = useCallback(async (file: File) => {
     try {
-      const response = await UserApi.uploadAvatar(file);
-      setProfile((prev) => (prev ? { ...prev, avatar: response.data } : null));
-      return response;
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/user/avatar", {
+        method: "POST",
+        body: form,
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || "Failed to upload avatar");
+      const data = json?.data ?? json;
+      setProfile((prev) => (prev ? { ...prev, avatar: data } : null));
+      return { data, success: true };
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : "Failed to upload avatar"
-      );
+      throw new Error(err instanceof Error ? err.message : "Failed to upload avatar");
     }
   }, []);
 

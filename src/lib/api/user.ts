@@ -70,7 +70,8 @@ export class UserApi {
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
-      const url = `${API_ENDPOINT}/api/v1/user/profile`;
+      // Backend exposes users under /api/v1/users/profile
+      const url = `${API_ENDPOINT}/api/v1/users/profile`;
       const { ok, json } = await tryFetch<unknown>(url, {
         method: "GET",
         headers: {
@@ -96,7 +97,7 @@ export class UserApi {
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
-      const url = `${API_ENDPOINT}/api/v1/user/profile`;
+  const url = `${API_ENDPOINT}/api/v1/users/profile`;
       const { ok, json } = await tryFetch<unknown>(url, {
         method: "PUT",
         headers: {

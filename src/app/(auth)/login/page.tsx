@@ -14,11 +14,11 @@ import { toast } from "sonner";
 import { setAuthToken } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
-// Load environment variables
+// Load environment variables (default to production backend)
 const API_ENDPOINT =
-  process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:3000";
-
-type LoginResult = { token?: string; message?: string };
+  process.env.NEXT_PUBLIC_API_ENDPOINT ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://mash-backend-api.up.railway.app";
 
 const isPhone = (val: string) => {
   // Simple phone validation: +country or local digits (10-15)
@@ -65,23 +65,38 @@ export default function LoginPage() {
         }),
       });
 
-      // Try to parse JSON; if it fails, use empty object
-      let result: LoginResult = {};
-      try {
-        result = (await res.json()) as LoginResult;
-      } catch {
-        result = {};
-      }
-
+      // Parse backend response which contains `data.accessToken`, `data.refreshToken` and `data.user`
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message = result?.message || "Invalid credentials";
+        const message = (json && (json.message || json.data?.message)) || "Invalid credentials";
         toast.error(message);
-        return; // Avoid throwing to prevent console error stack traces
+        return;
       }
 
-      const token = result?.token || "mock-token";
-      setAuthToken(token, !!data.rememberMe);
-      toast.success(`Signed in as ${data.identifier}.`);
+      const accessToken = json?.data?.accessToken || json?.accessToken;
+      const refreshToken = json?.data?.refreshToken || json?.refreshToken;
+      const user = json?.data?.user || json?.user || null;
+
+      if (!accessToken) {
+        toast.error("Login succeeded but no access token was returned.");
+        return;
+      }
+
+      // Persist tokens and user info
+      setAuthToken(accessToken, !!data.rememberMe);
+      try {
+        if (typeof window !== "undefined") {
+          if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+          if (user) {
+            localStorage.setItem("user", JSON.stringify(user));
+            sessionStorage.setItem("user", JSON.stringify(user));
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
+
+      toast.success(`Signed in as ${user?.email || data.identifier}.`);
       router.push("/");
       router.refresh();
     } catch {
