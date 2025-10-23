@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,6 +10,10 @@ import {
   ShoppingCart,
   Heart,
   User,
+  LogOut,
+  UserCircle,
+  Package,
+  ChevronDown,
   Menu,
   Facebook,
   Instagram,
@@ -20,6 +22,17 @@ import {
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { Badge } from "@/components/ui/badge";
+import { isAuthenticated, logout as authLogout } from "@/lib/auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
+import { useUserProfile } from "@/hooks/useUser";
+import { toast } from "sonner";
 
 interface NavLinkProps {
   label: string;
@@ -48,6 +61,21 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
 export function Header() {
   const [searchTerm, setSearchTerm] = useState("");
   const { wishlistCount } = useWishlist();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
+  const { profile } = useUserProfile();
+
+  useEffect(() => {
+    setIsLoggedIn(isAuthenticated());
+  }, []);
+
+  const handleLogout = () => {
+    authLogout();
+    setIsLoggedIn(false);
+    router.push("/");
+    router.refresh();
+    toast.success("Signed out");
+  };
 
   const handleSearch = () => console.log("Searching for:", searchTerm);
 
@@ -137,17 +165,56 @@ export function Header() {
             )}
           </Link>
 
-          <Link href="/login">
-            <Button
-              variant="primary"
-              size="lg"
-              rounded="lg"
-              className="flex items-center space-x-2"
-            >
-              <User size={20} />
-              <span className="hidden sm:inline">Login</span>
-            </Button>
-          </Link>
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center space-x-2 hover:bg-gray-50"
+                >
+                  <User size={20} className="text-[#6A994E]" />
+                  <span className="hidden sm:inline font-medium">
+                    {profile?.firstName || "User"}
+                  </span>
+                  <ChevronDown size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => router.push("/profile/my-information")}
+                >
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  <span>My Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/profile/order-history")}
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  <span>Orders</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/login">
+              <Button
+                variant="primary"
+                size="lg"
+                rounded="lg"
+                className="flex items-center space-x-2"
+              >
+                <User size={20} />
+                <span className="hidden sm:inline">Login</span>
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Trigger */}
@@ -216,10 +283,32 @@ export function Header() {
                     <Store className="h-5 w-5" />
                     <span>Seller Dashboard</span>
                   </Link>
-                  <Button variant="primary" className="mt-4 w-full">
-                    <User className="mr-2 h-4 w-4" />
-                    Login
-                  </Button>
+                  {isLoggedIn ? (
+                    <>
+                      <Link
+                        href="/profile/my-information"
+                        className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                      >
+                        <UserCircle className="h-5 w-5" />
+                        <span>My Profile</span>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        className="mt-4 w-full text-red-600 border-red-600 hover:bg-red-50"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <Link href="/login">
+                      <Button variant="primary" className="mt-4 w-full">
+                        <User className="mr-2 h-4 w-4" />
+                        Login
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </SheetContent>

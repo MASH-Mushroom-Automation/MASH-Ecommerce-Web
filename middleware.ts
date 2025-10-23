@@ -1,0 +1,80 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+// Define protected routes that require authentication
+const protectedRoutes = [
+  "/checkout",
+  "/onboarding",
+  "/seller",
+  "/profile/my-information",
+  "/profile/order-history",
+];
+
+// Define auth routes that authenticated users shouldn't access
+const authRoutes = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/verify-otp",
+  "/reset-password",
+];
+
+// Define public routes that don't require authentication
+const publicRoutes = [
+  "/",
+  "/catalog",
+  "/product",
+  "/wishlist",
+  "/about",
+  "/grower",
+  "/contact",
+  "/faq",
+  "/privacy",
+  "/terms",
+  "/shipping-info",
+  "/returns-policy",
+];
+
+// All routes are now public - no authentication checks
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  console.log("Middleware accessed for path:", pathname);
+
+  // Get authentication token from cookies
+  // TODO: Replace with your actual auth token name
+  const authToken = request.cookies.get("auth-token")?.value;
+  const isAuthenticated = !!authToken;
+
+  // Check if the current path is protected
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // Check if the current path is an auth route
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // Redirect unauthenticated users trying to access protected routes
+  if (isProtectedRoute && !isAuthenticated) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated users trying to access auth routes
+  if (isAuthRoute && isAuthenticated) {
+    return NextResponse.redirect(new URL("/catalog", request.url));
+  }
+
+  // Allow access to public routes
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  // Allow access to all routes
+  return NextResponse.next();
+}

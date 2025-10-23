@@ -27,7 +27,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -107,7 +106,7 @@ export default function ShippingChannel() {
     setIsAddDialogOpen(true);
   };
 
-  const handleEditChannel = (channel: any) => {
+  const handleEditChannel = (channel: (typeof SHIPPING_CHANNELS)[0]) => {
     setCurrentChannel({
       ...channel,
       price: channel.price.toString(),
@@ -129,10 +128,12 @@ export default function ShippingChannel() {
         channels.map((ch) =>
           ch.id === currentChannel.id
             ? {
+                ...ch,
                 ...currentChannel,
-                price: parseFloat(currentChannel.price),
+                id: currentChannel.id,
+                price: parseFloat(String(currentChannel.price)),
                 freeShippingThreshold: parseFloat(
-                  currentChannel.freeShippingThreshold
+                  String(currentChannel.freeShippingThreshold)
                 ),
               }
             : ch
@@ -143,8 +144,10 @@ export default function ShippingChannel() {
       const newChannel = {
         ...currentChannel,
         id: `${shippingChannels.length + 1}`,
-        price: parseFloat(currentChannel.price),
-        freeShippingThreshold: parseFloat(currentChannel.freeShippingThreshold),
+        price: parseFloat(String(currentChannel.price)),
+        freeShippingThreshold: parseFloat(
+          String(currentChannel.freeShippingThreshold)
+        ),
       };
       setShippingChannels([...shippingChannels, newChannel]);
     }

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Upload, X, Save, ArrowLeft } from "lucide-react";
+import { Upload, X, Save, ArrowLeft } from "lucide-react";
 import { SellerApi } from "@/lib/api/seller";
 import { SellerProduct } from "@/types/api";
 
@@ -31,8 +30,6 @@ export default function EditProduct() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
-
-  const [product, setProduct] = useState<SellerProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,27 +58,26 @@ export default function EditProduct() {
         const mockProduct: SellerProduct = {
           id: productId,
           name: "Fresh Shiitake Mushrooms",
-          description:
-            "Premium quality shiitake mushrooms grown locally with sustainable farming practices.",
           category: "Fresh Mushroom",
           price: 150.0,
           stock: 25,
           status: "Active",
           image: "/placeholder.png",
-          weight: "500g",
-          createdAt: "2025-01-15",
-          updatedAt: "2025-01-20",
         };
 
-        setProduct(mockProduct);
+        // Mock description and weight (not in SellerProduct type)
+        const mockDescription =
+          "Premium quality shiitake mushrooms grown locally with sustainable farming practices.";
+        const mockWeight = "500g";
+
         setProductName(mockProduct.name);
-        setProductDescription(mockProduct.description);
+        setProductDescription(mockDescription);
         setProductCategory(mockProduct.category);
         setProductPrice(mockProduct.price.toString());
         setProductStock(mockProduct.stock.toString());
         setProductStatus(mockProduct.status);
-        setProductWeight(mockProduct.weight?.replace(/[^0-9]/g, "") || "");
-        setProductUnit(mockProduct.weight?.replace(/[0-9]/g, "") || "g");
+        setProductWeight(mockWeight.replace(/[^0-9]/g, "") || "");
+        setProductUnit(mockWeight.replace(/[0-9]/g, "") || "g");
         setProductImages([mockProduct.image]);
       } catch (err) {
         setError(
@@ -118,18 +114,18 @@ export default function EditProduct() {
     setSaving(true);
 
     try {
-      // Prepare data for API submission
-      const productData = {
+      // Prepare data for API submission (only fields that exist in SellerProduct)
+      const productData: Partial<SellerProduct> = {
         name: productName,
-        description: productDescription,
         category: productCategory,
         price: parseFloat(productPrice),
         stock: parseInt(productStock),
-        status: productStatus,
-        weight: `${productWeight}${productUnit}`,
-        images: productImages,
+        status: productStatus as "Active" | "Inactive" | "Out of Stock",
+        image: productImages[0] || "",
       };
 
+      // Note: description, weight, and multiple images are not in SellerProduct type
+      // You may need to extend the type or handle these separately
       await SellerApi.updateProduct(productId, productData);
 
       // Redirect back to products list

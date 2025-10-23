@@ -3,7 +3,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CircleUser, Package, LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { logout } from "@/lib/auth";
+import { toast } from "sonner";
 
 export default function ProfileLayout({
   children,
@@ -11,10 +13,13 @@ export default function ProfileLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Logout clicked");
+    logout();
+    toast.success("Signed out");
+    router.push("/");
+    router.refresh();
   };
 
   return (

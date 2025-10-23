@@ -10,6 +10,7 @@ import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const signupSchema = z
   .object({
@@ -33,6 +34,7 @@ const signupSchema = z
 type SignupForm = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -58,7 +60,8 @@ export default function SignupPage() {
       toast.success(
         `Welcome, ${data.firstName}! Account created successfully.`
       );
-      // Optionally redirect to verify/ login
+      // Redirect to login so the user can sign in
+      router.push("/login");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Unable to create account"

@@ -11,6 +11,12 @@ import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { setAuthToken } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+
+// Load environment variables
+const API_ENDPOINT =
+  process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:3000";
 
 const isPhone = (val: string) => {
   // Simple phone validation: +country or local digits (10-15)
@@ -34,6 +40,7 @@ const loginSchema = z.object({
 type LoginForm = { identifier: string; password: string; rememberMe?: boolean };
 
 export default function LoginPage() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -46,11 +53,39 @@ export default function LoginPage() {
 
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     try {
-      // TODO: Replace with real auth request
-      // await AuthApi.login(data)
+      console.log("Login attempt with data:", {
+        email: data.identifier,
+        password: data.password,
+        rememberMe: data.rememberMe,
+      });
+
+      const response = await fetch(`${API_ENDPOINT}/api/v1/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.identifier,
+          password: data.password,
+        }),
+      });
+
+      console.log("API response status:", response.status);
+      const result = await response.json();
+      console.log("API response data:", result);
+
+      if (!response.ok) {
+        throw new Error("Invalid credentials");
+      }
+
       toast.success(`Signed in as ${data.identifier}.`);
-      // Optionally redirect here
+      // Assuming the API returns a token in the response
+      setAuthToken(result.token, !!data.rememberMe);
+      // Redirect to landing page
+      router.push("/");
+      router.refresh();
     } catch (err) {
+      console.error("Login error:", err);
       toast.error(
         err instanceof Error ? err.message : "Unable to sign in right now"
       );
@@ -210,7 +245,7 @@ export default function LoginPage() {
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                d="M22.56 12.25c0-.78-.07-1.53-.20-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
               />
               <path
