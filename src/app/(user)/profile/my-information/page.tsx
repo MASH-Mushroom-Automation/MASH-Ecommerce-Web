@@ -47,7 +47,7 @@ const FALLBACK_DATA = {
 };
 
 export default function MyInformationPage() {
-  const { profile, loading, error, updateProfile } = useUserProfile();
+  const { profile, updateProfile } = useUserProfile();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -173,31 +173,32 @@ export default function MyInformationPage() {
     toast("Changes discarded.");
   };
 
-  if (loading) {
-    return (
-      <Card className="bg-white">
-        <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
-            <p className="text-gray-600">Loading your information...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Don't show loading or error states - always show the form with fallback data
+  // if (loading) {
+  //   return (
+  //     <Card className="bg-white">
+  //       <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
+  //         <div className="flex flex-col items-center gap-3">
+  //           <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
+  //           <p className="text-gray-600">Loading your information...</p>
+  //         </div>
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // }
 
-  // Only show error if we have no profile data at all
-  if (error && !profile) {
-    return (
-      <Card className="bg-white">
-        <CardContent className="p-6 sm:p-8">
-          <Alert variant="destructive">
-            <AlertDescription>Failed to load profile: {error}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Don't block the UI on error - fallback data will be shown instead
+  // if (error && !profile) {
+  //   return (
+  //     <Card className="bg-white">
+  //       <CardContent className="p-6 sm:p-8">
+  //         <Alert variant="destructive">
+  //           <AlertDescription>Failed to load profile: {error}</AlertDescription>
+  //         </Alert>
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // }
 
   return (
     <>
