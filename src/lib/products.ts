@@ -34,7 +34,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: "2",
-    name: "Vibrant Pink Oyster Mushrooms",
+    name: "Mushroom Chips",
     description:
       "Beautiful pink caps with a meaty texture—great for sautés and vegan bacon.",
     price: 140,

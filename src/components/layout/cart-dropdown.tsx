@@ -37,7 +37,7 @@ export function CartDropdown() {
     },
     {
       id: "2",
-      name: "Vibrant Pink Oyster Mushrooms",
+      name: "Mushroom Chips",
       price: 140,
       unit: "250g",
       quantity: 1,

@@ -37,7 +37,7 @@ const MOCK_ORDERS: Order[] = [
         image: "/placeholder.png",
       },
       {
-        name: "Vibrant Pink Oyster Mushrooms",
+        name: "Mushroom Chips",
         quantity: 2,
         price: 140,
         image: "/placeholder.png",

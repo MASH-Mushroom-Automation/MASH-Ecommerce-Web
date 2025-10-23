@@ -72,11 +72,11 @@ export default function SellerLayout({
       icon: <MapPin size={20} />,
       label: "Address Management",
     },
-    {
-      href: "/seller/shipping",
-      icon: <Truck size={20} />,
-      label: "Shipping Channel",
-    },
+    // {
+    //   href: "/seller/shipping",
+    //   icon: <Truck size={20} />,
+    //   label: "Shipping Channel",
+    // },
     {
       href: "/seller/handover",
       icon: <Store size={20} />,

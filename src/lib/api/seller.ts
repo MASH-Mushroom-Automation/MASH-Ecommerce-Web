@@ -53,7 +53,7 @@ const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
   },
   {
     id: "2",
-    name: "Vibrant Pink Oyster Mushrooms",
+    name: "Mushroom Chips",
     image: "/Pink-Oyster-1.webp",
     price: 140,
     stock: 30,
@@ -158,7 +158,7 @@ export class SellerApi {
         revenue: 14400,
       },
       {
-        name: "Vibrant Pink Oyster Mushrooms",
+        name: "Mushroom Chips",
         sales: 85,
         stock: 30,
         revenue: 11900,
