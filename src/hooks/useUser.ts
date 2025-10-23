@@ -36,9 +36,17 @@ export function useUserProfile() {
       }
       const data = json?.data ?? json;
       setProfile(data);
+      // Update storage with fresh data
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("user", JSON.stringify(data));
+          sessionStorage.setItem("user", JSON.stringify(data));
+        }
+      } catch {}
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch profile");
-      setProfile(null);
+      // Keep the profile from storage if API fails (don't set to null)
+      // Only log the error but preserve the existing profile data
     } finally {
       setLoading(false);
     }

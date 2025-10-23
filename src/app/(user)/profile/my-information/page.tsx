@@ -171,7 +171,8 @@ export default function MyInformationPage() {
     );
   }
 
-  if (error) {
+  // Only show error if we have no profile data at all
+  if (error && !profile) {
     return (
       <Card className="bg-white">
         <CardContent className="p-6 sm:p-8">
