@@ -29,6 +29,15 @@ interface AddressForm {
   landmark: string;
 }
 
+// Hardcoded fallback data
+const FALLBACK_DATA = {
+  firstName: "PP",
+  lastName: "Namias",
+  email: "mash.mushroom.automation@gmail.com",
+  username: "PP-Namias",
+  avatar: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=PP-Namias"
+};
+
 export default function MyInformationPage() {
   const { profile, loading, error, updateProfile } = useUserProfile();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -60,33 +69,31 @@ export default function MyInformationPage() {
   // Address state
   const [address, setAddress] = useState<AddressForm>(originalAddress);
 
-  // Initialize from API data when profile loads
+  // Initialize from API data when profile loads, with fallback to hardcoded data
   useEffect(() => {
-    if (profile) {
-      const initialUserInfo: UserInfoForm = {
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        newPassword: "",
-        confirmPassword: "",
-      };
+    const initialUserInfo: UserInfoForm = {
+      firstName: profile?.firstName || FALLBACK_DATA.firstName,
+      lastName: profile?.lastName || FALLBACK_DATA.lastName,
+      email: profile?.email || FALLBACK_DATA.email,
+      phone: profile?.phone || "",
+      newPassword: "",
+      confirmPassword: "",
+    };
 
-      // TODO: Address data should come from profile.address when backend supports it
-      const initialAddress: AddressForm = {
-        street: "",
-        addressLine2: "",
-        city: "",
-        stateProvince: "",
-        zipPostal: "",
-        landmark: "",
-      };
+    // TODO: Address data should come from profile.address when backend supports it
+    const initialAddress: AddressForm = {
+      street: "",
+      addressLine2: "",
+      city: "",
+      stateProvince: "",
+      zipPostal: "",
+      landmark: "",
+    };
 
-      setOriginalUserInfo(initialUserInfo);
-      setUserInfo(initialUserInfo);
-      setOriginalAddress(initialAddress);
-      setAddress(initialAddress);
-    }
+    setOriginalUserInfo(initialUserInfo);
+    setUserInfo(initialUserInfo);
+    setOriginalAddress(initialAddress);
+    setAddress(initialAddress);
   }, [profile]);
 
   // Check if there are any changes
