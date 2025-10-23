@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Home, MapPin, Phone, Clock, Send } from "lucide-react";
 import { useGrowers } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -144,6 +145,15 @@ export default function GrowersPage() {
                           <GrowerInfoRow icon={MapPin} text={grower.address} />
                           <GrowerInfoRow icon={Phone} text={grower.phone} />
                           <GrowerInfoRow icon={Clock} text={grower.hours} />
+                        </div>
+                        <div className="mt-3">
+                          <Link
+                            href={`/grower/${grower.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Visit Store →
+                          </Link>
                         </div>
                       </div>
                       <a

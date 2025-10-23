@@ -51,7 +51,8 @@ export const addressApi = {
       return {
         success: false,
         data: [],
-        message: error instanceof Error ? error.message : "Failed to fetch addresses",
+        message:
+          error instanceof Error ? error.message : "Failed to fetch addresses",
       };
     }
   },
@@ -74,13 +75,16 @@ export const addressApi = {
       return {
         success: false,
         data: {} as Address,
-        message: error instanceof Error ? error.message : "Failed to fetch address",
+        message:
+          error instanceof Error ? error.message : "Failed to fetch address",
       };
     }
   },
 
   // Create a new address
-  create: async (addressData: CreateAddressRequest): Promise<ApiResponse<Address>> => {
+  create: async (
+    addressData: CreateAddressRequest
+  ): Promise<ApiResponse<Address>> => {
     try {
       // TODO: Replace with actual API call
       // const response = await fetch('/api/user/addresses', {
@@ -108,13 +112,16 @@ export const addressApi = {
       return {
         success: false,
         data: {} as Address,
-        message: error instanceof Error ? error.message : "Failed to create address",
+        message:
+          error instanceof Error ? error.message : "Failed to create address",
       };
     }
   },
 
   // Update an existing address
-  update: async (addressData: UpdateAddressRequest): Promise<ApiResponse<Address>> => {
+  update: async (
+    addressData: UpdateAddressRequest
+  ): Promise<ApiResponse<Address>> => {
     try {
       // TODO: Replace with actual API call
       // const response = await fetch(`/api/user/addresses/${addressData.id}`, {
@@ -140,7 +147,8 @@ export const addressApi = {
       return {
         success: false,
         data: {} as Address,
-        message: error instanceof Error ? error.message : "Failed to update address",
+        message:
+          error instanceof Error ? error.message : "Failed to update address",
       };
     }
   },
@@ -164,7 +172,8 @@ export const addressApi = {
       return {
         success: false,
         data: null,
-        message: error instanceof Error ? error.message : "Failed to delete address",
+        message:
+          error instanceof Error ? error.message : "Failed to delete address",
       };
     }
   },
@@ -188,7 +197,10 @@ export const addressApi = {
       return {
         success: false,
         data: {} as Address,
-        message: error instanceof Error ? error.message : "Failed to set default address",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to set default address",
       };
     }
   },

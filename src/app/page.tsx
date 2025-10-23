@@ -20,11 +20,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 // This will be replaced with dynamic data from the hook
 
 const HeroSection: React.FC = () => {
-  const slides = [
-    "/Hero Section.png",
-    "/hero-1.jpg",
-    "/hero-2.jpg",
-  ];
+  const slides = ["/Hero Section.png", "/hero-1.jpg", "/hero-2.jpg"];
 
   const [api, setApi] = React.useState<CarouselApi>();
 
@@ -259,13 +255,13 @@ const GrowerCard: React.FC<{
       </p>
       <div className="flex justify-center gap-4 mt-4">
         <Link
-          href={`/profile/${grower.id}`}
+          href={`/grower/${grower.id}`}
           className="text-[#1E392A] font-semibold hover:underline text-sm"
         >
           Visit Store
         </Link>
         <Link
-          href={`/profile/${grower.id}`}
+          href={`/grower/${grower.id}`}
           className="text-gray-500 hover:underline text-sm"
         >
           Read More
