@@ -35,7 +35,15 @@ const FALLBACK_DATA = {
   lastName: "Namias",
   email: "mash.mushroom.automation@gmail.com",
   username: "PP-Namias",
-  avatar: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=PP-Namias"
+  avatar: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=PP-Namias",
+  address: {
+    street: "Llano Rd",
+    addressLine2: "Deparo",
+    city: "Caloocan City",
+    stateProvince: "Metro Manila",
+    zipPostal: "1420",
+    landmark: "in front of 7/11 Llano"
+  }
 };
 
 export default function MyInformationPage() {
@@ -80,14 +88,14 @@ export default function MyInformationPage() {
       confirmPassword: "",
     };
 
-    // TODO: Address data should come from profile.address when backend supports it
+    // Use fallback address data (backend doesn't support address yet)
     const initialAddress: AddressForm = {
-      street: "",
-      addressLine2: "",
-      city: "",
-      stateProvince: "",
-      zipPostal: "",
-      landmark: "",
+      street: FALLBACK_DATA.address.street,
+      addressLine2: FALLBACK_DATA.address.addressLine2,
+      city: FALLBACK_DATA.address.city,
+      stateProvince: FALLBACK_DATA.address.stateProvince,
+      zipPostal: FALLBACK_DATA.address.zipPostal,
+      landmark: FALLBACK_DATA.address.landmark,
     };
 
     setOriginalUserInfo(initialUserInfo);
