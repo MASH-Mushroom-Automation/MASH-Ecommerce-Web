@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Home, MapPin, Phone, Clock, Send } from "lucide-react";
+import Image from "next/image";
+import { Search, MapPin, Phone, Clock, Send } from "lucide-react";
 import { useGrowers } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Input } from "@/components/ui/input";
 
 // --- TYPE DEFINITIONS ---
 type Grower = {
@@ -55,7 +57,9 @@ const GrowerInfoRow = ({
 // --- MAIN GROWERS PAGE COMPONENT ---
 export default function GrowersPage() {
   const { growers, loading, error } = useGrowers();
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrower, setSelectedGrower] = useState<Grower | null>(null);
+  const [showNearMe, setShowNearMe] = useState(false);
 
   // Set the first grower as selected when data loads
   React.useEffect(() => {
@@ -63,6 +67,13 @@ export default function GrowersPage() {
       setSelectedGrower(growers[0]);
     }
   }, [growers, selectedGrower]);
+
+  // Filter growers by search term
+  const filteredGrowers = growers.filter(
+    (grower) =>
+      grower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grower.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -109,98 +120,179 @@ export default function GrowersPage() {
     );
   }
 
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${selectedGrower.coords.lat},${selectedGrower.coords.lng}&hl=en&z=14&output=embed`;
-
   return (
-    <div className="min-h-screen bg-white font-['Roboto']">
+    <div className="min-h-screen bg-gray-50 font-['Roboto']">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <main>
-          <div className="flex flex-col md:flex-row md:space-x-8">
-            {/* Left Panel: Growers List */}
-            <div className="w-full md:w-1/3 lg:w-2/5">
-              <div className="flex items-center mb-6">
-                <Home className="w-8 h-8 text-gray-700" />
-                <h1 className="ml-4 text-2xl font-bold text-gray-800">
-                  Grower&apos;s Near Me!
-                </h1>
-              </div>
-              <div className="space-y-4">
-                {growers.map((grower) => (
-                  <Card
-                    key={grower.id}
-                    onClick={() => setSelectedGrower(grower)}
-                    className={cn(
-                      "p-5 cursor-pointer transition-all duration-200 border-2",
-                      selectedGrower.id === grower.id
-                        ? "bg-gray-100 border-gray-300"
-                        : "bg-white hover:bg-gray-50 border-transparent"
-                    )}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h2 className="font-semibold text-lg text-gray-900">
-                          {grower.name}
-                        </h2>
-                        <div className="mt-3 space-y-2">
-                          <GrowerInfoRow icon={MapPin} text={grower.address} />
-                          <GrowerInfoRow icon={Phone} text={grower.phone} />
-                          <GrowerInfoRow icon={Clock} text={grower.hours} />
-                        </div>
-                        <div className="mt-3">
-                          <Link
-                            href={`/grower/${grower.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            Visit Store →
-                          </Link>
-                        </div>
-                      </div>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center text-xs text-gray-600 hover:text-gray-900"
-                        onClick={(e) => e.stopPropagation()} // Prevent card click when clicking the link
-                      >
-                        <div className="bg-gray-800 text-white rounded-full p-2.5">
-                          <Send className="w-4 h-4" />
-                        </div>
-                        <span className="mt-1">Directions</span>
-                      </a>
+          {/* Header Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+              Browse Growers
+            </h1>
+            <p className="text-gray-600">
+              Discover local mushroom growers and explore their fresh produce
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-8">
+            <div className="relative max-w-xl">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Search by grower name or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#6A994E] focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Growers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {filteredGrowers.map((grower) => (
+              <Link
+                key={grower.id}
+                href={`/grower/${grower.id}`}
+                className="group"
+              >
+                <Card className="p-6 h-full hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-[#6A994E]">
+                  {/* Grower Logo */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                      {grower.logo ? (
+                        <Image
+                          src={grower.logo}
+                          alt={grower.name}
+                          width={64}
+                          height={64}
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-400">
+                          {grower.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
-                  </Card>
-                ))}
+                    <div>
+                      <h2 className="font-semibold text-lg text-gray-900 group-hover:text-[#6A994E] transition-colors">
+                        {grower.name}
+                      </h2>
+                      {grower.tagline && (
+                        <p className="text-xs text-gray-500 line-clamp-1">
+                          {grower.tagline}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Grower Info */}
+                  <div className="space-y-2 text-sm">
+                    <GrowerInfoRow
+                      icon={MapPin}
+                      text={grower.location || grower.address}
+                    />
+                    <GrowerInfoRow icon={Phone} text={grower.phone} />
+                    <GrowerInfoRow icon={Clock} text={grower.hours} />
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-sm text-[#6A994E] font-medium group-hover:underline">
+                      Visit Store →
+                    </span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {filteredGrowers.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">
+                No growers found matching &quot;{searchTerm}&quot;
+              </p>
+            </div>
+          )}
+
+          {/* Near Me Section */}
+          <div className="mt-12 pt-12 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Growers Near Me
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Find growers closest to your location with our interactive map
+                </p>
               </div>
+              <button
+                onClick={() => setShowNearMe(!showNearMe)}
+                className="px-4 py-2 bg-[#6A994E] text-white rounded-lg hover:bg-[#5a8441] transition-colors"
+              >
+                {showNearMe ? "Hide Map" : "Show Map"}
+              </button>
             </div>
 
-            {/* Right Panel: Map */}
-            <div className="w-full md:w-2/3 lg:w-3/5 mt-8 md:mt-0">
-              <div className="sticky top-8">
-                <div className="text-right mb-2">
-                  <a
-                    href={mapEmbedUrl.replace("embed", "")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    View larger map
-                  </a>
+            {showNearMe && selectedGrower && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Growers List for Map */}
+                <div className="lg:col-span-1 space-y-3">
+                  {growers.map((grower) => (
+                    <Card
+                      key={grower.id}
+                      onClick={() => setSelectedGrower(grower)}
+                      className={cn(
+                        "p-4 cursor-pointer transition-all duration-200 border-2",
+                        selectedGrower.id === grower.id
+                          ? "bg-gray-100 border-[#6A994E]"
+                          : "bg-white hover:bg-gray-50 border-transparent"
+                      )}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-sm text-gray-900 mb-2">
+                            {grower.name}
+                          </h3>
+                          <p className="text-xs text-gray-600 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {grower.location || grower.address}
+                          </p>
+                        </div>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center text-xs text-gray-600 hover:text-gray-900"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="bg-[#1E392A] text-white rounded-full p-2">
+                            <Send className="w-3 h-3" />
+                          </div>
+                          <span className="mt-1 text-[10px]">Go</span>
+                        </a>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-                <div className="w-full h-[600px] bg-gray-200 rounded-lg overflow-hidden shadow-md">
-                  <iframe
-                    src={mapEmbedUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen={false}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Grower Location Map"
-                  ></iframe>
+
+                {/* Map */}
+                <div className="lg:col-span-2">
+                  <div className="w-full h-[500px] bg-gray-200 rounded-lg overflow-hidden shadow-md">
+                    <iframe
+                      src={`https://maps.google.com/maps?q=${selectedGrower.coords.lat},${selectedGrower.coords.lng}&hl=en&z=14&output=embed`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={false}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Grower Location Map"
+                    ></iframe>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </main>
       </div>

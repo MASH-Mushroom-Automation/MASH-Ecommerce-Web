@@ -5,6 +5,7 @@ import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
 
@@ -30,20 +31,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <WishlistProvider>
-      <div className="min-h-screen flex flex-col">
-        {isAuthRoute ? (
-          <SimpleHeader />
-        ) : isSellerRoute ? (
-          <SellerHeader />
-        ) : (
-          <Header />
-        )}
-        <main className="flex-1">{children}</main>
-        <Footer />
-        {/* Global toast portal */}
-        <Toaster position="top-right" richColors closeButton />
-      </div>
-    </WishlistProvider>
+    <CartProvider>
+      <WishlistProvider>
+        <div className="min-h-screen flex flex-col">
+          {isAuthRoute ? (
+            <SimpleHeader />
+          ) : isSellerRoute ? (
+            <SellerHeader />
+          ) : (
+            <Header />
+          )}
+          <main className="flex-1">{children}</main>
+          <Footer />
+          {/* Global toast portal */}
+          <Toaster position="top-right" richColors closeButton />
+        </div>
+      </WishlistProvider>
+    </CartProvider>
   );
 }

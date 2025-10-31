@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,64 +12,28 @@ import {
 } from "@/components/ui/sheet";
 import { ShoppingCart, X, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  unit: string;
-  quantity: number;
-  image: string;
-  grower: string;
-}
+import { useCart } from "@/contexts/CartContext";
+import { useProducts } from "@/hooks/useProducts";
 
 export function CartDropdown() {
-  // Mock cart items - replace with global state management later
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      name: "Fresh White Oyster Mushrooms",
-      price: 120,
-      unit: "250g",
-      quantity: 2,
-      image: "/white.jpg",
-      grower: "FungiFreshFarms",
-    },
-    {
-      id: "2",
-      name: "Mushroom Chips",
-      price: 140,
-      unit: "250g",
-      quantity: 1,
-      image: "/Pink-Oyster-1.webp",
-      grower: "FungiFreshFarms",
-    },
-  ]);
+  const cartData = useCart();
+  const { items, summary, updateQuantity, removeFromCart, clearCart } =
+    cartData;
+  const { products } = useProducts({ limit: 100 }); // Fetch products to get details
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
-      )
-    );
-  };
+  const totalItems = items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
-  const removeItem = (id: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
-  };
-
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Get product details for each cart item
+  const cartItemsWithDetails = (items || []).map((cartItem) => {
+    const product = products.find((p) => p.id === cartItem.productId);
+    return {
+      ...cartItem,
+      name: product?.name || "Product",
+      image: product?.image || "/placeholder.png",
+      grower: product?.grower || "Unknown",
+      unit: product?.weight || "unit",
+    };
+  });
 
   return (
     <Sheet>
@@ -99,7 +63,7 @@ export function CartDropdown() {
           </div>
         </div>
 
-        {cartItems.length === 0 ? (
+        {!items || items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-12 px-6 bg-white">
             <div className="bg-gray-100 rounded-full p-6 mb-4">
               <ShoppingCart className="h-12 w-12 text-gray-400" />
@@ -121,11 +85,11 @@ export function CartDropdown() {
             {/* Cart Items - White Background */}
             <div className="flex-1 overflow-y-auto bg-white px-6 py-4">
               <div className="space-y-6">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="relative">
+                {cartItemsWithDetails.map((item) => (
+                  <div key={item.productId} className="relative">
                     {/* Delete Button - Top Right */}
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeFromCart(item.productId)}
                       className="absolute top-0 right-0 p-1 hover:bg-red-50 rounded transition-colors z-10"
                       aria-label="Remove item"
                     >
@@ -135,7 +99,7 @@ export function CartDropdown() {
                     <div className="flex gap-4">
                       {/* Product Image - Larger rounded square */}
                       <Link
-                        href={`/product/${item.id}`}
+                        href={`/product/${item.productId}`}
                         className="flex-shrink-0"
                       >
                         <Image
@@ -149,7 +113,7 @@ export function CartDropdown() {
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0 flex flex-col">
-                        <Link href={`/product/${item.id}`}>
+                        <Link href={`/product/${item.productId}`}>
                           <h4 className="font-semibold text-base text-gray-900 hover:text-[#1E392A] mb-2 pr-6 leading-snug">
                             {item.name}
                           </h4>
@@ -170,7 +134,12 @@ export function CartDropdown() {
                           {/* Quantity Controls */}
                           <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-2 py-1">
                             <button
-                              onClick={() => updateQuantity(item.id, -1)}
+                              onClick={() =>
+                                updateQuantity(
+                                  item.productId,
+                                  item.quantity - 1
+                                )
+                              }
                               className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
                               aria-label="Decrease quantity"
                             >
@@ -180,7 +149,12 @@ export function CartDropdown() {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.id, 1)}
+                              onClick={() =>
+                                updateQuantity(
+                                  item.productId,
+                                  item.quantity + 1
+                                )
+                              }
                               className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
                               aria-label="Increase quantity"
                             >
@@ -203,7 +177,7 @@ export function CartDropdown() {
                   Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
                 </span>
                 <span className="text-2xl font-bold text-gray-900">
-                  ₱{subtotal.toFixed(2)}
+                  ₱{(summary?.subtotal || 0).toFixed(2)}
                 </span>
               </div>
 

@@ -3,11 +3,15 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
+import { toast } from "sonner";
+import { getGrowerUrl } from "@/lib/grower-utils";
 
 interface ProductCardProps {
   id: string;
@@ -28,7 +32,9 @@ export function ProductCard({
   image,
   inStock = true,
 }: ProductCardProps) {
+  const router = useRouter();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const inWishlist = isInWishlist(id);
 
   const toggleWishlist = (e: React.MouseEvent) => {
@@ -45,6 +51,17 @@ export function ProductCard({
     }
   };
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    addToCart(id, price, 1);
+
+    toast.success(`${name} added to cart!`, {
+      description: "View your cart to proceed to checkout",
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-shadow duration-200 flex flex-col h-full">
       {/* Product Image */}
@@ -57,9 +74,17 @@ export function ProductCard({
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         {/* Farm Badge */}
-        <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-[#6A994E] shadow-sm">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push(getGrowerUrl(farm));
+          }}
+          className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-[#6A994E] shadow-sm hover:bg-white transition-colors"
+          aria-label={`View grower ${farm}`}
+        >
           @{farm}
-        </div>
+        </button>
         {/* Wishlist Button */}
         <button
           onClick={toggleWishlist}
@@ -101,6 +126,7 @@ export function ProductCard({
             size="sm"
             className="rounded-md h-9 w-9 p-0 flex-shrink-0"
             disabled={!inStock}
+            onClick={handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4" />
           </Button>

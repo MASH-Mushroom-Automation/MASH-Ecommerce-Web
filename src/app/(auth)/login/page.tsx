@@ -5,14 +5,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, X, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { setAuthToken } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Load environment variables (default to production backend)
 const API_ENDPOINT =
@@ -43,6 +44,9 @@ type LoginForm = { identifier: string; password: string; rememberMe?: boolean };
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
+
   const {
     register,
     handleSubmit,
@@ -52,6 +56,28 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "", rememberMe: false },
   });
+
+  // Get contextual message based on redirect URL
+  const getContextualMessage = () => {
+    if (!redirectUrl) return null;
+
+    if (redirectUrl.includes("/checkout")) {
+      return "Please sign in to complete your checkout";
+    }
+    if (redirectUrl.includes("/profile")) {
+      return "Please sign in to access your profile";
+    }
+    if (redirectUrl.includes("/wishlist")) {
+      return "Please sign in to view your wishlist";
+    }
+    if (redirectUrl.includes("/seller")) {
+      return "Please sign in to access the seller dashboard";
+    }
+    if (redirectUrl.includes("/onboarding")) {
+      return "Please sign in to continue your onboarding";
+    }
+    return "Please sign in to continue";
+  };
 
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     // Attempt API login if available; otherwise gracefully fall back to mock login
@@ -68,7 +94,9 @@ export default function LoginPage() {
       // Parse backend response which contains `data.accessToken`, `data.refreshToken` and `data.user`
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message = (json && (json.message || json.data?.message)) || "Invalid credentials";
+        const message =
+          (json && (json.message || json.data?.message)) ||
+          "Invalid credentials";
         toast.error(message);
         return;
       }
@@ -97,13 +125,15 @@ export default function LoginPage() {
       }
 
       toast.success(`Signed in as ${user?.email || data.identifier}.`);
-      router.push("/");
+      // Redirect to the original page or home
+      router.push(redirectUrl || "/");
       router.refresh();
     } catch {
       // Network error or endpoint not available: use mock success to keep UX flowing in dev
       setAuthToken("mock-token", !!data.rememberMe);
       toast.success(`Signed in as ${data.identifier}.`);
-      router.push("/");
+      // Redirect to the original page or home
+      router.push(redirectUrl || "/");
       router.refresh();
     }
   };
@@ -118,9 +148,20 @@ export default function LoginPage() {
     console.log("Facebook sign-in");
   };
 
+  const contextualMessage = getContextualMessage();
+
   return (
     <Card className="w-full shadow-md overflow-hidden">
-      <CardHeader className="text-center pb-2">
+      <CardHeader className="text-center pb-2 relative">
+        {/* Clear/Home Button */}
+        <Link
+          href="/"
+          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          title="Go to home"
+        >
+          <X className="w-5 h-5 text-gray-600 hover:text-gray-900" />
+        </Link>
+
         {/* User Icon */}
         <div className="flex justify-center mb-4">
           <div className="bg-[#6A994E] rounded-full p-4">
@@ -144,6 +185,15 @@ export default function LoginPage() {
       </CardHeader>
 
       <CardContent className="pt-6">
+        {/* Contextual Message Alert */}
+        {contextualMessage && (
+          <Alert className="mb-6 bg-[#6A994E]/10 border-[#6A994E]/30">
+            <AlertCircle className="h-4 w-4 text-[#6A994E]" />
+            <AlertDescription className="text-[#1E392A] font-medium">
+              {contextualMessage}
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Form */}
         <form
           onSubmit={handleSubmit((data) =>

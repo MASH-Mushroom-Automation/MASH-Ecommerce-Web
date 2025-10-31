@@ -3,25 +3,26 @@
 import React, { useState, use } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart } from "lucide-react";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
-import { ProductApiResponse } from "@/types/api";
 import {
   LoadingSpinner,
   ProductCardSkeleton,
 } from "@/components/ui/loading-spinner";
 import { ProductsApi } from "@/lib/api/products";
+import { getGrowerUrl } from "@/lib/grower-utils";
 
 type Props = { params: Promise<{ id: string }> };
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
 
-function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
+function ProductDetailsContent({ product }: { product: any }) {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(
     product.images?.[0] ?? product.image
@@ -31,7 +32,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
       return;
     }
     if (inWishlist) {
@@ -68,7 +69,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
               />
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {allImages.slice(0, 4).map((img: string, index: number) => (
+              {allImages.slice(0, 4).map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setActiveImage(img)}
@@ -92,9 +93,12 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
           {/* Product Info */}
           <div className="lg:w-1/2 w-full">
-            <div className="inline-block px-3 py-1 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs sm:text-sm font-medium mb-3">
+            <Link
+              href={getGrowerUrl(product.grower)}
+              className="inline-block px-3 py-1 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-[#6A994E]/20 transition-colors"
+            >
               @{product.grower}
-            </div>
+            </Link>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               {product.name}
             </h1>
@@ -208,9 +212,7 @@ function RelatedProductsSection({
 }: {
   currentProductId: string;
 }) {
-  const [relatedProducts, setRelatedProducts] = useState<ProductApiResponse[]>(
-    []
-  );
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
