@@ -23,7 +23,7 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "John Doe",
     items: 3,
     total: 450,
-    status: "Pending",
+    status: "PENDING",
   },
   {
     id: "ORD-002",
@@ -31,7 +31,7 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Jane Smith",
     items: 2,
     total: 280,
-    status: "Confirmed",
+    status: "CONFIRMED",
   },
   {
     id: "ORD-003",
@@ -39,7 +39,7 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Mike Johnson",
     items: 1,
     total: 150,
-    status: "Ready for Pickup",
+    status: "PROCESSING",
   },
   {
     id: "ORD-004",
@@ -47,7 +47,7 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Alice Brown",
     items: 4,
     total: 520,
-    status: "Completed",
+    status: "DELIVERED",
   },
   {
     id: "ORD-005",
@@ -55,16 +55,18 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Mark Reyes",
     items: 2,
     total: 260,
-    status: "Cancelled",
+    status: "CANCELLED",
   },
 ];
 
 const statusDescriptions: Record<SellerOrderStatus, string> = {
-  Pending: "Order received and waiting for seller confirmation",
-  Confirmed: "Seller confirmed the order and is preparing it",
-  "Ready for Pickup": "Order ready for handover to the buyer",
-  Completed: "Buyer received the order and confirmed completion",
-  Cancelled: "Order was cancelled",
+  PENDING: "Order received and waiting for seller confirmation",
+  CONFIRMED: "Seller confirmed the order and is preparing it",
+  PROCESSING: "Order is being prepared for delivery",
+  SHIPPED: "Order has been shipped",
+  DELIVERED: "Buyer received the order and confirmed completion",
+  CANCELLED: "Order was cancelled",
+  REFUNDED: "Order was refunded",
 };
 
 const createTimelineEntry = (
@@ -80,7 +82,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
   "ORD-001": {
     id: "ORD-001",
     date: "2025-10-20",
-    status: "Pending",
+    status: "PENDING",
     customer: {
       name: "John Doe",
       email: "john.doe@email.com",
@@ -113,7 +115,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
     },
     notes: "Buyer prefers morning pickup and will message before arrival.",
     timeline: [
-      createTimelineEntry("Pending", "2025-10-20 10:30 AM"),
+      createTimelineEntry("PENDING", "2025-10-20 10:30 AM"),
     ],
     createdAt: "2025-10-20T10:30:00Z",
     updatedAt: "2025-10-20T10:30:00Z",
@@ -121,7 +123,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
   "ORD-002": {
     id: "ORD-002",
     date: "2025-10-19",
-    status: "Confirmed",
+    status: "CONFIRMED",
     customer: {
       name: "Jane Smith",
       email: "jane.smith@email.com",
@@ -143,7 +145,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
     },
     payment: {
       method: "Cash on Pickup",
-      status: "Pending",
+      status: "PENDING",
       transactionId: "",
     },
     totals: {
@@ -151,8 +153,8 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       total: 280,
     },
     timeline: [
-      createTimelineEntry("Pending", "2025-10-19 09:10 AM"),
-      createTimelineEntry("Confirmed", "2025-10-19 10:00 AM"),
+      createTimelineEntry("PENDING", "2025-10-19 09:10 AM"),
+      createTimelineEntry("CONFIRMED", "2025-10-19 10:00 AM"),
     ],
     createdAt: "2025-10-19T09:10:00Z",
     updatedAt: "2025-10-19T10:00:00Z",
@@ -160,7 +162,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
   "ORD-003": {
     id: "ORD-003",
     date: "2025-10-18",
-    status: "Ready for Pickup",
+    status: "PROCESSING",
     customer: {
       name: "Mike Johnson",
       email: "mike.johnson@email.com",
@@ -191,9 +193,9 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       total: 150,
     },
     timeline: [
-      createTimelineEntry("Pending", "2025-10-18 08:05 AM"),
-      createTimelineEntry("Confirmed", "2025-10-18 08:30 AM"),
-      createTimelineEntry("Ready for Pickup", "2025-10-18 05:00 PM"),
+      createTimelineEntry("PENDING", "2025-10-18 08:05 AM"),
+      createTimelineEntry("CONFIRMED", "2025-10-18 08:30 AM"),
+      createTimelineEntry("PROCESSING", "2025-10-18 05:00 PM"),
     ],
     createdAt: "2025-10-18T08:05:00Z",
     updatedAt: "2025-10-18T17:00:00Z",
@@ -201,7 +203,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
   "ORD-004": {
     id: "ORD-004",
     date: "2025-10-17",
-    status: "Completed",
+    status: "DELIVERED",
     customer: {
       name: "Alice Brown",
       email: "alice.brown@email.com",
@@ -233,10 +235,10 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
     },
     notes: "Delivery completed and confirmed by buyer.",
     timeline: [
-      createTimelineEntry("Pending", "2025-10-17 07:40 AM"),
-      createTimelineEntry("Confirmed", "2025-10-17 08:10 AM"),
-      createTimelineEntry("Ready for Pickup", "2025-10-17 12:00 PM"),
-      createTimelineEntry("Completed", "2025-10-18 03:15 PM"),
+      createTimelineEntry("PENDING", "2025-10-17 07:40 AM"),
+      createTimelineEntry("CONFIRMED", "2025-10-17 08:10 AM"),
+      createTimelineEntry("PROCESSING", "2025-10-17 12:00 PM"),
+      createTimelineEntry("DELIVERED", "2025-10-18 03:15 PM"),
     ],
     createdAt: "2025-10-17T07:40:00Z",
     updatedAt: "2025-10-18T15:15:00Z",
@@ -252,6 +254,8 @@ const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
     stock: 50,
     category: "Fresh Mushroom",
     status: "Active",
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
   },
   {
     id: "2",
@@ -261,6 +265,8 @@ const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
     stock: 30,
     category: "Fresh Mushroom",
     status: "Active",
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
   },
 ];
 
@@ -272,7 +278,7 @@ const MOCK_SELLER_REFUNDS: SellerRefund[] = [
     customer: "Sarah Williams",
     amount: 150,
     reason: "Damaged product",
-    status: "Pending",
+    status: "Pending",  // Note: SellerRefund has its own status enum separate from OrderStatus
   },
 ];
 

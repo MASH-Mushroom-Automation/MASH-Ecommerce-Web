@@ -1,7 +1,8 @@
-// API route for products - ready for CMS integration
+// API route for products - Backend integrated
 import { NextRequest, NextResponse } from "next/server";
-import { ProductsApi } from "@/lib/api/products";
+import { apiRequest } from "@/lib/api-client";
 import { cookies } from "next/headers";
+import type { ProductApiResponse, ApiResponse } from "@/types/api";
 
 // Get all products with filtering and pagination
 export async function GET(request: NextRequest) {
@@ -33,7 +34,26 @@ export async function GET(request: NextRequest) {
       sortOrder: searchParams.get("sortOrder") as "asc" | "desc" | undefined,
     };
 
-    const response = await ProductsApi.getProducts(params);
+    // Build query string for backend
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append("page", params.page.toString());
+    if (params.limit) queryParams.append("limit", params.limit.toString());
+    if (params.category) queryParams.append("category", params.category);
+    if (params.grower) queryParams.append("grower", params.grower);
+    if (params.minPrice) queryParams.append("minPrice", params.minPrice.toString());
+    if (params.maxPrice) queryParams.append("maxPrice", params.maxPrice.toString());
+    if (params.search) queryParams.append("search", params.search);
+    if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder);
+
+    const query = queryParams.toString();
+    const endpoint = query ? `/api/products?${query}` : "/api/products";
+    
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<ProductApiResponse[]>>(endpoint, {
+      method: "GET",
+    });
+    
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
@@ -75,41 +95,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    // Validate required fields
-    const requiredFields = ["name", "description", "price", "category", "weight"];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Missing required fields",
-            details: { fields: missingFields }
-          }
-        },
-        { status: 400 }
-      );
-    }
-
-    // Mock product creation
-    const newProduct = {
-      id: `prod_${Date.now()}`,
-      ...body,
-      grower: body.grower || "Default Grower",
-      images: body.images || [],
-      image: body.images?.[0] || "/placeholder.png",
-      inStock: body.inStock !== false,
-      tag: body.tag || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API to create product
+    const response = await apiRequest<ApiResponse<ProductApiResponse>>("/api/products", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
 
     return NextResponse.json({
-      success: true,
-      data: newProduct,
-      message: "Product created successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     }, { status: 201 });

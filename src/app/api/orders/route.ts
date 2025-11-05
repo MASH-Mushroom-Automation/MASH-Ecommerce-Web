@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
-// Mock orders data
+// Mock orders data (fallback only - will be removed when backend is stable)
 const MOCK_ORDERS = [
   {
     id: "ord_001",
@@ -95,46 +97,25 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
-
-    // Filter orders
-    let filtered = [...MOCK_ORDERS];
     
-    if (status) {
-      filtered = filtered.filter(order => order.status === status);
-    }
-
-    // Sort orders
-    filtered.sort((a: any, b: any) => {
-      const aVal = a[sortBy];
-      const bVal = b[sortBy];
-      
-      if (sortOrder === "desc") {
-        return bVal > aVal ? 1 : -1;
-      }
-      return aVal > bVal ? 1 : -1;
+    // Build query params for backend
+    const queryParams = new URLSearchParams();
+    if (searchParams.get("page")) queryParams.append("page", searchParams.get("page")!);
+    if (searchParams.get("limit")) queryParams.append("limit", searchParams.get("limit")!);
+    if (searchParams.get("status")) queryParams.append("status", searchParams.get("status")!);
+    if (searchParams.get("sortBy")) queryParams.append("sortBy", searchParams.get("sortBy")!);
+    if (searchParams.get("sortOrder")) queryParams.append("sortOrder", searchParams.get("sortOrder")!);
+    
+    const query = queryParams.toString();
+    const endpoint = query ? `/api/orders?${query}` : "/api/orders";
+    
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any[]>>(endpoint, {
+      method: "GET",
     });
 
-    // Paginate
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginated = filtered.slice(startIndex, endIndex);
-
     return NextResponse.json({
-      success: true,
-      data: paginated,
-      pagination: {
-        page,
-        limit,
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit),
-        hasNext: endIndex < filtered.length,
-        hasPrev: page > 1
-      },
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -174,57 +155,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    // Validate required fields
-    const requiredFields = ["items", "shippingAddress", "paymentMethod"];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Missing required fields",
-            details: { fields: missingFields }
-          }
-        },
-        { status: 400 }
-      );
-    }
-
-    // Calculate totals
-    const subtotal = body.items.reduce((total: number, item: any) => {
-      return total + (item.price * item.quantity);
-    }, 0);
-    const shipping = body.shipping || 50;
-    const tax = body.tax || 0;
-    const total = subtotal + shipping + tax;
-
-    // Mock order creation
-    const newOrder = {
-      id: `ord_${Date.now()}`,
-      orderNumber: `#${Date.now().toString().slice(-5)}`,
-      status: "pending",
-      items: body.items,
-      subtotal,
-      shipping,
-      tax,
-      total,
-      shippingAddress: body.shippingAddress,
-      billingAddress: body.billingAddress || body.shippingAddress,
-      paymentMethod: body.paymentMethod,
-      paymentStatus: "pending",
-      trackingNumber: null,
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: body.notes || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API to create order
+    const response = await apiRequest<ApiResponse<any>>("/api/orders", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
 
     return NextResponse.json({
-      success: true,
-      data: newOrder,
-      message: "Order created successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     }, { status: 201 });

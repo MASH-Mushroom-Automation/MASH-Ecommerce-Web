@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
-// Mock IoT devices data
+// Mock IoT devices data (fallback)
 const MOCK_DEVICES = [
   {
     id: "dev_001",
@@ -151,41 +153,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const type = searchParams.get("type");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-
-    // Filter devices
-    let filtered = [...MOCK_DEVICES];
+    const queryParams = new URLSearchParams();
+    if (searchParams.get("status")) queryParams.append("status", searchParams.get("status")!);
+    if (searchParams.get("type")) queryParams.append("type", searchParams.get("type")!);
+    if (searchParams.get("page")) queryParams.append("page", searchParams.get("page")!);
+    if (searchParams.get("limit")) queryParams.append("limit", searchParams.get("limit")!);
     
-    if (status) {
-      filtered = filtered.filter(device => device.status === status);
-    }
-    
-    if (type) {
-      filtered = filtered.filter(device => device.type === type);
-    }
+    const query = queryParams.toString();
+    const endpoint = query ? `/api/devices?${query}` : "/api/devices";
+    const response = await apiRequest<ApiResponse<any>>(endpoint, { method: "GET" });
 
-    // Paginate
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginated = filtered.slice(startIndex, endIndex);
-
-    return NextResponse.json({
-      success: true,
-      data: paginated,
-      pagination: {
-        page,
-        limit,
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit),
-        hasNext: endIndex < filtered.length,
-        hasPrev: page > 1
-      },
-      timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
-    });
+    return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(
       {
@@ -221,55 +199,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
-    // Validate required fields
-    const requiredFields = ["name", "type", "model", "location"];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Missing required fields",
-            details: { fields: missingFields }
-          }
-        },
-        { status: 400 }
-      );
-    }
+    const response = await apiRequest<ApiResponse<any>>("/api/devices", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
 
-    // Mock device registration
-    const newDevice = {
-      id: `dev_${Date.now()}`,
-      name: body.name,
-      type: body.type,
-      model: body.model,
-      location: body.location,
-      status: "pending",
-      firmware: "v2.1.0",
-      sensors: {},
-      actuators: {},
-      alerts: [],
-      configuration: {
-        targetTemperature: { min: 25, max: 28 },
-        targetHumidity: { min: 80, max: 90 },
-        targetCO2: { min: 10000, max: 15000 },
-        autoMode: true,
-        notifications: true
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: newDevice,
-      message: "Device registered successfully. Please follow the setup instructions.",
-      timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
-    }, { status: 201 });
+    return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {

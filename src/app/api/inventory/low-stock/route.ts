@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,30 +21,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Replace with real database query
-    const lowStockProducts = [
-      {
-        id: "prod_1",
-        name: "Fresh White Oyster Mushrooms",
-        quantity: 5,
-        threshold: 20,
-        lastUpdated: new Date().toISOString()
-      },
-      {
-        id: "prod_2",
-        name: "Dried Shiitake Mushrooms",
-        quantity: 8,
-        threshold: 15,
-        lastUpdated: new Date().toISOString()
-      }
-    ];
+    const response = await apiRequest<ApiResponse<any>>("/api/inventory/low-stock", { method: "GET" });
 
-    return NextResponse.json({
-      success: true,
-      data: lowStockProducts,
-      timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
-    });
+    return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(
       {

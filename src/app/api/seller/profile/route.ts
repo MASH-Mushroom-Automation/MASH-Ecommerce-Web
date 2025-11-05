@@ -1,28 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-// Mock seller profile data
-const MOCK_SELLER_PROFILE = {
-  id: "seller_123456",
-  userId: "usr_123456",
-  name: "Fungi Fresh Farms",
-  email: "contact@fungifreshfarms.com",
-  phone: "09123456789",
-  description: "Urban-grown gourmet mushrooms for the modern kitchen.",
-  website: "https://fungifreshfarms.com",
-  location: "Caloocan City, Metro Manila",
-  logo: "/placeholder.png",
-  banner: "/placeholder.png",
-  coords: {
-    lat: 14.6507,
-    lng: 120.9622
-  },
-  isVerified: true,
-  rating: 4.8,
-  reviewCount: 127,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-};
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 // GET seller profile
 export async function GET(request: NextRequest) {
@@ -43,11 +22,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // In production, fetch from backend with token
-    // For now, return mock data
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      "/api/seller/profile",
+      { method: "GET" }
+    );
+
     return NextResponse.json({
-      success: true,
-      data: MOCK_SELLER_PROFILE,
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -87,38 +69,17 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    // Validate required fields
-    const allowedFields = [
-      "name",
-      "email",
-      "phone",
-      "description",
-      "website",
-      "location",
-      "logo",
-      "banner",
-      "coords"
-    ];
-
-    const updates: any = {};
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates[field] = body[field];
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      "/api/seller/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
       }
-    }
-
-    // In production, update backend
-    // For now, merge with mock data
-    const updatedProfile = {
-      ...MOCK_SELLER_PROFILE,
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
+    );
 
     return NextResponse.json({
-      success: true,
-      data: updatedProfile,
-      message: "Seller profile updated successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

@@ -21,7 +21,7 @@ const step1Schema = z.object({
 });
 
 const step2Schema = z.object({
-  paymentMethod: z.enum(["cod", "gcash", "card"]),
+  paymentMethod: z.enum(["CASH_ON_DELIVERY", "GCASH", "CREDIT_CARD", "DEBIT_CARD", "MAYA"]),
   // Card fields (optional, only if card is selected)
   cardNumber: z.string().optional(),
   cardExpiry: z.string().optional(),
@@ -120,7 +120,7 @@ export default function CheckoutPage() {
   const step2Form = useForm<Step2FormValues>({
     resolver: zodResolver(step2Schema),
     defaultValues: {
-      paymentMethod: "cod",
+      paymentMethod: "CASH_ON_DELIVERY",
       cardNumber: "",
       cardExpiry: "",
       cardCvc: "",
@@ -450,16 +450,16 @@ export default function CheckoutPage() {
                             {/* Cash on Pickup */}
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "cod"
+                                field.value === "CASH_ON_DELIVERY"
                                   ? "border-[#1E392A] bg-[#1E392A]/5"
                                   : "border-gray-300 hover:border-gray-400"
                               }`}
                             >
                               <input
                                 type="radio"
-                                value="cod"
-                                checked={field.value === "cod"}
-                                onChange={() => field.onChange("cod")}
+                                value="CASH_ON_DELIVERY"
+                                checked={field.value === "CASH_ON_DELIVERY"}
+                                onChange={() => field.onChange("CASH_ON_DELIVERY")}
                                 className="sr-only"
                               />
                               <div className="flex items-center gap-3">
@@ -469,19 +469,19 @@ export default function CheckoutPage() {
                               </div>
                             </label>
 
-                            {/* Gcash */}
+                            {/* GCash */}
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "gcash"
+                                field.value === "GCASH"
                                   ? "border-[#1E392A] bg-[#1E392A]/5"
                                   : "border-gray-300 hover:border-gray-400"
                               }`}
                             >
                               <input
                                 type="radio"
-                                value="gcash"
-                                checked={field.value === "gcash"}
-                                onChange={() => field.onChange("gcash")}
+                                value="GCASH"
+                                checked={field.value === "GCASH"}
+                                onChange={() => field.onChange("GCASH")}
                                 className="sr-only"
                               />
                               <div className="flex items-center gap-3">
@@ -494,23 +494,23 @@ export default function CheckoutPage() {
                             {/* Credit/Debit Card */}
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "card"
+                                field.value === "CREDIT_CARD"
                                   ? "border-[#1E392A] bg-[#1E392A]/5"
                                   : "border-gray-300 hover:border-gray-400"
                               }`}
                             >
                               <input
                                 type="radio"
-                                value="card"
-                                checked={field.value === "card"}
-                                onChange={() => field.onChange("card")}
+                                value="CREDIT_CARD"
+                                checked={field.value === "CREDIT_CARD"}
+                                onChange={() => field.onChange("CREDIT_CARD")}
                                 className="sr-only"
                               />
                               <div className="font-medium text-gray-900 mb-4">
                                 Credit/Debit Cards and E-wallets
                               </div>
 
-                              {field.value === "card" && (
+                              {field.value === "CREDIT_CARD" && (
                                 <div className="space-y-3 mt-4">
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">

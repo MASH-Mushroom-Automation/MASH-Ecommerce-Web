@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse, UserProfile } from "@/types/api";
 
 // Get current authenticated user
 export async function GET(request: NextRequest) {
@@ -20,33 +22,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Mock user data for development
-    // In production, verify JWT and fetch from database
-    const mockUser = {
-      id: "usr_123456",
-      email: "user@mash.market",
-      firstName: "John",
-      lastName: "Grower",
-      role: "customer",
-      isSeller: false,
-      avatar: "/profile_placeholder.png",
-      preferences: {
-        notifications: {
-          email: true,
-          push: true,
-          sms: false
-        },
-        theme: "light",
-        language: "en"
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<UserProfile>>(
+      "/api/auth/me",
+      { method: "GET" }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: mockUser,
-      message: "User retrieved successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -86,29 +69,18 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    
-    // Validate input
-    const allowedFields = ["firstName", "lastName", "phone", "bio", "preferences"];
-    const updates: any = {};
-    
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates[field] = body[field];
-      }
-    }
 
-    // Mock update - in production, update database
-    const updatedUser = {
-      id: "usr_123456",
-      email: "user@mash.market",
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<UserProfile>>(
+      "/api/auth/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: updatedUser,
-      message: "Profile updated successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

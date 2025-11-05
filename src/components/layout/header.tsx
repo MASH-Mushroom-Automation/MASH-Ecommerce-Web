@@ -73,7 +73,8 @@ export function Header() {
     setIsMounted(true);
   }, []);
 
-  const showSellerDashboardLink = isMounted && profile?.isSeller;
+  // Three-state seller status logic
+  const sellerStatus = isMounted ? (profile?.sellerStatus || 'none') : 'none';
 
   const handleLogout = () => {
     authLogout();
@@ -94,10 +95,14 @@ export function Header() {
       <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {showSellerDashboardLink ? (
+            {sellerStatus === 'approved' ? (
               <Link href="/seller/dashboard" className="hover:underline">
                 Seller Center
               </Link>
+            ) : sellerStatus === 'pending' ? (
+              <span className="text-yellow-300 cursor-not-allowed" title="Your seller application is awaiting admin approval">
+                Application Pending ⏳
+              </span>
             ) : (
               <Link href="/start-selling" className="hover:underline">
                 Start Selling
