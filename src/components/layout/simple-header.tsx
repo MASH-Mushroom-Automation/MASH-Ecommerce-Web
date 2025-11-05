@@ -19,9 +19,9 @@ export function SimpleHeader() {
   return (
     <header className="bg-white shadow-sm">
       {/* Top Bar: Seller/Info Links - Dark Green Background */}
-      <div className="bg-[#1E392A] text-white text-sm py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4">
+      <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {showSellerDashboardLink ? (
               <Link href="/seller/dashboard" className="hover:underline">
                 Seller Center
@@ -31,27 +31,32 @@ export function SimpleHeader() {
                 Start Selling
               </Link>
             )}
+            <span className="hidden sm:inline text-white/30">•</span>
             <Link href="#" className="hover:underline">
               Download App
             </Link>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/blog" className="hover:underline">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/90">
+            <Link href="/blog" className="hover:underline whitespace-nowrap">
               BLOG
             </Link>
-            <Link href="/faq" className="hover:underline">
+            <span className="hidden sm:inline text-white/30">•</span>
+            <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
               FAQ
             </Link>
-            <Link href="/contact" className="hover:underline">
+            <span className="hidden sm:inline text-white/30">•</span>
+            <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
               CONTACT US
             </Link>
-
-            <a href="#" aria-label="Facebook" className="hover:text-gray-300">
-              <Facebook size={20} />
-            </a>
-            <a href="#" aria-label="Instagram" className="hover:text-gray-300">
-              <Instagram size={20} />
-            </a>
+            <span className="hidden sm:inline text-white/30">•</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <a href="#" aria-label="Facebook" className="hover:text-gray-300">
+                <Facebook size={18} />
+              </a>
+              <a href="#" aria-label="Instagram" className="hover:text-gray-300">
+                <Instagram size={18} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
