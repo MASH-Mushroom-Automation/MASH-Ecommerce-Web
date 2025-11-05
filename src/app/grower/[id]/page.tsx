@@ -87,7 +87,7 @@ export default function GrowerDetailPage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="w-full bg-gradient-to-r from-[#1E392A] to-[#6A994E]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8 sm:py-12">
           <Link
             href="/grower"
             className="inline-flex items-center text-white/90 hover:text-white mb-6 text-sm"
@@ -118,7 +118,7 @@ export default function GrowerDetailPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <section className="mb-10">

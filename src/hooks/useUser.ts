@@ -18,7 +18,7 @@ export function useUserProfile() {
     return null;
   };
 
-  const [profile, setProfile] = useState<UserProfile | null>(getStoredUser());
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +96,12 @@ export function useUserProfile() {
   }, []);
 
   useEffect(() => {
+    const storedProfile = getStoredUser();
+    if (storedProfile) {
+      setProfile(storedProfile);
+      setLoading(false);
+    }
+
     fetchProfile();
   }, [fetchProfile]);
 

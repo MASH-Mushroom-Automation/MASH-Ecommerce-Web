@@ -405,7 +405,11 @@ export default function ProductCatalogPage() {
                   </SelectContent>
                 </Select>
                 {/* View Mode Toggle - Right Side */}
-                <div className="hidden sm:flex gap-2 ml-auto" role="group" aria-label="Toggle product view">
+                <div
+                  className="hidden sm:flex gap-2 ml-auto"
+                  role="group"
+                  aria-label="Toggle product view"
+                >
                   <Button
                     variant="outline"
                     size="icon"
@@ -503,9 +507,12 @@ export default function ProductCatalogPage() {
                             <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
                               {product.name}
                             </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-500 mb-1">by {product.grower}</p>
+                            <p className="text-[11px] sm:text-xs text-gray-500 mb-1">
+                              by {product.grower}
+                            </p>
                             <p className="text-[11px] sm:text-xs text-gray-600 line-clamp-2 leading-snug">
-                              Fresh, locally-sourced mushrooms perfect for any culinary creation.
+                              Fresh, locally-sourced mushrooms perfect for any
+                              culinary creation.
                             </p>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -513,15 +520,21 @@ export default function ProductCatalogPage() {
                               <span className="text-lg sm:text-xl font-bold text-[#1E392A]">
                                 ₱{product.price.toFixed(2)}
                               </span>
-                              <span className="text-[11px] sm:text-xs text-gray-500">per {product.weight}</span>
+                              <span className="text-[11px] sm:text-xs text-gray-500">
+                                per {product.weight}
+                              </span>
                             </div>
                             {product.inStock === false ? (
-                              <span className="text-[11px] sm:text-xs text-red-600 font-medium">Out of Stock</span>
+                              <span className="text-[11px] sm:text-xs text-red-600 font-medium">
+                                Out of Stock
+                              </span>
                             ) : (
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => addToCart(product.id, product.price, 1)}
+                                onClick={() =>
+                                  addToCart(product.id, product.price, 1)
+                                }
                                 className="w-full sm:w-auto min-h-[36px]"
                               >
                                 Add to Cart

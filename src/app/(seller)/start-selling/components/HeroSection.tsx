@@ -59,13 +59,13 @@ export function HeroSection({ onContinue }: HeroSectionProps) {
             </div>
             <div className="hidden lg:block">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#6A994E]/20 to-transparent rounded-2xl"></div>
+                <div className="absolute inset-0"></div>
                 <Image
-                  src="/placeholder.png"
-                  alt="Successful mushroom grower"
+                  src="/Logo  v6 - Market.png"
+                  alt="MASH Market - Start Selling"
                   width={600}
                   height={400}
-                  className="rounded-2xl shadow-2xl"
+                  className="rounded-2xl object-contain"
                 />
               </div>
             </div>
@@ -74,7 +74,7 @@ export function HeroSection({ onContinue }: HeroSectionProps) {
       </section>
 
       {/* How It Works */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">

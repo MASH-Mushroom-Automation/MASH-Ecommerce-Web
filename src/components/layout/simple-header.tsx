@@ -1,23 +1,36 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Facebook, Instagram } from "lucide-react";
+import { useUserProfile } from "@/hooks/useUser";
 
 export function SimpleHeader() {
+  const { profile } = useUserProfile();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const showSellerDashboardLink = isMounted && profile?.isSeller;
+
   return (
     <header className="bg-white shadow-sm">
       {/* Top Bar: Seller/Info Links - Dark Green Background */}
       <div className="bg-[#1E392A] text-white text-sm py-2">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
-            <Link href="/seller/dashboard" className="hover:underline">
-              Seller Center
-            </Link>
-            <Link href="/seller/dashboard" className="hover:underline">
-              Start Selling
-            </Link>
+            {showSellerDashboardLink ? (
+              <Link href="/seller/dashboard" className="hover:underline">
+                Seller Center
+              </Link>
+            ) : (
+              <Link href="/start-selling" className="hover:underline">
+                Start Selling
+              </Link>
+            )}
             <Link href="#" className="hover:underline">
               Download App
             </Link>

@@ -120,14 +120,15 @@ export default function SellerOrders() {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 sm:p-6 border-b border-gray-200">
           <Tabs
             defaultValue="all"
             value={currentTab}
             onValueChange={setCurrentTab}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-6 mb-4">
               <TabsTrigger value="all" onClick={() => handleTabChange("all")}>
                 All ({getStatusCount("all")})
               </TabsTrigger>
@@ -162,6 +163,7 @@ export default function SellerOrders() {
                 Cancelled ({getStatusCount("cancelled")})
               </TabsTrigger>
             </TabsList>
+            </div>
           </Tabs>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -198,28 +200,29 @@ export default function SellerOrders() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead className="w-[120px]">Order ID</TableHead>
+                <TableHead className="w-[140px]">Date</TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead className="text-right">Items</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right w-[80px]">Items</TableHead>
+                <TableHead className="text-right w-[120px]">Total</TableHead>
+                <TableHead className="w-[140px]">Status</TableHead>
+                <TableHead className="text-right w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell className="text-right">{order.items}</TableCell>
-                    <TableCell className="text-right">
+                  <TableRow key={order.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium text-sm">{order.id}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{order.date}</TableCell>
+                    <TableCell className="text-sm">{order.customer}</TableCell>
+                    <TableCell className="text-right text-sm">{order.items}</TableCell>
+                    <TableCell className="text-right font-semibold text-sm">
                       ₱{order.total.toFixed(2)}
                     </TableCell>
                     <TableCell>
@@ -243,11 +246,12 @@ export default function SellerOrders() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0"
+                        className="min-h-[44px] min-w-[44px]"
                         asChild
                       >
-                        <a href={`/seller/orders/${order.id}`}>
+                        <a href={`/seller/orders/${order.id}`} className="flex items-center justify-center gap-1">
                           <Eye className="h-4 w-4" />
+                          <span className="text-xs">View</span>
                         </a>
                       </Button>
                     </TableCell>
@@ -257,14 +261,80 @@ export default function SellerOrders() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center py-8 text-gray-500"
+                    className="text-center py-12 text-gray-500"
                   >
-                    No orders found
+                    <div className="text-center">
+                      <p className="text-sm">No orders found</p>
+                      <p className="text-xs mt-1">Try adjusting your search or filters</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden">
+          {filteredOrders.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {filteredOrders.map((order) => (
+                <div key={order.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-semibold text-sm text-gray-900">{order.id}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{order.date}</p>
+                    </div>
+                    <Badge
+                      className={
+                        order.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          : order.status === "Processing"
+                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                          : order.status === "Shipped"
+                          ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                          : order.status === "Delivered"
+                          ? "bg-green-100 text-green-800 hover:bg-green-100"
+                          : "bg-red-100 text-red-800 hover:bg-red-100"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Customer</span>
+                      <span className="font-medium">{order.customer}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Items</span>
+                      <span className="font-medium">{order.items}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total</span>
+                      <span className="font-semibold text-[#1E392A]">₱{order.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full min-h-[44px]"
+                    asChild
+                  >
+                    <a href={`/seller/orders/${order.id}`} className="flex items-center justify-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      View Details
+                    </a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <p className="text-sm">No orders found</p>
+              <p className="text-xs mt-1">Try adjusting your search or filters</p>
+            </div>
+          )}
         </div>
 
         {pagination && (

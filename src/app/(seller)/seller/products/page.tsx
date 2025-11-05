@@ -122,7 +122,7 @@ export default function SellerProducts() {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 sm:p-6 border-b border-gray-200">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -175,25 +175,26 @@ export default function SellerProducts() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[250px]">Product</TableHead>
-                <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[300px]">Product</TableHead>
+                <TableHead className="text-right w-[120px]">Price</TableHead>
+                <TableHead className="text-right w-[100px]">Stock</TableHead>
+                <TableHead className="w-[140px]">Category</TableHead>
+                <TableHead className="w-[140px]">Status</TableHead>
+                <TableHead className="text-right w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.id} className="hover:bg-gray-50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-md overflow-hidden bg-gray-100 relative">
+                        <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -206,13 +207,15 @@ export default function SellerProducts() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-semibold text-sm">
                       ₱{product.price.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {product.stock}
+                    <TableCell className="text-right text-sm">
+                      <span className={product.stock < 10 ? "text-red-600 font-medium" : ""}>
+                        {product.stock}
+                      </span>
                     </TableCell>
-                    <TableCell>{product.category}</TableCell>
+                    <TableCell className="text-sm">{product.category}</TableCell>
                     <TableCell>
                       <Badge
                         className={
@@ -231,8 +234,8 @@ export default function SellerProducts() {
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-500"
+                            size="sm"
+                            className="min-h-[44px] min-w-[44px] text-gray-500"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -263,8 +266,7 @@ export default function SellerProducts() {
                                   Delete Product
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "
-                                  {product.name}"? This action cannot be undone.
+                                  Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -292,14 +294,115 @@ export default function SellerProducts() {
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-8 text-gray-500"
+                    className="text-center py-12 text-gray-500"
                   >
-                    No products found
+                    <div className="text-center">
+                      <p className="text-sm">No products found</p>
+                      <p className="text-xs mt-1">Try adjusting your search or filters</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden">
+          {filteredProducts.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {filteredProducts.map((product) => (
+                <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex gap-4 mb-3">
+                    <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-1">{product.category}</p>
+                      <Badge
+                        className={
+                          product.status === "Active"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : product.status === "Out of Stock"
+                            ? "bg-red-100 text-red-800 hover:bg-red-100"
+                            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                        }
+                      >
+                        {product.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Price</span>
+                      <span className="font-semibold text-[#1E392A]">₱{product.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Stock</span>
+                      <span className={`font-medium ${product.stock < 10 ? "text-red-600" : ""}`}>
+                        {product.stock} units
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-h-[44px]"
+                      asChild
+                    >
+                      <Link href={`/seller/products/edit/${product.id}`} className="flex items-center justify-center gap-2">
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="min-h-[44px] min-w-[44px] text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteProduct(product.id)}
+                            disabled={deletingProduct === product.id}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            {deletingProduct === product.id ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <p className="text-sm">No products found</p>
+              <p className="text-xs mt-1">Try adjusting your search or filters</p>
+            </div>
+          )}
         </div>
 
         <div className="py-4 border-t border-gray-200">

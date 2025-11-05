@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
+import { MobileBottomNav, MobileBottomNavSpacer } from "@/components/layout/mobile-bottom-nav";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,8 +42,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           ) : (
             <Header />
           )}
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            {children}
+            <MobileBottomNavSpacer />
+          </main>
           <Footer />
+          <MobileBottomNav />
           {/* Global toast portal */}
           <Toaster position="top-right" richColors closeButton />
         </div>

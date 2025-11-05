@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Instagram, MapPin, Phone, Mail } from "lucide-react";
+import { Facebook, Instagram, MapPin, Phone, Mail, Youtube } from "lucide-react";
 
 export function Footer() {
   return (
@@ -9,7 +9,7 @@ export function Footer() {
         {/* Main Content Grid: Logo/Info (col-1), Shop (col-2), Customer Service (col-3), About MASH (col-4) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
           {/* Column 1: MASH Logo/Brand Info and Social Media */}
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-2 md:col-span-1 flex flex-col items-center text-center">
             {/* MASH Logo */}
             <div className="mb-6">
               <Image
@@ -22,28 +22,28 @@ export function Footer() {
             </div>
 
             {/* Accepted Payments Section */}
-            <h4 className="text-sm font-light mb-3 text-gray-200">
+            <h4 className="text-sm luz font-light mb-3 text-gray-200">
               Accepted Payments:
             </h4>
-            <div className="flex flex-wrap items-center gap-3 mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
               <Image
-                src="/gcash-logo.png"
+                src="/payment-logos/gcash-logo.png"
                 alt="GCash"
-                width={120}
-                height={40}
-                className="h-7 sm:h-8 w-auto object-contain"
+                width={50}
+                height={50}
+                className="h-7 w-7 object-contain"
               />
               <Image
                 src="/payment-logos/Maya_Logo.svg"
                 alt="Maya"
-                width={120}
-                height={40}
-                className="h-6 sm:h-7 w-auto object-contain"
+                width={50}
+                height={50}
+                className="h-8 w-12 object-contain"
               />
             </div>
 
             {/* Social Media */}
-            <div className="flex space-x-4 mt-6">
+            <div className="flex justify-center space-x-4 mt-6">
               <a
                 href="https://www.facebook.com/share/v/17PSuG7XpE/"
                 target="_blank"
@@ -61,6 +61,22 @@ export function Footer() {
                 aria-label="Instagram"
               >
                 <Instagram size={24} />
+              </a>
+              <a
+                href="https://www.youtube.com/@mashmarket"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-[#6A994E]"
+                aria-label="YouTube"
+              >
+                <Youtube size={24} />
+              </a>
+              <a
+                href="mailto:hello@mash.market"
+                className="text-white hover:text-[#6A994E]"
+                aria-label="Email"
+              >
+                <Mail size={24} />
               </a>
             </div>
           </div>
