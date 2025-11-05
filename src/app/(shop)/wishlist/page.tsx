@@ -9,6 +9,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect } from "react";
 import type { ProductApiResponse } from "@/types/api";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useRouter } from "next/navigation";
 
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist } = useWishlist();
@@ -16,6 +18,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function WishlistPage() {
   if (!isClient) {
     return (
       <div className="bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
           <div className="text-center py-12">
             <LoadingSpinner size="lg" className="mx-auto mb-4" />
             <p className="text-gray-600">Loading your wishlist...</p>
@@ -76,7 +79,7 @@ export default function WishlistPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
@@ -116,21 +119,13 @@ export default function WishlistPage() {
           </div>
         ) : wishlistItems.length === 0 ? (
           /* Empty State */
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Your wishlist is empty
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Save your favorite items to easily find them later!
-            </p>
-            <Link href="/catalog">
-              <Button className="bg-[#6A994E] hover:bg-[#6A994E]/90">
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Start Shopping
-              </Button>
-            </Link>
-          </div>
+          <EmptyState
+            icon={Heart}
+            title="Your wishlist is empty"
+            description="Save your favorite items to easily find them later!"
+            actionLabel="Start Shopping"
+            onAction={() => router.push("/catalog")}
+          />
         ) : (
           /* Product Grid */
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

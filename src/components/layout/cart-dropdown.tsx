@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,37 @@ import { ShoppingCart, X, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function CartDropdown() {
   const cartData = useCart();
   const { items, summary, updateQuantity, removeFromCart, clearCart } =
     cartData;
   const { products } = useProducts({ limit: 100 }); // Fetch products to get details
+  const [prevItemCount, setPrevItemCount] = useState(0);
+  const [animate, setAnimate] = useState(false);
 
   const totalItems = items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+  // Trigger animation when cart count increases
+  useEffect(() => {
+    if (totalItems > prevItemCount && prevItemCount > 0) {
+      setAnimate(true);
+      const timer = setTimeout(() => setAnimate(false), 500);
+      return () => clearTimeout(timer);
+    }
+    setPrevItemCount(totalItems);
+  }, [totalItems, prevItemCount]);
 
   // Get product details for each cart item
   const cartItemsWithDetails = (items || []).map((cartItem) => {
@@ -42,7 +65,11 @@ export function CartDropdown() {
           <ShoppingCart size={24} className="group-hover:text-[#6A994E]" />
           <span className="text-sm ml-1 hidden sm:block">Cart</span>
           {totalItems > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
+            <Badge
+              className={`absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs transition-transform duration-300 ${
+                animate ? "animate-bounce scale-125" : ""
+              }`}
+            >
               {totalItems}
             </Badge>
           )}
@@ -183,14 +210,35 @@ export function CartDropdown() {
 
               {/* Buttons - Side by Side */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Clear Cart Button */}
-                <Button
-                  onClick={clearCart}
-                  variant="outline"
-                  className="w-full h-12 border-2 border-gray-300 hover:bg-gray-50 text-gray-900 font-medium"
-                >
-                  Clear Cart
-                </Button>
+                {/* Clear Cart Button with confirmation */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 border-2 border-gray-300 hover:bg-gray-50 text-gray-900 font-medium"
+                    >
+                      Clear Cart
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear all items?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove all products from your cart. You can
+                        always add them again from the catalog.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={clearCart}
+                        className="bg-red-600 hover:bg-red-600/90"
+                      >
+                        Clear All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Checkout Button */}
                 <Link href="/checkout" className="block">

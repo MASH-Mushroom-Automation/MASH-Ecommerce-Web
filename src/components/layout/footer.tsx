@@ -10,9 +10,16 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
           {/* Column 1: MASH Logo/Brand Info and Social Media */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="text-2xl font-bold font-['Roboto'] text-[#6A994E] mb-6">
-              MASH MARKET
-            </h3>
+            {/* MASH Logo */}
+            <div className="mb-6">
+              <Image
+                src="/Logo  v6 - Market.png"
+                alt="MASH Market"
+                width={180}
+                height={60}
+                className="h-auto w-auto max-w-[180px]"
+              />
+            </div>
 
             {/* Accepted Payments Section */}
             <h4 className="text-sm font-light mb-3 text-gray-200">
@@ -20,36 +27,18 @@ export function Footer() {
             </h4>
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <Image
-                src="/placeholder.png"
-                alt="Visa"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
-              />
-              <Image
-                src="/placeholder.png"
-                alt="Cash on Delivery"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
-              />
-              <Image
-                src="/placeholder.png"
+                src="/gcash-logo.png"
                 alt="GCash"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
+                width={120}
+                height={40}
+                className="h-7 sm:h-8 w-auto object-contain"
               />
               <Image
-                src="/placeholder.png"
+                src="/payment-logos/Maya_Logo.svg"
                 alt="Maya"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
+                width={120}
+                height={40}
+                className="h-6 sm:h-7 w-auto object-contain"
               />
             </div>
 

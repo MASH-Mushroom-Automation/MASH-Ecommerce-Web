@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useCart } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
 import { isAuthenticated, logout as authLogout } from "@/lib/auth";
 import {
@@ -60,7 +61,8 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
 
 export function Header() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { wishlistCount } = useWishlist();
+  const { wishlistCount, clearWishlist } = useWishlist();
+  const { clearCart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
@@ -71,6 +73,11 @@ export function Header() {
 
   const handleLogout = () => {
     authLogout();
+    // Immediately clear in-memory state so UI updates without reload
+    try {
+      clearWishlist();
+      clearCart();
+    } catch {}
     setIsLoggedIn(false);
     router.push("/");
     router.refresh();
@@ -83,14 +90,17 @@ export function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       {/* 1. Top Bar: Seller/Info Links - Dark Green Background */}
       <div className="bg-[#1E392A] text-white text-sm py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="flex items-center space-x-4">
-            <Link href="/seller/dashboard" className="hover:underline">
-              Seller Center
-            </Link>
-            <Link href="/seller/dashboard" className="hover:underline">
-              Start Selling
-            </Link>
+            {profile?.isSeller ? (
+              <Link href="/seller/dashboard" className="hover:underline">
+                Seller Center
+              </Link>
+            ) : (
+              <Link href="/start-selling" className="hover:underline">
+                Start Selling
+              </Link>
+            )}
             <Link href="#" className="hover:underline">
               Download App
             </Link>
@@ -117,7 +127,7 @@ export function Header() {
       </div>
 
       {/* 2. Main Bar: Logo, Search, Cart, Login */}
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-2">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
         <Link href="/">
           <Image
             src="/Logo  v6 - Market.png"
@@ -152,18 +162,20 @@ export function Header() {
         <div className="hidden lg:flex items-center space-x-6">
           <CartDropdown />
 
-          <Link
-            href="/wishlist"
-            className="relative flex items-center hover:text-[#6A994E] transition-colors group"
-          >
-            <Heart size={24} className="group-hover:text-[#6A994E]" />
-            <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
-            {wishlistCount > 0 && (
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
-                {wishlistCount}
-              </Badge>
-            )}
-          </Link>
+          {isLoggedIn && (
+            <Link
+              href="/wishlist"
+              className="relative flex items-center hover:text-[#6A994E] transition-colors group"
+            >
+              <Heart size={24} className="group-hover:text-[#6A994E]" />
+              <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
+              {wishlistCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
+                  {wishlistCount}
+                </Badge>
+              )}
+            </Link>
+          )}
 
           {isLoggedIn ? (
             <DropdownMenu>
@@ -254,12 +266,6 @@ export function Header() {
                   >
                     Growers
                   </Link>
-                  <Link
-                    href="/about"
-                    className="text-lg font-medium text-gray-600 hover:text-primary"
-                  >
-                    About Us
-                  </Link>
                 </nav>
                 <div className="border-t pt-4">
                   <Link
@@ -269,13 +275,15 @@ export function Header() {
                     <ShoppingCart className="h-5 w-5" />
                     <span>Cart</span>
                   </Link>
-                  <Link
-                    href="/wishlist"
-                    className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
-                  >
-                    <Heart className="h-5 w-5" />
-                    <span>Wishlist</span>
-                  </Link>
+                  {isLoggedIn && (
+                    <Link
+                      href="/wishlist"
+                      className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                    >
+                      <Heart className="h-5 w-5" />
+                      <span>Wishlist</span>
+                    </Link>
+                  )}
                   <Link
                     href="/seller/dashboard"
                     className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
@@ -318,11 +326,10 @@ export function Header() {
 
       {/* 3. Main Navigation Bar - Centered Links */}
       <nav className="border-t border-gray-200 shadow-inner hidden lg:block">
-        <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-8 h-14 items-center">
+        <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
           <NavLink label="Home" path="/" />
           <NavLink label="Products" path="/catalog" />
           <NavLink label="Growers" path="/grower" />
-          <NavLink label="About Us" path="/about" />
         </div>
       </nav>
     </header>

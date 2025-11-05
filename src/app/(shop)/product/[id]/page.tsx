@@ -15,6 +15,9 @@ import {
   ProductCardSkeleton,
 } from "@/components/ui/loading-spinner";
 import { ProductsApi } from "@/lib/api/products";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
+import { ProductApiResponse } from "@/types/api";
 import { getGrowerUrl } from "@/lib/grower-utils";
 
 type Props = { params: Promise<{ id: string }> };
@@ -22,13 +25,14 @@ type Props = { params: Promise<{ id: string }> };
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
 
-function ProductDetailsContent({ product }: { product: any }) {
+function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(
     product.images?.[0] ?? product.image
   );
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
+  const { addToCart } = useCart();
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
@@ -53,28 +57,28 @@ function ProductDetailsContent({ product }: { product: any }) {
 
   return (
     <div className="bg-gray-50 min-h-screen text-gray-800">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-12">
         {/* Product Display Section */}
         <section className="flex flex-col lg:flex-row gap-6 lg:gap-12 bg-white rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
           {/* Image Gallery */}
           <div className="lg:w-1/2 w-full">
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3 sm:mb-4 relative">
+            <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-3 sm:mb-4 relative flex items-center justify-center">
               <Image
                 src={activeImage}
                 alt={product.name}
                 width={800}
                 height={800}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-4"
                 priority
               />
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {allImages.slice(0, 4).map((img, index) => (
+              {allImages.slice(0, 4).map((img: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setActiveImage(img)}
                   className={cn(
-                    "relative w-full bg-gray-100 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all",
+                    "relative w-full bg-gray-50 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all flex items-center justify-center",
                     activeImage === img ? "ring-[#1E392A]" : "ring-transparent"
                   )}
                   style={{ aspectRatio: "1/1" }}
@@ -84,7 +88,7 @@ function ProductDetailsContent({ product }: { product: any }) {
                     alt={`thumbnail ${index + 1}`}
                     width={150}
                     height={150}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                 </button>
               ))}
@@ -135,8 +139,15 @@ function ProductDetailsContent({ product }: { product: any }) {
                 </Button>
               </div>
               <Button
-                className="flex-1 h-11 sm:h-12 bg-[#1E392A] hover:bg-[#1E392A]/90 text-white font-semibold rounded-lg"
+                variant="secondary"
+                className="flex-1 h-11 sm:h-12 text-white font-semibold rounded-lg"
                 disabled={product.inStock === false}
+                onClick={() => {
+                  addToCart(product.id, product.price, quantity);
+                  toast.success(`${product.name} added to cart!`, {
+                    description: `Quantity: ${quantity}. View your cart to proceed to checkout`,
+                  });
+                }}
               >
                 <ShoppingCart className="mr-2" size={20} />
                 Add to Cart
@@ -212,7 +223,9 @@ function RelatedProductsSection({
 }: {
   currentProductId: string;
 }) {
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<ProductApiResponse[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {

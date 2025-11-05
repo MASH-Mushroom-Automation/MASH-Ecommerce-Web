@@ -20,7 +20,7 @@ const AUTH_ROUTES = [
   "/onboarding",
 ];
 
-const SELLER_ROUTES = ["/seller"];
+const SELLER_ROUTES = ["/seller", "/start-selling"];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

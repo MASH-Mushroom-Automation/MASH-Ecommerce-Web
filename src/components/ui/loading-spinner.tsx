@@ -32,11 +32,26 @@ export function LoadingSkeleton({ className }: { className?: string }) {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <LoadingSkeleton className="w-full h-48 mb-4" />
-      <LoadingSkeleton className="h-4 w-3/4 mb-2" />
-      <LoadingSkeleton className="h-4 w-1/2 mb-2" />
-      <LoadingSkeleton className="h-6 w-1/3" />
+    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm flex flex-col h-full">
+      {/* Image skeleton */}
+      <div className="aspect-square bg-gray-200 animate-pulse" />
+      
+      {/* Content skeleton */}
+      <div className="p-3 space-y-3 flex-grow">
+        <LoadingSkeleton className="h-4 w-3/4" />
+        <LoadingSkeleton className="h-4 w-1/2" />
+      </div>
+      
+      {/* Price and button skeleton */}
+      <div className="p-3 pt-0 border-t border-gray-100">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-2 flex-1">
+            <LoadingSkeleton className="h-5 w-20" />
+            <LoadingSkeleton className="h-3 w-16" />
+          </div>
+          <LoadingSkeleton className="h-9 w-9 rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }

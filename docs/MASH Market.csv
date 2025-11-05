@@ -1,0 +1,28 @@
+﻿Task Name,Description,Guide/Suggestion,Type
+Body Padding (Applies to All),In desktop view the padding for sides seems like too narrow,,"Buyer, Seller"
+Add animation for Cart Number Indicator,First time add to cart,"Simple animation, you may use small amount of particles, size changes, blinks, or tilting",Buyer
+Proper header padding,"The body, and header padding (left-right) should be aligned",Align the body to the header,Seller
+Fix checkout flow,Incomplete,,"Buyer, Flow"
+Start Selling Placeholder page,Apply another page for Start Selling,,"Flow, Seller"
+Start Selling,"Upon first login, the “Seller Center” should not appear along side “Start Selling” and vice versa",,"Flow, Seller"
+Clear All,No confirmation,,"Buyer, Flow"
+Wishlist,Should only appear once the user has logged in,,"Buyer, Flow"
+Remove Delivery Option,Not applicable,Remove,"Buyer, Flow"
+Growers Near Me,Should not appear without user authentication,Remove/Hide when user is not logged in,"Buyer, Flow"
+Product Image too large,All products image should be visible on screen,,Products
+Missing shop banner of Growers/Shops in card,,,Landing
+Shop Card action links,The action links depends on the shop description/tagline,Should be fixed at the bottom,Landing
+Add to cart button,Dark Green,Change into the light green palette,"Landing, Products"
+Button strokes,Primary buttons should use white text and light green palette,Apply low shadow instead of strokes,Landing
+“Loading Hero Content”,This is a placeholder and needs to be modified,Change into something creative,Landing
+Missing Payment Logo ,,,Footer
+Missing Logo,,,Footer
+Query based Search/Pagination,Backend heavy approach,,Query
+Add the active grower count and “Load More”,Similar to the products it should as well have a count for growers,Default  8 growers per page can be set to 16 24 50. Load more adds a 8 more shops.,"Query, Shops"
+Filter in the Browse Growers section,,Add Location by region,"Query, Shops"
+Missing Show Product/s Count,This is besides the Filtering above the products that can be set how many products may appear in the screen,,"Products, Query"
+Missing Pagination,,"Instead of creating a pagination, we can add a “More Products”","Products, Query"
+No Products indicator,Placeholder for no products available,,"Products, Query, Shops"
+"Fix filter dropdown width, it should be fixed",,,"Products, Query"
+Add debounced 5s for searching/filtering,this will solve the heavy query load when using filtering/search,,"Products, Query"
+Forgot Password UI/UX,,,Auth

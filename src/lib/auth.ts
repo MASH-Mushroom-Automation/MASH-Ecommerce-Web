@@ -27,6 +27,9 @@ export function logout() {
     // Optional: clear any cached user data
     sessionStorage.removeItem("user");
     localStorage.removeItem("user");
+    // Proactively clear client-side persisted app state
+    localStorage.removeItem("mash-wishlist");
+    localStorage.removeItem("cart");
   } catch {
     // ignore storage errors (e.g., disabled storage)
   }

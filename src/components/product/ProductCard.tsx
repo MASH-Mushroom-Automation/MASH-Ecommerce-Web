@@ -65,7 +65,10 @@ export function ProductCard({
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-shadow duration-200 flex flex-col h-full">
       {/* Product Image */}
-      <Link href={`/product/${id}`} className="block relative aspect-square">
+      <Link
+        href={`/product/${id}`}
+        className="block relative aspect-square bg-gray-50"
+      >
         <Image
           src={image}
           alt={name}
@@ -122,9 +125,9 @@ export function ProductCard({
           </div>
 
           <Button
-            variant="primary"
-            size="sm"
-            className="rounded-md h-9 w-9 p-0 flex-shrink-0"
+            variant="secondary"
+            size="icon-sm"
+            className="rounded-md bg-[#6A994E] hover:bg-[#6A994E]/90 text-white flex-shrink-0 active:scale-95 transition-transform"
             disabled={!inStock}
             onClick={handleAddToCart}
           >
