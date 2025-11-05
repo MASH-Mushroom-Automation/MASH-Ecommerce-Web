@@ -106,6 +106,65 @@ export async function POST(request: NextRequest) {
 }
 ```
 
+#### **Contact Form Submission Endpoint** - `src/app/api/contact/route.ts`
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { ContactMessage } from "@/types/cms";
+
+export async function POST(request: NextRequest) {
+  try {
+    const payload = (await request.json()) as ContactMessage;
+
+    // TODO: replace with persistence / CRM / email provider integration
+    await queueContactMessage(payload);
+
+    return NextResponse.json({
+      success: true,
+      message: "Message received",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unable to submit contact form",
+      },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Expected request payload**
+
+```json
+{
+  "name": "Juan Dela Cruz",
+  "email": "juan@example.com",
+  "subject": "order",
+  "message": "Please help me with order #12345."
+}
+```
+
+- `subject` enum values: `order`, `delivery`, `product`, `refund`, `partnership`, `other`
+- Respond with HTTP `201/200` and a `message` string to show in the UI
+- Respond with any non-2xx status and `message` to surface an error toast
+
+**Frontend integration (`CMSContactSection`)**
+
+- Component: `src/components/cms/ContactSection.tsx`
+- Consumes CMS hooks: `useContactContent()` → `contactInfo`, `businessHours`, `socialLinks`
+- Form validation: React Hook Form + Zod (`name`, `email`, `subject`, `message`)
+- Submission: `fetch('/api/contact', { method: 'POST', body: JSON.stringify(values) })`
+- Success: shows toast, resets form; failure: toast with error message
+- Contact and social data are filtered for `isActive` and sorted by `displayOrder`
+
+**Action items before production**
+
+1. Implement `queueContactMessage` (or equivalent) to persist the message or forward it to your CRM/email provider.
+2. Add authentication/anti-spam measures (reCAPTCHA, rate limiting) as needed.
+3. Update `ContactMessage` type to match the backend/store schema.
+4. Confirm `/api/contact` is included in your deployment platform's edge/serverless configuration.
+
 #### **Individual Hero Management** - `src/app/api/cms/hero/[id]/route.ts`
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';

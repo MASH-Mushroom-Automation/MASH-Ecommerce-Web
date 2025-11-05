@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
 import {
@@ -28,6 +29,8 @@ import { ProductsListParams, ProductApiResponse } from "@/types/api";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Package } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { cn } from "@/lib/utils";
 
 export default function ProductCatalogPage() {
   // Filter states
@@ -42,6 +45,7 @@ export default function ProductCatalogPage() {
   const [accumulatedProducts, setAccumulatedProducts] = useState<
     ProductApiResponse[]
   >([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // API parameters
@@ -57,6 +61,7 @@ export default function ProductCatalogPage() {
     useProducts(apiParams);
   const { categories } = useProductCategories();
   const { growers } = useProductGrowers();
+  const { addToCart } = useCart();
 
   // Debounce filter changes (5 seconds)
   const debouncedCategories = useDebounce(selectedCategories, 5000);
@@ -370,7 +375,7 @@ export default function ProductCatalogPage() {
               </Sheet>
 
               {/* Sort and Items Per Page Controls */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
                 <Select value={sort} onValueChange={setSort}>
                   <SelectTrigger className="w-full sm:w-[180px] bg-white">
                     <SelectValue placeholder="Sort by" />
@@ -399,14 +404,35 @@ export default function ProductCatalogPage() {
                     <SelectItem value="96">96 per page</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="hidden sm:flex gap-2">
-                  <Button variant="outline" size="icon" className="bg-white">
+                {/* View Mode Toggle - Right Side */}
+                <div className="hidden sm:flex gap-2 ml-auto" role="group" aria-label="Toggle product view">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "transition-all duration-200 active:scale-95",
+                      viewMode === "list"
+                        ? "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 border-[#6A994E]"
+                        : "bg-white hover:bg-gray-50 border-gray-200"
+                    )}
+                    aria-pressed={viewMode === "list"}
+                    aria-label="Switch to list view"
+                  >
                     <List className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="bg-[#6A994E] text-white hover:bg-[#6A994E]/90"
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "transition-all duration-200 active:scale-95",
+                      viewMode === "grid"
+                        ? "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 border-[#6A994E]"
+                        : "bg-white hover:bg-gray-50 border-gray-200"
+                    )}
+                    aria-pressed={viewMode === "grid"}
+                    aria-label="Switch to grid view"
                   >
                     <Grid className="h-4 w-4" />
                   </Button>
@@ -441,20 +467,72 @@ export default function ProductCatalogPage() {
               />
             ) : (
               <>
-                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {accumulatedProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      id={product.id}
-                      name={product.name}
-                      farm={product.grower}
-                      price={product.price}
-                      unit={product.weight}
-                      image={product.image}
-                      inStock={product.inStock !== false}
-                    />
-                  ))}
-                </div>
+                {viewMode === "grid" ? (
+                  <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {accumulatedProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        id={product.id}
+                        name={product.name}
+                        farm={product.grower}
+                        price={product.price}
+                        unit={product.weight}
+                        image={product.image}
+                        inStock={product.inStock !== false}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {accumulatedProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 flex flex-col md:flex-row gap-3"
+                      >
+                        <div className="relative w-full md:w-28 h-28 sm:w-32 sm:h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, 200px"
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col justify-between gap-2.5">
+                          <div>
+                            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
+                              {product.name}
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-gray-500 mb-1">by {product.grower}</p>
+                            <p className="text-[11px] sm:text-xs text-gray-600 line-clamp-2 leading-snug">
+                              Fresh, locally-sourced mushrooms perfect for any culinary creation.
+                            </p>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-lg sm:text-xl font-bold text-[#1E392A]">
+                                ₱{product.price.toFixed(2)}
+                              </span>
+                              <span className="text-[11px] sm:text-xs text-gray-500">per {product.weight}</span>
+                            </div>
+                            {product.inStock === false ? (
+                              <span className="text-[11px] sm:text-xs text-red-600 font-medium">Out of Stock</span>
+                            ) : (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => addToCart(product.id, product.price, 1)}
+                                className="w-full sm:w-auto min-h-[36px]"
+                              >
+                                Add to Cart
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Load More Button */}
                 {hasMoreProducts && (

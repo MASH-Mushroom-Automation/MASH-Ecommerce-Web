@@ -138,26 +138,6 @@ export function Header() {
           />
         </Link>
 
-        {/* Search Bar (Centered) */}
-        <div className="flex-1 max-w-xl mx-8 hidden lg:block">
-          <div className="relative flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#6A994E]/50">
-            <input
-              type="text"
-              placeholder="Oyster Mushroom."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-3 px-4 text-sm focus:outline-none placeholder:text-gray-400"
-            />
-            <button
-              onClick={handleSearch}
-              className="bg-gray-50 hover:bg-gray-200 p-3 transition-colors"
-              aria-label="Search"
-            >
-              <Search size={20} className="text-gray-500" />
-            </button>
-          </div>
-        </div>
-
         {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
           <CartDropdown />
