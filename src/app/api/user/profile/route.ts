@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         lastName: "Grower", 
         role: "customer",
         isSeller: false,
-        avatar: "/avatars/default.png",
+        avatar: "/profile_placeholder.png",
         phone: "+63 956 955 2608",
         bio: "Passionate about sustainable mushroom farming",
         preferences: {

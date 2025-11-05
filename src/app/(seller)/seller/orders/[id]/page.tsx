@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,6 @@ import {
 import {
   ArrowLeft,
   Package,
-  Truck,
   CheckCircle,
   XCircle,
   Clock,
@@ -48,135 +47,179 @@ import {
   MapPin,
   CreditCard,
   MessageSquare,
+  CalendarDays,
+  Handshake,
 } from "lucide-react";
-import { useSellerOrders } from "@/hooks/useSeller";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useSellerOrderDetail } from "@/hooks/useSeller";
+import { SellerOrderStatus, SellerOrderDetail as OrderDetailType } from "@/types/api";
+import { toast } from "sonner";
 
-// Mock order details data
-const MOCK_ORDER_DETAILS = {
+// Mock fallback data for development
+const MOCK_ORDER_FALLBACK: OrderDetailType = {
   id: "ORD-001",
   date: "2025-10-20",
-  status: "Processing",
+  status: "Pending",
   customer: {
     name: "John Doe",
     email: "john.doe@email.com",
     phone: "+63 912 345 6789",
-    address:
-      "123 Main Street, Barangay San Antonio, Quezon City, Metro Manila 1105",
+    address: "123 Main Street, Barangay San Antonio, Quezon City, Metro Manila 1105",
   },
   items: [
-    {
-      id: 1,
-      name: "Fresh Shiitake Mushrooms",
-      image: "/placeholder.png",
-      quantity: 2,
-      price: 150.0,
-      total: 300.0,
-    },
-    {
-      id: 2,
-      name: "Oyster Mushroom Growing Kit",
-      image: "/placeholder.png",
-      quantity: 1,
-      price: 150.0,
-      total: 150.0,
-    },
+    { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
+    { id: "P-205", name: "Oyster Mushroom Growing Kit", quantity: 1, price: 150, total: 150 },
   ],
-  shipping: {
-    method: "Standard Delivery",
-    cost: 50.0,
-    estimatedDelivery: "2025-10-25",
-    trackingNumber: "TRK123456789",
+  coordination: {
+    method: "Meet-up",
+    location: "MASH Farm Hub - Quezon City",
+    preferredDate: "2025-10-22",
+    preferredTime: "10:00 AM",
+    contactPerson: "John Doe",
+    contactNumber: "+63 912 345 6789",
+    instructions: "Bring your reusable bag for pickup.",
   },
   payment: {
-    method: "Credit Card",
+    method: "GCash",
     status: "Paid",
-    transactionId: "TXN987654321",
+    transactionId: "TXN-ORD-001-20251020",
   },
   totals: {
-    subtotal: 450.0,
-    shipping: 50.0,
-    total: 500.0,
+    subtotal: 450,
+    coordinationFee: 0,
+    total: 450,
   },
-  notes: "Please deliver during business hours (9AM-5PM).",
+  notes: "Buyer prefers morning pickup and will message before arrival.",
   timeline: [
     {
-      status: "Order Placed",
-      date: "2025-10-20 10:30 AM",
-      description: "Order was placed by customer",
-    },
-    {
-      status: "Payment Confirmed",
-      date: "2025-10-20 10:35 AM",
-      description: "Payment has been processed successfully",
-    },
-    {
-      status: "Processing",
-      date: "2025-10-20 11:00 AM",
-      description: "Order is being prepared for shipment",
+      status: "Pending",
+      date: "2025-10-20T10:30:00Z",
+      description: "Order received and waiting for seller confirmation",
     },
   ],
+  createdAt: "2025-10-20T10:30:00Z",
+  updatedAt: "2025-10-20T10:30:00Z",
 };
+
+const STATUS_OPTIONS: { value: SellerOrderStatus; label: string }[] = [
+  { value: "Pending", label: "Pending" },
+  { value: "Confirmed", label: "Confirmed" },
+  { value: "Ready for Pickup", label: "Ready for Pickup" },
+  { value: "Completed", label: "Completed" },
+  { value: "Cancelled", label: "Cancelled" },
+];
+
+const statusColorMap: Record<SellerOrderStatus, string> = {
+  Pending: "bg-yellow-100 text-yellow-800",
+  Confirmed: "bg-blue-100 text-blue-800",
+  "Ready for Pickup": "bg-purple-100 text-purple-800",
+  Completed: "bg-green-100 text-green-800",
+  Cancelled: "bg-red-100 text-red-800",
+};
+
+const getStatusIcon = (status: SellerOrderStatus) => {
+  switch (status) {
+    case "Pending":
+      return <Clock className="h-4 w-4" />;
+    case "Confirmed":
+      return <Package className="h-4 w-4" />;
+    case "Ready for Pickup":
+      return <Handshake className="h-4 w-4" />;
+    case "Completed":
+      return <CheckCircle className="h-4 w-4" />;
+    case "Cancelled":
+      return <XCircle className="h-4 w-4" />;
+    default:
+      return <Clock className="h-4 w-4" />;
+  }
+};
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+  }).format(value);
 
 export default function OrderDetails() {
   const params = useParams();
   const router = useRouter();
   const orderId = params.id as string;
 
-  const [order, setOrder] = useState(MOCK_ORDER_DETAILS);
-  const [newStatus, setNewStatus] = useState(order.status);
+  const { order, loading, error, updateStatus, refetch } = useSellerOrderDetail(orderId);
+  const [newStatus, setNewStatus] = useState<SellerOrderStatus>("Pending");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // In a real application, you would fetch order details using the orderId
-  // const { order, loading, error } = useSellerOrder(orderId);
+  useEffect(() => {
+    if (order) {
+      setNewStatus(order.status);
+    }
+  }, [order]);
 
   const handleStatusUpdate = async () => {
+    if (!displayOrder) return;
     setIsUpdating(true);
 
-    // In a real application, you would make an API call here
-    // await updateOrderStatus(orderId, newStatus);
-
-    // Mock API call
-    setTimeout(() => {
-      setOrder({ ...order, status: newStatus });
-      setIsUpdating(false);
+    try {
+      await updateStatus(newStatus);
+      toast.success("Order status updated successfully");
       setIsDialogOpen(false);
-    }, 1000);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "Processing":
-        return "bg-blue-100 text-blue-800";
-      case "Shipped":
-        return "bg-purple-100 text-purple-800";
-      case "Delivered":
-        return "bg-green-100 text-green-800";
-      case "Cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update status";
+      toast.error(message);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return <Clock className="h-4 w-4" />;
-      case "Processing":
-        return <Package className="h-4 w-4" />;
-      case "Shipped":
-        return <Truck className="h-4 w-4" />;
-      case "Delivered":
-        return <CheckCircle className="h-4 w-4" />;
-      case "Cancelled":
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Use fallback data if API fails or order not found
+  const displayOrder = order || (error ? MOCK_ORDER_FALLBACK : null);
+
+  if (error && !order) {
+    toast.error("Using mock data - API unavailable", { id: "api-fallback" });
+  }
+
+  if (!displayOrder) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center">
+        <p className="text-gray-600">Order not found.</p>
+        <Button variant="outline" onClick={() => router.back()}>
+          Back to Orders
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -193,9 +236,9 @@ export default function OrderDetails() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Order Details - {order.id}
+            Order Details - {displayOrder.id}
           </h1>
-          <p className="text-gray-500">Order placed on {order.date}</p>
+          <p className="text-gray-500">Order placed on {formatDate(displayOrder.date)}</p>
         </div>
       </div>
 
@@ -207,7 +250,7 @@ export default function OrderDetails() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  {getStatusIcon(order.status)}
+                  {getStatusIcon(displayOrder.status)}
                   Order Status
                 </CardTitle>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -220,20 +263,25 @@ export default function OrderDetails() {
                     <DialogHeader>
                       <DialogTitle>Update Order Status</DialogTitle>
                       <DialogDescription>
-                        Select the new status for this order.
+                        Select the new status for this displayOrder.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                      <Select value={newStatus} onValueChange={setNewStatus}>
+                      <Select
+                        value={newStatus}
+                        onValueChange={(value) =>
+                          setNewStatus(value as SellerOrderStatus)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Processing">Processing</SelectItem>
-                          <SelectItem value="Shipped">Shipped</SelectItem>
-                          <SelectItem value="Delivered">Delivered</SelectItem>
-                          <SelectItem value="Cancelled">Cancelled</SelectItem>
+                          {STATUS_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -258,12 +306,14 @@ export default function OrderDetails() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <Badge className={getStatusColor(order.status)}>
-                  {order.status}
+                <Badge className={statusColorMap[displayOrder.status] ?? "bg-gray-100 text-gray-800"}>
+                  {displayOrder.status}
                 </Badge>
                 <span className="text-sm text-gray-500">
-                  Last updated:{" "}
-                  {order.timeline[order.timeline.length - 1]?.date}
+                  Last updated{" "}
+                  {displayOrder.timeline.length > 0
+                    ? formatDateTime(displayOrder.timeline[displayOrder.timeline.length - 1]!.date)
+                    : formatDateTime(displayOrder.updatedAt)}
                 </span>
               </div>
             </CardContent>
@@ -274,7 +324,7 @@ export default function OrderDetails() {
             <CardHeader>
               <CardTitle>Order Items</CardTitle>
               <CardDescription>
-                {order.items.length} item(s) in this order
+                {displayOrder.items.length} item(s) in this order
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -288,7 +338,7 @@ export default function OrderDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {order.items.map((item) => (
+                  {displayOrder.items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -307,10 +357,10 @@ export default function OrderDetails() {
                         {item.quantity}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₱{item.price.toFixed(2)}
+                        {formatCurrency(item.price)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₱{item.total.toFixed(2)}
+                        {formatCurrency(item.total)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -329,14 +379,16 @@ export default function OrderDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.timeline.map((event, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                {displayOrder.timeline.map((event, index) => (
+                  <div key={`${event.status}-${index}`} className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      {getStatusIcon(event.status)}
+                      {getStatusIcon(event.status as SellerOrderStatus)}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{event.status}</p>
-                      <p className="text-sm text-gray-500">{event.date}</p>
+                      <p className="text-sm text-gray-500">
+                        {formatDateTime(event.date)}
+                      </p>
                       <p className="text-sm text-gray-600 mt-1">
                         {event.description}
                       </p>
@@ -350,6 +402,60 @@ export default function OrderDetails() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Coordination Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Handshake className="h-5 w-5" />
+                Handover Coordination
+              </CardTitle>
+              <CardDescription>
+                Details shared between seller and buyer for the handover
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-gray-400" />
+                <span className="font-medium">Method:</span>
+                <span>{displayOrder.coordination.method}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="font-medium">Location</p>
+                  <p>{displayOrder.coordination.location}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <CalendarDays className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="font-medium">Preferred Schedule</p>
+                  <p>
+                    {formatDate(displayOrder.coordination.preferredDate)} at {displayOrder.coordination.preferredTime}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="font-medium">Contact Person:</span>
+                <span>{displayOrder.coordination.contactPerson}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-400" />
+                <span className="font-medium">Contact Number:</span>
+                <span>{displayOrder.coordination.contactNumber}</span>
+              </div>
+              {displayOrder.coordination.instructions && (
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="font-medium text-gray-700">Additional Instructions</p>
+                  <p className="mt-1 text-gray-600">
+                    {displayOrder.coordination.instructions}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Customer Information */}
           <Card>
             <CardHeader>
@@ -361,53 +467,19 @@ export default function OrderDetails() {
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{order.customer.name}</span>
+                <span className="text-sm">{displayOrder.customer.name}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{order.customer.email}</span>
+                <span className="text-sm">{displayOrder.customer.email}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{order.customer.phone}</span>
+                <span className="text-sm">{displayOrder.customer.phone}</span>
               </div>
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                <span className="text-sm">{order.customer.address}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Shipping Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                Shipping Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm font-medium">Method</p>
-                <p className="text-sm text-gray-600">{order.shipping.method}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Estimated Delivery</p>
-                <p className="text-sm text-gray-600">
-                  {order.shipping.estimatedDelivery}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Tracking Number</p>
-                <p className="text-sm text-gray-600 font-mono">
-                  {order.shipping.trackingNumber}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Shipping Cost</p>
-                <p className="text-sm text-gray-600">
-                  ₱{order.shipping.cost.toFixed(2)}
-                </p>
+                <span className="text-sm">{displayOrder.customer.address}</span>
               </div>
             </CardContent>
           </Card>
@@ -423,18 +495,18 @@ export default function OrderDetails() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm font-medium">Method</p>
-                <p className="text-sm text-gray-600">{order.payment.method}</p>
+                <p className="text-sm text-gray-600">{displayOrder.payment.method}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Status</p>
                 <Badge className="bg-green-100 text-green-800">
-                  {order.payment.status}
+                  {displayOrder.payment.status}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm font-medium">Transaction ID</p>
                 <p className="text-sm text-gray-600 font-mono">
-                  {order.payment.transactionId}
+                  {displayOrder.payment.transactionId}
                 </p>
               </div>
             </CardContent>
@@ -449,20 +521,22 @@ export default function OrderDetails() {
               <div className="flex justify-between">
                 <span className="text-sm">Subtotal</span>
                 <span className="text-sm">
-                  ₱{order.totals.subtotal.toFixed(2)}
+                  {formatCurrency(displayOrder.totals.subtotal)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Shipping</span>
-                <span className="text-sm">
-                  ₱{order.totals.shipping.toFixed(2)}
-                </span>
-              </div>
+              {typeof displayOrder.totals.coordinationFee === "number" && (
+                <div className="flex justify-between">
+                  <span className="text-sm">Coordination Fee</span>
+                  <span className="text-sm">
+                    {formatCurrency(displayOrder.totals.coordinationFee)}
+                  </span>
+                </div>
+              )}
               <div className="border-t pt-3">
                 <div className="flex justify-between">
                   <span className="font-medium">Total</span>
                   <span className="font-medium">
-                    ₱{order.totals.total.toFixed(2)}
+                    {formatCurrency(displayOrder.totals.total)}
                   </span>
                 </div>
               </div>
@@ -470,7 +544,7 @@ export default function OrderDetails() {
           </Card>
 
           {/* Order Notes */}
-          {order.notes && (
+          {displayOrder.notes && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -479,7 +553,7 @@ export default function OrderDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">{order.notes}</p>
+                <p className="text-sm text-gray-600">{displayOrder.notes}</p>
               </CardContent>
             </Card>
           )}

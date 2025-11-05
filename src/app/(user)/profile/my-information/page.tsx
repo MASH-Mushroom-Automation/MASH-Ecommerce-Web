@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { User, MapPin, Check, Loader2 } from "lucide-react";
+import { User, MapPin, Check, Loader2, Camera } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface UserInfoForm {
   firstName: string;
@@ -35,7 +36,7 @@ const FALLBACK_DATA = {
   lastName: "Namias",
   email: "mash.mushroom.automation@gmail.com",
   username: "PP-Namias",
-  avatar: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=PP-Namias",
+  avatar: "/profile_placeholder.png",
   address: {
     street: "Llano Rd",
     addressLine2: "Deparo",
@@ -47,7 +48,7 @@ const FALLBACK_DATA = {
 };
 
 export default function MyInformationPage() {
-  const { profile, updateProfile } = useUserProfile();
+  const { profile, updateProfile, uploadAvatar } = useUserProfile();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -212,15 +213,58 @@ export default function MyInformationPage() {
 
           {/* Account Information Section */}
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <User className="h-5 w-5 text-[#1E392A]" />
-              <h2 className="text-xl font-bold text-[#212121]">
-                Account Information
-              </h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-[#1E392A]" />
+                <div>
+                  <h2 className="text-xl font-bold text-[#212121]">
+                    Account Information
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    You can change your information here seamlessly
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center w-full py-6">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 relative">
+                  <Image
+                    src={profile?.avatar || FALLBACK_DATA.avatar}
+                    alt="Profile picture"
+                    fill
+                    className="object-cover"
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer group"
+                  >
+                    <Camera className="w-6 h-6 text-white" />
+                    <span className="sr-only">Change profile picture</span>
+                  </label>
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          await uploadAvatar(file);
+                          toast.success("Profile picture updated!");
+                        } catch (error) {
+                          toast.error("Failed to update profile picture");
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-gray-500 mt-3 flex items-center gap-1.5">
+                  <Camera className="w-4 h-4" />
+                  Click photo to update profile picture
+                </p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              You can change your information here seamlessly
-            </p>
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

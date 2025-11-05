@@ -180,19 +180,26 @@ export default function SellerProducts() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]">Product</TableHead>
+                {/* Product details column */}
+                <TableHead className="w-[300px] pl-5">Product</TableHead>
+                {/* Pricing column */}
                 <TableHead className="text-right w-[120px]">Price</TableHead>
+                {/* Inventory column */}
                 <TableHead className="text-right w-[100px]">Stock</TableHead>
+                {/* Category label column */}
                 <TableHead className="w-[140px]">Category</TableHead>
+                {/* Status badge column */}
                 <TableHead className="w-[140px]">Status</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                {/* Row actions column */}
+                <TableHead className="text-right w-[100px] pr-5">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-gray-50">
-                    <TableCell>
+                    {/* Product details cell */}
+                    <TableCell className="pl-5">
                       <div className="flex items-center gap-3">
                         <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
                           <Image
@@ -207,15 +214,19 @@ export default function SellerProducts() {
                         </span>
                       </div>
                     </TableCell>
+                    {/* Pricing cell */}
                     <TableCell className="text-right font-semibold text-sm">
                       ₱{product.price.toFixed(2)}
                     </TableCell>
+                    {/* Inventory cell */}
                     <TableCell className="text-right text-sm">
                       <span className={product.stock < 10 ? "text-red-600 font-medium" : ""}>
                         {product.stock}
                       </span>
                     </TableCell>
+                    {/* Category cell */}
                     <TableCell className="text-sm">{product.category}</TableCell>
+                    {/* Status badge cell */}
                     <TableCell>
                       <Badge
                         className={
@@ -229,7 +240,8 @@ export default function SellerProducts() {
                         {product.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    {/* Row actions cell */}
+                    <TableCell className="text-right pl-5">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

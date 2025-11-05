@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       lastName: "Grower",
       role: "customer",
       isSeller: false,
-      avatar: "/avatars/default.png",
+      avatar: "/profile_placeholder.png",
       preferences: {
         notifications: {
           email: true,

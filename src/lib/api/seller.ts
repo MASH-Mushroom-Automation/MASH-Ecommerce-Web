@@ -4,6 +4,8 @@ import {
   SellerSalesData,
   SellerProductPerformance,
   SellerOrder,
+  SellerOrderDetail,
+  SellerOrderStatus,
   SellerProduct,
   SellerRefund,
   SellerNotification,
@@ -29,7 +31,7 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Jane Smith",
     items: 2,
     total: 280,
-    status: "Processing",
+    status: "Confirmed",
   },
   {
     id: "ORD-003",
@@ -37,9 +39,209 @@ const MOCK_SELLER_ORDERS: SellerOrder[] = [
     customer: "Mike Johnson",
     items: 1,
     total: 150,
-    status: "Shipped",
+    status: "Ready for Pickup",
+  },
+  {
+    id: "ORD-004",
+    date: "2025-10-17",
+    customer: "Alice Brown",
+    items: 4,
+    total: 520,
+    status: "Completed",
+  },
+  {
+    id: "ORD-005",
+    date: "2025-10-16",
+    customer: "Mark Reyes",
+    items: 2,
+    total: 260,
+    status: "Cancelled",
   },
 ];
+
+const statusDescriptions: Record<SellerOrderStatus, string> = {
+  Pending: "Order received and waiting for seller confirmation",
+  Confirmed: "Seller confirmed the order and is preparing it",
+  "Ready for Pickup": "Order ready for handover to the buyer",
+  Completed: "Buyer received the order and confirmed completion",
+  Cancelled: "Order was cancelled",
+};
+
+const createTimelineEntry = (
+  status: SellerOrderStatus,
+  date: string
+) => ({
+  status,
+  date,
+  description: statusDescriptions[status],
+});
+
+const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
+  "ORD-001": {
+    id: "ORD-001",
+    date: "2025-10-20",
+    status: "Pending",
+    customer: {
+      name: "John Doe",
+      email: "john.doe@email.com",
+      phone: "+63 912 345 6789",
+      address:
+        "123 Main Street, Barangay San Antonio, Quezon City, Metro Manila 1105",
+    },
+    items: [
+      { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
+      { id: "P-205", name: "Oyster Mushroom Growing Kit", quantity: 1, price: 150, total: 150 },
+    ],
+    coordination: {
+      method: "Meet-up",
+      location: "MASH Farm Hub - Quezon City",
+      preferredDate: "2025-10-22",
+      preferredTime: "10:00 AM",
+      contactPerson: "John Doe",
+      contactNumber: "+63 912 345 6789",
+      instructions: "Bring your reusable bag for pickup.",
+    },
+    payment: {
+      method: "GCash",
+      status: "Paid",
+      transactionId: "TXN-ORD-001-20251020",
+    },
+    totals: {
+      subtotal: 450,
+      coordinationFee: 0,
+      total: 450,
+    },
+    notes: "Buyer prefers morning pickup and will message before arrival.",
+    timeline: [
+      createTimelineEntry("Pending", "2025-10-20 10:30 AM"),
+    ],
+    createdAt: "2025-10-20T10:30:00Z",
+    updatedAt: "2025-10-20T10:30:00Z",
+  },
+  "ORD-002": {
+    id: "ORD-002",
+    date: "2025-10-19",
+    status: "Confirmed",
+    customer: {
+      name: "Jane Smith",
+      email: "jane.smith@email.com",
+      phone: "+63 917 111 2233",
+      address: "45 Riverside Drive, Marikina City, Metro Manila",
+    },
+    items: [
+      { id: "P-111", name: "Pink Oyster Mushrooms", quantity: 1, price: 180, total: 180 },
+      { id: "P-130", name: "Dried Lion's Mane", quantity: 1, price: 100, total: 100 },
+    ],
+    coordination: {
+      method: "Courier arranged by seller",
+      location: "Seller warehouse",
+      preferredDate: "2025-10-21",
+      preferredTime: "1:00 PM",
+      contactPerson: "Jane Smith",
+      contactNumber: "+63 917 111 2233",
+      instructions: "Buyer will book GrabExpress and share tracking.",
+    },
+    payment: {
+      method: "Cash on Pickup",
+      status: "Pending",
+      transactionId: "",
+    },
+    totals: {
+      subtotal: 280,
+      total: 280,
+    },
+    timeline: [
+      createTimelineEntry("Pending", "2025-10-19 09:10 AM"),
+      createTimelineEntry("Confirmed", "2025-10-19 10:00 AM"),
+    ],
+    createdAt: "2025-10-19T09:10:00Z",
+    updatedAt: "2025-10-19T10:00:00Z",
+  },
+  "ORD-003": {
+    id: "ORD-003",
+    date: "2025-10-18",
+    status: "Ready for Pickup",
+    customer: {
+      name: "Mike Johnson",
+      email: "mike.johnson@email.com",
+      phone: "+63 915 222 3344",
+      address: "78 Green Avenue, Makati City, Metro Manila",
+    },
+    items: [
+      { id: "P-160", name: "Reishi Powder", quantity: 1, price: 150, total: 150 },
+    ],
+    coordination: {
+      method: "Meet-up",
+      location: "Makati Central Square"
+        + ", Ground floor lobby",
+      preferredDate: "2025-10-19",
+      preferredTime: "6:00 PM",
+      contactPerson: "Mike Johnson",
+      contactNumber: "+63 915 222 3344",
+      instructions: "Buyer will message when nearby.",
+    },
+    payment: {
+      method: "PayMaya",
+      status: "Paid",
+      transactionId: "TXN-ORD-003-20251018",
+    },
+    totals: {
+      subtotal: 150,
+      coordinationFee: 0,
+      total: 150,
+    },
+    timeline: [
+      createTimelineEntry("Pending", "2025-10-18 08:05 AM"),
+      createTimelineEntry("Confirmed", "2025-10-18 08:30 AM"),
+      createTimelineEntry("Ready for Pickup", "2025-10-18 05:00 PM"),
+    ],
+    createdAt: "2025-10-18T08:05:00Z",
+    updatedAt: "2025-10-18T17:00:00Z",
+  },
+  "ORD-004": {
+    id: "ORD-004",
+    date: "2025-10-17",
+    status: "Completed",
+    customer: {
+      name: "Alice Brown",
+      email: "alice.brown@email.com",
+      phone: "+63 927 555 6677",
+      address: "12 Sunrise Street, Pasig City, Metro Manila",
+    },
+    items: [
+      { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
+      { id: "P-220", name: "Mushroom Jerky", quantity: 2, price: 110, total: 220 },
+    ],
+    coordination: {
+      method: "Courier arranged by buyer",
+      location: "Seller's Kitchen (Pasig)",
+      preferredDate: "2025-10-18",
+      preferredTime: "2:00 PM",
+      contactPerson: "Alice Brown",
+      contactNumber: "+63 927 555 6677",
+      instructions: "Buyer booked Lalamove; parcel delivered.",
+    },
+    payment: {
+      method: "Credit Card",
+      status: "Paid",
+      transactionId: "TXN-ORD-004-20251017",
+    },
+    totals: {
+      subtotal: 520,
+      coordinationFee: 0,
+      total: 520,
+    },
+    notes: "Delivery completed and confirmed by buyer.",
+    timeline: [
+      createTimelineEntry("Pending", "2025-10-17 07:40 AM"),
+      createTimelineEntry("Confirmed", "2025-10-17 08:10 AM"),
+      createTimelineEntry("Ready for Pickup", "2025-10-17 12:00 PM"),
+      createTimelineEntry("Completed", "2025-10-18 03:15 PM"),
+    ],
+    createdAt: "2025-10-17T07:40:00Z",
+    updatedAt: "2025-10-18T15:15:00Z",
+  },
+};
 
 const MOCK_SELLER_PRODUCTS: SellerProduct[] = [
   {
@@ -257,6 +459,53 @@ export class SellerApi {
         total: filteredOrders.length,
         totalPages: Math.ceil(filteredOrders.length / limit),
       },
+    };
+  }
+
+  static async getOrderById(
+    id: string
+  ): Promise<ApiResponse<SellerOrderDetail | null>> {
+    await delay(250);
+
+    const orderDetail = MOCK_SELLER_ORDER_DETAILS[id];
+
+    return {
+      data: orderDetail ?? null,
+      success: !!orderDetail,
+      message: orderDetail ? undefined : "Order not found",
+    };
+  }
+
+  static async updateOrderStatus(
+    id: string,
+    status: SellerOrderStatus
+  ): Promise<ApiResponse<SellerOrderDetail | null>> {
+    await delay(350);
+
+    const orderDetail = MOCK_SELLER_ORDER_DETAILS[id];
+    if (!orderDetail) {
+      return {
+        data: null,
+        success: false,
+        message: "Order not found",
+      };
+    }
+
+    orderDetail.status = status;
+    orderDetail.updatedAt = new Date().toISOString();
+    orderDetail.timeline = [
+      ...orderDetail.timeline,
+      createTimelineEntry(status, new Date().toISOString()),
+    ];
+
+    const summaryOrder = MOCK_SELLER_ORDERS.find((order) => order.id === id);
+    if (summaryOrder) {
+      summaryOrder.status = status;
+    }
+
+    return {
+      data: orderDetail,
+      success: true,
     };
   }
 

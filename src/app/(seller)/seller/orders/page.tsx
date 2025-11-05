@@ -52,9 +52,9 @@ export default function SellerOrders() {
       const matchesTab =
         currentTab === "all" ||
         (currentTab === "pending" && order.status === "Pending") ||
-        (currentTab === "processing" && order.status === "Processing") ||
-        (currentTab === "shipped" && order.status === "Shipped") ||
-        (currentTab === "delivered" && order.status === "Delivered") ||
+        (currentTab === "confirmed" && order.status === "Confirmed") ||
+        (currentTab === "ready" && order.status === "Ready for Pickup") ||
+        (currentTab === "completed" && order.status === "Completed") ||
         (currentTab === "cancelled" && order.status === "Cancelled");
 
       return matchesTab;
@@ -139,22 +139,22 @@ export default function SellerOrders() {
                 Pending ({getStatusCount("pending")})
               </TabsTrigger>
               <TabsTrigger
-                value="processing"
-                onClick={() => handleTabChange("processing")}
+                value="confirmed"
+                onClick={() => handleTabChange("confirmed")}
               >
-                Processing ({getStatusCount("processing")})
+                Confirmed ({getStatusCount("confirmed")})
               </TabsTrigger>
               <TabsTrigger
-                value="shipped"
-                onClick={() => handleTabChange("shipped")}
+                value="ready"
+                onClick={() => handleTabChange("ready")}
               >
-                Shipped ({getStatusCount("shipped")})
+                Ready ({getStatusCount("ready for pickup")})
               </TabsTrigger>
               <TabsTrigger
-                value="delivered"
-                onClick={() => handleTabChange("delivered")}
+                value="completed"
+                onClick={() => handleTabChange("completed")}
               >
-                Delivered ({getStatusCount("delivered")})
+                Completed ({getStatusCount("completed")})
               </TabsTrigger>
               <TabsTrigger
                 value="cancelled"
@@ -186,9 +186,9 @@ export default function SellerOrders() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="ready for pickup">Ready for Pickup</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
@@ -205,36 +205,49 @@ export default function SellerOrders() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[120px]">Order ID</TableHead>
+                {/* Order identifier column */}
+                <TableHead className="w-[120px] pl-5">Order ID</TableHead>
+                {/* Purchase date column */}
                 <TableHead className="w-[140px]">Date</TableHead>
+                {/* Buyer information column */}
                 <TableHead>Customer</TableHead>
+                {/* Number of items column */}
                 <TableHead className="text-right w-[80px]">Items</TableHead>
+                {/* Order total amount column */}
                 <TableHead className="text-right w-[120px]">Total</TableHead>
+                {/* Fulfillment status column */}
                 <TableHead className="w-[140px]">Status</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                {/* Row actions column */}
+                <TableHead className="text-right w-[100px] pr-5">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium text-sm">{order.id}</TableCell>
+                    {/* Order identifier cell */}
+                    <TableCell className="font-medium text-sm pl-5">{order.id}</TableCell>
+                    {/* Purchase date cell */}
                     <TableCell className="text-sm text-gray-600">{order.date}</TableCell>
+                    {/* Buyer information cell */}
                     <TableCell className="text-sm">{order.customer}</TableCell>
+                    {/* Number of items cell */}
                     <TableCell className="text-right text-sm">{order.items}</TableCell>
+                    {/* Order total amount cell */}
                     <TableCell className="text-right font-semibold text-sm">
                       ₱{order.total.toFixed(2)}
                     </TableCell>
+                    {/* Fulfillment status cell */}
                     <TableCell>
                       <Badge
                         className={
                           order.status === "Pending"
                             ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                            : order.status === "Processing"
+                            : order.status === "Confirmed"
                             ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                            : order.status === "Shipped"
+                            : order.status === "Ready for Pickup"
                             ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                            : order.status === "Delivered"
+                            : order.status === "Completed"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : "bg-red-100 text-red-800 hover:bg-red-100"
                         }
@@ -242,7 +255,8 @@ export default function SellerOrders() {
                         {order.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    {/* Row actions cell */}
+                    <TableCell className="text-right pr-5">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -289,11 +303,11 @@ export default function SellerOrders() {
                       className={
                         order.status === "Pending"
                           ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          : order.status === "Processing"
+                          : order.status === "Confirmed"
                           ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                          : order.status === "Shipped"
+                          : order.status === "Ready for Pickup"
                           ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                          : order.status === "Delivered"
+                          : order.status === "Completed"
                           ? "bg-green-100 text-green-800 hover:bg-green-100"
                           : "bg-red-100 text-red-800 hover:bg-red-100"
                       }
