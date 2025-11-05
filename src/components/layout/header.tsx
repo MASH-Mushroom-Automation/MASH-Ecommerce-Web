@@ -165,9 +165,22 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex items-center space-x-2 hover:bg-gray-50"
+                  className="flex items-center space-x-2 hover:bg-gray-50 p-1 sm:p-2"
                 >
-                  <User size={20} className="text-[#6A994E]" />
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                    {profile?.avatar ? (
+                      <Image
+                        src={profile.avatar}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#6A994E]/10 flex items-center justify-center">
+                        <User size={20} className="text-[#6A994E]" />
+                      </div>
+                    )}
+                  </div>
                   <span className="hidden sm:inline font-medium">
                     {profile?.firstName || "User"}
                   </span>

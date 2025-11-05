@@ -96,13 +96,78 @@ export interface SellerProductPerformance {
   revenue: number;
 }
 
+export type SellerOrderStatus =
+  | "Pending"
+  | "Confirmed"
+  | "Ready for Pickup"
+  | "Completed"
+  | "Cancelled";
+
 export interface SellerOrder {
   id: string;
   date: string;
   customer: string;
   items: number;
   total: number;
-  status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
+  status: SellerOrderStatus;
+}
+
+export interface SellerOrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+export interface SellerOrderCustomer {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export interface SellerOrderCoordination {
+  method: string;
+  location: string;
+  preferredDate: string;
+  preferredTime: string;
+  contactPerson: string;
+  contactNumber: string;
+  instructions?: string;
+}
+
+export interface SellerOrderPayment {
+  method: string;
+  status: string;
+  transactionId: string;
+}
+
+export interface SellerOrderTotals {
+  subtotal: number;
+  coordinationFee?: number;
+  total: number;
+}
+
+export interface SellerOrderTimelineEntry {
+  status: SellerOrderStatus;
+  date: string;
+  description: string;
+}
+
+export interface SellerOrderDetail {
+  id: string;
+  date: string;
+  status: SellerOrderStatus;
+  customer: SellerOrderCustomer;
+  items: SellerOrderItem[];
+  coordination: SellerOrderCoordination;
+  payment: SellerOrderPayment;
+  totals: SellerOrderTotals;
+  notes?: string;
+  timeline: SellerOrderTimelineEntry[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SellerProduct {
@@ -113,6 +178,10 @@ export interface SellerProduct {
   stock: number;
   category: string;
   status: "Active" | "Inactive" | "Out of Stock";
+  description?: string;
+  weight?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SellerRefund {

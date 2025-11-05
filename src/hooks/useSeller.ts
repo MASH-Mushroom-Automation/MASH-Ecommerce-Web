@@ -6,6 +6,8 @@ import {
   SellerSalesData,
   SellerProductPerformance,
   SellerOrder,
+  SellerOrderDetail,
+  SellerOrderStatus,
   SellerProduct,
   SellerRefund,
   SellerNotification,
@@ -17,9 +19,7 @@ import {
 export function useSellerDashboard() {
   const [stats, setStats] = useState<SellerDashboardStats | null>(null);
   const [salesData, setSalesData] = useState<SellerSalesData[]>([]);
-  const [productPerformance, setProductPerformance] = useState<
-    SellerProductPerformance[]
-  >([]);
+  const [productPerformance, setProductPerformance] = useState<SellerProductPerformance[]>([]);
   const [recentOrders, setRecentOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,26 +29,20 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      const [
-        statsResponse,
-        salesResponse,
-        performanceResponse,
-        ordersResponse,
-      ] = await Promise.all([
-        SellerApi.getDashboardStats(),
-        SellerApi.getSalesData(),
-        SellerApi.getProductPerformance(),
-        SellerApi.getOrders({ limit: 5 }),
-      ]);
+      const [statsResponse, salesResponse, performanceResponse, ordersResponse] =
+        await Promise.all([
+          SellerApi.getDashboardStats(),
+          SellerApi.getSalesData(),
+          SellerApi.getProductPerformance(),
+          SellerApi.getOrders({ limit: 5 }),
+        ]);
 
       setStats(statsResponse.data);
       setSalesData(salesResponse.data);
       setProductPerformance(performanceResponse.data);
       setRecentOrders(ordersResponse.data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch dashboard data"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
     } finally {
       setLoading(false);
     }
@@ -66,6 +60,65 @@ export function useSellerDashboard() {
     loading,
     error,
     refetch: fetchDashboardData,
+  };
+}
+
+export function useSellerOrderDetail(orderId?: string) {
+  const [order, setOrder] = useState<SellerOrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchOrder = useCallback(async () => {
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await SellerApi.getOrderById(orderId);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Order not found");
+      }
+      setOrder(response.data);
+    } catch (err) {
+      setOrder(null);
+      setError(err instanceof Error ? err.message : "Failed to fetch order");
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  const updateStatus = useCallback(
+    async (status: SellerOrderStatus) => {
+      if (!orderId) {
+        throw new Error("Missing order id");
+      }
+
+      const response = await SellerApi.updateOrderStatus(orderId, status);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Failed to update order status");
+      }
+
+      setOrder(response.data);
+      return response.data;
+    },
+    [orderId]
+  );
+
+  return {
+    order,
+    loading,
+    error,
+    updateStatus,
+    refetch: fetchOrder,
   };
 }
 

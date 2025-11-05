@@ -104,6 +104,11 @@ export default function SellerLayout({
       label: "Products",
     },
     {
+      href: "/seller/inventory",
+      icon: <Package size={20} />,
+      label: "Inventory",
+    },
+    {
       href: "/seller/orders",
       icon: <ShoppingBag size={20} />,
       label: "Orders",
