@@ -31,7 +31,7 @@ const MOCK_NOTIFICATIONS = [
     read: true,
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
     icon: "👋",
-    actionUrl: "/catalog"
+    actionUrl: "/shop"
   },
   {
     id: "notif_4",

@@ -230,7 +230,7 @@ export function Header() {
                     Home
                   </Link>
                   <Link
-                    href="/catalog"
+                    href="/shop"
                     className="text-lg font-medium text-gray-600 hover:text-primary"
                   >
                     Products
@@ -303,7 +303,7 @@ export function Header() {
       <nav className="border-t border-gray-200 shadow-inner hidden lg:block">
         <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
           <NavLink label="Home" path="/" />
-          <NavLink label="Products" path="/catalog" />
+          <NavLink label="Products" path="/shop" />
           <NavLink label="Growers" path="/grower" />
         </div>
       </nav>

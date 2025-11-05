@@ -77,7 +77,7 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4 text-[#6A994E]">Shop</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/catalog" className="hover:underline">
+                <Link href="/shop" className="hover:underline">
                   Products
                 </Link>
               </li>

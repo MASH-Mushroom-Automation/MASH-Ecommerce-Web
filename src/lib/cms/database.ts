@@ -25,7 +25,7 @@ function initializeDefaultData() {
       backgroundImages: ['/Hero Section.png', '/hero-1.jpg', '/hero-2.jpg'],
       primaryButton: {
         text: 'Shop All Mushrooms',
-        url: '/catalog',
+        url: '/shop',
         variant: 'primary'
       },
       secondaryButton: {

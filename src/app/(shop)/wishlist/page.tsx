@@ -124,7 +124,7 @@ export default function WishlistPage() {
             title="Your wishlist is empty"
             description="Save your favorite items to easily find them later!"
             actionLabel="Start Shopping"
-            onAction={() => router.push("/catalog")}
+            onAction={() => router.push("/shop")}
           />
         ) : (
           /* Product Grid */
@@ -147,7 +147,7 @@ export default function WishlistPage() {
         {/* Bottom Actions */}
         {wishlistItems.length > 0 && (
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/catalog">
+            <Link href="/shop">
               <Button variant="outline" className="w-full sm:w-auto px-8">
                 Continue Shopping
               </Button>

@@ -31,8 +31,13 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/stores',
-        destination: '/catalog',
+        destination: '/shop',
         permanent: false, // 302 redirect (temporary)
+      },
+      {
+        source: '/catalog',
+        destination: '/shop',
+        permanent: true, // 301 redirect for SEO (catalog → shop)
       },
     ];
   },

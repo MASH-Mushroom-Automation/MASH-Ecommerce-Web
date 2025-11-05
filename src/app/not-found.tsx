@@ -3,7 +3,7 @@ import { Search, ShoppingBag, Users, Mail } from 'lucide-react';
 
 export default function NotFound() {
   const popularLinks = [
-    { href: '/catalog', label: 'All Products', icon: ShoppingBag, description: 'Browse our mushroom selection' },
+    { href: '/shop', label: 'All Products', icon: ShoppingBag, description: 'Browse our mushroom selection' },
     { href: '/grower', label: 'Growers', icon: Users, description: 'Meet our local growers' },
     { href: '/faq', label: 'Help Center', icon: Search, description: 'Find answers to common questions' },
     { href: '/contact', label: 'Contact Us', icon: Mail, description: 'Get in touch with our team' },
@@ -29,7 +29,7 @@ export default function NotFound() {
               Go Home
             </Link>
             <Link 
-              href="/catalog" 
+              href="/shop" 
               className="px-6 py-3 bg-white text-[#6A994E] border-2 border-[#6A994E] rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Browse Products

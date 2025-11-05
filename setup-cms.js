@@ -24,7 +24,7 @@ async function setupCMS() {
         },
         secondaryButton: {
           text: 'View Products',
-          url: '/catalog',
+          url: '/shop',
           variant: 'outline'
         },
         isActive: true,
@@ -39,7 +39,7 @@ async function setupCMS() {
         backgroundImages: ['/fresh-delivery-hero.jpg'],
         primaryButton: {
           text: 'Order Now',
-          url: '/catalog',
+          url: '/shop',
           variant: 'primary'
         },
         secondaryButton: {

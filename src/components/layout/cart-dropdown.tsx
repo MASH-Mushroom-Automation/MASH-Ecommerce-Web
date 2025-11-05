@@ -101,7 +101,7 @@ export function CartDropdown() {
             <p className="text-sm text-gray-500 mb-6 max-w-xs">
               Add some delicious fresh mushrooms to get started!
             </p>
-            <Link href="/catalog">
+            <Link href="/shop">
               <Button className="bg-[#1E392A] hover:bg-[#1E392A]/90 px-6">
                 Browse Products
               </Button>

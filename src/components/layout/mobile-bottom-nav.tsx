@@ -32,7 +32,7 @@ export function MobileBottomNav() {
       icon: Home,
     },
     {
-      href: "/catalog",
+      href: "/shop",
       label: "Shop",
       icon: ShoppingBag,
     },

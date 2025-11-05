@@ -170,7 +170,7 @@ const FeaturedProductsSection: React.FC = () => {
         </div>
 
         <div className="text-center mt-8 sm:mt-12">
-          <Link href="/catalog">
+          <Link href="/shop">
             <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
               View More Products
             </Button>
