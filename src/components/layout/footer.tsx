@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Instagram, MapPin, Phone, Mail, Youtube } from "lucide-react";
+import { Facebook, MapPin, Phone, Mail, Youtube } from "lucide-react";
 
 export function Footer() {
   return (
@@ -45,7 +45,7 @@ export function Footer() {
             {/* Social Media */}
             <div className="flex justify-center space-x-4 mt-6">
               <a
-                href="https://www.facebook.com/share/v/17PSuG7XpE/"
+                href="https://www.facebook.com/MASHMarketPH/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white hover:text-[#6A994E]"
@@ -54,16 +54,7 @@ export function Footer() {
                 <Facebook size={24} />
               </a>
               <a
-                href="https://www.instagram.com/mash.market_/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white hover:text-[#6A994E]"
-                aria-label="Instagram"
-              >
-                <Instagram size={24} />
-              </a>
-              <a
-                href="https://www.youtube.com/@mashmarket"
+                href="https://www.youtube.com/@MASH-UCC"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white hover:text-[#6A994E]"
@@ -72,7 +63,7 @@ export function Footer() {
                 <Youtube size={24} />
               </a>
               <a
-                href="mailto:hello@mash.market"
+                href="mailto:mash.mushroom.automation@gmail.com"
                 className="text-white hover:text-[#6A994E]"
                 aria-label="Email"
               >
@@ -93,11 +84,6 @@ export function Footer() {
               <li>
                 <Link href="/grower" className="hover:underline">
                   Growers
-                </Link>
-              </li>
-              <li>
-                <Link href="/stores" className="hover:underline">
-                  Stores
                 </Link>
               </li>
               <li>
