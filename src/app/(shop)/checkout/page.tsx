@@ -699,7 +699,7 @@ export default function CheckoutPage() {
                 className="flex-1"
                 onClick={() => {
                   setShowSuccessModal(false);
-                  router.push("/catalog");
+                  router.push("/shop");
                 }}
               >
                 Continue Shopping

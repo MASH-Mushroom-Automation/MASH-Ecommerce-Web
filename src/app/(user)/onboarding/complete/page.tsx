@@ -8,7 +8,7 @@ import { CheckCircle } from "lucide-react";
 
 export default function OnboardingCompletePage() {
   const handleStartShopping = () => {
-    window.location.href = "/catalog";
+    window.location.href = "/shop";
   };
 
   return (

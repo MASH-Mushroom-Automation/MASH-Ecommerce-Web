@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KeyRound } from "lucide-react";
@@ -49,23 +47,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        {/* Logo */}
-        <div className="mb-8">
-          <Link href="/">
-            <Image
-              src="/Logo  v6 - Market.png"
-              alt="MASH Logo"
-              width={120}
-              height={40}
-              className="h-10 w-auto"
-            />
-          </Link>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+    <>
+      {/* Card */}
+      <div className="bg-white rounded-lg shadow-md p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="bg-[#6A994E] rounded-full p-4">
@@ -126,7 +110,6 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         </div>
-      </div>
-    </div>
+    </>
   );
 }

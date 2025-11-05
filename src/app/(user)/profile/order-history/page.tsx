@@ -3,74 +3,16 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, Loader2 } from "lucide-react";
-
-// TODO: Create useOrders hook and OrderApi when backend is ready
-// import { useOrders } from "@/hooks/useOrders";
-
-interface OrderItem {
-  name: string;
-  quantity: number;
-  price: number;
-  image: string;
-}
-
-interface Order {
-  id: string;
-  date: string;
-  items: OrderItem[];
-  shipping: string;
-  payment: string;
-  total: number;
-  status: "to-pay" | "to-receive" | "completed";
-}
-
-// Mock data - will be replaced with API call
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "1",
-    date: "3:47PM 09 / 25 / 2025",
-    items: [
-      {
-        name: "Fresh White Oyster Mushrooms",
-        quantity: 1,
-        price: 120,
-        image: "/placeholder.png",
-      },
-      {
-        name: "Mushroom Chips",
-        quantity: 2,
-        price: 140,
-        image: "/placeholder.png",
-      },
-      {
-        name: "Dried Shiitake Mushrooms",
-        quantity: 1,
-        price: 200,
-        image: "/placeholder.png",
-      },
-      {
-        name: "Lion's Mane 'Brain' Mushroom",
-        quantity: 1,
-        price: 250,
-        image: "/placeholder.png",
-      },
-    ],
-    shipping: "1-3 Days",
-    payment: "Cash-on-Deliver (COD)",
-    total: 932.0,
-    status: "to-pay",
-  },
-];
+import { useOrders } from "@/hooks/useOrders";
+import Image from "next/image";
 
 export default function OrderHistoryPage() {
   const [orderTab, setOrderTab] = useState<
     "to-pay" | "to-receive" | "completed"
   >("to-pay");
 
-  // TODO: Replace with real API call
-  // const { orders, loading, error } = useOrders();
-  const loading = false;
-  const orders = MOCK_ORDERS;
+  // Fetch orders with current tab filter
+  const { orders, loading, error } = useOrders({ status: orderTab });
 
   const filteredOrders = orders.filter((order) => order.status === orderTab);
 
@@ -81,6 +23,28 @@ export default function OrderHistoryPage() {
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
             <p className="text-gray-600">Loading your orders...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-white">
+        <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Package className="h-12 w-12 text-red-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Failed to load orders
+            </h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-[#6A994E] text-white rounded-md hover:bg-[#1E392A]"
+            >
+              Try Again
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -153,7 +117,14 @@ export default function OrderHistoryPage() {
                       className="flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded" />
+                        <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden relative flex-shrink-0">
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                         <div>
                           <p className="font-medium text-sm">{item.name}</p>
                           <p className="text-sm text-gray-500">

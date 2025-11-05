@@ -1,7 +1,7 @@
 // CMS-based Contact Page Component
 // src/components/cms/ContactSection.tsx
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ interface CMSContactSectionProps {
   error?: string | null;
 }
 
+const CONTACT_FORM_ENDPOINT = "/api/contact";
+
 const ContactSchema = z.object({
   name: z.string().min(2, "Full name is required"),
   email: z.string().email("Enter a valid email address"),
@@ -52,7 +54,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
   businessHours,
   socialLinks,
   loading,
-  error
+  error,
 }) => {
   const {
     register,
@@ -62,21 +64,41 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
     formState: { errors, isSubmitting },
   } = useForm<ContactForm>({
     resolver: zodResolver(ContactSchema),
-    defaultValues: { name: "", email: "", message: "" },
+    defaultValues: { name: "", email: "", subject: "order", message: "" },
   });
 
   const onSubmit = async (values: ContactForm) => {
-    void values;
     try {
-      // TODO: Implement actual form submission
-      await new Promise((r) => setTimeout(r, 700));
-      toast.success("Message sent", {
+      const response = await fetch(CONTACT_FORM_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message = data?.message ?? "Failed to send message";
+        throw new Error(message);
+      }
+
+      const data = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+
+      toast.success(data?.message ?? "Message sent", {
         description: "We'll get back to you within 24 hours.",
       });
       reset();
-    } catch {
+    } catch (submissionError) {
+      const message =
+        submissionError instanceof Error
+          ? submissionError.message
+          : "Please try again later.";
+
       toast.error("Failed to send message", {
-        description: "Please try again later.",
+        description: message,
       });
     }
   };
@@ -84,11 +106,11 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
   // Icon mapping for contact info
   const getContactIcon = (type: string) => {
     switch (type) {
-      case 'phone':
+      case "phone":
         return <Phone className="h-8 w-8" />;
-      case 'email':
+      case "email":
         return <Mail className="h-8 w-8" />;
-      case 'address':
+      case "address":
         return <MapPin className="h-8 w-8" />;
       default:
         return <Mail className="h-8 w-8" />;
@@ -98,14 +120,59 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
   // Icon mapping for social links
   const getSocialIcon = (platform: string) => {
     switch (platform) {
-      case 'facebook':
+      case "facebook":
         return <Facebook className="h-5 w-5" />;
-      case 'twitter':
+      case "twitter":
         return <MessageCircle className="h-5 w-5" />;
-      case 'instagram':
+      case "instagram":
         return <MessageCircle className="h-5 w-5" />;
       default:
         return <MessageCircle className="h-5 w-5" />;
+    }
+  };
+
+  const safeContactInfo = useMemo(
+    () =>
+      (contactInfo ?? [])
+        .filter((info) => info.isActive)
+        .sort((a, b) => a.displayOrder - b.displayOrder),
+    [contactInfo]
+  );
+
+  const safeBusinessHours = useMemo(
+    () =>
+      (businessHours ?? [])
+        .filter((hours) => hours.isActive)
+        .sort((a, b) => a.displayOrder - b.displayOrder),
+    [businessHours]
+  );
+
+  const safeSocialLinks = useMemo(
+    () =>
+      (socialLinks ?? [])
+        .filter((link) => link.isActive)
+        .sort((a, b) => a.displayOrder - b.displayOrder),
+    [socialLinks]
+  );
+
+  const renderContactValue = (info: ContactInfo) => {
+    switch (info.type) {
+      case "phone":
+        return (
+          <a href={`tel:${info.value}`} className="text-[#1E392A] font-semibold hover:underline">
+            {info.value}
+          </a>
+        );
+      case "email":
+        return (
+          <a href={`mailto:${info.value}`} className="text-[#1E392A] font-semibold hover:underline">
+            {info.value}
+          </a>
+        );
+      case "address":
+        return <span className="text-[#1E392A] font-semibold">{info.value}</span>;
+      default:
+        return <span className="text-[#1E392A] font-semibold">{info.value}</span>;
     }
   };
 
@@ -168,21 +235,18 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {/* Contact Info Cards */}
-          {contactInfo
-            .filter(info => info.isActive)
-            .sort((a, b) => a.displayOrder - b.displayOrder)
-            .map((info) => (
-              <Card key={info.id}>
-                <CardContent className="p-6 text-center">
-                  <div className="bg-[#6A994E] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                    {getContactIcon(info.type)}
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{info.title}</h3>
-                  <p className="text-gray-600 text-sm mb-1">{info.description}</p>
-                  <p className="text-[#1E392A] font-semibold">{info.value}</p>
-                </CardContent>
-              </Card>
-            ))}
+          {safeContactInfo.map((info) => (
+            <Card key={info.id}>
+              <CardContent className="p-6 text-center">
+                <div className="bg-[#6A994E] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  {getContactIcon(info.type)}
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">{info.title}</h3>
+                <p className="text-gray-600 text-sm mb-1">{info.description}</p>
+                {renderContactValue(info)}
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -297,16 +361,19 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {businessHours
-                  .filter(hours => hours.isActive)
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map((hours) => (
+                {safeBusinessHours.map((hours) => (
                     <div key={hours.id} className="flex justify-between items-center">
                       <span className="text-gray-600 capitalize">
                         {hours.dayOfWeek}
                       </span>
-                      <span className={`font-semibold ${hours.isClosed ? 'text-red-600' : 'text-gray-900'}`}>
-                        {hours.isClosed ? 'Closed' : `${hours.openTime} - ${hours.closeTime}`}
+                      <span
+                        className={`font-semibold ${
+                          hours.isClosed ? "text-red-600" : "text-gray-900"
+                        }`}
+                      >
+                        {hours.isClosed
+                          ? "Closed"
+                          : `${hours.openTime} - ${hours.closeTime}`}
                       </span>
                     </div>
                   ))}
@@ -326,10 +393,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                   tips on social media.
                 </p>
                 <div className="flex gap-4">
-                  {socialLinks
-                    .filter(link => link.isActive)
-                    .sort((a, b) => a.displayOrder - b.displayOrder)
-                    .map((link) => (
+                  {safeSocialLinks.map((link) => (
                       <Button
                         key={link.id}
                         variant="outline"

@@ -3,10 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Search,
   ShoppingCart,
   Heart,
   User,
@@ -60,16 +58,22 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
 };
 
 export function Header() {
-  const [searchTerm, setSearchTerm] = useState("");
   const { wishlistCount, clearWishlist } = useWishlist();
   const { clearCart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated());
   }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const showSellerDashboardLink = isMounted && profile?.isSeller;
 
   const handleLogout = () => {
     authLogout();
@@ -84,15 +88,13 @@ export function Header() {
     toast.success("Signed out");
   };
 
-  const handleSearch = () => console.log("Searching for:", searchTerm);
-
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
-      {/* 1. Top Bar: Seller/Info Links - Dark Green Background */}
-      <div className="bg-[#1E392A] text-white text-sm py-2">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="flex items-center space-x-4">
-            {profile?.isSeller ? (
+      {/* Top Bar: Seller/Info Links - Dark Green Background */}
+      <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            {showSellerDashboardLink ? (
               <Link href="/seller/dashboard" className="hover:underline">
                 Seller Center
               </Link>
@@ -101,27 +103,28 @@ export function Header() {
                 Start Selling
               </Link>
             )}
-            <Link href="#" className="hover:underline">
-              Download App
-            </Link>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/blog" className="hover:underline">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/90">
+            <Link href="/blog" className="hover:underline whitespace-nowrap">
               BLOG
             </Link>
-            <Link href="/faq" className="hover:underline">
+            <span className="hidden sm:inline text-white/30">•</span>
+            <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
               FAQ
             </Link>
-            <Link href="/contact" className="hover:underline">
+            <span className="hidden sm:inline text-white/30">•</span>
+            <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
               CONTACT US
             </Link>
-
-            <a href="#" aria-label="Facebook" className="hover:text-gray-300">
-              <Facebook size={20} />
-            </a>
-            <a href="#" aria-label="Instagram" className="hover:text-gray-300">
-              <Instagram size={20} />
-            </a>
+            <span className="hidden sm:inline text-white/30">•</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <a href="#" aria-label="Facebook" className="hover:text-gray-300">
+                <Facebook size={18} />
+              </a>
+              <a href="#" aria-label="Instagram" className="hover:text-gray-300">
+                <Instagram size={18} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -137,26 +140,6 @@ export function Header() {
             className="h-12 w-auto"
           />
         </Link>
-
-        {/* Search Bar (Centered) */}
-        <div className="flex-1 max-w-xl mx-8 hidden lg:block">
-          <div className="relative flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#6A994E]/50">
-            <input
-              type="text"
-              placeholder="Oyster Mushroom."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-3 px-4 text-sm focus:outline-none placeholder:text-gray-400"
-            />
-            <button
-              onClick={handleSearch}
-              className="bg-gray-50 hover:bg-gray-200 p-3 transition-colors"
-              aria-label="Search"
-            >
-              <Search size={20} className="text-gray-500" />
-            </button>
-          </div>
-        </div>
 
         {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
@@ -239,14 +222,6 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <div className="flex flex-col space-y-4 p-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="search"
-                    placeholder="Oyster Mushroom.."
-                    className="w-full rounded-md border border-gray-300 bg-gray-100 py-2 pl-10 pr-4 text-sm focus:border-primary focus:ring-primary"
-                  />
-                </div>
                 <nav className="flex flex-col space-y-2">
                   <Link
                     href="/"
@@ -255,7 +230,7 @@ export function Header() {
                     Home
                   </Link>
                   <Link
-                    href="/catalog"
+                    href="/shop"
                     className="text-lg font-medium text-gray-600 hover:text-primary"
                   >
                     Products
@@ -328,7 +303,7 @@ export function Header() {
       <nav className="border-t border-gray-200 shadow-inner hidden lg:block">
         <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
           <NavLink label="Home" path="/" />
-          <NavLink label="Products" path="/catalog" />
+          <NavLink label="Products" path="/shop" />
           <NavLink label="Growers" path="/grower" />
         </div>
       </nav>

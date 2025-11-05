@@ -23,7 +23,7 @@ const authRoutes = [
 // Define public routes that don't require authentication
 const publicRoutes = [
   "/",
-  "/catalog",
+  "/shop",
   "/product",
   "/about",
   "/grower",
@@ -65,7 +65,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users trying to access auth routes
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/catalog", request.url));
+    return NextResponse.redirect(new URL("/shop", request.url));
   }
 
   // Allow access to public routes

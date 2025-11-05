@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -46,7 +47,6 @@ import {
 import Image from "next/image";
 
 export default function SellerSettings() {
-  // Sample seller data - would come from API in production
   const [sellerData, setSellerData] = useState({
     name: "Fungi Fresh Farms",
     email: "contact@fungifreshfarms.com",
@@ -65,72 +65,306 @@ export default function SellerSettings() {
     notifyUpdates: false,
   });
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In a real application, you would send this data to your API
-    console.log("Updating profile with:", sellerData);
+  // Fetch seller data on mount
+  useEffect(() => {
+    const fetchSellerData = async () => {
+      try {
+        const [profileRes, paymentRes, notifRes] = await Promise.all([
+          fetch("/api/seller/profile"),
+          fetch("/api/seller/payment-info"),
+          fetch("/api/seller/notification-preferences")
+        ]);
 
-    // Mock success message
-    alert("Profile updated successfully!");
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.success) {
+            setSellerData(prev => ({ ...prev, ...profileData.data }));
+          }
+        }
+
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          if (paymentData.success) {
+            setSellerData(prev => ({ ...prev, ...paymentData.data }));
+          }
+        }
+
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          if (notifData.success) {
+            setSellerData(prev => ({ ...prev, ...notifData.data }));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching seller data:", error);
+        toast.error("Failed to load settings");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSellerData();
+  }, []);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/seller/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: sellerData.name,
+          email: sellerData.email,
+          phone: sellerData.phone,
+          description: sellerData.description,
+          website: sellerData.website,
+          location: sellerData.location,
+          logo: sellerData.logo,
+          banner: sellerData.banner
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Profile updated successfully!");
+        setSellerData(prev => ({ ...prev, ...data.data }));
+      } else {
+        toast.error(data.error?.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError("");
 
     // Basic validation
     if (newPassword !== confirmPassword) {
       setPasswordError("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
     if (newPassword.length < 8) {
       setPasswordError("Password must be at least 8 characters");
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
-    // In a real application, you would send this data to your API
-    console.log("Updating password");
+    setSaving(true);
 
-    // Reset form and show success message
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setPasswordError("");
-    alert("Password updated successfully!");
-  };
+    try {
+      const res = await fetch("/api/seller/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+      });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In a real application, you would upload the file to a server
-      // and get back a URL. Here we're just creating a local URL.
-      const imageUrl = URL.createObjectURL(file);
-      setSellerData({ ...sellerData, logo: imageUrl });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Password updated successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError("");
+      } else {
+        setPasswordError(data.error?.message || "Failed to update password");
+        toast.error(data.error?.message || "Failed to update password");
+      }
+    } catch (error) {
+      console.error("Error updating password:", error);
+      setPasswordError("Failed to update password");
+      toast.error("Failed to update password");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // In a real application, you would upload the file to a server
-      // and get back a URL. Here we're just creating a local URL.
-      const imageUrl = URL.createObjectURL(file);
-      setSellerData({ ...sellerData, banner: imageUrl });
+    if (!file) return;
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be less than 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/cms/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const logoUrl = data.data.url;
+        setSellerData({ ...sellerData, logo: logoUrl });
+        toast.success("Logo uploaded successfully!");
+      } else {
+        toast.error(data.error || "Failed to upload logo");
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
-  const handleDeleteAccount = () => {
-    // In a real application, you would send a delete request to your API
-    console.log("Deleting account");
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    // Mock success message
-    alert("Account deleted successfully! (This is a mock implementation)");
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Banner must be less than 5MB");
+      return;
+    }
+
+    setUploadingBanner(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/cms/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const bannerUrl = data.data.url;
+        setSellerData({ ...sellerData, banner: bannerUrl });
+        toast.success("Banner uploaded successfully!");
+      } else {
+        toast.error(data.error || "Failed to upload banner");
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      toast.error("Failed to upload banner");
+    } finally {
+      setUploadingBanner(false);
+    }
   };
+
+  const handleDeleteAccount = async () => {
+    setSaving(true);
+
+    try {
+      // In production, this would call DELETE /api/seller/account
+      // For now, just show a warning
+      toast.error("Account deletion is not yet implemented. Please contact support.");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error("Failed to delete account");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePaymentUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/seller/payment-info", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taxId: sellerData.taxId,
+          bankName: sellerData.bankName,
+          bankAccountName: sellerData.bankAccountName,
+          bankAccountNumber: sellerData.bankAccountNumber
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Payment information updated successfully!");
+        setSellerData(prev => ({ ...prev, ...data.data }));
+      } else {
+        toast.error(data.error?.message || "Failed to update payment information");
+      }
+    } catch (error) {
+      console.error("Error updating payment info:", error);
+      toast.error("Failed to update payment information");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNotificationUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/seller/notification-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notifyNewOrders: sellerData.notifyNewOrders,
+          notifyMessages: sellerData.notifyMessages,
+          notifyUpdates: sellerData.notifyUpdates
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Notification preferences updated successfully!");
+        setSellerData(prev => ({ ...prev, ...data.data }));
+      } else {
+        toast.error(data.error?.message || "Failed to update notification preferences");
+      }
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      toast.error("Failed to update notification preferences");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6A994E] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -172,10 +406,10 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="logo-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Upload className="h-4 w-4" />
-                          Upload Logo
+                          {uploadingLogo ? "Uploading..." : "Upload Logo"}
                         </Label>
                         <Input
                           id="logo-upload"
@@ -183,6 +417,7 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           Recommended: 500x500px, max 2MB
@@ -205,10 +440,10 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="banner-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Upload className="h-4 w-4" />
-                          Upload Banner
+                          {uploadingBanner ? "Uploading..." : "Upload Banner"}
                         </Label>
                         <Input
                           id="banner-upload"
@@ -216,6 +451,7 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleBannerUpload}
+                          disabled={uploadingBanner}
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           Recommended: 1200x300px, max 5MB
@@ -349,9 +585,10 @@ export default function SellerSettings() {
                 <Button
                   type="submit"
                   className="bg-[#1E392A] hover:bg-[#1E392A]/90"
+                  disabled={saving}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </Card>
@@ -360,7 +597,7 @@ export default function SellerSettings() {
 
         {/* Payment Settings */}
         <TabsContent value="payment">
-          <form onSubmit={handleProfileUpdate}>
+          <form onSubmit={handlePaymentUpdate}>
             <Card>
               <CardHeader>
                 <CardTitle>Payment Information</CardTitle>
@@ -466,9 +703,10 @@ export default function SellerSettings() {
                 <Button
                   type="submit"
                   className="bg-[#1E392A] hover:bg-[#1E392A]/90"
+                  disabled={saving}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </Card>
@@ -477,7 +715,7 @@ export default function SellerSettings() {
 
         {/* Notification Settings */}
         <TabsContent value="notifications">
-          <form onSubmit={handleProfileUpdate}>
+          <form onSubmit={handleNotificationUpdate}>
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
@@ -549,9 +787,10 @@ export default function SellerSettings() {
                 <Button
                   type="submit"
                   className="bg-[#1E392A] hover:bg-[#1E392A]/90"
+                  disabled={saving}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </Card>
@@ -626,8 +865,9 @@ export default function SellerSettings() {
                   <Button
                     type="submit"
                     className="bg-[#1E392A] hover:bg-[#1E392A]/90"
+                    disabled={saving}
                   >
-                    Update Password
+                    {saving ? "Updating..." : "Update Password"}
                   </Button>
                 </CardFooter>
               </form>

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,50 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Sample notification data
-const SAMPLE_NOTIFICATIONS = [
-  {
-    id: "1",
-    title: "New Order Received",
-    message: "You have received a new order for 5kg Oyster Mushrooms",
-    time: "2 minutes ago",
-    isRead: false,
-    type: "order",
-  },
-  {
-    id: "2",
-    title: "Payment Confirmed",
-    message: "Payment of ₱2,500 has been confirmed for Order #12345",
-    time: "1 hour ago",
-    isRead: false,
-    type: "payment",
-  },
-  {
-    id: "3",
-    title: "Product Review",
-    message: "Customer left a 5-star review for your Shiitake Mushrooms",
-    time: "3 hours ago",
-    isRead: true,
-    type: "review",
-  },
-  {
-    id: "4",
-    title: "Low Stock Alert",
-    message: "Your Enoki Mushrooms are running low (only 2kg left)",
-    time: "1 day ago",
-    isRead: true,
-    type: "alert",
-  },
-  {
-    id: "5",
-    title: "Weekly Sales Report",
-    message: "Your sales increased by 15% this week compared to last week",
-    time: "2 days ago",
-    isRead: true,
-    type: "report",
-  },
-];
+import { useNotifications } from "@/hooks/useNotifications";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -91,22 +48,14 @@ const getNotificationColor = (type: string) => {
 };
 
 export function NotificationDropdown() {
-  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+  } = useNotifications({ limit: 5 });
 
   return (
     <DropdownMenu>
@@ -145,7 +94,12 @@ export function NotificationDropdown() {
         </div>
 
         <ScrollArea className="h-96">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[#6A994E] mx-auto mb-2" />
+              <p className="text-gray-500">Loading notifications...</p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <Bell size={32} className="mx-auto mb-2 text-gray-300" />
               <p>No notifications yet</p>

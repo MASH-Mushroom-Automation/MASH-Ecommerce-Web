@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,86 +14,10 @@ import {
   Search,
   MoreHorizontal,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-
-// Sample notification data
-const SAMPLE_NOTIFICATIONS = [
-  {
-    id: "1",
-    title: "New Order Received",
-    message:
-      "You have received a new order for 5kg Oyster Mushrooms from John Doe",
-    time: "2 minutes ago",
-    isRead: false,
-    type: "order",
-    priority: "high",
-  },
-  {
-    id: "2",
-    title: "Payment Confirmed",
-    message: "Payment of ₱2,500 has been confirmed for Order #12345",
-    time: "1 hour ago",
-    isRead: false,
-    type: "payment",
-    priority: "high",
-  },
-  {
-    id: "3",
-    title: "Product Review",
-    message: "Customer left a 5-star review for your Shiitake Mushrooms",
-    time: "3 hours ago",
-    isRead: true,
-    type: "review",
-    priority: "medium",
-  },
-  {
-    id: "4",
-    title: "Low Stock Alert",
-    message: "Your Enoki Mushrooms are running low (only 2kg left)",
-    time: "1 day ago",
-    isRead: true,
-    type: "alert",
-    priority: "high",
-  },
-  {
-    id: "5",
-    title: "Weekly Sales Report",
-    message: "Your sales increased by 15% this week compared to last week",
-    time: "2 days ago",
-    isRead: true,
-    type: "report",
-    priority: "low",
-  },
-  {
-    id: "6",
-    title: "New Customer Registration",
-    message: "A new customer has registered and is interested in your products",
-    time: "3 days ago",
-    isRead: true,
-    type: "customer",
-    priority: "medium",
-  },
-  {
-    id: "7",
-    title: "Shipping Update",
-    message: "Order #12346 has been shipped and is on its way to the customer",
-    time: "4 days ago",
-    isRead: true,
-    type: "shipping",
-    priority: "medium",
-  },
-  {
-    id: "8",
-    title: "Monthly Performance",
-    message:
-      "Your store performance for this month is excellent! Keep up the good work.",
-    time: "1 week ago",
-    isRead: true,
-    type: "performance",
-    priority: "low",
-  },
-];
+import { useNotifications } from "@/hooks/useNotifications";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -155,40 +79,36 @@ const getPriorityColor = (priority: string) => {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+  } = useNotifications();
+
   const totalCount = notifications.length;
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  };
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notification) => {
+      const matchesSearch =
+        notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        notification.message.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
+      const matchesFilter =
+        filterType === "all" ||
+        (filterType === "unread" && !notification.isRead) ||
+        (filterType === "read" && notification.isRead) ||
+        notification.type === filterType;
 
-  const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const filteredNotifications = notifications.filter((notification) => {
-    const matchesSearch =
-      notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      notification.message.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesFilter =
-      filterType === "all" ||
-      (filterType === "unread" && !notification.isRead) ||
-      (filterType === "read" && notification.isRead) ||
-      notification.type === filterType;
-
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
+  }, [notifications, searchTerm, filterType]);
 
   const notificationTypes = [
     { value: "all", label: "All" },
@@ -199,6 +119,37 @@ export default function NotificationsPage() {
     { value: "review", label: "Reviews" },
     { value: "alert", label: "Alerts" },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#6A994E] mx-auto mb-4" />
+          <p className="text-gray-600">Loading notifications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Bell className="h-12 w-12 text-red-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Failed to load notifications
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-[#6A994E] hover:bg-[#1E392A] text-white"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

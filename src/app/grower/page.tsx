@@ -67,7 +67,7 @@ export default function GrowersPage() {
     if (!growers || growers.length === 0) return [];
     const regionSet = new Set(
       growers
-        .map((g) => g.region || g.location?.split(',').pop()?.trim() || 'Other')
+        .map((g) => g.region || g.location?.split(",").pop()?.trim() || "Other")
         .filter(Boolean)
     );
     return Array.from(regionSet).sort();
@@ -90,10 +90,11 @@ export default function GrowersPage() {
     const matchesSearch =
       grower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       grower.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const growerRegion = grower.region || grower.location?.split(',').pop()?.trim() || 'Other';
+
+    const growerRegion =
+      grower.region || grower.location?.split(",").pop()?.trim() || "Other";
     const matchesRegion = !selectedRegion || growerRegion === selectedRegion;
-    
+
     return matchesSearch && matchesRegion;
   });
 
@@ -106,12 +107,12 @@ export default function GrowersPage() {
             <div className="h-10 bg-gray-200 rounded w-64 animate-pulse"></div>
             <div className="h-5 bg-gray-200 rounded w-96 animate-pulse"></div>
           </div>
-          
+
           {/* Search bar skeleton */}
           <div className="mb-6">
             <div className="h-[50px] bg-gray-200 rounded-lg w-full max-w-xl animate-pulse"></div>
           </div>
-          
+
           {/* Grower cards skeleton */}
           <GrowerListSkeleton count={8} />
         </div>
@@ -177,12 +178,12 @@ export default function GrowersPage() {
                   className="pl-10 pr-4 py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#6A994E] focus:border-transparent"
                 />
               </div>
-              
+
               {/* Region filter */}
               {regions.length > 0 && (
                 <div className="w-full sm:w-64">
-                  <Select 
-                    value={selectedRegion || "all"} 
+                  <Select
+                    value={selectedRegion || "all"}
                     onValueChange={(value) => {
                       setSelectedRegion(value === "all" ? null : value);
                       setDisplayCount(itemsPerPage); // Reset display count on filter change
@@ -203,7 +204,7 @@ export default function GrowersPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Active filter badge */}
             {selectedRegion && (
               <div className="flex items-center gap-2">

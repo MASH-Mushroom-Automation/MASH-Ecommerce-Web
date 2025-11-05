@@ -11,7 +11,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { CMSHeroSection } from "@/components/cms/HeroSection";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
 import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
-import { ProductListSkeleton, GrowerListSkeleton } from "@/components/ui/skeleton-loaders";
+import {
+  ProductListSkeleton,
+  GrowerListSkeleton,
+} from "@/components/ui/skeleton-loaders";
 
 const HeroSection: React.FC = () => {
   const { heroes, loading, error } = useHeroSections();
@@ -26,8 +29,12 @@ const HeroSection: React.FC = () => {
               <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-[#6A994E]/30 mx-auto"></div>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-medium text-gray-800 animate-pulse">Discovering fresh mushrooms...</p>
-              <p className="text-sm text-gray-600">Your marketplace is loading</p>
+              <p className="text-lg font-medium text-gray-800 animate-pulse">
+                Discovering fresh mushrooms...
+              </p>
+              <p className="text-sm text-gray-600">
+                Your marketplace is loading
+              </p>
             </div>
           </div>
         </div>
@@ -163,7 +170,7 @@ const FeaturedProductsSection: React.FC = () => {
         </div>
 
         <div className="text-center mt-8 sm:mt-12">
-          <Link href="/catalog">
+          <Link href="/shop">
             <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
               View More Products
             </Button>
@@ -198,7 +205,7 @@ const GrowerCard: React.FC<{
     ) : (
       <div className="h-32 w-full bg-gradient-to-br from-[#6A994E] to-[#A7C957]" />
     )}
-    
+
     <CardContent className="p-6 text-center flex flex-col flex-grow">
       {/* Content section - flex-grow pushes links to bottom */}
       <div className="flex-grow flex flex-col">
@@ -218,7 +225,8 @@ const GrowerCard: React.FC<{
           {grower.location || "Location not specified"}
         </p>
         <p className="text-gray-600 text-sm italic">
-          &ldquo;{grower.tagline || "Quality mushrooms from local growers"}&rdquo;
+          &ldquo;{grower.tagline || "Quality mushrooms from local growers"}
+          &rdquo;
         </p>
       </div>
       {/* Action links - always at bottom with mt-auto */}

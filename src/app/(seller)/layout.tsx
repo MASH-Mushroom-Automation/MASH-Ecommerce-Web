@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { logout } from "@/lib/auth";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
+import { useUserProfile } from "@/hooks/useUser";
 
 interface SidebarLinkProps {
   href: string;
@@ -56,6 +57,29 @@ export default function SellerLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { clearWishlist } = useWishlist();
   const { clearCart } = useCart();
+  const { profile } = useUserProfile();
+
+  // Get user initials from first and last name
+  const getUserInitials = () => {
+    if (!profile?.firstName && !profile?.lastName) return "U";
+    const firstInitial = profile?.firstName?.[0] || "";
+    const lastInitial = profile?.lastName?.[0] || "";
+    return (firstInitial + lastInitial).toUpperCase() || "U";
+  };
+
+  // Get display name
+  const getDisplayName = () => {
+    if (!profile) return "Loading...";
+    if (profile.firstName && profile.lastName) {
+      return `${profile.firstName} ${profile.lastName}`;
+    }
+    return profile.email?.split('@')[0] || "User";
+  };
+
+  // Get email
+  const getUserEmail = () => {
+    return profile?.email || "Loading...";
+  };
 
   const isStartSellingPage = pathname === "/start-selling";
 
@@ -129,12 +153,24 @@ export default function SellerLayout({
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-screen sticky top-0">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-[#1E392A] rounded-full flex items-center justify-center text-white font-bold">
-              S
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Seller Name</h3>
-              <p className="text-xs text-gray-500">seller@example.com</p>
+            {profile?.avatar ? (
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                <Image
+                  src={profile.avatar}
+                  alt={getDisplayName()}
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 bg-[#1E392A] rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                {getUserInitials()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-gray-900 truncate">{getDisplayName()}</h3>
+              <p className="text-xs text-gray-500 truncate">{getUserEmail()}</p>
             </div>
           </div>
 
@@ -196,15 +232,27 @@ export default function SellerLayout({
 
                 <div className="p-4">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-[#1E392A] rounded-full flex items-center justify-center text-white font-bold">
-                      S
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Seller Name
+                    {profile?.avatar ? (
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                        <Image
+                          src={profile.avatar}
+                          alt={getDisplayName()}
+                          width={40}
+                          height={40}
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 bg-[#1E392A] rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                        {getUserInitials()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {getDisplayName()}
                       </h3>
-                      <p className="text-xs text-gray-500">
-                        seller@example.com
+                      <p className="text-xs text-gray-500 truncate">
+                        {getUserEmail()}
                       </p>
                     </div>
                   </div>
@@ -246,7 +294,9 @@ export default function SellerLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );
