@@ -159,6 +159,7 @@ export interface UserProfile {
   email: string;
   phone?: string;
   avatar?: string;
+  isSeller?: boolean; // Whether user has a seller account
   preferences: {
     interests: string[];
     cookingLevel: string;
@@ -180,7 +181,9 @@ export interface Grower {
   phone: string;
   hours: string;
   logo?: string;
+  banner?: string;
   location?: string;
+  region?: string;
   tagline?: string;
   coords: {
     lat: number;

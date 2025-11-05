@@ -3,18 +3,22 @@
 import React, { useState, use } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart } from "lucide-react";
 import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
-import { ProductApiResponse } from "@/types/api";
 import {
   LoadingSpinner,
   ProductCardSkeleton,
 } from "@/components/ui/loading-spinner";
 import { ProductsApi } from "@/lib/api/products";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
+import { ProductApiResponse } from "@/types/api";
+import { getGrowerUrl } from "@/lib/grower-utils";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -28,10 +32,11 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
   );
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
+  const { addToCart } = useCart();
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
       return;
     }
     if (inWishlist) {
@@ -52,18 +57,18 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
   return (
     <div className="bg-gray-50 min-h-screen text-gray-800">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-12">
         {/* Product Display Section */}
         <section className="flex flex-col lg:flex-row gap-6 lg:gap-12 bg-white rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
           {/* Image Gallery */}
           <div className="lg:w-1/2 w-full">
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3 sm:mb-4 relative">
+            <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-3 sm:mb-4 relative flex items-center justify-center">
               <Image
                 src={activeImage}
                 alt={product.name}
                 width={800}
                 height={800}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-4"
                 priority
               />
             </div>
@@ -73,7 +78,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                   key={index}
                   onClick={() => setActiveImage(img)}
                   className={cn(
-                    "relative w-full bg-gray-100 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all",
+                    "relative w-full bg-gray-50 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all flex items-center justify-center",
                     activeImage === img ? "ring-[#1E392A]" : "ring-transparent"
                   )}
                   style={{ aspectRatio: "1/1" }}
@@ -83,7 +88,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                     alt={`thumbnail ${index + 1}`}
                     width={150}
                     height={150}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                 </button>
               ))}
@@ -92,9 +97,12 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
           {/* Product Info */}
           <div className="lg:w-1/2 w-full">
-            <div className="inline-block px-3 py-1 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs sm:text-sm font-medium mb-3">
+            <Link
+              href={getGrowerUrl(product.grower)}
+              className="inline-block px-3 py-1 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-[#6A994E]/20 transition-colors"
+            >
               @{product.grower}
-            </div>
+            </Link>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               {product.name}
             </h1>
@@ -131,8 +139,15 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                 </Button>
               </div>
               <Button
-                className="flex-1 h-11 sm:h-12 bg-[#1E392A] hover:bg-[#1E392A]/90 text-white font-semibold rounded-lg"
+                variant="secondary"
+                className="flex-1 h-11 sm:h-12 text-white font-semibold rounded-lg"
                 disabled={product.inStock === false}
+                onClick={() => {
+                  addToCart(product.id, product.price, quantity);
+                  toast.success(`${product.name} added to cart!`, {
+                    description: `Quantity: ${quantity}. View your cart to proceed to checkout`,
+                  });
+                }}
               >
                 <ShoppingCart className="mr-2" size={20} />
                 Add to Cart

@@ -24,7 +24,10 @@ import {
   ProductGridSkeleton,
   LoadingSpinner,
 } from "@/components/ui/loading-spinner";
-import { ProductsListParams } from "@/types/api";
+import { ProductsListParams, ProductApiResponse } from "@/types/api";
+import { useDebounce } from "@/hooks/useDebounce";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Package } from "lucide-react";
 
 export default function ProductCatalogPage() {
   // Filter states
@@ -35,7 +38,11 @@ export default function ProductCatalogPage() {
   // Sort and pagination
   const [sort, setSort] = useState("featured");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [accumulatedProducts, setAccumulatedProducts] = useState<
+    ProductApiResponse[]
+  >([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // API parameters
   const [apiParams, setApiParams] = useState<ProductsListParams>({
@@ -48,26 +55,32 @@ export default function ProductCatalogPage() {
   // Fetch data using custom hooks
   const { products, loading, error, pagination, setParams } =
     useProducts(apiParams);
-  const { categories, loading: categoriesLoading } = useProductCategories();
-  const { growers, loading: growersLoading } = useProductGrowers();
+  const { categories } = useProductCategories();
+  const { growers } = useProductGrowers();
 
-  // Update API parameters when filters change
+  // Debounce filter changes (5 seconds)
+  const debouncedCategories = useDebounce(selectedCategories, 5000);
+  const debouncedGrowers = useDebounce(selectedGrowers, 5000);
+  const debouncedPriceRange = useDebounce(priceRange, 5000);
+  const debouncedSort = useDebounce(sort, 5000);
+
+  // Update API parameters when debounced filters change
   useEffect(() => {
     const newParams: ProductsListParams = {
       page: currentPage,
       limit: itemsPerPage,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
+      minPrice: debouncedPriceRange[0],
+      maxPrice: debouncedPriceRange[1],
       category:
-        selectedCategories.length > 0 ? selectedCategories[0] : undefined,
-      grower: selectedGrowers.length > 0 ? selectedGrowers[0] : undefined,
+        debouncedCategories.length > 0 ? debouncedCategories[0] : undefined,
+      grower: debouncedGrowers.length > 0 ? debouncedGrowers[0] : undefined,
     };
 
     // Handle sorting
-    if (sort === "price-asc") {
+    if (debouncedSort === "price-asc") {
       newParams.sortBy = "price";
       newParams.sortOrder = "asc";
-    } else if (sort === "price-desc") {
+    } else if (debouncedSort === "price-desc") {
       newParams.sortBy = "price";
       newParams.sortOrder = "desc";
     }
@@ -75,18 +88,41 @@ export default function ProductCatalogPage() {
     setApiParams(newParams);
     setParams(newParams);
   }, [
-    selectedCategories,
-    selectedGrowers,
-    priceRange,
-    sort,
+    debouncedCategories,
+    debouncedGrowers,
+    debouncedPriceRange,
+    debouncedSort,
     currentPage,
+    itemsPerPage,
     setParams,
   ]);
 
-  // Reset page when filters change
+  // Reset page and accumulated products when filters or items per page change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategories, selectedGrowers, priceRange, sort]);
+    setAccumulatedProducts([]);
+  }, [selectedCategories, selectedGrowers, priceRange, sort, itemsPerPage]);
+
+  // Accumulate products when new page loads
+  useEffect(() => {
+    if (products && products.length > 0) {
+      if (currentPage === 1) {
+        // Replace accumulated products when going back to page 1
+        setAccumulatedProducts(products);
+      } else {
+        // Append new products when loading more
+        setAccumulatedProducts((prev) => [...prev, ...products]);
+      }
+      setIsLoadingMore(false);
+    }
+  }, [products, currentPage]);
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setCurrentPage((prev) => prev + 1);
+  };
+
+  const hasMoreProducts = pagination && currentPage < pagination.totalPages;
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -108,7 +144,7 @@ export default function ProductCatalogPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:px-6 lg:px-12 xl:px-16">
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
@@ -333,7 +369,7 @@ export default function ProductCatalogPage() {
                 </SheetContent>
               </Sheet>
 
-              {/* Sort Controls */}
+              {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
                 <Select value={sort} onValueChange={setSort}>
                   <SelectTrigger className="w-full sm:w-[180px] bg-white">
@@ -347,6 +383,20 @@ export default function ProductCatalogPage() {
                     <SelectItem value="price-desc">
                       Price: High to Low
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => setItemsPerPage(Number(value))}
+                >
+                  <SelectTrigger className="w-full sm:w-[140px] bg-white">
+                    <SelectValue placeholder="Items per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12">12 per page</SelectItem>
+                    <SelectItem value="24">24 per page</SelectItem>
+                    <SelectItem value="48">48 per page</SelectItem>
+                    <SelectItem value="96">96 per page</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="hidden sm:flex gap-2">
@@ -365,7 +415,7 @@ export default function ProductCatalogPage() {
             </div>
 
             {/* Product Grid */}
-            {loading ? (
+            {loading && currentPage === 1 ? (
               <ProductGridSkeleton count={itemsPerPage} />
             ) : error ? (
               <div className="text-center py-12">
@@ -376,88 +426,49 @@ export default function ProductCatalogPage() {
                   Try Again
                 </Button>
               </div>
+            ) : accumulatedProducts.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No Products Found"
+                description="We couldn't find any products matching your filters. Try adjusting your search criteria."
+                actionLabel="Clear Filters"
+                onAction={() => {
+                  setSelectedCategories([]);
+                  setSelectedGrowers([]);
+                  setPriceRange([0, 12000]);
+                  setSort("featured");
+                }}
+              />
             ) : (
-              <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.name}
-                    farm={product.grower}
-                    price={product.price}
-                    unit={product.weight}
-                    image={product.image}
-                    inStock={product.inStock !== false}
-                  />
-                ))}
-              </div>
-            )}
+              <>
+                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {accumulatedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      id={product.id}
+                      name={product.name}
+                      farm={product.grower}
+                      price={product.price}
+                      unit={product.weight}
+                      image={product.image}
+                      inStock={product.inStock !== false}
+                    />
+                  ))}
+                </div>
 
-            {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="bg-white"
-                >
-                  «
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="bg-white"
-                >
-                  ‹
-                </Button>
-                {Array.from(
-                  { length: Math.min(7, pagination.totalPages) },
-                  (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="icon"
-                        onClick={() => setCurrentPage(page)}
-                        className={
-                          currentPage === page
-                            ? "bg-[#1E392A] text-white hover:bg-[#1E392A]/90"
-                            : "bg-white"
-                        }
-                      >
-                        {page}
-                      </Button>
-                    );
-                  }
+                {/* Load More Button */}
+                {hasMoreProducts && (
+                  <div className="flex justify-center mt-8">
+                    <Button
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
+                      className="bg-[#6A994E] text-white hover:bg-[#6A994E]/90 px-8 py-2"
+                    >
+                      {isLoadingMore ? "Loading..." : "Load More"}
+                    </Button>
+                  </div>
                 )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(pagination.totalPages, p + 1)
-                    )
-                  }
-                  disabled={currentPage === pagination.totalPages}
-                  className="bg-white"
-                >
-                  ›
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(pagination.totalPages)}
-                  disabled={currentPage === pagination.totalPages}
-                  className="bg-white"
-                >
-                  »
-                </Button>
-              </div>
+              </>
             )}
           </main>
         </div>

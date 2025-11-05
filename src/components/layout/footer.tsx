@@ -10,9 +10,16 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
           {/* Column 1: MASH Logo/Brand Info and Social Media */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="text-2xl font-bold font-['Roboto'] text-[#6A994E] mb-6">
-              MASH MARKET
-            </h3>
+            {/* MASH Logo */}
+            <div className="mb-6">
+              <Image
+                src="/Logo  v6 - Market.png"
+                alt="MASH Market"
+                width={180}
+                height={60}
+                className="h-auto w-auto max-w-[180px]"
+              />
+            </div>
 
             {/* Accepted Payments Section */}
             <h4 className="text-sm font-light mb-3 text-gray-200">
@@ -20,55 +27,41 @@ export function Footer() {
             </h4>
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <Image
-                src="/placeholder.png"
-                alt="Visa"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
-              />
-              <Image
-                src="/placeholder.png"
-                alt="Cash on Delivery"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
-              />
-              <Image
-                src="/placeholder.png"
+                src="/gcash-logo.png"
                 alt="GCash"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
+                width={120}
+                height={40}
+                className="h-7 sm:h-8 w-auto object-contain"
               />
               <Image
-                src="/placeholder.png"
+                src="/payment-logos/Maya_Logo.svg"
                 alt="Maya"
-                width={50}
-                height={15}
-                className="h-4 w-auto"
-                style={{ filter: "invert(100%)" }}
+                width={120}
+                height={40}
+                className="h-6 sm:h-7 w-auto object-contain"
               />
             </div>
 
             {/* Social Media */}
             <div className="flex space-x-4 mt-6">
-              <Link
-                href="#"
+              <a
+                href="https://www.facebook.com/share/v/17PSuG7XpE/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-[#6A994E]"
                 aria-label="Facebook"
               >
                 <Facebook size={24} />
-              </Link>
-              <Link
-                href="#"
+              </a>
+              <a
+                href="https://www.instagram.com/mash.market_/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-[#6A994E]"
                 aria-label="Instagram"
               >
                 <Instagram size={24} />
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -79,6 +72,11 @@ export function Footer() {
               <li>
                 <Link href="/catalog" className="hover:underline">
                   Products
+                </Link>
+              </li>
+              <li>
+                <Link href="/grower" className="hover:underline">
+                  Growers
                 </Link>
               </li>
               <li>
@@ -160,7 +158,14 @@ export function Footer() {
             <div className="text-sm space-y-3">
               <div className="flex items-center space-x-2">
                 <MapPin size={16} />
-                <span>Caloocan</span>
+                <a
+                  href="https://maps.app.goo.gl/fSRj6x1EwbNM3X3C9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  UCC Congressional Campus
+                </a>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone size={16} />
@@ -168,7 +173,7 @@ export function Footer() {
               </div>
               <div className="flex items-center space-x-2">
                 <Mail size={16} />
-                <span>hi@mash.com</span>
+                <span>zenGarden@gmail.com</span>
               </div>
             </div>
           </div>

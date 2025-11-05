@@ -8,6 +8,7 @@ const protectedRoutes = [
   "/seller",
   "/profile/my-information",
   "/profile/order-history",
+  "/wishlist",
 ];
 
 // Define auth routes that authenticated users shouldn't access
@@ -24,7 +25,6 @@ const publicRoutes = [
   "/",
   "/catalog",
   "/product",
-  "/wishlist",
   "/about",
   "/grower",
   "/contact",

@@ -5,18 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useHomePageData } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { CMSHeroSection } from "@/components/cms/HeroSection";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
 import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
+import { ProductListSkeleton, GrowerListSkeleton } from "@/components/ui/skeleton-loaders";
 
 const HeroSection: React.FC = () => {
   const { heroes, loading, error } = useHeroSections();
@@ -24,10 +19,16 @@ const HeroSection: React.FC = () => {
   if (loading) {
     return (
       <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6A994E] mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading hero content...</p>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1E392A]/5 to-[#6A994E]/5 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#6A994E] mx-auto"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-[#6A994E]/30 mx-auto"></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-gray-800 animate-pulse">Discovering fresh mushrooms...</p>
+              <p className="text-sm text-gray-600">Your marketplace is loading</p>
+            </div>
           </div>
         </div>
       </section>
@@ -60,7 +61,7 @@ const WhyMASHSection: React.FC = () => {
   if (loading) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-300 rounded w-64 mx-auto mb-4"></div>
@@ -70,7 +71,7 @@ const WhyMASHSection: React.FC = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-gray-600">Loading features...</p>
+              <p className="text-gray-600">Preparing your experience...</p>
             </div>
           </div>
         </div>
@@ -81,7 +82,7 @@ const WhyMASHSection: React.FC = () => {
   if (error) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -104,7 +105,7 @@ const FeaturedProductsSection: React.FC = () => {
   if (loading) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Our Bestsellers
@@ -114,12 +115,7 @@ const FeaturedProductsSection: React.FC = () => {
               community.
             </p>
           </div>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-gray-600">Loading featured products...</p>
-            </div>
-          </div>
+          <ProductListSkeleton count={8} />
         </div>
       </section>
     );
@@ -128,7 +124,7 @@ const FeaturedProductsSection: React.FC = () => {
   if (error) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -140,7 +136,7 @@ const FeaturedProductsSection: React.FC = () => {
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
             Our Bestsellers
@@ -183,31 +179,50 @@ const GrowerCard: React.FC<{
     id: number;
     name: string;
     logo?: string;
+    banner?: string;
     location?: string;
     tagline?: string;
   };
 }> = ({ grower }) => (
-  <Card className="border-t-8 border-t-[#6A994E]">
-    <CardContent className="p-6 text-center">
-      <div className="flex justify-center mb-4">
+  <Card className="flex flex-col h-full min-h-[380px] overflow-hidden">
+    {/* Banner image or colored bar at top */}
+    {grower.banner ? (
+      <div className="relative h-32 w-full">
         <Image
-          src={grower.logo || "/placeholder.png"}
-          alt={grower.name}
-          width={64}
-          height={64}
-          className="rounded-full shadow-md"
+          src={grower.banner}
+          alt={`${grower.name} banner`}
+          fill
+          className="object-cover"
         />
       </div>
-      <h3 className="text-2xl font-semibold mb-1 text-[#212121]">
-        {grower.name}
-      </h3>
-      <p className="text-gray-500 text-sm mb-3">
-        {grower.location || "Location not specified"}
-      </p>
-      <p className="text-gray-600 text-sm italic mb-4">
-        &ldquo;{grower.tagline || "Quality mushrooms from local growers"}&rdquo;
-      </p>
-      <div className="flex justify-center gap-4 mt-4">
+    ) : (
+      <div className="h-32 w-full bg-gradient-to-br from-[#6A994E] to-[#A7C957]" />
+    )}
+    
+    <CardContent className="p-6 text-center flex flex-col flex-grow">
+      {/* Content section - flex-grow pushes links to bottom */}
+      <div className="flex-grow flex flex-col">
+        <div className="flex justify-center -mt-10 mb-4 relative z-10">
+          <Image
+            src={grower.logo || "/placeholder.png"}
+            alt={grower.name}
+            width={80}
+            height={80}
+            className="rounded-full shadow-lg border-4 border-white bg-white"
+          />
+        </div>
+        <h3 className="text-2xl font-semibold mb-1 text-[#212121]">
+          {grower.name}
+        </h3>
+        <p className="text-gray-500 text-sm mb-3">
+          {grower.location || "Location not specified"}
+        </p>
+        <p className="text-gray-600 text-sm italic">
+          &ldquo;{grower.tagline || "Quality mushrooms from local growers"}&rdquo;
+        </p>
+      </div>
+      {/* Action links - always at bottom with mt-auto */}
+      <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-gray-100">
         <Link
           href={`/grower/${grower.id}`}
           className="text-[#1E392A] font-semibold hover:underline text-sm"
@@ -231,7 +246,7 @@ const FeaturedGrowersSection: React.FC = () => {
   if (loading) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Meet Our Growers
@@ -240,12 +255,7 @@ const FeaturedGrowersSection: React.FC = () => {
               The passionate farmers behind your food.
             </p>
           </div>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-gray-600">Loading growers...</p>
-            </div>
-          </div>
+          <GrowerListSkeleton count={4} />
         </div>
       </section>
     );
@@ -254,7 +264,7 @@ const FeaturedGrowersSection: React.FC = () => {
   if (error) {
     return (
       <section className="py-12 sm:py-16 lg:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -266,7 +276,7 @@ const FeaturedGrowersSection: React.FC = () => {
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
             Meet Our Growers

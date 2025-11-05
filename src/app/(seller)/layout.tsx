@@ -3,13 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
   Package,
   ShoppingBag,
   MapPin,
-  Truck,
   Store,
   RotateCcw,
   Settings,
@@ -19,6 +18,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { logout } from "@/lib/auth";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { useCart } from "@/contexts/CartContext";
 
 interface SidebarLinkProps {
   href: string;
@@ -49,7 +51,22 @@ export default function SellerLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { clearWishlist } = useWishlist();
+  const { clearCart } = useCart();
+
+  const isStartSellingPage = pathname === "/start-selling";
+
+  const handleLogout = () => {
+    logout();
+    try {
+      clearWishlist();
+      clearCart();
+    } catch {}
+    router.push("/login");
+  };
 
   const sidebarLinks = [
     {
@@ -94,6 +111,18 @@ export default function SellerLayout({
     },
   ];
 
+  if (isStartSellingPage) {
+    return (
+      <div className="min-h-screen bg-white">
+        <main>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar for desktop */}
@@ -134,6 +163,7 @@ export default function SellerLayout({
           <Button
             variant="outline"
             className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            onClick={handleLogout}
           >
             <LogOut size={18} className="mr-2" />
             Sign Out
@@ -204,6 +234,7 @@ export default function SellerLayout({
                   <Button
                     variant="outline"
                     className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={handleLogout}
                   >
                     <LogOut size={18} className="mr-2" />
                     Sign Out
