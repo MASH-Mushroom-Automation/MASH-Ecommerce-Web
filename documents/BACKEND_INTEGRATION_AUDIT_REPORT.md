@@ -9,16 +9,17 @@
 
 ### Overall Platform Status: **85% Backend-Ready** ✅
 
-The MASH e-commerce platform is **well-architected** with proper separation of concerns, comprehensive hooks system, and mock data fallbacks. The frontend is **production-ready** from a UI/UX perspective and has proper API integration patterns in place. However, **28 API endpoints** are missing on the backend side.
+The MASH e-commerce platform is **well-architected** with proper separation of concerns, comprehensive hooks system, and mock data fallbacks. The frontend is **production-ready** from a UI/UX perspective and has proper API integration patterns in place. However, **32 API endpoints** are missing on the backend side.
 
 ### Key Findings:
 - ✅ **45 page.tsx files** reviewed
 - ✅ **14 custom hooks** implemented with proper API integration patterns
 - ✅ **Mock data fallbacks** in place for all features
 - ✅ **Error handling & loading states** properly implemented
-- ⚠️ **28 API endpoints missing** (documented in MISSING-API-ENDPOINTS.md)
+- ⚠️ **32 API endpoints missing** (28 documented + 4 new seller application flow)
 - ⚠️ **Admin dashboard** not yet implemented
 - ✅ **API folder structure** exists with proper organization
+- ✅ **Three-state seller application flow** implemented (none → pending → approved)
 
 ---
 
@@ -419,47 +420,59 @@ The MASH e-commerce platform is **well-architected** with proper separation of c
    - **Impact:** Sellers cannot manage inventory
    - **Priority:** P0 - BLOCKER
 
+5. **Seller Application System** ❌ **[NEW]**
+   - **Issue:** Cannot submit or manage seller applications
+   - **Missing:** 
+     - `POST /api/seller/application` (submit application)
+     - `GET /api/seller/application/status` (check status)
+     - `PUT /api/admin/seller-applications/:id/approve` (admin approval)
+     - `PUT /api/admin/seller-applications/:id/reject` (admin rejection)
+   - **Impact:** No path to becoming a seller, admin cannot review applications
+   - **Priority:** P0 - BLOCKER
+   - **Note:** Implements three-state flow: `none` → `pending` → `approved`
+   - **Documentation:** See `docs/SELLER_APPLICATION_FLOW.md`
+
 ### 🟡 HIGH (Should Fix Soon)
 
-5. **Contact Form Submission** ❌
+6. **Contact Form Submission** ❌
    - **Missing:** `POST /api/contact`
    - **Priority:** P1 - HIGH
 
-6. **Seller Notifications** ❌
+7. **Seller Notifications** ❌
    - **Missing:** 4 notification endpoints
    - **Impact:** No real-time alerts
    - **Priority:** P1 - HIGH
 
-7. **Seller Settings** ❌
+8. **Seller Settings** ❌
    - **Missing:** Profile/password/account management
    - **Priority:** P1 - HIGH
 
-8. **Refund Management** ❌
+9. **Refund Management** ❌
    - **Missing:** 3 refund endpoints
    - **Priority:** P1 - HIGH
 
 ### 🟢 MEDIUM (Can Wait)
 
-9. **Wishlist Feature** ⚠️
-   - **Missing:** 3 wishlist endpoints
-   - **Priority:** P2 - MEDIUM
+10. **Wishlist Feature** ⚠️
+    - **Missing:** 3 wishlist endpoints
+    - **Priority:** P2 - MEDIUM
 
-10. **Cart Sync** ⚠️
+11. **Cart Sync** ⚠️
     - **Missing:** 4 cart endpoints
     - **Priority:** P2 - MEDIUM
 
-11. **Handover Centers** ❌
+12. **Handover Centers** ❌
     - **Missing:** 4 CRUD endpoints
     - **Priority:** P2 - MEDIUM
 
-12. **Shipping Channels** ❌
+13. **Shipping Channels** ❌
     - **Missing:** 4 CRUD endpoints
     - **Priority:** P2 - MEDIUM
 
 ### ⚪ LOW (Future Enhancement)
 
-13. **Admin Dashboard** ❌
-    - **Missing:** Entire admin portal
+14. **Admin Dashboard** ❌
+    - **Missing:** Entire admin portal (including seller application review)
     - **Priority:** P3 - LOW (Phase 2 feature)
 
 ---
@@ -536,27 +549,30 @@ TOTAL PLATFORM READINESS:  127/270 ⚠️  (47%)
 
 ### Phase 1: Minimum Viable Product (MVP)
 **Timeline:** 1-2 weeks  
-**Goal:** Enable basic buying and selling
+**Goal:** Enable basic buying and selling with seller onboarding
 
 **Must Implement:**
-1. ✅ Order creation endpoint
-2. ✅ User order history endpoint
-3. ✅ Product search endpoint
-4. ✅ Seller product create/update endpoints
-5. ✅ Contact form endpoint
+1. ✅ Order creation endpoint (`POST /api/orders/create`)
+2. ✅ User order history endpoint (`GET /api/user/orders`)
+3. ✅ Product search endpoint (`GET /api/products/search`)
+4. ✅ Seller product create/update endpoints (`POST /PUT /api/seller/products`)
+5. ✅ Contact form endpoint (`POST /api/contact`)
+6. ✅ **Seller application endpoints** (`POST /api/seller/application`, `GET /api/seller/application/status`)
+7. ✅ **Admin seller approval endpoints** (`PUT /api/admin/seller-applications/:id/approve|reject`)
 
-**Can Deploy After:** Phase 1 endpoints ready  
-**Status:** Beta with "Some features coming soon" badges
+**Can Deploy After:** Phase 1 endpoints ready (7 core + 2 admin = 9 endpoints)  
+**Status:** Beta with "Some features coming soon" badges  
+**Note:** Seller application flow fully functional with three states
 
 ### Phase 2: Full Seller Suite
 **Timeline:** 2-3 weeks  
 **Goal:** Complete seller experience
 
 **Must Implement:**
-6. ✅ All notification endpoints
-7. ✅ Seller settings endpoints
-8. ✅ Refund management endpoints
-9. ✅ Dashboard revenue trending endpoint
+8. ✅ All notification endpoints
+9. ✅ Seller settings endpoints
+10. ✅ Refund management endpoints
+11. ✅ Dashboard revenue trending endpoint
 
 **Can Deploy After:** Phase 2 endpoints ready  
 **Status:** Production-ready for sellers
@@ -566,10 +582,10 @@ TOTAL PLATFORM READINESS:  127/270 ⚠️  (47%)
 **Goal:** Full feature parity
 
 **Must Implement:**
-10. ✅ Wishlist endpoints
-11. ✅ Cart sync endpoints
-12. ✅ Handover/shipping management
-13. ✅ Admin dashboard (new pages + APIs)
+12. ✅ Wishlist endpoints
+13. ✅ Cart sync endpoints
+14. ✅ Handover/shipping management
+15. ✅ Admin dashboard (new pages + APIs including seller application review UI)
 
 **Can Deploy After:** Phase 3 endpoints ready  
 **Status:** Fully production-ready
@@ -586,6 +602,10 @@ TOTAL PLATFORM READINESS:  127/270 ⚠️  (47%)
   - [ ] Search products from header
 
 - [ ] **Seller Flow:**
+  - [ ] Submit seller application
+  - [ ] Verify "Application Pending" status shows in header
+  - [ ] Admin approves application
+  - [ ] Verify "Seller Center" link appears
   - [ ] Create new product
   - [ ] Update product stock
   - [ ] Receive order notification
@@ -647,6 +667,7 @@ TOTAL PLATFORM READINESS:  127/270 ⚠️  (47%)
 - `documents/API_Endpoints_Structure.md` - Full API design spec
 - `documents/Backend_Development_Plan.md` - Backend roadmap
 - `docs/MISSING-API-ENDPOINTS.md` - Detailed missing endpoints
+- `docs/SELLER_APPLICATION_FLOW.md` - **NEW** Seller onboarding flow documentation
 - `documents/IMPLEMENTATION_SUMMARY.md` - Implementation status
 
 ---
@@ -660,12 +681,19 @@ The MASH e-commerce platform demonstrates **excellent frontend architecture** an
 ✅ Mock data fallbacks for development  
 ✅ Clean separation of concerns  
 ✅ Production-ready UI/UX  
+✅ **Three-state seller application flow** (none → pending → approved)
 
-**Critical Gap:** 28 API endpoints need backend implementation, with **5 being blockers** for MVP launch.
+**Critical Gap:** 32 API endpoints need backend implementation, with **9 being blockers** for MVP launch (includes 4 new seller application endpoints).
 
-**Recommendation:** Proceed with **Phase 1 deployment strategy** after implementing the 5 critical endpoints. The platform can go live in beta mode while Phase 2 features are completed.
+**Recommendation:** Proceed with **Phase 1 deployment strategy** after implementing the 9 critical endpoints. The platform can go live in beta mode with fully functional seller onboarding while Phase 2 features are completed.
 
 **Overall Assessment:** **GOOD** - Ready for integration sprint 🚀
+
+**Recent Updates (Nov 6, 2025):**
+- ✅ Implemented three-state seller status (`none` / `pending` / `approved`)
+- ✅ Updated all headers to show application status
+- ✅ Created comprehensive seller application flow documentation
+- ✅ Updated audit report with new requirements
 
 ---
 

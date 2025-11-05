@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 // Get product inventory
 export async function GET(
@@ -9,18 +11,14 @@ export async function GET(
   try {
     const { id } = params;
 
-    // TODO: Replace with real database query
-    const inventory = {
-      productId: id,
-      inStock: true,
-      quantity: 100,
-      lowStockThreshold: 20,
-      lastUpdated: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      `/api/products/${id}/inventory`,
+      { method: "GET" }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: inventory,
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -64,33 +62,17 @@ export async function PUT(
     const { id } = params;
     const body = await request.json();
 
-    if (typeof body.quantity !== "number") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Quantity must be a number",
-            details: { fields: ["quantity"] }
-          }
-        },
-        { status: 400 }
-      );
-    }
-
-    // TODO: Replace with real database update
-    const updatedInventory = {
-      productId: id,
-      quantity: body.quantity,
-      inStock: body.quantity > 0,
-      lowStockThreshold: body.lowStockThreshold || 20,
-      lastUpdated: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      `/api/products/${id}/inventory`,
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: updatedInventory,
-      message: "Inventory updated successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

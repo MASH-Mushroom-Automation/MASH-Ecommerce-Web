@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 // PUT update password
 export async function PUT(request: NextRequest) {
@@ -57,18 +59,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // In production:
-    // 1. Verify current password with backend
-    // 2. Hash new password
-    // 3. Update in database
-    // For now, return success
-
-    return NextResponse.json({
-      success: true,
-      message: "Password updated successfully",
-      timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
-    });
+    const response = await apiRequest<ApiResponse<any>>("/api/seller/password", { method: "PUT", body: JSON.stringify(body) });
+    return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     console.error("Error updating password:", error);
     return NextResponse.json(

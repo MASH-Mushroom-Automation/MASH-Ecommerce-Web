@@ -15,19 +15,48 @@ export interface ApiResponse<T> {
 
 // Product Types
 export interface ProductApiResponse {
+  // Core fields
   id: string;
   name: string;
-  description: string;
+  slug: string;               // Backend required - URL-friendly identifier
+  sku?: string;               // Backend optional - Stock Keeping Unit
+  description?: string;       // Should be in backend, currently missing
+  
+  // Pricing
   price: number;
-  weight: string;
-  images: string[];
-  image: string;
-  category: string;
-  grower: string;
-  tag?: string;
-  inStock?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  comparePrice?: number;      // Backend optional - Original price for discounts
+  costPrice?: number;         // Backend optional - Cost for profit calculations
+  
+  // Inventory
+  stock: number;              // Backend required - Current stock level
+  minStock: number;           // Backend required - Low stock alert threshold
+  inStock?: boolean;          // Computed field: stock > 0
+  
+  // Physical attributes
+  weight?: string;            // Should be in backend, currently missing (e.g., "250g", "1kg")
+  
+  // Media
+  images: string[];           // Backend required - Array of image URLs
+  image: string;              // Computed field: images[0] for convenience
+  
+  // Categorization
+  category: string;           // Frontend uses single category (will migrate to categories[])
+  categories?: string[];      // Backend uses array - multiple category support
+  tag?: string;               // Frontend uses single tag (will migrate to tags[])
+  tags?: string[];            // Backend uses array - multiple tags
+  
+  // Relations
+  grower?: string;            // Frontend field - grower name
+  growerId?: string;          // Should be in backend - relation to User
+  
+  // Status flags
+  isActive: boolean;          // Backend required - Product visibility
+  isFeatured: boolean;        // Backend required - Featured on homepage
+  isDeleted: boolean;         // Backend required - Soft delete flag
+  
+  // Metadata
+  createdAt: string;          // Backend required
+  updatedAt: string;          // Backend required
 }
 
 export interface ProductsListParams {
@@ -58,18 +87,60 @@ export interface OrderSummary {
 }
 
 export interface UserAddress {
+  // Core fields
   id: string;
-  name: string;
+  userId?: string;          // Backend has this - relation to User
+  
+  // Address type
+  type?: string;            // "shipping", "billing", "home", "work"
+  
+  // Contact information
+  firstName: string;        // Separated from "name" field
+  lastName: string;         // Backend requires separate names
   phone: string;
-  address: string;
+  
+  // Address lines
+  street1: string;          // Main address line (was "address")
+  street2?: string;         // Optional second line
+  
+  // Philippines-specific fields
+  barangay?: string;        // PH: Smallest admin division
+  barangayCode?: string;    // PH: Barangay PSGC code
+  
+  // City/Municipality
   city: string;
+  cityCode?: string;        // PH: City/Municipality PSGC code
+  
+  // Province/State
+  state: string;            // Province for PH, State for other countries
+  stateCode?: string;       // PH: Province PSGC code
+  province?: string;        // Alias for state (PH-specific, might be duplicate)
+  
+  // Region (PH-specific)
+  region?: string;          // PH: Region name (e.g., "NCR", "Region III")
+  regionCode?: string;      // PH: Region PSGC code
+  
+  // Postal
   postalCode: string;
+  
+  // Country
+  country: string;          // Default "Philippines" for PH addresses
+  
+  // Flags
   isDefault: boolean;
+  
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WishlistItem {
+  id?: string;              // Unique ID for wishlist item
   productId: string;
-  addedAt: string;
+  userId?: string;          // Backend relation to User
+  addedAt: string;          // Alias for createdAt
+  createdAt?: string;       // Backend metadata
+  updatedAt?: string;       // Backend metadata
 }
 
 // Seller Types
@@ -96,12 +167,18 @@ export interface SellerProductPerformance {
   revenue: number;
 }
 
-export type SellerOrderStatus =
-  | "Pending"
-  | "Confirmed"
-  | "Ready for Pickup"
-  | "Completed"
-  | "Cancelled";
+// Backend OrderStatus enum - matches Prisma schema
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "REFUNDED";
+
+// @deprecated - Use OrderStatus instead
+export type SellerOrderStatus = OrderStatus;
 
 export interface SellerOrder {
   id: string;
@@ -110,6 +187,9 @@ export interface SellerOrder {
   items: number;
   total: number;
   status: SellerOrderStatus;
+  isActive?: boolean;       // Backend flag - order is active/not cancelled
+  createdAt?: string;       // Backend metadata
+  updatedAt?: string;       // Backend metadata
 }
 
 export interface SellerOrderItem {
@@ -177,21 +257,31 @@ export interface SellerProduct {
   price: number;
   stock: number;
   category: string;
-  status: "Active" | "Inactive" | "Out of Stock";
+  status: "Active" | "Inactive" | "Out of Stock";  // Frontend display status
   description?: string;
   weight?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  
+  // Backend flags (different from display status)
+  isActive?: boolean;       // Backend flag - product is published/visible
+  isDeleted?: boolean;      // Backend flag - soft delete
+  
+  // Metadata (make required, not optional)
+  createdAt: string;        // Required in backend
+  updatedAt: string;        // Required in backend
 }
 
 export interface SellerRefund {
   id: string;
   orderId: string;
-  date: string;
+  date: string;             // Display date (might be different from createdAt)
   customer: string;
   amount: number;
   reason: string;
   status: "Pending" | "Processing" | "Approved" | "Rejected";
+  
+  // Metadata
+  createdAt?: string;       // Backend metadata
+  updatedAt?: string;       // Backend metadata
 }
 
 export interface SellerNotification {
@@ -200,36 +290,82 @@ export interface SellerNotification {
   message: string;
   type: "order" | "refund" | "product" | "system";
   isRead: boolean;
-  createdAt: string;
+  
+  // Metadata
+  createdAt: string;        // Already present
+  updatedAt?: string;       // Add for backend compatibility
 }
 
 export interface SellerAddress {
+  // Core fields
   id: string;
-  name: string;
-  contactPerson: string;
+  userId?: string;          // Backend relation to User/Seller
+  
+  // Business information
+  name: string;             // Business/Store name
+  contactPerson: string;    // Contact person name
   phone: string;
-  address: string;
-  barangay: string;
-  barangayCode: string;
-  city: string;
-  cityCode: string;
-  region: string;
-  regionCode: string;
-  province: string;
+  
+  // Address lines
+  street1?: string;         // Main address (was "address")
+  street2?: string;         // Optional second line
+  address?: string;         // Keep for backward compatibility
+  
+  // Philippines-specific fields (all present in current schema)
+  barangay: string;         // PH: Barangay name
+  barangayCode: string;     // PH: Barangay PSGC code
+  city: string;             // City/Municipality
+  cityCode: string;         // City/Municipality PSGC code
+  region: string;           // PH: Region name
+  regionCode: string;       // PH: Region PSGC code
+  province: string;         // PH: Province name
   postalCode: string;
+  
+  // Country (add for backend compatibility)
+  country?: string;         // Default "Philippines"
+  
+  // Flags
   isDefault: boolean;
+  
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // User Types
+export type SellerStatus = 'none' | 'pending' | 'approved';
+
+// Backend UserRole enum - matches Prisma schema
+export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN' | 'GROWER' | 'BUYER';
+
 export interface UserProfile {
+  // Core fields (from backend)
   id: string;
-  firstName: string;
-  lastName: string;
+  clerkId: string; // Required for Clerk authentication
   email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  
+  // Authorization (from backend)
+  role: UserRole; // User role: USER, ADMIN, SUPER_ADMIN, GROWER, BUYER
+  isActive: boolean; // Account status
+  twoFactorEnabled: boolean; // 2FA status
+  
+  // Additional fields (not in backend, may need to be added)
   phone?: string;
   avatar?: string;
-  isSeller?: boolean; // Whether user has a seller account
-  preferences: {
+  
+  // Frontend computed/compatibility fields
+  sellerStatus: SellerStatus; // Computed from role: role === 'GROWER' ? 'approved' : 'none' or 'pending'
+  isSeller?: boolean; // @deprecated - Use sellerStatus === 'approved' or role === 'GROWER' instead
+  
+  // Metadata (from backend)
+  createdAt: string;
+  updatedAt: string;
+  
+  // Custom preferences (may need to be JSON field in backend)
+  preferences?: {
     interests: string[];
     cookingLevel: string;
     notifications: boolean;

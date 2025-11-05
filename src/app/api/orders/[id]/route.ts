@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 export async function GET(
   request: NextRequest,
@@ -24,46 +26,14 @@ export async function GET(
 
     const { id } = params;
 
-    // TODO: Replace with real database call
-    const order = {
-      id,
-      orderNumber: `#${id.slice(-5)}`,
-      status: "processing",
-      items: [
-        {
-          id: "item_1",
-          productId: "1",
-          name: "Fresh White Oyster Mushrooms",
-          quantity: 2,
-          price: 120,
-          weight: "250g",
-          image: "/white.jpg"
-        }
-      ],
-      subtotal: 240,
-      shipping: 50,
-      tax: 0,
-      total: 290,
-      shippingAddress: {
-        name: "John Grower",
-        street: "123 Mushroom St",
-        city: "Quezon City",
-        province: "Metro Manila",
-        postalCode: "1100",
-        country: "Philippines",
-        phone: "+63 956 955 2608"
-      },
-      paymentMethod: "GCash",
-      paymentStatus: "paid",
-      trackingNumber: null,
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      `/api/orders/${id}`,
+      { method: "GET" }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: order,
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -106,17 +76,17 @@ export async function PUT(
     const { id } = params;
     const body = await request.json();
 
-    // TODO: Replace with real database update
-    const updatedOrder = {
-      id,
-      ...body,
-      updatedAt: new Date().toISOString()
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      `/api/orders/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: updatedOrder,
-      message: "Order updated successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

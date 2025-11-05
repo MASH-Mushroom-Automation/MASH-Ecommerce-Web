@@ -42,12 +42,32 @@ function extractData<T>(json: unknown): T | null {
 
 // Mock data for user operations
 const MOCK_USER_PROFILE: UserProfile = {
+  // Core fields
   id: "1",
+  clerkId: "user_2abcdefghijklmnop123", // Mock Clerk ID
+  email: "john.doe@example.com",
+  username: "johndoe",
   firstName: "John",
   lastName: "Doe",
-  email: "john.doe@example.com",
-  phone: "+63 912 345 6789",
-  avatar: "/placeholder.png",
+  
+  // Authorization
+  role: "USER", // Default role
+  isActive: true,
+  twoFactorEnabled: false,
+  
+  // Additional fields
+  phone: "+1234567890",
+  avatar: "/placeholder-avatar.png",
+  
+  // Frontend computed fields
+  sellerStatus: 'none', // Not a seller yet
+  isSeller: false, // @deprecated
+  
+  // Metadata
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  
+  // Custom preferences
   preferences: {
     interests: ["cooking", "healthy-eating"],
     cookingLevel: "intermediate",
@@ -183,8 +203,15 @@ export class UserApi {
   ): Promise<ApiResponse<UserProfile["preferences"]>> {
     await delay(200);
 
+    const basePreferences =
+      MOCK_USER_PROFILE.preferences ?? {
+        interests: [],
+        cookingLevel: "beginner",
+        notifications: true,
+      };
+
     const updatedPreferences = {
-      ...MOCK_USER_PROFILE.preferences,
+      ...basePreferences,
       ...preferences,
     };
 

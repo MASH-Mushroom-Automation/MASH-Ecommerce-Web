@@ -59,7 +59,7 @@ import { toast } from "sonner";
 const MOCK_ORDER_FALLBACK: OrderDetailType = {
   id: "ORD-001",
   date: "2025-10-20",
-  status: "Pending",
+  status: "PENDING",
   customer: {
     name: "John Doe",
     email: "john.doe@email.com",
@@ -92,7 +92,7 @@ const MOCK_ORDER_FALLBACK: OrderDetailType = {
   notes: "Buyer prefers morning pickup and will message before arrival.",
   timeline: [
     {
-      status: "Pending",
+      status: "PENDING",
       date: "2025-10-20T10:30:00Z",
       description: "Order received and waiting for seller confirmation",
     },
@@ -102,32 +102,40 @@ const MOCK_ORDER_FALLBACK: OrderDetailType = {
 };
 
 const STATUS_OPTIONS: { value: SellerOrderStatus; label: string }[] = [
-  { value: "Pending", label: "Pending" },
-  { value: "Confirmed", label: "Confirmed" },
-  { value: "Ready for Pickup", label: "Ready for Pickup" },
-  { value: "Completed", label: "Completed" },
-  { value: "Cancelled", label: "Cancelled" },
+  { value: "PENDING", label: "Pending" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "PROCESSING", label: "Processing" },
+  { value: "SHIPPED", label: "Shipped" },
+  { value: "DELIVERED", label: "Delivered" },
+  { value: "CANCELLED", label: "Cancelled" },
+  { value: "REFUNDED", label: "Refunded" },
 ];
 
 const statusColorMap: Record<SellerOrderStatus, string> = {
-  Pending: "bg-yellow-100 text-yellow-800",
-  Confirmed: "bg-blue-100 text-blue-800",
-  "Ready for Pickup": "bg-purple-100 text-purple-800",
-  Completed: "bg-green-100 text-green-800",
-  Cancelled: "bg-red-100 text-red-800",
+  PENDING: "bg-yellow-100 text-yellow-800",
+  CONFIRMED: "bg-blue-100 text-blue-800",
+  PROCESSING: "bg-purple-100 text-purple-800",
+  SHIPPED: "bg-indigo-100 text-indigo-800",
+  DELIVERED: "bg-green-100 text-green-800",
+  CANCELLED: "bg-red-100 text-red-800",
+  REFUNDED: "bg-gray-100 text-gray-800",
 };
 
 const getStatusIcon = (status: SellerOrderStatus) => {
   switch (status) {
-    case "Pending":
+    case "PENDING":
       return <Clock className="h-4 w-4" />;
-    case "Confirmed":
+    case "CONFIRMED":
       return <Package className="h-4 w-4" />;
-    case "Ready for Pickup":
+    case "PROCESSING":
+      return <Package className="h-4 w-4" />;
+    case "SHIPPED":
       return <Handshake className="h-4 w-4" />;
-    case "Completed":
+    case "DELIVERED":
       return <CheckCircle className="h-4 w-4" />;
-    case "Cancelled":
+    case "CANCELLED":
+      return <XCircle className="h-4 w-4" />;
+    case "REFUNDED":
       return <XCircle className="h-4 w-4" />;
     default:
       return <Clock className="h-4 w-4" />;
@@ -169,7 +177,7 @@ export default function OrderDetails() {
   const orderId = params.id as string;
 
   const { order, loading, error, updateStatus, refetch } = useSellerOrderDetail(orderId);
-  const [newStatus, setNewStatus] = useState<SellerOrderStatus>("Pending");
+  const [newStatus, setNewStatus] = useState<SellerOrderStatus>("PENDING");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 

@@ -1,23 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SellerApi } from "@/lib/api/seller";
+import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
+// GET /api/seller/dashboard - Get seller dashboard data
 export async function GET(request: NextRequest) {
   try {
-    const [statsResponse, salesResponse, performanceResponse] =
-      await Promise.all([
-        SellerApi.getDashboardStats(),
-        SellerApi.getSalesData(),
-        SellerApi.getProductPerformance(),
-      ]);
+    const cookieStore = await cookies();
+    const token = cookieStore.get("authToken")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required"
+          }
+        },
+        { status: 401 }
+      );
+    }
+
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      "/api/seller/dashboard",
+      { method: "GET" }
+    );
 
     return NextResponse.json({
-      stats: statsResponse.data,
-      salesData: salesResponse.data,
-      productPerformance: performanceResponse.data,
+      ...response,
+      timestamp: new Date().toISOString(),
+      requestId: `req_${Date.now()}`
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch dashboard data" },
+      {
+        success: false,
+        error: {
+          code: "FETCH_ERROR",
+          message: error instanceof Error ? error.message : "Failed to fetch dashboard data"
+        },
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }

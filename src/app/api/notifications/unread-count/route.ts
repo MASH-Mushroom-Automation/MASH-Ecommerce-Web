@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 // Get unread notification count
 export async function GET(request: NextRequest) {
@@ -20,15 +22,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Mock unread count - in production, query from database
-    const unreadCount = 3; // Simulating 3 unread notifications
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>("/api/notifications/unread-count", { method: "GET" });
     
     return NextResponse.json({
-      success: true,
-      data: {
-        count: unreadCount,
-        hasUnread: unreadCount > 0
-      },
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

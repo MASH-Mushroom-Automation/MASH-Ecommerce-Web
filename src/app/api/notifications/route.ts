@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
-// Mock notifications data
+// Mock notifications data (fallback)
 const MOCK_NOTIFICATIONS = [
   {
     id: "notif_1",
@@ -66,41 +68,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const unreadOnly = searchParams.get("unread") === "true";
-    const type = searchParams.get("type");
-
-    // Filter notifications
-    let filtered = [...MOCK_NOTIFICATIONS];
     
-    if (unreadOnly) {
-      filtered = filtered.filter(n => !n.read);
-    }
+    // Build query params for backend
+    const queryParams = new URLSearchParams();
+    if (searchParams.get("page")) queryParams.append("page", searchParams.get("page")!);
+    if (searchParams.get("limit")) queryParams.append("limit", searchParams.get("limit")!);
+    if (searchParams.get("unread")) queryParams.append("unread", searchParams.get("unread")!);
+    if (searchParams.get("type")) queryParams.append("type", searchParams.get("type")!);
     
-    if (type) {
-      filtered = filtered.filter(n => n.type === type);
-    }
+    const query = queryParams.toString();
+    const endpoint = query ? `/api/notifications?${query}` : "/api/notifications";
 
-    // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    // Paginate
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginated = filtered.slice(startIndex, endIndex);
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(endpoint, { method: "GET" });
 
     return NextResponse.json({
-      success: true,
-      data: paginated,
-      pagination: {
-        page,
-        limit,
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit),
-        hasNext: endIndex < filtered.length,
-        hasPrev: page > 1
-      },
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -139,30 +122,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
-    // Mock preferences update
-    const preferences = {
-      email: body.email !== false,
-      push: body.push !== false,
-      sms: body.sms || false,
-      types: {
-        orders: body.types?.orders !== false,
-        alerts: body.types?.alerts !== false,
-        system: body.types?.system !== false,
-        marketing: body.types?.marketing || false,
-        device: body.types?.device !== false
-      },
-      quiet: {
-        enabled: body.quiet?.enabled || false,
-        startTime: body.quiet?.startTime || "22:00",
-        endTime: body.quiet?.endTime || "08:00"
-      }
-    };
+
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>("/api/notifications/preferences", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
 
     return NextResponse.json({
-      success: true,
-      data: preferences,
-      message: "Notification preferences updated",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });

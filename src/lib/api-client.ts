@@ -4,7 +4,7 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_API_ENDPOINT ||
-  "https://mash-backend-api.up.railway.app";
+  "https://mash-backend-api-production.up.railway.app/";
 
 // Helper to get auth token from cookies
 function getAuthToken(): string | null {

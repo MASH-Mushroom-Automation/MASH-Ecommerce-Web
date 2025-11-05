@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiRequest } from "@/lib/api-client";
+import type { ApiResponse } from "@/types/api";
 
 // Get session information
 export async function GET(request: NextRequest) {
@@ -21,28 +23,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Mock session data - in production, validate tokens with auth provider
-    const session = {
-      isAuthenticated: true,
-      user: {
-        id: "usr_123456",
-        email: "user@mash.market",
-        role: "customer"
-      },
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      createdAt: new Date().toISOString(),
-      lastActivity: new Date().toISOString(),
-      device: {
-        ip: request.ip || "unknown",
-        userAgent: request.headers.get("user-agent") || "unknown",
-        platform: "web"
-      }
-    };
+    // Call real backend API
+    const response = await apiRequest<ApiResponse<any>>(
+      "/api/auth/session",
+      { method: "GET" }
+    );
 
     return NextResponse.json({
-      success: true,
-      data: session,
-      message: "Session retrieved successfully",
+      ...response,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}`
     });
@@ -80,35 +68,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock token refresh - in production, validate with auth provider
-    const newToken = `mock-token-${Date.now()}`;
-    const newRefreshToken = `mock-refresh-${Date.now()}`;
+    // Call real backend API to refresh session
+    const backendResponse = await apiRequest<ApiResponse<any>>(
+      "/api/auth/refresh",
+      {
+        method: "POST",
+        body: JSON.stringify({ refreshToken }),
+      }
+    );
 
-    // Set new cookies
+    if (!backendResponse.success || !backendResponse.data) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "REFRESH_FAILED",
+            message: "Failed to refresh session"
+          }
+        },
+        { status: 401 }
+      );
+    }
+
+    // Set new cookies from backend response
     const response = NextResponse.json({
-      success: true,
-      data: {
-        accessToken: newToken,
-        refreshToken: newRefreshToken,
-        expiresIn: 3600
-      },
-      message: "Session refreshed successfully",
+      ...backendResponse,
       timestamp: new Date().toISOString()
     });
 
-    response.cookies.set("authToken", newToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 // 24 hours
-    });
+    if (backendResponse.data.accessToken) {
+      response.cookies.set("authToken", backendResponse.data.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 // 24 hours
+      });
+    }
 
-    response.cookies.set("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    });
+    if (backendResponse.data.refreshToken) {
+      response.cookies.set("refreshToken", backendResponse.data.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      });
+    }
 
     return response;
   } catch (error) {
