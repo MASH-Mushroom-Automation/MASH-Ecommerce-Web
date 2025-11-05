@@ -103,10 +103,6 @@ export function Header() {
                 Start Selling
               </Link>
             )}
-            <span className="hidden sm:inline text-white/30">•</span>
-            <Link href="#" className="hover:underline">
-              Download App
-            </Link>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/90">
             <Link href="/blog" className="hover:underline whitespace-nowrap">

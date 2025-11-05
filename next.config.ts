@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Redirects for old/deprecated routes
+  async redirects() {
+    return [
+      {
+        source: '/sell-with-us',
+        destination: '/start-selling',
+        permanent: true, // 301 redirect for SEO
+      },
+      {
+        source: '/stores',
+        destination: '/catalog',
+        permanent: false, // 302 redirect (temporary)
+      },
+    ];
+  },
 };
 
 export default nextConfig;

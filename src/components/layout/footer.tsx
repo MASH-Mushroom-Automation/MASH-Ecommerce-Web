@@ -150,7 +150,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/sell-with-us" className="hover:underline">
+                <Link href="/start-selling" className="hover:underline">
                   Become a Grower
                 </Link>
               </li>
