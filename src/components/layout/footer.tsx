@@ -4,11 +4,12 @@ import { Facebook, MapPin, Phone, Mail, Youtube } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="bg-[#333333] text-white font-['Roboto']">
+    <footer className="bg-card text-card-foreground border-t border-border font-['Roboto']">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Main Content Grid: Logo/Info (col-1), Shop (col-2), Customer Service (col-3), About MASH (col-4) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
           {/* Column 1: MASH Logo/Brand Info and Social Media */}
+          {/* This will be updated to CMS */}
           <div className="col-span-2 md:col-span-1 flex flex-col items-center text-center">
             {/* MASH Logo */}
             <div className="mb-6">
@@ -22,7 +23,8 @@ export function Footer() {
             </div>
 
             {/* Accepted Payments Section */}
-            <h4 className="text-sm luz font-light mb-3 text-gray-200">
+            {/* This will be updated to CMS */}
+            <h4 className="text-sm luz font-light mb-3 text-muted-foreground">
               Accepted Payments:
             </h4>
             <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
@@ -43,12 +45,13 @@ export function Footer() {
             </div>
 
             {/* Social Media */}
+            {/* This will be updated to CMS */}
             <div className="flex justify-center space-x-4 mt-6">
               <a
                 href="https://www.facebook.com/MASHMarketPH/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-[#6A994E]"
+                className="text-foreground hover:text-primary"
                 aria-label="Facebook"
               >
                 <Facebook size={24} />
@@ -57,14 +60,14 @@ export function Footer() {
                 href="https://www.youtube.com/@MASH-UCC"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-[#6A994E]"
+                className="text-foreground hover:text-primary"
                 aria-label="YouTube"
               >
                 <Youtube size={24} />
               </a>
               <a
                 href="mailto:mash.mushroom.automation@gmail.com"
-                className="text-white hover:text-[#6A994E]"
+                className="text-foreground hover:text-primary"
                 aria-label="Email"
               >
                 <Mail size={24} />
@@ -73,8 +76,9 @@ export function Footer() {
           </div>
 
           {/* Column 2: Shop Links */}
+          {/* This will be updated to CMS */}
           <div className="md:pl-6">
-            <h3 className="text-lg font-semibold mb-4 text-[#6A994E]">Shop</h3>
+            <h3 className="text-lg font-semibold mb-4 text-primary">Shop</h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link href="/shop" className="hover:underline">
@@ -95,8 +99,9 @@ export function Footer() {
           </div>
 
           {/* Column 3: Customer Service Links */}
+          {/* This will be updated to CMS */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-[#6A994E]">
+            <h3 className="text-lg font-semibold mb-4 text-primary">
               Customer Service
             </h3>
             <ul className="space-y-3 text-sm">
@@ -134,8 +139,9 @@ export function Footer() {
           </div>
 
           {/* Column 4: About MASH & Contact Details */}
+          {/* This will be updated to CMS */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-[#6A994E]">
+            <h3 className="text-lg font-semibold mb-4 text-primary">
               About MASH
             </h3>
             <ul className="space-y-3 text-sm mb-8">
@@ -156,7 +162,8 @@ export function Footer() {
               </li>
             </ul>
 
-            {/* Contact Details */}
+            {/* Contact Details  */}
+            {/* This will be updated to CMS */}
             <div className="text-sm space-y-3">
               <div className="flex items-center space-x-2">
                 <MapPin size={16} />
@@ -183,14 +190,10 @@ export function Footer() {
       </div>
 
       {/* Copyright Bar */}
-      <div className="border-t border-gray-700 pt-3 pb-4 text-center text-xs text-gray-400">
+      <div className="border-t border-border pt-3 pb-4 text-center text-xs text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} ZenThesis. All rights reserved.</p>
         <p className="mt-1">
-          Made with{" "}
-          <span role="img" aria-label="heart">
-            ❤️
-          </span>{" "}
-          from Zen Garden
+          @ Zen Garden
         </p>
       </div>
     </footer>

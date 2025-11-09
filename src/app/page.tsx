@@ -22,17 +22,17 @@ const HeroSection: React.FC = () => {
   if (loading) {
     return (
       <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1E392A]/5 to-[#6A994E]/5 flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/10 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#6A994E] mx-auto"></div>
-              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-[#6A994E]/30 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-primary/30 mx-auto"></div>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-medium text-gray-800 animate-pulse">
+              <p className="text-lg font-medium text-foreground animate-pulse">
                 Discovering fresh mushrooms...
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Your marketplace is loading
               </p>
             </div>
@@ -67,18 +67,18 @@ const WhyMASHSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-64 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-300 rounded w-96 mx-auto"></div>
+              <div className="h-8 bg-muted rounded w-64 mx-auto mb-4"></div>
+              <div className="h-4 bg-muted rounded w-96 mx-auto"></div>
             </div>
           </div>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-gray-600">Preparing your experience...</p>
+              <p className="text-muted-foreground">Preparing your experience...</p>
             </div>
           </div>
         </div>
@@ -88,7 +88,7 @@ const WhyMASHSection: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
@@ -111,13 +111,13 @@ const FeaturedProductsSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               Our Bestsellers
             </h2>
-            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
               Hand-picked favorites from our local growers, loved by our
               community.
             </p>
@@ -130,7 +130,7 @@ const FeaturedProductsSection: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
@@ -142,13 +142,13 @@ const FeaturedProductsSection: React.FC = () => {
   }
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             Our Bestsellers
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             Hand-picked favorites from our local growers, loved by our
             community.
           </p>
@@ -171,7 +171,7 @@ const FeaturedProductsSection: React.FC = () => {
 
         <div className="text-center mt-8 sm:mt-12">
           <Link href="/shop">
-            <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
+            <Button variant="outline" className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200">
               View More Products
             </Button>
           </Link>
@@ -203,7 +203,7 @@ const GrowerCard: React.FC<{
         />
       </div>
     ) : (
-      <div className="h-32 w-full bg-gradient-to-br from-[#6A994E] to-[#A7C957]" />
+      <div className="h-32 w-full bg-gradient-to-br from-primary to-accent" />
     )}
 
     <CardContent className="p-6 text-center flex flex-col flex-grow">
@@ -218,28 +218,28 @@ const GrowerCard: React.FC<{
             className="rounded-full shadow-lg border-4 border-white bg-white"
           />
         </div>
-        <h3 className="text-2xl font-semibold mb-1 text-[#212121]">
+        <h3 className="text-2xl font-semibold mb-1 text-foreground">
           {grower.name}
         </h3>
-        <p className="text-gray-500 text-sm mb-3">
+        <p className="text-muted-foreground text-sm mb-3">
           {grower.location || "Location not specified"}
         </p>
-        <p className="text-gray-600 text-sm italic">
+        <p className="text-muted-foreground text-sm italic">
           &ldquo;{grower.tagline || "Quality mushrooms from local growers"}
           &rdquo;
         </p>
       </div>
       {/* Action links - always at bottom with mt-auto */}
-      <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-gray-100">
+      <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-border">
         <Link
           href={`/grower/${grower.id}`}
-          className="text-[#1E392A] font-semibold hover:underline text-sm"
+          className="text-primary font-semibold hover:underline text-sm"
         >
           Visit Store
         </Link>
         <Link
           href={`/grower/${grower.id}`}
-          className="text-gray-500 hover:underline text-sm"
+          className="text-muted-foreground hover:underline text-sm"
         >
           Read More
         </Link>
@@ -253,13 +253,13 @@ const FeaturedGrowersSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               Meet Our Growers
             </h2>
-            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
               The passionate farmers behind your food.
             </p>
           </div>
@@ -271,7 +271,7 @@ const FeaturedGrowersSection: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
@@ -283,13 +283,13 @@ const FeaturedGrowersSection: React.FC = () => {
   }
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             Meet Our Growers
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             The passionate farmers behind your food.
           </p>
         </div>
@@ -302,7 +302,7 @@ const FeaturedGrowersSection: React.FC = () => {
 
         <div className="text-center mt-8 sm:mt-12">
           <Link href="/grower">
-            <Button className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white font-semibold transition-all duration-200">
+            <Button variant="outline" className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200">
               View All Growers
             </Button>
           </Link>
@@ -314,7 +314,7 @@ const FeaturedGrowersSection: React.FC = () => {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <main>
         <HeroSection />
         <FeaturedProductsSection />

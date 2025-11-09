@@ -32,6 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 interface NavLinkProps {
   label: string;
@@ -46,12 +47,12 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
     <Link
       href={path}
       className={`relative text-base font-semibold ${
-        active ? "text-[#1E392A]" : "text-gray-600"
-      } hover:text-[#6A994E] transition-colors h-full flex items-center`}
+        active ? "text-primary" : "text-muted-foreground"
+      } hover:text-primary transition-colors h-full flex items-center`}
     >
       {label}
       {active && (
-        <div className="absolute bottom-0 h-1 w-full bg-[#6A994E] rounded-t-lg"></div>
+        <div className="absolute bottom-0 h-1 w-full bg-primary rounded-t-lg"></div>
       )}
     </Link>
   );
@@ -90,9 +91,9 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
-      {/* Top Bar: Seller/Info Links - Dark Green Background */}
-      <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
+    <header className="bg-background shadow-sm sticky top-0 z-50">
+      {/* Top Bar: Seller/Info Links */}
+      <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {sellerStatus === 'approved' ? (
@@ -148,17 +149,19 @@ export function Header() {
 
         {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
+          <ThemeSwitcher />
+          
           <CartDropdown />
 
           {isLoggedIn && (
             <Link
               href="/wishlist"
-              className="relative flex items-center hover:text-[#6A994E] transition-colors group"
+              className="relative flex items-center hover:text-primary transition-colors group"
             >
-              <Heart size={24} className="group-hover:text-[#6A994E]" />
+              <Heart size={24} className="group-hover:text-primary" />
               <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
               {wishlistCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
                   {wishlistCount}
                 </Badge>
               )}
@@ -181,8 +184,8 @@ export function Header() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-[#6A994E]/10 flex items-center justify-center">
-                        <User size={20} className="text-[#6A994E]" />
+                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                        <User size={20} className="text-primary" />
                       </div>
                     )}
                   </div>

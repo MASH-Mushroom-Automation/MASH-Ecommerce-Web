@@ -8,6 +8,7 @@ import { MobileBottomNav, MobileBottomNavSpacer } from "@/components/layout/mobi
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
 
 const AUTH_ROUTES = [
@@ -32,26 +33,33 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <CartProvider>
-      <WishlistProvider>
-        <div className="min-h-screen flex flex-col">
-          {isAuthRoute ? (
-            <SimpleHeader />
-          ) : isSellerRoute ? (
-            <SellerHeader />
-          ) : (
-            <Header />
-          )}
-          <main className="flex-1">
-            {children}
-            <MobileBottomNavSpacer />
-          </main>
-          <Footer />
-          <MobileBottomNav />
-          {/* Global toast portal */}
-          <Toaster position="top-right" richColors closeButton />
-        </div>
-      </WishlistProvider>
-    </CartProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <CartProvider>
+        <WishlistProvider>
+          <div className="min-h-screen flex flex-col">
+            {isAuthRoute ? (
+              <SimpleHeader />
+            ) : isSellerRoute ? (
+              <SellerHeader />
+            ) : (
+              <Header />
+            )}
+            <main className="flex-1">
+              {children}
+              <MobileBottomNavSpacer />
+            </main>
+            <Footer />
+            <MobileBottomNav />
+            {/* Global toast portal */}
+            <Toaster position="top-right" richColors closeButton />
+          </div>
+        </WishlistProvider>
+      </CartProvider>
+    </ThemeProvider>
   );
 }

@@ -83,7 +83,7 @@ export function ProductCard({
             e.stopPropagation();
             router.push(getGrowerUrl(farm));
           }}
-          className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-[#6A994E] shadow-sm hover:bg-white transition-colors"
+          className="absolute top-2 left-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-primary shadow-sm hover:bg-background transition-colors"
           aria-label={`View grower ${farm}`}
         >
           @{farm}
@@ -91,7 +91,7 @@ export function ProductCard({
         {/* Wishlist Button */}
         <button
           onClick={toggleWishlist}
-          className="absolute top-2 right-2 p-2 bg-white/95 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-all"
+          className="absolute top-2 right-2 p-2 bg-background/95 backdrop-blur-sm rounded-full shadow-sm hover:bg-background transition-all"
           aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
@@ -99,7 +99,7 @@ export function ProductCard({
               "h-4 w-4 transition-colors",
               inWishlist
                 ? "fill-red-500 text-red-500"
-                : "text-gray-600 hover:text-red-500"
+                : "text-muted-foreground hover:text-red-500"
             )}
           />
         </button>
@@ -108,26 +108,26 @@ export function ProductCard({
       {/* Product Info */}
       <div className="p-3 flex flex-col flex-grow">
         <Link href={`/product/${id}`} className="mb-auto">
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 hover:text-[#6A994E] transition-colors">
+          <h3 className="font-semibold text-foreground text-sm line-clamp-2 hover:text-primary transition-colors">
             {name}
           </h3>
         </Link>
       </div>
 
       {/* Price and Add to Cart - Fixed at bottom */}
-      <div className="p-3 pt-0 border-t border-gray-100">
+      <div className="p-3 pt-0 border-t border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col">
-            <span className="text-base font-bold text-[#1E392A]">
+            <span className="text-base font-bold text-foreground">
               ₱{price.toFixed(2)}
             </span>
-            <span className="text-xs text-gray-500">/ {unit}</span>
+            <span className="text-xs text-muted-foreground">/ {unit}</span>
           </div>
 
           <Button
             variant="secondary"
             size="icon-sm"
-            className="rounded-md bg-[#6A994E] hover:bg-[#6A994E]/90 text-white flex-shrink-0 active:scale-95 transition-transform"
+            className="rounded-md bg-primary hover:bg-primary/90 text-primary-foreground flex-shrink-0 active:scale-95 transition-transform"
             disabled={!inStock}
             onClick={handleAddToCart}
           >
