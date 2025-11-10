@@ -1,0 +1,12 @@
+{
+  "id": "cat_003",
+  "name": "Mushroom Growing Kits",
+  "slug": "mushroom-kits",
+  "description": "Complete growing kits to cultivate your own mushrooms at home. Perfect for beginners and enthusiasts.",
+  "image": "https://images.unsplash.com/photo-1518005068251-37900150dfca?w=400",
+  "parentId": null,
+  "order": 3,
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-10-01T12:00:00.000Z"
+}

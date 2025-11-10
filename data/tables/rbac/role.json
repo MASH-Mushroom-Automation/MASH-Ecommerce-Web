@@ -1,0 +1,31 @@
+{
+  "_comment": "Role Table - Complete JSON Structure",
+  "_table": "roles",
+  "_description": "User roles with permission assignments",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "role_001",
+  "name": "GROWER",
+  "description": "Mushroom grower with product management and device control access",
+  "isSystem": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "name", "description", "isSystem", "createdAt", "updatedAt"],
+  "_optional_fields": [],
+  "_relationships": {
+    "userRoles": "UserRoleAssignment[]",
+    "rolePermissions": "RolePermission[]"
+  },
+  "_system_roles": {
+    "USER": "Basic user - browse and purchase",
+    "BUYER": "Customer - place orders, manage wishlist",
+    "GROWER": "Seller - manage products, inventory, devices",
+    "ADMIN": "Administrator - manage users, orders, settings",
+    "SUPER_ADMIN": "Super admin - full system access"
+  },
+  "_notes": {
+    "isSystem": "System roles cannot be deleted or renamed",
+    "custom_roles": "isSystem=false allows creation of custom roles"
+  }
+}

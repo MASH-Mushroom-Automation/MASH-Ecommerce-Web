@@ -1,0 +1,60 @@
+{
+  "_comment": "AlertRuleRecipient Table - Complete JSON Structure",
+  "_table": "alert_rule_recipients",
+  "_description": "Define who receives alerts from a specific rule",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "ruleId": "550e8400-e29b-41d4-a716-446655440000",
+  "recipientType": "USER",
+  "recipientId": "cm3vxyz123456789",
+  "role": null,
+  "email": null,
+  "phone": null,
+  "enableEmail": true,
+  "enableSms": false,
+  "enablePush": true,
+  "enableInApp": true,
+  "createdAt": "2025-06-01T08:30:00.000Z",
+  "updatedAt": "2025-06-01T08:30:00.000Z",
+  
+  "_enums": {
+    "recipientType": ["USER", "ROLE", "EMAIL", "PHONE"]
+  },
+  "_required_fields": ["id", "ruleId", "recipientType", "enableEmail", "enableSms", "enablePush", "enableInApp", "createdAt", "updatedAt"],
+  "_optional_fields": ["recipientId", "role", "email", "phone"],
+  "_relationships": {
+    "rule": "AlertRule"
+  },
+  "_recipient_type_explanation": {
+    "USER": "Specific user by ID (recipientId required)",
+    "ROLE": "All users with a specific role (role field required)",
+    "EMAIL": "Specific email address (email field required)",
+    "PHONE": "Specific phone number (phone field required)"
+  },
+  "_channel_preferences": {
+    "enableEmail": "Send email notifications",
+    "enableSms": "Send SMS notifications",
+    "enablePush": "Send push notifications",
+    "enableInApp": "Show in-app notifications"
+  },
+  "_example_recipients": [
+    {
+      "recipientType": "USER",
+      "recipientId": "cm3vxyz123456789",
+      "enableEmail": true,
+      "enablePush": true
+    },
+    {
+      "recipientType": "ROLE",
+      "role": "ADMIN",
+      "enableEmail": true,
+      "enableSms": true
+    },
+    {
+      "recipientType": "EMAIL",
+      "email": "alerts@mashfarm.ph",
+      "enableEmail": true
+    }
+  ]
+}

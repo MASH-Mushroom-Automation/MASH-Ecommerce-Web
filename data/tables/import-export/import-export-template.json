@@ -1,0 +1,70 @@
+{
+  "_comment": "ImportExportTemplate Table - Complete JSON Structure",
+  "_table": "import_export_templates",
+  "_description": "Reusable templates for import/export operations",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "template_001",
+  "name": "Standard Products Import",
+  "description": "Template for importing product catalog with pricing and inventory",
+  "type": "IMPORT",
+  "entity": "PRODUCTS",
+  "configuration": {
+    "fileFormat": "CSV",
+    "delimiter": ",",
+    "encoding": "UTF-8",
+    "hasHeader": true,
+    "columns": [
+      {"name": "name", "required": true, "type": "string"},
+      {"name": "description", "required": false, "type": "text"},
+      {"name": "price", "required": true, "type": "decimal"},
+      {"name": "stock", "required": true, "type": "integer"},
+      {"name": "category", "required": true, "type": "string"},
+      {"name": "sku", "required": true, "type": "string", "unique": true}
+    ],
+    "validations": {
+      "price": {"min": 0, "max": 1000000},
+      "stock": {"min": 0}
+    },
+    "transformations": {
+      "category": "lowercase",
+      "name": "trim"
+    }
+  },
+  "isPublic": false,
+  "createdBy": "cm3vxyz123456789",
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_example_export_template": {
+    "id": "template_002",
+    "name": "Monthly Orders Export",
+    "description": "Export all orders with customer and payment details",
+    "type": "EXPORT",
+    "entity": "ORDERS",
+    "configuration": {
+      "fileFormat": "EXCEL",
+      "columns": [
+        "orderNumber", "customerName", "totalAmount", 
+        "status", "paymentMethod", "createdAt"
+      ],
+      "filters": {
+        "dateRange": "lastMonth",
+        "status": ["COMPLETED", "DELIVERED"]
+      },
+      "includeRelations": ["items", "payments", "addresses"]
+    },
+    "isPublic": true
+  },
+  
+  "_enums": {
+    "type": ["IMPORT", "EXPORT"],
+    "entity": ["PRODUCTS", "USERS", "ORDERS", "CATEGORIES", "DEVICES", "SENSORS"]
+  },
+  "_required_fields": ["id", "name", "type", "entity", "configuration", "isPublic", "createdBy", "createdAt", "updatedAt"],
+  "_optional_fields": ["description"],
+  "_relationships": {
+    "createdByUser": "User",
+    "jobs": "ImportExportJob[]"
+  }
+}

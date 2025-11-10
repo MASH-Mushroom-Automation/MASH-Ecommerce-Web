@@ -1,0 +1,59 @@
+{
+  "_comment": "AlertEscalationPolicy Table - Complete JSON Structure",
+  "_table": "alert_escalation_policies",
+  "_description": "Auto-escalation rules for unacknowledged alerts",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440006",
+  "name": "Critical Alert Escalation",
+  "description": "Escalate critical and high priority alerts after 30 minutes if unacknowledged",
+  "priority": ["CRITICAL", "HIGH"],
+  "category": ["SENSOR", "SYSTEM", "SECURITY"],
+  "unacknowledgedMin": 30,
+  "steps": [
+    {
+      "level": 1,
+      "delay": 15,
+      "recipients": ["admin_001"],
+      "channels": ["EMAIL", "PUSH"],
+      "message": "First escalation: Alert requires attention"
+    },
+    {
+      "level": 2,
+      "delay": 30,
+      "recipients": ["admin_001", "admin_002"],
+      "channels": ["SMS", "EMAIL", "PUSH"],
+      "message": "Second escalation: Critical alert still unacknowledged"
+    },
+    {
+      "level": 3,
+      "delay": 60,
+      "recipients": ["admin_001", "admin_002", "manager_001"],
+      "channels": ["SMS", "EMAIL"],
+      "message": "Final escalation: Urgent attention required"
+    }
+  ],
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "name", "priority", "category", "unacknowledgedMin", "steps", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["description"],
+  "_relationships": {
+    "None": "Standalone configuration table"
+  },
+  "_escalation_logic": {
+    "unacknowledgedMin": "Minutes before first escalation triggers",
+    "steps": "Sequential escalation levels with increasing urgency",
+    "delay": "Minutes from alert creation to this escalation level",
+    "channels": "Notification channels to use at this level"
+  },
+  "_priority_enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+  "_category_enum": ["SYSTEM", "SECURITY", "BUSINESS", "USER", "SENSOR", "ORDER", "PAYMENT"],
+  "_example_timeline": {
+    "T+0min": "Alert created (status=PENDING)",
+    "T+15min": "Level 1 escalation - notify admin_001 via EMAIL + PUSH",
+    "T+30min": "Level 2 escalation - notify admin_001 + admin_002 via SMS + EMAIL + PUSH",
+    "T+60min": "Level 3 escalation - notify all admins + manager via SMS + EMAIL"
+  }
+}

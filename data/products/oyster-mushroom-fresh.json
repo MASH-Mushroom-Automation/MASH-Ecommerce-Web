@@ -1,0 +1,49 @@
+{
+  "id": "prod_001",
+  "name": "Fresh Oyster Mushrooms",
+  "slug": "fresh-oyster-mushrooms",
+  "sku": "MUSH-OYS-250G",
+  "description": "Fresh, organic oyster mushrooms grown locally. Perfect for stir-fries, soups, and pasta dishes. Rich in protein, vitamins, and minerals. Harvested daily to ensure maximum freshness.",
+  
+  "price": 150.00,
+  "comparePrice": 180.00,
+  "costPrice": 90.00,
+  
+  "stock": 50,
+  "minStock": 10,
+  "inStock": true,
+  
+  "weight": "250g",
+  
+  "images": [
+    "https://images.unsplash.com/photo-1589621316382-008455b857cd?w=800",
+    "https://images.unsplash.com/photo-1590666246243-8b3c0e12e63e?w=800",
+    "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=800"
+  ],
+  "image": "https://images.unsplash.com/photo-1589621316382-008455b857cd?w=800",
+  
+  "category": "fresh-mushrooms",
+  "categories": [
+    "fresh-mushrooms",
+    "organic",
+    "local-produce"
+  ],
+  "tag": "bestseller",
+  "tags": [
+    "bestseller",
+    "organic",
+    "local",
+    "fresh",
+    "protein-rich"
+  ],
+  
+  "grower": "Manila Urban Farm",
+  "growerId": "grower_001",
+  
+  "isActive": true,
+  "isFeatured": true,
+  "isDeleted": false,
+  
+  "createdAt": "2025-10-01T08:00:00.000Z",
+  "updatedAt": "2025-11-10T10:30:00.000Z"
+}

@@ -1,0 +1,88 @@
+{
+  "id": "order_001",
+  "userId": "user_001",
+  "status": "DELIVERED",
+  "isActive": false,
+  
+  "items": [
+    {
+      "id": "item_001",
+      "productId": "prod_001",
+      "name": "Fresh Oyster Mushrooms",
+      "quantity": 2,
+      "price": 150.00,
+      "total": 300.00
+    },
+    {
+      "id": "item_002",
+      "productId": "prod_002",
+      "name": "Premium Dried Shiitake Mushrooms",
+      "quantity": 1,
+      "price": 350.00,
+      "total": 350.00
+    }
+  ],
+  
+  "customer": {
+    "name": "Juan Dela Cruz",
+    "email": "juan.delacruz@example.com",
+    "phone": "+639123456789",
+    "address": "123 Mabini Street, Barangay San Roque, Manila City, Metro Manila 1006"
+  },
+  
+  "coordination": {
+    "method": "Home Delivery",
+    "location": "123 Mabini Street, Barangay San Roque, Manila City",
+    "preferredDate": "2025-11-05",
+    "preferredTime": "2:00 PM - 4:00 PM",
+    "contactPerson": "Juan Dela Cruz",
+    "contactNumber": "+639123456789",
+    "instructions": "Please call upon arrival. Gate code: 1234"
+  },
+  
+  "payment": {
+    "method": "GCASH",
+    "status": "PAID",
+    "transactionId": "GCASH-20251103-ABC123"
+  },
+  
+  "totals": {
+    "subtotal": 650.00,
+    "coordinationFee": 50.00,
+    "tax": 0.00,
+    "total": 700.00
+  },
+  
+  "notes": "Please ensure mushrooms are fresh and well-packaged.",
+  
+  "timeline": [
+    {
+      "status": "PENDING",
+      "date": "2025-11-03T10:30:00.000Z",
+      "description": "Order placed successfully"
+    },
+    {
+      "status": "CONFIRMED",
+      "date": "2025-11-03T11:15:00.000Z",
+      "description": "Order confirmed by seller"
+    },
+    {
+      "status": "PROCESSING",
+      "date": "2025-11-04T08:00:00.000Z",
+      "description": "Order is being prepared"
+    },
+    {
+      "status": "SHIPPED",
+      "date": "2025-11-05T09:30:00.000Z",
+      "description": "Order shipped for delivery"
+    },
+    {
+      "status": "DELIVERED",
+      "date": "2025-11-05T14:45:00.000Z",
+      "description": "Order delivered successfully"
+    }
+  ],
+  
+  "createdAt": "2025-11-03T10:30:00.000Z",
+  "updatedAt": "2025-11-05T14:45:00.000Z"
+}

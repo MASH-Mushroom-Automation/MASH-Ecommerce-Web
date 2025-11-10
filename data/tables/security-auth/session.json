@@ -1,0 +1,42 @@
+{
+  "_comment": "Session Table - Complete JSON Structure",
+  "_table": "sessions",
+  "_description": "User session management with Clerk integration",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "session_001",
+  "userId": "cm3vxyz123456789",
+  "clerkSessionId": "sess_abc123xyz",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "status": "ACTIVE",
+  "deviceInfo": {
+    "browser": "Chrome",
+    "browserVersion": "119.0",
+    "os": "Windows 10",
+    "osVersion": "10.0.19045",
+    "device": "Desktop"
+  },
+  "ipAddress": "203.177.123.45",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  "lastActivity": "2025-11-10T10:25:00.000Z",
+  "expiresAt": "2025-11-17T10:00:00.000Z",
+  "revokedAt": null,
+  "revokedReason": null,
+  "createdAt": "2025-11-10T10:00:00.000Z",
+  "updatedAt": "2025-11-10T10:25:00.000Z",
+  
+  "_enums": {
+    "status": ["ACTIVE", "EXPIRED", "REVOKED"]
+  },
+  "_required_fields": ["id", "userId", "token", "status", "ipAddress", "userAgent", "lastActivity", "expiresAt", "createdAt", "updatedAt"],
+  "_optional_fields": ["clerkSessionId", "deviceInfo", "revokedAt", "revokedReason"],
+  "_relationships": {
+    "user": "User"
+  },
+  "_notes": {
+    "token": "JWT token for API authentication",
+    "expiresAt": "Session expires after 7 days of inactivity",
+    "lastActivity": "Updated on each API request",
+    "clerkSessionId": "Session ID from Clerk authentication service"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "_comment": "ApiGatewayConfig Table - Complete JSON Structure",
+  "_table": "api_gateway_configs",
+  "_description": "API Gateway routing and configuration",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "gateway_001",
+  "service": "products-api",
+  "version": "v1",
+  "baseUrl": "https://api.mash.com/products",
+  "endpoints": [
+    {
+      "path": "/products",
+      "methods": ["GET", "POST"],
+      "rateLimit": 100,
+      "timeout": 5000,
+      "cacheEnabled": true,
+      "cacheTtl": 300
+    },
+    {
+      "path": "/products/:id",
+      "methods": ["GET", "PUT", "DELETE"],
+      "rateLimit": 50,
+      "timeout": 3000,
+      "authRequired": true
+    }
+  ],
+  "loadBalancing": {
+    "strategy": "ROUND_ROBIN",
+    "healthCheck": {
+      "enabled": true,
+      "interval": 30000,
+      "endpoint": "/health"
+    }
+  },
+  "authentication": {
+    "type": "JWT",
+    "tokenHeader": "Authorization",
+    "required": true
+  },
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-11-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "service", "version", "baseUrl", "endpoints", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["loadBalancing", "authentication"],
+  "_relationships": {
+    "rateLimitOverrides": "RateLimitOverride[]",
+    "usageLogs": "ApiUsageLog[]"
+  },
+  "_notes": {
+    "rateLimit": "Requests per minute",
+    "timeout": "Milliseconds",
+    "cacheTtl": "Cache time-to-live in seconds"
+  }
+}

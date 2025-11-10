@@ -1,0 +1,68 @@
+{
+  "_comment": "UserNotification Table - Complete JSON Structure",
+  "_table": "user_notifications",
+  "_description": "User-specific in-app notifications",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "un_001",
+  "userId": "cm3vxyz123456789",
+  "type": "ORDER_UPDATE",
+  "title": "Order Shipped",
+  "message": "Your order #MASH-2025-001234 has been shipped and is on the way",
+  "data": {
+    "orderId": "order_001",
+    "orderNumber": "MASH-2025-001234",
+    "trackingNumber": "PH1234567890",
+    "trackingUrl": "https://tracking.example.com/PH1234567890",
+    "estimatedDelivery": "2025-11-05"
+  },
+  "isRead": false,
+  "readAt": null,
+  "createdAt": "2025-11-02T10:00:00.000Z",
+  
+  "_enums": {
+    "type": ["ALERT", "INFO", "WARNING", "SUCCESS", "DEVICE_STATUS", "ORDER_UPDATE", "PAYMENT_UPDATE"]
+  },
+  "_required_fields": ["id", "userId", "type", "title", "message", "isRead", "createdAt"],
+  "_optional_fields": ["data", "readAt"],
+  "_relationships": {
+    "user": "User"
+  },
+  "_notification_types": {
+    "ALERT": "System alerts and warnings",
+    "INFO": "General informational messages",
+    "WARNING": "Warning messages",
+    "SUCCESS": "Success confirmations",
+    "DEVICE_STATUS": "IoT device status updates",
+    "ORDER_UPDATE": "Order status changes",
+    "PAYMENT_UPDATE": "Payment confirmations/failures"
+  },
+  "_example_notifications": [
+    {
+      "type": "ORDER_UPDATE",
+      "title": "Order Confirmed",
+      "message": "Your order has been confirmed and is being prepared"
+    },
+    {
+      "type": "PAYMENT_UPDATE",
+      "title": "Payment Received",
+      "message": "Payment of ₱688.00 received via GCash"
+    },
+    {
+      "type": "DEVICE_STATUS",
+      "title": "Device Offline",
+      "message": "Growing Chamber 01 has gone offline"
+    },
+    {
+      "type": "ALERT",
+      "title": "Low Stock Warning",
+      "message": "Product 'Fresh Oyster Mushrooms' is low in stock (5 remaining)"
+    }
+  ],
+  "_ui_guidelines": {
+    "display": "Show in notification bell/dropdown in header",
+    "badge_count": "Count of unread notifications (isRead=false)",
+    "mark_read": "Update isRead=true and readAt timestamp when user views",
+    "retention": "Keep for 30 days, then archive or delete"
+  }
+}

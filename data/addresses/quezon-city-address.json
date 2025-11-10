@@ -1,0 +1,33 @@
+{
+  "id": "addr_002",
+  "userId": "user_001",
+  "type": "home",
+  
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "phone": "+639123456789",
+  
+  "street1": "456 Commonwealth Avenue",
+  "street2": null,
+  
+  "barangay": "Batasan Hills",
+  "barangayCode": "137404010",
+  
+  "city": "Quezon City",
+  "cityCode": "137400000",
+  
+  "state": "Metro Manila",
+  "stateCode": "130000000",
+  "province": "Metro Manila",
+  
+  "region": "NCR",
+  "regionCode": "130000000",
+  
+  "postalCode": "1126",
+  "country": "Philippines",
+  
+  "isDefault": false,
+  
+  "createdAt": "2025-09-10T16:00:00.000Z",
+  "updatedAt": "2025-09-10T16:00:00.000Z"
+}

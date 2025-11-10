@@ -1,0 +1,48 @@
+{
+  "id": "prod_002",
+  "name": "Premium Dried Shiitake Mushrooms",
+  "slug": "premium-dried-shiitake-mushrooms",
+  "sku": "MUSH-SHIT-100G",
+  "description": "Premium quality dried shiitake mushrooms. Known for their rich, umami flavor and meaty texture. Perfect for Asian cuisine, soups, and medicinal teas. Long shelf life and concentrated nutrients.",
+  
+  "price": 350.00,
+  "comparePrice": null,
+  "costPrice": 200.00,
+  
+  "stock": 30,
+  "minStock": 5,
+  "inStock": true,
+  
+  "weight": "100g",
+  
+  "images": [
+    "https://images.unsplash.com/photo-1584010356564-c84ddc954dc2?w=800",
+    "https://images.unsplash.com/photo-1547309827-e20e58d3ef37?w=800"
+  ],
+  "image": "https://images.unsplash.com/photo-1584010356564-c84ddc954dc2?w=800",
+  
+  "category": "dried-mushrooms",
+  "categories": [
+    "dried-mushrooms",
+    "premium",
+    "medicinal"
+  ],
+  "tag": "premium",
+  "tags": [
+    "premium",
+    "dried",
+    "shiitake",
+    "medicinal",
+    "umami"
+  ],
+  
+  "grower": "Baguio Highland Farms",
+  "growerId": "grower_002",
+  
+  "isActive": true,
+  "isFeatured": true,
+  "isDeleted": false,
+  
+  "createdAt": "2025-09-15T09:00:00.000Z",
+  "updatedAt": "2025-11-09T14:20:00.000Z"
+}

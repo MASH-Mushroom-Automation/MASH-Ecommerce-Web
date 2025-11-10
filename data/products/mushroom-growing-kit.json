@@ -1,0 +1,48 @@
+{
+  "id": "prod_003",
+  "name": "Oyster Mushroom Growing Kit",
+  "slug": "oyster-mushroom-growing-kit",
+  "sku": "KIT-OYS-GROW-01",
+  "description": "Complete mushroom growing kit for beginners. Grow your own oyster mushrooms at home! Kit includes substrate bag, spray bottle, and detailed instructions. Harvest in 7-10 days. Perfect for educational purposes or fresh mushrooms at home.",
+  
+  "price": 450.00,
+  "comparePrice": 550.00,
+  "costPrice": 280.00,
+  
+  "stock": 25,
+  "minStock": 5,
+  "inStock": true,
+  
+  "weight": "2kg",
+  
+  "images": [
+    "https://images.unsplash.com/photo-1518005068251-37900150dfca?w=800",
+    "https://images.unsplash.com/photo-1621340588178-98f69f3d9b1b?w=800"
+  ],
+  "image": "https://images.unsplash.com/photo-1518005068251-37900150dfca?w=800",
+  
+  "category": "mushroom-kits",
+  "categories": [
+    "mushroom-kits",
+    "educational",
+    "beginner-friendly"
+  ],
+  "tag": "educational",
+  "tags": [
+    "kit",
+    "diy",
+    "educational",
+    "beginner",
+    "oyster"
+  ],
+  
+  "grower": "MASH Innovation Lab",
+  "growerId": "grower_003",
+  
+  "isActive": true,
+  "isFeatured": false,
+  "isDeleted": false,
+  
+  "createdAt": "2025-10-20T10:00:00.000Z",
+  "updatedAt": "2025-11-08T16:45:00.000Z"
+}

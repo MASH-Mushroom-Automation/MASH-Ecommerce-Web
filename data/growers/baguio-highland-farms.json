@@ -1,0 +1,43 @@
+{
+  "id": "grower_002",
+  "userId": "user_003",
+  "name": "Baguio Highland Farms",
+  "location": "Baguio City, Benguet",
+  "bio": "Family-owned farm nestled in the cool mountains of Baguio. We've been growing premium shiitake and specialty mushrooms for over 20 years. Our high-altitude location provides the perfect climate for producing mushrooms with exceptional flavor and nutritional value.",
+  
+  "image": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400",
+  "coverImage": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200",
+  
+  "specialties": [
+    "Shiitake Mushrooms",
+    "Maitake Mushrooms",
+    "Lion's Mane Mushrooms",
+    "Reishi Mushrooms"
+  ],
+  
+  "certifications": [
+    "Organic Certified (DA)",
+    "Fair Trade Certified",
+    "ISO 22000:2018"
+  ],
+  
+  "coordinates": {
+    "lat": 16.4023,
+    "lng": 120.5960
+  },
+  
+  "contactEmail": "sales@baguiohighland.ph",
+  "contactPhone": "+639171234567",
+  
+  "isActive": true,
+  
+  "stats": {
+    "totalProducts": 12,
+    "rating": 4.9,
+    "totalReviews": 203,
+    "joinedDate": "2025-06-15"
+  },
+  
+  "createdAt": "2025-06-15T09:00:00.000Z",
+  "updatedAt": "2025-11-08T15:30:00.000Z"
+}

@@ -1,0 +1,56 @@
+{
+  "_comment": "PushSubscription Table - Complete JSON Structure",
+  "_table": "push_subscriptions",
+  "_description": "Web Push notification subscriptions",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "push_001",
+  "userId": "cm3vxyz123456789",
+  "endpoint": "https://fcm.googleapis.com/fcm/send/abc123...",
+  "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM=",
+  "auth": "tBHItJI5svbpez7KI4CCXg==",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "deviceType": "DESKTOP",
+  "browser": "Chrome",
+  "isActive": true,
+  "lastUsedAt": "2025-11-10T10:15:00.000Z",
+  "createdAt": "2025-11-01T08:00:00.000Z",
+  "updatedAt": "2025-11-10T10:15:00.000Z",
+  
+  "_example_mobile": {
+    "id": "push_002",
+    "userId": "cm3vxyz123456789",
+    "endpoint": "https://fcm.googleapis.com/fcm/send/xyz789...",
+    "deviceType": "MOBILE",
+    "browser": "Chrome Mobile",
+    "isActive": true,
+    "lastUsedAt": "2025-11-10T09:30:00.000Z"
+  },
+  
+  "_example_expired": {
+    "id": "push_003",
+    "userId": "cm3vxyz123456789",
+    "endpoint": "https://fcm.googleapis.com/fcm/send/old123...",
+    "deviceType": "TABLET",
+    "browser": "Safari",
+    "isActive": false,
+    "lastUsedAt": "2025-10-01T10:00:00.000Z"
+  },
+  
+  "_enums": {
+    "deviceType": ["DESKTOP", "MOBILE", "TABLET"],
+    "browser": ["Chrome", "Firefox", "Safari", "Edge", "Chrome Mobile", "Safari Mobile"]
+  },
+  "_required_fields": ["id", "userId", "endpoint", "p256dh", "auth", "deviceType", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["userAgent", "browser", "lastUsedAt"],
+  "_relationships": {
+    "user": "User"
+  },
+  "_notes": {
+    "endpoint": "FCM or other push service endpoint",
+    "p256dh": "Public key for encryption (base64)",
+    "auth": "Authentication secret (base64)",
+    "isActive": "False if subscription expired or unsubscribed",
+    "lastUsedAt": "Last time a notification was successfully sent"
+  }
+}

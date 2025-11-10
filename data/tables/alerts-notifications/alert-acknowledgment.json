@@ -1,0 +1,57 @@
+{
+  "_comment": "AlertAcknowledgment Table - Complete JSON Structure",
+  "_table": "alert_acknowledgments",
+  "_description": "Action history for alerts - who acknowledged/resolved/escalated",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440004",
+  "alertId": "550e8400-e29b-41d4-a716-446655440002",
+  "userId": "cm3vxyz123456789",
+  "action": "ACKNOWLEDGED",
+  "comment": "Adjusting temperature controls. Monitoring situation.",
+  "metadata": {
+    "location": "Mobile App",
+    "deviceType": "iOS",
+    "appVersion": "2.1.0",
+    "actionTaken": "Reduced heater output by 20%"
+  },
+  "createdAt": "2025-11-10T10:35:00.000Z",
+  
+  "_enums": {
+    "action": ["ACKNOWLEDGED", "RESOLVED", "ESCALATED", "SNOOZED", "COMMENTED", "CANCELLED"]
+  },
+  "_required_fields": ["id", "alertId", "userId", "action", "createdAt"],
+  "_optional_fields": ["comment", "metadata"],
+  "_relationships": {
+    "alert": "Alert",
+    "user": "User"
+  },
+  "_action_explanations": {
+    "ACKNOWLEDGED": "User has seen the alert and is aware",
+    "RESOLVED": "Alert condition has been resolved",
+    "ESCALATED": "Alert needs higher-level attention",
+    "SNOOZED": "Temporarily dismiss alert (will reappear)",
+    "COMMENTED": "User added comment without status change",
+    "CANCELLED": "Alert cancelled (false alarm)"
+  },
+  "_example_history": [
+    {
+      "action": "ACKNOWLEDGED",
+      "userId": "cm3vxyz123456789",
+      "comment": "Investigating",
+      "createdAt": "2025-11-10T10:35:00.000Z"
+    },
+    {
+      "action": "COMMENTED",
+      "userId": "cm3vxyz123456789",
+      "comment": "Adjusting HVAC settings",
+      "createdAt": "2025-11-10T10:40:00.000Z"
+    },
+    {
+      "action": "RESOLVED",
+      "userId": "cm3vxyz123456789",
+      "comment": "Temperature back to normal range",
+      "createdAt": "2025-11-10T11:00:00.000Z"
+    }
+  ]
+}

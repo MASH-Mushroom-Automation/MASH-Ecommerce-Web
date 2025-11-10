@@ -1,0 +1,12 @@
+{
+  "id": "cat_001",
+  "name": "Fresh Mushrooms",
+  "slug": "fresh-mushrooms",
+  "description": "Locally grown fresh mushrooms, harvested daily for maximum freshness and flavor.",
+  "image": "https://images.unsplash.com/photo-1589621316382-008455b857cd?w=400",
+  "parentId": null,
+  "order": 1,
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-10-01T12:00:00.000Z"
+}

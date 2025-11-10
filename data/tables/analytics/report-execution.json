@@ -1,0 +1,35 @@
+{
+  "_comment": "ReportExecution Table - Complete JSON Structure",
+  "_table": "report_executions",
+  "_description": "Report execution logs with results",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "exec_001",
+  "reportId": "report_001",
+  "status": "COMPLETED",
+  "startedAt": "2025-11-01T08:00:00.000Z",
+  "completedAt": "2025-11-01T08:05:30.000Z",
+  "duration": 330000,
+  "resultData": {
+    "totalRevenue": 125000.00,
+    "totalOrders": 342,
+    "productsSold": 1450,
+    "topProducts": [
+      {"name": "Fresh Oyster Mushrooms", "revenue": 45000},
+      {"name": "Shiitake Dried", "revenue": 32000}
+    ]
+  },
+  "resultUrl": "https://storage.mash.com/reports/exec_001.pdf",
+  "errorMessage": null,
+  "executedBy": "cm3vxyz123456789",
+  
+  "_enums": {
+    "status": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"]
+  },
+  "_required_fields": ["id", "reportId", "status", "startedAt"],
+  "_optional_fields": ["completedAt", "duration", "resultData", "resultUrl", "errorMessage", "executedBy"],
+  "_relationships": {
+    "report": "Report",
+    "executedByUser": "User?"
+  }
+}

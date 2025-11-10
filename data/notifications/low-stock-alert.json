@@ -1,0 +1,22 @@
+{
+  "id": "notif_002",
+  "userId": "user_002",
+  "type": "low_stock",
+  "title": "Low Stock Alert",
+  "message": "Warning: Fresh Oyster Mushrooms (prod_001) stock is running low. Current stock: 12 units. Minimum threshold: 10 units.",
+  
+  "data": {
+    "productId": "prod_001",
+    "productName": "Fresh Oyster Mushrooms",
+    "currentStock": 12,
+    "minStock": 10,
+    "severity": "WARNING"
+  },
+  
+  "actionUrl": "/seller/inventory",
+  
+  "isRead": true,
+  "readAt": "2025-11-09T08:15:00.000Z",
+  
+  "createdAt": "2025-11-09T08:00:00.000Z"
+}

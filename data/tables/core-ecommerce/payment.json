@@ -1,0 +1,67 @@
+{
+  "_comment": "Payment Table - Complete JSON Structure",
+  "_table": "payments",
+  "_description": "Payment transactions for orders with gateway integration",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "pay_001",
+  "orderId": "order_001",
+  "userId": "cm3vxyz123456789",
+  "amount": 688.00,
+  "currency": "PHP",
+  "status": "PAID",
+  "method": "GCASH",
+  "transactionId": "GCASH-2025-ABC123",
+  "gatewayResponse": {
+    "referenceNumber": "REF123456",
+    "timestamp": "2025-11-01T08:15:30.000Z",
+    "gateway": "GCash",
+    "accountName": "Juan D.",
+    "accountNumber": "*****7890"
+  },
+  "processedAt": "2025-11-01T08:15:30.000Z",
+  "failedAt": null,
+  "refundedAt": null,
+  "createdAt": "2025-11-01T08:15:00.000Z",
+  "updatedAt": "2025-11-01T08:15:30.000Z",
+  
+  "_enums": {
+    "status": ["PENDING", "PAID", "FAILED", "REFUNDED"],
+    "method": ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "GCASH", "MAYA", "BANK_TRANSFER", "CASH_ON_DELIVERY"]
+  },
+  "_required_fields": ["id", "orderId", "userId", "amount", "currency", "status", "method", "createdAt", "updatedAt"],
+  "_optional_fields": ["transactionId", "gatewayResponse", "processedAt", "failedAt", "refundedAt"],
+  "_relationships": {
+    "order": "Order",
+    "user": "User"
+  },
+  "_payment_methods": {
+    "GCASH": {
+      "name": "GCash",
+      "type": "e-wallet",
+      "provider": "Mynt (Globe Telecom)",
+      "popular_in": "Philippines"
+    },
+    "MAYA": {
+      "name": "Maya (formerly PayMaya)",
+      "type": "e-wallet",
+      "provider": "PayMaya Philippines",
+      "popular_in": "Philippines"
+    },
+    "CASH_ON_DELIVERY": {
+      "name": "Cash on Delivery",
+      "type": "cash",
+      "note": "Payment collected upon delivery"
+    },
+    "CREDIT_CARD": {
+      "name": "Credit Card",
+      "type": "card",
+      "supported": ["Visa", "Mastercard", "JCB"]
+    }
+  },
+  "_status_flow": {
+    "successful": "PENDING → PAID",
+    "failed": "PENDING → FAILED",
+    "refunded": "PAID → REFUNDED"
+  }
+}

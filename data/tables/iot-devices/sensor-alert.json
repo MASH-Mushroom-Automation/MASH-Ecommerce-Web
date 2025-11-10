@@ -1,0 +1,49 @@
+{
+  "_comment": "SensorAlert Table - Complete JSON Structure",
+  "_table": "sensor_alerts",
+  "_description": "Alerts triggered by sensor threshold violations",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "sa_001",
+  "deviceId": "device_001",
+  "sensorId": "sensor_001",
+  "type": "HIGH_TEMPERATURE",
+  "severity": "WARNING",
+  "title": "High Temperature Alert",
+  "message": "Temperature exceeds safe threshold in Chamber 01",
+  "threshold": {
+    "min": 18,
+    "max": 30,
+    "current": 32.5,
+    "unit": "°C"
+  },
+  "isActive": true,
+  "isResolved": false,
+  "resolvedAt": null,
+  "createdAt": "2025-11-10T10:30:00.000Z",
+  "updatedAt": "2025-11-10T10:30:00.000Z",
+  
+  "_required_fields": ["id", "deviceId", "sensorId", "type", "severity", "title", "message", "isActive", "isResolved", "createdAt", "updatedAt"],
+  "_optional_fields": ["threshold", "resolvedAt"],
+  "_relationships": {
+    "device": "Device",
+    "sensor": "Sensor"
+  },
+  "_alert_types": [
+    "HIGH_TEMPERATURE",
+    "LOW_TEMPERATURE",
+    "HIGH_HUMIDITY",
+    "LOW_HUMIDITY",
+    "HIGH_CO2",
+    "LOW_CO2",
+    "SENSOR_OFFLINE",
+    "SENSOR_ERROR",
+    "BATTERY_LOW"
+  ],
+  "_severity_levels": ["INFO", "WARNING", "ERROR", "CRITICAL"],
+  "_notes": {
+    "isActive": "Alert is currently active and needs attention",
+    "isResolved": "Alert has been resolved (either auto or manual)",
+    "threshold": "Contains the violated threshold and current value"
+  }
+}
