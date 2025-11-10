@@ -7,7 +7,8 @@ This comprehensive guide provides **complete JSON structure references for ALL 4
 > **🔗 Schema Reference**: `MASH-Backend/prisma/schema.prisma` (1,421 lines, 47 models)  
 > **📦 Main Products File**: `data/products-database.json` (9 products ready to use)  
 > **📁 Schema Templates**: `data/tables/` (45 example files organized by category)  
-> **⚠️ Backend Compatibility**: All enum values MUST be UPPERCASE (e.g., `"PENDING"`, not `"Pending"`)
+> **⚠️ Backend Compatibility**: All enum values MUST be UPPERCASE (e.g., `"PENDING"`, not `"Pending"`)  
+> **🔌 Backend API Guide**: See [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) for complete API integration steps
 
 ---
 
@@ -1508,11 +1509,87 @@ export async function getProducts() {
 
 ---
 
-## 📚 Additional Resources
+## � Backend API Integration
 
+### Overview
+
+This JSON data structure guide provides the **data formats** for all tables. To connect your frontend to the backend API and retrieve data from the database:
+
+**📖 Complete Backend API Integration Guide**: [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md)
+
+The backend API connection guide includes:
+
+✅ **Step-by-step setup** - Backend API server setup with Prisma + Express  
+✅ **Environment configuration** - .env files for both frontend and backend  
+✅ **Complete API endpoints** - All 47+ endpoints (GET, POST, PUT, DELETE)  
+✅ **Frontend integration** - API client, services, and React Query setup  
+✅ **Data type mapping** - Prisma types to TypeScript/JSON  
+✅ **Enum handling** - Critical UPPERCASE enum conversion utilities  
+✅ **Error handling** - Comprehensive error handling patterns  
+✅ **Testing guide** - cURL, Postman, automated tests  
+✅ **Migration strategy** - 4-phase plan from mock data to production API  
+✅ **Troubleshooting** - Common issues and solutions
+
+### Quick Start - API Integration
+
+1. **Read the Backend API Guide**: [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md)
+2. **Set up backend server**: Follow Phase 1 (Week 1)
+3. **Create API client**: `src/lib/api/client.ts`
+4. **Create API services**: `src/lib/api/products.ts`, etc.
+5. **Update components**: Replace mock data with API calls
+6. **Test integration**: Use feature flags to toggle between mock and real data
+
+### Feature Flag for Gradual Migration
+
+```typescript
+// .env.local
+NEXT_PUBLIC_USE_MOCK_DATA=false  # Set to true to use products-database.json
+
+// In your API service
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
+export async function getProducts() {
+  if (USE_MOCK_DATA) {
+    // Use data/products-database.json
+    return require('@/data/products-database.json');
+  }
+  
+  // Use real backend API
+  return fetch(`${API_URL}/products`).then(res => res.json());
+}
+```
+
+### Critical: Enum Values
+
+⚠️ **When sending data to backend API**, ALL enum values MUST be UPPERCASE:
+
+```typescript
+// ❌ Wrong - frontend display format
+const order = { status: 'pending', paymentMethod: 'GCash' };
+
+// ✅ Correct - backend API format
+const order = { status: 'PENDING', paymentMethod: 'GCASH' };
+
+// Use conversion utility
+import { toBackendEnum } from '@/lib/utils/enums';
+const order = { 
+  status: toBackendEnum('pending'),        // 'PENDING'
+  paymentMethod: toBackendEnum('gcash')    // 'GCASH'
+};
+```
+
+See [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) for complete enum conversion utilities and examples.
+
+---
+
+## �📚 Additional Resources
+
+- **🔌 Backend API Connection Guide**: [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) - **Complete API integration steps**
 - **Complete Schema Reference**: `data/tables/README.md`
 - **Backend Schema**: `MASH-Backend/prisma/schema.prisma`
-- **API Integration Guide**: `documents/API_IMPLEMENTATION_GUIDE.md`
+- **API Endpoints Structure**: `documents/API_Endpoints_Structure.md`
+- **API Implementation Guide**: `documents/API_IMPLEMENTATION_GUIDE.md`
+- **Backend Development Plan**: `documents/Backend_Development_Plan.md`
 - **Component Guide**: `docs/COMPONENT_GUIDE.md`
 
 ---
@@ -1522,6 +1599,7 @@ export async function getProducts() {
 ### Enum Format
 - **Backend uses UPPERCASE**: `"PENDING"`, `"COMPLETED"`, `"CASH_ON_DELIVERY"`
 - **Frontend may use lowercase**: Ensure proper case conversion in API integration
+- **Use conversion utilities**: See `BACKEND_API_CONNECTION_GUIDE.md` Section 6.3
 
 ### ID Formats
 - **Products**: Simple numeric strings (`"1"`, `"2"`, etc.)
@@ -1541,8 +1619,15 @@ export async function getProducts() {
 - No currency symbol in data
 - PHP (Philippine Peso) is the currency
 
+### Backend API Connection
+- **Always read**: [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) before implementing API calls
+- **Test with mock data first**: Use `NEXT_PUBLIC_USE_MOCK_DATA=true` flag
+- **Validate enum values**: Use `toBackendEnum()` utility before API calls
+- **Handle errors properly**: Implement error boundaries and user feedback
+
 ---
 
 **Last Updated**: November 10, 2025  
 **Products Database**: `data/products-database.json` (9 products)  
-**Schema Version**: Based on MASH-Backend/prisma/schema.prisma
+**Schema Version**: Based on MASH-Backend/prisma/schema.prisma  
+**Backend API Guide**: `BACKEND_API_CONNECTION_GUIDE.md` (v1.0.0)
