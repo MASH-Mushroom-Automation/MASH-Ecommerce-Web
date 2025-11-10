@@ -7,22 +7,59 @@ This folder contains JSON data files for the MASH e-commerce platform, including
 ### **`products-database.json`** ⭐ PRIMARY PRODUCTS FILE
 **Complete products database with 9 products** - This is the main file used throughout the website for displaying all products.
 
+**✅ Schema-Compliant & Production-Ready**:
+- All 24 required fields present for each product
+- Consistent data types (numbers for prices, booleans for flags)
+- Ready for backend API seeding
+- Matches Prisma schema exactly
+
 **Usage**:
 ```typescript
 import productsData from '@/data/products-database.json';
 const products = productsData; // All 9 products ready to use
 ```
 
-Contains all products from `src/lib/api/products.ts`:
-- Fresh White Oyster Mushrooms
-- Mushroom Chips  
-- Blue Oyster Mushrooms
-- White Oyster Mushroom Growing Kit
-- Crispy Mushroom Chicharon
-- Bagoong Mushroom
-- Blue Oyster Mushroom Growing Kit
-- Premium Golden Oyster Growing Kit
-- King Oyster Mushroom Growing Kit
+**All 9 Products**:
+1. **Fresh White Oyster Mushrooms** (ID: 1) - ₱120 - Featured ⭐
+2. **Mushroom Chips** (ID: 2) - ₱140 - Snacks
+3. **Blue Oyster Mushrooms** (ID: 3) - ₱150 - Featured ⭐
+4. **White Oyster Mushroom Growing Kit** (ID: 4) - ₱350 - Featured ⭐
+5. **Crispy Mushroom Chicharon** (ID: 9) - ₱150 - Snacks
+6. **Bagoong Mushroom** (ID: 10) - ₱380 - Featured ⭐
+7. **Blue Oyster Mushroom Growing Kit** (ID: 11) - ₱370 - Featured ⭐
+8. **Premium Golden Oyster Growing Kit** (ID: 12) - ₱450 - Premium
+9. **King Oyster Mushroom Growing Kit** (ID: 13) - ₱420 - Gourmet
+
+**Product Fields** (24 total):
+```typescript
+{
+  id: string;                    // Product ID
+  name: string;                  // Product name
+  slug: string;                  // URL-friendly identifier
+  sku: string;                   // Stock keeping unit
+  description: string;           // Product description
+  price: number;                 // Regular price (₱)
+  comparePrice: number;          // Original price (₱)
+  costPrice: number;             // Cost to produce (₱)
+  stock: number;                 // Available quantity
+  minStock: number;              // Minimum stock level
+  weight: string;                // Product weight
+  images: string[];              // Array of image URLs
+  image: string;                 // Primary image URL
+  category: string;              // Primary category
+  categories: string[];          // All categories
+  tag: string;                   // Primary tag
+  tags: string[];                // All tags
+  grower: string;                // Grower name
+  growerId: string;              // Grower ID
+  inStock: boolean;              // In stock status
+  isActive: boolean;             // Active product
+  isFeatured: boolean;           // Featured product
+  isDeleted: boolean;            // Soft delete
+  createdAt: string;             // ISO 8601 date
+  updatedAt: string;             // ISO 8601 date
+}
+```
 
 ---
 
@@ -46,14 +83,58 @@ data/
 
 ## 🚀 Quick Start
 
-1. **Browse the examples** to understand data structure
-2. **Copy templates** for your own data
-3. **Modify values** to match your needs
-4. **Use for testing** or database seeding
+### Option 1: Use Mock Data (Current)
+```typescript
+// Import the products database directly
+import productsData from '@/data/products-database.json';
+
+// Use in components
+export function ProductsPage() {
+  const products = productsData;
+  return <ProductGrid products={products} />;
+}
+```
+
+### Option 2: Use Backend API (Production)
+```typescript
+// Create API service (see BACKEND_API_CONNECTION_GUIDE.md)
+import { getProducts } from '@/lib/api/products';
+
+export async function ProductsPage() {
+  const { products } = await getProducts();
+  return <ProductGrid products={products} />;
+}
+```
+
+### Option 3: Feature Flag Toggle
+```typescript
+// .env.local
+NEXT_PUBLIC_USE_MOCK_DATA=true  // Use products-database.json
+// Or
+NEXT_PUBLIC_USE_MOCK_DATA=false // Use backend API
+
+// In your code
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
+export async function getProducts() {
+  if (USE_MOCK) {
+    return require('@/data/products-database.json');
+  }
+  return fetch('/api/products').then(r => r.json());
+}
+```
+
+---
 
 ## 📋 File Index
 
-### Products (3 files)
+### Products (3 files + 1 database)
+- **`products-database.json`** ⭐ - **MAIN FILE** with all 9 products
+- `oyster-mushroom-fresh.json` - Fresh product example with discount pricing
+- `shiitake-mushroom-dried.json` - Dried/preserved product example
+- `mushroom-growing-kit.json` - DIY kit product example
+
+### Users (2 files)
 - `oyster-mushroom-fresh.json` - Fresh product with discount pricing
 - `shiitake-mushroom-dried.json` - Dried/preserved product
 - `mushroom-growing-kit.json` - DIY kit product
