@@ -448,10 +448,6 @@ export class ProductsApi {
 
     // Use real Railway backend API
     try {
-      console.log('[ProductsApi] Fetching from backend with params:', params);
-      console.log('[ProductsApi] API URL:', process.env.NEXT_PUBLIC_API_URL);
-      console.log('[ProductsApi] USE_MOCK_DATA:', USE_MOCK_DATA);
-      
       // Build query params that match backend API expectations
       const queryParams: Record<string, string | number | boolean | undefined> = {
         page: params.page || 1,
@@ -468,13 +464,9 @@ export class ProductsApi {
       if (params.minPrice !== undefined) queryParams.minPrice = params.minPrice;
       if (params.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
       
-      console.log('[ProductsApi] Sending query params:', queryParams);
-      
       const response = await apiClient.get<BackendResponse<ProductsData>>('/products', {
         params: queryParams,
       });
-
-      console.log('[ProductsApi] Backend response:', response.data);
 
       const { data, meta } = response.data.data;
 
