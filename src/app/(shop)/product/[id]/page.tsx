@@ -56,13 +56,13 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen text-gray-800">
+    <div className="bg-background min-h-screen text-foreground">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-12">
         {/* Product Display Section */}
-        <section className="flex flex-col lg:flex-row gap-6 lg:gap-12 bg-white rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
+        <section className="flex flex-col lg:flex-row gap-6 lg:gap-12 bg-card rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
           {/* Image Gallery */}
           <div className="lg:w-1/2 w-full">
-            <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-3 sm:mb-4 relative flex items-center justify-center">
+            <div className="aspect-square bg-muted/30 rounded-lg overflow-hidden mb-3 sm:mb-4 relative flex items-center justify-center">
               <Image
                 src={activeImage}
                 alt={product.name}
@@ -78,8 +78,8 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                   key={index}
                   onClick={() => setActiveImage(img)}
                   className={cn(
-                    "relative w-full bg-gray-50 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all flex items-center justify-center",
-                    activeImage === img ? "ring-[#1E392A]" : "ring-transparent"
+                    "relative w-full bg-muted/30 rounded-md overflow-hidden ring-2 ring-offset-2 transition-all flex items-center justify-center",
+                    activeImage === img ? "ring-primary" : "ring-transparent"
                   )}
                   style={{ aspectRatio: "1/1" }}
                 >
@@ -99,16 +99,16 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
           <div className="lg:w-1/2 w-full">
             <Link
               href={getGrowerUrl(product.grower)}
-              className="inline-block px-3 py-1 bg-[#6A994E]/10 text-[#6A994E] rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-[#6A994E]/20 transition-colors"
+              className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-primary/20 transition-colors"
             >
               @{product.grower}
             </Link>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               {product.name}
             </h1>
-            <p className="text-2xl sm:text-3xl font-bold text-[#1E392A] mb-2">
+            <p className="text-2xl sm:text-3xl font-bold text-primary mb-2">
               ₱{product.price.toFixed(2)}
-              <span className="text-base sm:text-lg text-gray-500 font-normal ml-2">
+              <span className="text-base sm:text-lg text-muted-foreground font-normal ml-2">
                 / {product.weight}
               </span>
             </p>
@@ -117,12 +117,12 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-              <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+              <div className="flex items-center border border-border rounded-lg overflow-hidden">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => handleQuantityChange(-1)}
-                  className="h-11 sm:h-12 w-11 sm:w-12 rounded-none hover:bg-gray-100 text-lg"
+                  className="h-11 sm:h-12 w-11 sm:w-12 rounded-none hover:bg-muted/30 text-lg"
                 >
                   -
                 </Button>
@@ -133,7 +133,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleQuantityChange(1)}
-                  className="h-11 sm:h-12 w-11 sm:w-12 rounded-none hover:bg-gray-100 text-lg"
+                  className="h-11 sm:h-12 w-11 sm:w-12 rounded-none hover:bg-muted/30 text-lg"
                 >
                   +
                 </Button>
@@ -164,7 +164,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                 <Heart
                   className={cn(
                     "h-5 w-5 transition-colors",
-                    inWishlist ? "fill-red-500 text-red-500" : "text-gray-600"
+                    inWishlist ? "fill-red-500 text-red-500" : "text-muted-foreground"
                   )}
                 />
               </Button>
@@ -174,17 +174,17 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
         {/* Description Section */}
         <section className="mt-6 sm:mt-8 lg:mt-12">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
               Description
             </h2>
-            <div className="mt-3 sm:mt-4 text-gray-600 text-sm sm:text-base space-y-4 sm:space-y-6">
+            <div className="mt-3 sm:mt-4 text-muted-foreground text-sm sm:text-base space-y-4 sm:space-y-6">
               <p className="leading-relaxed">
                 {product.description ||
                   "Our best-selling mushrooms. Bold, meaty, and incredibly versatile. Perfect for sautés, soups, and stir-fries. Harvested daily for peak freshness."}
               </p>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold text-foreground mb-2">
                   Storage & Handling
                 </h3>
                 <p>
@@ -193,7 +193,7 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold text-foreground mb-2">
                   About The Grower
                 </h3>
                 <p>
@@ -246,7 +246,7 @@ function RelatedProductsSection({
 
   return (
     <section className="mt-6 sm:mt-8 lg:mt-12">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 px-1">
+      <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 px-1">
         Related Products
       </h2>
       <div className="relative -mx-4 sm:mx-0">
@@ -292,10 +292,10 @@ export default function ProductDetailsRoute({ params }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="bg-background min-h-screen flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner size="lg" className="mx-auto mb-4" />
-          <p className="text-gray-600">Loading product details...</p>
+          <p className="text-muted-foreground">Loading product details...</p>
         </div>
       </div>
     );

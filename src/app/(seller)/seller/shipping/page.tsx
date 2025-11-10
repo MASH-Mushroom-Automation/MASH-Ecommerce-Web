@@ -178,10 +178,9 @@ export default function ShippingChannel() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Shipping Channel</h1>
+        <h1 className="text-2xl font-bold text-foreground">Shipping Channel</h1>
         <Button
           onClick={handleAddChannel}
-          className="bg-[#1E392A] hover:bg-[#1E392A]/90"
         >
           <Plus className="mr-2 h-4 w-4" /> Add Shipping Channel
         </Button>
@@ -219,18 +218,17 @@ export default function ShippingChannel() {
                 />
               ))}
             {shippingChannels.filter((ch) => ch.isActive).length === 0 && (
-              <div className="col-span-2 text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+              <div className="col-span-2 text-center py-12 bg-muted rounded-lg border border-dashed border-border">
+                <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-1">
                   No Active Shipping Channels
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Add a shipping channel to start offering delivery options to
                   your customers.
                 </p>
                 <Button
                   onClick={handleAddChannel}
-                  className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Shipping Channel
                 </Button>
@@ -253,12 +251,12 @@ export default function ShippingChannel() {
                 />
               ))}
             {shippingChannels.filter((ch) => !ch.isActive).length === 0 && (
-              <div className="col-span-2 text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+              <div className="col-span-2 text-center py-12 bg-muted rounded-lg border border-dashed border-border">
+                <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-1">
                   No Inactive Shipping Channels
                 </h3>
-                <p className="text-gray-500">
+                <p className="text-muted-foreground">
                   All your shipping channels are currently active.
                 </p>
               </div>
@@ -353,7 +351,7 @@ export default function ShippingChannel() {
                     }
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Orders above this amount will qualify for free shipping. Set
                     to 0 for no free shipping.
                   </p>
@@ -384,7 +382,6 @@ export default function ShippingChannel() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Save Channel
               </Button>
@@ -479,7 +476,7 @@ export default function ShippingChannel() {
                     }
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Orders above this amount will qualify for free shipping. Set
                     to 0 for no free shipping.
                   </p>
@@ -510,7 +507,6 @@ export default function ShippingChannel() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Update Channel
               </Button>
@@ -558,7 +554,7 @@ function ShippingChannelCard({
   onToggleActive,
 }: ShippingChannelCardProps) {
   return (
-    <Card className={channel.isActive ? "" : "bg-gray-50"}>
+    <Card className={channel.isActive ? "" : "bg-muted"}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
@@ -580,7 +576,7 @@ function ShippingChannelCard({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-red-600 border-red-200 hover:bg-red-50"
+                  className="h-8 w-8 text-destructive border-destructive/20 hover:bg-destructive/10"
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
@@ -596,7 +592,7 @@ function ShippingChannelCard({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-destructive hover:bg-destructive/90"
                     onClick={onDelete}
                   >
                     Delete
@@ -610,11 +606,11 @@ function ShippingChannelCard({
       <CardContent>
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-gray-500">Shipping Fee:</span>
+            <span className="text-muted-foreground">Shipping Fee:</span>
             <span className="font-medium">₱{channel.price.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Free Shipping Over:</span>
+            <span className="text-muted-foreground">Free Shipping Over:</span>
             <span className="font-medium">
               ₱{channel.freeShippingThreshold.toFixed(2)}
             </span>
@@ -625,12 +621,12 @@ function ShippingChannelCard({
         <div className="flex items-center">
           <div
             className={`w-2 h-2 rounded-full mr-2 ${
-              channel.isActive ? "bg-green-500" : "bg-gray-400"
+              channel.isActive ? "bg-green-600 dark:bg-green-500" : "bg-muted-foreground"
             }`}
           ></div>
           <span
             className={`text-sm ${
-              channel.isActive ? "text-green-600" : "text-gray-500"
+              channel.isActive ? "text-green-700 dark:text-green-600" : "text-muted-foreground"
             }`}
           >
             {channel.isActive ? "Active" : "Inactive"}

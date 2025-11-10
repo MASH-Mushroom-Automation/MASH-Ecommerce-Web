@@ -87,11 +87,11 @@ export default function AddNewProduct() {
       <div className="flex items-center gap-2 mb-6">
         <Link
           href="/seller/products"
-          className="text-gray-500 hover:text-gray-700"
+          className="text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
+        <h1 className="text-2xl font-bold text-foreground">Add New Product</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -111,7 +111,7 @@ export default function AddNewProduct() {
                   {productImages.map((image, index) => (
                     <div
                       key={index}
-                      className="aspect-square relative rounded-md overflow-hidden border border-gray-200 bg-gray-50"
+                      className="aspect-square relative rounded-md overflow-hidden border border-border bg-muted"
                     >
                       <Image
                         src={image}
@@ -122,7 +122,7 @@ export default function AddNewProduct() {
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100"
+                        className="absolute top-2 right-2 bg-background rounded-full p-1 shadow-sm hover:bg-muted"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -136,9 +136,9 @@ export default function AddNewProduct() {
 
                   {/* Upload button */}
                   {productImages.length < 8 && (
-                    <label className="aspect-square flex flex-col items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">
+                    <label className="aspect-square flex flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted hover:bg-muted/80 cursor-pointer">
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">
                         Upload Image
                       </span>
                       <input
@@ -284,9 +284,9 @@ export default function AddNewProduct() {
                         />
                       </div>
 
-                      <div className="bg-blue-50 p-4 rounded-md flex gap-3">
-                        <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm text-blue-700">
+                      <div className="bg-blue-100/10 p-4 rounded-md flex gap-3 border border-blue-300">
+                        <Info className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-700 dark:text-blue-600">
                           <p className="font-semibold">Shipping Information</p>
                           <p className="mt-1">
                             Make sure to set up your shipping options in the
@@ -307,7 +307,6 @@ export default function AddNewProduct() {
               </Link>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Save Product
               </Button>

@@ -210,9 +210,9 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
+      <div className="min-h-screen bg-background px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
             {currentStep === 1 ? "Checkout" : "Payment Method"}
           </h1>
           <div className="lg:flex lg:gap-8 xl:gap-12">
@@ -221,20 +221,20 @@ export default function CheckoutPage() {
               {currentStep === 1 ? (
                 <>
                   {/* Step 1: Contact & Pickup Information */}
-                  <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                       Pickup Information
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-600 mt-2">
+                    <p className="text-sm sm:text-base text-muted-foreground mt-2">
                       Your order will be ready for pickup at your selected
                       location.
                     </p>
                   </section>
 
                   {/* Contact Information Form */}
-                  <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                      <h3 className="text-base sm:text-lg font-medium text-foreground">
                         Contact Information
                       </h3>
                       {userIsAuthenticated && profile && (
@@ -250,18 +250,18 @@ export default function CheckoutPage() {
                           name="name"
                           render={({ field, fieldState }) => (
                             <FormItem>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className="block text-sm font-medium text-muted-foreground mb-1">
                                 Full Name{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                               </label>
                               <input
                                 {...field}
                                 type="text"
                                 placeholder="Juan Dela Cruz"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                               />
                               {fieldState.error && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                   {fieldState.error.message}
                                 </p>
                               )}
@@ -273,18 +273,18 @@ export default function CheckoutPage() {
                           name="phone"
                           render={({ field, fieldState }) => (
                             <FormItem>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className="block text-sm font-medium text-muted-foreground mb-1">
                                 Phone Number{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                               </label>
                               <input
                                 {...field}
                                 type="tel"
                                 placeholder="(+63) 956 955 2808"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                               />
                               {fieldState.error && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                   {fieldState.error.message}
                                 </p>
                               )}
@@ -296,18 +296,18 @@ export default function CheckoutPage() {
                           name="email"
                           render={({ field, fieldState }) => (
                             <FormItem>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className="block text-sm font-medium text-muted-foreground mb-1">
                                 Email Address{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                               </label>
                               <input
                                 {...field}
                                 type="email"
                                 placeholder="juan.delacruz@example.com"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                               />
                               {fieldState.error && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                   {fieldState.error.message}
                                 </p>
                               )}
@@ -319,11 +319,11 @@ export default function CheckoutPage() {
                   </section>
 
                   {/* Pickup Location Choice */}
-                  <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">
                       Choose Pickup Location
                     </h3>
-                    <p className="text-sm sm:text-base text-gray-600 mt-2">
+                    <p className="text-sm sm:text-base text-muted-foreground mt-2">
                       Select a convenient pickup location for your order.
                     </p>
                     <div className="mt-4 space-y-4">
@@ -336,8 +336,8 @@ export default function CheckoutPage() {
                               <label
                                 className={`block border-2 rounded-lg p-4 sm:p-5 cursor-pointer transition-colors ${
                                   field.value === "main"
-                                    ? "border-[#1E392A] bg-[#1E392A]/5"
-                                    : "border-gray-300 hover:border-gray-400"
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-border/80"
                                 }`}
                               >
                                 <input
@@ -348,11 +348,11 @@ export default function CheckoutPage() {
                                   className="sr-only"
                                 />
                                 <div className="flex justify-between items-start mb-3">
-                                  <h4 className="font-semibold text-gray-900 text-sm sm:text-base">
+                                  <h4 className="font-semibold text-foreground text-sm sm:text-base">
                                     MASH Main Pickup Center
                                   </h4>
                                 </div>
-                                <div className="text-gray-700 space-y-1 text-sm sm:text-base">
+                                <div className="text-muted-foreground space-y-1 text-sm sm:text-base">
                                   <p className="font-medium">
                                     Contact: (+63) 956 955 2808
                                   </p>
@@ -361,7 +361,7 @@ export default function CheckoutPage() {
                                     METRO MANILA 1428
                                   </p>
                                   <div className="mt-2">
-                                    <p className="font-medium text-gray-700">
+                                    <p className="font-medium text-muted-foreground">
                                       Operating Hours
                                     </p>
                                     <p>Monday - Saturday: 9:00 AM - 6:00 PM</p>
@@ -371,8 +371,8 @@ export default function CheckoutPage() {
                               <label
                                 className={`mt-4 block border-2 rounded-lg p-4 sm:p-5 cursor-pointer transition-colors ${
                                   field.value === "bgc"
-                                    ? "border-[#1E392A] bg-[#1E392A]/5"
-                                    : "border-gray-300 hover:border-gray-400"
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-border/80"
                                 }`}
                               >
                                 <input
@@ -383,11 +383,11 @@ export default function CheckoutPage() {
                                   className="sr-only"
                                 />
                                 <div className="flex justify-between items-start mb-3">
-                                  <h4 className="font-semibold text-gray-900 text-sm sm:text-base">
+                                  <h4 className="font-semibold text-foreground text-sm sm:text-base">
                                     MASH BGC Pickup Point
                                   </h4>
                                 </div>
-                                <div className="text-gray-700 space-y-1 text-sm sm:text-base">
+                                <div className="text-muted-foreground space-y-1 text-sm sm:text-base">
                                   <p className="font-medium">
                                     Contact: (+63) 917 123 4567
                                   </p>
@@ -396,7 +396,7 @@ export default function CheckoutPage() {
                                     METRO MANILA 1634
                                   </p>
                                   <div className="mt-2">
-                                    <p className="font-medium text-gray-700">
+                                    <p className="font-medium text-muted-foreground">
                                       Operating Hours
                                     </p>
                                     <p>Monday - Sunday: 10:00 AM - 8:00 PM</p>
@@ -415,14 +415,14 @@ export default function CheckoutPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full sm:w-auto px-8 py-3 border-gray-300"
+                      className="w-full sm:w-auto px-8 py-3 border-border"
                       onClick={handleBack}
                     >
                       Back
                     </Button>
                     <Button
                       type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-[#1E392A] hover:bg-[#1E392A]/90 font-semibold"
+                      className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
                       disabled={cartProducts.length === 0}
                       onClick={step1Form.handleSubmit(onStep1Submit)}
                     >
@@ -433,11 +433,11 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   {/* Step 2: Payment Method */}
-                  <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
                       Payment Method
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-600">
+                    <p className="text-sm sm:text-base text-muted-foreground">
                       Select how you would like to pay for your order.
                     </p>
 
@@ -451,8 +451,8 @@ export default function CheckoutPage() {
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                                 field.value === "CASH_ON_DELIVERY"
-                                  ? "border-[#1E392A] bg-[#1E392A]/5"
-                                  : "border-gray-300 hover:border-gray-400"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-border/80"
                               }`}
                             >
                               <input
@@ -463,7 +463,7 @@ export default function CheckoutPage() {
                                 className="sr-only"
                               />
                               <div className="flex items-center gap-3">
-                                <div className="font-medium text-gray-900">
+                                <div className="font-medium text-foreground">
                                   Cash on Pickup
                                 </div>
                               </div>
@@ -473,8 +473,8 @@ export default function CheckoutPage() {
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                                 field.value === "GCASH"
-                                  ? "border-[#1E392A] bg-[#1E392A]/5"
-                                  : "border-gray-300 hover:border-gray-400"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-border/80"
                               }`}
                             >
                               <input
@@ -485,7 +485,7 @@ export default function CheckoutPage() {
                                 className="sr-only"
                               />
                               <div className="flex items-center gap-3">
-                                <div className="font-medium text-gray-900">
+                                <div className="font-medium text-foreground">
                                   Gcash
                                 </div>
                               </div>
@@ -495,8 +495,8 @@ export default function CheckoutPage() {
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                                 field.value === "CREDIT_CARD"
-                                  ? "border-[#1E392A] bg-[#1E392A]/5"
-                                  : "border-gray-300 hover:border-gray-400"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-border/80"
                               }`}
                             >
                               <input
@@ -506,43 +506,43 @@ export default function CheckoutPage() {
                                 onChange={() => field.onChange("CREDIT_CARD")}
                                 className="sr-only"
                               />
-                              <div className="font-medium text-gray-900 mb-4">
+                              <div className="font-medium text-foreground mb-4">
                                 Credit/Debit Cards and E-wallets
                               </div>
 
                               {field.value === "CREDIT_CARD" && (
                                 <div className="space-y-3 mt-4">
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                                       Card Number
                                     </label>
                                     <input
                                       type="text"
                                       placeholder="1234 5678 9012 3456"
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   </div>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         MM/YY
                                       </label>
                                       <input
                                         type="text"
                                         placeholder="12/25"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                                         onClick={(e) => e.stopPropagation()}
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         CVC/CVV
                                       </label>
                                       <input
                                         type="text"
                                         placeholder="123"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6A994E] focus:border-[#6A994E] outline-none"
+                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                                         onClick={(e) => e.stopPropagation()}
                                       />
                                     </div>
@@ -561,7 +561,7 @@ export default function CheckoutPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full sm:w-auto px-8 py-3 border-gray-300"
+                      className="w-full sm:w-auto px-8 py-3 border-border"
                       onClick={handleBack}
                       disabled={submitting}
                     >
@@ -569,7 +569,7 @@ export default function CheckoutPage() {
                     </Button>
                     <Button
                       type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-[#1E392A] hover:bg-[#1E392A]/90 font-semibold"
+                      className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
                       disabled={submitting || cartProducts.length === 0}
                       onClick={step2Form.handleSubmit(onStep2Submit)}
                     >
@@ -582,26 +582,26 @@ export default function CheckoutPage() {
 
             {/* Right: Summary */}
             <div className="lg:w-2/5 w-full">
-              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 border-b border-gray-200 pb-3 sm:pb-4">
+              <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
+                <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
                   Summary
                 </h2>
                 <div className="mt-4 space-y-4">
                   {loading ? (
                     <div className="text-center py-8">
                       <LoadingSpinner className="mx-auto mb-4" />
-                      <p className="text-gray-600">Loading cart items...</p>
+                      <p className="text-muted-foreground">Loading cart items...</p>
                     </div>
                   ) : error ? (
                     <div className="text-center py-8">
-                      <p className="text-red-600 mb-4">Error: {error}</p>
+                      <p className="text-destructive mb-4">Error: {error}</p>
                       <Button onClick={() => window.location.reload()}>
                         Try Again
                       </Button>
                     </div>
                   ) : cartProducts.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-600">Your cart is empty</p>
+                      <p className="text-muted-foreground">Your cart is empty</p>
                     </div>
                   ) : (
                     cartProducts.map((product) => {
@@ -623,14 +623,14 @@ export default function CheckoutPage() {
                             className="w-12 h-12 sm:w-14 sm:h-14 rounded-md object-cover flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm sm:text-base line-clamp-2">
+                            <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
                               {product.name}
                             </p>
-                            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                               Quantity: {cartItem.quantity}
                             </p>
                           </div>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base flex-shrink-0">
+                          <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
                             ₱{(product.price * cartItem.quantity).toFixed(2)}
                           </p>
                         </div>
@@ -639,7 +639,7 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <div className="mt-6 border-t border-gray-200 pt-4 space-y-2 text-sm sm:text-base text-gray-700">
+                <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
                   <div className="flex justify-between">
                     <p>
                       Subtotal (
@@ -658,7 +658,7 @@ export default function CheckoutPage() {
                     <p className="font-medium">₱{summary.tax.toFixed(2)}</p>
                   </div>
                 </div>
-                <div className="mt-4 border-t border-gray-200 pt-4 flex justify-between items-center font-bold text-gray-900 text-base sm:text-lg">
+                <div className="mt-4 border-t border-border pt-4 flex justify-between items-center font-bold text-foreground text-base sm:text-lg">
                   <p>Total Fee</p>
                   <p>₱{summary.total.toFixed(2)}</p>
                 </div>
@@ -671,7 +671,7 @@ export default function CheckoutPage() {
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
+          <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
                 className="w-8 h-8 text-green-600"
@@ -687,10 +687,10 @@ export default function CheckoutPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               Checkout successful!
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               The seller(s) will be notified with your new order!
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -705,7 +705,7 @@ export default function CheckoutPage() {
                 Continue Shopping
               </Button>
               <Button
-                className="flex-1 bg-[#1E392A] hover:bg-[#1E392A]/90"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
                   setShowSuccessModal(false);
                   router.push("/profile/orders");

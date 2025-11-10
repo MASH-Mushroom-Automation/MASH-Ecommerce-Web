@@ -52,7 +52,7 @@ export default function SellerDashboard() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <LoadingSpinner size="lg" className="mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard data...</p>
+          <p className="text-muted-foreground">Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ export default function SellerDashboard() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600 mb-4">Error: {error}</p>
+        <p className="text-destructive mb-4">Error: {error}</p>
         <Button onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
@@ -70,8 +70,8 @@ export default function SellerDashboard() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div className="text-sm text-muted-foreground">
           Last updated: {new Date().toLocaleString()}
         </div>
       </div>
@@ -139,14 +139,14 @@ export default function SellerDashboard() {
                   formatter={(value) => [`₱${value}`, "Sales"]}
                   labelFormatter={(label) => `Day: ${label}`}
                 />
-                <Bar dataKey="sales" fill="#6A994E" />
+                <Bar dataKey="sales" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
           <CardFooter>
             <Link
               href="/seller/orders"
-              className="text-sm text-[#1E392A] font-medium flex items-center hover:underline"
+              className="text-sm text-primary font-medium flex items-center hover:underline"
             >
               View all sales <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
@@ -188,7 +188,7 @@ export default function SellerDashboard() {
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#1E392A"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
                 />
               </LineChart>
@@ -197,7 +197,7 @@ export default function SellerDashboard() {
           <CardFooter>
             <Link
               href="#"
-              className="text-sm text-[#1E392A] font-medium flex items-center hover:underline"
+              className="text-sm text-primary font-medium flex items-center hover:underline"
             >
               View detailed reports <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
@@ -231,15 +231,14 @@ export default function SellerDashboard() {
                   <TableCell className="text-right">
                     {product.stock === 0 ? (
                       <Badge
-                        variant="outline"
-                        className="bg-red-100 text-red-800 hover:bg-red-100"
+                        variant="destructive"
                       >
                         Out of Stock
                       </Badge>
                     ) : product.stock < 20 ? (
                       <Badge
                         variant="outline"
-                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                        className="bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 hover:bg-yellow-100/10 border-yellow-300"
                       >
                         Low: {product.stock}
                       </Badge>
@@ -297,12 +296,17 @@ export default function SellerDashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge
+                      variant={
+                        order.status === "Pending"
+                          ? "outline"
+                          : "secondary"
+                      }
                       className={
                         order.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
                           : order.status === "Processing"
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                          : "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                          ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
+                          : "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
                       }
                     >
                       {order.status}
@@ -361,27 +365,27 @@ function StatsCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-gray-500">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className="p-2 bg-gray-100 rounded-full">{icon}</div>
+        <div className="p-2 bg-muted rounded-full">{icon}</div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         <div className="flex items-center mt-1">
           {trend === "up" ? (
-            <ArrowUpRight className="h-4 w-4 text-green-600 mr-1" />
+            <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-500 mr-1" />
           ) : (
-            <ArrowDownRight className="h-4 w-4 text-red-600 mr-1" />
+            <ArrowDownRight className="h-4 w-4 text-destructive mr-1" />
           )}
           <p
             className={`text-sm ${
-              trend === "up" ? "text-green-600" : "text-red-600"
+              trend === "up" ? "text-green-600 dark:text-green-500" : "text-destructive"
             }`}
           >
             {change}
           </p>
-          <p className="text-xs text-gray-500 ml-2">{description}</p>
+          <p className="text-xs text-muted-foreground ml-2">{description}</p>
         </div>
       </CardContent>
     </Card>

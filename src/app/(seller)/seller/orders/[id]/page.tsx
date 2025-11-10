@@ -112,13 +112,13 @@ const STATUS_OPTIONS: { value: SellerOrderStatus; label: string }[] = [
 ];
 
 const statusColorMap: Record<SellerOrderStatus, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-blue-100 text-blue-800",
-  PROCESSING: "bg-purple-100 text-purple-800",
-  SHIPPED: "bg-indigo-100 text-indigo-800",
-  DELIVERED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-  REFUNDED: "bg-gray-100 text-gray-800",
+  PENDING: "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border border-yellow-300",
+  CONFIRMED: "bg-blue-100/10 text-blue-700 dark:text-blue-600 border border-blue-300",
+  PROCESSING: "bg-purple-100/10 text-purple-700 dark:text-purple-600 border border-purple-300",
+  SHIPPED: "bg-indigo-100/10 text-indigo-700 dark:text-indigo-600 border border-indigo-300",
+  DELIVERED: "bg-green-100/10 text-green-700 dark:text-green-600 border border-green-300",
+  CANCELLED: "",
+  REFUNDED: "bg-muted text-muted-foreground border border-border",
 };
 
 const getStatusIcon = (status: SellerOrderStatus) => {
@@ -221,7 +221,7 @@ export default function OrderDetails() {
   if (!displayOrder) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center">
-        <p className="text-gray-600">Order not found.</p>
+        <p className="text-muted-foreground">Order not found.</p>
         <Button variant="outline" onClick={() => router.back()}>
           Back to Orders
         </Button>
@@ -243,10 +243,10 @@ export default function OrderDetails() {
           Back to Orders
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Order Details - {displayOrder.id}
           </h1>
-          <p className="text-gray-500">Order placed on {formatDate(displayOrder.date)}</p>
+          <p className="text-muted-foreground">Order placed on {formatDate(displayOrder.date)}</p>
         </div>
       </div>
 
@@ -303,7 +303,6 @@ export default function OrderDetails() {
                       <Button
                         onClick={handleStatusUpdate}
                         disabled={isUpdating}
-                        className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                       >
                         {isUpdating ? "Updating..." : "Update Status"}
                       </Button>
@@ -314,10 +313,13 @@ export default function OrderDetails() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <Badge className={statusColorMap[displayOrder.status] ?? "bg-gray-100 text-gray-800"}>
+                <Badge 
+                  variant={displayOrder.status === "CANCELLED" ? "destructive" : "outline"}
+                  className={statusColorMap[displayOrder.status] ?? "bg-muted text-muted-foreground border border-border"}
+                >
                   {displayOrder.status}
                 </Badge>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   Last updated{" "}
                   {displayOrder.timeline.length > 0
                     ? formatDateTime(displayOrder.timeline[displayOrder.timeline.length - 1]!.date)
@@ -350,12 +352,12 @@ export default function OrderDetails() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
-                            <Package className="h-6 w-6 text-gray-400" />
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                            <Package className="h-6 w-6 text-muted-foreground" />
                           </div>
                           <div>
                             <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                               ID: {item.id}
                             </p>
                           </div>
@@ -389,15 +391,15 @@ export default function OrderDetails() {
               <div className="space-y-4">
                 {displayOrder.timeline.map((event, index) => (
                   <div key={`${event.status}-${index}`} className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-100/10 border border-blue-300 rounded-full flex items-center justify-center flex-shrink-0">
                       {getStatusIcon(event.status as SellerOrderStatus)}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{event.status}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {formatDateTime(event.date)}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {event.description}
                       </p>
                     </div>
@@ -421,21 +423,21 @@ export default function OrderDetails() {
                 Details shared between seller and buyer for the handover
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-gray-600">
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-gray-400" />
+                <Package className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Method:</span>
                 <span>{displayOrder.coordination.method}</span>
               </div>
               <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="font-medium">Location</p>
                   <p>{displayOrder.coordination.location}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <CalendarDays className="h-4 w-4 text-gray-400 mt-0.5" />
+                <CalendarDays className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="font-medium">Preferred Schedule</p>
                   <p>
@@ -444,19 +446,19 @@ export default function OrderDetails() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
+                <User className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Contact Person:</span>
                 <span>{displayOrder.coordination.contactPerson}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Contact Number:</span>
                 <span>{displayOrder.coordination.contactNumber}</span>
               </div>
               {displayOrder.coordination.instructions && (
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="font-medium text-gray-700">Additional Instructions</p>
-                  <p className="mt-1 text-gray-600">
+                <div className="pt-2 border-t border-border">
+                  <p className="font-medium text-foreground">Additional Instructions</p>
+                  <p className="mt-1 text-muted-foreground">
                     {displayOrder.coordination.instructions}
                   </p>
                 </div>
@@ -474,19 +476,19 @@ export default function OrderDetails() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
+                <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{displayOrder.customer.name}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-400" />
+                <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{displayOrder.customer.email}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{displayOrder.customer.phone}</span>
               </div>
               <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <span className="text-sm">{displayOrder.customer.address}</span>
               </div>
             </CardContent>
@@ -503,17 +505,17 @@ export default function OrderDetails() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm font-medium">Method</p>
-                <p className="text-sm text-gray-600">{displayOrder.payment.method}</p>
+                <p className="text-sm text-muted-foreground">{displayOrder.payment.method}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Status</p>
-                <Badge className="bg-green-100 text-green-800">
+                <Badge variant="outline" className="bg-green-100/10 text-green-700 dark:text-green-600 border-green-300">
                   {displayOrder.payment.status}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm font-medium">Transaction ID</p>
-                <p className="text-sm text-gray-600 font-mono">
+                <p className="text-sm text-muted-foreground font-mono">
                   {displayOrder.payment.transactionId}
                 </p>
               </div>
@@ -561,7 +563,7 @@ export default function OrderDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">{displayOrder.notes}</p>
+                <p className="text-sm text-muted-foreground">{displayOrder.notes}</p>
               </CardContent>
             </Card>
           )}

@@ -48,15 +48,15 @@ export const CMSHeroSection: React.FC<CMSHeroSectionProps> = ({ data }) => {
   const getButtonClasses = (variant: string) => {
     switch (variant) {
       case 'primary':
-        return 'bg-[#6A994E] hover:bg-[#6A994E]/90 text-white';
+        return 'bg-primary hover:bg-primary/90 text-primary-foreground';
       case 'secondary':
-        return 'bg-gray-600 hover:bg-gray-700 text-white';
+        return 'bg-secondary hover:bg-secondary/90 text-secondary-foreground';
       case 'outline':
-        return 'border-2 border-white text-black hover:bg-white hover:text-[#1E392A]';
+        return 'border-2 border-primary-foreground text-foreground hover:bg-primary-foreground hover:text-primary';
       case 'ghost':
-        return 'text-white hover:bg-white/10';
+        return 'text-primary-foreground hover:bg-primary-foreground/10';
       default:
-        return 'bg-[#6A994E] hover:bg-[#6A994E]/90 text-white';
+        return 'bg-primary hover:bg-primary/90 text-primary-foreground';
     }
   };
 

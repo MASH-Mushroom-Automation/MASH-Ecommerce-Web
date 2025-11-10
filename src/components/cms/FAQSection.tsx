@@ -23,13 +23,13 @@ interface CMSFAQSectionProps {
 export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, error }) => {
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Header Skeleton */}
           <div className="text-center mb-8 sm:mb-12">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-80 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-300 rounded w-96 mx-auto"></div>
+              <div className="h-8 bg-muted rounded w-80 mx-auto mb-4"></div>
+              <div className="h-4 bg-muted rounded w-96 mx-auto"></div>
             </div>
           </div>
 
@@ -39,15 +39,15 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
               <Card key={i}>
                 <CardHeader>
                   <div className="animate-pulse">
-                    <div className="h-6 bg-gray-300 rounded w-48 mb-2"></div>
+                    <div className="h-6 bg-muted rounded w-48 mb-2"></div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {[1, 2, 3].map((j) => (
                       <div key={j} className="animate-pulse">
-                        <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
-                        <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+                        <div className="h-4 bg-muted rounded w-full mb-2"></div>
+                        <div className="h-3 bg-muted rounded w-3/4"></div>
                       </div>
                     ))}
                   </div>
@@ -62,10 +62,10 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
 
   if (error) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-destructive mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -75,20 +75,20 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
 
   if (faqs.length === 0) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               Frequently Asked Questions
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Find answers to common questions about ordering, delivery, products,
               and more.
             </p>
           </div>
 
           <div className="text-center">
-            <p className="text-lg text-gray-600">No FAQ content available.</p>
+            <p className="text-lg text-muted-foreground">No FAQ content available.</p>
           </div>
         </div>
       </div>
@@ -96,14 +96,14 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-background min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Find answers to common questions about ordering, delivery, products,
             and more.
           </p>
@@ -117,7 +117,7 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
             .map((category) => (
               <Card key={category.id}>
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#1E392A]">
+                  <CardTitle className="text-xl text-primary">
                     {category.name}
                   </CardTitle>
                 </CardHeader>
@@ -128,10 +128,10 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
                       .sort((a, b) => a.displayOrder - b.displayOrder)
                       .map((item) => (
                         <AccordionItem key={item.id} value={`item-${category.id}-${item.id}`}>
-                          <AccordionTrigger className="text-left font-semibold text-gray-900">
+                          <AccordionTrigger className="text-left font-semibold text-foreground">
                             {item.question}
                           </AccordionTrigger>
-                          <AccordionContent className="text-gray-600">
+                          <AccordionContent className="text-muted-foreground">
                             {item.answer}
                           </AccordionContent>
                         </AccordionItem>
@@ -143,16 +143,16 @@ export const CMSFAQSection: React.FC<CMSFAQSectionProps> = ({ faqs, loading, err
         </div>
 
         {/* Contact CTA */}
-        <Card className="mt-8 bg-[#1E392A] text-white">
+        <Card className="mt-8 bg-primary text-primary-foreground">
           <CardContent className="p-8 text-center">
             <MessageCircle className="h-12 w-12 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
-            <p className="text-gray-200 mb-6">
+            <p className="text-primary-foreground/80 mb-6">
               Can&apos;t find the answer you&apos;re looking for? Our customer
               support team is here to help.
             </p>
             <Link href="/contact">
-              <Button className="bg-white text-[#1E392A] hover:bg-gray-100">
+              <Button className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                 Contact Support
               </Button>
             </Link>

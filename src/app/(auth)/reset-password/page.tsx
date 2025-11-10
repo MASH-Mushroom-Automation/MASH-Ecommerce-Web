@@ -57,19 +57,19 @@ export default function ResetPasswordPage() {
   return (
     <>
       {/* Card */}
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-card rounded-lg shadow-md p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <KeyRound className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             Create New Password
           </h2>
-          <p className="text-center text-gray-600 text-sm mb-8">
+          <p className="text-center text-muted-foreground text-sm mb-8">
             You&apos;re setting a new password for your account. <br />
             You&apos;ll use it next time you sign in.
           </p>
@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Password
               </label>
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
                 placeholder="Create a new password"
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Confirm Password
               </label>
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
                 placeholder="Confirm your new password"
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.confirmPassword.message}
                 </p>
               )}
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
             >
               {isSubmitting ? "Saving..." : "Reset Password"}
             </Button>

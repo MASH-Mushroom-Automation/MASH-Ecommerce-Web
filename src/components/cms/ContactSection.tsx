@@ -159,32 +159,32 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
     switch (info.type) {
       case "phone":
         return (
-          <a href={`tel:${info.value}`} className="text-[#1E392A] font-semibold hover:underline">
+          <a href={`tel:${info.value}`} className="text-primary font-semibold hover:underline">
             {info.value}
           </a>
         );
       case "email":
         return (
-          <a href={`mailto:${info.value}`} className="text-[#1E392A] font-semibold hover:underline">
+          <a href={`mailto:${info.value}`} className="text-primary font-semibold hover:underline">
             {info.value}
           </a>
         );
       case "address":
-        return <span className="text-[#1E392A] font-semibold">{info.value}</span>;
+        return <span className="text-primary font-semibold">{info.value}</span>;
       default:
-        return <span className="text-[#1E392A] font-semibold">{info.value}</span>;
+        return <span className="text-primary font-semibold">{info.value}</span>;
     }
   };
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Header Skeleton */}
           <div className="text-center mb-8 sm:mb-12">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-64 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-300 rounded w-96 mx-auto"></div>
+              <div className="h-8 bg-muted rounded w-64 mx-auto mb-4"></div>
+              <div className="h-4 bg-muted rounded w-96 mx-auto"></div>
             </div>
           </div>
 
@@ -192,14 +192,14 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse">
-                <div className="h-32 bg-gray-300 rounded"></div>
+                <div className="h-32 bg-muted rounded"></div>
               </div>
             ))}
           </div>
 
           {/* Form Skeleton */}
           <div className="animate-pulse">
-            <div className="h-96 bg-gray-300 rounded"></div>
+            <div className="h-96 bg-muted rounded"></div>
           </div>
         </div>
       </div>
@@ -208,10 +208,10 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
 
   if (error) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-destructive mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -220,14 +220,14 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-background min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Contact Us
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Have a question or feedback? We&apos;d love to hear from you. Send
             us a message and we&apos;ll respond within 24 hours.
           </p>
@@ -238,11 +238,11 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
           {safeContactInfo.map((info) => (
             <Card key={info.id}>
               <CardContent className="p-6 text-center">
-                <div className="bg-[#6A994E] text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <div className="bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   {getContactIcon(info.type)}
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{info.title}</h3>
-                <p className="text-gray-600 text-sm mb-1">{info.description}</p>
+                <h3 className="font-semibold text-foreground mb-2">{info.title}</h3>
+                <p className="text-muted-foreground text-sm mb-1">{info.description}</p>
                 {renderContactValue(info)}
               </CardContent>
             </Card>
@@ -253,7 +253,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
           {/* Contact Form */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#1E392A]">
+              <CardTitle className="text-2xl text-primary">
                 Send us a Message
               </CardTitle>
             </CardHeader>
@@ -267,7 +267,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                     {...register("name")}
                   />
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-destructive">
                       {errors.name.message}
                     </p>
                   )}
@@ -282,7 +282,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                     {...register("email")}
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-destructive">
                       {errors.email.message}
                     </p>
                   )}
@@ -319,7 +319,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                     )}
                   />
                   {errors.subject && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-destructive">
                       {errors.subject.message}
                     </p>
                   )}
@@ -334,7 +334,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                     {...register("message")}
                   />
                   {errors.message && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-destructive">
                       {errors.message.message}
                     </p>
                   )}
@@ -343,7 +343,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#6A994E] hover:bg-[#5A8A3E]"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
@@ -356,19 +356,19 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
             {/* Business Hours */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl text-[#1E392A]">
+                <CardTitle className="text-xl text-primary">
                   Business Hours
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {safeBusinessHours.map((hours) => (
                     <div key={hours.id} className="flex justify-between items-center">
-                      <span className="text-gray-600 capitalize">
+                      <span className="text-muted-foreground capitalize">
                         {hours.dayOfWeek}
                       </span>
                       <span
                         className={`font-semibold ${
-                          hours.isClosed ? "text-red-600" : "text-gray-900"
+                          hours.isClosed ? "text-destructive" : "text-foreground"
                         }`}
                       >
                         {hours.isClosed
@@ -383,12 +383,12 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
             {/* Social Links */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl text-[#1E392A]">
+                <CardTitle className="text-xl text-primary">
                   Follow Us
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Stay updated with our latest products, recipes, and growing
                   tips on social media.
                 </p>
@@ -409,18 +409,18 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
             </Card>
 
             {/* Partnership CTA */}
-            <Card className="bg-[#1E392A] text-white">
+            <Card className="bg-primary text-primary-foreground">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-2">
                   Interested in Becoming a Grower?
                 </h3>
-                <p className="text-gray-200 text-sm mb-4">
+                <p className="text-primary-foreground/80 text-sm mb-4">
                   Join our network of mushroom growers and reach more customers
                   through MASH.
                 </p>
                 <Button
                   variant="outline"
-                  className="w-full bg-white text-[#1E392A] hover:bg-gray-100"
+                  className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 >
                   Learn About Partnership
                 </Button>

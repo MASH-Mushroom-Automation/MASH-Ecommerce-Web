@@ -203,7 +203,7 @@ export default function MyInformationPage() {
 
   return (
     <>
-      <Card className="bg-white">
+      <Card className="bg-card">
         <CardContent className="p-6 sm:p-8 space-y-8">
           {saveError && (
             <Alert variant="destructive">
@@ -215,19 +215,19 @@ export default function MyInformationPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-[#1E392A]" />
+                <User className="h-5 w-5 text-primary" />
                 <div>
-                  <h2 className="text-xl font-bold text-[#212121]">
+                  <h2 className="text-xl font-bold text-foreground">
                     Account Information
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     You can change your information here seamlessly
                   </p>
                 </div>
               </div>
               
               <div className="flex flex-col items-center justify-center w-full py-6">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 relative">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-muted/30 relative">
                   <Image
                     src={profile?.avatar || FALLBACK_DATA.avatar}
                     alt="Profile picture"
@@ -259,7 +259,7 @@ export default function MyInformationPage() {
                     }}
                   />
                 </div>
-                <p className="text-sm text-gray-500 mt-3 flex items-center gap-1.5">
+                <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1.5">
                   <Camera className="w-4 h-4" />
                   Click photo to update profile picture
                 </p>
@@ -271,7 +271,7 @@ export default function MyInformationPage() {
                 <div>
                   <Label
                     htmlFor="firstName"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     First Name
                   </Label>
@@ -290,7 +290,7 @@ export default function MyInformationPage() {
                 <div>
                   <Label
                     htmlFor="lastName"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     Last Name
                   </Label>
@@ -347,7 +347,7 @@ export default function MyInformationPage() {
                 <div>
                   <Label
                     htmlFor="newPassword"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     New Password
                   </Label>
@@ -368,7 +368,7 @@ export default function MyInformationPage() {
                 <div>
                   <Label
                     htmlFor="confirmPassword"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-muted-foreground"
                   >
                     Confirm New Password
                   </Label>
@@ -393,10 +393,10 @@ export default function MyInformationPage() {
           {/* My Address Section */}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <MapPin className="h-5 w-5 text-[#1E392A]" />
-              <h2 className="text-xl font-bold text-[#212121]">My Address</h2>
+              <MapPin className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">My Address</h2>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               We&apos;ll ship your orders to this address.
             </p>
 
@@ -519,21 +519,21 @@ export default function MyInformationPage() {
 
           {/* Action Buttons - Only show when there are changes */}
           {hasChanges && (
-            <div className="flex items-center justify-between bg-[#1E392A] px-6 py-4 rounded-lg -mx-8 -mb-8 mt-8">
-              <p className="text-white text-sm">You have unsaved changes.</p>
+            <div className="flex items-center justify-between bg-primary px-6 py-4 rounded-lg -mx-8 -mb-8 mt-8">
+              <p className="text-primary-foreground text-sm">You have unsaved changes.</p>
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={handleDiscard}
                   disabled={isSaving}
-                  className="bg-white text-[#1E392A] hover:bg-gray-100"
+                  className="bg-card text-primary hover:bg-muted/30"
                 >
                   Discard
                 </Button>
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-[#6A994E] hover:bg-[#6A994E]/90 text-white"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   {isSaving ? (
                     <>
@@ -557,15 +557,15 @@ export default function MyInformationPage() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-[#212121] mb-2">
+            <DialogTitle className="text-2xl font-bold text-foreground mb-2">
               Successful
             </DialogTitle>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Changes in the account details has been updated
             </p>
             <Button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Great!
             </Button>

@@ -7,7 +7,7 @@ export function Skeleton({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-gray-200", className)}
+      className={cn("animate-pulse rounded-md bg-muted", className)}
       {...props}
     />
   );
@@ -15,9 +15,9 @@ export function Skeleton({
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm flex flex-col h-full">
+    <div className="bg-background rounded-lg overflow-hidden border border-border shadow-sm flex flex-col h-full">
       {/* Image skeleton */}
-      <div className="aspect-square bg-gray-200 animate-pulse" />
+      <div className="aspect-square bg-muted animate-pulse" />
       
       {/* Content skeleton */}
       <div className="p-3 space-y-3 flex-grow">
@@ -26,7 +26,7 @@ export function ProductCardSkeleton() {
       </div>
       
       {/* Price and button skeleton */}
-      <div className="p-3 pt-0 border-t border-gray-100">
+      <div className="p-3 pt-0 border-t border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="space-y-2 flex-1">
             <Skeleton className="h-5 w-20" />
@@ -41,7 +41,7 @@ export function ProductCardSkeleton() {
 
 export function GrowerCardSkeleton() {
   return (
-    <div className="flex flex-col h-full min-h-[380px] overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div className="flex flex-col h-full min-h-[380px] overflow-hidden rounded-lg border border-border bg-background">
       {/* Banner skeleton */}
       <Skeleton className="h-32 w-full rounded-none" />
       
@@ -58,7 +58,7 @@ export function GrowerCardSkeleton() {
         <Skeleton className="h-4 w-48 mx-auto" />
         
         {/* Action links skeleton */}
-        <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-gray-100">
+        <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-border">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-4 w-20" />
         </div>
@@ -89,7 +89,7 @@ export function GrowerListSkeleton({ count = 4 }: { count?: number }) {
 
 export function HeroSkeleton() {
   return (
-    <div className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-gray-100">
+    <div className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-muted">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-6 max-w-3xl px-4">
           {/* Title skeleton */}

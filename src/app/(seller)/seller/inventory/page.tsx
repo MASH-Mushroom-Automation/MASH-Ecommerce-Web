@@ -136,19 +136,19 @@ export default function InventoryPage() {
   const getStatusBadge = (status: Product["status"]) => {
     switch (status) {
       case "in_stock":
-        return <Badge className="bg-green-100 text-green-800">In Stock</Badge>;
+        return <Badge variant="outline" className="bg-green-100/10 text-green-700 dark:text-green-600 border-green-300">In Stock</Badge>;
       case "low_stock":
-        return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>;
+        return <Badge variant="outline" className="bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300">Low Stock</Badge>;
       case "out_of_stock":
-        return <Badge className="bg-red-100 text-red-800">Out of Stock</Badge>;
+        return <Badge variant="destructive">Out of Stock</Badge>;
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-        <Button className="bg-[#1E392A] hover:bg-[#1E392A]/90">
+        <h1 className="text-2xl font-bold text-foreground">Inventory Management</h1>
+        <Button>
           Set Stock Alerts
         </Button>
       </div>
@@ -158,10 +158,10 @@ export default function InventoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Products</p>
-                <h3 className="text-2xl font-bold text-gray-900">{products.length}</h3>
+                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <h3 className="text-2xl font-bold text-foreground">{products.length}</h3>
               </div>
-              <Package className="h-8 w-8 text-[#1E392A]" />
+              <Package className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -170,12 +170,12 @@ export default function InventoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Low Stock Items</p>
-                <h3 className="text-2xl font-bold text-yellow-600">
+                <p className="text-sm font-medium text-muted-foreground">Low Stock Items</p>
+                <h3 className="text-2xl font-bold text-yellow-700 dark:text-yellow-600">
                   {products.filter((p) => p.status === "low_stock").length}
                 </h3>
               </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              <AlertTriangle className="h-8 w-8 text-yellow-700 dark:text-yellow-600" />
             </div>
           </CardContent>
         </Card>
@@ -184,12 +184,12 @@ export default function InventoryPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Out of Stock</p>
-                <h3 className="text-2xl font-bold text-red-600">
+                <p className="text-sm font-medium text-muted-foreground">Out of Stock</p>
+                <h3 className="text-2xl font-bold text-destructive">
                   {products.filter((p) => p.status === "out_of_stock").length}
                 </h3>
               </div>
-              <Bell className="h-8 w-8 text-red-600" />
+              <Bell className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -243,10 +243,10 @@ export default function InventoryPage() {
                     {filteredProducts.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-32 text-center">
-                          <div className="flex flex-col items-center justify-center text-gray-500">
+                          <div className="flex flex-col items-center justify-center text-muted-foreground">
                             <Package className="h-8 w-8 mb-2" />
                             <p className="text-sm">No products found</p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-muted-foreground">
                               Try adjusting your search or filter
                             </p>
                           </div>
@@ -257,7 +257,7 @@ export default function InventoryPage() {
                         <TableRow key={product.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                 <Image
                                   src={product.image}
                                   alt={product.name}
@@ -268,20 +268,20 @@ export default function InventoryPage() {
                               </div>
                               <div>
                                 <div className="font-medium">{product.name}</div>
-                                <div className="text-sm text-gray-500">{product.category}</div>
+                                <div className="text-sm text-muted-foreground">{product.category}</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">{product.stock}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               Threshold: {product.threshold}
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(product.status)}</TableCell>
                           <TableCell className="hidden md:table-cell">
                             <div className="text-sm">{formatDate(product.lastUpdated)}</div>
-                            <div className="text-xs text-gray-500">{formatTime(product.lastUpdated)}</div>
+                            <div className="text-xs text-muted-foreground">{formatTime(product.lastUpdated)}</div>
                           </TableCell>
                           <TableCell>
                             <AlertDialog>
@@ -317,7 +317,6 @@ export default function InventoryPage() {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                                     onClick={async () => {
                                       const quantity = parseInt(newStockValue[product.id] || "0");
                                       if (isNaN(quantity) || quantity < 0) {
@@ -402,7 +401,7 @@ export default function InventoryPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-medium">{product.name}</h4>
-                          <div className="text-sm text-gray-500 mt-1">
+                          <div className="text-sm text-muted-foreground mt-1">
                             Alert when stock falls below {product.threshold} units
                           </div>
                         </div>
@@ -426,11 +425,11 @@ export default function InventoryPage() {
             <CardContent>
               <div className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-lg">
                 <div className="text-center">
-                  <LineChart className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  <LineChart className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-medium text-foreground">
                     Stock Analytics
                   </h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Coming soon! Track your inventory trends and get insights.
                   </p>
                 </div>

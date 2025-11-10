@@ -34,7 +34,7 @@ export default function OnboardingCookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full">
         {/* Logo */}
         <div className="mb-8 flex justify-between items-center">
@@ -47,33 +47,33 @@ export default function OnboardingCookingPage() {
               className="h-10 w-auto"
             />
           </Link>
-          <span className="text-sm text-gray-600">Seller Registration</span>
+          <span className="text-sm text-muted-foreground">Seller Registration</span>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-lg shadow-md p-12">
+        <div className="bg-background rounded-lg shadow-md p-12">
           {/* Step Number */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full w-12 h-12 flex items-center justify-center text-white font-bold text-xl">
+            <div className="bg-accent rounded-full w-12 h-12 flex items-center justify-center text-accent-foreground font-bold text-xl">
               2
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             How do you like to cook?
           </h2>
-          <h3 className="text-lg text-center text-gray-700 mb-1">
+          <h3 className="text-lg text-center text-foreground mb-1">
             (Select a few)
           </h3>
-          <p className="text-center text-gray-600 text-sm mb-8">
+          <p className="text-center text-muted-foreground text-sm mb-8">
             Help us recommend recipes and products you&apos;ll love!
           </p>
 
           {/* Progress Bar */}
           <div className="flex justify-center gap-2 mb-8">
-            <div className="w-16 h-2 rounded-full bg-[#6A994E]"></div>
-            <div className="w-16 h-2 rounded-full bg-[#6A994E]"></div>
+            <div className="w-16 h-2 rounded-full bg-accent"></div>
+            <div className="w-16 h-2 rounded-full bg-accent"></div>
           </div>
 
           {/* Cooking Preferences Grid */}
@@ -87,11 +87,11 @@ export default function OnboardingCookingPage() {
                   onClick={() => togglePreference(style.id)}
                   className={`flex items-center justify-between p-5 border-2 rounded-lg cursor-pointer transition-all ${
                     isSelected
-                      ? "border-[#1E392A] bg-[#F5F5DC]"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "border-primary bg-accent/10"
+                      : "border-border hover:border-border/80"
                   }`}
                 >
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-foreground">
                     {style.label}
                   </span>
                   <Checkbox
@@ -107,7 +107,7 @@ export default function OnboardingCookingPage() {
           <div className="space-y-4 max-w-sm mx-auto">
             <Button
               onClick={handleNext}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full py-6 rounded-lg font-semibold"
             >
               Next
             </Button>
@@ -115,7 +115,7 @@ export default function OnboardingCookingPage() {
             <Button
               onClick={handleBack}
               variant="outline"
-              className="w-full py-6 border-[#6A994E] text-[#6A994E] hover:bg-[#6A994E]/10"
+              className="w-full py-6 border-accent text-accent hover:bg-accent/10"
             >
               Back
             </Button>

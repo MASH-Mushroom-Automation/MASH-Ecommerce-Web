@@ -359,8 +359,8 @@ export default function SellerSettings() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6A994E] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading settings...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading settings...</p>
         </div>
       </div>
     );
@@ -369,7 +369,7 @@ export default function SellerSettings() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -395,7 +395,7 @@ export default function SellerSettings() {
                   <div>
                     <Label htmlFor="store-logo">Store Logo</Label>
                     <div className="flex items-center gap-4 mt-2">
-                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-gray-200">
+                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
                         <Image
                           src={sellerData.logo}
                           alt="Store logo"
@@ -406,7 +406,7 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="logo-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingLogo ? "Uploading..." : "Upload Logo"}
@@ -419,7 +419,7 @@ export default function SellerSettings() {
                           onChange={handleLogoUpload}
                           disabled={uploadingLogo}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Recommended: 500x500px, max 2MB
                         </p>
                       </div>
@@ -429,7 +429,7 @@ export default function SellerSettings() {
                   <div>
                     <Label htmlFor="store-banner">Store Banner</Label>
                     <div className="mt-2">
-                      <div className="relative h-40 w-full rounded-lg overflow-hidden border border-gray-200 mb-2">
+                      <div className="relative h-40 w-full rounded-lg overflow-hidden border border-border mb-2">
                         <Image
                           src={sellerData.banner}
                           alt="Store banner"
@@ -440,7 +440,7 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="banner-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingBanner ? "Uploading..." : "Upload Banner"}
@@ -453,7 +453,7 @@ export default function SellerSettings() {
                           onChange={handleBannerUpload}
                           disabled={uploadingBanner}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Recommended: 1200x300px, max 5MB
                         </p>
                       </div>
@@ -464,7 +464,7 @@ export default function SellerSettings() {
                     <div>
                       <Label htmlFor="store-name">Store Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-name"
                           placeholder="Your store name"
@@ -484,7 +484,7 @@ export default function SellerSettings() {
                     <div>
                       <Label htmlFor="store-email">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-email"
                           type="email"
@@ -507,7 +507,7 @@ export default function SellerSettings() {
                     <div>
                       <Label htmlFor="store-phone">Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-phone"
                           placeholder="e.g., 09123456789"
@@ -527,7 +527,7 @@ export default function SellerSettings() {
                     <div>
                       <Label htmlFor="store-website">Website (Optional)</Label>
                       <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-website"
                           placeholder="https://yourwebsite.com"
@@ -575,7 +575,7 @@ export default function SellerSettings() {
                       }
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       This description will appear on your store profile page.
                     </p>
                   </div>
@@ -584,7 +584,6 @@ export default function SellerSettings() {
               <CardFooter className="flex justify-end">
                 <Button
                   type="submit"
-                  className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                   disabled={saving}
                 >
                   <Save className="mr-2 h-4 w-4" />
@@ -702,7 +701,6 @@ export default function SellerSettings() {
               <CardFooter className="flex justify-end">
                 <Button
                   type="submit"
-                  className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                   disabled={saving}
                 >
                   <Save className="mr-2 h-4 w-4" />
@@ -730,7 +728,7 @@ export default function SellerSettings() {
                       <h4 className="text-sm font-medium">
                         New Order Notifications
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receive notifications when a new order is placed.
                       </p>
                     </div>
@@ -750,7 +748,7 @@ export default function SellerSettings() {
                       <h4 className="text-sm font-medium">
                         Message Notifications
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receive notifications when you get new messages from
                         customers.
                       </p>
@@ -769,7 +767,7 @@ export default function SellerSettings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-medium">Platform Updates</h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receive notifications about MASH platform updates and
                         new features.
                       </p>
