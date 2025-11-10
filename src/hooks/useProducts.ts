@@ -40,8 +40,11 @@ export function useProducts(
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
+      console.log('[useProducts] Fetching products with params:', params);
       const response: ApiResponse<ProductApiResponse[]> =
         await ProductsApi.getProducts(params);
+
+      console.log('[useProducts] Response:', response);
 
       setState({
         products: response.data,
@@ -50,6 +53,7 @@ export function useProducts(
         pagination: response.pagination || null,
       });
     } catch (error) {
+      console.error('[useProducts] Error fetching products:', error);
       setState({
         products: [],
         loading: false,

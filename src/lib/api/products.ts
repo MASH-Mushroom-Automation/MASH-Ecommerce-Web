@@ -73,8 +73,6 @@ function convertBackendProduct(backendProduct: BackendProductResponse): ProductA
   };
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
-
 // For now, we'll use mock data but structure it for easy CMS integration
 const MOCK_PRODUCTS: ProductApiResponse[] = [
   {
@@ -450,18 +448,33 @@ export class ProductsApi {
 
     // Use real Railway backend API
     try {
+      console.log('[ProductsApi] Fetching from backend with params:', params);
+      console.log('[ProductsApi] API URL:', process.env.NEXT_PUBLIC_API_URL);
+      console.log('[ProductsApi] USE_MOCK_DATA:', USE_MOCK_DATA);
+      
+      // Build query params that match backend API expectations
+      const queryParams: Record<string, string | number | boolean | undefined> = {
+        page: params.page || 1,
+        limit: params.limit || 12,
+      };
+
+      // Only add optional params if they exist
+      if (params.search) queryParams.search = params.search;
+      if (params.category) queryParams.categoryId = params.category; // Backend expects categoryId
+      if (params.sortBy) queryParams.sortBy = params.sortBy;
+      if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+      
+      // Backend now supports minPrice/maxPrice filtering
+      if (params.minPrice !== undefined) queryParams.minPrice = params.minPrice;
+      if (params.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
+      
+      console.log('[ProductsApi] Sending query params:', queryParams);
+      
       const response = await apiClient.get<BackendResponse<ProductsData>>('/products', {
-        params: {
-          page: params.page || 1,
-          limit: params.limit || 12,
-          search: params.search,
-          category: params.category,
-          minPrice: params.minPrice,
-          maxPrice: params.maxPrice,
-          sortBy: params.sortBy,
-          sortOrder: params.sortOrder,
-        },
+        params: queryParams,
       });
+
+      console.log('[ProductsApi] Backend response:', response.data);
 
       const { data, meta } = response.data.data;
 
