@@ -23,14 +23,14 @@ export default function ProfileLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="bg-white">
+            <Card className="bg-card">
               <CardContent className="p-6">
-                <h1 className="text-2xl font-bold text-[#212121] mb-6">
+                <h1 className="text-2xl font-bold text-foreground mb-6">
                   Account
                 </h1>
 
@@ -40,8 +40,8 @@ export default function ProfileLayout({
                     href="/profile/my-information"
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       pathname === "/profile/my-information"
-                        ? "bg-[#E8E8E8] text-[#212121]"
-                        : "text-gray-600 hover:bg-gray-50"
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted/30"
                     }`}
                   >
                     <CircleUser className="h-5 w-5" />
@@ -51,8 +51,8 @@ export default function ProfileLayout({
                     href="/profile/order-history"
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       pathname === "/profile/order-history"
-                        ? "bg-[#E8E8E8] text-[#212121]"
-                        : "text-gray-600 hover:bg-gray-50"
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted/30"
                     }`}
                   >
                     <Package className="h-5 w-5" />
@@ -63,7 +63,7 @@ export default function ProfileLayout({
                 {/* Logout Button */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-[#D32F2F] hover:bg-red-50 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                 >
                   <LogOut className="h-5 w-5" />
                   <span className="font-medium">Logout</span>

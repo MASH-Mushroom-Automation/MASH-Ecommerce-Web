@@ -21,7 +21,7 @@ export function SellerHeader() {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       {/* Top Bar: Seller/Info Links - Dark Green Background */}
-      <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
+      <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {sellerStatus === 'approved' ? (
@@ -52,10 +52,10 @@ export function SellerHeader() {
             </Link>
             <span className="hidden sm:inline text-white/30">•</span>
             <div className="hidden sm:flex items-center gap-2">
-              <a href="#" aria-label="Facebook" className="hover:text-gray-300">
+              <a href="#" aria-label="Facebook" className="hover:text-primary-foreground/70">
                 <Facebook size={18} />
               </a>
-              <a href="#" aria-label="Instagram" className="hover:text-gray-300">
+              <a href="#" aria-label="Instagram" className="hover:text-primary-foreground/70">
                 <Instagram size={18} />
               </a>
             </div>
@@ -64,7 +64,7 @@ export function SellerHeader() {
       </div>
 
       {/* Main Bar */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
           {/* Logo on the left */}
           <Link href="/" className="flex items-center">
@@ -83,7 +83,7 @@ export function SellerHeader() {
             <NotificationDropdown />
             <Link
               href="/seller/settings"
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Settings size={20} />
             </Link>

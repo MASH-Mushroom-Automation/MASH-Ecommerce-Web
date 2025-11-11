@@ -11,17 +11,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 shadow-sm hover:shadow-md",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
         primary:
-          "bg-[#1E392A] text-white hover:bg-[#1E392A]/90 shadow-sm hover:shadow-md",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
         secondary:
-          "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 shadow-sm hover:shadow-md",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm hover:shadow-md",
         outline:
-          "bg-white text-[#1F2937] hover:bg-[#F5F5F5] hover:text-[#1E392A] shadow-md hover:shadow-lg ring-1 ring-gray-200",
-        ghost: "text-[#1F2937] hover:bg-[#F5F5F5] hover:text-[#1E392A]",
-        link: "text-[#6A994E] underline-offset-4 hover:underline",
+          "bg-background text-foreground hover:bg-muted hover:text-primary shadow-md hover:shadow-lg ring-1 ring-border",
+        ghost: "text-foreground hover:bg-muted hover:text-primary",
+        link: "text-accent underline-offset-4 hover:underline",
         destructive:
-          "bg-[#EF4444] text-white hover:bg-[#EF4444]/90 shadow-sm hover:shadow-md",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
       },
       size: {
         default: "h-10 sm:h-10 min-h-[44px] px-4 py-2",

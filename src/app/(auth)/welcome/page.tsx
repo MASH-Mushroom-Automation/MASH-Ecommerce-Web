@@ -16,7 +16,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full">
         {/* Logo */}
         <div className="mb-8">
@@ -32,19 +32,19 @@ export default function WelcomePage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-lg shadow-md p-12">
+        <div className="bg-card rounded-lg shadow-md p-12">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <Sprout className="w-12 h-12 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <Sprout className="w-12 h-12 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-center text-foreground mb-4">
             Welcome to MASH, Jose Marie Chan!
           </h2>
-          <p className="text-center text-gray-600 text-base mb-8">
+          <p className="text-center text-muted-foreground text-base mb-8">
             Let&apos;s take a moment to personalize your experience. It&apos;ll{" "}
             <br />
             only take a minute!
@@ -52,15 +52,15 @@ export default function WelcomePage() {
 
           {/* Progress Dots */}
           <div className="flex justify-center gap-2 mb-8">
-            <div className="w-3 h-3 rounded-full bg-[#6A994E]"></div>
-            <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+            <div className="w-3 h-3 rounded-full bg-primary"></div>
+            <div className="w-3 h-3 rounded-full bg-muted"></div>
           </div>
 
           {/* Buttons */}
           <div className="space-y-4 max-w-sm mx-auto">
             <Button
               onClick={handleStart}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
             >
               Let&apos;s Go!
             </Button>
@@ -68,7 +68,7 @@ export default function WelcomePage() {
             <Button
               onClick={handleSkip}
               variant="outline"
-              className="w-full py-6 border-[#6A994E] text-[#6A994E] hover:bg-[#6A994E]/10"
+              className="w-full py-6 border-primary text-primary hover:bg-primary/10"
             >
               Skip
             </Button>

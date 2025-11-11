@@ -45,8 +45,8 @@ const GrowerInfoRow = ({
   icon: React.ElementType;
   text: string;
 }) => (
-  <div className="flex items-center text-sm text-gray-600">
-    <Icon className="w-4 h-4 mr-3 text-gray-500" />
+  <div className="flex items-center text-sm text-muted-foreground">
+    <Icon className="w-4 h-4 mr-3 text-muted-foreground" />
     <span>{text}</span>
   </div>
 );
@@ -100,17 +100,17 @@ export default function GrowersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white font-['Roboto']">
+      <div className="min-h-screen bg-background font-['Roboto']">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8">
           {/* Header skeleton */}
           <div className="mb-8 space-y-2">
-            <div className="h-10 bg-gray-200 rounded w-64 animate-pulse"></div>
-            <div className="h-5 bg-gray-200 rounded w-96 animate-pulse"></div>
+            <div className="h-10 bg-muted rounded w-64 animate-pulse"></div>
+            <div className="h-5 bg-muted rounded w-96 animate-pulse"></div>
           </div>
 
           {/* Search bar skeleton */}
           <div className="mb-6">
-            <div className="h-[50px] bg-gray-200 rounded-lg w-full max-w-xl animate-pulse"></div>
+            <div className="h-[50px] bg-muted rounded-lg w-full max-w-xl animate-pulse"></div>
           </div>
 
           {/* Grower cards skeleton */}
@@ -122,13 +122,13 @@ export default function GrowersPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white font-['Roboto']">
+      <div className="min-h-screen bg-background font-['Roboto']">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-destructive mb-4">Error: {error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
               Try Again
             </button>
@@ -140,10 +140,10 @@ export default function GrowersPage() {
 
   if (!selectedGrower) {
     return (
-      <div className="min-h-screen bg-white font-['Roboto']">
+      <div className="min-h-screen bg-background font-['Roboto']">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8">
           <div className="text-center">
-            <p className="text-gray-600">No growers found.</p>
+            <p className="text-muted-foreground">No growers found.</p>
           </div>
         </div>
       </div>
@@ -151,15 +151,15 @@ export default function GrowersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['Roboto']">
+    <div className="min-h-screen bg-background font-['Roboto']">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8">
         <main>
           {/* Header Section */}
           <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
               Browse Growers
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Discover local mushroom growers and explore their fresh produce
             </p>
           </div>
@@ -169,13 +169,13 @@ export default function GrowersPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Search bar */}
               <div className="relative flex-1 max-w-xl">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 w-5 h-5" />
                 <Input
                   type="text"
                   placeholder="Search by grower name or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#6A994E] focus:border-transparent"
+                  className="pl-10 pr-4 py-3 w-full rounded-lg border border-border focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -208,7 +208,7 @@ export default function GrowersPage() {
             {/* Active filter badge */}
             {selectedRegion && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Filtering by:</span>
+                <span className="text-sm text-muted-foreground">Filtering by:</span>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   {selectedRegion}
                   <button
@@ -216,7 +216,7 @@ export default function GrowersPage() {
                       setSelectedRegion(null);
                       setDisplayCount(itemsPerPage);
                     }}
-                    className="ml-1 hover:text-red-600"
+                    className="ml-1 hover:text-destructive"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -227,12 +227,12 @@ export default function GrowersPage() {
 
           {/* Count and Items Per Page Control */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Showing {Math.min(displayCount, filteredGrowers.length)} of{" "}
               {filteredGrowers.length} growers
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Show:</span>
+              <span className="text-sm text-muted-foreground">Show:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -240,7 +240,7 @@ export default function GrowersPage() {
                   setItemsPerPage(newValue);
                   setDisplayCount(newValue);
                 }}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#6A994E] focus:border-transparent"
+                className="border border-border rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value={8}>8 per page</option>
                 <option value={16}>16 per page</option>
@@ -258,10 +258,10 @@ export default function GrowersPage() {
                 href={`/grower/${grower.id}`}
                 className="group flex"
               >
-                <Card className="p-6 h-full hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-[#6A994E] flex flex-col w-full">
+                <Card className="p-6 h-full hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-primary flex flex-col w-full">
                   {/* Grower Logo */}
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                       {grower.logo ? (
                         <Image
                           src={grower.logo}
@@ -271,17 +271,17 @@ export default function GrowersPage() {
                           className="object-cover"
                         />
                       ) : (
-                        <span className="text-2xl font-bold text-gray-400">
+                        <span className="text-2xl font-bold text-muted-foreground">
                           {grower.name.charAt(0)}
                         </span>
                       )}
                     </div>
                     <div>
-                      <h2 className="font-semibold text-lg text-gray-900 group-hover:text-[#6A994E] transition-colors">
+                      <h2 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
                         {grower.name}
                       </h2>
                       {grower.tagline && (
-                        <p className="text-xs text-gray-500 line-clamp-1">
+                        <p className="text-xs text-muted-foreground line-clamp-1">
                           {grower.tagline}
                         </p>
                       )}
@@ -298,8 +298,8 @@ export default function GrowersPage() {
                     <GrowerInfoRow icon={Clock} text={grower.hours} />
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <span className="text-sm text-[#6A994E] font-medium group-hover:underline">
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <span className="text-sm text-primary font-medium group-hover:underline">
                       Visit Store →
                     </span>
                   </div>
@@ -313,7 +313,7 @@ export default function GrowersPage() {
             <div className="flex justify-center mb-12">
               <button
                 onClick={() => setDisplayCount((prev) => prev + itemsPerPage)}
-                className="bg-[#6A994E] text-white hover:bg-[#6A994E]/90 px-8 py-3 rounded-md font-medium shadow-sm hover:shadow-md transition-all"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-md font-medium shadow-sm hover:shadow-md transition-all"
               >
                 Load More Growers
               </button>
@@ -337,20 +337,20 @@ export default function GrowersPage() {
 
           {/* Near Me Section - Only show when logged in */}
           {isLoggedIn && (
-            <div className="mt-12 pt-12 border-t border-gray-200">
+            <div className="mt-12 pt-12 border-t border-border">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
                     Growers Near Me
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Find growers closest to your location with our interactive
                     map
                   </p>
                 </div>
                 <button
                   onClick={() => setShowNearMe(!showNearMe)}
-                  className="px-4 py-2 bg-[#6A994E] text-white rounded-lg hover:bg-[#5a8441] transition-colors"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   {showNearMe ? "Hide Map" : "Show Map"}
                 </button>
@@ -367,16 +367,16 @@ export default function GrowersPage() {
                         className={cn(
                           "p-4 cursor-pointer transition-all duration-200 border-2",
                           selectedGrower.id === grower.id
-                            ? "bg-gray-100 border-[#6A994E]"
-                            : "bg-white hover:bg-gray-50 border-transparent"
+                            ? "bg-muted border-primary"
+                            : "bg-card hover:bg-muted/50 border-transparent"
                         )}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-sm text-gray-900 mb-2">
+                            <h3 className="font-semibold text-sm text-foreground mb-2">
                               {grower.name}
                             </h3>
-                            <p className="text-xs text-gray-600 flex items-center gap-1">
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               {grower.location || grower.address}
                             </p>
@@ -385,10 +385,10 @@ export default function GrowersPage() {
                             href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex flex-col items-center text-xs text-gray-600 hover:text-gray-900"
+                            className="flex flex-col items-center text-xs text-muted-foreground hover:text-foreground"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="bg-[#1E392A] text-white rounded-full p-2">
+                            <div className="bg-primary text-primary-foreground rounded-full p-2">
                               <Send className="w-3 h-3" />
                             </div>
                             <span className="mt-1 text-[10px]">Go</span>
@@ -400,7 +400,7 @@ export default function GrowersPage() {
 
                   {/* Map */}
                   <div className="lg:col-span-2">
-                    <div className="w-full h-[500px] bg-gray-200 rounded-lg overflow-hidden shadow-md">
+                    <div className="w-full h-[500px] bg-muted rounded-lg overflow-hidden shadow-md">
                       <iframe
                         src={`https://maps.google.com/maps?q=${selectedGrower.coords.lat},${selectedGrower.coords.lng}&hl=en&z=14&output=embed`}
                         width="100%"

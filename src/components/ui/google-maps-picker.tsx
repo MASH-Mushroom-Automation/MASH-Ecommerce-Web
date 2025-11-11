@@ -134,7 +134,7 @@ export function GoogleMapsPicker({
       <div className="space-y-2">
         <Label htmlFor="address-search">Search Address</Label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             id="address-search"
             type="text"
@@ -201,7 +201,7 @@ export function GoogleMapsPicker({
 
       {/* Google Maps Iframe */}
       {showMap ? (
-        <Card className="border-2 border-[#6A994E]">
+        <Card className="border-2 border-accent">
           <CardContent className="p-0">
             <div className="w-full h-80 rounded-md overflow-hidden">
               <iframe
@@ -215,8 +215,8 @@ export function GoogleMapsPicker({
                 title="Location Map"
               />
             </div>
-            <div className="p-4 bg-[#6A994E]/10 border-t">
-              <p className="text-sm text-[#6A994E] font-medium">
+            <div className="p-4 bg-accent/10 border-t">
+              <p className="text-sm text-accent font-medium">
                 <strong>📍 Interactive Map:</strong> This map shows JMP Mushroom
                 as a reference point. Use the dropdowns below to select your
                 exact location.
@@ -225,11 +225,11 @@ export function GoogleMapsPicker({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-2 border-gray-200 bg-gray-50">
+        <Card className="border-2 border-border bg-muted">
           <CardContent className="p-6 text-center">
-            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium mb-2">Map Hidden</p>
-            <p className="text-sm text-gray-500">
+            <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-foreground font-medium mb-2">Map Hidden</p>
+            <p className="text-sm text-muted-foreground">
               Click &quot;Show Map&quot; to view the interactive location map
             </p>
           </CardContent>
@@ -267,8 +267,8 @@ export function GoogleMapsPicker({
       {/* Loading State */}
       {isLoading && (
         <div className="text-center py-4">
-          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[#6A994E]"></div>
-          <p className="text-sm text-gray-500 mt-2">Getting your location...</p>
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+          <p className="text-sm text-muted-foreground mt-2">Getting your location...</p>
         </div>
       )}
     </div>

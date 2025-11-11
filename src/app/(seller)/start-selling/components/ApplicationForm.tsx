@@ -62,24 +62,24 @@ const regions = [
 
 export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         {/* Back button */}
         <button
           onClick={onBack}
-          className="mb-6 text-gray-600 hover:text-gray-900 flex items-center"
+          className="mb-6 text-muted-foreground hover:text-foreground flex items-center"
         >
           <ChevronRight className="w-5 h-5 mr-1 rotate-180" />
           Back
         </button>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 lg:p-10">
+        <div className="bg-background rounded-2xl shadow-sm p-6 sm:p-8 lg:p-10">
           {/* Form Header */}
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
               Seller Application Form
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Please fill in all required fields to complete your application.
               We'll review your information and get back to you within 2-3 business days.
             </p>
@@ -89,7 +89,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {/* Business Information */}
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 pb-2 border-b">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Business Information
                 </h2>
                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
@@ -160,7 +160,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
 
               {/* Contact Details */}
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 pb-2 border-b">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Contact Details
                 </h2>
                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
@@ -295,7 +295,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
 
               {/* Product Information */}
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 pb-2 border-b">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Product Information
                 </h2>
                 <div className="space-y-6">
@@ -392,7 +392,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
 
               {/* Banking Details */}
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 pb-2 border-b">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Banking Details
                 </h2>
                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
@@ -473,11 +473,11 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                       <div className="space-y-1 leading-none">
                         <FormLabel className="text-sm sm:text-base">
                           I agree to the{" "}
-                          <Link href="/terms" className="text-[#6A994E] hover:underline">
+                          <Link href="/terms" className="text-accent hover:underline">
                             Terms and Conditions
                           </Link>{" "}
                           and{" "}
-                          <Link href="/privacy" className="text-[#6A994E] hover:underline">
+                          <Link href="/privacy" className="text-accent hover:underline">
                             Privacy Policy
                           </Link>{" "}
                           <span className="text-red-500">*</span>
@@ -501,7 +501,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 </Button>
                 <Button
                   type="submit"
-                  className="w-full sm:flex-1 bg-[#1E392A] hover:bg-[#1E392A]/90 h-10 sm:h-12 px-6 sm:px-8 text-base font-semibold"
+                  className="w-full sm:flex-1 h-10 sm:h-12 px-6 sm:px-8 text-base font-semibold"
                   disabled={form.formState.isSubmitting}
                 >
                   {form.formState.isSubmitting ? (

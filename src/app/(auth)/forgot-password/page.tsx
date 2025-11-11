@@ -49,19 +49,19 @@ export default function ForgotPasswordPage() {
   return (
     <>
       {/* Card */}
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-card rounded-lg shadow-md p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <KeyRound className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             Reset your Password
           </h2>
-          <p className="text-center text-gray-600 text-sm mb-8">
+          <p className="text-center text-muted-foreground text-sm mb-8">
             Enter your registered email or phone number to receive a One-Time
             Password (OTP).
           </p>
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Email
               </label>
@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
                 placeholder="Enter your email"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
             >
               {isSubmitting ? "Sending..." : "Send OTP"}
             </Button>
@@ -104,7 +104,7 @@ export default function ForgotPasswordPage() {
               type="button"
               onClick={handleCancel}
               variant="outline"
-              className="w-full py-6 border-[#6A994E] text-[#6A994E] hover:bg-[#6A994E]/10"
+              className="w-full py-6 border-primary text-primary hover:bg-primary/10"
             >
               Cancel
             </Button>

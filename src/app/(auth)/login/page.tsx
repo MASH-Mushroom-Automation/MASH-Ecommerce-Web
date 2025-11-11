@@ -156,28 +156,28 @@ export default function LoginPage() {
         {/* Clear/Home Button */}
         <Link
           href="/"
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute top-4 right-4 p-2 hover:bg-muted/30 rounded-full transition-colors"
           title="Go to home"
         >
-          <X className="w-5 h-5 text-gray-600 hover:text-gray-900" />
+          <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
         </Link>
 
         {/* User Icon */}
         <div className="flex justify-center mb-4">
-          <div className="bg-[#6A994E] rounded-full p-4">
-            <User className="w-8 h-8 text-white" />
+          <div className="bg-primary rounded-full p-4">
+            <User className="w-8 h-8 text-primary-foreground" />
           </div>
         </div>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           Sign in to your account
         </h2>
-        <p className="text-gray-600 text-sm">
+        <p className="text-muted-foreground text-sm">
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="text-[#6A994E] font-medium hover:underline"
+            className="text-primary font-medium hover:underline"
           >
             Create one
           </Link>
@@ -187,9 +187,9 @@ export default function LoginPage() {
       <CardContent className="pt-6">
         {/* Contextual Message Alert */}
         {contextualMessage && (
-          <Alert className="mb-6 bg-[#6A994E]/10 border-[#6A994E]/30">
-            <AlertCircle className="h-4 w-4 text-[#6A994E]" />
-            <AlertDescription className="text-[#1E392A] font-medium">
+          <Alert className="mb-6 bg-primary/10 border-primary/30">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary font-medium">
               {contextualMessage}
             </AlertDescription>
           </Alert>
@@ -205,7 +205,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="identifier"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-muted-foreground mb-2"
             >
               Email or Phone Number
             </label>
@@ -218,7 +218,7 @@ export default function LoginPage() {
               icon={<Mail className="h-5 w-5" />}
             />
             {errors.identifier && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1 text-sm text-destructive">
                 {String(errors.identifier.message)}
               </p>
             )}
@@ -228,7 +228,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-muted-foreground mb-2"
             >
               Password
             </label>
@@ -241,7 +241,7 @@ export default function LoginPage() {
               icon={<Lock className="h-5 w-5" />}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1 text-sm text-destructive">
                 {String(errors.password.message)}
               </p>
             )}
@@ -263,14 +263,14 @@ export default function LoginPage() {
               />
               <label
                 htmlFor="remember"
-                className="text-sm text-gray-700 cursor-pointer"
+                className="text-sm text-muted-foreground cursor-pointer"
               >
                 Remember Me
               </label>
             </div>
             <Link
               href="/forgot-password"
-              className="text-sm text-[#6A994E] hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               Forgot Password?
             </Link>
@@ -290,10 +290,10 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
+              <span className="px-2 bg-card text-muted-foreground">or</span>
             </div>
           </div>
 

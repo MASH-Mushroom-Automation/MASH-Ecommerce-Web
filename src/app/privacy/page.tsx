@@ -3,17 +3,17 @@ import { Badge } from "@/components/ui/badge";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-muted min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
               Privacy Policy
             </h1>
             <Badge variant="secondary">Last Updated: January 2025</Badge>
           </div>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Your privacy is important to us. This policy outlines how MASH
             collects, uses, and protects your personal information.
           </p>
@@ -23,11 +23,11 @@ export default function PrivacyPolicyPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 1. Information We Collect
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 We collect information that you provide directly to us,
                 including:
@@ -62,11 +62,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 2. How We Use Your Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">We use the information we collect to:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>
@@ -98,11 +98,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 3. Information Sharing and Disclosure
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 We may share your information in the following circumstances:
               </p>
@@ -138,11 +138,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 4. Cookies and Tracking Technologies
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 We use cookies and similar tracking technologies to:
               </p>
@@ -162,11 +162,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 5. Data Security
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We implement industry-standard security measures to protect your
                 personal information, including:
@@ -188,11 +188,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 6. Your Rights and Choices
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">You have the right to:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>
@@ -218,7 +218,7 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p className="mt-3">
                 To exercise these rights, contact us at{" "}
-                <strong className="text-[#1E392A]">privacy@mash.ph</strong> or
+                <strong className="text-primary">privacy@mash.ph</strong> or
                 through your account settings.
               </p>
             </CardContent>
@@ -226,11 +226,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 7. Data Retention
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We retain your personal information for as long as necessary to:
               </p>
@@ -250,11 +250,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 8. Children&apos;s Privacy
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 Our services are not intended for children under 13 years of
                 age. We do not knowingly collect personal information from
@@ -266,11 +266,11 @@ export default function PrivacyPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 9. Changes to This Policy
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We may update this Privacy Policy from time to time. We will
                 notify you of significant changes by posting the new policy on
@@ -281,12 +281,12 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1E392A] text-white">
+          <Card className="bg-primary text-primary-foreground">
             <CardContent className="p-6">
               <h3 className="font-semibold text-lg mb-2">
                 Questions About Privacy?
               </h3>
-              <p className="text-gray-200 mb-4">
+              <p className="text-primary-foreground/80 mb-4">
                 If you have questions or concerns about our privacy practices,
                 please contact our Data Protection Officer:
               </p>

@@ -122,7 +122,7 @@ export function MapPicker({
       <div className="relative">
         <Label htmlFor="address-search">Search Address</Label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             id="address-search"
             type="text"
@@ -135,20 +135,20 @@ export function MapPicker({
 
         {/* Search Suggestions */}
         {suggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                className="w-full px-3 py-2 text-left hover:bg-muted border-b border-border last:border-b-0"
               >
                 <div className="flex items-start space-x-2">
-                  <MapPin className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-medium text-gray-900">
+                    <p className="text-xs font-medium text-foreground">
                       {suggestion.barangay}, {suggestion.city}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {suggestion.address}
                     </p>
                   </div>
@@ -166,14 +166,14 @@ export function MapPicker({
           <Label className="text-sm">Select Location</Label>
           <div
             ref={mapRef}
-            className="w-full h-48 bg-gray-100 border border-gray-300 rounded-lg relative cursor-crosshair overflow-hidden"
+            className="w-full h-48 bg-muted border border-border rounded-lg relative cursor-crosshair overflow-hidden"
             onClick={handleMapClick}
           >
             {/* Mock Map */}
             <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 flex items-center justify-center">
               <div className="text-center">
-                <MapPin className="h-8 w-8 text-[#6A994E] mx-auto mb-1" />
-                <p className="text-xs text-gray-600">
+                <MapPin className="h-8 w-8 text-accent mx-auto mb-1" />
+                <p className="text-xs text-muted-foreground">
                   Click to select location
                 </p>
               </div>
@@ -182,8 +182,8 @@ export function MapPicker({
             {/* Selected Location Marker */}
             {selectedLocation && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-5 h-5 bg-[#6A994E] rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-                  <MapPin className="h-2 w-2 text-white" />
+                <div className="w-5 h-5 bg-accent rounded-full border-2 border-background shadow-lg flex items-center justify-center">
+                  <MapPin className="h-2 w-2 text-accent-foreground" />
                 </div>
               </div>
             )}
@@ -194,17 +194,17 @@ export function MapPicker({
         <div className="space-y-2">
           <Label className="text-sm">Selected Location</Label>
           {selectedLocation ? (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="p-3 bg-muted border border-border rounded-lg">
               <div className="flex items-start space-x-2">
-                <MapPin className="h-4 w-4 text-[#6A994E] mt-0.5 flex-shrink-0" />
+                <MapPin className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {selectedLocation.barangay}, {selectedLocation.city}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {selectedLocation.address}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     {selectedLocation.coordinates.lat.toFixed(4)},{" "}
                     {selectedLocation.coordinates.lng.toFixed(4)}
                   </p>
@@ -212,9 +212,9 @@ export function MapPicker({
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
-              <p className="text-sm text-gray-500">No location selected</p>
-              <p className="text-xs text-gray-400 mt-1">
+            <div className="p-3 bg-muted border border-border rounded-lg text-center">
+              <p className="text-sm text-muted-foreground">No location selected</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Click on the map or search for an address
               </p>
             </div>
@@ -239,7 +239,7 @@ export function MapPicker({
           size="sm"
           onClick={handleConfirmLocation}
           disabled={!selectedLocation}
-          className="bg-[#6A994E] hover:bg-[#1E392A]"
+          className=""
         >
           <MapPin className="h-3 w-3 mr-1" />
           Use Location

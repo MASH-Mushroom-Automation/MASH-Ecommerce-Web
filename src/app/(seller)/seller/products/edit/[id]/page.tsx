@@ -142,8 +142,8 @@ export default function EditProduct() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E392A] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading product...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading product...</p>
         </div>
       </div>
     );
@@ -152,7 +152,7 @@ export default function EditProduct() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600 mb-4">Error: {error}</p>
+        <p className="text-destructive mb-4">Error: {error}</p>
         <Button onClick={() => router.back()}>Go Back</Button>
       </div>
     );
@@ -170,7 +170,7 @@ export default function EditProduct() {
           <ArrowLeft className="h-4 w-4" />
           Back to Products
         </Button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
+        <h1 className="text-2xl font-bold text-foreground">Edit Product</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -190,7 +190,7 @@ export default function EditProduct() {
                   {productImages.map((image, index) => (
                     <div
                       key={index}
-                      className="aspect-square relative rounded-md overflow-hidden border border-gray-200 bg-gray-50"
+                      className="aspect-square relative rounded-md overflow-hidden border border-border bg-muted"
                     >
                       <Image
                         src={image}
@@ -201,7 +201,7 @@ export default function EditProduct() {
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100"
+                        className="absolute top-2 right-2 bg-background rounded-full p-1 shadow-sm hover:bg-muted"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -215,9 +215,9 @@ export default function EditProduct() {
 
                   {/* Upload button */}
                   {productImages.length < 8 && (
-                    <label className="aspect-square flex flex-col items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">
+                    <label className="aspect-square flex flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted hover:bg-muted/80 cursor-pointer">
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">
                         Upload Image
                       </span>
                       <input
@@ -399,7 +399,6 @@ export default function EditProduct() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Saving..." : "Save Changes"}

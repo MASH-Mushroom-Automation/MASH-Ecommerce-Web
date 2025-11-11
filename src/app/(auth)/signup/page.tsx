@@ -80,24 +80,24 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Signup Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="bg-card rounded-lg shadow-md p-8">
           {/* User Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <User className="w-8 h-8 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <User className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             Create your account
           </h2>
-          <p className="text-center text-gray-600 text-sm mb-6">
+          <p className="text-center text-muted-foreground text-sm mb-6">
             Already have an account?{" "}
-            <Link href="/login" className="text-[#6A994E] hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               Sign in here
             </Link>
           </p>
@@ -108,7 +108,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="firstName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 First Name
               </label>
@@ -120,7 +120,7 @@ export default function SignupPage() {
                 placeholder="Enter your first name"
               />
               {errors.firstName && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.firstName.message}
                 </p>
               )}
@@ -130,7 +130,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="lastName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Last Name
               </label>
@@ -142,7 +142,7 @@ export default function SignupPage() {
                 placeholder="Enter your last name"
               />
               {errors.lastName && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.lastName.message}
                 </p>
               )}
@@ -152,7 +152,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Email
               </label>
@@ -164,7 +164,7 @@ export default function SignupPage() {
                 placeholder="Enter your email"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -174,7 +174,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Password
               </label>
@@ -186,7 +186,7 @@ export default function SignupPage() {
                 placeholder="Create a password"
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -196,7 +196,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Confirm Password
               </label>
@@ -208,7 +208,7 @@ export default function SignupPage() {
                 placeholder="Confirm your password"
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.confirmPassword.message}
                 </p>
               )}
@@ -231,12 +231,12 @@ export default function SignupPage() {
                 />
                 <label
                   htmlFor="terms"
-                  className="text-sm text-gray-700 cursor-pointer"
+                  className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to the{" "}
                   <Link
                     href="/terms"
-                    className="text-[#6A994E] hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Terms & Conditions
                   </Link>
@@ -244,7 +244,7 @@ export default function SignupPage() {
                 </label>
               </div>
               {errors.terms && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.terms.message}
                 </p>
               )}
@@ -264,13 +264,13 @@ export default function SignupPage() {
                 />
                 <label
                   htmlFor="privacy"
-                  className="text-sm text-gray-700 cursor-pointer"
+                  className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to let you use, processing, and sharing of my personal
                   information in accordance to the{" "}
                   <Link
                     href="/privacy"
-                    className="text-[#6A994E] hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Data Privacy Policy
                   </Link>
@@ -278,7 +278,7 @@ export default function SignupPage() {
                 </label>
               </div>
               {errors.privacy && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.privacy.message}
                 </p>
               )}
@@ -287,7 +287,7 @@ export default function SignupPage() {
             {/* Create Account Button */}
             <Button
               type="submit"
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Creating Account..." : "Create Account"}
@@ -296,10 +296,10 @@ export default function SignupPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
+                <span className="px-2 bg-card text-muted-foreground">or</span>
               </div>
             </div>
 
@@ -308,7 +308,7 @@ export default function SignupPage() {
               type="button"
               onClick={handleGoogleSignUp}
               variant="outline"
-              className="w-full py-6 border-gray-300 hover:bg-gray-50"
+              className="w-full py-6 border-border hover:bg-muted/30"
             >
               <svg
                 className="w-5 h-5 mr-2"
@@ -340,7 +340,7 @@ export default function SignupPage() {
               type="button"
               onClick={handleFacebookSignUp}
               variant="outline"
-              className="w-full py-6 border-gray-300 hover:bg-gray-50"
+              className="w-full py-6 border-border hover:bg-muted/30"
             >
               <svg
                 className="w-5 h-5 mr-2"

@@ -66,11 +66,11 @@ export default function WishlistPage() {
   // Show loading state while hydrating
   if (!isClient) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-background min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
           <div className="text-center py-12">
             <LoadingSpinner size="lg" className="mx-auto mb-4" />
-            <p className="text-gray-600">Loading your wishlist...</p>
+            <p className="text-muted-foreground">Loading your wishlist...</p>
           </div>
         </div>
       </div>
@@ -78,15 +78,15 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-background min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               My Wishlist
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               {wishlistItems.length}{" "}
               {wishlistItems.length === 1 ? "item" : "items"} saved
             </p>
@@ -99,7 +99,7 @@ export default function WishlistPage() {
                 clearWishlist();
                 toast.success("Wishlist cleared.");
               }}
-              className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700"
+              className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               Clear All
             </Button>
@@ -110,11 +110,11 @@ export default function WishlistPage() {
         {loading ? (
           <div className="text-center py-12">
             <LoadingSpinner size="lg" className="mx-auto mb-4" />
-            <p className="text-gray-600">Loading your wishlist...</p>
+            <p className="text-muted-foreground">Loading your wishlist...</p>
           </div>
         ) : error ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+          <div className="bg-card rounded-lg shadow-sm p-12 text-center">
+            <p className="text-destructive mb-4">Error: {error}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         ) : wishlistItems.length === 0 ? (
@@ -153,7 +153,7 @@ export default function WishlistPage() {
               </Button>
             </Link>
             <Link href="/checkout">
-              <Button className="w-full sm:w-auto px-8 bg-[#1E392A] hover:bg-[#1E392A]/90">
+              <Button className="w-full sm:w-auto px-8 bg-primary hover:bg-primary/90 text-primary-foreground">
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Add All to Cart
               </Button>

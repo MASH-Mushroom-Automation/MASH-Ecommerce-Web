@@ -104,7 +104,7 @@ export default function SellerOrders() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Error loading orders: {error}</p>
+          <p className="text-destructive mb-4">Error loading orders: {error}</p>
           <Button onClick={() => refetch()} variant="outline">
             Try Again
           </Button>
@@ -116,11 +116,11 @@ export default function SellerOrders() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+        <h1 className="text-2xl font-bold text-foreground">Orders</h1>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-200">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-border">
           <Tabs
             defaultValue="all"
             value={currentTab}
@@ -168,7 +168,7 @@ export default function SellerOrders() {
 
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search orders by ID or customer name..."
@@ -224,11 +224,11 @@ export default function SellerOrders() {
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-gray-50">
+                  <TableRow key={order.id} className="hover:bg-muted/50">
                     {/* Order identifier cell */}
                     <TableCell className="font-medium text-sm pl-5">{order.id}</TableCell>
                     {/* Purchase date cell */}
-                    <TableCell className="text-sm text-gray-600">{order.date}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
                     {/* Buyer information cell */}
                     <TableCell className="text-sm">{order.customer}</TableCell>
                     {/* Number of items cell */}
@@ -240,16 +240,23 @@ export default function SellerOrders() {
                     {/* Fulfillment status cell */}
                     <TableCell>
                       <Badge
+                        variant={
+                          order.status === "Cancelled"
+                            ? "destructive"
+                            : order.status === "Completed"
+                            ? "outline"
+                            : "outline"
+                        }
                         className={
                           order.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                            ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
                             : order.status === "Confirmed"
-                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                            ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
                             : order.status === "Ready for Pickup"
-                            ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                            ? "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
                             : order.status === "Completed"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100"
+                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
+                            : ""
                         }
                       >
                         {order.status}
@@ -275,7 +282,7 @@ export default function SellerOrders() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center py-12 text-gray-500"
+                    className="text-center py-12 text-muted-foreground"
                   >
                     <div className="text-center">
                       <p className="text-sm">No orders found</p>
@@ -291,25 +298,32 @@ export default function SellerOrders() {
         {/* Mobile Card View */}
         <div className="md:hidden">
           {filteredOrders.length > 0 ? (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {filteredOrders.map((order) => (
-                <div key={order.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={order.id} className="p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="font-semibold text-sm text-gray-900">{order.id}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{order.date}</p>
+                      <p className="font-semibold text-sm text-foreground">{order.id}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{order.date}</p>
                     </div>
                     <Badge
+                      variant={
+                        order.status === "Cancelled"
+                          ? "destructive"
+                          : order.status === "Completed"
+                          ? "outline"
+                          : "outline"
+                      }
                       className={
                         order.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
                           : order.status === "Confirmed"
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                          ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
                           : order.status === "Ready for Pickup"
-                          ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                          ? "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
                           : order.status === "Completed"
-                          ? "bg-green-100 text-green-800 hover:bg-green-100"
-                          : "bg-red-100 text-red-800 hover:bg-red-100"
+                          ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
+                          : ""
                       }
                     >
                       {order.status}
@@ -317,16 +331,16 @@ export default function SellerOrders() {
                   </div>
                   <div className="space-y-2 mb-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Customer</span>
+                      <span className="text-muted-foreground">Customer</span>
                       <span className="font-medium">{order.customer}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Items</span>
+                      <span className="text-muted-foreground">Items</span>
                       <span className="font-medium">{order.items}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Total</span>
-                      <span className="font-semibold text-[#1E392A]">₱{order.total.toFixed(2)}</span>
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-semibold text-primary">₱{order.total.toFixed(2)}</span>
                     </div>
                   </div>
                   <Button
@@ -344,7 +358,7 @@ export default function SellerOrders() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-muted-foreground">
               <p className="text-sm">No orders found</p>
               <p className="text-xs mt-1">Try adjusting your search or filters</p>
             </div>
@@ -352,7 +366,7 @@ export default function SellerOrders() {
         </div>
 
         {pagination && (
-          <div className="py-4 border-t border-gray-200">
+          <div className="py-4 border-t border-border">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>

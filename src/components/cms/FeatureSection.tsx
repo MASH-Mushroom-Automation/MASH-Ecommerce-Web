@@ -39,11 +39,11 @@ const FeatureItem: React.FC<{
   return (
     <Card className="text-center p-6 h-full">
       <CardContent className="pt-6">
-        <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full mb-4 bg-gray-200 text-[#1E392A]">
+        <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full mb-4 bg-muted text-primary">
           <IconComponent size={32} className="sm:w-8 sm:h-8" />
         </div>
-        <h3 className="text-xl font-semibold mb-2 text-[#212121]">{headline}</h3>
-        <p className="text-gray-600 font-['Roboto'] text-sm">{subheadline}</p>
+        <h3 className="text-xl font-semibold mb-2 text-foreground">{headline}</h3>
+        <p className="text-muted-foreground font-['Roboto'] text-sm">{subheadline}</p>
       </CardContent>
     </Card>
   );
@@ -51,13 +51,13 @@ const FeatureItem: React.FC<{
 
 export const CMSFeatureSection: React.FC<CMSFeatureSectionProps> = ({ data }) => {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+    <section className="py-12 sm:py-16 lg:py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             {data.title}
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             {data.subtitle}
           </p>
         </div>

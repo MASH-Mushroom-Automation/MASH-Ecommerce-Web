@@ -23,20 +23,20 @@ export function Breadcrumbs({ customItems, className = '' }: BreadcrumbsProps) {
       <nav className={`flex items-center space-x-2 text-sm ${className}`} aria-label="Breadcrumb">
         <Link 
           href="/" 
-          className="text-gray-500 hover:text-[#6A994E] transition-colors"
+          className="text-muted-foreground hover:text-accent transition-colors"
           aria-label="Home"
         >
           <Home size={16} />
         </Link>
         {customItems.map((item, index) => (
           <div key={item.href} className="flex items-center space-x-2">
-            <ChevronRight size={16} className="text-gray-400" />
+            <ChevronRight size={16} className="text-muted-foreground/60" />
             {index === customItems.length - 1 ? (
-              <span className="text-gray-900 font-medium">{item.label}</span>
+              <span className="text-foreground font-medium">{item.label}</span>
             ) : (
               <Link 
                 href={item.href}
-                className="text-gray-500 hover:text-[#6A994E] transition-colors"
+                className="text-muted-foreground hover:text-accent transition-colors"
               >
                 {item.label}
               </Link>
@@ -103,20 +103,20 @@ export function Breadcrumbs({ customItems, className = '' }: BreadcrumbsProps) {
     <nav className={`flex items-center space-x-2 text-sm ${className}`} aria-label="Breadcrumb">
       <Link 
         href="/" 
-        className="text-gray-500 hover:text-[#6A994E] transition-colors"
+        className="text-muted-foreground hover:text-accent transition-colors"
         aria-label="Home"
       >
         <Home size={16} />
       </Link>
       {breadcrumbItems.map((item, index) => (
         <div key={item.href} className="flex items-center space-x-2">
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground/60" />
           {index === breadcrumbItems.length - 1 ? (
-            <span className="text-gray-900 font-medium">{item.label}</span>
+            <span className="text-foreground font-medium">{item.label}</span>
           ) : (
             <Link 
               href={item.href}
-              className="text-gray-500 hover:text-[#6A994E] transition-colors"
+              className="text-muted-foreground hover:text-accent transition-colors"
             >
               {item.label}
             </Link>

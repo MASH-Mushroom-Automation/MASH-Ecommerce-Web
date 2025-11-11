@@ -17,19 +17,19 @@ export default function ResetSuccessPage() {
   return (
     <>
       {/* Card */}
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-card rounded-lg shadow-md p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <CheckCircle className="w-8 h-8 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <CheckCircle className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             Reset password successful!
           </h2>
-          <p className="text-center text-gray-600 text-sm mb-8">
+          <p className="text-center text-muted-foreground text-sm mb-8">
             You will be automatically redirected to the login page.
           </p>
 
@@ -37,7 +37,7 @@ export default function ResetSuccessPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="inline-block bg-[#1E392A] hover:bg-[#1E392A]/90 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+              className="inline-block bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg transition-colors"
             >
               Back to sign in (10s)
             </Link>
