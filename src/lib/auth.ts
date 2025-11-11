@@ -24,9 +24,15 @@ export function logout() {
   document.cookie =
     "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
   try {
-    // Optional: clear any cached user data
-    sessionStorage.removeItem("user");
+    // Clear all auth-related storage
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("pendingVerificationEmail");
+    sessionStorage.removeItem("resetPasswordEmail");
+    
+    // Optional: clear cached user data
+    sessionStorage.removeItem("user");
+    
     // Proactively clear client-side persisted app state
     localStorage.removeItem("mash-wishlist");
     localStorage.removeItem("cart");

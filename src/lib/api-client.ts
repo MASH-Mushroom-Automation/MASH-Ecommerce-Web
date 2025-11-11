@@ -45,14 +45,13 @@ export async function apiRequest<T>(
 
   const data = await response.json();
 
-  // Handle unauthorized errors
+  // Handle unauthorized errors (token expired)
   if (response.status === 401) {
-    // Token might be expired, try to refresh
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       try {
         const refreshResponse = await fetch(
-          `${API_BASE_URL}/api/v1/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh-token`,
           {
             method: "POST",
             headers: {
@@ -64,14 +63,19 @@ export async function apiRequest<T>(
 
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
-          // Update tokens
-          if (typeof document !== "undefined") {
-            document.cookie = `auth-token=${encodeURIComponent(refreshData.data.accessToken)}; Path=/`;
+          
+          // Update tokens (handle both response formats)
+          const newAccessToken = refreshData.data?.accessToken || refreshData.accessToken;
+          const newRefreshToken = refreshData.data?.refreshToken || refreshData.refreshToken;
+          
+          if (typeof document !== "undefined" && newAccessToken) {
+            document.cookie = `auth-token=${encodeURIComponent(newAccessToken)}; Path=/`;
           }
-          if (typeof window !== "undefined") {
-            localStorage.setItem("refreshToken", refreshData.data.refreshToken);
+          if (typeof window !== "undefined" && newRefreshToken) {
+            localStorage.setItem("refreshToken", newRefreshToken);
           }
-          // Retry original request
+          
+          // Retry original request with new token
           return apiRequest<T>(endpoint, options);
         }
       } catch (error) {
@@ -79,8 +83,10 @@ export async function apiRequest<T>(
       }
     }
 
-    // If refresh fails or no refresh token, logout
+    // If refresh fails or no refresh token, clear tokens and redirect to login
     if (typeof window !== "undefined") {
+      document.cookie = "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      localStorage.removeItem("refreshToken");
       window.location.href = "/login";
     }
     throw new Error("Unauthorized");

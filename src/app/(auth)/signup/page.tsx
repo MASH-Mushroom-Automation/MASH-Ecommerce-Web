@@ -11,6 +11,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api-client";
 
 const signupSchema = z
   .object({
@@ -32,6 +33,30 @@ const signupSchema = z
   });
 
 type SignupForm = z.infer<typeof signupSchema>;
+
+// API Response Type
+interface RegisterResponse {
+  success: boolean;
+  statusCode: number;
+  data: {
+    success: boolean;
+    message: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      emailVerified: boolean;
+    };
+    verification: {
+      sent: boolean;
+      method: string;
+      expiresIn: string;
+      email: string;
+    };
+    nextStep: string;
+  };
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -55,17 +80,32 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
-      // TODO: Replace with real signup request
-      // await AuthApi.signup(data)
-      toast.success(
-        `Welcome, ${data.firstName}! Account created successfully.`
-      );
-      // Redirect to login so the user can sign in
-      router.push("/login");
+      // Call backend API
+      const response = await apiRequest<RegisterResponse>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        }),
+      });
+
+      // Store email for verification page
+      sessionStorage.setItem("pendingVerificationEmail", data.email);
+      
+      // Show success message
+      toast.success("Registration successful!", {
+        description: response.data.message || "Check your email for a verification code.",
+      });
+
+      // Redirect to verification page
+      router.push("/verify-otp");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Unable to create account"
-      );
+      console.error("Registration error:", err);
+      toast.error("Registration failed", {
+        description: err instanceof Error ? err.message : "Unable to create account. Please try again.",
+      });
     }
   };
 
