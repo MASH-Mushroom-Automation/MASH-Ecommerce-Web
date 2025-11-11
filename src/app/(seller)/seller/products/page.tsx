@@ -50,6 +50,7 @@ import {
 import { useSellerProducts } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SellerApi } from "@/lib/api/seller";
+import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerProducts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -228,24 +229,7 @@ export default function SellerProducts() {
                     <TableCell className="text-sm">{product.category}</TableCell>
                     {/* Status badge cell */}
                     <TableCell>
-                      <Badge
-                        variant={
-                          product.status === "Active"
-                            ? "outline"
-                            : product.status === "Out of Stock"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          product.status === "Active"
-                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
-                            : product.status === "Out of Stock"
-                            ? ""
-                            : ""
-                        }
-                      >
-                        {product.status}
-                      </Badge>
+                      {getStatusBadge(product.status)}
                     </TableCell>
                     {/* Row actions cell */}
                     <TableCell className="text-right pl-5">
@@ -432,27 +416,6 @@ export default function SellerProducts() {
         </div>
 
         <div className="py-4 border-t border-border">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       </div>
     </div>

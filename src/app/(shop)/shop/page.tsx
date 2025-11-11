@@ -377,10 +377,10 @@ export default function ProductCatalogPage() {
               {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
                 <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-card">
+                  <SelectTrigger className="w-full sm:w-[180px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card border-border">
                     <SelectItem value="featured">Featured</SelectItem>
                     <SelectItem value="price-asc">
                       Price: Low to High
@@ -394,10 +394,10 @@ export default function ProductCatalogPage() {
                   value={itemsPerPage.toString()}
                   onValueChange={(value) => setItemsPerPage(Number(value))}
                 >
-                  <SelectTrigger className="w-full sm:w-[140px] bg-card">
+                  <SelectTrigger className="w-full sm:w-[140px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Items per page" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card border-border">
                     <SelectItem value="12">12 per page</SelectItem>
                     <SelectItem value="24">24 per page</SelectItem>
                     <SelectItem value="48">48 per page</SelectItem>

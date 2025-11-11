@@ -191,7 +191,7 @@ const GrowerCard: React.FC<{
     tagline?: string;
   };
 }> = ({ grower }) => (
-  <Card className="flex flex-col h-full min-h-[380px] overflow-hidden">
+  <Card className="flex flex-col h-full min-h-[380px] overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
     {/* Banner image or colored bar at top */}
     {grower.banner ? (
       <div className="relative h-32 w-full">
@@ -215,7 +215,7 @@ const GrowerCard: React.FC<{
             alt={grower.name}
             width={80}
             height={80}
-            className="rounded-full shadow-lg border-4 border-white bg-white"
+            className="rounded-full shadow-lg border-4 border-background bg-background"
           />
         </div>
         <h3 className="text-2xl font-semibold mb-1 text-foreground">

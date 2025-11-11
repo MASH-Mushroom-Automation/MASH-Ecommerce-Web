@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, Plus, Edit, Trash, Info, MapPin, Clock } from "lucide-react";
+import { useUserProfile } from "@/hooks/useUser";
 
 // Sample handover center data
 // This would be replaced with API data in production
@@ -85,6 +86,7 @@ interface HandoverCenterFormData {
 }
 
 export default function HandoverCenterPickup() {
+  const { profile } = useUserProfile();
   const [handoverCenters, setHandoverCenters] = useState(HANDOVER_CENTERS);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -96,6 +98,15 @@ export default function HandoverCenterPickup() {
     contactNumber: "",
     isActive: true,
   });
+
+  const showHandoverIntro = useMemo(() => {
+    if (!profile?.createdAt) return false;
+    const createdAt = new Date(profile.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return false;
+    const oneWeekInMs = 7 * 24 * 60 * 60 * 1000;
+    const diff = Date.now() - createdAt.getTime();
+    return diff >= 0 && diff < oneWeekInMs;
+  }, [profile?.createdAt]);
 
   const handleAddCenter = () => {
     // Reset form
@@ -176,16 +187,18 @@ export default function HandoverCenterPickup() {
         </Button>
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-lg mb-6 flex gap-3">
-        <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-700">
-          <p className="font-semibold">Handover Centers for Easy Pickup</p>
-          <p className="mt-1">
-            Configure handover centers where customers can pick up their orders.
-            This can be your store locations or partner pickup points.
-          </p>
+      {showHandoverIntro && (
+        <div className="bg-accent/30 p-4 rounded-lg mb-6 flex gap-3 border border-accent">
+          <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-foreground">
+            <p className="font-semibold">Handover Centers for Easy Pickup</p>
+            <p className="mt-1 text-muted-foreground">
+              Configure handover centers where customers can pick up their orders.
+              This can be your store locations or partner pickup points.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="mb-6">

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInventory } from "@/hooks/useInventory";
 import { toast } from "sonner";
+import { getStatusBadge } from "@/lib/status-utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -105,6 +106,9 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [updatingProductId, setUpdatingProductId] = useState<string | null>(null);
   const [newStockValue, setNewStockValue] = useState<Record<string, string>>({});
+  const [isStockAlertModalOpen, setIsStockAlertModalOpen] = useState(false);
+  const [editingAlertProductId, setEditingAlertProductId] = useState<string | null>(null);
+  const [alertThresholds, setAlertThresholds] = useState<Record<string, string>>({});
 
   // Fetch products on mount - with fallback to mock data
   useEffect(() => {
@@ -133,22 +137,12 @@ export default function InventoryPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: Product["status"]) => {
-    switch (status) {
-      case "in_stock":
-        return <Badge variant="outline" className="bg-green-100/10 text-green-700 dark:text-green-600 border-green-300">In Stock</Badge>;
-      case "low_stock":
-        return <Badge variant="outline" className="bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300">Low Stock</Badge>;
-      case "out_of_stock":
-        return <Badge variant="destructive">Out of Stock</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Inventory Management</h1>
-        <Button>
+        <Button onClick={() => setIsStockAlertModalOpen(true)}>
           Set Stock Alerts
         </Button>
       </div>
@@ -199,7 +193,6 @@ export default function InventoryPage() {
         <TabsList>
           <TabsTrigger value="stock">Stock Levels</TabsTrigger>
           <TabsTrigger value="alerts">Stock Alerts</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stock" className="mt-6">
@@ -405,9 +398,62 @@ export default function InventoryPage() {
                             Alert when stock falls below {product.threshold} units
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          Edit Alert
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingAlertProductId(product.id);
+                                setAlertThresholds({ ...alertThresholds, [product.id]: product.threshold.toString() });
+                              }}
+                            >
+                              Edit Alert
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Edit Stock Alert</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Set the threshold for {product.name}. You'll be notified when stock falls below this number.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="py-4">
+                              <Input
+                                type="number"
+                                placeholder="Enter threshold"
+                                min="1"
+                                value={alertThresholds[product.id] || product.threshold}
+                                onChange={(e) =>
+                                  setAlertThresholds({ ...alertThresholds, [product.id]: e.target.value })
+                                }
+                              />
+                            </div>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setEditingAlertProductId(null)}>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  const threshold = parseInt(alertThresholds[product.id] || "10");
+                                  if (isNaN(threshold) || threshold < 1) {
+                                    toast.error("Please enter a valid threshold");
+                                    return;
+                                  }
+                                  setProducts((prev) =>
+                                    prev.map((p) =>
+                                      p.id === product.id
+                                        ? { ...p, threshold }
+                                        : p
+                                    )
+                                  );
+                                  toast.success("Alert threshold updated successfully");
+                                  setEditingAlertProductId(null);
+                                }}
+                              >
+                                Save Alert
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </CardContent>
                   </Card>
@@ -417,27 +463,71 @@ export default function InventoryPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stock Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-lg">
-                <div className="text-center">
-                  <LineChart className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-2 text-sm font-medium text-foreground">
-                    Stock Analytics
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Coming soon! Track your inventory trends and get insights.
-                  </p>
+      </Tabs>
+
+      {/* Set Stock Alerts Modal */}
+      <AlertDialog open={isStockAlertModalOpen} onOpenChange={setIsStockAlertModalOpen}>
+        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set Stock Alerts</AlertDialogTitle>
+            <AlertDialogDescription>
+              Configure stock alert thresholds for your products. You'll be notified when stock levels fall below these values.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            {products.map((product) => (
+              <div key={product.id} className="flex items-center justify-between gap-4 p-4 border border-border rounded-lg">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">{product.name}</div>
+                    <div className="text-sm text-muted-foreground">Current: {product.stock} units</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Threshold"
+                    className="w-24"
+                    min="1"
+                    value={alertThresholds[product.id] || product.threshold}
+                    onChange={(e) =>
+                      setAlertThresholds({ ...alertThresholds, [product.id]: e.target.value })
+                    }
+                  />
+                  <span className="text-sm text-muted-foreground">units</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                // Update all thresholds
+                setProducts((prev) =>
+                  prev.map((p) => ({
+                    ...p,
+                    threshold: parseInt(alertThresholds[p.id] || p.threshold.toString()),
+                  }))
+                );
+                toast.success("Stock alerts updated successfully");
+                setIsStockAlertModalOpen(false);
+              }}
+            >
+              Save All Alerts
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
