@@ -29,7 +29,7 @@ M.A.S.H. is an IoT and AI-driven system for automated oyster mushroom cultivatio
 - Ma. Catherine H. Bae (Front-end Developer)
 - Jin Harold A. Failana (Hardware Programmer)
 - Jhon Keneth Ryan B. Namias (Back-end Developer)
-- Emmanuel L. Pabua (Database Administrator)
+- Emannuel L. Pabua (Database Administrator)
 - Ronan Renz T. Valencia (Full Stack Developer)
 
 **Thesis Adviser:** Prof. Joemen G. Barrios, MIT

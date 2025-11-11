@@ -16,6 +16,7 @@ import {
   Facebook,
   Instagram,
   Store,
+  AlertCircle,
 } from "lucide-react";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -29,6 +30,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
@@ -63,6 +74,7 @@ export function Header() {
   const { clearCart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
 
@@ -85,6 +97,7 @@ export function Header() {
       clearCart();
     } catch {}
     setIsLoggedIn(false);
+    setShowLogoutConfirm(false);
     router.push("/");
     router.refresh();
     toast.success("Signed out");
@@ -210,7 +223,7 @@ export function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className="text-red-600"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -299,7 +312,7 @@ export function Header() {
                       <Button
                         variant="outline"
                         className="mt-4 w-full text-red-600 border-red-600 hover:bg-red-50"
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutConfirm(true)}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
                         Logout
@@ -328,6 +341,30 @@ export function Header() {
           <NavLink label="Growers" path="/grower" />
         </div>
       </nav>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="mt-2">
+              Are you sure you want to sign out? You'll need to log in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay Logged In</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Yes, Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

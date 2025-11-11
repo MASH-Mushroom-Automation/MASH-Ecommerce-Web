@@ -1,5 +1,5 @@
 import React from "react";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, Loader2, Check, X as XIcon, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { SellerApplicationForm } from "../page";
 
@@ -59,6 +59,35 @@ const regions = [
   "Davao Region",
   "SOCCSKSARGEN",
 ];
+
+// Validation indicator component
+const ValidationIndicator: React.FC<{
+  isValid?: boolean;
+  isTouched?: boolean;
+  isError?: boolean;
+}> = ({ isValid, isTouched, isError }) => {
+  if (!isTouched) return null;
+  
+  if (isError) {
+    return (
+      <div className="mt-1.5 flex items-center gap-2 text-xs text-red-600">
+        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+        <span>Requirements not met</span>
+      </div>
+    );
+  }
+  
+  if (isValid) {
+    return (
+      <div className="mt-1.5 flex items-center gap-2 text-xs text-green-600">
+        <Check className="h-3 w-3 flex-shrink-0" />
+        <span>Valid</span>
+      </div>
+    );
+  }
+  
+  return null;
+};
 
 export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps) {
   return (
