@@ -1,0 +1,60 @@
+{
+  "_comment": "CircuitBreakerState Table - Complete JSON Structure",
+  "_table": "circuit_breaker_states",
+  "_description": "Circuit breaker state for fault tolerance",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "circuit_001",
+  "service": "payment-gateway",
+  "endpoint": "/payments/process",
+  "state": "CLOSED",
+  "failureCount": 0,
+  "successCount": 1245,
+  "lastFailureAt": null,
+  "halfOpenAt": null,
+  "threshold": 5,
+  "timeout": 60000,
+  "createdAt": "2025-11-10T08:00:00.000Z",
+  "updatedAt": "2025-11-10T12:00:00.000Z",
+  
+  "_example_open_circuit": {
+    "id": "circuit_002",
+    "service": "iot-device-api",
+    "endpoint": "/devices/command",
+    "state": "OPEN",
+    "failureCount": 8,
+    "successCount": 450,
+    "lastFailureAt": "2025-11-10T11:55:00.000Z",
+    "halfOpenAt": "2025-11-10T11:56:00.000Z",
+    "threshold": 5,
+    "timeout": 60000,
+    "updatedAt": "2025-11-10T11:55:00.000Z"
+  },
+  
+  "_example_half_open": {
+    "id": "circuit_003",
+    "service": "email-service",
+    "endpoint": "/send",
+    "state": "HALF_OPEN",
+    "failureCount": 3,
+    "successCount": 120,
+    "lastFailureAt": "2025-11-10T10:30:00.000Z",
+    "halfOpenAt": "2025-11-10T10:31:00.000Z",
+    "threshold": 5,
+    "timeout": 60000
+  },
+  
+  "_enums": {
+    "state": ["CLOSED", "OPEN", "HALF_OPEN"]
+  },
+  "_required_fields": ["id", "service", "endpoint", "state", "failureCount", "successCount", "threshold", "timeout", "createdAt", "updatedAt"],
+  "_optional_fields": ["lastFailureAt", "halfOpenAt"],
+  "_notes": {
+    "CLOSED": "Normal operation - requests pass through",
+    "OPEN": "Too many failures - requests blocked",
+    "HALF_OPEN": "Testing if service recovered - limited requests allowed",
+    "threshold": "Number of failures before opening circuit",
+    "timeout": "Milliseconds before trying HALF_OPEN state",
+    "halfOpenAt": "When circuit will attempt HALF_OPEN (only set when OPEN)"
+  }
+}

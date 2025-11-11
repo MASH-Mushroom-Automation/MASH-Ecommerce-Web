@@ -1,0 +1,43 @@
+{
+  "_comment": "OrderItem Table - Complete JSON Structure",
+  "_table": "order_items",
+  "_description": "Line items within orders - products and quantities ordered",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "oi_001",
+  "orderId": "order_001",
+  "productId": "prod_001",
+  "quantity": 3,
+  "price": 120.00,
+  "total": 360.00,
+  
+  "_required_fields": ["id", "orderId", "productId", "quantity", "price", "total"],
+  "_optional_fields": [],
+  "_relationships": {
+    "order": "Order",
+    "product": "Product"
+  },
+  "_notes": {
+    "price": "Price at time of purchase (may differ from current product price)",
+    "total": "Calculated as quantity * price",
+    "price_format": "Decimal(10,2) - always 2 decimal places"
+  },
+  "_example_order_items": [
+    {
+      "id": "oi_001",
+      "orderId": "order_001",
+      "productId": "prod_001",
+      "quantity": 3,
+      "price": 120.00,
+      "total": 360.00
+    },
+    {
+      "id": "oi_002",
+      "orderId": "order_001",
+      "productId": "prod_005",
+      "quantity": 1,
+      "price": 250.00,
+      "total": 250.00
+    }
+  ]
+}

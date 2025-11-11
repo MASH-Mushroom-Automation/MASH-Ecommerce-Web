@@ -1,0 +1,52 @@
+{
+  "_comment": "AlertRule Table - Complete JSON Structure",
+  "_table": "alert_rules",
+  "_description": "Alert rule definitions - when and how alerts are triggered",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "High Temperature Alert",
+  "description": "Alert when chamber temperature exceeds safe threshold for mushroom growth",
+  "category": "SENSOR",
+  "priority": "HIGH",
+  "eventType": "sensor.temperature",
+  "condition": {
+    "operator": "GT",
+    "threshold": 30,
+    "field": "value",
+    "duration": 300
+  },
+  "activeHours": {
+    "start": "00:00",
+    "end": "23:59",
+    "days": [1, 2, 3, 4, 5, 6, 7],
+    "timezone": "Asia/Manila"
+  },
+  "cooldownMinutes": 15,
+  "isActive": true,
+  "isDeleted": false,
+  "createdBy": "cm3vxyz123456789",
+  "updatedBy": null,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_enums": {
+    "category": ["SYSTEM", "SECURITY", "BUSINESS", "USER", "SENSOR", "ORDER", "PAYMENT"],
+    "priority": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+  },
+  "_required_fields": ["id", "name", "category", "priority", "eventType", "condition", "isActive", "isDeleted", "createdBy", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "activeHours", "cooldownMinutes", "updatedBy"],
+  "_relationships": {
+    "recipients": "AlertRuleRecipient[]",
+    "alerts": "Alert[]",
+    "createdByUser": "User",
+    "updatedByUser": "User?"
+  },
+  "_condition_operators": ["GT", "LT", "EQ", "NE", "GTE", "LTE", "CONTAINS", "IN", "NOT_IN"],
+  "_notes": {
+    "id_format": "Uses UUID format for alert system",
+    "cooldownMinutes": "Prevents duplicate alerts within this time window",
+    "activeHours": "Alert only triggers during these hours (24h format)",
+    "days": "1=Monday, 7=Sunday"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "productId": "prod_001",
+  "stock": 50,
+  "minStock": 10,
+  "reservedStock": 8,
+  "availableStock": 42,
+  
+  "location": "Manila Urban Farm - Warehouse A",
+  "batchNumber": "BATCH-2025-11-08-001",
+  "expiryDate": "2025-11-15T23:59:59.000Z",
+  
+  "lastUpdated": "2025-11-10T08:00:00.000Z",
+  
+  "movements": [
+    {
+      "type": "IN",
+      "quantity": 50,
+      "reason": "Fresh harvest",
+      "date": "2025-11-08T06:00:00.000Z",
+      "performedBy": "user_002"
+    },
+    {
+      "type": "RESERVE",
+      "quantity": 8,
+      "reason": "Pending orders",
+      "date": "2025-11-10T07:30:00.000Z",
+      "performedBy": "system"
+    }
+  ],
+  
+  "alerts": [
+    {
+      "type": "EXPIRY_WARNING",
+      "message": "Product expires in 5 days",
+      "priority": "MEDIUM",
+      "date": "2025-11-10T08:00:00.000Z"
+    }
+  ]
+}

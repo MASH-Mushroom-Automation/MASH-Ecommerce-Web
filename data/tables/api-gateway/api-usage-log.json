@@ -1,0 +1,48 @@
+{
+  "_comment": "ApiUsageLog Table - Complete JSON Structure",
+  "_table": "api_usage_logs",
+  "_description": "API request analytics and usage tracking",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "log_001",
+  "gatewayConfigId": "gateway_001",
+  "endpoint": "/products",
+  "method": "GET",
+  "statusCode": 200,
+  "responseTime": 125,
+  "userId": "cm3vxyz123456789",
+  "apiKeyId": null,
+  "ipAddress": "203.177.123.45",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "requestHeaders": {
+    "Authorization": "Bearer eyJ...",
+    "Accept": "application/json"
+  },
+  "requestBody": null,
+  "responseSize": 4567,
+  "errorMessage": null,
+  "createdAt": "2025-11-10T10:15:00.000Z",
+  
+  "_example_error_log": {
+    "id": "log_002",
+    "endpoint": "/orders",
+    "method": "POST",
+    "statusCode": 429,
+    "responseTime": 50,
+    "errorMessage": "Rate limit exceeded",
+    "createdAt": "2025-11-10T10:16:00.000Z"
+  },
+  
+  "_required_fields": ["id", "gatewayConfigId", "endpoint", "method", "statusCode", "responseTime", "ipAddress", "createdAt"],
+  "_optional_fields": ["userId", "apiKeyId", "userAgent", "requestHeaders", "requestBody", "responseSize", "errorMessage"],
+  "_relationships": {
+    "gatewayConfig": "ApiGatewayConfig",
+    "user": "User?",
+    "apiKey": "ApiKey?"
+  },
+  "_notes": {
+    "responseTime": "Milliseconds",
+    "responseSize": "Bytes",
+    "statusCode": "HTTP status code (200, 404, 500, etc.)"
+  }
+}

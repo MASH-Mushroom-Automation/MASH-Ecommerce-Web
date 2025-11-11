@@ -1,0 +1,45 @@
+{
+  "_comment": "ImportExportError Table - Complete JSON Structure",
+  "_table": "import_export_errors",
+  "_description": "Error details for failed import/export records",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "error_001",
+  "jobId": "job_001",
+  "rowNumber": 45,
+  "field": "price",
+  "errorType": "VALIDATION",
+  "errorMessage": "Price must be a positive number",
+  "rowData": {
+    "name": "Golden Oyster Mushrooms",
+    "category": "fresh",
+    "price": "-150.00",
+    "stock": 50
+  },
+  "suggestion": "Update price to positive value (e.g., 150.00)",
+  "createdAt": "2025-11-10T08:05:00.000Z",
+  
+  "_example_duplicate_error": {
+    "id": "error_002",
+    "jobId": "job_001",
+    "rowNumber": 123,
+    "field": "sku",
+    "errorType": "DUPLICATE",
+    "errorMessage": "SKU 'MUSH-OYS-001' already exists in database",
+    "rowData": {
+      "name": "Oyster Mushrooms",
+      "sku": "MUSH-OYS-001",
+      "price": 180
+    },
+    "suggestion": "Use unique SKU or update existing product"
+  },
+  
+  "_enums": {
+    "errorType": ["VALIDATION", "DUPLICATE", "MISSING_REFERENCE", "FORMAT", "CONSTRAINT", "SYSTEM"]
+  },
+  "_required_fields": ["id", "jobId", "rowNumber", "errorType", "errorMessage", "rowData", "createdAt"],
+  "_optional_fields": ["field", "suggestion"],
+  "_relationships": {
+    "job": "ImportExportJob"
+  }
+}

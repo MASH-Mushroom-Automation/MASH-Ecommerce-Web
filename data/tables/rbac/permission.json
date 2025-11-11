@@ -1,0 +1,33 @@
+{
+  "_comment": "Permission Table - Complete JSON Structure",
+  "_table": "permissions",
+  "_description": "System permissions defining available actions on resources",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "perm_001",
+  "resource": "products",
+  "action": "create",
+  "description": "Create new products in the catalog",
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "resource", "action", "description", "createdAt", "updatedAt"],
+  "_optional_fields": [],
+  "_relationships": {
+    "rolePermissions": "RolePermission[]"
+  },
+  "_resource_examples": ["products", "orders", "users", "devices", "categories", "payments", "analytics", "settings"],
+  "_action_examples": ["create", "read", "update", "delete", "list", "export", "import"],
+  "_permission_format": "resource:action (e.g., products:create, orders:read)",
+  "_common_permissions": [
+    { "resource": "products", "action": "create" },
+    { "resource": "products", "action": "read" },
+    { "resource": "products", "action": "update" },
+    { "resource": "products", "action": "delete" },
+    { "resource": "orders", "action": "read" },
+    { "resource": "orders", "action": "update" },
+    { "resource": "users", "action": "read" },
+    { "resource": "devices", "action": "control" },
+    { "resource": "analytics", "action": "read" }
+  ]
+}

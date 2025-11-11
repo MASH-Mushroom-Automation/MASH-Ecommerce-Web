@@ -1,0 +1,29 @@
+{
+  "id": "user_001",
+  "clerkId": "clerk_user_xyz123",
+  "email": "juan.delacruz@example.com",
+  "username": "juandc",
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200",
+  "phone": "+639123456789",
+  "bio": "Home cook and mushroom enthusiast. Love trying new recipes with fresh, local ingredients.",
+  
+  "role": "BUYER",
+  "isActive": true,
+  "twoFactorEnabled": false,
+  
+  "preferences": {
+    "notifications": {
+      "email": true,
+      "push": true,
+      "sms": false
+    },
+    "newsletter": true,
+    "language": "en",
+    "currency": "PHP"
+  },
+  
+  "createdAt": "2025-08-15T12:00:00.000Z",
+  "updatedAt": "2025-11-10T09:15:00.000Z"
+}

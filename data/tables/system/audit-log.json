@@ -1,0 +1,100 @@
+{
+  "_comment": "AuditLog Table - Complete JSON Structure",
+  "_table": "audit_logs",
+  "_description": "Comprehensive audit trail for all system actions",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "audit_001",
+  "userId": "cm3vxyz123456789",
+  "action": "PRODUCT_CREATE",
+  "entity": "Product",
+  "entityId": "prod_001",
+  "changes": {
+    "before": null,
+    "after": {
+      "name": "Fresh Oyster Mushrooms",
+      "price": 180.00,
+      "stock": 50,
+      "category": "fresh"
+    }
+  },
+  "metadata": {
+    "ipAddress": "203.177.123.45",
+    "userAgent": "Mozilla/5.0...",
+    "sessionId": "session_123"
+  },
+  "result": "SUCCESS",
+  "errorMessage": null,
+  "createdAt": "2025-11-10T10:15:00.000Z",
+  
+  "_example_update": {
+    "id": "audit_002",
+    "userId": "cm3vxyz123456789",
+    "action": "ORDER_UPDATE",
+    "entity": "Order",
+    "entityId": "ord_001",
+    "changes": {
+      "before": {
+        "status": "PENDING"
+      },
+      "after": {
+        "status": "CONFIRMED"
+      }
+    },
+    "result": "SUCCESS",
+    "createdAt": "2025-11-10T10:20:00.000Z"
+  },
+  
+  "_example_delete": {
+    "id": "audit_003",
+    "userId": "cm3vxyz123456789",
+    "action": "PRODUCT_DELETE",
+    "entity": "Product",
+    "entityId": "prod_002",
+    "changes": {
+      "before": {
+        "name": "Old Product",
+        "price": 100,
+        "isActive": true
+      },
+      "after": {
+        "isActive": false,
+        "deletedAt": "2025-11-10T10:25:00.000Z"
+      }
+    },
+    "result": "SUCCESS"
+  },
+  
+  "_example_failed": {
+    "id": "audit_004",
+    "userId": "cm3vxyz123456789",
+    "action": "PAYMENT_PROCESS",
+    "entity": "Payment",
+    "entityId": "pay_001",
+    "result": "FAILED",
+    "errorMessage": "Insufficient balance"
+  },
+  
+  "_enums": {
+    "action": [
+      "USER_CREATE", "USER_UPDATE", "USER_DELETE",
+      "PRODUCT_CREATE", "PRODUCT_UPDATE", "PRODUCT_DELETE",
+      "ORDER_CREATE", "ORDER_UPDATE", "ORDER_CANCEL",
+      "PAYMENT_PROCESS", "PAYMENT_REFUND",
+      "DEVICE_CREATE", "DEVICE_UPDATE", "DEVICE_DELETE",
+      "CONFIG_UPDATE", "ROLE_ASSIGN", "PERMISSION_GRANT"
+    ],
+    "entity": ["User", "Product", "Order", "Payment", "Device", "Sensor", "Category", "SystemConfig", "Role", "Permission"],
+    "result": ["SUCCESS", "FAILED", "PARTIAL"]
+  },
+  "_required_fields": ["id", "userId", "action", "entity", "entityId", "result", "createdAt"],
+  "_optional_fields": ["changes", "metadata", "errorMessage"],
+  "_relationships": {
+    "user": "User"
+  },
+  "_notes": {
+    "changes": "JSON object with 'before' and 'after' states",
+    "metadata": "Additional context (IP, user agent, session, etc.)",
+    "action": "Format: ENTITY_ACTION (e.g., PRODUCT_CREATE)"
+  }
+}

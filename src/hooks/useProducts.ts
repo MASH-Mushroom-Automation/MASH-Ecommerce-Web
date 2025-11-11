@@ -50,6 +50,7 @@ export function useProducts(
         pagination: response.pagination || null,
       });
     } catch (error) {
+      console.error('[useProducts] Error fetching products:', error);
       setState({
         products: [],
         loading: false,

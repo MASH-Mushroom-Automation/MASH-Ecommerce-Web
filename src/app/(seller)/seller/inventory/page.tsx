@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInventory } from "@/hooks/useInventory";
+import { ProductsApi } from "@/lib/api/products";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,58 +44,10 @@ interface Product {
   status: "in_stock" | "low_stock" | "out_of_stock";
 }
 
-// Mock fallback data
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    name: "Fresh White Oyster Mushrooms",
-    stock: 5,
-    threshold: 10,
-    price: 120,
-    image: "/placeholder.png",
-    category: "Fresh Mushrooms",
-    lastUpdated: "2024-10-01T08:30:00Z",
-    status: "low_stock",
-  },
-  {
-    id: "2",
-    name: "Dried Shiitake Mushrooms",
-    stock: 0,
-    threshold: 15,
-    price: 180,
-    image: "/placeholder.png",
-    category: "Dried Mushrooms",
-    lastUpdated: "2024-09-15T14:45:00Z",
-    status: "out_of_stock",
-  },
-  {
-    id: "3",
-    name: "White Oyster Mushroom Growing Kit",
-    stock: 25,
-    threshold: 10,
-    price: 350,
-    image: "/placeholder.png",
-    category: "Growing Kits",
-    lastUpdated: "2024-08-20T10:15:00Z",
-    status: "in_stock",
-  },
-  {
-    id: "4",
-    name: "Pink Oyster Mushrooms",
-    stock: 15,
-    threshold: 10,
-    price: 140,
-    image: "/placeholder.png",
-    category: "Fresh Mushrooms",
-    lastUpdated: "2024-10-05T09:00:00Z",
-    status: "in_stock",
-  },
-];
-
 export default function InventoryPage() {
   const {
-    loading,
-    error,
+    loading: inventoryLoading,
+    error: inventoryError,
     lowStockProducts,
     getLowStockProducts,
     updateStock,
@@ -102,21 +55,59 @@ export default function InventoryPage() {
   } = useInventory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [updatingProductId, setUpdatingProductId] = useState<string | null>(null);
   const [newStockValue, setNewStockValue] = useState<Record<string, string>>({});
 
-  // Fetch products on mount - with fallback to mock data
+  // Fetch products from API on mount
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Attempt to fetch from API
-        const lowStock = await getLowStockProducts();
-        // TODO: Convert lowStock to Product[] format when API is ready
-        // For now, use mock data
+        // Fetch all products from Railway backend
+        const response = await ProductsApi.getProducts({ limit: 1000 });
+        
+        if (response.success && response.data) {
+          // Convert API products to inventory format
+          const inventoryProducts: Product[] = response.data.map((product) => {
+            const stock = product.stock || 0;
+            const threshold = product.minStock || 10;
+            
+            let status: "in_stock" | "low_stock" | "out_of_stock";
+            if (stock === 0) {
+              status = "out_of_stock";
+            } else if (stock <= threshold) {
+              status = "low_stock";
+            } else {
+              status = "in_stock";
+            }
+            
+            return {
+              id: product.id,
+              name: product.name,
+              stock,
+              threshold,
+              price: product.price,
+              image: product.image || product.images?.[0] || "/placeholder.png",
+              category: product.category || "Uncategorized",
+              lastUpdated: product.updatedAt || new Date().toISOString(),
+              status,
+            };
+          });
+          
+          setProducts(inventoryProducts);
+        } else {
+          throw new Error(response.message || "Failed to fetch products");
+        }
       } catch (err) {
-        console.warn('Using mock inventory data:', err);
-        // Fallback already set with MOCK_PRODUCTS
+        console.error('Failed to fetch inventory:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load inventory');
+        toast.error('Failed to load inventory from backend');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();

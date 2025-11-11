@@ -1,0 +1,58 @@
+{
+  "_comment": "Address Table - Complete JSON Structure",
+  "_table": "addresses",
+  "_description": "User shipping and billing addresses (Philippines format)",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "addr_001",
+  "userId": "cm3vxyz123456789",
+  "type": "shipping",
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "company": null,
+  "street1": "123 Bonifacio Street",
+  "street2": "Unit 4B, Green Tower",
+  "city": "Makati City",
+  "state": "Metro Manila",
+  "postalCode": "1200",
+  "country": "Philippines",
+  "phoneNumber": "+639171234567",
+  "isDefault": true,
+  "createdAt": "2025-06-15T10:30:00.000Z",
+  "updatedAt": "2025-06-15T10:30:00.000Z",
+  
+  "_required_fields": ["id", "userId", "type", "firstName", "lastName", "street1", "city", "state", "postalCode", "country", "phoneNumber", "isDefault", "createdAt", "updatedAt"],
+  "_optional_fields": ["company", "street2"],
+  "_relationships": {
+    "user": "User"
+  },
+  "_address_types": ["shipping", "billing", "home", "work"],
+  "_philippines_format": {
+    "street1": "House/Building number + Street name",
+    "street2": "Unit/Floor/Building details (optional)",
+    "city": "City/Municipality",
+    "state": "Province/Metro Manila",
+    "postalCode": "4-digit ZIP code",
+    "phoneNumber": "+63 format (international)"
+  },
+  "_example_addresses": {
+    "metro_manila": {
+      "street1": "456 EDSA Avenue",
+      "city": "Quezon City",
+      "state": "Metro Manila",
+      "postalCode": "1100"
+    },
+    "provincial": {
+      "street1": "789 Session Road",
+      "city": "Baguio City",
+      "state": "Benguet",
+      "postalCode": "2600"
+    },
+    "cebu": {
+      "street1": "321 Colon Street",
+      "city": "Cebu City",
+      "state": "Cebu",
+      "postalCode": "6000"
+    }
+  }
+}

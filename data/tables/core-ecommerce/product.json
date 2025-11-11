@@ -1,0 +1,58 @@
+{
+  "_comment": "Product Table - Complete JSON Structure",
+  "_table": "products",
+  "_description": "Product catalog with pricing, inventory, and metadata",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "prod_001",
+  "name": "Fresh Oyster Mushrooms",
+  "description": "Locally grown fresh oyster mushrooms harvested daily",
+  "slug": "fresh-oyster-mushrooms",
+  "sku": "MUSH-OYS-FRESH-250G",
+  "price": 120.00,
+  "comparePrice": 150.00,
+  "costPrice": 80.00,
+  "stock": 50,
+  "minStock": 10,
+  "weight": 0.25,
+  "dimensions": {
+    "length": 15,
+    "width": 10,
+    "height": 5,
+    "unit": "cm"
+  },
+  "images": [
+    "https://images.unsplash.com/oyster-mushroom-1.jpg",
+    "https://images.unsplash.com/oyster-mushroom-2.jpg",
+    "https://images.unsplash.com/oyster-mushroom-3.jpg"
+  ],
+  "categories": ["cat_fresh", "cat_edible"],
+  "tags": ["fresh", "organic", "local", "oyster"],
+  "attributes": {
+    "origin": "Baguio City, Philippines",
+    "shelfLife": "5-7 days",
+    "storage": "Refrigerate at 2-4°C",
+    "certifications": ["Organic", "GAP Certified"]
+  },
+  "isActive": true,
+  "isFeatured": true,
+  "isDeleted": false,
+  "deletedAt": null,
+  "seoTitle": "Fresh Oyster Mushrooms - Locally Grown in Baguio",
+  "seoDescription": "Buy fresh oyster mushrooms from local Philippine growers. Organic, daily harvest, delivered fresh.",
+  "createdAt": "2025-08-01T10:00:00.000Z",
+  "updatedAt": "2025-11-10T09:15:00.000Z",
+  
+  "_required_fields": ["id", "name", "slug", "price", "stock", "minStock", "images", "isActive", "isFeatured", "isDeleted", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "sku", "comparePrice", "costPrice", "weight", "dimensions", "categories", "tags", "attributes", "deletedAt", "seoTitle", "seoDescription"],
+  "_relationships": {
+    "orderItems": "OrderItem[]",
+    "categories_relation": "Category[]"
+  },
+  "_notes": {
+    "categories": "Array of category IDs (backend format)",
+    "price_format": "Decimal(10,2) - always 2 decimal places",
+    "soft_delete": "Use isDeleted=true and deletedAt timestamp",
+    "images": "Array of image URLs, first image is primary"
+  }
+}

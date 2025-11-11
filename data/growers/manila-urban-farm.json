@@ -1,0 +1,42 @@
+{
+  "id": "grower_001",
+  "userId": "user_002",
+  "name": "Manila Urban Farm",
+  "location": "Makati City, Metro Manila",
+  "bio": "Pioneering urban farming in Metro Manila since 2015. We specialize in growing high-quality oyster and shiitake mushrooms using sustainable vertical farming techniques. Our farm operates in a climate-controlled environment ensuring consistent quality year-round.",
+  
+  "image": "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400",
+  "coverImage": "https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=1200",
+  
+  "specialties": [
+    "Oyster Mushrooms",
+    "Shiitake Mushrooms",
+    "King Oyster Mushrooms"
+  ],
+  
+  "certifications": [
+    "Organic Certified (DA)",
+    "Good Agricultural Practices (GAP)",
+    "HACCP Certified"
+  ],
+  
+  "coordinates": {
+    "lat": 14.5547,
+    "lng": 121.0244
+  },
+  
+  "contactEmail": "info@manilafarming.com",
+  "contactPhone": "+639987654321",
+  
+  "isActive": true,
+  
+  "stats": {
+    "totalProducts": 8,
+    "rating": 4.8,
+    "totalReviews": 156,
+    "joinedDate": "2025-06-01"
+  },
+  
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-11-09T10:00:00.000Z"
+}

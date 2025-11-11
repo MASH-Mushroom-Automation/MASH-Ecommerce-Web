@@ -1,0 +1,66 @@
+{
+  "id": "device_001",
+  "name": "Growing Chamber Alpha",
+  "type": "ENVIRONMENTAL_CONTROLLER",
+  "serialNumber": "MASH-GC-2025-001",
+  "status": "ONLINE",
+  "userId": "user_002",
+  "isActive": true,
+  
+  "location": "Manila Urban Farm - Chamber A",
+  "firmware": "v2.3.1",
+  "ipAddress": "192.168.1.100",
+  "macAddress": "00:1B:44:11:3A:B7",
+  "lastSeen": "2025-11-10T10:25:00.000Z",
+  
+  "sensors": [
+    {
+      "id": "sensor_001",
+      "type": "TEMPERATURE",
+      "name": "Temperature Sensor",
+      "unit": "°C",
+      "minValue": 15,
+      "maxValue": 30,
+      "currentValue": 24.5,
+      "isActive": true
+    },
+    {
+      "id": "sensor_002",
+      "type": "HUMIDITY",
+      "name": "Humidity Sensor",
+      "unit": "%",
+      "minValue": 60,
+      "maxValue": 95,
+      "currentValue": 85,
+      "isActive": true
+    },
+    {
+      "id": "sensor_003",
+      "type": "CO2",
+      "name": "CO2 Sensor",
+      "unit": "ppm",
+      "minValue": 400,
+      "maxValue": 15000,
+      "currentValue": 12500,
+      "isActive": true
+    }
+  ],
+  
+  "settings": {
+    "targetTemperature": 25,
+    "targetHumidity": 85,
+    "targetCO2": 12000,
+    "lightCycle": "12h",
+    "autoControl": true
+  },
+  
+  "statistics": {
+    "uptime": "15d 8h 42m",
+    "totalHarvests": 24,
+    "averageYield": "2.3kg",
+    "powerConsumption": "145W"
+  },
+  
+  "createdAt": "2025-06-15T10:00:00.000Z",
+  "updatedAt": "2025-11-10T10:25:00.000Z"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "user_002",
+  "clerkId": "clerk_user_abc456",
+  "email": "maria.santos@manilafarming.com",
+  "username": "mariasantos",
+  "firstName": "Maria",
+  "lastName": "Santos",
+  "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200",
+  "phone": "+639987654321",
+  "bio": "Sustainable urban farmer specializing in gourmet mushrooms. 10+ years of experience. Certified organic producer.",
+  
+  "role": "GROWER",
+  "isActive": true,
+  "twoFactorEnabled": true,
+  
+  "preferences": {
+    "notifications": {
+      "email": true,
+      "push": true,
+      "sms": true
+    },
+    "newsletter": true,
+    "language": "en",
+    "currency": "PHP",
+    "sellerDashboard": {
+      "defaultView": "orders",
+      "emailOnNewOrder": true,
+      "lowStockAlerts": true
+    }
+  },
+  
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-11-09T18:30:00.000Z"
+}

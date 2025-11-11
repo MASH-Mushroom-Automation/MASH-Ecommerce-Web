@@ -1,0 +1,51 @@
+{
+  "_comment": "SensorData Table - Complete JSON Structure",
+  "_table": "sensor_data",
+  "_description": "Time-series sensor readings from IoT devices",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "sd_001",
+  "deviceId": "device_001",
+  "sensorId": "sensor_001",
+  "userId": "cm3vxyz123456789",
+  "type": "temperature",
+  "value": 24.5,
+  "unit": "°C",
+  "quality": "good",
+  "timestamp": "2025-11-10T10:25:00.000Z",
+  
+  "_required_fields": ["id", "deviceId", "sensorId", "userId", "type", "value", "unit", "timestamp"],
+  "_optional_fields": ["quality"],
+  "_relationships": {
+    "device": "Device",
+    "sensor": "Sensor",
+    "user": "User"
+  },
+  "_quality_levels": ["excellent", "good", "fair", "poor", "error"],
+  "_notes": {
+    "value": "Float/Decimal - actual sensor reading",
+    "timestamp": "ISO 8601 format with UTC timezone",
+    "frequency": "Typically logged every 1-5 minutes",
+    "retention": "Keep 90 days of detailed data, aggregate older data"
+  },
+  "_example_readings": [
+    {
+      "timestamp": "2025-11-10T10:00:00.000Z",
+      "type": "temperature",
+      "value": 24.2,
+      "quality": "good"
+    },
+    {
+      "timestamp": "2025-11-10T10:05:00.000Z",
+      "type": "temperature",
+      "value": 24.5,
+      "quality": "good"
+    },
+    {
+      "timestamp": "2025-11-10T10:10:00.000Z",
+      "type": "temperature",
+      "value": 24.8,
+      "quality": "good"
+    }
+  ]
+}

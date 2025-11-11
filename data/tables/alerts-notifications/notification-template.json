@@ -1,0 +1,59 @@
+{
+  "_comment": "NotificationTemplate Table - Complete JSON Structure",
+  "_table": "notification_templates",
+  "_description": "Reusable notification templates with variable substitution",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440005",
+  "name": "high_temperature_alert",
+  "description": "Template for high temperature alert notifications",
+  "category": "SENSOR",
+  "channel": "PUSH",
+  "subject": "High Temperature Alert - {{deviceName}}",
+  "body": "Temperature in {{deviceName}} has reached {{temperature}}°C, exceeding the safe threshold of {{threshold}}°C. Location: {{location}}. Please check immediately.",
+  "variables": {
+    "deviceName": "Name of the device triggering alert",
+    "temperature": "Current temperature reading",
+    "threshold": "Temperature threshold that was exceeded",
+    "location": "Physical location of the device",
+    "unit": "Temperature unit (°C or °F)"
+  },
+  "isActive": true,
+  "createdBy": "cm3vxyz123456789",
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_enums": {
+    "category": ["SYSTEM", "SECURITY", "BUSINESS", "USER", "SENSOR", "ORDER", "PAYMENT"],
+    "channel": ["EMAIL", "SMS", "PUSH", "IN_APP", "WEBHOOK"]
+  },
+  "_required_fields": ["id", "name", "category", "channel", "subject", "body", "isActive", "createdBy", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "variables"],
+  "_relationships": {
+    "createdByUser": "User",
+    "notifications": "Notification[]"
+  },
+  "_variable_syntax": {
+    "format": "{{variableName}}",
+    "example": "Temperature is {{temperature}}°C",
+    "result": "Temperature is 32.5°C"
+  },
+  "_channel_specific_templates": {
+    "EMAIL": {
+      "subject": "Subject line for email",
+      "body": "Can include HTML formatting"
+    },
+    "SMS": {
+      "subject": "Not used for SMS",
+      "body": "Plain text only, keep under 160 chars"
+    },
+    "PUSH": {
+      "subject": "Notification title",
+      "body": "Notification body, limited length"
+    },
+    "IN_APP": {
+      "subject": "Alert title",
+      "body": "Can include rich text/markdown"
+    }
+  }
+}

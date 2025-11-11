@@ -1,0 +1,33 @@
+{
+  "id": "addr_001",
+  "userId": "user_001",
+  "type": "shipping",
+  
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "phone": "+639123456789",
+  
+  "street1": "123 Mabini Street",
+  "street2": "Unit 4B, Sunshine Apartments",
+  
+  "barangay": "San Roque",
+  "barangayCode": "137404041",
+  
+  "city": "Manila",
+  "cityCode": "133900000",
+  
+  "state": "Metro Manila",
+  "stateCode": "130000000",
+  "province": "Metro Manila",
+  
+  "region": "NCR",
+  "regionCode": "130000000",
+  
+  "postalCode": "1006",
+  "country": "Philippines",
+  
+  "isDefault": true,
+  
+  "createdAt": "2025-08-20T10:00:00.000Z",
+  "updatedAt": "2025-10-15T14:30:00.000Z"
+}
