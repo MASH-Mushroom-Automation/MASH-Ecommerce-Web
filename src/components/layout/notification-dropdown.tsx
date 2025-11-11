@@ -33,17 +33,17 @@ const getNotificationIcon = (type: string) => {
 const getNotificationColor = (type: string) => {
   switch (type) {
     case "order":
-      return "bg-accent text-accent-foreground";
+      return "bg-primary text-primary-foreground";
     case "payment":
-      return "bg-green-500 text-white";
+      return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
     case "review":
-      return "bg-yellow-500 text-white";
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300";
     case "alert":
-      return "bg-orange-500 text-white";
+      return "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300";
     case "report":
-      return "bg-blue-500 text-white";
+      return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
     default:
-      return "bg-muted-foreground text-primary-foreground";
+      return "bg-muted text-muted-foreground";
   }
 };
 
@@ -61,9 +61,9 @@ export function NotificationDropdown() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell size={20} className="text-muted-foreground hover:text-foreground" />
+          <Bell size={20} className="text-muted-foreground hover:text-foreground transition-colors" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground text-xs">
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
               {unreadCount}
             </Badge>
           )}
@@ -79,7 +79,7 @@ export function NotificationDropdown() {
                   variant="ghost"
                   size="sm"
                   onClick={markAllAsRead}
-                  className="text-xs text-accent hover:text-primary"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   Mark all read
                 </Button>
@@ -96,7 +96,7 @@ export function NotificationDropdown() {
         <ScrollArea className="h-96">
           {loading ? (
             <div className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto mb-2" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
               <p className="text-muted-foreground">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
@@ -110,7 +110,7 @@ export function NotificationDropdown() {
                 <div
                   key={notification.id}
                   className={`p-4 hover:bg-muted transition-colors ${
-                    !notification.isRead ? "bg-blue-50/50" : ""
+                    !notification.isRead ? "bg-primary/5" : ""
                   }`}
                 >
                   <div className="flex items-start space-x-3">
@@ -140,7 +140,7 @@ export function NotificationDropdown() {
                               variant="ghost"
                               size="sm"
                               onClick={() => markAsRead(notification.id)}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-accent"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-colors"
                             >
                               <Check size={14} />
                             </Button>

@@ -1,14 +1,13 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { colors } from "@/lib/colors"
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-white text-gray-900 flex flex-col rounded-lg border border-gray-200 shadow-sm overflow-hidden",
+        "bg-card text-foreground flex flex-col rounded-lg border border-border shadow-sm overflow-hidden",
         className
       )}
       {...props}
@@ -33,7 +32,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("text-lg font-semibold text-gray-900 leading-tight", className)}
+      className={cn("text-lg font-semibold text-foreground leading-tight", className)}
       {...props}
     />
   )
@@ -43,7 +42,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-gray-600 text-sm", className)}
+      className={cn("text-muted-foreground text-sm", className)}
       {...props}
     />
   )
@@ -76,7 +75,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn("p-4 sm:p-5 flex items-center border-t border-gray-200", className)}
+      className={cn("p-4 sm:p-5 flex items-center border-t border-border", className)}
       {...props}
     />
   )

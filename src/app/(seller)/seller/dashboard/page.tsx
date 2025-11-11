@@ -20,17 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
+import { ChartBarDefault } from "@/components/ui/Bar-Chart";
+import { LineChartDefault } from "@/components/ui/Line-chart";
 import {
   Package,
   ShoppingBag,
@@ -42,6 +33,7 @@ import {
 } from "lucide-react";
 import { useSellerDashboard } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerDashboard() {
   const { stats, salesData, productPerformance, recentOrders, loading, error } =
@@ -114,95 +106,19 @@ export default function SellerDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Weekly Sales</CardTitle>
-            <CardDescription>
-              Overview of your sales performance for the past week
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={salesData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [`₱${value}`, "Sales"]}
-                  labelFormatter={(label) => `Day: ${label}`}
-                />
-                <Bar dataKey="sales" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-          <CardFooter>
-            <Link
-              href="/seller/orders"
-              className="text-sm text-primary font-medium flex items-center hover:underline"
-            >
-              View all sales <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </CardFooter>
-        </Card>
+        <ChartBarDefault data={salesData.map(item => ({
+          month: item.name,
+          desktop: item.sales
+        }))} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Monthly Revenue Trend</CardTitle>
-            <CardDescription>
-              Revenue performance over the last 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={[
-                  { month: "May", revenue: 24000 },
-                  { month: "Jun", revenue: 26500 },
-                  { month: "Jul", revenue: 32000 },
-                  { month: "Aug", revenue: 28000 },
-                  { month: "Sep", revenue: 35000 },
-                  { month: "Oct", revenue: 42390 },
-                ]}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [`₱${value}`, "Revenue"]}
-                  labelFormatter={(label) => `Month: ${label}`}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-          <CardFooter>
-            <Link
-              href="#"
-              className="text-sm text-primary font-medium flex items-center hover:underline"
-            >
-              View detailed reports <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </CardFooter>
-        </Card>
+        <LineChartDefault data={[
+          { month: "May", desktop: 24000 },
+          { month: "Jun", desktop: 26500 },
+          { month: "Jul", desktop: 32000 },
+          { month: "Aug", desktop: 28000 },
+          { month: "Sep", desktop: 35000 },
+          { month: "Oct", desktop: 42390 },
+        ]} />
       </div>
 
       {/* Product Performance */}
@@ -215,23 +131,24 @@ export default function SellerDashboard() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead className="text-right">Units Sold</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-foreground">Product Name</TableHead>
+                <TableHead className="text-right text-foreground">Units Sold</TableHead>
+                <TableHead className="text-right text-foreground">Stock</TableHead>
+                <TableHead className="text-right text-foreground">Revenue</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {productPerformance.map((product) => (
-                <TableRow key={product.name}>
+                <TableRow key={product.name} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-right">{product.sales}</TableCell>
                   <TableCell className="text-right">
                     {product.stock === 0 ? (
                       <Badge
                         variant="destructive"
+                        className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
                       >
                         Out of Stock
                       </Badge>
@@ -257,7 +174,7 @@ export default function SellerDashboard() {
         <CardFooter>
           <Link
             href="/seller/products"
-            className="text-sm text-[#1E392A] font-medium flex items-center hover:underline"
+            className="text-sm text-primary font-medium flex items-center hover:underline"
           >
             Manage products <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
@@ -274,19 +191,19 @@ export default function SellerDashboard() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead className="text-right">Items</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-foreground">Order ID</TableHead>
+                <TableHead className="text-foreground">Date</TableHead>
+                <TableHead className="text-foreground">Customer</TableHead>
+                <TableHead className="text-right text-foreground">Items</TableHead>
+                <TableHead className="text-right text-foreground">Total</TableHead>
+                <TableHead className="text-foreground">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentOrders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{order.date}</TableCell>
                   <TableCell>{order.customer}</TableCell>
@@ -295,22 +212,7 @@ export default function SellerDashboard() {
                     ₱{order.total.toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        order.status === "Pending"
-                          ? "outline"
-                          : "secondary"
-                      }
-                      className={
-                        order.status === "Pending"
-                          ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
-                          : order.status === "Processing"
-                          ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
-                          : "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
-                      }
-                    >
-                      {order.status}
-                    </Badge>
+                    {getStatusBadge(order.status)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -320,7 +222,7 @@ export default function SellerDashboard() {
         <CardFooter>
           <Link
             href="/seller/orders"
-            className="text-sm text-[#1E392A] font-medium flex items-center hover:underline"
+            className="text-sm text-primary font-medium flex items-center hover:underline"
           >
             View all orders <ArrowRight className="ml-1 h-4 w-4" />
           </Link>

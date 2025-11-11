@@ -44,7 +44,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Eye, Info, CheckCircle, XCircle } from "lucide-react";
+import { Search, Eye, Info, CheckCircle, XCircle } from "lucide-react";
+import { getStatusBadge } from "@/lib/status-utils";
 
 // Sample refund request data
 // This would be replaced with API data in production
@@ -162,11 +163,11 @@ export default function RefundPage() {
         <h1 className="text-2xl font-bold text-foreground">Refund Requests</h1>
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-lg mb-6 flex gap-3">
-        <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-700">
+      <div className="bg-accent/30 p-4 rounded-lg mb-6 flex gap-3 border border-accent">
+        <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-foreground">
           <p className="font-semibold">Managing Refund Requests</p>
-          <p className="mt-1">
+          <p className="mt-1 text-muted-foreground">
             Review and respond to customer refund requests. Approve valid
             requests and provide clear reasons for any rejections.
           </p>
@@ -211,24 +212,19 @@ export default function RefundPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <div className="w-40">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+            <div className="w-40">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -262,19 +258,7 @@ export default function RefundPage() {
                       {refund.reason}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={
-                          refund.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                            : refund.status === "Processing"
-                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                            : refund.status === "Approved"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }
-                      >
-                        {refund.status}
-                      </Badge>
+                      {getStatusBadge(refund.status)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -374,19 +358,7 @@ export default function RefundPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <Badge
-                      className={
-                        selectedRefund.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          : selectedRefund.status === "Processing"
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                          : selectedRefund.status === "Approved"
-                          ? "bg-green-100 text-green-800 hover:bg-green-100"
-                          : "bg-red-100 text-red-800 hover:bg-red-100"
-                      }
-                    >
-                      {selectedRefund.status}
-                    </Badge>
+                    {getStatusBadge(selectedRefund.status)}
                   </div>
                 </CardContent>
               </Card>
