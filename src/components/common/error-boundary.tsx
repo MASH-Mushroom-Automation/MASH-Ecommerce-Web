@@ -43,9 +43,9 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-muted flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full">
-            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+            <div className="bg-background rounded-lg shadow-lg p-6 sm:p-8">
               {/* Error Icon */}
               <div className="flex justify-center mb-4">
                 <div className="bg-red-100 rounded-full p-3">
@@ -54,20 +54,20 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
 
               {/* Error Message */}
-              <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-center text-foreground mb-2">
                 Oops! Something went wrong
               </h1>
-              <p className="text-sm sm:text-base text-center text-gray-600 mb-6">
+              <p className="text-sm sm:text-base text-center text-muted-foreground mb-6">
                 We encountered an unexpected error. Don't worry, we're on it!
               </p>
 
               {/* Error Details (Development Only) */}
               {process.env.NODE_ENV === "development" && this.state.error && (
-                <details className="mb-6 p-3 bg-gray-50 rounded-lg">
-                  <summary className="text-sm font-medium text-gray-700 cursor-pointer">
+                <details className="mb-6 p-3 bg-muted rounded-lg">
+                  <summary className="text-sm font-medium text-foreground cursor-pointer">
                     Error Details
                   </summary>
-                  <pre className="mt-2 text-xs text-gray-600 overflow-x-auto">
+                  <pre className="mt-2 text-xs text-muted-foreground overflow-x-auto">
                     {this.state.error.toString()}
                   </pre>
                 </details>
@@ -77,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="space-y-3">
                 <Button
                   onClick={this.handleReset}
-                  className="w-full bg-[#6A994E] hover:bg-[#6A994E]/90 text-white"
+                  className="w-full"
                 >
                   <RefreshCcw className="w-4 h-4 mr-2" />
                   Try Again
@@ -103,9 +103,9 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
 
               {/* Support Link */}
-              <p className="text-center text-sm text-gray-500 mt-6">
+              <p className="text-center text-sm text-muted-foreground mt-6">
                 Need help?{" "}
-                <Link href="/contact" className="text-[#6A994E] hover:underline">
+                <Link href="/contact" className="text-accent hover:underline">
                   Contact Support
                 </Link>
               </p>
@@ -128,20 +128,20 @@ export function ErrorFallback({
   reset?: () => void 
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-md p-6 max-w-sm w-full">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+      <div className="bg-background rounded-lg shadow-md p-6 max-w-sm w-full">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          <h2 className="text-lg font-semibold text-foreground mb-2">
             Something went wrong
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             {error?.message || "An unexpected error occurred"}
           </p>
           {reset && (
             <Button
               onClick={reset}
-              className="w-full bg-[#6A994E] hover:bg-[#6A994E]/90"
+              className="w-full"
             >
               Try again
             </Button>

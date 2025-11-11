@@ -20,7 +20,7 @@ export function SimpleHeader() {
   return (
     <header className="bg-white shadow-sm">
       {/* Top Bar: Seller/Info Links - Dark Green Background */}
-      <div className="bg-[#1E392A] text-white text-xs sm:text-sm py-2">
+      <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             {sellerStatus === 'approved' ? (
@@ -51,10 +51,10 @@ export function SimpleHeader() {
             </Link>
             <span className="hidden sm:inline text-white/30">•</span>
             <div className="hidden sm:flex items-center gap-2">
-              <a href="#" aria-label="Facebook" className="hover:text-gray-300">
+              <a href="#" aria-label="Facebook" className="hover:text-primary-foreground/70">
                 <Facebook size={18} />
               </a>
-              <a href="#" aria-label="Instagram" className="hover:text-gray-300">
+              <a href="#" aria-label="Instagram" className="hover:text-primary-foreground/70">
                 <Instagram size={18} />
               </a>
             </div>

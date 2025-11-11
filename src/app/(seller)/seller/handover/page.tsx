@@ -166,12 +166,11 @@ export default function HandoverCenterPickup() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-foreground">
           Handover Center Pickup
         </h1>
         <Button
           onClick={handleAddCenter}
-          className="bg-[#1E392A] hover:bg-[#1E392A]/90"
         >
           <Plus className="mr-2 h-4 w-4" /> Add Handover Center
         </Button>
@@ -208,18 +207,17 @@ export default function HandoverCenterPickup() {
                 />
               ))}
             {handoverCenters.filter((c) => c.isActive).length === 0 && (
-              <div className="col-span-2 text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+              <div className="col-span-2 text-center py-12 bg-muted rounded-lg border border-dashed border-border">
+                <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-1">
                   No Active Handover Centers
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Add a handover center to allow customers to pick up their
                   orders.
                 </p>
                 <Button
                   onClick={handleAddCenter}
-                  className="bg-[#1E392A] hover:bg-[#1E392A]/90"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Handover Center
                 </Button>
@@ -242,12 +240,12 @@ export default function HandoverCenterPickup() {
                 />
               ))}
             {handoverCenters.filter((c) => !c.isActive).length === 0 && (
-              <div className="col-span-2 text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+              <div className="col-span-2 text-center py-12 bg-muted rounded-lg border border-dashed border-border">
+                <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-1">
                   No Inactive Handover Centers
                 </h3>
-                <p className="text-gray-500">
+                <p className="text-muted-foreground">
                   All your handover centers are currently active.
                 </p>
               </div>
@@ -383,7 +381,6 @@ export default function HandoverCenterPickup() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Save Center
               </Button>
@@ -519,7 +516,6 @@ export default function HandoverCenterPickup() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Update Center
               </Button>
@@ -568,7 +564,7 @@ function HandoverCenterCard({
   onToggleActive,
 }: HandoverCenterCardProps) {
   return (
-    <Card className={center.isActive ? "" : "bg-gray-50"}>
+    <Card className={center.isActive ? "" : "bg-muted"}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
@@ -590,7 +586,7 @@ function HandoverCenterCard({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-red-600 border-red-200 hover:bg-red-50"
+                  className="h-8 w-8 text-destructive border-destructive/20 hover:bg-destructive/10"
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
@@ -606,7 +602,7 @@ function HandoverCenterCard({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-destructive hover:bg-destructive/90"
                     onClick={onDelete}
                   >
                     Delete
@@ -620,14 +616,14 @@ function HandoverCenterCard({
       <CardContent>
         <div className="space-y-3">
           <div className="flex items-start gap-2">
-            <MapPin className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <span className="text-sm">{center.address}</span>
           </div>
           <div className="flex items-start gap-2">
-            <Clock className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+            <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm">{center.operatingHours}</p>
-              <p className="text-xs text-gray-500">{center.daysOpen}</p>
+              <p className="text-xs text-muted-foreground">{center.daysOpen}</p>
             </div>
           </div>
         </div>
@@ -636,12 +632,12 @@ function HandoverCenterCard({
         <div className="flex items-center">
           <div
             className={`w-2 h-2 rounded-full mr-2 ${
-              center.isActive ? "bg-green-500" : "bg-gray-400"
+              center.isActive ? "bg-green-600 dark:bg-green-500" : "bg-muted-foreground"
             }`}
           ></div>
           <span
             className={`text-sm ${
-              center.isActive ? "text-green-600" : "text-gray-500"
+              center.isActive ? "text-green-700 dark:text-green-600" : "text-muted-foreground"
             }`}
           >
             {center.isActive ? "Active" : "Inactive"}

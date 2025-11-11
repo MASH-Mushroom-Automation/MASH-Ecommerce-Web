@@ -48,12 +48,12 @@ export default function GrowerDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-gray-600">Loading grower…</p>
+              <p className="text-muted-foreground">Loading grower…</p>
             </div>
           </div>
         </div>
@@ -63,19 +63,19 @@ export default function GrowerDetailPage() {
 
   if (error || !grower) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-3xl">
             <Link
               href="/grower"
-              className="inline-flex items-center text-sm text-blue-600 hover:underline mb-6"
+              className="inline-flex items-center text-sm text-primary hover:underline mb-6"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to Growers
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               Grower not found
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               We couldn&apos;t find the grower you&apos;re looking for.
             </p>
           </div>
@@ -85,8 +85,8 @@ export default function GrowerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="w-full bg-gradient-to-r from-[#1E392A] to-[#6A994E]">
+    <div className="min-h-screen bg-background">
+      <div className="w-full bg-gradient-to-r from-primary to-primary/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8 sm:py-12">
           <Link
             href="/grower"
@@ -122,10 +122,10 @@ export default function GrowerDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <section className="mb-10">
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">
+              <h2 className="text-xl font-semibold text-foreground mb-3">
                 Our Story
               </h2>
-              <div className="prose prose-sm sm:prose-base max-w-none text-gray-700">
+              <div className="prose prose-sm sm:prose-base max-w-none text-muted-foreground">
                 <p>
                   {grower.name} proudly cultivates high-quality mushrooms in{" "}
                   {grower.location || "the Philippines"}.{" "}
@@ -141,7 +141,7 @@ export default function GrowerDetailPage() {
 
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-foreground">
                   Our Current Harvest
                 </h2>
               </div>
@@ -151,7 +151,7 @@ export default function GrowerDetailPage() {
                   <LoadingSpinner />
                 </div>
               ) : products.length === 0 ? (
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   No products available right now. Please check back soon.
                 </p>
               ) : (
@@ -174,21 +174,21 @@ export default function GrowerDetailPage() {
           </div>
 
           <aside className="lg:col-span-1">
-            <div className="rounded-lg border bg-white p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-4">
+            <div className="rounded-lg border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-4">
                 Contact & Hours
               </h3>
-              <div className="space-y-3 text-sm text-gray-700">
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start">
-                  <MapPin className="w-4 h-4 mr-3 text-gray-500 mt-0.5" />
+                  <MapPin className="w-4 h-4 mr-3 text-muted-foreground mt-0.5" />
                   <span>{grower.address}</span>
                 </div>
                 <div className="flex items-center">
-                  <Phone className="w-4 h-4 mr-3 text-gray-500" />
+                  <Phone className="w-4 h-4 mr-3 text-muted-foreground" />
                   <span>{grower.phone}</span>
                 </div>
                 <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-3 text-gray-500" />
+                  <Clock className="w-4 h-4 mr-3 text-muted-foreground" />
                   <span>{grower.hours}</span>
                 </div>
               </div>
@@ -199,12 +199,12 @@ export default function GrowerDetailPage() {
                       href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       Get directions
                     </a>
                   </div>
-                  <div className="w-full h-48 bg-gray-200 rounded overflow-hidden">
+                  <div className="w-full h-48 bg-muted rounded overflow-hidden">
                     <iframe
                       src={`https://maps.google.com/maps?q=${grower.coords.lat},${grower.coords.lng}&hl=en&z=14&output=embed`}
                       width="100%"

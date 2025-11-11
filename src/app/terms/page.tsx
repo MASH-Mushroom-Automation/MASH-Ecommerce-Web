@@ -5,17 +5,17 @@ import { AlertCircle } from "lucide-react";
 
 export default function TermsPage() {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-muted min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
               Terms of Service
             </h1>
             <Badge variant="secondary">Effective: January 2025</Badge>
           </div>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Please read these terms carefully before using MASH e-commerce
             platform.
           </p>
@@ -34,11 +34,11 @@ export default function TermsPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 1. Acceptance of Terms
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 These Terms of Service (&quot;Terms&quot;) govern your access to
                 and use of MASH&apos;s website, mobile applications, and related
@@ -52,11 +52,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 2. Eligibility
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">To use our Services, you must:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>
@@ -73,11 +73,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 3. User Accounts
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Account Creation:</strong> You must create an account to
                 access certain features and place orders. You are responsible
@@ -103,11 +103,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 4. Orders and Payment
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Order Placement:</strong> When you place an order, you
                 are making an offer to purchase products. We reserve the right
@@ -139,11 +139,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 5. Delivery
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Delivery Times:</strong> Estimated delivery times are
                 provided at checkout and may vary based on location and product
@@ -166,11 +166,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 6. Returns and Refunds
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 Due to the perishable nature of fresh mushrooms, we cannot
                 accept returns for change of mind. However, we offer refunds or
@@ -194,11 +194,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 7. Product Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We strive to provide accurate product descriptions, images, and
                 information. However, we do not guarantee that descriptions are
@@ -212,11 +212,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 8. Intellectual Property
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 All content on MASH, including text, graphics, logos, images,
                 and software, is the property of MASH or its licensors and is
@@ -237,11 +237,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 9. Prohibited Conduct
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">You agree not to:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Violate any laws or regulations</li>
@@ -257,11 +257,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 10. Limitation of Liability
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 To the fullest extent permitted by law, MASH shall not be liable
                 for any indirect, incidental, special, consequential, or
@@ -274,11 +274,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 11. Disclaimer of Warranties
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 Our Services are provided &quot;as is&quot; and &quot;as
                 available&quot; without warranties of any kind, either express
@@ -290,11 +290,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 12. Dispute Resolution
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Informal Resolution:</strong> If you have a dispute,
                 please contact our customer service first. We will work in good
@@ -311,11 +311,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 13. Changes to Terms
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We reserve the right to modify these Terms at any time. Changes
                 will be effective upon posting to our website. Your continued
@@ -328,11 +328,11 @@ export default function TermsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 14. Severability
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 If any provision of these Terms is found to be invalid or
                 unenforceable, the remaining provisions shall continue in full
@@ -341,10 +341,10 @@ export default function TermsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1E392A] text-white">
+          <Card className="bg-primary text-primary-foreground">
             <CardContent className="p-6">
               <h3 className="font-semibold text-lg mb-2">Contact Us</h3>
-              <p className="text-gray-200 mb-4">
+              <p className="text-primary-foreground/80 mb-4">
                 If you have questions about these Terms of Service, please
                 contact us:
               </p>

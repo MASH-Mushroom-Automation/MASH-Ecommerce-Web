@@ -1,6 +1,14 @@
 /**
  * MASH E-commerce Color Palette
  * Based on Figma design system
+ * 
+ * @deprecated This file is kept for reference only.
+ * All components now use semantic color tokens defined in:
+ * - src/app/globals.css (CSS variables)
+ * - Tailwind classes: bg-primary, text-foreground, etc.
+ * 
+ * For new components, use semantic tokens instead of these hardcoded values.
+ * Example: Use "bg-primary" instead of "bg-[#6A994E]"
  */
 
 export const colors = {

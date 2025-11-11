@@ -337,7 +337,7 @@ export default function AddressManagement() {
         {!isEdit && (
           <div>
             <Label>Location on Map (Optional)</Label>
-            <p className="text-sm text-gray-500 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Use the interactive map to select your exact location
             </p>
             <GoogleMapsPicker
@@ -453,7 +453,7 @@ export default function AddressManagement() {
             placeholder="Province (Auto-filled)"
             value={currentAddress.province}
             readOnly
-            className="bg-gray-50 cursor-not-allowed"
+            className="bg-muted cursor-not-allowed"
           />
         </div>
       </div>
@@ -463,10 +463,9 @@ export default function AddressManagement() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Address Management</h1>
+        <h1 className="text-2xl font-bold text-foreground">Address Management</h1>
         <Button
           onClick={handleAddAddress}
-          className="bg-[#1E392A] hover:bg-[#1E392A]/90"
         >
           <Plus className="mr-2 h-4 w-4" />
           Add New Address
@@ -485,7 +484,7 @@ export default function AddressManagement() {
                   <CardTitle className="text-lg flex items-center gap-2">
                     {address.name}
                     {address.isDefault && (
-                      <span className="text-xs bg-[#6A994E] text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
                         <Star className="w-3 h-3" />
                         Default
                       </span>
@@ -538,7 +537,7 @@ export default function AddressManagement() {
             <CardContent>
               <div className="space-y-1 text-sm">
                 <p className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span>
                     {address.address}
                     {address.barangay && `, ${address.barangay}`},
@@ -547,14 +546,14 @@ export default function AddressManagement() {
                     {address.postalCode && ` ${address.postalCode}`}
                   </span>
                 </p>
-                <p className="text-gray-500">Phone: {address.phone}</p>
+                <p className="text-muted-foreground">Phone: {address.phone}</p>
               </div>
 
               {!address.isDefault && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-4 text-[#1E392A] border-[#1E392A] hover:bg-[#1E392A]/5"
+                  className="mt-4 text-primary border-primary hover:bg-primary/5"
                   onClick={() => handleSetDefaultAddress(address.id!)}
                 >
                   <Star className="w-4 h-4 mr-2" />
@@ -587,7 +586,6 @@ export default function AddressManagement() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Save Address
               </Button>
@@ -617,7 +615,6 @@ export default function AddressManagement() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1E392A] hover:bg-[#1E392A]/90"
               >
                 Update Address
               </Button>

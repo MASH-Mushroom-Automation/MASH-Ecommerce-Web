@@ -55,7 +55,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40 safe-area-bottom">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -68,10 +68,10 @@ export function MobileBottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full transition-colors relative",
-                "active:bg-gray-50",
+                "active:bg-muted",
                 isActive
-                  ? "text-[#6A994E]"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "text-accent"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
@@ -92,7 +92,7 @@ export function MobileBottomNav() {
                 {item.label}
               </span>
               {isActive && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#6A994E] rounded-t-full" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-accent rounded-t-full" />
               )}
             </Link>
           );

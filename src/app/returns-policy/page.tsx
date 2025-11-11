@@ -7,17 +7,17 @@ import Link from "next/link";
 
 export default function ReturnsPolicyPage() {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-muted min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
               Returns & Refunds Policy
             </h1>
             <Badge variant="secondary">Updated: January 2025</Badge>
           </div>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             Your satisfaction is our priority. Learn about our returns and
             refunds policy for fresh mushroom products.
           </p>
@@ -36,11 +36,11 @@ export default function ReturnsPolicyPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 Our Freshness Guarantee
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p>
                 We are committed to delivering the freshest, highest-quality
                 mushrooms to your doorstep. All our mushrooms are harvested
@@ -121,7 +121,7 @@ export default function ReturnsPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl text-[#1E392A]">
+              <CardTitle className="flex items-center gap-2 text-xl text-primary">
                 <Clock className="h-5 w-5" />
                 Return Timeline
               </CardTitle>
@@ -137,13 +137,13 @@ export default function ReturnsPolicyPage() {
                 </p>
               </div>
 
-              <div className="space-y-3 text-sm text-gray-600">
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex gap-4">
-                  <div className="bg-[#6A994E] text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
+                  <div className="bg-accent text-accent-foreground rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
                     1
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-foreground mb-1">
                       Inspect Upon Delivery
                     </h4>
                     <p>
@@ -154,11 +154,11 @@ export default function ReturnsPolicyPage() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="bg-[#6A994E] text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
+                  <div className="bg-accent text-accent-foreground rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
                     2
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-foreground mb-1">
                       Contact Us Within 24 Hours
                     </h4>
                     <p>
@@ -169,11 +169,11 @@ export default function ReturnsPolicyPage() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="bg-[#6A994E] text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
+                  <div className="bg-accent text-accent-foreground rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 font-semibold">
                     3
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-foreground mb-1">
                       Review & Resolution
                     </h4>
                     <p>
@@ -188,11 +188,11 @@ export default function ReturnsPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 How to Request a Refund or Replacement
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-4">
                 To request a refund or replacement, you&apos;ll need to:
               </p>
@@ -212,13 +212,13 @@ export default function ReturnsPolicyPage() {
                   <ul className="list-disc pl-6 mt-2 space-y-1">
                     <li>
                       Email:{" "}
-                      <strong className="text-[#1E392A]">
+                      <strong className="text-primary">
                         returns@mash.ph
                       </strong>
                     </li>
                     <li>
                       Phone:{" "}
-                      <strong className="text-[#1E392A]">
+                      <strong className="text-primary">
                         +63 917 123 4567
                       </strong>
                     </li>
@@ -226,7 +226,7 @@ export default function ReturnsPolicyPage() {
                       Contact Form:{" "}
                       <Link
                         href="/contact"
-                        className="text-[#6A994E] hover:underline"
+                        className="text-accent hover:underline"
                       >
                         Visit Contact Page
                       </Link>
@@ -248,19 +248,19 @@ export default function ReturnsPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 Refund Options
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-gray-600">
+            <CardContent className="space-y-4 text-muted-foreground">
               <p>
                 Once your return request is approved, you can choose from the
                 following options:
               </p>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">
                     Full Refund
                   </h4>
                   <p className="text-sm mb-3">
@@ -272,8 +272,8 @@ export default function ReturnsPolicyPage() {
                   </Badge>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-2">
                     Product Replacement
                   </h4>
                   <p className="text-sm mb-3">
@@ -286,8 +286,8 @@ export default function ReturnsPolicyPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 text-sm">
-                <p className="font-semibold text-gray-900 mb-2">
+              <div className="bg-muted border border-border rounded-lg p-4 text-sm">
+                <p className="font-semibold text-foreground mb-2">
                   Refund Processing Times:
                 </p>
                 <ul className="space-y-1">
@@ -304,11 +304,11 @@ export default function ReturnsPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 Cancellation Policy
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Before Order is Processed:</strong> You can cancel your
                 order free of charge if it hasn&apos;t been processed yet.
@@ -329,11 +329,11 @@ export default function ReturnsPolicyPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl text-[#1E392A]">
+              <CardTitle className="text-xl text-primary">
                 Special Circumstances
               </CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm max-w-none text-gray-600">
+            <CardContent className="prose prose-sm max-w-none text-muted-foreground">
               <p className="mb-3">
                 <strong>Delivery Delays:</strong> If your order is significantly
                 delayed beyond the estimated delivery time, you may be eligible
@@ -353,7 +353,7 @@ export default function ReturnsPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1E392A] text-white">
+          <Card className="bg-primary text-primary-foreground">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <Mail className="h-8 w-8 flex-shrink-0 mt-1" />
@@ -361,7 +361,7 @@ export default function ReturnsPolicyPage() {
                   <h3 className="font-semibold text-lg mb-2">
                     Need Help with a Return?
                   </h3>
-                  <p className="text-gray-200 mb-4">
+                  <p className="text-primary-foreground/80 mb-4">
                     Our customer service team is ready to assist you with any
                     return or refund requests. We respond within 4 hours during
                     business hours.
@@ -378,7 +378,7 @@ export default function ReturnsPolicyPage() {
                     </p>
                   </div>
                   <Link href="/contact">
-                    <Button className="bg-white text-[#1E392A] hover:bg-gray-100">
+                    <Button className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                       Contact Support
                     </Button>
                   </Link>

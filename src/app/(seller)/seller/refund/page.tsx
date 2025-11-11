@@ -159,7 +159,7 @@ export default function RefundPage() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Refund Requests</h1>
+        <h1 className="text-2xl font-bold text-foreground">Refund Requests</h1>
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg mb-6 flex gap-3">
@@ -173,8 +173,8 @@ export default function RefundPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border">
           <Tabs
             defaultValue="all"
             value={currentTab}
@@ -202,7 +202,7 @@ export default function RefundPage() {
 
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search by refund ID, order ID, or customer name..."
@@ -292,7 +292,7 @@ export default function RefundPage() {
                 <TableRow>
                   <TableCell
                     colSpan={8}
-                    className="text-center py-8 text-gray-500"
+                    className="text-center py-8 text-muted-foreground"
                   >
                     No refund requests found
                   </TableCell>
@@ -302,7 +302,7 @@ export default function RefundPage() {
           </Table>
         </div>
 
-        <div className="py-4 border-t border-gray-200">
+        <div className="py-4 border-t border-border">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -347,33 +347,33 @@ export default function RefundPage() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Refund ID:</span>
+                    <span className="text-muted-foreground">Refund ID:</span>
                     <span className="font-medium">{selectedRefund.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Order ID:</span>
+                    <span className="text-muted-foreground">Order ID:</span>
                     <span className="font-medium">
                       {selectedRefund.orderId}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Date Requested:</span>
+                    <span className="text-muted-foreground">Date Requested:</span>
                     <span className="font-medium">{selectedRefund.date}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Customer:</span>
+                    <span className="text-muted-foreground">Customer:</span>
                     <span className="font-medium">
                       {selectedRefund.customer}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Amount:</span>
+                    <span className="text-muted-foreground">Amount:</span>
                     <span className="font-medium">
                       ₱{selectedRefund.amount.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Status:</span>
+                    <span className="text-muted-foreground">Status:</span>
                     <Badge
                       className={
                         selectedRefund.status === "Pending"
@@ -393,7 +393,7 @@ export default function RefundPage() {
 
               <div>
                 <h4 className="text-sm font-medium mb-2">Customer's Reason</h4>
-                <div className="bg-gray-50 p-3 rounded-md text-sm">
+                <div className="bg-muted p-3 rounded-md text-sm">
                   {selectedRefund.reason}
                 </div>
               </div>
@@ -425,7 +425,7 @@ export default function RefundPage() {
                     Reject
                   </Button>
                   <Button
-                    className="flex-1 bg-[#1E392A] hover:bg-[#1E392A]/90"
+                    className="flex-1"
                     onClick={handleApproveRefund}
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />

@@ -33,7 +33,7 @@ const getNotificationIcon = (type: string) => {
 const getNotificationColor = (type: string) => {
   switch (type) {
     case "order":
-      return "bg-[#6A994E] text-white";
+      return "bg-accent text-accent-foreground";
     case "payment":
       return "bg-green-500 text-white";
     case "review":
@@ -43,7 +43,7 @@ const getNotificationColor = (type: string) => {
     case "report":
       return "bg-blue-500 text-white";
     default:
-      return "bg-gray-500 text-white";
+      return "bg-muted-foreground text-primary-foreground";
   }
 };
 
@@ -61,25 +61,25 @@ export function NotificationDropdown() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell size={20} className="text-gray-600 hover:text-gray-900" />
+          <Bell size={20} className="text-muted-foreground hover:text-foreground" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-[#6A994E] text-white text-xs">
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-accent text-accent-foreground text-xs">
               {unreadCount}
             </Badge>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
+            <h3 className="font-semibold text-foreground">Notifications</h3>
             <div className="flex items-center space-x-2">
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={markAllAsRead}
-                  className="text-xs text-[#6A994E] hover:text-[#1E392A]"
+                  className="text-xs text-accent hover:text-primary"
                 >
                   Mark all read
                 </Button>
@@ -96,20 +96,20 @@ export function NotificationDropdown() {
         <ScrollArea className="h-96">
           {loading ? (
             <div className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[#6A994E] mx-auto mb-2" />
-              <p className="text-gray-500">Loading notifications...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto mb-2" />
+              <p className="text-muted-foreground">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <Bell size={32} className="mx-auto mb-2 text-gray-300" />
+            <div className="p-8 text-center text-muted-foreground">
+              <Bell size={32} className="mx-auto mb-2 text-muted-foreground/50" />
               <p>No notifications yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors ${
+                  className={`p-4 hover:bg-muted transition-colors ${
                     !notification.isRead ? "bg-blue-50/50" : ""
                   }`}
                 >
@@ -124,13 +124,13 @@ export function NotificationDropdown() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {notification.title}
                           </p>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground/70 mt-1">
                             {notification.time}
                           </p>
                         </div>
@@ -140,7 +140,7 @@ export function NotificationDropdown() {
                               variant="ghost"
                               size="sm"
                               onClick={() => markAsRead(notification.id)}
-                              className="h-6 w-6 p-0 text-gray-400 hover:text-[#6A994E]"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-accent"
                             >
                               <Check size={14} />
                             </Button>
@@ -149,7 +149,7 @@ export function NotificationDropdown() {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeNotification(notification.id)}
-                            className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                           >
                             <X size={14} />
                           </Button>
@@ -164,11 +164,11 @@ export function NotificationDropdown() {
         </ScrollArea>
 
         {notifications.length > 0 && (
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-border">
             <Link href="/seller/notifications">
               <Button
                 variant="outline"
-                className="w-full text-[#6A994E] border-[#6A994E] hover:bg-[#6A994E] hover:text-white"
+                className="w-full"
               >
                 View All Notifications
               </Button>

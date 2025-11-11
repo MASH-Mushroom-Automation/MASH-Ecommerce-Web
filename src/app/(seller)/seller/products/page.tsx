@@ -95,7 +95,7 @@ export default function SellerProducts() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <LoadingSpinner size="lg" className="mx-auto mb-4" />
-          <p className="text-gray-600">Loading products...</p>
+          <p className="text-muted-foreground">Loading products...</p>
         </div>
       </div>
     );
@@ -104,7 +104,7 @@ export default function SellerProducts() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600 mb-4">Error: {error}</p>
+        <p className="text-destructive mb-4">Error: {error}</p>
         <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
@@ -113,19 +113,19 @@ export default function SellerProducts() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+        <h1 className="text-2xl font-bold text-foreground">Products</h1>
         <Link href="/seller/products/new">
-          <Button className="bg-[#1E392A] hover:bg-[#1E392A]/90">
+          <Button>
             <Plus className="mr-2 h-4 w-4" /> Add New Product
           </Button>
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-200">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-border">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search products..."
@@ -197,11 +197,11 @@ export default function SellerProducts() {
             <TableBody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-gray-50">
+                  <TableRow key={product.id} className="hover:bg-muted/50">
                     {/* Product details cell */}
                     <TableCell className="pl-5">
                       <div className="flex items-center gap-3">
-                        <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
+                        <div className="h-16 w-16 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -220,7 +220,7 @@ export default function SellerProducts() {
                     </TableCell>
                     {/* Inventory cell */}
                     <TableCell className="text-right text-sm">
-                      <span className={product.stock < 10 ? "text-red-600 font-medium" : ""}>
+                      <span className={product.stock < 10 ? "text-destructive font-medium" : ""}>
                         {product.stock}
                       </span>
                     </TableCell>
@@ -229,12 +229,19 @@ export default function SellerProducts() {
                     {/* Status badge cell */}
                     <TableCell>
                       <Badge
+                        variant={
+                          product.status === "Active"
+                            ? "outline"
+                            : product.status === "Out of Stock"
+                            ? "destructive"
+                            : "secondary"
+                        }
                         className={
                           product.status === "Active"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
                             : product.status === "Out of Stock"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                            ? ""
+                            : ""
                         }
                       >
                         {product.status}
@@ -247,7 +254,7 @@ export default function SellerProducts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="min-h-[44px] min-w-[44px] text-gray-500"
+                            className="min-h-[44px] min-w-[44px]"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -265,7 +272,7 @@ export default function SellerProducts() {
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem
-                                className="text-red-600"
+                                className="text-destructive"
                                 onSelect={(e) => e.preventDefault()}
                               >
                                 <Trash className="mr-2 h-4 w-4" />
@@ -288,7 +295,7 @@ export default function SellerProducts() {
                                     handleDeleteProduct(product.id)
                                   }
                                   disabled={deletingProduct === product.id}
-                                  className="bg-red-600 hover:bg-red-700"
+                                  className="bg-destructive hover:bg-destructive/90"
                                 >
                                   {deletingProduct === product.id
                                     ? "Deleting..."
@@ -306,7 +313,7 @@ export default function SellerProducts() {
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-12 text-gray-500"
+                    className="text-center py-12 text-muted-foreground"
                   >
                     <div className="text-center">
                       <p className="text-sm">No products found</p>
@@ -322,11 +329,11 @@ export default function SellerProducts() {
         {/* Mobile Card View */}
         <div className="md:hidden">
           {filteredProducts.length > 0 ? (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {filteredProducts.map((product) => (
-                <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={product.id} className="p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex gap-4 mb-3">
-                    <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 relative flex-shrink-0">
+                    <div className="h-20 w-20 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
                       <Image
                         src={product.image}
                         alt={product.name}
@@ -335,17 +342,24 @@ export default function SellerProducts() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2">
+                      <h3 className="font-semibold text-sm text-foreground mb-1 line-clamp-2">
                         {product.name}
                       </h3>
-                      <p className="text-xs text-gray-500 mb-1">{product.category}</p>
+                      <p className="text-xs text-muted-foreground mb-1">{product.category}</p>
                       <Badge
+                        variant={
+                          product.status === "Active"
+                            ? "outline"
+                            : product.status === "Out of Stock"
+                            ? "destructive"
+                            : "secondary"
+                        }
                         className={
                           product.status === "Active"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
                             : product.status === "Out of Stock"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                            ? ""
+                            : ""
                         }
                       >
                         {product.status}
@@ -354,12 +368,12 @@ export default function SellerProducts() {
                   </div>
                   <div className="space-y-2 mb-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Price</span>
-                      <span className="font-semibold text-[#1E392A]">₱{product.price.toFixed(2)}</span>
+                      <span className="text-muted-foreground">Price</span>
+                      <span className="font-semibold text-primary">₱{product.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Stock</span>
-                      <span className={`font-medium ${product.stock < 10 ? "text-red-600" : ""}`}>
+                      <span className="text-muted-foreground">Stock</span>
+                      <span className={`font-medium ${product.stock < 10 ? "text-destructive" : ""}`}>
                         {product.stock} units
                       </span>
                     </div>
@@ -381,7 +395,7 @@ export default function SellerProducts() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="min-h-[44px] min-w-[44px] text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
@@ -398,7 +412,7 @@ export default function SellerProducts() {
                           <AlertDialogAction
                             onClick={() => handleDeleteProduct(product.id)}
                             disabled={deletingProduct === product.id}
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-destructive hover:bg-destructive/90"
                           >
                             {deletingProduct === product.id ? "Deleting..." : "Delete"}
                           </AlertDialogAction>
@@ -410,14 +424,14 @@ export default function SellerProducts() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-muted-foreground">
               <p className="text-sm">No products found</p>
               <p className="text-xs mt-1">Try adjusting your search or filters</p>
             </div>
           )}
         </div>
 
-        <div className="py-4 border-t border-gray-200">
+        <div className="py-4 border-t border-border">
           <Pagination>
             <PaginationContent>
               <PaginationItem>

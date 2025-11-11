@@ -73,19 +73,19 @@ export default function VerifyOTPPage() {
   return (
     <>
       {/* Card */}
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-card rounded-lg shadow-md p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#6A994E] rounded-full p-4">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="bg-primary rounded-full p-4">
+              <KeyRound className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
             Enter verification code
           </h2>
-          <p className="text-center text-gray-600 text-sm mb-8">
+          <p className="text-center text-muted-foreground text-sm mb-8">
             Enter One-Time Password sent to <br />
             jos*****@gmail.com
           </p>
@@ -110,11 +110,11 @@ export default function VerifyOTPPage() {
           </div>
 
           {/* Resend Code */}
-          <p className="text-center text-sm text-gray-600 mb-8">
+          <p className="text-center text-sm text-muted-foreground mb-8">
             Didn&apos;t receive any OTP code?{" "}
             <button
               onClick={handleResend}
-              className="text-[#6A994E] hover:underline font-medium"
+              className="text-primary hover:underline font-medium"
             >
               Resend Code
             </button>
@@ -124,7 +124,7 @@ export default function VerifyOTPPage() {
           <div className="space-y-4">
             <Button
               onClick={handleVerify}
-              className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90 text-white py-6 rounded-lg font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
             >
               Verify
             </Button>
@@ -132,7 +132,7 @@ export default function VerifyOTPPage() {
             <Button
               onClick={handleCancel}
               variant="outline"
-              className="w-full py-6 border-[#6A994E] text-[#6A994E] hover:bg-[#6A994E]/10"
+              className="w-full py-6 border-primary text-primary hover:bg-primary/10"
             >
               Cancel
             </Button>

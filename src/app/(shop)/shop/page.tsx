@@ -148,14 +148,14 @@ export default function ProductCatalogPage() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-background min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:px-6 lg:px-12 xl:px-16">
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+            <div className="bg-card rounded-lg shadow-sm p-6 space-y-6">
               <div>
-                <h3 className="font-bold text-gray-900 mb-4 text-base">
+                <h3 className="font-bold text-foreground mb-4 text-base">
                   Categories
                 </h3>
                 <div className="space-y-3">
@@ -168,7 +168,7 @@ export default function ProductCatalogPage() {
                       />
                       <Label
                         htmlFor={`category-${category}`}
-                        className="text-sm text-gray-700 cursor-pointer font-normal"
+                        className="text-sm text-muted-foreground cursor-pointer font-normal"
                       >
                         {category}
                       </Label>
@@ -178,7 +178,7 @@ export default function ProductCatalogPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4 text-base">
+                <h3 className="font-bold text-foreground mb-4 text-base">
                   Grower
                 </h3>
                 <div className="space-y-3">
@@ -191,7 +191,7 @@ export default function ProductCatalogPage() {
                       />
                       <Label
                         htmlFor={`grower-${grower}`}
-                        className="text-sm text-gray-700 cursor-pointer font-normal leading-tight"
+                        className="text-sm text-muted-foreground cursor-pointer font-normal leading-tight"
                       >
                         {grower}
                       </Label>
@@ -201,7 +201,7 @@ export default function ProductCatalogPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 mb-4 text-base">
+                <h3 className="font-bold text-foreground mb-4 text-base">
                   Price
                 </h3>
                 <div className="space-y-4">
@@ -209,17 +209,17 @@ export default function ProductCatalogPage() {
                     <input
                       type="number"
                       placeholder="From"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm"
                       value={priceRange[0]}
                       onChange={(e) =>
                         setPriceRange([Number(e.target.value), priceRange[1]])
                       }
                     />
-                    <span className="text-gray-500">-</span>
+                    <span className="text-muted-foreground">-</span>
                     <input
                       type="number"
                       placeholder="To"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm"
                       value={priceRange[1]}
                       onChange={(e) =>
                         setPriceRange([priceRange[0], Number(e.target.value)])
@@ -234,7 +234,7 @@ export default function ProductCatalogPage() {
                     onValueChange={setPriceRange}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>₱{priceRange[0]}</span>
                     <span>₱{priceRange[1]}</span>
                   </div>
@@ -260,13 +260,13 @@ export default function ProductCatalogPage() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-full sm:w-80 p-0">
                   <div className="p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6">
+                    <h2 className="text-xl font-bold text-foreground mb-6">
                       Filters
                     </h2>
                     <div className="space-y-6">
                       {/* Categories */}
                       <div>
-                        <h3 className="font-bold text-gray-900 mb-4 text-base">
+                        <h3 className="font-bold text-foreground mb-4 text-base">
                           Categories
                         </h3>
                         <div className="space-y-3">
@@ -282,7 +282,7 @@ export default function ProductCatalogPage() {
                               />
                               <Label
                                 htmlFor={`mobile-category-${category}`}
-                                className="text-sm text-gray-700 cursor-pointer font-normal"
+                                className="text-sm text-muted-foreground cursor-pointer font-normal"
                               >
                                 {category}
                               </Label>
@@ -293,7 +293,7 @@ export default function ProductCatalogPage() {
 
                       {/* Grower */}
                       <div>
-                        <h3 className="font-bold text-gray-900 mb-4 text-base">
+                        <h3 className="font-bold text-foreground mb-4 text-base">
                           Grower
                         </h3>
                         <div className="space-y-3">
@@ -309,7 +309,7 @@ export default function ProductCatalogPage() {
                               />
                               <Label
                                 htmlFor={`mobile-grower-${grower}`}
-                                className="text-sm text-gray-700 cursor-pointer font-normal leading-tight"
+                                className="text-sm text-muted-foreground cursor-pointer font-normal leading-tight"
                               >
                                 {grower}
                               </Label>
@@ -320,7 +320,7 @@ export default function ProductCatalogPage() {
 
                       {/* Price Range */}
                       <div>
-                        <h3 className="font-bold text-gray-900 mb-4 text-base">
+                        <h3 className="font-bold text-foreground mb-4 text-base">
                           Price
                         </h3>
                         <div className="space-y-4">
@@ -328,7 +328,7 @@ export default function ProductCatalogPage() {
                             <input
                               type="number"
                               placeholder="From"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              className="w-full px-3 py-2 border border-border rounded-md text-sm"
                               value={priceRange[0]}
                               onChange={(e) =>
                                 setPriceRange([
@@ -337,11 +337,11 @@ export default function ProductCatalogPage() {
                                 ])
                               }
                             />
-                            <span className="text-gray-500">-</span>
+                            <span className="text-muted-foreground">-</span>
                             <input
                               type="number"
                               placeholder="To"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              className="w-full px-3 py-2 border border-border rounded-md text-sm"
                               value={priceRange[1]}
                               onChange={(e) =>
                                 setPriceRange([
@@ -359,14 +359,14 @@ export default function ProductCatalogPage() {
                             onValueChange={setPriceRange}
                             className="w-full"
                           />
-                          <div className="flex justify-between text-xs text-gray-500">
+                          <div className="flex justify-between text-xs text-muted-foreground">
                             <span>₱{priceRange[0]}</span>
                             <span>₱{priceRange[1]}</span>
                           </div>
                         </div>
                       </div>
 
-                      <Button className="w-full bg-[#1E392A] hover:bg-[#1E392A]/90">
+                      <Button className="w-full bg-primary hover:bg-primary/90">
                         Apply Filters
                       </Button>
                     </div>
@@ -377,7 +377,7 @@ export default function ProductCatalogPage() {
               {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
                 <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
+                  <SelectTrigger className="w-full sm:w-[180px] bg-card">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,7 +394,7 @@ export default function ProductCatalogPage() {
                   value={itemsPerPage.toString()}
                   onValueChange={(value) => setItemsPerPage(Number(value))}
                 >
-                  <SelectTrigger className="w-full sm:w-[140px] bg-white">
+                  <SelectTrigger className="w-full sm:w-[140px] bg-card">
                     <SelectValue placeholder="Items per page" />
                   </SelectTrigger>
                   <SelectContent>
@@ -417,8 +417,8 @@ export default function ProductCatalogPage() {
                     className={cn(
                       "transition-all duration-200 active:scale-95",
                       viewMode === "list"
-                        ? "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 border-[#6A994E]"
-                        : "bg-white hover:bg-gray-50 border-gray-200"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+                        : "bg-card hover:bg-muted/30 border-border"
                     )}
                     aria-pressed={viewMode === "list"}
                     aria-label="Switch to list view"
@@ -432,8 +432,8 @@ export default function ProductCatalogPage() {
                     className={cn(
                       "transition-all duration-200 active:scale-95",
                       viewMode === "grid"
-                        ? "bg-[#6A994E] text-white hover:bg-[#6A994E]/90 border-[#6A994E]"
-                        : "bg-white hover:bg-gray-50 border-gray-200"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+                        : "bg-card hover:bg-muted/30 border-border"
                     )}
                     aria-pressed={viewMode === "grid"}
                     aria-label="Switch to grid view"
@@ -449,7 +449,7 @@ export default function ProductCatalogPage() {
               <ProductGridSkeleton count={itemsPerPage} />
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-red-600 mb-4">
+                <p className="text-destructive mb-4">
                   Error loading products: {error}
                 </p>
                 <Button onClick={() => window.location.reload()}>
@@ -491,9 +491,9 @@ export default function ProductCatalogPage() {
                     {accumulatedProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 flex flex-col md:flex-row gap-3"
+                        className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 flex flex-col md:flex-row gap-3"
                       >
-                        <div className="relative w-full md:w-28 h-28 sm:w-32 sm:h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="relative w-full md:w-28 h-28 sm:w-32 sm:h-32 bg-muted/30 rounded-lg overflow-hidden flex-shrink-0">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -504,28 +504,28 @@ export default function ProductCatalogPage() {
                         </div>
                         <div className="flex-1 flex flex-col justify-between gap-2.5">
                           <div>
-                            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
+                            <h3 className="text-sm sm:text-base font-semibold text-foreground mb-1">
                               {product.name}
                             </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-500 mb-1">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">
                               by {product.grower}
                             </p>
-                            <p className="text-[11px] sm:text-xs text-gray-600 line-clamp-2 leading-snug">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
                               Fresh, locally-sourced mushrooms perfect for any
                               culinary creation.
                             </p>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex items-baseline gap-1.5">
-                              <span className="text-lg sm:text-xl font-bold text-[#1E392A]">
+                              <span className="text-lg sm:text-xl font-bold text-primary">
                                 ₱{product.price.toFixed(2)}
                               </span>
-                              <span className="text-[11px] sm:text-xs text-gray-500">
+                              <span className="text-[11px] sm:text-xs text-muted-foreground">
                                 per {product.weight}
                               </span>
                             </div>
                             {product.inStock === false ? (
-                              <span className="text-[11px] sm:text-xs text-red-600 font-medium">
+                              <span className="text-[11px] sm:text-xs text-destructive font-medium">
                                 Out of Stock
                               </span>
                             ) : (
@@ -553,7 +553,7 @@ export default function ProductCatalogPage() {
                     <Button
                       onClick={handleLoadMore}
                       disabled={isLoadingMore}
-                      className="bg-[#6A994E] text-white hover:bg-[#6A994E]/90 px-8 py-2"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-2"
                     >
                       {isLoadingMore ? "Loading..." : "Load More"}
                     </Button>
