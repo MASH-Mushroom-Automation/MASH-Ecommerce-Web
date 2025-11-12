@@ -44,29 +44,46 @@ import { SuccessModal } from "./components/SuccessModal";
 
 export const sellerApplicationSchema = z.object({
   // Business Information
-  businessName: z.string().min(2, "Business name is required"),
+  businessName: z.string().min(2, "Business name is required").max(24, "Business name must be 24 characters or less"),
   businessType: z.enum(["individual", "company"], {
-    required_error: "Please select a business type",
+    message: "Please select a business type",
   }),
-  taxId: z.string().optional(),
+  taxId: z
+    .string()
+    .optional()
+    .refine((val) => (val ? /^\d+$/.test(val) : true), {
+      message: "Tax ID must contain numbers only",
+    }),
   
   // Contact Details
-  fullName: z.string().min(2, "Full name is required"),
+  fullName: z.string().min(2, "Full name is required").max(24, "Full name must be 24 characters or less"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  address: z.string().min(10, "Please provide a complete address"),
+  phone: z
+    .string()
+    .min(11, "Phone number must be exactly 11 digits")
+    .max(11, "Phone number must be exactly 11 digits")
+    .refine((val) => /^\d{11}$/.test(val), {
+      message: "Phone number must be exactly 11 digits",
+    }),
+  address: z.string().min(10, "Please provide a complete address").max(64, "Address must be 64 characters or less"),
   city: z.string().min(2, "City is required"),
   region: z.string().min(2, "Region is required"),
   
   // Product Information
   mushroomTypes: z.array(z.string()).min(1, "Select at least one mushroom type"),
+  mushroomOther: z.string().optional(),
   productionCapacity: z.string().min(1, "Production capacity is required"),
   certifications: z.string().optional(),
   
   // Banking Details
-  bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z.string().min(8, "Account number must be at least 8 digits"),
-  accountName: z.string().min(2, "Account holder name is required"),
+  bankName: z.string().min(2, "Bank name is required").max(24, "Bank name must be 24 characters or less"),
+  accountNumber: z
+    .string()
+    .min(8, "Account number must be at least 8 digits")
+    .refine((val) => /^\d+$/.test(val), {
+      message: "Account number must contain numbers only",
+    }),
+  accountName: z.string().min(2, "Account holder name is required").max(24, "Account holder name must be 24 characters or less"),
   
   // Terms
   agreeToTerms: z
