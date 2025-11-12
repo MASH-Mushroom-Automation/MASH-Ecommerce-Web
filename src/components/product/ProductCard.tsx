@@ -84,8 +84,9 @@ export function ProductCard({
               e.stopPropagation();
               router.push(getGrowerUrl(farm));
             }}
-            className="absolute top-2 left-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-primary shadow-sm hover:bg-background transition-colors"
+            className="absolute top-2 left-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-primary shadow-sm hover:bg-background transition-colors max-w-[calc(100%-80px)] truncate"
             aria-label={`View grower ${farm}`}
+            title={`@${farm}`}
           >
             @{farm}
           </button>

@@ -26,6 +26,17 @@ import { useCart } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
 import { isAuthenticated, logout as authLogout } from "@/lib/auth";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -37,6 +48,7 @@ import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+import { useNavigation } from "@/hooks/useNavigation";
 
 type SellerStatus = "approved" | "pending" | "none";
 
@@ -159,13 +171,6 @@ export function SellerHeader() {
         </Link>
         <div className="flex items-center gap-4">
           <NotificationDropdown />
-          <Link
-            href="/seller/settings"
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label="Seller settings"
-          >
-            <Settings size={20} />
-          </Link>
           <ThemeSwitcher />
         </div>
       </div>
@@ -246,17 +251,23 @@ export function Header() {
     ? ((profile?.sellerStatus as SellerStatus) || "none")
     : "none";
 
-  const handleLogout = () => {
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const handleLogoutConfirm = () => {
     authLogout();
     // Immediately clear in-memory state so UI updates without reload
     try {
       clearWishlist();
       clearCart();
     } catch {}
-    setIsLoggedIn(false);
     router.push("/");
     router.refresh();
     toast.success("Signed out");
+    setLogoutDialogOpen(false);
   };
 
   return (
@@ -334,7 +345,7 @@ export function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -432,7 +443,7 @@ export function Header() {
                       <Button
                         variant="outline"
                         className="w-full border-destructive text-destructive hover:bg-destructive/10"
-                        onClick={handleLogout}
+                        onClick={handleLogoutClick}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
                         Logout
@@ -450,7 +461,6 @@ export function Header() {
               </div>
             </SheetContent>
           </Sheet>
-          <ThemeSwitcher />
         </div>
       </div>
 
@@ -459,8 +469,27 @@ export function Header() {
           <NavLink label="Home" path="/" />
           <NavLink label="Products" path="/shop" />
           <NavLink label="Growers" path="/grower" />
+          {sellerStatus === "approved" && (
+            <NavLink label="Dashboard" path="/seller/dashboard" />
+          )}
         </div>
       </nav>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

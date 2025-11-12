@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, Upload, X, Plus, Info } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AddNewProduct() {
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -33,6 +34,22 @@ export default function AddNewProduct() {
   const [productStock, setProductStock] = useState("");
   const [productWeight, setProductWeight] = useState("");
   const [productUnit, setProductUnit] = useState("g");
+
+  const isValidPrice = (value: string) => {
+    if (!value) return false;
+    const priceNumber = Number(value);
+    return (
+      Number.isFinite(priceNumber) &&
+      priceNumber > 0 &&
+      /^\d+(?:\.\d{1,2})?$/.test(value)
+    );
+  };
+
+  const isValidQuantity = (value: string) => {
+    if (!value) return false;
+    const quantityNumber = Number(value);
+    return Number.isInteger(quantityNumber) && quantityNumber > 0;
+  };
 
   // Handle image upload (mock implementation)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +74,31 @@ export default function AddNewProduct() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const validationErrors: string[] = [];
+
+    if (!isValidPrice(productPrice)) {
+      validationErrors.push(
+        "Please enter a valid price (e.g., 150 or 150.50)."
+      );
+    }
+
+    if (!isValidQuantity(productStock)) {
+      validationErrors.push(
+        "Stock must be a positive whole number (e.g., 10)."
+      );
+    }
+
+    if (!productWeight || Number(productWeight) <= 0) {
+      validationErrors.push("Weight must be greater than 0.");
+    }
+
+    if (validationErrors.length > 0) {
+      toast.error("Please review the highlighted fields", {
+        description: validationErrors.join(" \n"),
+      });
+      return;
+    }
+
     // Prepare data for API submission
     const productData = {
       name: productName,
@@ -71,20 +113,15 @@ export default function AddNewProduct() {
     // In a real application, you would send this data to your API
     console.log("Product data to submit:", productData);
 
-    // API call would go here
-    // Example:
-    // await fetch('/api/products', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(productData)
-    // });
-
-    alert("Product added successfully! (This is a mock implementation)");
+    toast.success("Product details look great!", {
+      description:
+        "This is a mock submission—connect the API to start publishing products.",
+    });
   };
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <Link
           href="/seller/products"
           className="text-muted-foreground hover:text-foreground"
@@ -305,9 +342,7 @@ export default function AddNewProduct() {
               <Link href="/seller/products">
                 <Button variant="outline">Cancel</Button>
               </Link>
-              <Button
-                type="submit"
-              >
+              <Button type="submit">
                 Save Product
               </Button>
             </div>

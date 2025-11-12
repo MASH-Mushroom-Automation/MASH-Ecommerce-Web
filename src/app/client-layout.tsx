@@ -46,7 +46,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             <div className="min-h-screen flex flex-col">
               <SellerHeader />
               {children}
-              <Toaster position="top-right" richColors closeButton />
+              <Toaster position="bottom-center" richColors closeButton />
             </div>
           ) : (
             // Regular routes get full layout with header, footer, and nav
@@ -58,7 +58,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               </main>
               <Footer />
               <MobileBottomNav />
-              <Toaster position="top-right" richColors closeButton />
+              <Toaster position="bottom-center" richColors closeButton />
             </div>
           )}
         </WishlistProvider>

@@ -45,6 +45,7 @@ import {
   Save,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function SellerSettings() {
   const [sellerData, setSellerData] = useState({
@@ -73,6 +74,8 @@ export default function SellerSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const router = useRouter();
 
   // Fetch seller data on mount
   useEffect(() => {
@@ -596,119 +599,66 @@ export default function SellerSettings() {
 
         {/* Payment Settings */}
         <TabsContent value="payment">
-          <form onSubmit={handlePaymentUpdate}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-                <CardDescription>
-                  Manage your payment and tax information.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Information</CardTitle>
+              <CardDescription>
+                Payment gateway integration coming soon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="tax-id">Tax Identification Number</Label>
+                  <Input
+                    id="tax-id"
+                    placeholder="e.g., 123-456-789-000"
+                    value={sellerData.taxId}
+                    onChange={(e) =>
+                      setSellerData({ ...sellerData, taxId: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="bg-muted border border-border rounded-lg p-6 space-y-4">
                   <div>
-                    <Label htmlFor="tax-id">Tax Identification Number</Label>
-                    <Input
-                      id="tax-id"
-                      placeholder="e.g., 123-456-789-000"
-                      value={sellerData.taxId}
-                      onChange={(e) =>
-                        setSellerData({ ...sellerData, taxId: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="bank-name">Bank Name</Label>
-                      <Select
-                        value={sellerData.bankName}
-                        onValueChange={(value) =>
-                          setSellerData({ ...sellerData, bankName: value })
-                        }
-                      >
-                        <SelectTrigger id="bank-name">
-                          <SelectValue placeholder="Select bank" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="BDO Unibank">
-                            BDO Unibank
-                          </SelectItem>
-                          <SelectItem value="Bank of the Philippine Islands">
-                            Bank of the Philippine Islands
-                          </SelectItem>
-                          <SelectItem value="Metrobank">Metrobank</SelectItem>
-                          <SelectItem value="Landbank">Landbank</SelectItem>
-                          <SelectItem value="Security Bank">
-                            Security Bank
-                          </SelectItem>
-                          <SelectItem value="UnionBank">UnionBank</SelectItem>
-                          <SelectItem value="PNB">PNB</SelectItem>
-                          <SelectItem value="Eastwest Bank">
-                            Eastwest Bank
-                          </SelectItem>
-                          <SelectItem value="RCBC">RCBC</SelectItem>
-                          <SelectItem value="Chinabank">Chinabank</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="account-name">Account Name</Label>
-                      <Input
-                        id="account-name"
-                        placeholder="Name on your bank account"
-                        value={sellerData.bankAccountName}
-                        onChange={(e) =>
-                          setSellerData({
-                            ...sellerData,
-                            bankAccountName: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="account-number">Account Number</Label>
-                    <Input
-                      id="account-number"
-                      placeholder="Your bank account number"
-                      value={sellerData.bankAccountNumber}
-                      onChange={(e) =>
-                        setSellerData({
-                          ...sellerData,
-                          bankAccountNumber: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="bg-blue-50 p-4 rounded-md text-sm text-blue-700">
-                    <p className="font-medium">
-                      Payment Processing Information
+                    <h3 className="font-semibold text-foreground mb-2">
+                      Payment Gateway Integration
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      We're integrating secure payment gateways to process your transactions. 
+                      You'll be able to connect your payment method once available.
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Supported Gateways (Coming Soon):</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium">
+                        PayMongo
+                      </span>
+                      <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium">
+                        GCash
+                      </span>
+                      <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium">
+                        Maya
+                      </span>
+                      <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium">
+                        Bank Transfer
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-md text-sm text-blue-700 dark:text-blue-400">
+                    <p className="font-medium">📌 Payment Processing Timeline</p>
                     <p className="mt-1">
-                      Payments are processed every 15th and 30th of the month.
-                      Ensure your banking details are correct to avoid delays.
+                      Once integrated, payments will be processed every 15th and 30th of the month directly to your connected account.
                     </p>
                   </div>
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Notification Settings */}
@@ -919,7 +869,7 @@ export default function SellerSettings() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-red-600 hover:bg-red-700"
+                          className="bg-red-600 hover:bg-red-700 text-white"
                           onClick={handleDeleteAccount}
                         >
                           Delete Account

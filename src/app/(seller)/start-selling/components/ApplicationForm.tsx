@@ -390,70 +390,30 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 </div>
               </div>
 
-              {/* Banking Details */}
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
-                  Banking Details
+              {/* Payment Information - Coming Soon */}
+              <div className="bg-muted/50 border border-border rounded-lg p-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
+                  Payment Information
                 </h2>
-                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-                  <FormField
-                    control={form.control}
-                    name="bankName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Bank Name <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 sm:h-12"
-                            placeholder="e.g., BDO, BPI, Metrobank"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="accountNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Account Number <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 sm:h-12"
-                            placeholder="Enter your account number"
-                            inputMode="numeric"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="accountName"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>
-                          Account Holder Name <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 sm:h-12"
-                            placeholder="Name as it appears on your bank account"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Payment processing will be set up after your seller application is approved.
+                  </p>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm font-medium text-foreground">Coming Soon:</span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      PayMongo
+                    </span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      GCash
+                    </span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      Maya
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    💡 You&apos;ll be able to connect your preferred payment method once approved.
+                  </p>
                 </div>
               </div>
 

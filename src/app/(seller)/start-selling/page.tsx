@@ -46,14 +46,20 @@ export const sellerApplicationSchema = z.object({
   // Business Information
   businessName: z.string().min(2, "Business name is required"),
   businessType: z.enum(["individual", "company"], {
-    required_error: "Please select a business type",
+    message: "Please select a business type",
   }),
   taxId: z.string().optional(),
   
   // Contact Details
   fullName: z.string().min(2, "Full name is required"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(
+      /^(09|\+639)\d{9}$/,
+      "Please enter a valid Philippine phone number (e.g., 09123456789 or +639123456789)"
+    ),
   address: z.string().min(10, "Please provide a complete address"),
   city: z.string().min(2, "City is required"),
   region: z.string().min(2, "Region is required"),
@@ -62,11 +68,6 @@ export const sellerApplicationSchema = z.object({
   mushroomTypes: z.array(z.string()).min(1, "Select at least one mushroom type"),
   productionCapacity: z.string().min(1, "Production capacity is required"),
   certifications: z.string().optional(),
-  
-  // Banking Details
-  bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z.string().min(8, "Account number must be at least 8 digits"),
-  accountName: z.string().min(2, "Account holder name is required"),
   
   // Terms
   agreeToTerms: z
@@ -96,9 +97,6 @@ export default function StartSellingPage() {
       mushroomTypes: [],
       productionCapacity: "",
       certifications: "",
-      bankName: "",
-      accountNumber: "",
-      accountName: "",
       agreeToTerms: false,
     },
   });
