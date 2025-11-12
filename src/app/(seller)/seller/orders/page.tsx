@@ -212,8 +212,10 @@ export default function SellerOrders() {
           <Table>
             <TableHeader>
               <TableRow>
+                {/* View action column (no header) */}
+                <TableHead className="w-[80px] pl-5"></TableHead>
                 {/* Order identifier column */}
-                <TableHead className="w-[120px] pl-5">Order ID</TableHead>
+                <TableHead className="w-[120px]">Order ID</TableHead>
                 {/* Purchase date column */}
                 <TableHead className="w-[140px]">Date</TableHead>
                 {/* Buyer information column */}
@@ -223,33 +225,15 @@ export default function SellerOrders() {
                 {/* Order total amount column */}
                 <TableHead className="text-right w-[120px]">Total</TableHead>
                 {/* Fulfillment status column */}
-                <TableHead className="w-[140px]">Status</TableHead>
-                {/* Row actions column */}
-                <TableHead className="text-right w-[100px] pr-5">Actions</TableHead>
+                <TableHead className="w-[140px] pr-5">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-muted/50">
-                    {/* Order identifier cell */}
-                    <TableCell className="font-medium text-sm pl-5">{order.id}</TableCell>
-                    {/* Purchase date cell */}
-                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
-                    {/* Buyer information cell */}
-                    <TableCell className="text-sm">{order.customer}</TableCell>
-                    {/* Number of items cell */}
-                    <TableCell className="text-right text-sm">{order.items}</TableCell>
-                    {/* Order total amount cell */}
-                    <TableCell className="text-right font-semibold text-sm">
-                      ₱{order.total.toFixed(2)}
-                    </TableCell>
-                    {/* Fulfillment status cell */}
-                    <TableCell>
-                      {getStatusBadge(order.status)}
-                    </TableCell>
-                    {/* Row actions cell */}
-                    <TableCell className="text-right pr-5">
+                    {/* View action cell */}
+                    <TableCell className="pl-5">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -261,6 +245,22 @@ export default function SellerOrders() {
                           <span className="text-xs">View</span>
                         </a>
                       </Button>
+                    </TableCell>
+                    {/* Order identifier cell */}
+                    <TableCell className="font-medium text-sm">{order.id}</TableCell>
+                    {/* Purchase date cell */}
+                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
+                    {/* Buyer information cell */}
+                    <TableCell className="text-sm">{order.customer}</TableCell>
+                    {/* Number of items cell */}
+                    <TableCell className="text-right text-sm">{order.items}</TableCell>
+                    {/* Order total amount cell */}
+                    <TableCell className="text-right font-semibold text-sm">
+                      ₱{order.total.toFixed(2)}
+                    </TableCell>
+                    {/* Fulfillment status cell */}
+                    <TableCell className="pr-5">
+                      {getStatusBadge(order.status)}
                     </TableCell>
                   </TableRow>
                 ))

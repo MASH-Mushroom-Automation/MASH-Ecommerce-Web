@@ -10,10 +10,8 @@ import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
-import {
-  LoadingSpinner,
-  ProductCardSkeleton,
-} from "@/components/ui/loading-spinner";
+import { Spinner } from "@/components/common/loading-states";
+import { ProductCardSkeleton } from "@/components/ui/loading-spinner";
 import { ProductsApi } from "@/lib/api/products";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
@@ -97,12 +95,14 @@ function ProductDetailsContent({ product }: { product: ProductApiResponse }) {
 
           {/* Product Info */}
           <div className="lg:w-1/2 w-full">
-            <Link
-              href={getGrowerUrl(product.grower)}
-              className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-primary/20 transition-colors"
-            >
-              @{product.grower}
-            </Link>
+            {product.grower && (
+              <Link
+                href={getGrowerUrl(product.grower)}
+                className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium mb-3 hover:bg-primary/20 transition-colors"
+              >
+                @{product.grower}
+              </Link>
+            )}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               {product.name}
             </h1>
@@ -294,7 +294,7 @@ export default function ProductDetailsRoute({ params }: Props) {
     return (
       <div className="bg-background min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <Spinner size="lg" className="mx-auto mb-4" />
           <p className="text-muted-foreground">Loading product details...</p>
         </div>
       </div>

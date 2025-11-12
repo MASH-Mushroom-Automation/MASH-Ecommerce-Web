@@ -8,7 +8,7 @@ export function PageLoader({ message = "Loading..." }: { message?: string }) {
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <div className="text-center">
-        <Loader2 className="w-12 h-12 text-accent animate-spin mx-auto mb-4" />
+        <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground text-sm sm:text-base">{message}</p>
       </div>
     </div>
@@ -31,7 +31,7 @@ export function Spinner({
   
   return (
     <Loader2 
-      className={`animate-spin text-accent ${sizeClasses[size]} ${className}`} 
+      className={`animate-spin text-primary ${sizeClasses[size]} ${className}`} 
     />
   );
 }
