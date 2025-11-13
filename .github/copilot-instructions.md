@@ -184,6 +184,7 @@ function ProductList() {
 
 ## Essential Documentation
 Before making significant changes, review these docs:
+- `docs/AUTH_IMPLEMENTATION_GUIDE.md` - **Complete authentication setup** (register → verify → login → forgot password)
 - `docs/COMPLETE_ARCHITECTURE.md` - Full file structure and status
 - `docs/BACKEND_API_CONNECTION_GUIDE.md` - Complete API integration guide (550+ lines)
 - `docs/API_QUICK_REFERENCE.md` - Quick API endpoints reference
