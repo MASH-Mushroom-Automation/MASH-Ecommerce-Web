@@ -28,15 +28,13 @@ import {
 
 export function CartDropdown() {
   const cartData = useCart();
-  const { items, summary, updateQuantity, removeFromCart, clearCart } =
-    cartData;
-  const { products } = useProducts({ limit: 100 }); // Fetch products to get details
+  const { items, summary, updateQuantity, removeFromCart, clearCart } = cartData;
+  const { products } = useProducts({ limit: 100 });
   const [prevItemCount, setPrevItemCount] = useState(0);
   const [animate, setAnimate] = useState(false);
 
   const totalItems = items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
-  // Trigger animation when cart count increases
   useEffect(() => {
     if (totalItems > prevItemCount && prevItemCount > 0) {
       setAnimate(true);
@@ -46,7 +44,6 @@ export function CartDropdown() {
     setPrevItemCount(totalItems);
   }, [totalItems, prevItemCount]);
 
-  // Get product details for each cart item
   const cartItemsWithDetails = (items || []).map((cartItem) => {
     const product = products.find((p) => p.id === cartItem.productId);
     return {
@@ -80,7 +77,6 @@ export function CartDropdown() {
         side="right"
         className="w-full sm:max-w-md flex flex-col p-0 gap-0"
       >
-        {/* Dark Green Header */}
         <div className="bg-primary px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ShoppingCart className="h-6 w-6 text-primary-foreground" />
@@ -102,33 +98,46 @@ export function CartDropdown() {
               Add some delicious fresh mushrooms to get started!
             </p>
             <Link href="/shop">
-              <Button className="px-6">
-                Browse Products
-              </Button>
+              <Button className="px-6">Browse Products</Button>
             </Link>
           </div>
         ) : (
           <>
-            {/* Cart Items - White Background */}
             <div className="flex-1 overflow-y-auto bg-background px-6 py-4">
               <div className="space-y-6">
                 {cartItemsWithDetails.map((item) => (
                   <div key={item.productId} className="relative">
-                    {/* Delete Button - Top Right */}
-                    <button
-                      onClick={() => removeFromCart(item.productId)}
-                      className="absolute top-0 right-0 p-1 hover:bg-red-50 rounded transition-colors z-10"
-                      aria-label="Remove item"
-                    >
-                      <X className="h-5 w-5 text-red-500" />
-                    </button>
+                    {/* Delete Button */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="absolute top-0 right-0 p-1 hover:bg-red-50 rounded transition-colors z-10"
+                          aria-label="Remove item"
+                        >
+                          <X className="h-5 w-5 text-red-500" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove item from cart?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will remove "{item.name}" from your cart. You can always add it back later.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => removeFromCart(item.productId)}
+                            className="bg-red-600 hover:bg-red-600/90 text-white"
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
                     <div className="flex gap-4">
-                      {/* Product Image - Larger rounded square */}
-                      <Link
-                        href={`/product/${item.productId}`}
-                        className="flex-shrink-0"
-                      >
+                      <Link href={`/product/${item.productId}`} className="flex-shrink-0">
                         <Image
                           src={item.image}
                           alt={item.name}
@@ -138,7 +147,6 @@ export function CartDropdown() {
                         />
                       </Link>
 
-                      {/* Product Info */}
                       <div className="flex-1 min-w-0 flex flex-col">
                         <Link href={`/product/${item.productId}`}>
                           <h4 className="font-semibold text-base text-foreground hover:text-primary mb-2 pr-6 leading-snug">
@@ -146,41 +154,41 @@ export function CartDropdown() {
                           </h4>
                         </Link>
 
-                        <p className="text-sm text-accent mb-3">
-                          Sold by: @{item.grower}
-                        </p>
+                        <p className="text-sm text-accent mb-3">Sold by: @{item.grower}</p>
 
-                        {/* Price and Quantity Row */}
                         <div className="flex items-center justify-between mt-auto">
-                          <div className="flex flex-col">
-                            <p className="text-lg font-bold text-foreground">
-                              ₱{item.price.toFixed(2)}
-                            </p>
-                          </div>
+                          <p className="text-lg font-bold text-foreground">
+                            ₱{item.price.toFixed(2)}
+                          </p>
 
                           {/* Quantity Controls */}
                           <div className="flex items-center gap-3 bg-muted rounded-lg px-2 py-1">
                             <button
-                              onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity - 1
-                                )
-                              }
-                              className="w-8 h-8 flex items-center justify-center hover:bg-muted/80 rounded transition-colors"
+                              onClick={() => {
+                                // Only decrease quantity if it is greater than 1
+                                if (item.quantity > 1) {
+                                  updateQuantity(item.productId, item.quantity - 1);
+                                }
+                              }}
+                              // Disable button when quantity is 1
+                              disabled={item.quantity <= 1}
+                              className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                                item.quantity <= 1
+                                  ? "opacity-50 cursor-not-allowed" // Disabled styles
+                                  : "hover:bg-muted/80" // Active styles
+                              }`}
                               aria-label="Decrease quantity"
                             >
                               <Minus className="h-4 w-4 text-foreground" />
                             </button>
+
                             <span className="text-base font-medium min-w-[24px] text-center text-foreground">
                               {item.quantity}
                             </span>
+
                             <button
                               onClick={() =>
-                                updateQuantity(
-                                  item.productId,
-                                  item.quantity + 1
-                                )
+                                updateQuantity(item.productId, item.quantity + 1)
                               }
                               className="w-8 h-8 flex items-center justify-center hover:bg-muted/80 rounded transition-colors"
                               aria-label="Increase quantity"
@@ -196,9 +204,7 @@ export function CartDropdown() {
               </div>
             </div>
 
-            {/* Cart Footer - White Background */}
             <div className="bg-background border-t border-border px-6 py-6 space-y-4">
-              {/* Subtotal */}
               <div className="flex items-center justify-between mb-6">
                 <span className="text-base text-foreground">
                   Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
@@ -208,14 +214,15 @@ export function CartDropdown() {
                 </span>
               </div>
 
-              {/* Buttons - Side by Side */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Clear Cart Button with confirmation */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full h-12 border-2 border-border hover:bg-muted text-foreground font-medium"
+                      className="w-full h-12 border-2 border-border text-foreground font-medium 
+                        hover:bg-muted 
+                        hover:border-red-600 
+                        hover:text-red-600" // MODIFIED: Added hover classes for red border and text
                     >
                       Clear Cart
                     </Button>
@@ -224,15 +231,14 @@ export function CartDropdown() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Clear all items?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will remove all products from your cart. You can
-                        always add them again from the catalog.
+                        This will remove all products from your cart. You can always add them again from the catalog.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={clearCart}
-                        className="bg-red-600 hover:bg-red-600/90"
+                        className="bg-red-600 hover:bg-red-600/90 text-white"
                       >
                         Clear All
                       </AlertDialogAction>
@@ -240,7 +246,6 @@ export function CartDropdown() {
                   </AlertDialogContent>
                 </AlertDialog>
 
-                {/* Checkout Button */}
                 <Link href="/checkout" className="block">
                   <Button className="w-full h-12 font-medium">
                     Proceed to checkout
