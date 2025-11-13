@@ -99,6 +99,7 @@ async function testRegistration() {
       console.log("   2. Copy the 6-digit verification code");
       console.log("   3. Go to http://localhost:3000/verify-otp");
       console.log("   4. Enter your email and code");
+      console.log("   5. After verification → Redirected to home page (/)");
       console.log("\n" + "=".repeat(70) + "\n");
       return true;
     } else {
@@ -248,11 +249,12 @@ async function runAllTests() {
   console.log("   ✅ Phase 3: Registration test - See results above");
   console.log("   ⏭️ Phase 4: Login test - Run manually after email verification");
   console.log("   ✅ Phase 5: Password reset test - See results above");
-  console.log("\n📝 Next Steps:");
+  console.log("📝 Next Steps:");
   console.log("   1. Check your email for verification code");
   console.log("   2. Go to http://localhost:3000/verify-otp");
   console.log("   3. Enter email and 6-digit code");
-  console.log("   4. After verification, try logging in");
+  console.log("   4. After verification → Redirected to home page (/)");
+  console.log("   5. Try logging in or browsing the shop");
   console.log("\n🔗 Frontend URLs:");
   console.log("   → Signup: http://localhost:3000/signup");
   console.log("   → Verify OTP: http://localhost:3000/verify-otp");

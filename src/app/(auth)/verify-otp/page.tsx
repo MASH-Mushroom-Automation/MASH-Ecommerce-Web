@@ -94,8 +94,8 @@ export default function VerifyOTPPage() {
         description: response.data.message || "Your account has been verified successfully.",
       });
 
-      // Redirect to onboarding or shop
-      router.push("/onboarding");
+      // Redirect to home
+      router.push("/");
     } catch (error) {
       console.error("Verification error:", error);
       toast.error("Verification failed", {
