@@ -226,7 +226,7 @@ Based on `documents/API_Endpoints_Structure.md`:
 ## ⚠️ CRITICAL NOTES
 
 1. **Backend URL Updated:**
-   - Old: `https://mash-backend-api.up.railway.app`
+   - Old: `https://mash-backend-api-production.up.railway.app`
    - New: `https://mash-backend-api-production.up.railway.app/`
 
 2. **Authentication Required:**

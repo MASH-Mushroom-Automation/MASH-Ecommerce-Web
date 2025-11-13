@@ -20,7 +20,7 @@ import { humanizeError } from "@/lib/error-messages";
 const API_ENDPOINT =
   process.env.NEXT_PUBLIC_API_ENDPOINT ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://mash-backend-api.up.railway.app";
+  "https://mash-backend-api-production.up.railway.app";
 
 const isPhone = (val: string) => {
   // Philippine phone validation: 09XXXXXXXXX or +639XXXXXXXXX
