@@ -11,6 +11,17 @@ import type { ProductApiResponse } from "@/types/api";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist } = useWishlist();
@@ -93,16 +104,37 @@ export default function WishlistPage() {
           </div>
 
           {wishlistItems.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                clearWishlist();
-                toast.success("Wishlist cleared.");
-              }}
-              className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              Clear All
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  Clear All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all items?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove all products from your wishlist. You can
+                    always add them again from the catalog.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      clearWishlist();
+                      toast.success("Wishlist cleared.");
+                    }}
+                    className="bg-red-600 hover:bg-red-600/90 text-foreground"
+                  >
+                    Clear All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
 

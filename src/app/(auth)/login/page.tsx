@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Mail, Lock, X, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { User, Mail, Lock, X, AlertCircle, Check, X as XIcon, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
@@ -27,6 +26,64 @@ const isPhone = (val: string) => {
   return /^(09|\+639)\d{9}$/.test(val);
 };
 
+const validatePassword = (val: string) => {
+  const errors: string[] = [];
+  
+  // Check minimum length
+  if (val.length < 8) {
+    errors.push("at least 8 characters");
+  }
+  
+  // Check for uppercase letter
+  if (!/[A-Z]/.test(val)) {
+    errors.push("an uppercase letter");
+  }
+  
+  // Check for number
+  if (!/\d/.test(val)) {
+    errors.push("a number");
+  }
+  
+  // Check for special character
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)) {
+    errors.push("a special character");
+  }
+  
+  return errors;
+};
+
+const getPasswordRequirements = (password: string) => {
+  return {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  };
+};
+
+const getIdentifierStatus = (identifier: string) => {
+  if (!identifier) {
+    return { isValid: false, type: null, message: "Enter email or phone number" };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\+?\d{10,15}$/;
+
+  if (emailRegex.test(identifier)) {
+    return { isValid: true, type: "email", message: "Valid email" };
+  }
+
+  if (phoneRegex.test(identifier)) {
+    return { isValid: true, type: "phone", message: "Valid phone number" };
+  }
+
+  return {
+    isValid: false,
+    type: null,
+    message: "Must be a valid email (user@example.com) or phone (+1234567890)",
+  };
+};
+
 const loginSchema = z.object({
   identifier: z
     .string()
@@ -37,7 +94,15 @@ const loginSchema = z.object({
         message: "Enter a valid email or phone number",
       }
     ),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .refine(
+      (val) => validatePassword(val).length === 0,
+      (val) => ({
+        message: `Password must contain ${validatePassword(val).join(", ")}`,
+      })
+    ),
   rememberMe: z.boolean().default(false),
 });
 
@@ -47,6 +112,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [identifier, setIdentifier] = useState("");
 
   const {
     register,
@@ -148,61 +216,63 @@ export default function LoginPage() {
   const contextualMessage = getContextualMessage();
 
   return (
-    <Card className="w-full shadow-md overflow-hidden">
-      <CardHeader className="text-center pb-2 relative">
-        {/* Clear/Home Button */}
-        <Link
-          href="/"
-          className="absolute top-4 right-4 p-2 hover:bg-muted/30 rounded-full transition-colors"
-          title="Go to home"
-        >
-          <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-        </Link>
+    <div className="min-h-screen bg-background flex items-center justify-center py-6 sm:py-8 md:py-12">
+      <div className="w-full px-4 sm:px-6 md:px-8 max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl">
+        <div className="bg-card rounded-lg shadow-md p-6 sm:p-8 md:p-12 overflow-hidden">
+        <div className="relative">
+          {/* Clear/Home Button */}
+          <Link
+            href="/"
+            className="absolute top-0 right-0 p-2 hover:bg-muted/30 rounded-full transition-colors"
+            title="Go to home"
+          >
+            <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+          </Link>
 
-        {/* User Icon */}
-        <div className="flex justify-center mb-4">
-          <div className="bg-primary rounded-full p-4">
-            <User className="w-8 h-8 text-primary-foreground" />
+          {/* User Icon */}
+          <div className="flex justify-center mb-4 sm:mb-6 pt-2">
+            <div className="bg-primary rounded-full p-3 sm:p-4">
+              <User className="w-6 h-6 sm:w-8 sm:h-8 text-primary-foreground" />
+            </div>
           </div>
+
+          {/* Title */}
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground mb-1 sm:mb-2">
+            Sign in to your account
+          </h2>
+          <p className="text-center text-muted-foreground text-xs sm:text-sm mb-4 sm:mb-6">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-primary font-medium hover:underline"
+            >
+              Create one
+            </Link>
+          </p>
         </div>
 
-        {/* Title */}
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Sign in to your account
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/signup"
-            className="text-primary font-medium hover:underline"
-          >
-            Create one
-          </Link>
-        </p>
-      </CardHeader>
-
-      <CardContent className="pt-6">
-        {/* Contextual Message Alert */}
-        {contextualMessage && (
-          <Alert className="mb-6 bg-primary/10 border-primary/30">
-            <AlertCircle className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-primary font-medium">
-              {contextualMessage}
-            </AlertDescription>
-          </Alert>
-        )}
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit((data) =>
-            onSubmit(data as unknown as LoginForm)
+        <div className="pt-2">
+          {/* Contextual Message Alert */}
+          {contextualMessage && (
+            <Alert className="mb-4 sm:mb-6 bg-primary/10 border-primary/30">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-primary font-medium text-xs sm:text-sm">
+                {contextualMessage}
+              </AlertDescription>
+            </Alert>
           )}
-          className="space-y-6"
-        >
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit((data) =>
+              onSubmit(data as unknown as LoginForm)
+            )}
+            className="space-y-3 sm:space-y-4 md:space-y-5"
+          >
           {/* Email or Phone Input */}
           <div>
             <label
               htmlFor="identifier"
-              className="block text-sm font-medium text-muted-foreground mb-2"
+              className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
             >
               Email or Phone Number
             </label>
@@ -210,12 +280,35 @@ export default function LoginPage() {
               id="identifier"
               type="text"
               {...register("identifier")}
+              onInput={(e) => setIdentifier(e.currentTarget.value)}
               className="w-full"
               placeholder="Enter your email or phone"
               icon={<Mail className="h-5 w-5" />}
             />
+
+            {/* Identifier Validation Indicator */}
+            {identifier && (
+              <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                <div
+                  className={`flex items-center gap-2 text-xs ${
+                    getIdentifierStatus(identifier).isValid
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {getIdentifierStatus(identifier).isValid ? (
+                    <Check className="h-3 w-3 flex-shrink-0" />
+                  ) : (
+                    <XIcon className="h-3 w-3 flex-shrink-0" />
+                  )}
+                  <span>{getIdentifierStatus(identifier).message}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
             {errors.identifier && (
-              <p className="mt-1 text-sm text-destructive">
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                 {String(errors.identifier.message)}
               </p>
             )}
@@ -225,20 +318,107 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-muted-foreground mb-2"
+              className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
             >
               Password
             </label>
-            <Input
-              id="password"
-              type="password"
-              {...register("password")}
-              className="w-full"
-              placeholder="Enter your password"
-              icon={<Lock className="h-5 w-5" />}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                {...register("password")}
+                onInput={(e) => setPassword(e.currentTarget.value)}
+                className="w-full pr-10"
+                placeholder="Enter your password"
+                icon={<Lock className="h-5 w-5" />}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+
+            {/* Password Requirements Indicator */}
+            {password && (
+              <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
+                  Password Requirements:
+                </p>
+                <div className="space-y-1">
+                  <div
+                    className={`flex items-center gap-2 text-xs ${
+                      getPasswordRequirements(password).minLength
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {getPasswordRequirements(password).minLength ? (
+                      <Check className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <XIcon className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    <span>At least 8 characters</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-2 text-xs ${
+                      getPasswordRequirements(password).hasUppercase
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {getPasswordRequirements(password).hasUppercase ? (
+                      <Check className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <XIcon className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    <span>Contains uppercase letter (A-Z)</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-2 text-xs ${
+                      getPasswordRequirements(password).hasNumber
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {getPasswordRequirements(password).hasNumber ? (
+                      <Check className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <XIcon className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    <span>Contains a number (0-9)</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-2 text-xs ${
+                      getPasswordRequirements(password).hasSpecialChar
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {getPasswordRequirements(password).hasSpecialChar ? (
+                      <Check className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                      <XIcon className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    <span>Contains special character (!@#$%^&* etc.)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
             {errors.password && (
-              <p className="mt-1 text-sm text-destructive">
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                 {String(errors.password.message)}
               </p>
             )}
@@ -260,14 +440,14 @@ export default function LoginPage() {
               />
               <label
                 htmlFor="remember"
-                className="text-sm text-muted-foreground cursor-pointer"
+                className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
               >
                 Remember Me
               </label>
             </div>
             <Link
               href="/forgot-password"
-              className="text-sm text-primary hover:underline"
+              className="text-xs sm:text-sm text-primary hover:underline"
             >
               Forgot Password?
             </Link>
@@ -285,7 +465,7 @@ export default function LoginPage() {
           </Button>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-3 sm:my-4 md:my-5">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border"></div>
             </div>
@@ -345,8 +525,10 @@ export default function LoginPage() {
             </svg>
             Sign in with Facebook
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </div>
+      </div>
+      </div>
+    </div>
   );
 }

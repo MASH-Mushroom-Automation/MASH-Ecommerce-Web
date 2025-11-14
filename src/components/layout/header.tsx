@@ -18,7 +18,6 @@ import {
   Facebook,
   Instagram,
   Store,
-  Settings,
 } from "lucide-react";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -34,7 +33,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
@@ -48,7 +46,7 @@ import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
-import { useNavigation } from "@/hooks/useNavigation";
+
 
 type SellerStatus = "approved" | "pending" | "none";
 

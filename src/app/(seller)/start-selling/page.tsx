@@ -44,14 +44,19 @@ import { SuccessModal } from "./components/SuccessModal";
 
 export const sellerApplicationSchema = z.object({
   // Business Information
-  businessName: z.string().min(2, "Business name is required"),
+  businessName: z.string().min(2, "Business name is required").max(24, "Business name must be 24 characters or less"),
   businessType: z.enum(["individual", "company"], {
     message: "Please select a business type",
   }),
-  taxId: z.string().optional(),
+  taxId: z
+    .string()
+    .optional()
+    .refine((val) => (val ? /^\d+$/.test(val) : true), {
+      message: "Tax ID must contain numbers only",
+    }),
   
   // Contact Details
-  fullName: z.string().min(2, "Full name is required"),
+  fullName: z.string().min(2, "Full name is required").max(24, "Full name must be 24 characters or less"),
   email: z.string().email("Please enter a valid email address"),
   phone: z
     .string()
@@ -66,9 +71,10 @@ export const sellerApplicationSchema = z.object({
   
   // Product Information
   mushroomTypes: z.array(z.string()).min(1, "Select at least one mushroom type"),
+  mushroomOther: z.string().optional(),
   productionCapacity: z.string().min(1, "Production capacity is required"),
   certifications: z.string().optional(),
-  
+
   // Terms
   agreeToTerms: z
     .boolean()
