@@ -19,36 +19,39 @@ This comprehensive guide provides **complete JSON structure references for ALL 4
 This is the **main products database** used throughout the website. Contains all 9 products with complete information matching `src/lib/api/products.ts` structure.
 
 **✅ Ready to Use - Import Directly:**
+
 ```typescript
-import productsData from '@/data/products-database.json';
+import productsData from "@/data/products-database.json";
 
 // All 9 products ready to use
 const products = productsData;
 
 // Filter featured products
-const featured = productsData.filter(p => p.isFeatured);
+const featured = productsData.filter((p) => p.isFeatured);
 
 // Get product by ID
-const product = productsData.find(p => p.id === "1");
+const product = productsData.find((p) => p.id === "1");
 
 // Search by name/description
-const searchResults = productsData.filter(p => 
-  p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  p.description.toLowerCase().includes(searchTerm.toLowerCase())
+const searchResults = productsData.filter(
+  (p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.description.toLowerCase().includes(searchTerm.toLowerCase())
 );
 
 // Filter by category
-const freshMushrooms = productsData.filter(p => 
+const freshMushrooms = productsData.filter((p) =>
   p.categories.includes("Fresh Mushroom")
 );
 
 // Filter by grower
-const fungiFreshProducts = productsData.filter(p => 
-  p.grower === "FungiFreshFarms"
+const fungiFreshProducts = productsData.filter(
+  (p) => p.grower === "FungiFreshFarms"
 );
 ```
 
 **📦 Complete Product Structure (24 fields):**
+
 ```json
 {
   "id": "1",
@@ -80,6 +83,7 @@ const fungiFreshProducts = productsData.filter(p =>
 ```
 
 **🛒 All 9 Products in Database:**
+
 1. **Fresh White Oyster Mushrooms** (ID: 1) - ₱120 - Featured, New, Fresh
 2. **Mushroom Chips** (ID: 2) - ₱140 - Snacks
 3. **Blue Oyster Mushrooms** (ID: 3) - ₱150 - Featured, Premium, Gourmet
@@ -93,18 +97,23 @@ const fungiFreshProducts = productsData.filter(p =>
 **🔍 Product Field Reference:**
 
 **Required Fields:**
+
 - `id`, `name`, `slug`, `sku`, `price`, `stock`, `minStock`, `images`, `image`, `category`, `categories`, `tags`, `grower`, `growerId`, `inStock`, `isActive`, `isFeatured`, `isDeleted`, `createdAt`, `updatedAt`
 
 **Optional Fields:**
+
 - `description`, `comparePrice`, `costPrice`, `weight`, `tag`
 
 **📂 Categories Available:**
+
 - Fresh Mushroom, Oyster Mushrooms, Premium, Growing Kits, Beginner Friendly, Mushroom Products, Snacks, Preserved Foods, Filipino Products, Gourmet
 
 **🏷️ Tags Available:**
+
 - New, Fresh, Popular, Chips, Snack, Best Seller, Gourmet, Vegan, Filipino, Premium, Crispy, Beginner Friendly
 
 **🌱 Growers in System:**
+
 - **FungiFreshFarms** (grower_001) - 5 products
 - **TheMushroomPatchBukidnon** (grower_002) - 2 products
 - **KingFarms** (grower_003) - 2 products
@@ -116,7 +125,9 @@ const fungiFreshProducts = productsData.filter(p =>
 ### 1️⃣ Core E-Commerce Tables (7 tables)
 
 #### **Product** (`data/tables/core-ecommerce/product.json` + `data/products-database.json`)
+
 Main products database with pricing, inventory, categories, and images.
+
 ```json
 {
   "id": "prod_001",
@@ -124,17 +135,17 @@ Main products database with pricing, inventory, categories, and images.
   "description": "Locally grown fresh oyster mushrooms",
   "slug": "fresh-oyster-mushrooms",
   "sku": "MUSH-OYS-FRESH-250G",
-  "price": 120.00,
-  "comparePrice": 150.00,
-  "costPrice": 80.00,
+  "price": 120.0,
+  "comparePrice": 150.0,
+  "costPrice": 80.0,
   "stock": 50,
   "minStock": 10,
   "weight": 0.25,
-  "dimensions": {"length": 15, "width": 10, "height": 5, "unit": "cm"},
+  "dimensions": { "length": 15, "width": 10, "height": 5, "unit": "cm" },
   "images": ["url1", "url2", "url3"],
   "categories": ["cat_fresh", "cat_edible"],
   "tags": ["fresh", "organic", "local"],
-  "attributes": {"origin": "Baguio", "shelfLife": "5-7 days"},
+  "attributes": { "origin": "Baguio", "shelfLife": "5-7 days" },
   "isActive": true,
   "isFeatured": true,
   "isDeleted": false,
@@ -147,7 +158,9 @@ Main products database with pricing, inventory, categories, and images.
 ```
 
 #### **Category** (`data/tables/core-ecommerce/category.json`)
+
 Product categories with hierarchical structure.
+
 ```json
 {
   "id": "cat_001",
@@ -164,7 +177,9 @@ Product categories with hierarchical structure.
 ```
 
 #### **User** (`data/tables/core-ecommerce/user.json`)
+
 User accounts with authentication and roles.
+
 ```json
 {
   "id": "user_001",
@@ -178,7 +193,7 @@ User accounts with authentication and roles.
   "phoneNumber": "+639171234567",
   "role": "BUYER",
   "isActive": true,
-  "preferences": {"theme": "light", "language": "en", "notifications": true},
+  "preferences": { "theme": "light", "language": "en", "notifications": true },
   "emailVerified": true,
   "emailVerificationToken": null,
   "emailVerificationExpiry": null,
@@ -190,21 +205,24 @@ User accounts with authentication and roles.
   "updatedAt": "2025-11-10T08:30:00.000Z"
 }
 ```
+
 **Enum - UserRole**: `USER` | `ADMIN` | `SUPER_ADMIN` | `GROWER` | `BUYER`
 
 #### **Order** (`data/tables/core-ecommerce/order.json`)
+
 Order management with status tracking.
+
 ```json
 {
   "id": "order_001",
   "orderNumber": "ORD-2025-001",
   "userId": "user_001",
   "status": "DELIVERED",
-  "subtotal": 500.00,
-  "tax": 60.00,
-  "shipping": 100.00,
-  "discount": 50.00,
-  "total": 610.00,
+  "subtotal": 500.0,
+  "tax": 60.0,
+  "shipping": 100.0,
+  "discount": 50.0,
+  "total": 610.0,
   "currency": "PHP",
   "notes": "Please deliver in the morning",
   "shippingAddress": {
@@ -218,7 +236,7 @@ Order management with status tracking.
     "country": "Philippines",
     "phone": "+639171234567"
   },
-  "billingAddress": {"same": "as_shipping"},
+  "billingAddress": { "same": "as_shipping" },
   "trackingNumber": "TRK123456789",
   "shippedAt": "2025-11-02T10:00:00.000Z",
   "deliveredAt": "2025-11-05T14:30:00.000Z",
@@ -227,23 +245,28 @@ Order management with status tracking.
   "updatedAt": "2025-11-05T14:30:00.000Z"
 }
 ```
+
 **Enum - OrderStatus**: `PENDING` | `CONFIRMED` | `PROCESSING` | `SHIPPED` | `DELIVERED` | `CANCELLED` | `REFUNDED`
 
 #### **OrderItem** (`data/tables/core-ecommerce/order-item.json`)
+
 Line items within orders.
+
 ```json
 {
   "id": "item_001",
   "orderId": "order_001",
   "productId": "prod_001",
   "quantity": 2,
-  "price": 120.00,
-  "total": 240.00
+  "price": 120.0,
+  "total": 240.0
 }
 ```
 
 #### **Address** (`data/tables/core-ecommerce/address.json`)
+
 Shipping and billing addresses with Philippines format.
+
 ```json
 {
   "id": "addr_001",
@@ -266,18 +289,20 @@ Shipping and billing addresses with Philippines format.
 ```
 
 #### **Payment** (`data/tables/core-ecommerce/payment.json`)
+
 Payment transactions and gateway integration.
+
 ```json
 {
   "id": "pay_001",
   "orderId": "order_001",
   "userId": "user_001",
-  "amount": 610.00,
+  "amount": 610.0,
   "currency": "PHP",
   "status": "PAID",
   "method": "GCASH",
   "transactionId": "GCASH123456789",
-  "gatewayResponse": {"reference": "REF123", "status": "success"},
+  "gatewayResponse": { "reference": "REF123", "status": "success" },
   "processedAt": "2025-11-01T09:05:00.000Z",
   "failedAt": null,
   "refundedAt": null,
@@ -285,6 +310,7 @@ Payment transactions and gateway integration.
   "updatedAt": "2025-11-01T09:05:00.000Z"
 }
 ```
+
 **Enum - PaymentStatus**: `PENDING` | `PAID` | `FAILED` | `REFUNDED`
 **Enum - PaymentMethod**: `CREDIT_CARD` | `DEBIT_CARD` | `PAYPAL` | `GCASH` | `MAYA` | `BANK_TRANSFER`
 
@@ -293,7 +319,9 @@ Payment transactions and gateway integration.
 ### 2️⃣ IoT Devices & Sensors Tables (8 tables)
 
 #### **Device** (`data/tables/iot-devices/device.json`)
+
 IoT devices for mushroom growing automation.
+
 ```json
 {
   "id": "dev_001",
@@ -313,11 +341,14 @@ IoT devices for mushroom growing automation.
   "updatedAt": "2025-11-10T09:00:00.000Z"
 }
 ```
+
 **Enum - DeviceType**: `MUSHROOM_CHAMBER` | `ENVIRONMENTAL_SENSOR` | `IRRIGATION_SYSTEM` | `HVAC_CONTROLLER` | `CAMERA` | `pH_SENSOR` | `HUMIDITY_CONTROLLER`
 **Enum - DeviceStatus**: `ONLINE` | `OFFLINE` | `MAINTENANCE` | `ERROR`
 
 #### **Sensor** (`data/tables/iot-devices/sensor.json`)
+
 Individual sensors attached to devices.
+
 ```json
 {
   "id": "sensor_001",
@@ -327,7 +358,7 @@ Individual sensors attached to devices.
   "unit": "°C",
   "minValue": 10.0,
   "maxValue": 30.0,
-  "calibration": {"offset": 0.5, "multiplier": 1.0},
+  "calibration": { "offset": 0.5, "multiplier": 1.0 },
   "isActive": true,
   "createdAt": "2025-06-01T10:00:00.000Z",
   "updatedAt": "2025-11-10T08:00:00.000Z"
@@ -335,7 +366,9 @@ Individual sensors attached to devices.
 ```
 
 #### **SensorData** (`data/tables/iot-devices/sensor-data.json`)
+
 Time-series sensor readings.
+
 ```json
 {
   "id": "data_001",
@@ -351,22 +384,26 @@ Time-series sensor readings.
 ```
 
 #### **DeviceCommand** (`data/tables/iot-devices/device-command.json`)
+
 Remote commands sent to devices.
+
 ```json
 {
   "id": "cmd_001",
   "deviceId": "dev_001",
   "command": "SET_TEMPERATURE",
-  "parameters": {"temperature": 22, "duration": 3600},
+  "parameters": { "temperature": 22, "duration": 3600 },
   "status": "completed",
-  "response": {"success": true, "message": "Temperature set to 22°C"},
+  "response": { "success": true, "message": "Temperature set to 22°C" },
   "sentAt": "2025-11-10T09:00:00.000Z",
   "acknowledgedAt": "2025-11-10T09:00:05.000Z"
 }
 ```
 
 #### **SensorAlert** (`data/tables/iot-devices/sensor-alert.json`)
+
 Sensor threshold alerts.
+
 ```json
 {
   "id": "alert_001",
@@ -376,7 +413,7 @@ Sensor threshold alerts.
   "severity": "WARNING",
   "title": "High Temperature Detected",
   "message": "Temperature reached 28°C, exceeding threshold of 25°C",
-  "threshold": {"min": 18, "max": 25, "current": 28},
+  "threshold": { "min": 18, "max": 25, "current": 28 },
   "isActive": true,
   "isResolved": false,
   "resolvedAt": null,
@@ -386,7 +423,9 @@ Sensor threshold alerts.
 ```
 
 #### **DeviceHealth** - NEW (from Prisma schema)
+
 Device health monitoring with performance metrics.
+
 ```json
 {
   "id": "health_001",
@@ -401,10 +440,11 @@ Device health monitoring with performance metrics.
   "networkLatency": 25,
   "uptime": 864000,
   "errorCount": 0,
-  "metadata": {"lastReboot": "2025-11-01T00:00:00.000Z"},
+  "metadata": { "lastReboot": "2025-11-01T00:00:00.000Z" },
   "createdAt": "2025-11-10T09:00:00.000Z"
 }
 ```
+
 **Enum - DeviceHealthStatus**: `HEALTHY` | `WARNING` | `CRITICAL` | `OFFLINE` | `MAINTENANCE`
 
 ---
@@ -412,7 +452,9 @@ Device health monitoring with performance metrics.
 ### 3️⃣ Alert & Notification System Tables (8 tables)
 
 #### **AlertRule** (`data/tables/alerts-notifications/alert-rule.json`)
+
 Configurable alert rules for monitoring.
+
 ```json
 {
   "id": "rule_001",
@@ -421,8 +463,12 @@ Configurable alert rules for monitoring.
   "category": "SENSOR",
   "priority": "HIGH",
   "eventType": "sensor.temperature",
-  "condition": {"operator": "GT", "threshold": 25, "field": "value"},
-  "activeHours": {"start": "00:00", "end": "23:59", "days": [1,2,3,4,5,6,7]},
+  "condition": { "operator": "GT", "threshold": 25, "field": "value" },
+  "activeHours": {
+    "start": "00:00",
+    "end": "23:59",
+    "days": [1, 2, 3, 4, 5, 6, 7]
+  },
   "cooldownMinutes": 15,
   "isActive": true,
   "isDeleted": false,
@@ -432,11 +478,14 @@ Configurable alert rules for monitoring.
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - AlertCategory**: `SYSTEM` | `SECURITY` | `BUSINESS` | `USER` | `SENSOR` | `ORDER` | `PAYMENT`
 **Enum - AlertPriority**: `CRITICAL` | `HIGH` | `MEDIUM` | `LOW`
 
 #### **AlertRuleRecipient** (`data/tables/alerts-notifications/alert-rule-recipient.json`)
+
 Who receives alerts from rules.
+
 ```json
 {
   "id": "recipient_001",
@@ -454,10 +503,13 @@ Who receives alerts from rules.
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - RecipientType**: `USER` | `ROLE` | `EMAIL` | `PHONE`
 
 #### **Alert** (`data/tables/alerts-notifications/alert.json`)
+
 Alert instances when rules trigger.
+
 ```json
 {
   "id": "alert_001",
@@ -470,7 +522,7 @@ Alert instances when rules trigger.
   "status": "SENT",
   "eventType": "sensor.temperature",
   "eventId": "data_001",
-  "eventData": {"temperature": 28, "sensor": "sensor_001"},
+  "eventData": { "temperature": 28, "sensor": "sensor_001" },
   "fingerprint": "temp_high_sensor001_20251110",
   "groupKey": "temp_alerts",
   "occurrenceCount": 1,
@@ -487,10 +539,13 @@ Alert instances when rules trigger.
   "updatedAt": "2025-11-10T09:00:00.000Z"
 }
 ```
+
 **Enum - AlertStatus**: `PENDING` | `SENT` | `ACKNOWLEDGED` | `RESOLVED` | `ESCALATED` | `SNOOZED` | `CANCELLED`
 
 #### **Notification** (`data/tables/alerts-notifications/notification.json`)
+
 Notification delivery records across channels.
+
 ```json
 {
   "id": "notif_001",
@@ -513,7 +568,7 @@ Notification delivery records across channels.
   "nextRetryAt": null,
   "provider": "SendGrid",
   "providerMessageId": "msg_abc123",
-  "providerResponse": {"id": "msg_abc123", "status": "delivered"},
+  "providerResponse": { "id": "msg_abc123", "status": "delivered" },
   "errorMessage": null,
   "metadata": {},
   "priority": 5,
@@ -521,11 +576,14 @@ Notification delivery records across channels.
   "updatedAt": "2025-11-10T09:00:10.000Z"
 }
 ```
+
 **Enum - NotificationChannel**: `EMAIL` | `SMS` | `PUSH` | `IN_APP` | `WEBHOOK`
 **Enum - NotificationStatus**: `PENDING` | `QUEUED` | `SENDING` | `SENT` | `DELIVERED` | `FAILED` | `BOUNCED` | `RETRYING` | `CANCELLED`
 
 #### **UserNotification** (`data/tables/alerts-notifications/user-notification.json`)
+
 In-app notifications for users.
+
 ```json
 {
   "id": "user_notif_001",
@@ -533,16 +591,19 @@ In-app notifications for users.
   "type": "ORDER_UPDATE",
   "title": "Order Shipped",
   "message": "Your order #ORD-2025-001 has been shipped",
-  "data": {"orderId": "order_001", "trackingNumber": "TRK123456789"},
+  "data": { "orderId": "order_001", "trackingNumber": "TRK123456789" },
   "isRead": false,
   "readAt": null,
   "createdAt": "2025-11-02T10:00:00.000Z"
 }
 ```
+
 **Enum - NotificationType**: `ALERT` | `INFO` | `WARNING` | `SUCCESS` | `DEVICE_STATUS` | `ORDER_UPDATE` | `PAYMENT_UPDATE`
 
 #### **NotificationTemplate** (`data/tables/alerts-notifications/notification-template.json`)
+
 Reusable notification message templates.
+
 ```json
 {
   "id": "temp_001",
@@ -565,7 +626,9 @@ Reusable notification message templates.
 ```
 
 #### **AlertAcknowledgment** (`data/tables/alerts-notifications/alert-acknowledgment.json`)
+
 Alert action history tracking.
+
 ```json
 {
   "id": "ack_001",
@@ -573,14 +636,17 @@ Alert action history tracking.
   "userId": "user_001",
   "action": "ACKNOWLEDGED",
   "comment": "Investigating the temperature spike",
-  "metadata": {"location": "web_dashboard"},
+  "metadata": { "location": "web_dashboard" },
   "createdAt": "2025-11-10T09:05:00.000Z"
 }
 ```
+
 **Enum - AcknowledgmentAction**: `ACKNOWLEDGED` | `RESOLVED` | `ESCALATED` | `SNOOZED` | `COMMENTED` | `CANCELLED`
 
 #### **AlertEscalationPolicy** (`data/tables/alerts-notifications/alert-escalation-policy.json`)
+
 Auto-escalation rules for unacknowledged alerts.
+
 ```json
 {
   "id": "policy_001",
@@ -590,8 +656,18 @@ Auto-escalation rules for unacknowledged alerts.
   "category": ["SENSOR", "SYSTEM"],
   "unacknowledgedMin": 30,
   "steps": [
-    {"level": 1, "delay": 15, "recipients": ["user_001"], "channels": ["EMAIL", "SMS"]},
-    {"level": 2, "delay": 30, "recipients": ["admin_001"], "channels": ["EMAIL", "SMS", "PUSH"]}
+    {
+      "level": 1,
+      "delay": 15,
+      "recipients": ["user_001"],
+      "channels": ["EMAIL", "SMS"]
+    },
+    {
+      "level": 2,
+      "delay": 30,
+      "recipients": ["admin_001"],
+      "channels": ["EMAIL", "SMS", "PUSH"]
+    }
   ],
   "isActive": true,
   "createdAt": "2025-06-01T10:00:00.000Z",
@@ -604,7 +680,9 @@ Auto-escalation rules for unacknowledged alerts.
 ### 4️⃣ Security & Authentication Tables (4 tables)
 
 #### **Session** (`data/tables/security-auth/session.json`)
+
 User session management.
+
 ```json
 {
   "id": "session_001",
@@ -612,7 +690,11 @@ User session management.
   "clerkSessionId": "clerk_session_xyz",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "status": "ACTIVE",
-  "deviceInfo": {"device": "Desktop", "browser": "Chrome", "os": "Windows 11"},
+  "deviceInfo": {
+    "device": "Desktop",
+    "browser": "Chrome",
+    "os": "Windows 11"
+  },
   "ipAddress": "192.168.1.100",
   "userAgent": "Mozilla/5.0...",
   "lastActivity": "2025-11-10T09:00:00.000Z",
@@ -623,10 +705,13 @@ User session management.
   "updatedAt": "2025-11-10T09:00:00.000Z"
 }
 ```
+
 **Enum - SessionStatus**: `ACTIVE` | `EXPIRED` | `REVOKED`
 
 #### **ApiKey** (`data/tables/security-auth/api-key.json`)
+
 API keys for programmatic access.
+
 ```json
 {
   "id": "key_001",
@@ -645,7 +730,9 @@ API keys for programmatic access.
 ```
 
 #### **SecurityLog** (`data/tables/security-auth/security-log.json`)
+
 Security events and audit trail.
+
 ```json
 {
   "id": "sec_001",
@@ -654,13 +741,15 @@ Security events and audit trail.
   "severity": "WARNING",
   "ipAddress": "192.168.1.100",
   "userAgent": "Mozilla/5.0...",
-  "metadata": {"reason": "Invalid password", "attempts": 3},
+  "metadata": { "reason": "Invalid password", "attempts": 3 },
   "timestamp": "2025-11-10T08:00:00.000Z"
 }
 ```
 
 #### **RateLimitLog** (`data/tables/security-auth/rate-limit-log.json`)
+
 Rate limiting tracking.
+
 ```json
 {
   "id": "rate_001",
@@ -679,7 +768,9 @@ Rate limiting tracking.
 ### 5️⃣ RBAC (Role-Based Access Control) Tables (4 tables)
 
 #### **Role** (`data/tables/rbac/role.json`)
+
 User roles definition.
+
 ```json
 {
   "id": "role_001",
@@ -692,7 +783,9 @@ User roles definition.
 ```
 
 #### **Permission** (`data/tables/rbac/permission.json`)
+
 Granular permissions for resources.
+
 ```json
 {
   "id": "perm_001",
@@ -705,7 +798,9 @@ Granular permissions for resources.
 ```
 
 #### **RolePermission** (`data/tables/rbac/role-permission.json`)
+
 Links roles to permissions.
+
 ```json
 {
   "id": "rp_001",
@@ -716,7 +811,9 @@ Links roles to permissions.
 ```
 
 #### **UserRoleAssignment** (`data/tables/rbac/user-role-assignment.json`)
+
 Assigns roles to users.
+
 ```json
 {
   "id": "ura_001",
@@ -732,7 +829,9 @@ Assigns roles to users.
 ### 6️⃣ Analytics & Reporting Tables (4 tables)
 
 #### **Report** (`data/tables/analytics/report.json`)
+
 Report definitions and configurations.
+
 ```json
 {
   "id": "report_001",
@@ -740,21 +839,24 @@ Report definitions and configurations.
   "description": "Daily sales summary with product breakdown",
   "type": "SALES",
   "configuration": {
-    "filters": {"dateRange": "last_24h"},
+    "filters": { "dateRange": "last_24h" },
     "groupBy": ["product", "category"],
     "metrics": ["total_sales", "order_count", "avg_order_value"]
   },
-  "schedule": {"frequency": "DAILY", "time": "08:00"},
+  "schedule": { "frequency": "DAILY", "time": "08:00" },
   "isActive": true,
   "createdBy": "admin_001",
   "createdAt": "2025-06-01T10:00:00.000Z",
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - ReportType**: `SALES` | `REVENUE` | `USERS` | `PRODUCTS` | `ORDERS` | `DEVICES` | `CUSTOM`
 
 #### **ReportExecution** (`data/tables/analytics/report-execution.json`)
+
 Report execution history.
+
 ```json
 {
   "id": "exec_001",
@@ -763,16 +865,19 @@ Report execution history.
   "startedAt": "2025-11-10T08:00:00.000Z",
   "completedAt": "2025-11-10T08:00:15.000Z",
   "duration": 15000,
-  "resultData": {"total_sales": 50000, "order_count": 125},
+  "resultData": { "total_sales": 50000, "order_count": 125 },
   "resultUrl": "https://storage.url/report_001_20251110.pdf",
   "errorMessage": null,
   "executedBy": "admin_001"
 }
 ```
+
 **Enum - ExecutionStatus**: `PENDING` | `RUNNING` | `COMPLETED` | `FAILED` | `CANCELLED`
 
 #### **ReportSubscription** (`data/tables/analytics/report-subscription.json`)
+
 User subscriptions to automated reports.
+
 ```json
 {
   "id": "sub_001",
@@ -786,10 +891,13 @@ User subscriptions to automated reports.
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - SubscriptionFrequency**: `DAILY` | `WEEKLY` | `MONTHLY` | `REAL_TIME`
 
 #### **SearchLog** (`data/tables/analytics/search-log.json`)
+
 Search analytics for product discovery.
+
 ```json
 {
   "id": "search_001",
@@ -797,8 +905,8 @@ Search analytics for product discovery.
   "index": "products",
   "resultsCount": 8,
   "took": 35,
-  "filters": {"category": "Fresh Mushroom", "inStock": true},
-  "sort": {"field": "price", "order": "asc"},
+  "filters": { "category": "Fresh Mushroom", "inStock": true },
+  "sort": { "field": "price", "order": "asc" },
   "userId": "user_001",
   "ipAddress": "192.168.1.100",
   "userAgent": "Mozilla/5.0...",
@@ -813,7 +921,9 @@ Search analytics for product discovery.
 ### 7️⃣ Import/Export System Tables (3 tables)
 
 #### **ImportExportJob** (`data/tables/import-export/import-export-job.json`)
+
 Bulk data import/export jobs.
+
 ```json
 {
   "id": "job_001",
@@ -835,13 +945,14 @@ Bulk data import/export jobs.
   "startedAt": "2025-11-10T08:00:00.000Z",
   "completedAt": "2025-11-10T08:05:30.000Z",
   "estimatedTimeMs": 330000,
-  "options": {"delimiter": ",", "skipRows": 1, "validateOnly": false},
+  "options": { "delimiter": ",", "skipRows": 1, "validateOnly": false },
   "filters": null,
   "createdBy": "admin_001",
   "createdAt": "2025-11-10T07:55:00.000Z",
   "updatedAt": "2025-11-10T08:05:30.000Z"
 }
 ```
+
 **Enum - JobType**: `IMPORT` | `EXPORT`
 **Enum - EntityType**: `PRODUCT` | `ORDER` | `USER` | `CATEGORY` | `SELLER` | `BUYER` | `TRANSACTION` | `INVENTORY`
 **Enum - JobStatus**: `QUEUED` | `PROCESSING` | `COMPLETED` | `FAILED` | `CANCELLED`
@@ -849,7 +960,9 @@ Bulk data import/export jobs.
 **Enum - FileFormat**: `CSV` | `EXCEL` | `JSON` | `XML`
 
 #### **ImportExportError** (`data/tables/import-export/import-export-error.json`)
+
 Errors during import/export operations.
+
 ```json
 {
   "id": "error_001",
@@ -867,11 +980,14 @@ Errors during import/export operations.
   "createdAt": "2025-11-10T08:02:15.000Z"
 }
 ```
+
 **Enum - ErrorType**: `VALIDATION` | `CONSTRAINT` | `FORMAT` | `BUSINESS_RULE`
 **Enum - ErrorSeverity**: `ERROR` | `WARNING`
 
 #### **ImportExportTemplate** (`data/tables/import-export/import-export-template.json`)
+
 Reusable import/export templates.
+
 ```json
 {
   "id": "template_001",
@@ -881,11 +997,18 @@ Reusable import/export templates.
   "fileFormat": "CSV",
   "headers": ["name", "slug", "sku", "price", "stock", "category"],
   "sampleData": [
-    ["Fresh Oyster Mushrooms", "fresh-oyster", "MUSH-OYS-001", "120.00", "50", "Fresh Mushroom"]
+    [
+      "Fresh Oyster Mushrooms",
+      "fresh-oyster",
+      "MUSH-OYS-001",
+      "120.00",
+      "50",
+      "Fresh Mushroom"
+    ]
   ],
   "validation": {
-    "name": {"required": true, "minLength": 3, "maxLength": 200},
-    "price": {"required": true, "type": "decimal", "min": 0}
+    "name": { "required": true, "minLength": 3, "maxLength": 200 },
+    "price": { "required": true, "type": "decimal", "min": 0 }
   },
   "isActive": true,
   "createdBy": "admin_001",
@@ -899,7 +1022,9 @@ Reusable import/export templates.
 ### 8️⃣ API Gateway & Rate Limiting Tables (6 tables)
 
 #### **ApiGatewayConfig** (`data/tables/api-gateway/api-gateway-config.json`)
+
 API routing and service configuration.
+
 ```json
 {
   "id": "gateway_001",
@@ -913,15 +1038,18 @@ API routing and service configuration.
   "loadBalancing": "ROUND_ROBIN",
   "isActive": true,
   "priority": 10,
-  "metadata": {"version": "v1", "maintainer": "backend-team"},
+  "metadata": { "version": "v1", "maintainer": "backend-team" },
   "createdAt": "2025-06-01T10:00:00.000Z",
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - LoadBalancingStrategy**: `ROUND_ROBIN` | `LEAST_CONNECTIONS` | `WEIGHTED_ROUND_ROBIN` | `IP_HASH` | `HEALTH_BASED`
 
 #### **RateLimitOverride** (`data/tables/api-gateway/rate-limit-override.json`)
+
 Custom rate limits for specific users/API keys.
+
 ```json
 {
   "id": "override_001",
@@ -938,10 +1066,13 @@ Custom rate limits for specific users/API keys.
   "updatedAt": "2025-11-10T08:00:00.000Z"
 }
 ```
+
 **Enum - RateLimitStrategy**: `TOKEN_BUCKET` | `LEAKY_BUCKET` | `FIXED_WINDOW` | `SLIDING_WINDOW` | `ADAPTIVE`
 
 #### **ApiUsageLog** (`data/tables/api-gateway/api-usage-log.json`)
+
 Detailed API request analytics.
+
 ```json
 {
   "id": "usage_001",
@@ -960,13 +1091,15 @@ Detailed API request analytics.
   "rateLimitHit": false,
   "throttled": false,
   "queueTime": 5,
-  "metadata": {"cache": "miss"},
+  "metadata": { "cache": "miss" },
   "timestamp": "2025-11-10T09:00:00.000Z"
 }
 ```
 
 #### **RequestQueue** (`data/tables/api-gateway/request-queue.json`)
+
 Queue for throttled requests.
+
 ```json
 {
   "id": "queue_001",
@@ -974,8 +1107,8 @@ Queue for throttled requests.
   "endpoint": "/api/v1/orders",
   "method": "POST",
   "priority": 50,
-  "payload": {"productId": "prod_001", "quantity": 2},
-  "headers": {"Authorization": "Bearer xxx"},
+  "payload": { "productId": "prod_001", "quantity": 2 },
+  "headers": { "Authorization": "Bearer xxx" },
   "status": "PENDING",
   "estimatedWaitMs": 5000,
   "queuedAt": "2025-11-10T09:00:00.000Z",
@@ -986,10 +1119,13 @@ Queue for throttled requests.
   "errorMessage": null
 }
 ```
+
 **Enum - RequestQueueStatus**: `PENDING` | `PROCESSING` | `COMPLETED` | `FAILED` | `EXPIRED`
 
 #### **ApiVersionUsage** (`data/tables/api-gateway/api-version-usage.json`)
+
 Track API version adoption.
+
 ```json
 {
   "id": "ver_usage_001",
@@ -1004,7 +1140,9 @@ Track API version adoption.
 ```
 
 #### **CircuitBreakerState** (`data/tables/api-gateway/circuit-breaker-state.json`)
+
 Circuit breaker status for services.
+
 ```json
 {
   "id": "cb_001",
@@ -1016,11 +1154,12 @@ Circuit breaker status for services.
   "lastSuccessAt": "2025-11-10T09:00:00.000Z",
   "nextRetryAt": null,
   "openedAt": null,
-  "metadata": {"threshold": 5, "timeout": 60000},
+  "metadata": { "threshold": 5, "timeout": 60000 },
   "createdAt": "2025-06-01T10:00:00.000Z",
   "updatedAt": "2025-11-10T09:00:00.000Z"
 }
 ```
+
 **Enum - CircuitBreakerStateEnum**: `CLOSED` | `OPEN` | `HALF_OPEN`
 
 ---
@@ -1028,12 +1167,14 @@ Circuit breaker status for services.
 ### 9️⃣ System Tables (3 tables)
 
 #### **SystemConfig** (`data/tables/system/system-config.json`)
+
 System-wide configuration settings.
+
 ```json
 {
   "id": "config_001",
   "key": "MAINTENANCE_MODE",
-  "value": {"enabled": false, "message": "System under maintenance"},
+  "value": { "enabled": false, "message": "System under maintenance" },
   "description": "Enable/disable maintenance mode",
   "category": "system",
   "isPublic": false,
@@ -1043,7 +1184,9 @@ System-wide configuration settings.
 ```
 
 #### **AuditLog** (`data/tables/system/audit-log.json`)
+
 System audit trail for all changes.
+
 ```json
 {
   "id": "audit_001",
@@ -1051,8 +1194,8 @@ System audit trail for all changes.
   "action": "UPDATE",
   "entity": "Product",
   "entityId": "prod_001",
-  "oldValues": {"price": 120.00, "stock": 50},
-  "newValues": {"price": 150.00, "stock": 45},
+  "oldValues": { "price": 120.0, "stock": 50 },
+  "newValues": { "price": 150.0, "stock": 45 },
   "ipAddress": "192.168.1.100",
   "userAgent": "Mozilla/5.0...",
   "timestamp": "2025-11-10T09:00:00.000Z"
@@ -1060,7 +1203,9 @@ System audit trail for all changes.
 ```
 
 #### **PushSubscription** (`data/tables/system/push-subscription.json`)
+
 Web push notification subscriptions.
+
 ```json
 {
   "id": "push_001",
@@ -1083,18 +1228,19 @@ Web push notification subscriptions.
 ## 🔧 Usage in Next.js Application
 
 ### TypeScript Import Example
+
 ```typescript
 // Import the main products database
-import productsData from '@/data/products-database.json';
+import productsData from "@/data/products-database.json";
 
 // Use in Server Component
 export default async function ShopPage() {
   // Filter featured products
-  const featured = productsData.filter(p => p.isFeatured);
-  
+  const featured = productsData.filter((p) => p.isFeatured);
+
   return (
     <div>
-      {featured.map(product => (
+      {featured.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
@@ -1103,50 +1249,52 @@ export default async function ShopPage() {
 ```
 
 ### API Route Example
+
 ```typescript
 // app/api/products/route.ts
-import { NextResponse } from 'next/server';
-import productsData from '@/data/products-database.json';
+import { NextResponse } from "next/server";
+import productsData from "@/data/products-database.json";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  
+  const category = searchParams.get("category");
+
   let products = productsData;
-  
+
   if (category) {
-    products = products.filter(p => 
-      p.categories.includes(category)
-    );
+    products = products.filter((p) => p.categories.includes(category));
   }
-  
+
   return NextResponse.json({
     success: true,
     data: products,
-    total: products.length
+    total: products.length,
   });
 }
 ```
 
 ### Client Component Example
+
 ```typescript
-'use client';
-import { useState, useEffect } from 'react';
+"use client";
+import { useState, useEffect } from "react";
 
 export function ProductList() {
   const [products, setProducts] = useState([]);
-  
+
   useEffect(() => {
     // Fetch from API route that uses products-database.json
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data.data));
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data.data));
   }, []);
-  
+
   return (
     <div>
-      {products.map(product => (
-        <div key={product.id}>{product.name} - ₱{product.price}</div>
+      {products.map((product) => (
+        <div key={product.id}>
+          {product.name} - ₱{product.price}
+        </div>
       ))}
     </div>
   );
@@ -1158,6 +1306,7 @@ export function ProductList() {
 ## 📚 Additional Resources
 
 ### Documentation Files
+
 - **`docs/SCHEMA_REFERENCE.md`** - Backend Prisma schema documentation
 - **`docs/API_BACKEND_INTEGRATION_PROGRESS.md`** - API integration status
 - **`documents/API_IMPLEMENTATION_GUIDE.md`** - API endpoint contracts
@@ -1165,7 +1314,9 @@ export function ProductList() {
 - **`data/tables/README.md`** - Schema templates index
 
 ### Schema Files Location
+
 All 45 schema template files are organized in `data/tables/`:
+
 - **core-ecommerce/** - 7 tables (Product, User, Order, etc.)
 - **iot-devices/** - 6 tables (Device, Sensor, SensorData, etc.)
 - **alerts-notifications/** - 8 tables (Alert, Notification, etc.)
@@ -1181,12 +1332,16 @@ All 45 schema template files are organized in `data/tables/`:
 ## ⚠️ Important Notes
 
 ### Enum Value Formatting
+
 **Backend uses UPPERCASE** for all enum values. When sending data to the backend API, always use UPPERCASE:
+
 - ✅ Correct: `"status": "PENDING"`, `"role": "BUYER"`, `"method": "GCASH"`
 - ❌ Wrong: `"status": "Pending"`, `"role": "Buyer"`, `"method": "GCash"`
 
 ### Migration from JSON to Backend API
+
 The `products-database.json` file is a temporary solution for development. When the backend API is ready:
+
 1. Update `src/lib/api-client.ts` to call backend endpoints
 2. Replace local JSON imports with API calls
 3. Update TypeScript types in `src/types/api.ts` to match backend schema
@@ -1194,7 +1349,9 @@ The `products-database.json` file is a temporary solution for development. When 
 5. Verify field mappings (e.g., `categories` array vs single `category` string)
 
 ### Schema Differences (Frontend vs Backend)
+
 **Known Inconsistencies:**
+
 - **Products**: Frontend uses `category` (string) + `categories` (array), backend only has `categories` (Json[])
 - **Products**: Frontend has `costPrice`, backend has `costPrice` (optional)
 - **Orders**: Frontend `status` values are titlecase ("Pending"), backend expects UPPERCASE ("PENDING")
@@ -1206,6 +1363,7 @@ The `products-database.json` file is a temporary solution for development. When 
 ## 🎉 Summary
 
 This guide provides **complete coverage of all 47 database tables** in the MASH platform:
+
 - ✅ **1 main products database** with 9 ready-to-use products
 - ✅ **45 schema template files** with example data
 - ✅ **47 complete JSON structures** documented in this guide
@@ -1219,69 +1377,69 @@ This guide provides **complete coverage of all 47 database tables** in the MASH 
 
 ### Alerts & Notifications Tables (8 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Alert Rules** | `data/tables/alerts-notifications/alert-rule.json` | Alert definitions |
-| **Alert Recipients** | `data/tables/alerts-notifications/alert-rule-recipient.json` | Notification recipients |
-| **Alerts** | `data/tables/alerts-notifications/alert.json` | Alert instances |
-| **Notifications** | `data/tables/alerts-notifications/notification.json` | Delivery records |
-| **Acknowledgments** | `data/tables/alerts-notifications/alert-acknowledgment.json` | Alert actions |
-| **Templates** | `data/tables/alerts-notifications/notification-template.json` | Message templates |
-| **Escalation** | `data/tables/alerts-notifications/alert-escalation-policy.json` | Auto-escalation |
-| **User Notifications** | `data/tables/alerts-notifications/user-notification.json` | In-app notifications |
+| Table                  | File Location                                                   | Description             |
+| ---------------------- | --------------------------------------------------------------- | ----------------------- |
+| **Alert Rules**        | `data/tables/alerts-notifications/alert-rule.json`              | Alert definitions       |
+| **Alert Recipients**   | `data/tables/alerts-notifications/alert-rule-recipient.json`    | Notification recipients |
+| **Alerts**             | `data/tables/alerts-notifications/alert.json`                   | Alert instances         |
+| **Notifications**      | `data/tables/alerts-notifications/notification.json`            | Delivery records        |
+| **Acknowledgments**    | `data/tables/alerts-notifications/alert-acknowledgment.json`    | Alert actions           |
+| **Templates**          | `data/tables/alerts-notifications/notification-template.json`   | Message templates       |
+| **Escalation**         | `data/tables/alerts-notifications/alert-escalation-policy.json` | Auto-escalation         |
+| **User Notifications** | `data/tables/alerts-notifications/user-notification.json`       | In-app notifications    |
 
 ### Security & Auth Tables (4 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Sessions** | `data/tables/security-auth/session.json` | Session management |
-| **API Keys** | `data/tables/security-auth/api-key.json` | API key management |
-| **Security Logs** | `data/tables/security-auth/security-log.json` | Security events |
-| **Rate Limits** | `data/tables/security-auth/rate-limit-log.json` | Rate limiting |
+| Table             | File Location                                   | Description        |
+| ----------------- | ----------------------------------------------- | ------------------ |
+| **Sessions**      | `data/tables/security-auth/session.json`        | Session management |
+| **API Keys**      | `data/tables/security-auth/api-key.json`        | API key management |
+| **Security Logs** | `data/tables/security-auth/security-log.json`   | Security events    |
+| **Rate Limits**   | `data/tables/security-auth/rate-limit-log.json` | Rate limiting      |
 
 ### RBAC Tables (4 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Permissions** | `data/tables/rbac/permission.json` | Permission definitions |
-| **Roles** | `data/tables/rbac/role.json` | User roles |
-| **Role Assignments** | `data/tables/rbac/user-role-assignment.json` | User-role mapping |
-| **Role Permissions** | `data/tables/rbac/role-permission.json` | Role-permission mapping |
+| Table                | File Location                                | Description             |
+| -------------------- | -------------------------------------------- | ----------------------- |
+| **Permissions**      | `data/tables/rbac/permission.json`           | Permission definitions  |
+| **Roles**            | `data/tables/rbac/role.json`                 | User roles              |
+| **Role Assignments** | `data/tables/rbac/user-role-assignment.json` | User-role mapping       |
+| **Role Permissions** | `data/tables/rbac/role-permission.json`      | Role-permission mapping |
 
 ### Analytics Tables (4 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Reports** | `data/tables/analytics/report.json` | Report definitions |
-| **Executions** | `data/tables/analytics/report-execution.json` | Execution logs |
+| Table             | File Location                                    | Description          |
+| ----------------- | ------------------------------------------------ | -------------------- |
+| **Reports**       | `data/tables/analytics/report.json`              | Report definitions   |
+| **Executions**    | `data/tables/analytics/report-execution.json`    | Execution logs       |
 | **Subscriptions** | `data/tables/analytics/report-subscription.json` | Report subscriptions |
-| **Search Logs** | `data/tables/analytics/search-log.json` | Search analytics |
+| **Search Logs**   | `data/tables/analytics/search-log.json`          | Search analytics     |
 
 ### Import/Export Tables (3 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Jobs** | `data/tables/import-export/import-export-job.json` | Bulk import/export jobs |
-| **Errors** | `data/tables/import-export/import-export-error.json` | Import/export errors |
-| **Templates** | `data/tables/import-export/import-export-template.json` | Reusable templates |
+| Table         | File Location                                           | Description             |
+| ------------- | ------------------------------------------------------- | ----------------------- |
+| **Jobs**      | `data/tables/import-export/import-export-job.json`      | Bulk import/export jobs |
+| **Errors**    | `data/tables/import-export/import-export-error.json`    | Import/export errors    |
+| **Templates** | `data/tables/import-export/import-export-template.json` | Reusable templates      |
 
 ### API Gateway Tables (6 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **Gateway Config** | `data/tables/api-gateway/api-gateway-config.json` | API routing config |
-| **Rate Overrides** | `data/tables/api-gateway/rate-limit-override.json` | Custom rate limits |
-| **Usage Logs** | `data/tables/api-gateway/api-usage-log.json` | API usage tracking |
-| **Request Queue** | `data/tables/api-gateway/request-queue.json` | Throttled requests |
-| **Version Usage** | `data/tables/api-gateway/api-version-usage.json` | Version tracking |
-| **Circuit Breaker** | `data/tables/api-gateway/circuit-breaker-state.json` | Fault tolerance |
+| Table               | File Location                                        | Description        |
+| ------------------- | ---------------------------------------------------- | ------------------ |
+| **Gateway Config**  | `data/tables/api-gateway/api-gateway-config.json`    | API routing config |
+| **Rate Overrides**  | `data/tables/api-gateway/rate-limit-override.json`   | Custom rate limits |
+| **Usage Logs**      | `data/tables/api-gateway/api-usage-log.json`         | API usage tracking |
+| **Request Queue**   | `data/tables/api-gateway/request-queue.json`         | Throttled requests |
+| **Version Usage**   | `data/tables/api-gateway/api-version-usage.json`     | Version tracking   |
+| **Circuit Breaker** | `data/tables/api-gateway/circuit-breaker-state.json` | Fault tolerance    |
 
 ### System Tables (3 tables)
 
-| Table | File Location | Description |
-|-------|--------------|-------------|
-| **System Config** | `data/tables/system/system-config.json` | System settings |
-| **Audit Logs** | `data/tables/system/audit-log.json` | Audit trail |
+| Table                  | File Location                               | Description        |
+| ---------------------- | ------------------------------------------- | ------------------ |
+| **System Config**      | `data/tables/system/system-config.json`     | System settings    |
+| **Audit Logs**         | `data/tables/system/audit-log.json`         | Audit trail        |
 | **Push Subscriptions** | `data/tables/system/push-subscription.json` | Push notifications |
 
 ---
@@ -1292,7 +1450,7 @@ This guide provides **complete coverage of all 47 database tables** in the MASH 
 
 ```typescript
 // Import the main products database
-import productsData from '@/data/products-database.json';
+import productsData from "@/data/products-database.json";
 
 // Type-safe usage (with TypeScript)
 interface Product {
@@ -1330,24 +1488,24 @@ const products: Product[] = productsData;
 
 ```typescript
 // src/app/api/products/route.ts
-import { NextResponse } from 'next/server';
-import productsData from '@/data/products-database.json';
+import { NextResponse } from "next/server";
+import productsData from "@/data/products-database.json";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const featured = searchParams.get('featured');
-  
+  const featured = searchParams.get("featured");
+
   let products = productsData;
-  
+
   // Filter featured products
-  if (featured === 'true') {
-    products = products.filter(p => p.isFeatured);
+  if (featured === "true") {
+    products = products.filter((p) => p.isFeatured);
   }
-  
+
   return NextResponse.json({
     success: true,
     data: products,
-    total: products.length
+    total: products.length,
   });
 }
 ```
@@ -1356,14 +1514,14 @@ export async function GET(request: Request) {
 
 ```typescript
 // app/shop/page.tsx
-import productsData from '@/data/products-database.json';
+import productsData from "@/data/products-database.json";
 
 export default function ShopPage() {
-  const products = productsData.filter(p => p.isActive);
-  
+  const products = productsData.filter((p) => p.isActive);
+
   return (
     <div className="grid grid-cols-3 gap-4">
-      {products.map(product => (
+      {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
@@ -1375,19 +1533,15 @@ export default function ShopPage() {
 
 ```typescript
 // Get all Growing Kits
-const kits = productsData.filter(p => 
-  p.categories.includes('Growing Kits')
-);
+const kits = productsData.filter((p) => p.categories.includes("Growing Kits"));
 
 // Get all Fresh Mushrooms
-const fresh = productsData.filter(p => 
-  p.categories.includes('Fresh Mushroom')
+const fresh = productsData.filter((p) =>
+  p.categories.includes("Fresh Mushroom")
 );
 
 // Get all Snacks
-const snacks = productsData.filter(p => 
-  p.categories.includes('Snacks')
-);
+const snacks = productsData.filter((p) => p.categories.includes("Snacks"));
 ```
 
 ### 5. Search Products
@@ -1395,10 +1549,11 @@ const snacks = productsData.filter(p =>
 ```typescript
 function searchProducts(query: string) {
   const lowerQuery = query.toLowerCase();
-  return productsData.filter(p => 
-    p.name.toLowerCase().includes(lowerQuery) ||
-    p.description.toLowerCase().includes(lowerQuery) ||
-    p.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+  return productsData.filter(
+    (p) =>
+      p.name.toLowerCase().includes(lowerQuery) ||
+      p.description.toLowerCase().includes(lowerQuery) ||
+      p.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))
   );
 }
 ```
@@ -1409,44 +1564,45 @@ function searchProducts(query: string) {
 
 ### Required Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `id` | string | Unique product ID | `"1"` |
-| `name` | string | Product name | `"Fresh White Oyster Mushrooms"` |
-| `slug` | string | URL-friendly identifier | `"fresh-white-oyster-mushrooms"` |
-| `sku` | string | Stock keeping unit | `"FWO-250G"` |
-| `price` | number | Current price (PHP) | `120` |
-| `stock` | number | Available quantity | `45` |
-| `minStock` | number | Reorder threshold | `10` |
-| `images` | string[] | Product image URLs | `["/white.jpg", ...]` |
-| `image` | string | Primary image URL | `"/white.jpg"` |
-| `categories` | string[] | Category list | `["Fresh Mushroom"]` |
-| `tags` | string[] | Product tags | `["New", "Fresh"]` |
-| `isActive` | boolean | Product visibility | `true` |
-| `isFeatured` | boolean | Featured status | `true` |
-| `isDeleted` | boolean | Soft delete flag | `false` |
-| `createdAt` | string (ISO) | Creation date | `"2024-01-01T00:00:00Z"` |
-| `updatedAt` | string (ISO) | Last update date | `"2024-01-01T00:00:00Z"` |
+| Field        | Type         | Description             | Example                          |
+| ------------ | ------------ | ----------------------- | -------------------------------- |
+| `id`         | string       | Unique product ID       | `"1"`                            |
+| `name`       | string       | Product name            | `"Fresh White Oyster Mushrooms"` |
+| `slug`       | string       | URL-friendly identifier | `"fresh-white-oyster-mushrooms"` |
+| `sku`        | string       | Stock keeping unit      | `"FWO-250G"`                     |
+| `price`      | number       | Current price (PHP)     | `120`                            |
+| `stock`      | number       | Available quantity      | `45`                             |
+| `minStock`   | number       | Reorder threshold       | `10`                             |
+| `images`     | string[]     | Product image URLs      | `["/white.jpg", ...]`            |
+| `image`      | string       | Primary image URL       | `"/white.jpg"`                   |
+| `categories` | string[]     | Category list           | `["Fresh Mushroom"]`             |
+| `tags`       | string[]     | Product tags            | `["New", "Fresh"]`               |
+| `isActive`   | boolean      | Product visibility      | `true`                           |
+| `isFeatured` | boolean      | Featured status         | `true`                           |
+| `isDeleted`  | boolean      | Soft delete flag        | `false`                          |
+| `createdAt`  | string (ISO) | Creation date           | `"2024-01-01T00:00:00Z"`         |
+| `updatedAt`  | string (ISO) | Last update date        | `"2024-01-01T00:00:00Z"`         |
 
 ### Optional Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `description` | string | Product description | `"Delicate, nutty flavor..."` |
-| `comparePrice` | number\|null | Original price for discount | `150` |
-| `costPrice` | number | Cost to seller | `80` |
-| `weight` | string | Product weight | `"250g"` |
-| `category` | string | Primary category | `"Fresh Mushroom"` |
-| `tag` | string\|null | Primary tag | `"New"` |
-| `grower` | string | Grower name | `"FungiFreshFarms"` |
-| `growerId` | string | Grower ID | `"grower_001"` |
-| `inStock` | boolean | Stock availability | `true` |
+| Field          | Type         | Description                 | Example                       |
+| -------------- | ------------ | --------------------------- | ----------------------------- |
+| `description`  | string       | Product description         | `"Delicate, nutty flavor..."` |
+| `comparePrice` | number\|null | Original price for discount | `150`                         |
+| `costPrice`    | number       | Cost to seller              | `80`                          |
+| `weight`       | string       | Product weight              | `"250g"`                      |
+| `category`     | string       | Primary category            | `"Fresh Mushroom"`            |
+| `tag`          | string\|null | Primary tag                 | `"New"`                       |
+| `grower`       | string       | Grower name                 | `"FungiFreshFarms"`           |
+| `growerId`     | string       | Grower ID                   | `"grower_001"`                |
+| `inStock`      | boolean      | Stock availability          | `true`                        |
 
 ---
 
 ## 🏷️ Category Reference
 
 **Available Categories**:
+
 - `"Fresh Mushroom"` - Fresh harvested mushrooms
 - `"Growing Kits"` - DIY mushroom growing kits
 - `"Oyster Mushrooms"` - Oyster mushroom varieties
@@ -1463,6 +1619,7 @@ function searchProducts(query: string) {
 ## 🏷️ Tag Reference
 
 **Common Tags**:
+
 - `"New"` - New product
 - `"Popular"` - Popular/best seller
 - `"Fresh"` - Fresh product
@@ -1481,9 +1638,11 @@ function searchProducts(query: string) {
 **Active Growers**:
 
 1. **FungiFreshFarms** (`grower_001`)
+
    - Products: White Oyster, Mushroom Chips, Chicharon, Bagoong, King Oyster Kit
 
 2. **TheMushroomPatchBukidnon** (`grower_002`)
+
    - Products: Blue Oyster Mushrooms, Blue Oyster Kit
 
 3. **KingFarms** (`grower_003`)
@@ -1501,7 +1660,7 @@ When ready to connect to the real backend API, update `src/lib/api/products.ts`:
 
 // With real API call
 export async function getProducts() {
-  const response = await fetch('https://mash-backend-api-production.up.railway.app/api/products');
+  const response = await fetch("http://localhost:3000/api/products");
   const data = await response.json();
   return data;
 }
@@ -1553,7 +1712,7 @@ export async function getProducts() {
     // Use data/products-database.json
     return require('@/data/products-database.json');
   }
-  
+
   // Use real backend API
   return fetch(`${API_URL}/products`).then(res => res.json());
 }
@@ -1565,16 +1724,16 @@ export async function getProducts() {
 
 ```typescript
 // ❌ Wrong - frontend display format
-const order = { status: 'pending', paymentMethod: 'GCash' };
+const order = { status: "pending", paymentMethod: "GCash" };
 
 // ✅ Correct - backend API format
-const order = { status: 'PENDING', paymentMethod: 'GCASH' };
+const order = { status: "PENDING", paymentMethod: "GCASH" };
 
 // Use conversion utility
-import { toBackendEnum } from '@/lib/utils/enums';
-const order = { 
-  status: toBackendEnum('pending'),        // 'PENDING'
-  paymentMethod: toBackendEnum('gcash')    // 'GCASH'
+import { toBackendEnum } from "@/lib/utils/enums";
+const order = {
+  status: toBackendEnum("pending"), // 'PENDING'
+  paymentMethod: toBackendEnum("gcash"), // 'GCASH'
 };
 ```
 
@@ -1597,29 +1756,35 @@ See [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) for c
 ## ⚠️ Important Notes
 
 ### Enum Format
+
 - **Backend uses UPPERCASE**: `"PENDING"`, `"COMPLETED"`, `"CASH_ON_DELIVERY"`
 - **Frontend may use lowercase**: Ensure proper case conversion in API integration
 - **Use conversion utilities**: See `BACKEND_API_CONNECTION_GUIDE.md` Section 6.3
 
 ### ID Formats
+
 - **Products**: Simple numeric strings (`"1"`, `"2"`, etc.)
 - **Most tables**: CUID format (`cm3vxyz123456789`)
 - **Alert system**: UUID format (`550e8400-e29b-41d4-a716-446655440000`)
 
 ### Date Format
+
 - Always use **ISO 8601**: `"2024-01-01T00:00:00Z"`
 - Include timezone (Z for UTC or +08:00 for Manila)
 
 ### Image Paths
+
 - Current: Relative paths (`"/white.jpg"`)
 - Production: Full URLs or CDN paths
 
 ### Price Format
+
 - Stored as **numbers** (not strings)
 - No currency symbol in data
 - PHP (Philippine Peso) is the currency
 
 ### Backend API Connection
+
 - **Always read**: [`BACKEND_API_CONNECTION_GUIDE.md`](./BACKEND_API_CONNECTION_GUIDE.md) before implementing API calls
 - **Test with mock data first**: Use `NEXT_PUBLIC_USE_MOCK_DATA=true` flag
 - **Validate enum values**: Use `toBackendEnum()` utility before API calls

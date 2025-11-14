@@ -3,6 +3,7 @@
 ## ✅ Implementation Complete!
 
 All backend connection work is finished. The system now automatically routes:
+
 - 📧 **Email endpoints** → Localhost backend (`http://localhost:3000`)
 - 🔑 **Login endpoints** → Production backend (Railway)
 
@@ -11,6 +12,7 @@ All backend connection work is finished. The system now automatically routes:
 ## 🚀 Next Steps (Testing)
 
 ### Step 1: Start Local Backend
+
 ```bash
 # Navigate to your backend directory
 cd path/to/your/backend
@@ -26,6 +28,7 @@ npm run start:dev
 ```
 
 ### Step 2: Start Frontend
+
 ```bash
 # In this directory (MASH-Ecommerce-Web)
 npm run dev
@@ -34,12 +37,14 @@ npm run dev
 ```
 
 ### Step 3: Run Test Script
+
 ```bash
 # In this directory
 node test-backend-connection.js
 ```
 
 **IMPORTANT**: Before running, edit `test-backend-connection.js`:
+
 - Line 8: Change `TEST_EMAIL` to your real email address
 - You'll receive actual verification codes at this email
 
@@ -76,6 +81,7 @@ node test-backend-connection.js
 **Backend Used**: ☁️ Production (Railway)
 
 **Note**: Login may fail because:
+
 - User was registered on LOCAL backend (different database)
 - Production backend doesn't have this user yet
 
@@ -103,51 +109,59 @@ node test-backend-connection.js
 ## 🔍 Verify It's Working
 
 ### Check Browser Console (F12)
+
 You should see logs like:
+
 ```
 [API] 📧 Email endpoint detected: /auth/register → Using LOCAL backend (http://localhost:3000/api/v1)
 [API] 📡 Request: POST http://localhost:3000/api/v1/auth/register
 
-[API] ☁️ Standard endpoint: /auth/login → Using PRODUCTION backend (https://mash-backend-api-production.up.railway.app/api/v1)
-[API] 📡 Request: POST https://mash-backend-api-production.up.railway.app/api/v1/auth/login
+[API] ☁️ Standard endpoint: /auth/login → Using PRODUCTION backend (http://localhost:3000/api/v1)
+[API] 📡 Request: POST http://localhost:3000/api/v1/auth/login
 ```
 
 ### Check Network Tab (F12 → Network)
+
 - **Registration request**: Should go to `http://localhost:3000/api/v1/auth/register`
-- **Login request**: Should go to `https://mash-backend-api-production.up.railway.app/api/v1/auth/login`
+- **Login request**: Should go to `http://localhost:3000/api/v1/auth/login`
 
 ---
 
 ## 📝 Files Changed Summary
 
-| File | Status | Purpose |
-|------|--------|---------|
-| `.env.local` | ✅ Updated | Added local backend URL + email service env |
-| `.env.local.example` | ✅ Created | Template for future setup |
-| `src/lib/api-client.ts` | ✅ Updated | Dual-backend routing logic |
-| `test-backend-connection.js` | ✅ Created | Automated testing script |
-| `docs/IMPLEMENTATION_COMPLETE_BACKEND_CONNECTION.md` | ✅ Created | Complete implementation guide |
-| `docs/BACKEND_CONNECTION_PROGRESS.md` | ✅ Updated | Progress tracking |
+| File                                                 | Status     | Purpose                                     |
+| ---------------------------------------------------- | ---------- | ------------------------------------------- |
+| `.env.local`                                         | ✅ Updated | Added local backend URL + email service env |
+| `.env.local.example`                                 | ✅ Created | Template for future setup                   |
+| `src/lib/api-client.ts`                              | ✅ Updated | Dual-backend routing logic                  |
+| `test-backend-connection.js`                         | ✅ Created | Automated testing script                    |
+| `docs/IMPLEMENTATION_COMPLETE_BACKEND_CONNECTION.md` | ✅ Created | Complete implementation guide               |
+| `docs/BACKEND_CONNECTION_PROGRESS.md`                | ✅ Updated | Progress tracking                           |
 
 ---
 
 ## ⚠️ Troubleshooting
 
 ### "Local backend not running"
+
 **Fix**: Start backend with `npm run start:dev` in backend directory
 
 ### "Email not received"
-**Fix**: 
+
+**Fix**:
+
 1. Check spam folder
 2. Verify SendGrid/SMTP configured on backend
 3. Run `node test-backend-email.js` to diagnose
 
 ### "Login fails after verification"
+
 **Reason**: User in local database, trying to login on production (different databases)
 
 **Fix**: Wait for production email service, then register on production
 
 ### "Wrong backend being used"
+
 **Fix**: Check `.env.local` - ensure `NEXT_PUBLIC_EMAIL_SERVICE_ENV=local`
 
 ---
@@ -179,6 +193,7 @@ You should see logs like:
 ## 🎉 When Everything Works
 
 You'll see:
+
 1. ✅ Registration successful → "Check email" message
 2. 📧 Email arrives within 1-2 minutes
 3. ✅ Verification successful → Logged in automatically

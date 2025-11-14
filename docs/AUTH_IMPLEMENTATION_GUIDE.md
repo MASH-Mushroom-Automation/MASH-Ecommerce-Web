@@ -1,6 +1,7 @@
 # MASH Backend API - Complete Authentication Implementation Guide
 
 ## 📋 Table of Contents
+
 1. [Backend API Connection Setup](#backend-api-connection-setup)
 2. [Authentication Flow Overview](#authentication-flow-overview)
 3. [Registration Implementation](#registration-implementation)
@@ -17,9 +18,9 @@
 
 ### API Base Configuration
 
-**Production API URL**: `https://mash-backend-api-production.up.railway.app`
+**Production API URL**: `http://localhost:3000`
 
-**API Endpoints Base**: `https://mash-backend-api-production.up.railway.app/api/v1`
+**API Endpoints Base**: `http://localhost:3000/api/v1`
 
 ### Environment Setup
 
@@ -27,8 +28,8 @@ Create or update `.env.local`:
 
 ```env
 # Backend API Configuration
-NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
-NEXT_PUBLIC_API_BASE_URL=https://mash-backend-api-production.up.railway.app
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 
 # Feature Flags
 NEXT_PUBLIC_USE_MOCK_DATA=false
@@ -46,8 +47,7 @@ Update `src/lib/api-client.ts`:
 ```typescript
 // API Client Configuration
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://mash-backend-api-production.up.railway.app/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
 // Helper to get auth token from cookies
 function getAuthToken(): string | null {
@@ -93,25 +93,30 @@ export async function apiRequest<T>(
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       try {
-        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ refreshToken }),
-        });
+        const refreshResponse = await fetch(
+          `${API_BASE_URL}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refreshToken }),
+          }
+        );
 
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
-          
+
           // Update tokens
           if (typeof document !== "undefined") {
-            document.cookie = `auth-token=${encodeURIComponent(refreshData.data.accessToken)}; Path=/`;
+            document.cookie = `auth-token=${encodeURIComponent(
+              refreshData.data.accessToken
+            )}; Path=/`;
           }
           if (typeof window !== "undefined") {
             localStorage.setItem("refreshToken", refreshData.data.refreshToken);
           }
-          
+
           // Retry original request
           return apiRequest<T>(endpoint, options);
         }
@@ -123,7 +128,8 @@ export async function apiRequest<T>(
     // If refresh fails or no refresh token, logout
     if (typeof window !== "undefined") {
       // Clear tokens
-      document.cookie = "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie =
+        "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       localStorage.removeItem("refreshToken");
       window.location.href = "/login";
     }
@@ -312,7 +318,7 @@ export default function SignupPage() {
 
       // Store email for verification page
       sessionStorage.setItem("pendingVerificationEmail", data.email);
-      
+
       // Show success message
       toast.success("Registration successful!", {
         description: response.data.message,
@@ -323,7 +329,10 @@ export default function SignupPage() {
     } catch (err) {
       console.error("Registration error:", err);
       toast.error("Registration failed", {
-        description: err instanceof Error ? err.message : "Unable to create account. Please try again.",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Unable to create account. Please try again.",
       });
     }
   };
@@ -337,6 +346,7 @@ export default function SignupPage() {
 **Endpoint**: `POST /api/v1/auth/register`
 
 **Request Body**:
+
 ```json
 {
   "email": "mash.mushroom.automation@gmail.com",
@@ -347,6 +357,7 @@ export default function SignupPage() {
 ```
 
 **Success Response** (201):
+
 ```json
 {
   "success": true,
@@ -378,6 +389,7 @@ export default function SignupPage() {
 ```
 
 **Error Responses**:
+
 - **400**: Email already exists
 - **429**: Too many requests (rate limited)
 - **500**: Email service unavailable
@@ -400,7 +412,11 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api-client";
 import { setAuthToken } from "@/lib/auth";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 // API Response Type
 interface VerifyCodeResponse {
@@ -463,13 +479,16 @@ export default function VerifyOTPPage() {
     setIsVerifying(true);
     try {
       // Call verification endpoint
-      const response = await apiRequest<VerifyCodeResponse>("/auth/verify-email-code", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email,
-          code: code,
-        }),
-      });
+      const response = await apiRequest<VerifyCodeResponse>(
+        "/auth/verify-email-code",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: email,
+            code: code,
+          }),
+        }
+      );
 
       // Store auth token
       setAuthToken(response.data.token, true);
@@ -487,7 +506,10 @@ export default function VerifyOTPPage() {
     } catch (error) {
       console.error("Verification error:", error);
       toast.error("Verification failed", {
-        description: error instanceof Error ? error.message : "Please check your code and try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check your code and try again.",
       });
     } finally {
       setIsVerifying(false);
@@ -497,12 +519,15 @@ export default function VerifyOTPPage() {
   const handleResend = async () => {
     setIsResending(true);
     try {
-      const response = await apiRequest<ResendCodeResponse>("/auth/resend-verification-code", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email,
-        }),
-      });
+      const response = await apiRequest<ResendCodeResponse>(
+        "/auth/resend-verification-code",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: email,
+          }),
+        }
+      );
 
       toast.success("Code resent!", {
         description: response.data.message,
@@ -511,7 +536,8 @@ export default function VerifyOTPPage() {
     } catch (error) {
       console.error("Resend error:", error);
       toast.error("Unable to resend code", {
-        description: error instanceof Error ? error.message : "Please try again later.",
+        description:
+          error instanceof Error ? error.message : "Please try again later.",
       });
     } finally {
       setIsResending(false);
@@ -608,6 +634,7 @@ export default function VerifyOTPPage() {
 **Endpoint**: `POST /api/v1/auth/verify-email-code`
 
 **Request Body**:
+
 ```json
 {
   "email": "mash.mushroom.automation@gmail.com",
@@ -616,6 +643,7 @@ export default function VerifyOTPPage() {
 ```
 
 **Success Response** (200):
+
 ```json
 {
   "success": true,
@@ -643,6 +671,7 @@ export default function VerifyOTPPage() {
 **Endpoint**: `POST /api/v1/auth/resend-verification-code`
 
 **Request Body**:
+
 ```json
 {
   "email": "mash.mushroom.automation@gmail.com"
@@ -650,6 +679,7 @@ export default function VerifyOTPPage() {
 ```
 
 **Success Response** (200):
+
 ```json
 {
   "success": true,
@@ -781,11 +811,15 @@ export default function LoginPage() {
       router.push(redirect);
     } catch (err) {
       console.error("Login error:", err);
-      
+
       // Handle specific error messages
-      const errorMessage = err instanceof Error ? err.message : "Invalid email or password";
-      
-      if (errorMessage.includes("not verified") || errorMessage.includes("verification")) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid email or password";
+
+      if (
+        errorMessage.includes("not verified") ||
+        errorMessage.includes("verification")
+      ) {
         toast.error("Email not verified", {
           description: "Please check your email and verify your account first.",
           action: {
@@ -810,6 +844,7 @@ export default function LoginPage() {
 **Endpoint**: `POST /api/v1/auth/login`
 
 **Request Body**:
+
 ```json
 {
   "email": "mash.mushroom.automation@gmail.com",
@@ -818,6 +853,7 @@ export default function LoginPage() {
 ```
 
 **Success Response** (200):
+
 ```json
 {
   "success": true,
@@ -843,6 +879,7 @@ export default function LoginPage() {
 ```
 
 **Error Responses**:
+
 - **401**: Invalid credentials or email not verified
 - **429**: Too many login attempts
 
@@ -901,19 +938,23 @@ export default function ForgotPasswordPage() {
   const onSubmit: SubmitHandler<ForgotPasswordForm> = async (data) => {
     try {
       // Call backend API
-      const response = await apiRequest<ForgotPasswordResponse>("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({
-          email: data.email,
-        }),
-      });
+      const response = await apiRequest<ForgotPasswordResponse>(
+        "/auth/forgot-password",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: data.email,
+          }),
+        }
+      );
 
       // Store email for reset page
       sessionStorage.setItem("resetPasswordEmail", data.email);
 
       // Show success message
       toast.success("Password reset email sent!", {
-        description: "Check your email for instructions to reset your password.",
+        description:
+          "Check your email for instructions to reset your password.",
       });
 
       // Redirect to reset password page
@@ -921,7 +962,10 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       console.error("Forgot password error:", err);
       toast.error("Request failed", {
-        description: err instanceof Error ? err.message : "Unable to process request. Please try again.",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Unable to process request. Please try again.",
       });
     }
   };
@@ -999,6 +1043,7 @@ export default function ForgotPasswordPage() {
 **Endpoint**: `POST /api/v1/auth/forgot-password`
 
 **Request Body**:
+
 ```json
 {
   "email": "mash.mushroom.automation@gmail.com"
@@ -1006,6 +1051,7 @@ export default function ForgotPasswordPage() {
 ```
 
 **Success Response** (200):
+
 ```json
 {
   "success": true,
@@ -1026,12 +1072,14 @@ export default function ForgotPasswordPage() {
 ### Access Token vs Refresh Token
 
 **Access Token**:
+
 - **Lifetime**: 1 hour (3600 seconds)
 - **Storage**: `auth-token` cookie
 - **Usage**: Include in `Authorization: Bearer <token>` header for all API requests
 - **Expiry**: Cannot be refreshed after expiry
 
 **Refresh Token**:
+
 - **Lifetime**: 7 days (604800 seconds)
 - **Storage**: `localStorage` with key `refreshToken`
 - **Usage**: Use to get new access token when expired
@@ -1047,21 +1095,24 @@ if (response.status === 401) {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
     try {
-      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
+      const refreshResponse = await fetch(
+        `${API_BASE_URL}/auth/refresh-token`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ refreshToken }),
+        }
+      );
 
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
-        
+
         // Update tokens
         setAuthToken(refreshData.data.accessToken);
         localStorage.setItem("refreshToken", refreshData.data.refreshToken);
-        
+
         // Retry original request with new token
         return apiRequest<T>(endpoint, options);
       }
@@ -1084,17 +1135,18 @@ Update `src/lib/auth.ts`:
 // Clear auth token cookie and all auth-related storage
 export function logout() {
   if (typeof document === "undefined") return;
-  
+
   // Expire the auth cookie
-  document.cookie = "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-  
+  document.cookie =
+    "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
   try {
     // Clear all auth-related storage
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     sessionStorage.removeItem("pendingVerificationEmail");
     sessionStorage.removeItem("resetPasswordEmail");
-    
+
     // Optional: clear app state
     localStorage.removeItem("mash-wishlist");
     localStorage.removeItem("cart");
@@ -1158,12 +1210,12 @@ export const AuthApi = {
       method: "POST",
       body: JSON.stringify(data),
     });
-    
+
     // Store token
     if (response.data?.token) {
       setAuthToken(response.data.token, true);
     }
-    
+
     return response;
   },
 
@@ -1181,19 +1233,19 @@ export const AuthApi = {
       method: "POST",
       body: JSON.stringify(data),
     });
-    
+
     // Store tokens
     const accessToken = response.data?.accessToken || response.accessToken;
     const refreshToken = response.data?.refreshToken || response.refreshToken;
-    
+
     if (accessToken) {
       setAuthToken(accessToken, true);
     }
-    
+
     if (refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
     }
-    
+
     return response;
   },
 
@@ -1251,8 +1303,9 @@ const handleLogout = () => {
 ### Testing with cURL
 
 #### 1. Test Registration
+
 ```bash
-curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/register \
+curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -1264,8 +1317,9 @@ curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/regi
 ```
 
 #### 2. Test Email Verification
+
 ```bash
-curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/verify-email-code \
+curl -X POST http://localhost:3000/api/v1/auth/verify-email-code \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -1275,8 +1329,9 @@ curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/veri
 ```
 
 #### 3. Test Login
+
 ```bash
-curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/login \
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -1286,8 +1341,9 @@ curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/logi
 ```
 
 #### 4. Test Forgot Password
+
 ```bash
-curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/forgot-password \
+curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -1298,40 +1354,48 @@ curl -X POST https://mash-backend-api-production.up.railway.app/api/v1/auth/forg
 ### Common Issues & Solutions
 
 #### Issue 1: CORS Errors
+
 **Problem**: `NetworkError when attempting to fetch resource`
 
 **Solution**: Backend must allow `http://localhost:3000` origin
+
 ```typescript
 // Backend CORS configuration
 app.enableCors({
-  origin: ['http://localhost:3000', 'https://your-production-domain.com'],
+  origin: ["http://localhost:3000", "https://your-production-domain.com"],
   credentials: true,
 });
 ```
 
 #### Issue 2: 401 Unauthorized
+
 **Problem**: Token expired or invalid
 
 **Solution**: Implement automatic token refresh in API client (see Token Management section)
 
 #### Issue 3: Email Not Received
+
 **Problem**: User doesn't receive verification email
 
 **Solution**:
+
 1. Check backend email service configuration
 2. Check spam folder
 3. Use resend verification code endpoint
 4. Verify email service (SendGrid, AWS SES) is working
 
 #### Issue 4: Rate Limiting
+
 **Problem**: 429 Too Many Requests
 
 **Solution**:
+
 - Wait for rate limit reset (check `X-RateLimit-Reset` header)
 - Implement exponential backoff retry logic
 - Rate limits: 20 requests per minute per endpoint
 
 #### Issue 5: Code Expired
+
 **Problem**: Verification code expired (10 minutes)
 
 **Solution**: Use resend verification code endpoint to get new code
@@ -1339,6 +1403,7 @@ app.enableCors({
 ### Debugging Tips
 
 **Enable API Logging**:
+
 ```typescript
 // In src/lib/api-client.ts
 if (process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true") {
@@ -1353,12 +1418,14 @@ if (process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true") {
 ```
 
 **Check Network Tab**:
+
 1. Open browser DevTools
 2. Go to Network tab
 3. Filter by "Fetch/XHR"
 4. Inspect request/response headers and body
 
 **Verify Token Storage**:
+
 ```typescript
 // Check if token is stored
 console.log("Auth Token:", document.cookie);
@@ -1370,6 +1437,7 @@ console.log("Refresh Token:", localStorage.getItem("refreshToken"));
 ## Complete Implementation Checklist
 
 ### Frontend Tasks
+
 - [x] Update `.env.local` with production API URL
 - [ ] Update `src/lib/api-client.ts` with token refresh logic
 - [ ] Update `src/app/(auth)/signup/page.tsx` for registration
@@ -1383,6 +1451,7 @@ console.log("Refresh Token:", localStorage.getItem("refreshToken"));
 - [ ] Test logout functionality
 
 ### Backend Verification
+
 - [x] Backend API is live at Railway
 - [x] `/auth/register` endpoint works
 - [x] `/auth/verify-email-code` endpoint works
@@ -1395,6 +1464,7 @@ console.log("Refresh Token:", localStorage.getItem("refreshToken"));
 - [ ] JWT tokens generated correctly
 
 ### Testing
+
 - [ ] Test registration with valid data
 - [ ] Test registration with duplicate email
 - [ ] Test email verification with valid code
@@ -1418,10 +1488,10 @@ console.log("Refresh Token:", localStorage.getItem("refreshToken"));
 ✅ **Forgot Password Working**: User can request password reset code  
 ✅ **Token Management Working**: Access tokens auto-refresh before expiry  
 ✅ **Error Handling Working**: All errors show user-friendly messages  
-✅ **Security Working**: Tokens stored securely, HTTPS enforced  
+✅ **Security Working**: Tokens stored securely, HTTPS enforced
 
 ---
 
 **Last Updated**: November 12, 2025  
-**API Base URL**: `https://mash-backend-api-production.up.railway.app/api/v1`  
+**API Base URL**: `http://localhost:3000/api/v1`  
 **Status**: ✅ Backend Live | ⚠️ Frontend Integration Required

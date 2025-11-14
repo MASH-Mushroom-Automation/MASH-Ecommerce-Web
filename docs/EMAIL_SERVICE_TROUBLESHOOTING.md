@@ -11,6 +11,7 @@
 The **frontend is working correctly**. The issue is with the **backend email service configuration**.
 
 ### What's Working
+
 - ✅ Frontend registration form submits correctly
 - ✅ Backend API receives registration request
 - ✅ Backend creates user in database
@@ -18,6 +19,7 @@ The **frontend is working correctly**. The issue is with the **backend email ser
 - ✅ Backend responds with `{ verification: { sent: true } }`
 
 ### What's NOT Working
+
 - ❌ Backend email service not actually sending emails
 - ❌ Verification code emails not reaching inbox
 - ❌ No emails in spam/junk folder either
@@ -29,6 +31,7 @@ The **frontend is working correctly**. The issue is with the **backend email ser
 The backend **email service is not configured** or **credentials are missing/invalid**.
 
 Common causes:
+
 1. **Missing API Keys**: SendGrid/AWS SES API keys not set in Railway environment
 2. **Service Not Enabled**: Email service disabled in backend config
 3. **Invalid Credentials**: Expired or incorrect email service credentials
@@ -79,6 +82,7 @@ railway logs --service mash-backend-api
 ### Step 3: Verify Email Service Account
 
 **For SendGrid**:
+
 1. Log into SendGrid dashboard
 2. Check API key is active (not expired/deleted)
 3. Verify sender email address is verified
@@ -86,6 +90,7 @@ railway logs --service mash-backend-api
 5. Verify account is not suspended
 
 **For AWS SES**:
+
 1. Log into AWS SES console
 2. Verify sender email is verified
 3. Check account is out of sandbox mode
@@ -95,6 +100,7 @@ railway logs --service mash-backend-api
 ### Step 4: Test Email Service Directly
 
 **SendGrid Test**:
+
 ```bash
 curl -X POST https://api.sendgrid.com/v3/mail/send \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -110,6 +116,7 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 **Expected**: `202 Accepted` response
 
 **AWS SES Test**:
+
 ```bash
 aws ses send-email \
   --from noreply@mash.com \
@@ -133,7 +140,7 @@ mailService.setApiKey(process.env.SENDGRID_API_KEY);
 // In register method
 async register(dto: RegisterDto) {
   // ... create user, generate code ...
-  
+
   try {
     // Send verification email
     await mailService.send({
@@ -143,13 +150,13 @@ async register(dto: RegisterDto) {
       text: `Your verification code is: ${verificationCode}`,
       html: `<p>Your verification code is: <strong>${verificationCode}</strong></p>`
     });
-    
+
     console.log('✅ Verification email sent to:', dto.email);
   } catch (error) {
     console.error('❌ Failed to send verification email:', error);
     // Don't throw error - allow user to continue and resend later
   }
-  
+
   return {
     success: true,
     message: 'Check your email for verification code',
@@ -191,7 +198,7 @@ Some backends have a test endpoint:
 
 ```bash
 # Get verification code (dev/staging only)
-curl https://mash-backend-api-production.up.railway.app/api/v1/auth/test/get-code?email=test@example.com
+curl http://localhost:3000/api/v1/auth/test/get-code?email=test@example.com
 ```
 
 ### Option 3: Directly Update Database (Emergency)
@@ -215,6 +222,7 @@ node test-backend-email.js
 ```
 
 This will:
+
 1. Call backend registration endpoint
 2. Check if API responds correctly
 3. Verify if email claim in response
@@ -241,6 +249,7 @@ This will:
 **Email Subject**: `Verify your MASH account`
 
 **Email Body**:
+
 ```
 Hi Test User,
 
@@ -257,6 +266,7 @@ MASH Team
 ```
 
 **Email Metadata**:
+
 - From: `noreply@mash.com` or `support@mash.com`
 - Reply-To: `support@mash.com`
 - Sent within: 2-5 seconds of registration
@@ -268,11 +278,13 @@ MASH Team
 ### SendGrid Setup (Recommended)
 
 **Step 1: Create SendGrid Account**
+
 1. Go to https://sendgrid.com
 2. Sign up for free account (100 emails/day)
 3. Verify your account email
 
 **Step 2: Create API Key**
+
 1. Go to Settings → API Keys
 2. Click "Create API Key"
 3. Name: `MASH Backend Production`
@@ -280,12 +292,14 @@ MASH Team
 5. Copy API key (starts with `SG.`)
 
 **Step 3: Verify Sender Email**
+
 1. Go to Settings → Sender Authentication
 2. Click "Verify a Single Sender"
 3. Enter `noreply@mash.com` (or your domain)
 4. Check email and verify
 
 **Step 4: Set Railway Environment Variables**
+
 ```env
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM=noreply@mash.com
@@ -294,13 +308,14 @@ EMAIL_SERVICE_ENABLED=true
 ```
 
 **Step 5: Update Backend Code**
+
 ```bash
 npm install @sendgrid/mail
 ```
 
 ```typescript
 // src/config/email.config.ts
-import { MailService } from '@sendgrid/mail';
+import { MailService } from "@sendgrid/mail";
 
 export const emailService = new MailService();
 emailService.setApiKey(process.env.SENDGRID_API_KEY);
@@ -310,9 +325,9 @@ export const sendVerificationEmail = async (email: string, code: string) => {
     to: email,
     from: {
       email: process.env.EMAIL_FROM,
-      name: process.env.EMAIL_FROM_NAME
+      name: process.env.EMAIL_FROM_NAME,
     },
-    subject: 'Verify your MASH account',
+    subject: "Verify your MASH account",
     text: `Your verification code is: ${code}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -323,7 +338,7 @@ export const sendVerificationEmail = async (email: string, code: string) => {
         <p>If you didn't request this, please ignore this email.</p>
         <p>Best regards,<br/>MASH Team</p>
       </div>
-    `
+    `,
   });
 };
 ```
@@ -333,11 +348,13 @@ export const sendVerificationEmail = async (email: string, code: string) => {
 ## AWS SES Setup (Alternative)
 
 **Step 1: Create AWS Account**
+
 1. Go to https://aws.amazon.com
 2. Sign up for account
 3. Verify payment method
 
 **Step 2: Verify Email Address**
+
 1. Go to SES Console → Verified Identities
 2. Click "Create identity"
 3. Select "Email address"
@@ -345,12 +362,14 @@ export const sendVerificationEmail = async (email: string, code: string) => {
 5. Check email and verify
 
 **Step 3: Request Production Access**
+
 1. Go to SES Console → Account dashboard
 2. Click "Request production access"
 3. Fill form explaining use case
 4. Wait for approval (usually 24-48 hours)
 
 **Step 4: Create IAM User**
+
 1. Go to IAM Console → Users
 2. Create user: `mash-backend-email`
 3. Attach policy: `AmazonSESFullAccess`
@@ -358,6 +377,7 @@ export const sendVerificationEmail = async (email: string, code: string) => {
 5. Copy Access Key ID and Secret
 
 **Step 5: Set Railway Environment Variables**
+
 ```env
 AWS_SES_ACCESS_KEY_ID=AKIA...
 AWS_SES_SECRET_ACCESS_KEY=...
@@ -367,20 +387,21 @@ EMAIL_SERVICE_ENABLED=true
 ```
 
 **Step 6: Update Backend Code**
+
 ```bash
 npm install @aws-sdk/client-ses
 ```
 
 ```typescript
 // src/config/email.config.ts
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const sesClient = new SESClient({
   region: process.env.AWS_SES_REGION,
   credentials: {
     accessKeyId: process.env.AWS_SES_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY
-  }
+    secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY,
+  },
 });
 
 export const sendVerificationEmail = async (email: string, code: string) => {
@@ -388,14 +409,14 @@ export const sendVerificationEmail = async (email: string, code: string) => {
     Source: process.env.EMAIL_FROM,
     Destination: { ToAddresses: [email] },
     Message: {
-      Subject: { Data: 'Verify your MASH account' },
+      Subject: { Data: "Verify your MASH account" },
       Body: {
         Text: { Data: `Your verification code is: ${code}` },
-        Html: { Data: `<h1>${code}</h1>` }
-      }
-    }
+        Html: { Data: `<h1>${code}</h1>` },
+      },
+    },
   });
-  
+
   await sesClient.send(command);
 };
 ```
@@ -405,6 +426,7 @@ export const sendVerificationEmail = async (email: string, code: string) => {
 ## Verification Checklist
 
 ### Backend Team Checklist
+
 - [ ] Email service API key set in Railway environment
 - [ ] Sender email verified in email service dashboard
 - [ ] Email service account active (not suspended)
@@ -415,6 +437,7 @@ export const sendVerificationEmail = async (email: string, code: string) => {
 - [ ] Backend redeployed after configuration changes
 
 ### Frontend Team Checklist
+
 - [ ] Registration API call succeeds (200 OK)
 - [ ] Response contains `verification.sent = true`
 - [ ] Email stored in sessionStorage
@@ -463,6 +486,7 @@ railway up
 **Priority**: 🔴 HIGH - Email verification is blocking user registration
 
 **Required Information**:
+
 - Backend repository: [link]
 - Railway project: mash-backend-api-production
 - Environment: Production
@@ -470,6 +494,7 @@ railway up
 - Status: API responds correctly but emails not delivered
 
 **Steps to Reproduce**:
+
 1. Go to frontend /signup page
 2. Register with email: test@example.com
 3. Backend creates user successfully
@@ -481,11 +506,13 @@ railway up
 **Actual**: No email received after 10+ minutes
 
 **Backend Logs Needed**:
+
 ```bash
 railway logs --service mash-backend-api --tail 100
 ```
 
 Look for:
+
 - Email service initialization logs
 - Verification code generation logs
 - Email sending attempt logs
@@ -498,6 +525,7 @@ Look for:
 Once email service is fixed, you should see:
 
 ### In Backend Logs
+
 ```
 ✅ Email service initialized
 ✅ User registered: test@example.com
@@ -508,6 +536,7 @@ Once email service is fixed, you should see:
 ```
 
 ### In User's Inbox
+
 - Email appears within 30 seconds
 - Subject: "Verify your MASH account"
 - From: noreply@mash.com
@@ -515,6 +544,7 @@ Once email service is fixed, you should see:
 - Code is valid for 10 minutes
 
 ### In Frontend
+
 - User receives email
 - User enters 6-digit code
 - Verification succeeds

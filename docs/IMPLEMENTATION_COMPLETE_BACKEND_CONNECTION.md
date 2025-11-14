@@ -9,10 +9,12 @@
 ## 🎯 What Was Implemented
 
 ### Phase 1: Environment Configuration ✅
+
 **Status**: ✅ Complete  
 **Files Updated**: 2
 
 1. **`.env.local`** - Updated with dual-backend URLs
+
    - ✅ Added `NEXT_PUBLIC_LOCAL_API_URL=http://localhost:3000/api/v1`
    - ✅ Added `NEXT_PUBLIC_EMAIL_SERVICE_ENV=local`
    - ✅ Kept existing production URL for login endpoints
@@ -28,25 +30,28 @@
 ---
 
 ### Phase 2: API Client Update ✅
+
 **Status**: ✅ Complete  
 **File Updated**: `src/lib/api-client.ts`
 
 **Key Changes**:
 
 1. **Dynamic Base URL Selection**
+
    ```typescript
    function getBaseUrl(endpoint: string): string {
-     const isEmailEndpoint = EMAIL_ENDPOINTS.some(e => endpoint.includes(e));
-     
+     const isEmailEndpoint = EMAIL_ENDPOINTS.some((e) => endpoint.includes(e));
+
      if (isEmailEndpoint && EMAIL_SERVICE_ENV === "local") {
        return LOCAL_API_URL; // → http://localhost:3000/api/v1
      }
-     
-     return PRODUCTION_API_URL; // → https://mash-backend-api-production.up.railway.app/api/v1
+
+     return PRODUCTION_API_URL; // → http://localhost:3000/api/v1
    }
    ```
 
 2. **Email Endpoints List** (Routes to localhost)
+
    - ✅ `/auth/register`
    - ✅ `/auth/verify-email-code`
    - ✅ `/auth/resend-verification`
@@ -57,6 +62,7 @@
    - ✅ `/auth/resend-password-reset-code`
 
 3. **Debug Logging**
+
    - ✅ Logs which backend is used for each request
    - ✅ Shows endpoint → backend mapping in console
    - ✅ Controlled by `NEXT_PUBLIC_ENABLE_API_LOGGING`
@@ -70,10 +76,12 @@
 ---
 
 ### Phase 3: Testing Tools ✅
+
 **Status**: ✅ Complete  
 **File Created**: `test-backend-connection.js`
 
 **Features**:
+
 - ✅ Backend health check (both local + production)
 - ✅ Registration test (localhost backend)
 - ✅ Login test (production backend)
@@ -83,11 +91,13 @@
 - ✅ Email verification workflow guidance
 
 **Usage**:
+
 ```bash
 node test-backend-connection.js
 ```
 
 **What It Tests**:
+
 1. ✅ Local backend connectivity
 2. ✅ Production backend connectivity
 3. ✅ User registration with email verification
@@ -99,13 +109,16 @@ node test-backend-connection.js
 ## 🚀 How to Test the System
 
 ### Prerequisites
+
 1. **Start Local Backend**:
+
    ```bash
    # In your backend directory
    cd path/to/backend
    npm install
    npm run start:dev
    ```
+
    - Backend should run on `http://localhost:3000`
    - Email service must be configured (SendGrid/SMTP)
 
@@ -119,6 +132,7 @@ node test-backend-connection.js
 ### Test Scenarios
 
 #### Scenario 1: New User Registration (Localhost Backend)
+
 1. Open browser: `http://localhost:3000/signup`
 2. Fill out registration form:
    - First Name: Your name
@@ -140,6 +154,7 @@ node test-backend-connection.js
 ---
 
 #### Scenario 2: Existing User Login (Production Backend)
+
 1. Open browser: `http://localhost:3000/login`
 2. Enter credentials:
    - Email: Registered email
@@ -150,12 +165,14 @@ node test-backend-connection.js
 **Backend Used**: ☁️ Production (no email needed)
 
 **Note**: This only works if:
+
 - User was registered on production backend, OR
 - Production backend has same database as localhost (unlikely)
 
 ---
 
 #### Scenario 3: Password Reset (Localhost Backend)
+
 1. Open browser: `http://localhost:3000/forgot-password`
 2. Enter your email address
 3. Click "Send Reset Code"
@@ -176,16 +193,16 @@ node test-backend-connection.js
 
 ### ✅ Completed Tasks (100%)
 
-| Task | Status | File | Details |
-|------|--------|------|---------|
-| Environment variables | ✅ Done | `.env.local` | Added `LOCAL_API_URL` and `EMAIL_SERVICE_ENV` |
-| Environment template | ✅ Done | `.env.local.example` | Created template with comments |
-| API client routing | ✅ Done | `src/lib/api-client.ts` | Dynamic URL selection based on endpoint |
-| Email endpoint list | ✅ Done | `src/lib/api-client.ts` | 8 email endpoints defined |
-| Debug logging | ✅ Done | `src/lib/api-client.ts` | Console logs for backend routing |
-| Token refresh logic | ✅ Done | `src/lib/api-client.ts` | Always uses production for refresh |
-| Test script | ✅ Done | `test-backend-connection.js` | Comprehensive testing tool |
-| Documentation | ✅ Done | This file | Implementation guide |
+| Task                  | Status  | File                         | Details                                       |
+| --------------------- | ------- | ---------------------------- | --------------------------------------------- |
+| Environment variables | ✅ Done | `.env.local`                 | Added `LOCAL_API_URL` and `EMAIL_SERVICE_ENV` |
+| Environment template  | ✅ Done | `.env.local.example`         | Created template with comments                |
+| API client routing    | ✅ Done | `src/lib/api-client.ts`      | Dynamic URL selection based on endpoint       |
+| Email endpoint list   | ✅ Done | `src/lib/api-client.ts`      | 8 email endpoints defined                     |
+| Debug logging         | ✅ Done | `src/lib/api-client.ts`      | Console logs for backend routing              |
+| Token refresh logic   | ✅ Done | `src/lib/api-client.ts`      | Always uses production for refresh            |
+| Test script           | ✅ Done | `test-backend-connection.js` | Comprehensive testing tool                    |
+| Documentation         | ✅ Done | This file                    | Implementation guide                          |
 
 ### 🎯 Ready for Testing
 
@@ -250,15 +267,15 @@ USER ACTION                    FRONTEND                          BACKEND
 // In api-client.ts
 function getBaseUrl(endpoint: string): string {
   // Email endpoints: registration, verification, password reset
-  const isEmailEndpoint = EMAIL_ENDPOINTS.some(e => endpoint.includes(e));
-  
+  const isEmailEndpoint = EMAIL_ENDPOINTS.some((e) => endpoint.includes(e));
+
   // If email endpoint AND using local email service
   if (isEmailEndpoint && EMAIL_SERVICE_ENV === "local") {
     return "http://localhost:3000/api/v1"; // Localhost has working email
   }
-  
+
   // All other endpoints (login, products, orders, etc.)
-  return "https://mash-backend-api-production.up.railway.app/api/v1"; // Production
+  return "http://localhost:3000/api/v1"; // Production
 }
 ```
 
@@ -267,9 +284,11 @@ function getBaseUrl(endpoint: string): string {
 ## 🛠️ Troubleshooting
 
 ### Issue 1: "Local backend not running"
+
 **Symptom**: Registration fails with connection error
 
 **Solution**:
+
 ```bash
 # Navigate to backend directory
 cd path/to/backend
@@ -287,9 +306,11 @@ npm run start:dev
 ---
 
 ### Issue 2: "Email not received"
+
 **Symptom**: Registration succeeds but no email arrives
 
 **Check**:
+
 1. **Spam folder** - Check junk/spam inbox
 2. **Email service** - Verify SendGrid/SMTP configured on backend
 3. **Backend logs** - Check for email sending errors
@@ -299,6 +320,7 @@ npm run start:dev
    ```
 
 **Common Causes**:
+
 - SendGrid API key not set
 - SMTP credentials incorrect
 - Email service not configured at all
@@ -308,16 +330,18 @@ npm run start:dev
 ---
 
 ### Issue 3: "Login fails after verification"
+
 **Symptom**: User verified email but can't login
 
 **Reason**: User registered on LOCAL backend, trying to login on PRODUCTION backend
 
 **Solutions**:
+
 1. **Option A**: Register again on production (once email service is configured)
 2. **Option B**: Change login to use local backend temporarily:
    ```typescript
    // In .env.local, temporarily change:
-   NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
+   NEXT_PUBLIC_EMAIL_SERVICE_ENV = production;
    // This will route login to localhost too
    ```
 3. **Option C**: Wait for production email service configuration
@@ -325,9 +349,11 @@ npm run start:dev
 ---
 
 ### Issue 4: "Console shows wrong backend"
+
 **Symptom**: Logs show unexpected backend URL
 
 **Debug**:
+
 1. Open browser console (F12)
 2. Look for API logs:
    ```
@@ -344,7 +370,7 @@ npm run start:dev
 
 ```env
 # Production Backend (Railway)
-NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 
 # Local Backend (for email features)
 NEXT_PUBLIC_LOCAL_API_URL=http://localhost:3000/api/v1
@@ -390,6 +416,7 @@ All other endpoints use PRODUCTION backend:
 You'll know everything works when:
 
 ### ✅ Registration Flow
+
 1. User fills signup form
 2. Sees "Check your email" message
 3. Receives email within 1-2 minutes
@@ -397,11 +424,13 @@ You'll know everything works when:
 5. Successfully verified → Logged in
 
 ### ✅ Login Flow
+
 1. User enters email + password
 2. Successfully logs in
 3. Redirected to shop/dashboard
 
 ### ✅ Password Reset Flow
+
 1. User requests password reset
 2. Receives email with 6-digit code
 3. Enters code + new password
@@ -409,12 +438,14 @@ You'll know everything works when:
 5. Can login with new password
 
 ### ✅ Debug Logs
+
 Open browser console during testing - you should see:
+
 ```
 [API] 📧 Email endpoint detected: /auth/register → Using LOCAL backend (http://localhost:3000/api/v1)
 [API] 📡 Request: POST http://localhost:3000/api/v1/auth/register
-[API] ☁️ Standard endpoint: /auth/login → Using PRODUCTION backend (https://mash-backend-api-production.up.railway.app/api/v1)
-[API] 📡 Request: POST https://mash-backend-api-production.up.railway.app/api/v1/auth/login
+[API] ☁️ Standard endpoint: /auth/login → Using PRODUCTION backend (http://localhost:3000/api/v1)
+[API] 📡 Request: POST http://localhost:3000/api/v1/auth/login
 ```
 
 ---
@@ -424,6 +455,7 @@ Open browser console during testing - you should see:
 Once production email service is configured:
 
 1. **Update Environment Variable**:
+
    ```env
    # Change from "local" to "production"
    NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
@@ -451,7 +483,7 @@ Once production email service is configured:
 **Implementation Time**: ~30 minutes  
 **Files Changed**: 4  
 **Lines of Code**: ~200  
-**Test Coverage**: 100% (registration, login, password reset)  
+**Test Coverage**: 100% (registration, login, password reset)
 
 **Status**: 🟢 **COMPLETE AND READY**
 

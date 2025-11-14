@@ -1,5 +1,6 @@
 # API Backend Integration Progress
-**Backend URL:** `https://mash-backend-api-production.up.railway.app/`  
+
+**Backend URL:** `http://localhost:3000/`  
 **Status:** 🟡 In Progress  
 **Last Updated:** November 6, 2025, 5:56 AM UTC+8
 
@@ -10,6 +11,7 @@
 Systematic update of all 39 API routes in `src/app/api/` to connect to the real production backend instead of using mock data.
 
 ### Progress Summary
+
 - ✅ **Products API:** 4/4 files updated (100%)
 - ✅ **Orders API:** 3/3 files updated (100%)
 - ✅ **Auth API:** 3/3 files updated (100%)
@@ -30,6 +32,7 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 ### 1. Products API (4 files) ✅
 
 #### `src/app/api/products/route.ts`
+
 - **GET /api/products** - List products with filters and pagination
 - **POST /api/products** - Create new product (sellers only)
 - ✅ Replaced `ProductsApi.getProducts()` with `apiRequest()`
@@ -37,6 +40,7 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 - ✅ Added authentication check for POST
 
 #### `src/app/api/products/[id]/route.ts`
+
 - **GET /api/products/:id** - Get product details
 - **PUT /api/products/:id** - Update product
 - **DELETE /api/products/:id** - Soft delete product
@@ -44,12 +48,14 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 - ✅ Authentication required for PUT/DELETE
 
 #### `src/app/api/products/[id]/inventory/route.ts`
+
 - **GET /api/products/:id/inventory** - Get stock levels
 - **PUT /api/products/:id/inventory** - Update stock
 - ✅ Direct backend API calls
 - ✅ Auth required for updates
 
 #### `src/app/api/products/[id]/stock-alert/route.ts`
+
 - **POST /api/products/:id/stock-alert** - Set low stock alerts
 - ✅ Connected to backend
 
@@ -58,6 +64,7 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 ### 2. Orders API (3 files) ✅
 
 #### `src/app/api/orders/route.ts`
+
 - **GET /api/orders** - List user orders with filters
 - **POST /api/orders** - Create new order
 - ✅ Replaced mock data with backend calls
@@ -65,12 +72,14 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 - ✅ Authentication enforced
 
 #### `src/app/api/orders/[id]/route.ts`
+
 - **GET /api/orders/:id** - Get order details
 - **PUT /api/orders/:id** - Update order
 - ✅ Full backend integration
 - ✅ Auth check on all routes
 
 #### `src/app/api/orders/[id]/status/route.ts`
+
 - **PUT /api/orders/:id/status** - Update order status
 - ✅ Connected to backend
 
@@ -81,23 +90,28 @@ Systematic update of all 39 API routes in `src/app/api/` to connect to the real 
 ### 3. User/Auth API (5 files)
 
 #### `src/app/api/auth/me/route.ts`
+
 - GET /api/auth/me - Get current user
 - 📝 Needs update
 
 #### `src/app/api/auth/session/route.ts`
+
 - GET /api/auth/session - Get session info
 - 📝 Needs update
 
 #### `src/app/api/auth/logout/route.ts`
+
 - POST /api/auth/logout - Logout user
 - 📝 Needs update
 
 #### `src/app/api/user/profile/route.ts`
+
 - GET /api/user/profile - Get user profile
 - PUT /api/user/profile - Update profile
 - 📝 Needs update
 
 #### `src/app/api/user/avatar/route.ts`
+
 - POST /api/user/avatar - Upload avatar
 - 📝 Needs update
 
@@ -149,18 +163,18 @@ export async function GET(request: NextRequest) {
     // Build query params
     const queryParams = new URLSearchParams();
     // ... add params
-    
+
     const endpoint = `/api/resource?${queryParams}`;
-    
+
     // Call real backend
     const response = await apiRequest<ApiResponse<T>>(endpoint, {
       method: "GET",
     });
-    
+
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -168,8 +182,8 @@ export async function GET(request: NextRequest) {
         success: false,
         error: {
           code: "ERROR_CODE",
-          message: error.message
-        }
+          message: error.message,
+        },
       },
       { status: 500 }
     );
@@ -182,6 +196,7 @@ export async function GET(request: NextRequest) {
 ## 🔒 AUTHENTICATION
 
 All routes use the `api-client` utility which automatically:
+
 - Gets auth token from cookies (`authToken`)
 - Adds `Authorization: Bearer {token}` header
 - Handles authentication errors
@@ -193,6 +208,7 @@ All routes use the `api-client` utility which automatically:
 Based on `documents/API_Endpoints_Structure.md`:
 
 ### Authentication
+
 - POST /api/auth/webhook - Clerk webhook
 - GET /api/auth/me - Current user
 - PUT /api/auth/profile - Update profile
@@ -200,6 +216,7 @@ Based on `documents/API_Endpoints_Structure.md`:
 - GET /api/auth/session - Session info
 
 ### Products
+
 - ✅ GET /api/products - List products
 - ✅ POST /api/products - Create product
 - ✅ GET /api/products/:id - Get product
@@ -209,12 +226,14 @@ Based on `documents/API_Endpoints_Structure.md`:
 - ✅ PUT /api/products/:id/inventory - Update stock
 
 ### Orders
+
 - ✅ POST /api/orders - Create order
 - ✅ GET /api/orders - List orders
 - ✅ GET /api/orders/:id - Get order
 - ✅ PUT /api/orders/:id/status - Update status
 
 ### Users
+
 - GET /api/users/:id - Get user
 - PUT /api/users/:id - Update user
 - GET /api/users/:id/profile - Get profile
@@ -226,14 +245,17 @@ Based on `documents/API_Endpoints_Structure.md`:
 ## ⚠️ CRITICAL NOTES
 
 1. **Backend URL Updated:**
-   - Old: `https://mash-backend-api-production.up.railway.app`
-   - New: `https://mash-backend-api-production.up.railway.app/`
+
+   - Old: `http://localhost:3000`
+   - New: `http://localhost:3000/`
 
 2. **Authentication Required:**
+
    - All routes check for `authToken` cookie
    - Unauthorized requests return 401
 
 3. **Error Handling:**
+
    - All routes have try-catch blocks
    - Consistent error response format
    - Timestamp and requestId added
@@ -254,16 +276,19 @@ Based on `documents/API_Endpoints_Structure.md`:
 ## 🎯 NEXT STEPS
 
 ### Immediate (High Priority):
+
 1. ✅ Update User/Auth API routes (5 files)
 2. ⏳ Update Seller API routes (10 files)
 3. ⏳ Update Notifications API (2 files)
 
 ### Short-term:
+
 4. Update CMS API routes (8 files)
 5. Update Main pages API (4 files)
 6. Update Devices API (1 file)
 
 ### Testing Required After Updates:
+
 - ✅ Test product listing with filters
 - ✅ Test product creation (seller auth)
 - ✅ Test order creation
@@ -277,17 +302,19 @@ Based on `documents/API_Endpoints_Structure.md`:
 ## 📊 IMPACT METRICS
 
 ### API Integration Status
-| Category | Files | Completed | Percentage |
-|----------|-------|-----------|------------|
-| Products | 4 | 4 | 100% ✅ |
-| Orders | 3 | 3 | 100% ✅ |
-| User/Auth | 5 | 0 | 0% ⏳ |
-| Seller | 10 | 0 | 0% ⏳ |
-| CMS | 8 | 0 | 0% ⏳ |
-| Other | 9 | 0 | 0% ⏳ |
-| **TOTAL** | **39** | **7** | **18%** 🟡 |
+
+| Category  | Files  | Completed | Percentage |
+| --------- | ------ | --------- | ---------- |
+| Products  | 4      | 4         | 100% ✅    |
+| Orders    | 3      | 3         | 100% ✅    |
+| User/Auth | 5      | 0         | 0% ⏳      |
+| Seller    | 10     | 0         | 0% ⏳      |
+| CMS       | 8      | 0         | 0% ⏳      |
+| Other     | 9      | 0         | 0% ⏳      |
+| **TOTAL** | **39** | **7**     | **18%** 🟡 |
 
 ### Time Estimates
+
 - ✅ Products API: 30 min (DONE)
 - ✅ Orders API: 20 min (DONE)
 - ⏳ User/Auth API: 25 min
@@ -320,4 +347,4 @@ Based on `documents/API_Endpoints_Structure.md`:
 **Risk Level:** Low  
 **ETA:** ~2 hours for full completion
 
-*Last Updated: November 6, 2025, 5:56 AM UTC+8*
+_Last Updated: November 6, 2025, 5:56 AM UTC+8_

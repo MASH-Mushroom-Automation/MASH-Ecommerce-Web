@@ -5,7 +5,8 @@
 **Document Purpose**: Complete integration plan for connecting MASH frontend to backend API with dual-environment strategy (localhost for email features, production for login).
 
 **Backend URLs**:
-- **Production**: `https://mash-backend-api-production.up.railway.app/api/v1`
+
+- **Production**: `http://localhost:3000/api/v1`
 - **Local**: `http://localhost:3000/api/v1` (for email-dependent endpoints)
 
 **Created**: November 13, 2025  
@@ -20,26 +21,28 @@
 
 Due to email service issues on production backend, we'll use a **hybrid connection strategy**:
 
-| Feature | Environment | Base URL | Reason |
-|---------|-------------|----------|--------|
-| **Registration** | 🏠 Localhost | `http://localhost:3000/api/v1` | Email verification codes sent successfully |
-| **Email Verification** | 🏠 Localhost | `http://localhost:3000/api/v1` | 6-digit code validation requires working email |
-| **Resend Code** | 🏠 Localhost | `http://localhost:3000/api/v1` | Email delivery dependency |
-| **Forgot Password** | 🏠 Localhost | `http://localhost:3000/api/v1` | Email reset code dependency |
-| **Verify Reset Code** | 🏠 Localhost | `http://localhost:3000/api/v1` | Password reset flow continuity |
-| **Reset Password** | 🏠 Localhost | `http://localhost:3000/api/v1` | Password reset flow continuity |
-| **Login** | ☁️ Production | `https://mash-backend-api-production.up.railway.app/api/v1` | No email dependency, production-ready |
-| **Refresh Token** | ☁️ Production | `https://mash-backend-api-production.up.railway.app/api/v1` | Session management |
+| Feature                | Environment   | Base URL                       | Reason                                         |
+| ---------------------- | ------------- | ------------------------------ | ---------------------------------------------- |
+| **Registration**       | 🏠 Localhost  | `http://localhost:3000/api/v1` | Email verification codes sent successfully     |
+| **Email Verification** | 🏠 Localhost  | `http://localhost:3000/api/v1` | 6-digit code validation requires working email |
+| **Resend Code**        | 🏠 Localhost  | `http://localhost:3000/api/v1` | Email delivery dependency                      |
+| **Forgot Password**    | 🏠 Localhost  | `http://localhost:3000/api/v1` | Email reset code dependency                    |
+| **Verify Reset Code**  | 🏠 Localhost  | `http://localhost:3000/api/v1` | Password reset flow continuity                 |
+| **Reset Password**     | 🏠 Localhost  | `http://localhost:3000/api/v1` | Password reset flow continuity                 |
+| **Login**              | ☁️ Production | `http://localhost:3000/api/v1` | No email dependency, production-ready          |
+| **Refresh Token**      | ☁️ Production | `http://localhost:3000/api/v1` | Session management                             |
 
 ### Why This Approach?
 
 ✅ **Advantages**:
+
 - Email features work reliably (localhost has configured email service)
 - Production login endpoint tested and stable
 - User experience uninterrupted by email service issues
 - Gradual migration path to full production
 
 ⚠️ **Trade-offs**:
+
 - Users registered on localhost won't exist in production database
 - Requires local backend running during registration/reset password
 - Session management split between environments
@@ -54,16 +57,18 @@ Once production email service is configured (SendGrid/AWS SES), all endpoints wi
 ### 1. Environment Variables (`.env.local`)
 
 **Current State**:
+
 ```env
-NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_API_TIMEOUT=30000
 ```
 
 **Required Changes**:
+
 ```env
 # Backend API Configuration
 # Production Backend (for login, token refresh)
-NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_API_TIMEOUT=30000
 
 # Local Backend (for email-dependent features)
@@ -99,19 +104,20 @@ NEXT_PUBLIC_EMAIL_SERVICE_ENV=local
 // src/lib/api-client.ts
 
 const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL!;
-const LOCAL_API_URL = process.env.NEXT_PUBLIC_LOCAL_API_URL || 'http://localhost:3000/api/v1';
-const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || 'local';
+const LOCAL_API_URL =
+  process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:3000/api/v1";
+const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || "local";
 
 // Email-dependent endpoints that should use local backend
 const EMAIL_ENDPOINTS = [
-  '/auth/register',
-  '/auth/verify-email-code',
-  '/auth/resend-verification',
-  '/auth/resend-verification-code',
-  '/auth/forgot-password',
-  '/auth/verify-reset-code',
-  '/auth/reset-password',
-  '/auth/resend-password-reset-code'
+  "/auth/register",
+  "/auth/verify-email-code",
+  "/auth/resend-verification",
+  "/auth/resend-verification-code",
+  "/auth/forgot-password",
+  "/auth/verify-reset-code",
+  "/auth/reset-password",
+  "/auth/resend-password-reset-code",
 ];
 
 /**
@@ -119,12 +125,12 @@ const EMAIL_ENDPOINTS = [
  */
 function getBaseUrl(endpoint: string): string {
   // Check if endpoint requires email service
-  const requiresEmail = EMAIL_ENDPOINTS.some(emailEndpoint => 
+  const requiresEmail = EMAIL_ENDPOINTS.some((emailEndpoint) =>
     endpoint.includes(emailEndpoint)
   );
 
   // Use local backend for email-dependent endpoints
-  if (requiresEmail && EMAIL_SERVICE_ENV === 'local') {
+  if (requiresEmail && EMAIL_SERVICE_ENV === "local") {
     console.log(`📧 Using LOCAL backend for: ${endpoint}`);
     return LOCAL_API_URL;
   }
@@ -143,12 +149,13 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const baseUrl = getBaseUrl(endpoint);
   const url = `${baseUrl}${endpoint}`;
-  
+
   // ... rest of existing implementation
 }
 ```
 
 **Changes Summary**:
+
 - ✅ Detects email-dependent endpoints automatically
 - ✅ Routes to appropriate backend (local or production)
 - ✅ Logs which backend is used (helpful for debugging)
@@ -164,6 +171,7 @@ export async function apiRequest<T>(
 **Required Changes**: None! The service will automatically use the correct backend through `apiRequest()`.
 
 **Verification**:
+
 ```typescript
 // src/lib/api/auth.ts
 
@@ -182,7 +190,7 @@ export async function forgotPassword(data: ForgotPasswordRequest): Promise<Forgo
 
 // ✅ This will use PRODUCTION backend (no email dependency)
 export async function login(data: LoginRequest): Promise<LoginResponse> {
-  return apiRequest('/auth/login', { ... }); // → https://mash-backend-api-production.up.railway.app
+  return apiRequest('/auth/login', { ... }); // → http://localhost:3000
 }
 ```
 
@@ -195,6 +203,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
 All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `reset-password`) already use the auth service. No updates needed!
 
 **Why?**
+
 - ✅ Pages call `auth.register()`, `auth.login()`, etc.
 - ✅ Auth service calls `apiRequest()`
 - ✅ API client routes to correct backend
@@ -424,6 +433,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 ### Prerequisites
 
 1. **Local Backend Running**:
+
    ```bash
    # In backend project directory
    npm run start:dev
@@ -431,6 +441,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
    ```
 
 2. **Frontend Dev Server Running**:
+
    ```bash
    # In frontend project directory
    npm run dev
@@ -439,7 +450,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 3. **Environment Variables Set**:
    ```env
-   NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
    NEXT_PUBLIC_LOCAL_API_URL=http://localhost:3000/api/v1
    NEXT_PUBLIC_EMAIL_SERVICE_ENV=local
    ```
@@ -449,6 +460,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 1: User Registration (Localhost)
 
 **Steps**:
+
 1. Navigate to `/signup`
 2. Fill form:
    - Email: `test@example.com`
@@ -460,6 +472,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 5. Check email inbox for 6-digit code
 
 **Expected Results**:
+
 - ✅ Form submits successfully
 - ✅ Backend logs show request to `http://localhost:3000/api/v1/auth/register`
 - ✅ Email received with 6-digit code
@@ -473,12 +486,14 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 2: Email Verification (Localhost)
 
 **Steps**:
+
 1. On `/verify-otp` page
 2. Enter 6-digit code from email
 3. Submit code
 4. Check console for: `📧 Using LOCAL backend for: /auth/verify-email-code`
 
 **Expected Results**:
+
 - ✅ Code accepted
 - ✅ JWT token returned
 - ✅ Token stored in cookie (`auth-token`)
@@ -492,6 +507,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 3: Resend Verification Code (Localhost)
 
 **Steps**:
+
 1. On `/verify-otp` page
 2. Wait 60 seconds (cooldown)
 3. Click "Resend Code"
@@ -499,6 +515,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 5. Check email for new code
 
 **Expected Results**:
+
 - ✅ New code sent to email
 - ✅ Old code invalidated
 - ✅ Success toast shown
@@ -511,6 +528,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 4: Login with Production Backend (Production)
 
 **Steps**:
+
 1. Navigate to `/login`
 2. Enter credentials:
    - Email: `mash.mushroom.automation@gmail.com`
@@ -519,6 +537,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 4. Check console for: `☁️ Using PRODUCTION backend for: /auth/login`
 
 **Expected Results**:
+
 - ✅ Login successful
 - ✅ Backend logs show request to production URL
 - ✅ JWT tokens returned (access + refresh)
@@ -532,6 +551,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 5: Forgot Password (Localhost)
 
 **Steps**:
+
 1. Navigate to `/forgot-password`
 2. Enter email: `test@example.com`
 3. Submit form
@@ -539,6 +559,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 5. Check email for reset code
 
 **Expected Results**:
+
 - ✅ Success message shown
 - ✅ Email with 6-digit reset code received
 - ✅ Redirected to `/reset-password`
@@ -551,6 +572,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 6: Reset Password (Localhost)
 
 **Steps**:
+
 1. On `/reset-password` page
 2. Enter code from email
 3. Enter new password: `NewPass@123`
@@ -559,6 +581,7 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 6. Check console for: `📧 Using LOCAL backend for: /auth/reset-password`
 
 **Expected Results**:
+
 - ✅ Password reset successful
 - ✅ Success message shown
 - ✅ Redirected to `/login`
@@ -571,12 +594,14 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 7: Token Refresh (Production)
 
 **Steps**:
+
 1. Login to get access token
 2. Wait for token to expire (or manually expire)
 3. Make an authenticated API call (e.g., fetch user profile)
 4. Check console for token refresh attempt
 
 **Expected Results**:
+
 - ✅ Token refresh triggered automatically
 - ✅ New access token retrieved from production backend
 - ✅ Original API call retried with new token
@@ -589,10 +614,12 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 #### ✅ Test 8: Logout
 
 **Steps**:
+
 1. While logged in, click Logout
 2. Check storage cleared
 
 **Expected Results**:
+
 - ✅ `auth-token` cookie removed
 - ✅ `refreshToken` removed from localStorage
 - ✅ User data cleared
@@ -607,12 +634,12 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 ### Phase 1: Environment Setup ⏳
 
-| Task | Status | Assigned To | Notes |
-|------|--------|-------------|-------|
-| Add `NEXT_PUBLIC_LOCAL_API_URL` to `.env.local` | ⬜ Not Started | - | New env var for localhost backend |
-| Add `NEXT_PUBLIC_EMAIL_SERVICE_ENV` to `.env.local` | ⬜ Not Started | - | Feature flag: "local" or "production" |
-| Update `.env.example` with new variables | ⬜ Not Started | - | Documentation for other devs |
-| Verify local backend running on port 3000 | ⬜ Not Started | Backend Team | Required for email features |
+| Task                                                | Status         | Assigned To  | Notes                                 |
+| --------------------------------------------------- | -------------- | ------------ | ------------------------------------- |
+| Add `NEXT_PUBLIC_LOCAL_API_URL` to `.env.local`     | ⬜ Not Started | -            | New env var for localhost backend     |
+| Add `NEXT_PUBLIC_EMAIL_SERVICE_ENV` to `.env.local` | ⬜ Not Started | -            | Feature flag: "local" or "production" |
+| Update `.env.example` with new variables            | ⬜ Not Started | -            | Documentation for other devs          |
+| Verify local backend running on port 3000           | ⬜ Not Started | Backend Team | Required for email features           |
 
 **Estimated Time**: 15 minutes  
 **Blockers**: None
@@ -621,13 +648,13 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 ### Phase 2: API Client Update ⏳
 
-| Task | Status | Assigned To | Notes |
-|------|--------|-------------|-------|
-| Add `getBaseUrl()` function to `api-client.ts` | ⬜ Not Started | Frontend | URL routing logic |
-| Define `EMAIL_ENDPOINTS` array | ⬜ Not Started | Frontend | List of email-dependent endpoints |
-| Update `apiRequest()` to use `getBaseUrl()` | ⬜ Not Started | Frontend | Dynamic URL selection |
-| Add console logging for debugging | ⬜ Not Started | Frontend | Track which backend is used |
-| Test URL routing with mock calls | ⬜ Not Started | Frontend | Unit test coverage |
+| Task                                           | Status         | Assigned To | Notes                             |
+| ---------------------------------------------- | -------------- | ----------- | --------------------------------- |
+| Add `getBaseUrl()` function to `api-client.ts` | ⬜ Not Started | Frontend    | URL routing logic                 |
+| Define `EMAIL_ENDPOINTS` array                 | ⬜ Not Started | Frontend    | List of email-dependent endpoints |
+| Update `apiRequest()` to use `getBaseUrl()`    | ⬜ Not Started | Frontend    | Dynamic URL selection             |
+| Add console logging for debugging              | ⬜ Not Started | Frontend    | Track which backend is used       |
+| Test URL routing with mock calls               | ⬜ Not Started | Frontend    | Unit test coverage                |
 
 **Estimated Time**: 30 minutes  
 **Blockers**: Phase 1 complete
@@ -636,15 +663,15 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 ### Phase 3: Frontend Integration ⏳
 
-| Task | Status | Assigned To | Notes |
-|------|--------|-------------|-------|
-| Test `/signup` with localhost backend | ⬜ Not Started | QA | Verify email sent |
-| Test `/verify-otp` with localhost backend | ⬜ Not Started | QA | Verify code validation |
-| Test `/login` with production backend | ⬜ Not Started | QA | Verify token generation |
-| Test `/forgot-password` with localhost backend | ⬜ Not Started | QA | Verify reset code sent |
-| Test `/reset-password` with localhost backend | ⬜ Not Started | QA | Verify password changed |
-| Test resend code functionality | ⬜ Not Started | QA | Both verification & password reset |
-| Verify token refresh with production backend | ⬜ Not Started | QA | Automatic token refresh |
+| Task                                           | Status         | Assigned To | Notes                              |
+| ---------------------------------------------- | -------------- | ----------- | ---------------------------------- |
+| Test `/signup` with localhost backend          | ⬜ Not Started | QA          | Verify email sent                  |
+| Test `/verify-otp` with localhost backend      | ⬜ Not Started | QA          | Verify code validation             |
+| Test `/login` with production backend          | ⬜ Not Started | QA          | Verify token generation            |
+| Test `/forgot-password` with localhost backend | ⬜ Not Started | QA          | Verify reset code sent             |
+| Test `/reset-password` with localhost backend  | ⬜ Not Started | QA          | Verify password changed            |
+| Test resend code functionality                 | ⬜ Not Started | QA          | Both verification & password reset |
+| Verify token refresh with production backend   | ⬜ Not Started | QA          | Automatic token refresh            |
 
 **Estimated Time**: 2 hours  
 **Blockers**: Phase 2 complete
@@ -653,15 +680,15 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 ### Phase 4: Error Handling & Edge Cases ⏳
 
-| Task | Status | Assigned To | Notes |
-|------|--------|-------------|-------|
-| Handle localhost backend offline | ⬜ Not Started | Frontend | Graceful fallback or error message |
-| Handle production backend offline | ⬜ Not Started | Frontend | Graceful fallback or error message |
-| Test expired verification codes | ⬜ Not Started | QA | 10-minute expiry enforcement |
-| Test rate limiting (too many requests) | ⬜ Not Started | QA | Backend throttling |
-| Test invalid codes (wrong digits) | ⬜ Not Started | QA | Error messages |
-| Test maximum attempts lockout (5 failures) | ⬜ Not Started | QA | Security enforcement |
-| Test network timeouts | ⬜ Not Started | QA | 30-second timeout handling |
+| Task                                       | Status         | Assigned To | Notes                              |
+| ------------------------------------------ | -------------- | ----------- | ---------------------------------- |
+| Handle localhost backend offline           | ⬜ Not Started | Frontend    | Graceful fallback or error message |
+| Handle production backend offline          | ⬜ Not Started | Frontend    | Graceful fallback or error message |
+| Test expired verification codes            | ⬜ Not Started | QA          | 10-minute expiry enforcement       |
+| Test rate limiting (too many requests)     | ⬜ Not Started | QA          | Backend throttling                 |
+| Test invalid codes (wrong digits)          | ⬜ Not Started | QA          | Error messages                     |
+| Test maximum attempts lockout (5 failures) | ⬜ Not Started | QA          | Security enforcement               |
+| Test network timeouts                      | ⬜ Not Started | QA          | 30-second timeout handling         |
 
 **Estimated Time**: 1.5 hours  
 **Blockers**: Phase 3 complete
@@ -670,13 +697,13 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 ### Phase 5: Documentation & Handoff ⏳
 
-| Task | Status | Assigned To | Notes |
-|------|--------|-------------|-------|
-| Update `AUTH_IMPLEMENTATION_GUIDE.md` | ⬜ Not Started | Docs | Reflect dual-backend approach |
-| Create `.env.local.example` file | ⬜ Not Started | Docs | Template for other developers |
-| Document testing procedures | ⬜ Not Started | Docs | QA test cases |
-| Update README.md with setup instructions | ⬜ Not Started | Docs | Local backend requirement |
-| Create troubleshooting guide | ⬜ Not Started | Docs | Common issues & solutions |
+| Task                                     | Status         | Assigned To | Notes                         |
+| ---------------------------------------- | -------------- | ----------- | ----------------------------- |
+| Update `AUTH_IMPLEMENTATION_GUIDE.md`    | ⬜ Not Started | Docs        | Reflect dual-backend approach |
+| Create `.env.local.example` file         | ⬜ Not Started | Docs        | Template for other developers |
+| Document testing procedures              | ⬜ Not Started | Docs        | QA test cases                 |
+| Update README.md with setup instructions | ⬜ Not Started | Docs        | Local backend requirement     |
+| Create troubleshooting guide             | ⬜ Not Started | Docs        | Common issues & solutions     |
 
 **Estimated Time**: 1 hour  
 **Blockers**: Phase 4 complete
@@ -691,7 +718,8 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 **Impact**: Users who register locally cannot login using production backend.
 
-**Workaround**: 
+**Workaround**:
+
 - Users must use the same backend environment for registration + login.
 - OR: Manually migrate user data from local to production database.
 
@@ -717,7 +745,8 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 **Impact**: If local backend is down, users cannot register or reset passwords.
 
-**Workaround**: 
+**Workaround**:
+
 - Provide clear error message if local backend unreachable.
 - Display instructions for starting local backend.
 
@@ -731,16 +760,18 @@ All authentication pages (`signup`, `verify-otp`, `login`, `forgot-password`, `r
 
 **Impact**: Potential CORS errors if ports don't match.
 
-**Workaround**: 
+**Workaround**:
+
 - Ensure backend allows CORS from `http://localhost:3000` (frontend).
 - OR: Use different ports (frontend on 3001, backend on 3000).
 
 **Configuration Required** (Backend):
+
 ```typescript
 // backend/src/main.ts
 app.enableCors({
-  origin: 'http://localhost:3000', // Frontend URL
-  credentials: true
+  origin: "http://localhost:3000", // Frontend URL
+  credentials: true,
 });
 ```
 
@@ -751,6 +782,7 @@ app.enableCors({
 **Issue**: Backend enforces rate limits on email endpoints.
 
 **Limits**:
+
 - Registration: 3 requests per minute
 - Resend code: 1 request per minute (with 1-minute cooldown)
 - Forgot password: 3 requests per 5 minutes
@@ -791,6 +823,7 @@ app.enableCors({
 **Cause**: Local backend email service not configured or SMTP credentials invalid.
 
 **Solution**:
+
 1. Check local backend logs for email errors
 2. Verify SMTP credentials in backend `.env`
 3. Test email service manually (send test email)
@@ -803,6 +836,7 @@ app.enableCors({
 **Cause**: Local backend not running or wrong URL.
 
 **Solution**:
+
 1. Start local backend: `npm run start:dev`
 2. Verify backend accessible at `http://localhost:3000`
 3. Check `NEXT_PUBLIC_LOCAL_API_URL` in frontend `.env.local`
@@ -815,6 +849,7 @@ app.enableCors({
 **Cause**: User registered on localhost, trying to login via production backend.
 
 **Solution**:
+
 - Users must use the same backend environment.
 - OR: Manually create user account in production database.
 - OR: Configure production email service and use production for all flows.
@@ -826,6 +861,7 @@ app.enableCors({
 **Cause**: 10-minute expiry window passed.
 
 **Solution**:
+
 1. Click "Resend Code" button
 2. Wait for new email (check spam folder)
 3. Enter new code within 10 minutes
@@ -837,6 +873,7 @@ app.enableCors({
 **Cause**: Rate limit exceeded (too many registration/resend attempts).
 
 **Solution**:
+
 - Wait for rate limit to reset (1-5 minutes depending on endpoint).
 - Display countdown timer to user.
 - Implement exponential backoff on frontend.

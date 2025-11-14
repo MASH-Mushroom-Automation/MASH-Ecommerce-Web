@@ -5,7 +5,7 @@ import type { ApiResponse } from "@/types/api";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_API_ENDPOINT ||
-  "https://mash-backend-api-production.up.railway.app/";
+  "http://localhost:3000/";
 
 // POST /api/user/avatar - Upload user avatar
 export async function POST(request: NextRequest) {
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required"
-          }
+            message: "Authentication required",
+          },
         },
         { status: 401 }
       );
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     });
 
     const json = await res.json().catch(() => null);
-    
+
     if (!res.ok) {
       return NextResponse.json(
         {
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
           error: {
             code: "UPLOAD_FAILED",
             message: "Failed to upload avatar",
-            details: json
-          }
+            details: json,
+          },
         },
         { status: res.status }
       );
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       data,
       message: "Avatar uploaded successfully",
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -69,9 +69,10 @@ export async function POST(request: NextRequest) {
         success: false,
         error: {
           code: "UPLOAD_ERROR",
-          message: error instanceof Error ? error.message : "Failed to upload avatar"
+          message:
+            error instanceof Error ? error.message : "Failed to upload avatar",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );

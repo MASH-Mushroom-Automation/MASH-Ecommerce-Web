@@ -2,10 +2,13 @@
 // Centralized API client for making requests to the backend with dual-environment support
 
 // Backend URLs
-const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://mash-backend-api-production.up.railway.app/api/v1";
-const LOCAL_API_URL = process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:3000/api/v1";
+const PRODUCTION_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+const LOCAL_API_URL =
+  process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:3000/api/v1";
 const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || "local";
-const ENABLE_API_LOGGING = process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true";
+const ENABLE_API_LOGGING =
+  process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true";
 
 // Email-dependent endpoints that should use local backend (when EMAIL_SERVICE_ENV is "local")
 // These endpoints require working email service which is only configured on localhost
@@ -17,7 +20,7 @@ const EMAIL_ENDPOINTS = [
   "/auth/forgot-password",
   "/auth/verify-reset-code",
   "/auth/reset-password",
-  "/auth/resend-password-reset-code"
+  "/auth/resend-password-reset-code",
 ];
 
 /**
@@ -27,21 +30,25 @@ const EMAIL_ENDPOINTS = [
  */
 function getBaseUrl(endpoint: string): string {
   // Check if endpoint requires email service
-  const isEmailEndpoint = EMAIL_ENDPOINTS.some(emailEndpoint => 
+  const isEmailEndpoint = EMAIL_ENDPOINTS.some((emailEndpoint) =>
     endpoint.includes(emailEndpoint)
   );
 
   // If it's an email endpoint and we're using local email service
   if (isEmailEndpoint && EMAIL_SERVICE_ENV === "local") {
     if (ENABLE_API_LOGGING) {
-      console.log(`[API] 📧 Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`);
+      console.log(
+        `[API] 📧 Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`
+      );
     }
     return LOCAL_API_URL;
   }
 
   // All other endpoints use production backend
   if (ENABLE_API_LOGGING) {
-    console.log(`[API] ☁️ Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`);
+    console.log(
+      `[API] ☁️ Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`
+    );
   }
   return PRODUCTION_API_URL;
 }
@@ -65,7 +72,7 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getAuthToken();
-  
+
   // Dynamic base URL selection based on endpoint type
   const baseUrl = getBaseUrl(endpoint);
   const url = `${baseUrl}${endpoint}`;
@@ -99,11 +106,13 @@ export async function apiRequest<T>(
       try {
         // Refresh token always uses production backend (session management)
         const refreshUrl = `${PRODUCTION_API_URL}/auth/refresh-token`;
-        
+
         if (ENABLE_API_LOGGING) {
-          console.log(`[API] 🔄 Token expired, attempting refresh: ${refreshUrl}`);
+          console.log(
+            `[API] 🔄 Token expired, attempting refresh: ${refreshUrl}`
+          );
         }
-        
+
         const refreshResponse = await fetch(refreshUrl, {
           method: "POST",
           headers: {
@@ -114,18 +123,22 @@ export async function apiRequest<T>(
 
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
-          
+
           // Update tokens (handle both response formats)
-          const newAccessToken = refreshData.data?.accessToken || refreshData.accessToken;
-          const newRefreshToken = refreshData.data?.refreshToken || refreshData.refreshToken;
-          
+          const newAccessToken =
+            refreshData.data?.accessToken || refreshData.accessToken;
+          const newRefreshToken =
+            refreshData.data?.refreshToken || refreshData.refreshToken;
+
           if (typeof document !== "undefined" && newAccessToken) {
-            document.cookie = `auth-token=${encodeURIComponent(newAccessToken)}; Path=/`;
+            document.cookie = `auth-token=${encodeURIComponent(
+              newAccessToken
+            )}; Path=/`;
           }
           if (typeof window !== "undefined" && newRefreshToken) {
             localStorage.setItem("refreshToken", newRefreshToken);
           }
-          
+
           // Retry original request with new token
           return apiRequest<T>(endpoint, options);
         }
@@ -136,7 +149,8 @@ export async function apiRequest<T>(
 
     // If refresh fails or no refresh token, clear tokens and redirect to login
     if (typeof window !== "undefined") {
-      document.cookie = "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie =
+        "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       localStorage.removeItem("refreshToken");
       window.location.href = "/login";
     }

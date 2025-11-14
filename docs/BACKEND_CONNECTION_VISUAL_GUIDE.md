@@ -396,7 +396,7 @@ Phase 5: Documentation ⬜ [░░░░░░░░░░░░░░░░░�
    cp .env.local.example .env.local
 
 □ Add required environment variables:
-   NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
    NEXT_PUBLIC_LOCAL_API_URL=http://localhost:3000/api/v1
    NEXT_PUBLIC_EMAIL_SERVICE_ENV=local
 
@@ -425,13 +425,13 @@ Phase 5: Documentation ⬜ [░░░░░░░░░░░░░░░░░�
 
 ## 📚 Related Documentation
 
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| `BACKEND_CONNECTION_PLAN.md` | Complete integration plan | **START HERE** |
-| `BACKEND_CONNECTION_PROGRESS.md` | Daily progress tracking | Check daily |
-| `BACKEND_EMAIL_SERVICE_FIX.md` | Backend email setup | Backend team only |
-| `EMAIL_FIX_QUICK_START.md` | 5-minute setup guide | Quick reference |
-| `AUTH_IMPLEMENTATION_GUIDE.md` | Original auth docs | Background reading |
+| Document                         | Purpose                   | When to Read       |
+| -------------------------------- | ------------------------- | ------------------ |
+| `BACKEND_CONNECTION_PLAN.md`     | Complete integration plan | **START HERE**     |
+| `BACKEND_CONNECTION_PROGRESS.md` | Daily progress tracking   | Check daily        |
+| `BACKEND_EMAIL_SERVICE_FIX.md`   | Backend email setup       | Backend team only  |
+| `EMAIL_FIX_QUICK_START.md`       | 5-minute setup guide      | Quick reference    |
+| `AUTH_IMPLEMENTATION_GUIDE.md`   | Original auth docs        | Background reading |
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## ✅ Integration Status: OPERATIONAL
 
-**Backend URL**: `https://mash-backend-api-production.up.railway.app`  
+**Backend URL**: `http://localhost:3000`  
 **API Version**: `v1`  
 **Status**: ✅ Connected and Working  
 **Date**: November 10, 2025
@@ -14,13 +14,15 @@
 ### ✅ Phase 1: Backend API Setup (VERIFIED)
 
 #### 1.1 Backend API Verification
+
 ```bash
 # Root endpoint test
-✅ GET https://mash-backend-api-production.up.railway.app
+✅ GET http://localhost:3000
 Response: 200 OK
 ```
 
 **Backend Information**:
+
 - **Name**: MASH Backend API
 - **Framework**: NestJS 10.x
 - **Language**: TypeScript
@@ -30,6 +32,7 @@ Response: 200 OK
 - **Environment**: development
 
 **API Features**:
+
 - 🔐 Authentication & Authorization (Clerk Integration)
 - 🏭 Real-time IoT Device Monitoring
 - 🛒 E-commerce Product & Order Management
@@ -41,14 +44,16 @@ Response: 200 OK
 - 🐳 Production-ready with Docker Support
 
 #### 1.2 Products API Verification
+
 ```bash
 # Products endpoint test
-✅ GET https://mash-backend-api-production.up.railway.app/api/v1/products
+✅ GET http://localhost:3000/api/v1/products
 Response: 200 OK
 Products Found: 9 products
 ```
 
 **Products from Backend**:
+
 1. Fresh White Oyster Mushrooms - ₱120 (45 in stock)
 2. Mushroom Chips - ₱140 (30 in stock)
 3. Blue Oyster Mushrooms - ₱150 (25 in stock)
@@ -68,9 +73,10 @@ Products Found: 9 products
 ### ✅ Phase 2: Frontend Configuration
 
 #### 2.1 Environment Variables (`.env.local`)
+
 ```env
 # Backend API Configuration
-NEXT_PUBLIC_API_URL=https://mash-backend-api-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_API_TIMEOUT=30000
 
 # Feature Flags
@@ -90,9 +96,10 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 **Backend Mode**: Real API (not mock data)
 
 #### 2.2 API Client (`src/lib/api/client.ts`)
+
 ```typescript
 // Configuration
-✅ Base URL: https://mash-backend-api-production.up.railway.app/api/v1
+✅ Base URL: http://localhost:3000/api/v1
 ✅ Timeout: 30 seconds
 ✅ Request Interceptor: Auth token injection
 ✅ Response Interceptor: Error handling
@@ -100,6 +107,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 ```
 
 **Features**:
+
 - Automatic auth token injection from localStorage
 - Global error handling (401, 403, 404, 500)
 - Request/response logging in development mode
@@ -109,6 +117,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 **Dependencies**: axios ^1.7.9
 
 #### 2.3 Products API Service (`src/lib/api/products.ts`)
+
 ```typescript
 // API Functions
 ✅ getProducts(params) - Get all products with pagination
@@ -119,6 +128,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 ```
 
 **Key Features**:
+
 - **Dual Mode**: Supports both mock data and real backend API
 - **Feature Flag**: Controlled by `NEXT_PUBLIC_USE_MOCK_DATA`
 - **Data Conversion**: Converts backend string prices to numbers
@@ -129,6 +139,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 - **Response Transformation**: Backend → Frontend format
 
 **Backend Response Structure**:
+
 ```typescript
 {
   success: true,
@@ -149,12 +160,13 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 ```
 
 **Frontend Product Structure**:
+
 ```typescript
 interface Product {
   id: string;
   name: string;
   slug: string;
-  price: number;  // Converted from string
+  price: number; // Converted from string
   stock: number;
   images: string[];
   // ... 24 total fields
@@ -166,6 +178,7 @@ interface Product {
 ## 🔗 Available API Endpoints
 
 ### Products Endpoints
+
 - `GET /api/v1/products` - Get all products
 - `GET /api/v1/products/:id` - Get product by ID
 - `GET /api/v1/products/slug/:slug` - Get product by slug
@@ -175,6 +188,7 @@ interface Product {
 - `PATCH /api/v1/products/:id/stock` - Update stock (admin)
 
 ### Other Available Endpoints
+
 - **Users**: `/api/v1/users/*`
 - **Devices**: `/api/v1/devices/*`
 - **Sensors**: `/api/v1/sensors/*`
@@ -185,6 +199,7 @@ interface Product {
 - **Admin**: `/api/v1/admin/*`
 
 ### Health & Monitoring
+
 - `GET /api/v1/health` - Health check
 - `GET /api/v1/health/database` - Database health
 - `GET /api/v1/health/system` - System health
@@ -196,13 +211,14 @@ interface Product {
 ## 🧪 Testing Results
 
 ### Backend API Tests
+
 ```bash
 # Test 1: Root endpoint
-✅ curl https://mash-backend-api-production.up.railway.app
+✅ curl http://localhost:3000
 Status: 200 OK
 
 # Test 2: Products endpoint
-✅ curl https://mash-backend-api-production.up.railway.app/api/v1/products
+✅ curl http://localhost:3000/api/v1/products
 Status: 200 OK
 Products: 9 items returned
 
@@ -212,6 +228,7 @@ Products: 9 items returned
 ```
 
 ### Frontend Tests
+
 ```bash
 # Test 1: Environment variables
 ✅ NEXT_PUBLIC_API_URL: Set correctly
@@ -232,6 +249,7 @@ Status: Running on http://localhost:3000
 ## 📋 Implementation Checklist
 
 ### ✅ Completed
+
 - [x] Verify Railway backend is accessible and operational
 - [x] Test products API endpoint returns data
 - [x] Install axios dependency
@@ -245,8 +263,9 @@ Status: Running on http://localhost:3000
 - [x] Verify TypeScript compilation passes
 
 ### 🔄 Next Steps (Ready for Implementation)
+
 - [ ] Update product listing pages to use ProductsApi
-- [ ] Update product detail pages to use ProductsApi  
+- [ ] Update product detail pages to use ProductsApi
 - [ ] Test pagination on frontend
 - [ ] Test search functionality
 - [ ] Test category filtering
@@ -266,20 +285,21 @@ Status: Running on http://localhost:3000
 #### 1. Fetching Products in a Component
 
 **Server Component Example**:
+
 ```typescript
 // app/products/page.tsx
-import { ProductsApi } from '@/lib/api/products';
+import { ProductsApi } from "@/lib/api/products";
 
 export default async function ProductsPage() {
-  const response = await ProductsApi.getProducts({ 
-    page: 1, 
-    limit: 12 
+  const response = await ProductsApi.getProducts({
+    page: 1,
+    limit: 12,
   });
 
   return (
     <div>
       <h1>Products</h1>
-      {response.data.map(product => (
+      {response.data.map((product) => (
         <div key={product.id}>{product.name}</div>
       ))}
     </div>
@@ -288,10 +308,11 @@ export default async function ProductsPage() {
 ```
 
 **Client Component Example**:
+
 ```typescript
-'use client';
-import { useEffect, useState } from 'react';
-import { ProductsApi, ProductApiResponse } from '@/lib/api/products';
+"use client";
+import { useEffect, useState } from "react";
+import { ProductsApi, ProductApiResponse } from "@/lib/api/products";
 
 export function ProductList() {
   const [products, setProducts] = useState<ProductApiResponse[]>([]);
@@ -310,8 +331,10 @@ export function ProductList() {
 
   return (
     <div>
-      {products.map(product => (
-        <div key={product.id}>{product.name} - ₱{product.price}</div>
+      {products.map((product) => (
+        <div key={product.id}>
+          {product.name} - ₱{product.price}
+        </div>
       ))}
     </div>
   );
@@ -321,12 +344,14 @@ export function ProductList() {
 #### 2. Switching Between Mock and Real API
 
 **Use Mock Data** (for development/testing):
+
 ```env
 # .env.local
 NEXT_PUBLIC_USE_MOCK_DATA=true
 ```
 
 **Use Real Backend** (for production):
+
 ```env
 # .env.local
 NEXT_PUBLIC_USE_MOCK_DATA=false
@@ -336,16 +361,16 @@ NEXT_PUBLIC_USE_MOCK_DATA=false
 
 ```bash
 # Fetch all products
-curl https://mash-backend-api-production.up.railway.app/api/v1/products
+curl http://localhost:3000/api/v1/products
 
 # Fetch single product (replace ID)
-curl https://mash-backend-api-production.up.railway.app/api/v1/products/cmhspbus70000vpakh1ykdsp5
+curl http://localhost:3000/api/v1/products/cmhspbus70000vpakh1ykdsp5
 
 # Search products
-curl "https://mash-backend-api-production.up.railway.app/api/v1/products?search=oyster"
+curl "http://localhost:3000/api/v1/products?search=oyster"
 
 # Paginated products
-curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&limit=5"
+curl "http://localhost:3000/api/v1/products?page=1&limit=5"
 ```
 
 ---
@@ -354,20 +379,20 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 
 ### Environment Variables
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `NEXT_PUBLIC_API_URL` | `https://mash-backend-api-production.up.railway.app/api/v1` | Backend API base URL |
-| `NEXT_PUBLIC_API_TIMEOUT` | `30000` | API request timeout (30s) |
-| `NEXT_PUBLIC_USE_MOCK_DATA` | `false` | Use real API (false) or mock data (true) |
-| `NEXT_PUBLIC_ENABLE_API_LOGGING` | `true` | Log API requests/responses |
-| `NEXT_PUBLIC_API_VERSION` | `v1` | API version |
+| Variable                         | Value                          | Description                              |
+| -------------------------------- | ------------------------------ | ---------------------------------------- |
+| `NEXT_PUBLIC_API_URL`            | `http://localhost:3000/api/v1` | Backend API base URL                     |
+| `NEXT_PUBLIC_API_TIMEOUT`        | `30000`                        | API request timeout (30s)                |
+| `NEXT_PUBLIC_USE_MOCK_DATA`      | `false`                        | Use real API (false) or mock data (true) |
+| `NEXT_PUBLIC_ENABLE_API_LOGGING` | `true`                         | Log API requests/responses               |
+| `NEXT_PUBLIC_API_VERSION`        | `v1`                           | API version                              |
 
 ### API Client Configuration
 
 ```typescript
 // src/lib/api/client.ts
 {
-  baseURL: 'https://mash-backend-api-production.up.railway.app/api/v1',
+  baseURL: 'http://localhost:3000/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -381,6 +406,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 ## 📊 Backend API Information
 
 ### Technology Stack
+
 - **Framework**: NestJS 10.x (Node.js)
 - **Language**: TypeScript
 - **Database**: PostgreSQL (Neon Cloud)
@@ -394,6 +420,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 - **Node Version**: v25.1.0
 
 ### Deployment
+
 - **Platform**: Railway
 - **Domain**: `mash-backend-api-production.up.railway.app`
 - **Environment**: Development
@@ -401,6 +428,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 - **Uptime**: Active
 
 ### Documentation
+
 - **Swagger**: Available at `/api/docs` (when running locally)
 - **Postman**: Collection available in `/postman` directory
 - **GitHub**: https://github.com/MASH-Mushroom-Automation/MASH-Backend
@@ -410,6 +438,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 ## 🎯 Migration Progress
 
 ### Phase 1: Setup ✅ COMPLETE (Week 1)
+
 - [x] Backend API verified operational
 - [x] Environment configuration completed
 - [x] API client created and tested
@@ -417,12 +446,14 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 - [x] Development server running
 
 ### Phase 2: API Development ✅ COMPLETE (Week 2-3)
+
 - [x] Products endpoints verified (9 products live)
 - [x] Authentication structure in place
 - [x] Error handling implemented
 - [x] Type safety with TypeScript
 
 ### Phase 3: Frontend Integration 🔄 IN PROGRESS (Week 4-5)
+
 - [x] API client configured
 - [x] Products service integrated
 - [x] Feature flags implemented
@@ -432,6 +463,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 - [ ] Add React Query caching
 
 ### Phase 4: Testing & Optimization ⏸️ PENDING (Week 6)
+
 - [ ] End-to-end testing
 - [ ] Performance optimization
 - [ ] Production deployment
@@ -444,20 +476,25 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 ### Common Issues
 
 #### Issue: CORS Error
+
 **Symptom**: `Access-Control-Allow-Origin` error  
 **Solution**: Backend already has CORS configured. Ensure requests include proper headers.
 
 #### Issue: 401 Unauthorized
+
 **Symptom**: Authentication errors  
 **Solution**: Check if auth token is present in localStorage. Update Clerk configuration.
 
 #### Issue: Timeout
+
 **Symptom**: Requests taking too long  
 **Solution**: Increase `NEXT_PUBLIC_API_TIMEOUT` or check backend logs.
 
 #### Issue: Products not loading
+
 **Symptom**: Empty products list  
 **Check**:
+
 1. `NEXT_PUBLIC_USE_MOCK_DATA=false` in `.env.local`
 2. Backend API is accessible
 3. Console logs for errors
@@ -468,11 +505,13 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 ## 📞 Support
 
 ### Contact
+
 - **Email**: pp.namias@gmail.com
 - **Repository**: https://github.com/MASH-Mushroom-Automation/MASH-Backend
 - **Issues**: https://github.com/MASH-Mushroom-Automation/MASH-Backend/issues
 
 ### Resources
+
 - **Backend API Guide**: `docs/BACKEND_API_CONNECTION_GUIDE.md`
 - **JSON Structure Guide**: `docs/JSON_DATA_STRUCTURE_GUIDE.md`
 - **Products Database**: `data/products-database.json`
@@ -484,7 +523,7 @@ curl "https://mash-backend-api-production.up.railway.app/api/v1/products?page=1&
 
 ```bash
 # ✅ Backend Status
-Backend URL: https://mash-backend-api-production.up.railway.app
+Backend URL: http://localhost:3000
 Status: OPERATIONAL
 Products: 9 items available
 Response Time: ~200-500ms
@@ -515,12 +554,14 @@ TypeScript: NO ERRORS
 The MASH E-Commerce frontend is now **successfully connected** to the Railway-hosted backend API. All 9 products are accessible through the API, and the development server is running without errors.
 
 **You can now**:
+
 1. Navigate to http://localhost:3000 to see your website
 2. Products will load from the Railway backend
 3. Make changes and see them reflected in real-time
 4. Continue with Phase 3 frontend integration steps
 
 **Feature Flag Control**:
+
 - Set `NEXT_PUBLIC_USE_MOCK_DATA=false` for real backend (current)
 - Set `NEXT_PUBLIC_USE_MOCK_DATA=true` for local mock data (testing)
 
