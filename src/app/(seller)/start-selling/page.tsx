@@ -66,7 +66,6 @@ export const sellerApplicationSchema = z.object({
       "Please enter a valid Philippine phone number (e.g., 09123456789 or +639123456789)"
     ),
   address: z.string().min(10, "Please provide a complete address"),
->>>>>>> origin/main
   city: z.string().min(2, "City is required"),
   region: z.string().min(2, "Region is required"),
   
