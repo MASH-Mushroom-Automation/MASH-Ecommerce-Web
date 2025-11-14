@@ -1,0 +1,50 @@
+{
+  "_comment": "SecurityLog Table - Complete JSON Structure",
+  "_table": "security_logs",
+  "_description": "Security event logging for audit and monitoring",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "sec_001",
+  "userId": "cm3vxyz123456789",
+  "event": "LOGIN_SUCCESS",
+  "severity": "INFO",
+  "ipAddress": "203.177.123.45",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "metadata": {
+    "method": "email",
+    "location": "Manila, Philippines",
+    "device": "Desktop",
+    "browser": "Chrome",
+    "twoFactorUsed": false,
+    "sessionId": "session_001"
+  },
+  "timestamp": "2025-11-10T10:00:00.000Z",
+  
+  "_required_fields": ["id", "event", "severity", "ipAddress", "timestamp"],
+  "_optional_fields": ["userId", "userAgent", "metadata"],
+  "_relationships": {
+    "user": "User?"
+  },
+  "_security_events": [
+    "LOGIN_SUCCESS",
+    "LOGIN_FAILURE",
+    "LOGOUT",
+    "PASSWORD_CHANGE",
+    "PASSWORD_RESET_REQUEST",
+    "PASSWORD_RESET_COMPLETE",
+    "EMAIL_VERIFICATION",
+    "TWO_FACTOR_ENABLE",
+    "TWO_FACTOR_DISABLE",
+    "API_KEY_CREATED",
+    "API_KEY_REVOKED",
+    "UNAUTHORIZED_ACCESS",
+    "RATE_LIMIT_EXCEEDED",
+    "SUSPICIOUS_ACTIVITY"
+  ],
+  "_severity_levels": ["INFO", "WARNING", "ERROR", "CRITICAL"],
+  "_notes": {
+    "userId": "Null for unauthenticated events (login attempts)",
+    "metadata": "Additional context specific to event type",
+    "retention": "Keep security logs for minimum 90 days"
+  }
+}

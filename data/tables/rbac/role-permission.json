@@ -1,0 +1,28 @@
+{
+  "_comment": "RolePermission Table - Complete JSON Structure",
+  "_table": "role_permissions",
+  "_description": "Role-to-permission mapping",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "rp_001",
+  "roleId": "role_001",
+  "permissionId": "perm_001",
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "roleId", "permissionId", "createdAt"],
+  "_optional_fields": [],
+  "_relationships": {
+    "role": "Role",
+    "permission": "Permission"
+  },
+  "_example_grower_permissions": [
+    { "resource": "products", "action": "create" },
+    { "resource": "products", "action": "read" },
+    { "resource": "products", "action": "update" },
+    { "resource": "products", "action": "delete" },
+    { "resource": "orders", "action": "read" },
+    { "resource": "devices", "action": "read" },
+    { "resource": "devices", "action": "control" },
+    { "resource": "inventory", "action": "manage" }
+  ]
+}

@@ -4,8 +4,74 @@ import {
   ProductsListParams,
   ApiResponse,
 } from "@/types/api";
+import apiClient from './client';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
+// Backend response types
+interface BackendProductResponse {
+  id: string;
+  name: string;
+  slug: string;
+  price: string; // Backend returns string
+  stock: number;
+  images: string[];
+  description?: string;
+  sku?: string;
+  comparePrice?: string;
+  costPrice?: string;
+  minStock?: number;
+  weight?: string;
+}
+
+interface BackendResponse<T> {
+  success: boolean;
+  statusCode: number;
+  data: T;
+  timestamp: string;
+  path: string;
+  correlationId: string;
+}
+
+interface ProductsData {
+  data: BackendProductResponse[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+// Convert backend product to frontend format
+function convertBackendProduct(backendProduct: BackendProductResponse): ProductApiResponse {
+  return {
+    id: backendProduct.id,
+    name: backendProduct.name,
+    slug: backendProduct.slug,
+    sku: backendProduct.sku,
+    description: backendProduct.description,
+    price: parseFloat(backendProduct.price),
+    comparePrice: backendProduct.comparePrice ? parseFloat(backendProduct.comparePrice) : undefined,
+    costPrice: backendProduct.costPrice ? parseFloat(backendProduct.costPrice) : undefined,
+    stock: backendProduct.stock,
+    minStock: backendProduct.minStock || 5,
+    weight: backendProduct.weight,
+    images: backendProduct.images,
+    image: backendProduct.images[0] || '/placeholder.jpg',
+    category: 'Fresh Mushroom', // Default category
+    categories: [],
+    tags: [],
+    grower: undefined,
+    growerId: undefined,
+    inStock: backendProduct.stock > 0,
+    isActive: true,
+    isFeatured: false,
+    isDeleted: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 // For now, we'll use mock data but structure it for easy CMS integration
 const MOCK_PRODUCTS: ProductApiResponse[] = [
@@ -298,94 +364,169 @@ export class ProductsApi {
   static async getProducts(
     params: ProductsListParams = {}
   ): Promise<ApiResponse<ProductApiResponse[]>> {
-    await delay(300); // Simulate network delay
+    // If using mock data, return mock products
+    if (USE_MOCK_DATA) {
+      await delay(300);
 
-    let filteredProducts = [...MOCK_PRODUCTS];
+      let filteredProducts = [...MOCK_PRODUCTS];
 
-    // Apply filters
-    if (params.category) {
-      filteredProducts = filteredProducts.filter(
-        (p) => p.category === params.category
-      );
+      // Apply filters
+      if (params.category) {
+        filteredProducts = filteredProducts.filter(
+          (p) => p.category === params.category
+        );
+      }
+
+      if (params.grower) {
+        filteredProducts = filteredProducts.filter(
+          (p) => p.grower === params.grower
+        );
+      }
+
+      if (params.minPrice !== undefined) {
+        filteredProducts = filteredProducts.filter(
+          (p) => p.price >= params.minPrice!
+        );
+      }
+
+      if (params.maxPrice !== undefined) {
+        filteredProducts = filteredProducts.filter(
+          (p) => p.price <= params.maxPrice!
+        );
+      }
+
+      if (params.search) {
+        const searchLower = params.search.toLowerCase();
+        filteredProducts = filteredProducts.filter(
+          (p) =>
+            p.name.toLowerCase().includes(searchLower) ||
+            p.description?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Apply sorting
+      if (params.sortBy) {
+        filteredProducts.sort((a, b) => {
+          if (params.sortBy === "price") {
+            const priceA = a.price;
+            const priceB = b.price;
+            if (params.sortOrder === "desc") {
+              return priceB - priceA;
+            }
+            return priceA - priceB;
+          }
+
+          // For other fields, compare as strings
+          const aVal = String(a[params.sortBy!] || '');
+          const bVal = String(b[params.sortBy!] || '');
+
+          if (params.sortOrder === "desc") {
+            return bVal.localeCompare(aVal);
+          }
+          return aVal.localeCompare(bVal);
+        });
+      }
+
+      // Apply pagination
+      const page = params.page || 1;
+      const limit = params.limit || 12;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+      return {
+        data: paginatedProducts,
+        success: true,
+        pagination: {
+          page,
+          limit,
+          total: filteredProducts.length,
+          totalPages: Math.ceil(filteredProducts.length / limit),
+        },
+      };
     }
 
-    if (params.grower) {
-      filteredProducts = filteredProducts.filter(
-        (p) => p.grower === params.grower
-      );
-    }
+    // Use real Railway backend API
+    try {
+      // Build query params that match backend API expectations
+      const queryParams: Record<string, string | number | boolean | undefined> = {
+        page: params.page || 1,
+        limit: params.limit || 12,
+      };
 
-    if (params.minPrice !== undefined) {
-      filteredProducts = filteredProducts.filter(
-        (p) => p.price >= params.minPrice!
-      );
-    }
-
-    if (params.maxPrice !== undefined) {
-      filteredProducts = filteredProducts.filter(
-        (p) => p.price <= params.maxPrice!
-      );
-    }
-
-    if (params.search) {
-      const searchLower = params.search.toLowerCase();
-      filteredProducts = filteredProducts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchLower) ||
-          p.description?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply sorting
-    if (params.sortBy) {
-      filteredProducts.sort((a, b) => {
-        let aVal: any = a[params.sortBy!];
-        let bVal: any = b[params.sortBy!];
-
-        if (params.sortBy === "price") {
-          aVal = a.price;
-          bVal = b.price;
-        }
-
-        if (params.sortOrder === "desc") {
-          return bVal > aVal ? 1 : -1;
-        }
-        return aVal > bVal ? 1 : -1;
+      // Only add optional params if they exist
+      if (params.search) queryParams.search = params.search;
+      if (params.category) queryParams.categoryId = params.category; // Backend expects categoryId
+      if (params.sortBy) queryParams.sortBy = params.sortBy;
+      if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+      
+      // Backend now supports minPrice/maxPrice filtering
+      if (params.minPrice !== undefined) queryParams.minPrice = params.minPrice;
+      if (params.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
+      
+      const response = await apiClient.get<BackendResponse<ProductsData>>('/products', {
+        params: queryParams,
       });
+
+      const { data, meta } = response.data.data;
+
+      return {
+        data: data.map(convertBackendProduct),
+        success: true,
+        pagination: {
+          page: meta.page,
+          limit: meta.limit,
+          total: meta.total,
+          totalPages: meta.totalPages,
+        },
+      };
+    } catch (error) {
+      console.error('Failed to fetch products from backend:', error);
+      // Fallback to empty array on error
+      return {
+        data: [],
+        success: false,
+        message: 'Failed to fetch products',
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: 0,
+          totalPages: 0,
+        },
+      };
     }
-
-    // Apply pagination
-    const page = params.page || 1;
-    const limit = params.limit || 12;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-
-    return {
-      data: paginatedProducts,
-      success: true,
-      pagination: {
-        page,
-        limit,
-        total: filteredProducts.length,
-        totalPages: Math.ceil(filteredProducts.length / limit),
-      },
-    };
   }
 
   // Get single product by ID
   static async getProductById(
     id: string
   ): Promise<ApiResponse<ProductApiResponse | null>> {
-    await delay(200);
+    // If using mock data
+    if (USE_MOCK_DATA) {
+      await delay(200);
+      const product = MOCK_PRODUCTS.find((p) => p.id === id);
+      return {
+        data: product || null,
+        success: !!product,
+        message: product ? undefined : "Product not found",
+      };
+    }
 
-    const product = MOCK_PRODUCTS.find((p) => p.id === id);
-
-    return {
-      data: product || null,
-      success: !!product,
-      message: product ? undefined : "Product not found",
-    };
+    // Use real Railway backend API
+    try {
+      const response = await apiClient.get<BackendResponse<{ data: BackendProductResponse }>>(`/products/${id}`);
+      return {
+        data: convertBackendProduct(response.data.data.data),
+        success: true,
+      };
+    } catch (error) {
+      console.error(`Failed to fetch product ${id}:`, error);
+      return {
+        data: null,
+        success: false,
+        message: "Product not found",
+      };
+    }
   }
 
   // Get product categories

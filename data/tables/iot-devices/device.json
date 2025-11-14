@@ -1,0 +1,46 @@
+{
+  "_comment": "Device Table - Complete JSON Structure",
+  "_table": "devices",
+  "_description": "IoT devices for mushroom farm automation and monitoring",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "device_001",
+  "name": "Growing Chamber 01",
+  "type": "MUSHROOM_CHAMBER",
+  "serialNumber": "MASH-MC-2025-001",
+  "status": "ONLINE",
+  "userId": "cm3vxyz123456789",
+  "location": "Manila Urban Farm - Building A",
+  "description": "Primary growing chamber with environmental controls",
+  "firmware": "v2.1.5",
+  "ipAddress": "192.168.1.100",
+  "macAddress": "AA:BB:CC:DD:EE:FF",
+  "lastSeen": "2025-11-10T10:25:00.000Z",
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-11-10T10:25:00.000Z",
+  
+  "_enums": {
+    "type": ["MUSHROOM_CHAMBER", "ENVIRONMENTAL_SENSOR", "IRRIGATION_SYSTEM", "HVAC_CONTROLLER", "CAMERA", "PH_SENSOR", "HUMIDITY_CONTROLLER"],
+    "status": ["ONLINE", "OFFLINE", "MAINTENANCE", "ERROR"]
+  },
+  "_required_fields": ["id", "name", "type", "serialNumber", "status", "userId", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["location", "description", "firmware", "ipAddress", "macAddress", "lastSeen"],
+  "_relationships": {
+    "user": "User",
+    "sensors": "Sensor[]",
+    "sensorData": "SensorData[]",
+    "commands": "DeviceCommand[]",
+    "alerts": "SensorAlert[]",
+    "health": "DeviceHealth[]"
+  },
+  "_device_types_explanation": {
+    "MUSHROOM_CHAMBER": "Complete growing environment with integrated controls",
+    "ENVIRONMENTAL_SENSOR": "Temperature, humidity, CO2 monitoring",
+    "IRRIGATION_SYSTEM": "Automated watering system",
+    "HVAC_CONTROLLER": "Heating, Ventilation, Air Conditioning control",
+    "CAMERA": "Visual monitoring camera",
+    "PH_SENSOR": "Substrate pH measurement",
+    "HUMIDITY_CONTROLLER": "Humidity regulation system"
+  }
+}

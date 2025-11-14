@@ -1,0 +1,57 @@
+{
+  "_comment": "RequestQueue Table - Complete JSON Structure",
+  "_table": "request_queues",
+  "_description": "Queue for throttled API requests",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "queue_001",
+  "gatewayConfigId": "gateway_001",
+  "endpoint": "/products",
+  "method": "POST",
+  "payload": {
+    "name": "King Oyster Mushrooms",
+    "price": 250.00,
+    "stock": 100,
+    "category": "fresh"
+  },
+  "headers": {
+    "Authorization": "Bearer eyJ...",
+    "Content-Type": "application/json"
+  },
+  "userId": "cm3vxyz123456789",
+  "priority": 5,
+  "status": "PENDING",
+  "scheduledFor": "2025-11-10T10:20:00.000Z",
+  "attempts": 0,
+  "maxAttempts": 3,
+  "lastAttemptAt": null,
+  "errorMessage": null,
+  "createdAt": "2025-11-10T10:15:00.000Z",
+  "updatedAt": "2025-11-10T10:15:00.000Z",
+  
+  "_example_processing": {
+    "id": "queue_002",
+    "status": "PROCESSING",
+    "attempts": 1,
+    "lastAttemptAt": "2025-11-10T10:18:00.000Z"
+  },
+  
+  "_example_failed": {
+    "id": "queue_003",
+    "status": "FAILED",
+    "attempts": 3,
+    "errorMessage": "Timeout after 3 attempts",
+    "lastAttemptAt": "2025-11-10T10:20:00.000Z"
+  },
+  
+  "_enums": {
+    "status": ["PENDING", "PROCESSING", "COMPLETED", "FAILED"],
+    "priority": "1-10 (1=lowest, 10=highest)"
+  },
+  "_required_fields": ["id", "gatewayConfigId", "endpoint", "method", "payload", "status", "priority", "attempts", "maxAttempts", "createdAt", "updatedAt"],
+  "_optional_fields": ["headers", "userId", "scheduledFor", "lastAttemptAt", "errorMessage"],
+  "_relationships": {
+    "gatewayConfig": "ApiGatewayConfig",
+    "user": "User?"
+  }
+}

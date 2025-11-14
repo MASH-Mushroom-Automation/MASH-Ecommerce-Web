@@ -20,14 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+// Pagination removed as requested
 import {
   Dialog,
   DialogContent,
@@ -44,7 +37,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Eye, Info, CheckCircle, XCircle } from "lucide-react";
+import { Search, Eye, Info, CheckCircle, XCircle } from "lucide-react";
+import { getStatusBadge } from "@/lib/status-utils";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Sample refund request data
 // This would be replaced with API data in production
@@ -93,6 +98,7 @@ export default function RefundPage() {
   const [currentTab, setCurrentTab] = useState("all");
   const [selectedRefund, setSelectedRefund] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [refundResponse, setRefundResponse] = useState("");
 
   // Filter refund requests based on search term, status filter, and current tab
@@ -143,7 +149,13 @@ export default function RefundPage() {
     setIsViewDialogOpen(false);
   };
 
-  const handleRejectRefund = () => {
+  const handleRejectClick = () => {
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (!selectedRefund) return;
+    
     // In a real application, you would send this update to your API
     console.log(
       "Rejecting refund:",
@@ -152,8 +164,11 @@ export default function RefundPage() {
       refundResponse
     );
 
-    // Close dialog
+    // Close dialogs
+    setIsRejectDialogOpen(false);
     setIsViewDialogOpen(false);
+    
+    toast.success("Refund request rejected");
   };
 
   return (
@@ -162,11 +177,11 @@ export default function RefundPage() {
         <h1 className="text-2xl font-bold text-foreground">Refund Requests</h1>
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-lg mb-6 flex gap-3">
-        <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-700">
+      <div className="bg-accent/30 p-4 rounded-lg mb-6 flex gap-3 border border-accent">
+        <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-foreground">
           <p className="font-semibold">Managing Refund Requests</p>
-          <p className="mt-1">
+          <p className="mt-1 text-muted-foreground">
             Review and respond to customer refund requests. Approve valid
             requests and provide clear reasons for any rejections.
           </p>
@@ -211,24 +226,19 @@ export default function RefundPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <div className="w-40">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+            <div className="w-40">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -262,19 +272,7 @@ export default function RefundPage() {
                       {refund.reason}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={
-                          refund.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                            : refund.status === "Processing"
-                            ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                            : refund.status === "Approved"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }
-                      >
-                        {refund.status}
-                      </Badge>
+                      {getStatusBadge(refund.status)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -302,29 +300,7 @@ export default function RefundPage() {
           </Table>
         </div>
 
-        <div className="py-4 border-t border-border">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        {/* Pagination removed as requested */}
       </div>
 
       {/* View Refund Dialog */}
@@ -374,19 +350,7 @@ export default function RefundPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <Badge
-                      className={
-                        selectedRefund.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          : selectedRefund.status === "Processing"
-                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                          : selectedRefund.status === "Approved"
-                          ? "bg-green-100 text-green-800 hover:bg-green-100"
-                          : "bg-red-100 text-red-800 hover:bg-red-100"
-                      }
-                    >
-                      {selectedRefund.status}
-                    </Badge>
+                    {getStatusBadge(selectedRefund.status)}
                   </div>
                 </CardContent>
               </Card>
@@ -419,7 +383,7 @@ export default function RefundPage() {
                   <Button
                     variant="outline"
                     className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={handleRejectRefund}
+                    onClick={handleRejectClick}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Reject
@@ -441,6 +405,27 @@ export default function RefundPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Rejection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reject this refund request? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRejectConfirm}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Reject Refund
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* API Integration Comment */}
       {/* 

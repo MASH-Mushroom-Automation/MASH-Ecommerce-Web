@@ -1,0 +1,37 @@
+{
+  "_comment": "RateLimitLog Table - Complete JSON Structure",
+  "_table": "rate_limit_logs",
+  "_description": "Rate limiting tracking and enforcement logs",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "rl_001",
+  "identifier": "203.177.123.45",
+  "endpoint": "/api/v1/products",
+  "count": 45,
+  "windowStart": "2025-11-10T10:00:00.000Z",
+  "windowEnd": "2025-11-10T10:01:00.000Z",
+  "blocked": false,
+  "createdAt": "2025-11-10T10:01:00.000Z",
+  
+  "_required_fields": ["id", "identifier", "endpoint", "count", "windowStart", "windowEnd", "blocked", "createdAt"],
+  "_optional_fields": [],
+  "_relationships": {
+    "None": "Standalone logging table"
+  },
+  "_identifier_types": {
+    "ip_address": "203.177.123.45 (anonymous requests)",
+    "user_id": "cm3vxyz123456789 (authenticated users)",
+    "api_key": "key_001 (API key requests)"
+  },
+  "_rate_limits": {
+    "default": "60 requests per minute",
+    "authenticated": "100 requests per minute",
+    "api_key": "1000 requests per minute",
+    "admin": "No limit"
+  },
+  "_notes": {
+    "blocked": "True if requests were blocked due to rate limit",
+    "window": "Time window for rate limit calculation (usually 1 minute)",
+    "cleanup": "Logs older than 30 days can be archived or deleted"
+  }
+}

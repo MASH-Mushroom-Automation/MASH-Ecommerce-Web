@@ -1,0 +1,53 @@
+{
+  "_comment": "DeviceHealth Table - Complete JSON Structure",
+  "_table": "device_health",
+  "_description": "Device health metrics and monitoring data",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "dh_001",
+  "deviceId": "device_001",
+  "timestamp": "2025-11-10T10:25:00.000Z",
+  "status": "HEALTHY",
+  "cpuUsage": 45.2,
+  "memoryUsage": 62.8,
+  "diskUsage": 35.5,
+  "temperature": 42.0,
+  "batteryLevel": null,
+  "networkLatency": 25,
+  "uptime": 345600,
+  "errorCount": 0,
+  "metadata": {
+    "firmwareVersion": "v2.1.5",
+    "lastReboot": "2025-11-06T08:00:00.000Z",
+    "wifiSignal": -45,
+    "freeMemory": 128000,
+    "processList": ["main", "sensor_reader", "mqtt_client"]
+  },
+  "createdAt": "2025-11-10T10:25:00.000Z",
+  
+  "_enums": {
+    "status": ["HEALTHY", "WARNING", "CRITICAL", "OFFLINE", "MAINTENANCE"]
+  },
+  "_required_fields": ["id", "deviceId", "timestamp", "status", "createdAt"],
+  "_optional_fields": ["cpuUsage", "memoryUsage", "diskUsage", "temperature", "batteryLevel", "networkLatency", "uptime", "errorCount", "metadata"],
+  "_relationships": {
+    "device": "Device"
+  },
+  "_metrics_explanation": {
+    "cpuUsage": "CPU usage percentage (0-100)",
+    "memoryUsage": "Memory usage percentage (0-100)",
+    "diskUsage": "Disk usage percentage (0-100)",
+    "temperature": "Device temperature in °C",
+    "batteryLevel": "Battery percentage (0-100) or null if AC powered",
+    "networkLatency": "Network ping latency in milliseconds",
+    "uptime": "Uptime in seconds since last boot",
+    "errorCount": "Number of errors in last collection period"
+  },
+  "_health_thresholds": {
+    "HEALTHY": "All metrics within normal ranges",
+    "WARNING": "cpuUsage > 80% OR memoryUsage > 85% OR temperature > 70°C",
+    "CRITICAL": "cpuUsage > 95% OR memoryUsage > 95% OR temperature > 80°C OR errorCount > 10",
+    "OFFLINE": "Device not responding to health checks",
+    "MAINTENANCE": "Device in maintenance mode"
+  }
+}

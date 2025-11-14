@@ -1,0 +1,69 @@
+{
+  "_comment": "Notification Table - Complete JSON Structure",
+  "_table": "notifications",
+  "_description": "Notification delivery records for alerts",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "alertId": "550e8400-e29b-41d4-a716-446655440002",
+  "userId": "cm3vxyz123456789",
+  "channel": "PUSH",
+  "status": "DELIVERED",
+  "recipientEmail": null,
+  "recipientPhone": null,
+  "recipientId": "cm3vxyz123456789",
+  "subject": "High Temperature Alert - Chamber 01",
+  "body": "Temperature in Growing Chamber 01 has reached 32.5°C, exceeding the safe threshold of 30°C. Immediate action required.",
+  "templateId": null,
+  "queuedAt": "2025-11-10T10:30:05.000Z",
+  "sentAt": "2025-11-10T10:30:10.000Z",
+  "deliveredAt": "2025-11-10T10:30:12.000Z",
+  "failedAt": null,
+  "retryCount": 0,
+  "maxRetries": 3,
+  "nextRetryAt": null,
+  "provider": "Firebase Cloud Messaging",
+  "providerMessageId": "fcm_msg_123456789abc",
+  "providerResponse": {
+    "success": true,
+    "messageId": "fcm_msg_123456789abc",
+    "canonicalRegistrationId": null
+  },
+  "errorMessage": null,
+  "metadata": {
+    "deviceToken": "token_abc123def456",
+    "deviceType": "android",
+    "appVersion": "2.1.0"
+  },
+  "priority": 7,
+  "createdAt": "2025-11-10T10:30:05.000Z",
+  "updatedAt": "2025-11-10T10:30:12.000Z",
+  
+  "_enums": {
+    "channel": ["EMAIL", "SMS", "PUSH", "IN_APP", "WEBHOOK"],
+    "status": ["PENDING", "QUEUED", "SENDING", "SENT", "DELIVERED", "FAILED", "BOUNCED", "RETRYING", "CANCELLED"]
+  },
+  "_required_fields": ["id", "alertId", "userId", "channel", "status", "recipientId", "subject", "body", "queuedAt", "retryCount", "maxRetries", "priority", "createdAt", "updatedAt"],
+  "_optional_fields": ["recipientEmail", "recipientPhone", "templateId", "sentAt", "deliveredAt", "failedAt", "nextRetryAt", "provider", "providerMessageId", "providerResponse", "errorMessage", "metadata"],
+  "_relationships": {
+    "alert": "Alert",
+    "user": "User"
+  },
+  "_notification_lifecycle": {
+    "PENDING": "Notification created, not yet queued",
+    "QUEUED": "In send queue, waiting to be sent",
+    "SENDING": "Currently being sent to provider",
+    "SENT": "Sent to provider successfully",
+    "DELIVERED": "Confirmed delivery to recipient",
+    "FAILED": "Failed to send after all retries",
+    "BOUNCED": "Rejected by recipient (invalid email/phone)",
+    "RETRYING": "Failed, will retry",
+    "CANCELLED": "Cancelled before sending"
+  },
+  "_retry_logic": {
+    "maxRetries": "Maximum retry attempts (default 3)",
+    "retryCount": "Current retry attempts",
+    "nextRetryAt": "Scheduled time for next retry",
+    "backoff": "Exponential backoff: 1min, 5min, 15min"
+  }
+}

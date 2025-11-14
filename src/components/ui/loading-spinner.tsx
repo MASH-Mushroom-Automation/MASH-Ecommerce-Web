@@ -18,7 +18,7 @@ export function LoadingSpinner({
   return (
     <div
       className={cn(
-        "animate-spin rounded-full border-2 border-gray-300 border-t-[#1E392A]",
+        "animate-spin rounded-full border-2 border-muted border-t-primary",
         sizeClasses[size],
         className
       )}
@@ -27,14 +27,14 @@ export function LoadingSpinner({
 }
 
 export function LoadingSkeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse bg-gray-200 rounded", className)} />;
+  return <div className={cn("animate-pulse bg-muted rounded", className)} />;
 }
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm flex flex-col h-full">
+    <div className="bg-card rounded-lg overflow-hidden border border-border shadow-sm flex flex-col h-full">
       {/* Image skeleton */}
-      <div className="aspect-square bg-gray-200 animate-pulse" />
+      <div className="aspect-square bg-muted animate-pulse" />
       
       {/* Content skeleton */}
       <div className="p-3 space-y-3 flex-grow">
@@ -43,7 +43,7 @@ export function ProductCardSkeleton() {
       </div>
       
       {/* Price and button skeleton */}
-      <div className="p-3 pt-0 border-t border-gray-100">
+      <div className="p-3 pt-0 border-t border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="space-y-2 flex-1">
             <LoadingSkeleton className="h-5 w-20" />

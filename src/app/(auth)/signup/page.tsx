@@ -1,128 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Check, X as XIcon, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { User } from "lucide-react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
-// Validation helper for names (letters, spaces, hyphens only, no special chars)
-const validateName = (name: string) => {
-  const errors: string[] = [];
-  if (name.length < 2) errors.push("at least 2 characters");
-  if (name.length > 24) errors.push("maximum 24 characters");
-  if (!/^[a-zA-Z\s\-']+$/.test(name)) errors.push("only letters, spaces, hyphens and apostrophes allowed");
-  return errors;
-};
-
-// Validation helper for password
-const validatePassword = (val: string) => {
-  const errors: string[] = [];
-  
-  if (val.length < 8) {
-    errors.push("at least 8 characters");
-  }
-  
-  if (!/[A-Z]/.test(val)) {
-    errors.push("an uppercase letter");
-  }
-  
-  if (!/\d/.test(val)) {
-    errors.push("a number");
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)) {
-    errors.push("a special character");
-  }
-  
-  return errors;
-};
-
-// Get password requirements status
-const getPasswordRequirements = (password: string) => {
-  return {
-    minLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
-    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
-  };
-};
-
-// Get name validation status
-const getNameStatus = (name: string) => {
-  const errors = validateName(name);
-  return {
-    isValid: errors.length === 0,
-    message: errors.length > 0 ? `Must contain ${errors.join(", ")}` : "Valid name",
-  };
-};
-
-// Get email validation status
-const getEmailStatus = (email: string) => {
-  if (!email) {
-    return { isValid: false, message: "Enter an email address" };
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  
-  if (emailRegex.test(email)) {
-    return { isValid: true, message: "Valid email" };
-  }
-  
-  return {
-    isValid: false,
-    message: "Enter a valid email (user@example.com)",
-  };
-};
+import { apiRequest } from "@/lib/api-client";
 
 const signupSchema = z
   .object({
-    username: z
-      .string()
-      .min(2, "Username must be at least 2 characters")
-      .max(24, "Username must be less than 24 characters")
-      .refine(
-        (val) => /^[a-zA-Z\s\-']+$/.test(val),
-        "Username can only contain letters, spaces, hyphens and apostrophes"
-      ),
-    firstName: z
-      .string()
-      .min(2, "First name must be at least 2 characters")
-      .max(24, "First name must be less than 24 characters")
-      .refine(
-        (val) => /^[a-zA-Z\s\-']+$/.test(val),
-        "First name can only contain letters, spaces, hyphens and apostrophes"
-      ),
-    lastName: z
-      .string()
-      .min(2, "Last name must be at least 2 characters")
-      .max(24, "Last name must be less than 24 characters")
-      .refine(
-        (val) => /^[a-zA-Z\s\-']+$/.test(val),
-        "Last name can only contain letters, spaces, hyphens and apostrophes"
-      ),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .refine(
-        (val) => validatePassword(val).length === 0,
-        (val) => ({
-          message: `Password must contain ${validatePassword(val).join(", ")}`,
-        })
-      ),
-    confirmPassword: z
-      .string()
-      .min(8, "Confirm your password"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Enter a valid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Confirm your password"),
     terms: z.boolean().refine((v) => v === true, {
       message: "You must agree to Terms & Conditions",
     }),
@@ -137,24 +34,32 @@ const signupSchema = z
 
 type SignupForm = z.infer<typeof signupSchema>;
 
+// API Response Type
+interface RegisterResponse {
+  success: boolean;
+  statusCode: number;
+  data: {
+    success: boolean;
+    message: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      emailVerified: boolean;
+    };
+    verification: {
+      sent: boolean;
+      method: string;
+      expiresIn: string;
+      email: string;
+    };
+    nextStep: string;
+  };
+}
+
 export default function SignupPage() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  // Verification state
-  const [verificationStep, setVerificationStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [userEmail, setUserEmail] = useState("");
-
   const {
     register,
     handleSubmit,
@@ -163,7 +68,6 @@ export default function SignupPage() {
   } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      username: "",
       firstName: "",
       lastName: "",
       email: "",
@@ -176,88 +80,33 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
-      // Store user data and email for verification
-      setUserEmail(data.email);
+      // Call backend API
+      const response = await apiRequest<RegisterResponse>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        }),
+      });
+
+      // Store email for verification page
+      sessionStorage.setItem("pendingVerificationEmail", data.email);
       
-      // TODO: Send verification code to user's email
-      // await AuthApi.sendVerificationCode(data.email)
-      toast.success("Verification code sent to your email!");
-      
-      // Transition to verification step
-      setVerificationStep(true);
-      setResendTimer(60); // 60 second timer for resend
-      
-      // Start countdown timer
-      const interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // Show success message
+      toast.success("Registration successful!", {
+        description: response.data.message || "Check your email for a verification code.",
+      });
+
+      // Redirect to verification page
+      router.push("/verify-otp");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Unable to send verification code"
-      );
+      console.error("Registration error:", err);
+      toast.error("Registration failed", {
+        description: err instanceof Error ? err.message : "Unable to create account. Please try again.",
+      });
     }
-  };
-
-  const handleVerificationSubmit = async () => {
-    if (verificationCode.length !== 6) {
-      toast.error("Please enter a 6-digit code");
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      // TODO: Verify code with backend
-      // const verified = await AuthApi.verifyCode(userEmail, verificationCode)
-      
-      // Simulating verification success
-      toast.success("Email verified successfully! Account created.");
-      
-      // Redirect to login
-      router.push("/login");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Verification code is incorrect"
-      );
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendTimer > 0) return;
-    
-    try {
-      // TODO: Resend verification code
-      // await AuthApi.sendVerificationCode(userEmail)
-      toast.success("Verification code resent to your email!");
-      setResendTimer(60);
-      
-      // Start countdown timer
-      const interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to resend code"
-      );
-    }
-  };
-
-  const handleBackToSignup = () => {
-    setVerificationStep(false);
-    setVerificationCode("");
   };
 
   const handleGoogleSignUp = () => {
@@ -271,256 +120,79 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center py-6 sm:py-8 md:py-12">
-      <div className="w-full px-4 sm:px-6 md:px-8 max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
         {/* Signup Card */}
-        <div className="bg-card rounded-lg shadow-md p-6 sm:p-8 md:p-12">
-          {verificationStep ? (
-            // Verification Section
-            <>
-              {/* Back Button */}
-              <button
-                onClick={handleBackToSignup}
-                className="flex items-center gap-2 text-primary hover:text-primary/80 text-sm font-medium mb-6 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Sign Up
-              </button>
+        <div className="bg-card rounded-lg shadow-md p-8">
+          {/* User Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-primary rounded-full p-4">
+              <User className="w-8 h-8 text-primary-foreground" />
+            </div>
+          </div>
 
-              {/* Icon */}
-              <div className="flex justify-center mb-4 sm:mb-6">
-                <div className="bg-primary rounded-full p-3 sm:p-4">
-                  <Check className="w-6 h-6 sm:w-8 sm:h-8 text-primary-foreground" />
-                </div>
-              </div>
+          {/* Title */}
+          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
+            Create your account
+          </h2>
+          <p className="text-center text-muted-foreground text-sm mb-6">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in here
+            </Link>
+          </p>
 
-              {/* Title */}
-              <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground mb-1 sm:mb-2">
-                Verify Your Email
-              </h2>
-              <p className="text-center text-muted-foreground text-xs sm:text-sm mb-6 sm:mb-8">
-                We&apos;ve sent a 6-digit code to <br />
-                <span className="font-semibold text-foreground">{userEmail}</span>
-              </p>
-
-              {/* Verification Code Input */}
-              <div className="mb-6">
-                <label
-                  htmlFor="verificationCode"
-                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-2"
-                >
-                  Verification Code
-                </label>
-                <Input
-                  id="verificationCode"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => {
-                    const value = e.currentTarget.value.replace(/\D/g, "");
-                    setVerificationCode(value);
-                  }}
-                  className="w-full text-center text-2xl tracking-widest font-mono"
-                  placeholder="000000"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Enter the 6-digit code from your email
-                </p>
-              </div>
-
-              {/* Verify Button */}
-              <Button
-                onClick={handleVerificationSubmit}
-                disabled={isVerifying || verificationCode.length !== 6}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 sm:py-5 md:py-6 rounded-lg font-semibold text-sm sm:text-base mb-4"
-              >
-                {isVerifying ? "Verifying..." : "Verify Email"}
-              </Button>
-
-              {/* Resend Code */}
-              <div className="text-center">
-                {resendTimer > 0 ? (
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Resend code in{" "}
-                    <span className="font-semibold text-foreground">{resendTimer}s</span>
-                  </p>
-                ) : (
-                  <button
-                    onClick={handleResendCode}
-                    className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                  >
-                    Didn&apos;t receive the code? Resend
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            // Signup Form Section
-            <>
-              {/* User Icon */}
-              <div className="flex justify-center mb-4 sm:mb-6">
-                <div className="bg-primary rounded-full p-3 sm:p-4">
-                  <User className="w-6 h-6 sm:w-8 sm:h-8 text-primary-foreground" />
-                </div>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground mb-1 sm:mb-2">
-                Create your account
-              </h2>
-              <p className="text-center text-muted-foreground text-xs sm:text-sm mb-4 sm:mb-6">
-                Already have an account?{" "}
-                <Link href="/login" className="text-primary hover:underline">
-                  Sign in here
-                </Link>
-              </p>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 md:space-y-5">
-            {/* Username Input */}
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* First Name Input */}
             <div>
               <label
-                htmlFor="username"
-                className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                htmlFor="firstName"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
-                Username
+                First Name
               </label>
               <Input
-                id="username"
+                id="firstName"
                 type="text"
-                maxLength={24}
-                {...register("username")}
-                onInput={(e) => setUsername(e.currentTarget.value)}
+                {...register("firstName")}
                 className="w-full"
-                placeholder="Choose your username"
+                placeholder="Enter your first name"
               />
-
-              {/* Username Validation Indicator */}
-              {username && (
-                <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                  <div
-                    className={`flex items-center gap-2 text-xs ${
-                      getNameStatus(username).isValid
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {getNameStatus(username).isValid ? (
-                      <Check className="h-3 w-3 flex-shrink-0" />
-                    ) : (
-                      <XIcon className="h-3 w-3 flex-shrink-0" />
-                    )}
-                    <span>{getNameStatus(username).message}</span>
-                  </div>
-                </div>
-              )}
-
-              {errors.username && (
-                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                  {errors.username.message}
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-destructive">
+                  {errors.firstName.message}
                 </p>
               )}
             </div>
 
-            {/* First & Last Name Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              {/* First Name Input */}
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                >
-                  First Name
-                </label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  maxLength={24}
-                  {...register("firstName")}
-                  onInput={(e) => setFirstName(e.currentTarget.value)}
-                  className="w-full"
-                  placeholder="Enter your first name"
-                />
-
-                {/* First Name Validation Indicator */}
-                {firstName && (
-                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getNameStatus(firstName).isValid
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {getNameStatus(firstName).isValid ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>{getNameStatus(firstName).message}</span>
-                    </div>
-                  </div>
-                )}
-
-                {errors.firstName && (
-                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                    {errors.firstName.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Last Name Input */}
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                >
-                  Last Name
-                </label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  maxLength={24}
-                  {...register("lastName")}
-                  onInput={(e) => setLastName(e.currentTarget.value)}
-                  className="w-full"
-                  placeholder="Enter your last name"
-                />
-
-                {/* Last Name Validation Indicator */}
-                {lastName && (
-                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getNameStatus(lastName).isValid
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {getNameStatus(lastName).isValid ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>{getNameStatus(lastName).message}</span>
-                    </div>
-                  </div>
-                )}
-
-                {errors.lastName && (
-                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                    {errors.lastName.message}
-                  </p>
-                )}
-              </div>
+            {/* Last Name Input */}
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-sm font-medium text-muted-foreground mb-2"
+              >
+                Last Name
+              </label>
+              <Input
+                id="lastName"
+                type="text"
+                {...register("lastName")}
+                className="w-full"
+                placeholder="Enter your last name"
+              />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-destructive">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
 
             {/* Email Input */}
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Email
               </label>
@@ -528,33 +200,11 @@ export default function SignupPage() {
                 id="email"
                 type="email"
                 {...register("email")}
-                onInput={(e) => setEmail(e.currentTarget.value)}
                 className="w-full"
                 placeholder="Enter your email"
               />
-
-              {/* Email Validation Indicator */}
-              {email && (
-                <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                  <div
-                    className={`flex items-center gap-2 text-xs ${
-                      getEmailStatus(email).isValid
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {getEmailStatus(email).isValid ? (
-                      <Check className="h-3 w-3 flex-shrink-0" />
-                    ) : (
-                      <XIcon className="h-3 w-3 flex-shrink-0" />
-                    )}
-                    <span>{getEmailStatus(email).message}</span>
-                  </div>
-                </div>
-              )}
-
               {errors.email && (
-                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -564,105 +214,19 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Password
               </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  onInput={(e) => setPassword(e.currentTarget.value)}
-                  className="w-full pr-10"
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* Password Requirements Indicator */}
-              {password && (
-                <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
-                    Password Requirements:
-                  </p>
-                  <div className="space-y-1">
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getPasswordRequirements(password).minLength
-                          ? "text-green-600"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {getPasswordRequirements(password).minLength ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>At least 8 characters</span>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getPasswordRequirements(password).hasUppercase
-                          ? "text-green-600"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {getPasswordRequirements(password).hasUppercase ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>Contains uppercase letter (A-Z)</span>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getPasswordRequirements(password).hasNumber
-                          ? "text-green-600"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {getPasswordRequirements(password).hasNumber ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>Contains a number (0-9)</span>
-                    </div>
-
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getPasswordRequirements(password).hasSpecialChar
-                          ? "text-green-600"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {getPasswordRequirements(password).hasSpecialChar ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>Contains special character (!@#$%^&* etc.)</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+              <Input
+                id="password"
+                type="password"
+                {...register("password")}
+                className="w-full"
+                placeholder="Create a password"
+              />
               {errors.password && (
-                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
                 </p>
               )}
@@ -672,66 +236,26 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
                 Confirm Password
               </label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  {...register("confirmPassword")}
-                  onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-                  className="w-full pr-10"
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* Password Match Indicator */}
-              {confirmPassword && password && (
-                <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                  <div
-                    className={`flex items-center gap-2 text-xs ${
-                      password === confirmPassword
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {password === confirmPassword ? (
-                      <Check className="h-3 w-3 flex-shrink-0" />
-                    ) : (
-                      <XIcon className="h-3 w-3 flex-shrink-0" />
-                    )}
-                    <span>
-                      {password === confirmPassword
-                        ? "Passwords match"
-                        : "Passwords do not match"}
-                    </span>
-                  </div>
-                </div>
-              )}
-
+              <Input
+                id="confirmPassword"
+                type="password"
+                {...register("confirmPassword")}
+                className="w-full"
+                placeholder="Confirm your password"
+              />
               {errors.confirmPassword && (
-                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
             {/* Terms & Conditions */}
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-3">
               <div className="flex items-start space-x-2">
                 <Controller
                   name="terms"
@@ -741,13 +265,13 @@ export default function SignupPage() {
                       id="terms"
                       checked={!!field.value}
                       onCheckedChange={(checked) => field.onChange(!!checked)}
-                      className="mt-0.5 sm:mt-1"
+                      className="mt-1"
                     />
                   )}
                 />
                 <label
                   htmlFor="terms"
-                  className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
+                  className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to the{" "}
                   <Link
@@ -760,7 +284,7 @@ export default function SignupPage() {
                 </label>
               </div>
               {errors.terms && (
-                <p className="mt-1 text-xs sm:text-sm text-destructive">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.terms.message}
                 </p>
               )}
@@ -774,13 +298,13 @@ export default function SignupPage() {
                       id="privacy"
                       checked={!!field.value}
                       onCheckedChange={(checked) => field.onChange(!!checked)}
-                      className="mt-0.5 sm:mt-1"
+                      className="mt-1"
                     />
                   )}
                 />
                 <label
                   htmlFor="privacy"
-                  className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
+                  className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to let you use, processing, and sharing of my personal
                   information in accordance to the{" "}
@@ -794,7 +318,7 @@ export default function SignupPage() {
                 </label>
               </div>
               {errors.privacy && (
-                <p className="mt-1 text-xs sm:text-sm text-destructive">
+                <p className="mt-1 text-sm text-destructive">
                   {errors.privacy.message}
                 </p>
               )}
@@ -803,18 +327,18 @@ export default function SignupPage() {
             {/* Create Account Button */}
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 sm:py-5 md:py-6 rounded-lg font-semibold text-sm sm:text-base"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Creating Account..." : "Create Account"}
             </Button>
 
             {/* Divider */}
-            <div className="relative my-4 sm:my-5 md:my-6">
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border"></div>
               </div>
-              <div className="relative flex justify-center text-xs sm:text-sm">
+              <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-card text-muted-foreground">or</span>
               </div>
             </div>
@@ -824,10 +348,10 @@ export default function SignupPage() {
               type="button"
               onClick={handleGoogleSignUp}
               variant="outline"
-              className="w-full py-4 sm:py-5 md:py-6 border-border hover:bg-muted/30 text-sm sm:text-base"
+              className="w-full py-6 border-border hover:bg-muted/30"
             >
               <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
+                className="w-5 h-5 mr-2"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -856,10 +380,10 @@ export default function SignupPage() {
               type="button"
               onClick={handleFacebookSignUp}
               variant="outline"
-              className="w-full py-4 sm:py-5 md:py-6 border-border hover:bg-muted/30 text-sm sm:text-base"
+              className="w-full py-6 border-border hover:bg-muted/30"
             >
               <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
+                className="w-5 h-5 mr-2"
                 fill="#1877F2"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
@@ -868,9 +392,7 @@ export default function SignupPage() {
               </svg>
               Sign up with Facebook
             </Button>
-              </form>
-            </>
-          )}
+          </form>
         </div>
       </div>
     </div>

@@ -60,12 +60,13 @@ export const sellerApplicationSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   phone: z
     .string()
-    .min(11, "Phone number must be exactly 11 digits")
-    .max(11, "Phone number must be exactly 11 digits")
-    .refine((val) => /^\d{11}$/.test(val), {
-      message: "Phone number must be exactly 11 digits",
-    }),
-  address: z.string().min(10, "Please provide a complete address").max(64, "Address must be 64 characters or less"),
+    .min(1, "Phone number is required")
+    .regex(
+      /^(09|\+639)\d{9}$/,
+      "Please enter a valid Philippine phone number (e.g., 09123456789 or +639123456789)"
+    ),
+  address: z.string().min(10, "Please provide a complete address"),
+>>>>>>> origin/main
   city: z.string().min(2, "City is required"),
   region: z.string().min(2, "Region is required"),
   
@@ -74,17 +75,7 @@ export const sellerApplicationSchema = z.object({
   mushroomOther: z.string().optional(),
   productionCapacity: z.string().min(1, "Production capacity is required"),
   certifications: z.string().optional(),
-  
-  // Banking Details
-  bankName: z.string().min(2, "Bank name is required").max(24, "Bank name must be 24 characters or less"),
-  accountNumber: z
-    .string()
-    .min(8, "Account number must be at least 8 digits")
-    .refine((val) => /^\d+$/.test(val), {
-      message: "Account number must contain numbers only",
-    }),
-  accountName: z.string().min(2, "Account holder name is required").max(24, "Account holder name must be 24 characters or less"),
-  
+
   // Terms
   agreeToTerms: z
     .boolean()
@@ -113,9 +104,6 @@ export default function StartSellingPage() {
       mushroomTypes: [],
       productionCapacity: "",
       certifications: "",
-      bankName: "",
-      accountNumber: "",
-      accountName: "",
       agreeToTerms: false,
     },
   });

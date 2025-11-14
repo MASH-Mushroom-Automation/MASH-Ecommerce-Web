@@ -42,12 +42,6 @@ export function MobileBottomNav() {
       icon: Sprout,
     },
     {
-      href: "/notifications",
-      label: "Alerts",
-      icon: Bell,
-      badge: 3, // This would come from context/state
-    },
-    {
       href: "/profile",
       label: "Account",
       icon: User,

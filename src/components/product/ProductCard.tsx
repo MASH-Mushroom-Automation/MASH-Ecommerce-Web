@@ -16,9 +16,9 @@ import { getGrowerUrl } from "@/lib/grower-utils";
 interface ProductCardProps {
   id: string;
   name: string;
-  farm: string;
+  farm?: string;
   price: number;
-  unit: string;
+  unit?: string;
   image: string;
   inStock?: boolean;
 }
@@ -63,11 +63,11 @@ export function ProductCard({
   };
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-shadow duration-200 flex flex-col h-full">
+    <div className="bg-card rounded-lg overflow-hidden border border-border shadow-sm hover:shadow transition-shadow duration-200 flex flex-col h-full">
       {/* Product Image */}
       <Link
         href={`/product/${id}`}
-        className="block relative aspect-square bg-gray-50"
+        className="block relative aspect-square bg-muted"
       >
         <Image
           src={image}
@@ -77,17 +77,20 @@ export function ProductCard({
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         {/* Farm Badge */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            router.push(getGrowerUrl(farm));
-          }}
-          className="absolute top-2 left-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-primary shadow-sm hover:bg-background transition-colors"
-          aria-label={`View grower ${farm}`}
-        >
-          @{farm}
-        </button>
+        {farm && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(getGrowerUrl(farm));
+            }}
+            className="absolute top-2 left-2 bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-primary shadow-sm hover:bg-background transition-colors max-w-[calc(100%-80px)] truncate"
+            aria-label={`View grower ${farm}`}
+            title={`@${farm}`}
+          >
+            @{farm}
+          </button>
+        )}
         {/* Wishlist Button */}
         <button
           onClick={toggleWishlist}
@@ -98,8 +101,8 @@ export function ProductCard({
             className={cn(
               "h-4 w-4 transition-colors",
               inWishlist
-                ? "fill-red-500 text-red-500"
-                : "text-muted-foreground hover:text-red-500"
+                ? "fill-destructive text-destructive"
+                : "text-muted-foreground hover:text-destructive"
             )}
           />
         </button>
@@ -121,7 +124,7 @@ export function ProductCard({
             <span className="text-base font-bold text-foreground">
               ₱{price.toFixed(2)}
             </span>
-            <span className="text-xs text-muted-foreground">/ {unit}</span>
+            <span className="text-xs text-muted-foreground">/ {unit ?? "unit"}</span>
           </div>
 
           <Button
@@ -135,7 +138,7 @@ export function ProductCard({
           </Button>
         </div>
 
-        {!inStock && <p className="text-xs text-red-600 mt-1">Out of Stock</p>}
+        {!inStock && <p className="text-xs text-destructive mt-1">Out of Stock</p>}
       </div>
     </div>
   );

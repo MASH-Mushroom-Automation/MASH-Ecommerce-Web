@@ -63,6 +63,8 @@ export default function EditProduct() {
           stock: 25,
           status: "Active",
           image: "/placeholder.png",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
 
         // Mock description and weight (not in SellerProduct type)
@@ -160,12 +162,12 @@ export default function EditProduct() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
+      <div className="mb-6">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.back()}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Products

@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { SellerOrder } from "@/types/api";
+import { getStatusBadge, getStatusLabel, type OrderStatus } from "@/lib/status-utils";
+
+interface Order extends Omit<SellerOrder, 'status'> {
+  status: OrderStatus;
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -46,27 +52,28 @@ export default function SellerOrders() {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  // Filter orders based on current tab
-  const filteredOrders =
-    orders?.filter((order) => {
-      const matchesTab =
-        currentTab === "all" ||
-        (currentTab === "pending" && order.status === "Pending") ||
-        (currentTab === "confirmed" && order.status === "Confirmed") ||
-        (currentTab === "ready" && order.status === "Ready for Pickup") ||
-        (currentTab === "completed" && order.status === "Completed") ||
-        (currentTab === "cancelled" && order.status === "Cancelled");
+  // Map tab value to status
+  const tabToStatus: Record<string, OrderStatus | undefined> = {
+    all: undefined,
+    pending: "PENDING",
+    confirmed: "CONFIRMED",
+    ready: "READY_FOR_PICKUP",
+    completed: "COMPLETED",
+    cancelled: "CANCELLED"
+  };
 
-      return matchesTab;
+  // Filter orders based on current tab
+  const filteredOrders: Order[] =
+    orders?.filter((order) => {
+      const targetStatus = tabToStatus[currentTab];
+      return !targetStatus || order.status === targetStatus;
     }) || [];
 
   // Get counts for each status for the tabs
-  const getStatusCount = (status: string) => {
+  const getStatusCount = (tabValue: string) => {
     if (!orders) return 0;
-    return orders.filter(
-      (order) =>
-        status === "all" || order.status.toLowerCase() === status.toLowerCase()
-    ).length;
+    const targetStatus = tabToStatus[tabValue];
+    return orders.filter(order => !targetStatus || order.status === targetStatus).length;
   };
 
   // Handle search
@@ -205,8 +212,10 @@ export default function SellerOrders() {
           <Table>
             <TableHeader>
               <TableRow>
+                {/* View action column (no header) */}
+                <TableHead className="w-[80px] pl-5"></TableHead>
                 {/* Order identifier column */}
-                <TableHead className="w-[120px] pl-5">Order ID</TableHead>
+                <TableHead className="w-[120px]">Order ID</TableHead>
                 {/* Purchase date column */}
                 <TableHead className="w-[140px]">Date</TableHead>
                 {/* Buyer information column */}
@@ -216,54 +225,15 @@ export default function SellerOrders() {
                 {/* Order total amount column */}
                 <TableHead className="text-right w-[120px]">Total</TableHead>
                 {/* Fulfillment status column */}
-                <TableHead className="w-[140px]">Status</TableHead>
-                {/* Row actions column */}
-                <TableHead className="text-right w-[100px] pr-5">Actions</TableHead>
+                <TableHead className="w-[140px] pr-5">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-muted/50">
-                    {/* Order identifier cell */}
-                    <TableCell className="font-medium text-sm pl-5">{order.id}</TableCell>
-                    {/* Purchase date cell */}
-                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
-                    {/* Buyer information cell */}
-                    <TableCell className="text-sm">{order.customer}</TableCell>
-                    {/* Number of items cell */}
-                    <TableCell className="text-right text-sm">{order.items}</TableCell>
-                    {/* Order total amount cell */}
-                    <TableCell className="text-right font-semibold text-sm">
-                      ₱{order.total.toFixed(2)}
-                    </TableCell>
-                    {/* Fulfillment status cell */}
-                    <TableCell>
-                      <Badge
-                        variant={
-                          order.status === "Cancelled"
-                            ? "destructive"
-                            : order.status === "Completed"
-                            ? "outline"
-                            : "outline"
-                        }
-                        className={
-                          order.status === "Pending"
-                            ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
-                            : order.status === "Confirmed"
-                            ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
-                            : order.status === "Ready for Pickup"
-                            ? "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
-                            : order.status === "Completed"
-                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
-                            : ""
-                        }
-                      >
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    {/* Row actions cell */}
-                    <TableCell className="text-right pr-5">
+                    {/* View action cell */}
+                    <TableCell className="pl-5">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -275,6 +245,22 @@ export default function SellerOrders() {
                           <span className="text-xs">View</span>
                         </a>
                       </Button>
+                    </TableCell>
+                    {/* Order identifier cell */}
+                    <TableCell className="font-medium text-sm">{order.id}</TableCell>
+                    {/* Purchase date cell */}
+                    <TableCell className="text-sm text-muted-foreground">{order.date}</TableCell>
+                    {/* Buyer information cell */}
+                    <TableCell className="text-sm">{order.customer}</TableCell>
+                    {/* Number of items cell */}
+                    <TableCell className="text-right text-sm">{order.items}</TableCell>
+                    {/* Order total amount cell */}
+                    <TableCell className="text-right font-semibold text-sm">
+                      ₱{order.total.toFixed(2)}
+                    </TableCell>
+                    {/* Fulfillment status cell */}
+                    <TableCell className="pr-5">
+                      {getStatusBadge(order.status)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -306,28 +292,7 @@ export default function SellerOrders() {
                       <p className="font-semibold text-sm text-foreground">{order.id}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{order.date}</p>
                     </div>
-                    <Badge
-                      variant={
-                        order.status === "Cancelled"
-                          ? "destructive"
-                          : order.status === "Completed"
-                          ? "outline"
-                          : "outline"
-                      }
-                      className={
-                        order.status === "Pending"
-                          ? "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border-yellow-300"
-                          : order.status === "Confirmed"
-                          ? "bg-blue-100/10 text-blue-700 dark:text-blue-600 border-blue-300"
-                          : order.status === "Ready for Pickup"
-                          ? "bg-purple-100/10 text-purple-700 dark:text-purple-600 border-purple-300"
-                          : order.status === "Completed"
-                          ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
-                          : ""
-                      }
-                    >
-                      {order.status}
-                    </Badge>
+                    {getStatusBadge(order.status)}
                   </div>
                   <div className="space-y-2 mb-3">
                     <div className="flex justify-between text-sm">
@@ -364,59 +329,6 @@ export default function SellerOrders() {
             </div>
           )}
         </div>
-
-        {pagination && (
-          <div className="py-4 border-t border-border">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage > 1) handlePageChange(currentPage - 1);
-                    }}
-                    className={
-                      currentPage <= 1 ? "pointer-events-none opacity-50" : ""
-                    }
-                  />
-                </PaginationItem>
-                {Array.from(
-                  { length: pagination.totalPages },
-                  (_, i) => i + 1
-                ).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      href="#"
-                      isActive={page === currentPage}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePageChange(page);
-                      }}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage < pagination.totalPages)
-                        handlePageChange(currentPage + 1);
-                    }}
-                    className={
-                      currentPage >= pagination.totalPages
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
       </div>
 
       {/* API Integration Comment */}

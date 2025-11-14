@@ -1,0 +1,42 @@
+{
+  "_comment": "Report Table - Complete JSON Structure",
+  "_table": "reports",
+  "_description": "Report definitions with configuration and scheduling",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "report_001",
+  "name": "Monthly Sales Report",
+  "description": "Monthly sales breakdown by product category and revenue",
+  "type": "SALES",
+  "configuration": {
+    "groupBy": ["product", "category"],
+    "metrics": ["revenue", "quantity", "profit"],
+    "filters": {
+      "dateRange": "month",
+      "includeRefunds": false
+    },
+    "chartType": "bar",
+    "format": "pdf"
+  },
+  "schedule": {
+    "frequency": "monthly",
+    "dayOfMonth": 1,
+    "time": "08:00",
+    "timezone": "Asia/Manila"
+  },
+  "isActive": true,
+  "createdBy": "cm3vxyz123456789",
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_enums": {
+    "type": ["SALES", "REVENUE", "USERS", "PRODUCTS", "ORDERS", "DEVICES", "CUSTOM"]
+  },
+  "_required_fields": ["id", "name", "type", "configuration", "isActive", "createdBy", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "schedule"],
+  "_relationships": {
+    "createdByUser": "User",
+    "executions": "ReportExecution[]",
+    "subscriptions": "ReportSubscription[]"
+  }
+}

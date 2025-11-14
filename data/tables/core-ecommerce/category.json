@@ -1,0 +1,50 @@
+{
+  "_comment": "Category Table - Complete JSON Structure",
+  "_table": "categories",
+  "_description": "Product category hierarchy with parent-child relationships",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "cat_fresh",
+  "name": "Fresh Mushrooms",
+  "description": "Freshly harvested mushrooms available daily",
+  "slug": "fresh-mushrooms",
+  "parentId": null,
+  "imageUrl": "https://images.unsplash.com/fresh-mushrooms-category.jpg",
+  "isActive": true,
+  "sortOrder": 1,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-06-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "name", "slug", "isActive", "sortOrder", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "parentId", "imageUrl"],
+  "_relationships": {
+    "parent": "Category?",
+    "children": "Category[]",
+    "products": "Product[]"
+  },
+  "_notes": {
+    "hierarchy": "Use parentId to create category tree (null = root category)",
+    "sortOrder": "Integer for display ordering within same parent level"
+  },
+  "_example_hierarchy": {
+    "root_categories": [
+      {
+        "id": "cat_fresh",
+        "name": "Fresh Mushrooms",
+        "parentId": null,
+        "children": [
+          {
+            "id": "cat_fresh_oyster",
+            "name": "Oyster Mushrooms",
+            "parentId": "cat_fresh"
+          },
+          {
+            "id": "cat_fresh_shiitake",
+            "name": "Shiitake Mushrooms",
+            "parentId": "cat_fresh"
+          }
+        ]
+      }
+    ]
+  }
+}

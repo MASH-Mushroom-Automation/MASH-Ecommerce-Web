@@ -1,0 +1,63 @@
+{
+  "_comment": "Alert Table - Complete JSON Structure",
+  "_table": "alerts",
+  "_description": "Alert instances when rules are triggered",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "ruleId": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "High Temperature Detected in Chamber 01",
+  "message": "Temperature in Growing Chamber 01 has reached 32.5°C, exceeding the safe threshold of 30°C",
+  "category": "SENSOR",
+  "priority": "HIGH",
+  "severity": 7,
+  "status": "ACKNOWLEDGED",
+  "eventType": "sensor.temperature",
+  "eventId": "sd_001",
+  "eventData": {
+    "deviceId": "device_001",
+    "deviceName": "Growing Chamber 01",
+    "sensorId": "sensor_001",
+    "temperature": 32.5,
+    "threshold": 30,
+    "unit": "°C",
+    "location": "Manila Urban Farm - Building A"
+  },
+  "fingerprint": "rule_001:device_001:temperature:high",
+  "groupKey": "device_001:temperature",
+  "occurrenceCount": 3,
+  "firstOccurrence": "2025-11-10T10:30:00.000Z",
+  "lastOccurrence": "2025-11-10T10:45:00.000Z",
+  "triggeredAt": "2025-11-10T10:30:00.000Z",
+  "acknowledgedAt": "2025-11-10T10:35:00.000Z",
+  "resolvedAt": null,
+  "escalatedAt": null,
+  "snoozedUntil": null,
+  "metadata": {
+    "location": "Building A",
+    "deviceType": "MUSHROOM_CHAMBER",
+    "autoResolve": false
+  },
+  "tags": ["temperature", "sensor", "chamber-01"],
+  "createdAt": "2025-11-10T10:30:00.000Z",
+  "updatedAt": "2025-11-10T10:35:00.000Z",
+  
+  "_enums": {
+    "category": ["SYSTEM", "SECURITY", "BUSINESS", "USER", "SENSOR", "ORDER", "PAYMENT"],
+    "priority": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+    "status": ["PENDING", "SENT", "ACKNOWLEDGED", "RESOLVED", "ESCALATED", "SNOOZED", "CANCELLED"]
+  },
+  "_required_fields": ["id", "ruleId", "title", "message", "category", "priority", "severity", "status", "eventType", "triggeredAt", "createdAt", "updatedAt"],
+  "_optional_fields": ["eventId", "eventData", "fingerprint", "groupKey", "occurrenceCount", "firstOccurrence", "lastOccurrence", "acknowledgedAt", "resolvedAt", "escalatedAt", "snoozedUntil", "metadata", "tags"],
+  "_relationships": {
+    "rule": "AlertRule",
+    "notifications": "Notification[]",
+    "acknowledgments": "AlertAcknowledgment[]"
+  },
+  "_deduplication_logic": {
+    "fingerprint": "Unique identifier for this type of alert - prevents exact duplicates",
+    "groupKey": "Groups related alerts together for UI display",
+    "occurrenceCount": "Increments when same fingerprint triggers again during cooldown"
+  },
+  "_severity_scale": "1 (lowest) to 10 (highest) - more granular than priority"
+}

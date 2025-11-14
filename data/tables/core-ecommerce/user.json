@@ -1,0 +1,63 @@
+{
+  "_comment": "User Table - Complete JSON Structure",
+  "_table": "users",
+  "_description": "User accounts with authentication, roles, and preferences",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "cm3vxyz123456789",
+  "clerkId": "user_2abc123xyz",
+  "email": "juan.delacruz@example.com",
+  "username": "juandc",
+  "password": "$2b$10$HashedPasswordString...",
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "imageUrl": "https://images.unsplash.com/photo-user-avatar.jpg",
+  "phoneNumber": "+639171234567",
+  "role": "BUYER",
+  "isActive": true,
+  "preferences": {
+    "theme": "light",
+    "language": "en",
+    "timezone": "Asia/Manila",
+    "notifications": {
+      "email": true,
+      "sms": false,
+      "push": true
+    }
+  },
+  "emailVerified": true,
+  "emailVerificationToken": null,
+  "emailVerificationExpiry": null,
+  "twoFactorSecret": null,
+  "twoFactorEnabled": false,
+  "twoFactorBackupCodes": [],
+  "lastLoginAt": "2025-11-10T08:30:00.000Z",
+  "createdAt": "2025-06-15T10:00:00.000Z",
+  "updatedAt": "2025-11-10T08:30:00.000Z",
+  
+  "_enums": {
+    "role": ["USER", "ADMIN", "SUPER_ADMIN", "GROWER", "BUYER"]
+  },
+  "_required_fields": ["id", "email", "firstName", "lastName", "role", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["clerkId", "username", "password", "imageUrl", "phoneNumber", "preferences", "emailVerified", "emailVerificationToken", "emailVerificationExpiry", "twoFactorSecret", "twoFactorEnabled", "twoFactorBackupCodes", "lastLoginAt"],
+  "_relationships": {
+    "devices": "Device[]",
+    "sensorData": "SensorData[]",
+    "orders": "Order[]",
+    "addresses": "Address[]",
+    "payments": "Payment[]",
+    "notifications": "UserNotification[]",
+    "sessions": "Session[]",
+    "apiKeys": "ApiKey[]",
+    "securityLogs": "SecurityLog[]",
+    "userRoles": "UserRoleAssignment[]",
+    "createdReports": "Report[]",
+    "reportSubscriptions": "ReportSubscription[]",
+    "searchLogs": "SearchLog[]",
+    "importExportJobs": "ImportExportJob[]",
+    "rateLimitOverrides": "RateLimitOverride[]",
+    "apiUsageLogs": "ApiUsageLog[]",
+    "requestQueues": "RequestQueue[]",
+    "pushSubscriptions": "PushSubscription[]"
+  }
+}

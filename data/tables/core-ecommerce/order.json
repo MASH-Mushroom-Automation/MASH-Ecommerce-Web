@@ -1,0 +1,74 @@
+{
+  "_comment": "Order Table - Complete JSON Structure",
+  "_table": "orders",
+  "_description": "Customer orders with items, addresses, and tracking information",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "order_001",
+  "orderNumber": "MASH-2025-001234",
+  "userId": "cm3vxyz123456789",
+  "status": "DELIVERED",
+  "subtotal": 580.00,
+  "tax": 58.00,
+  "shipping": 100.00,
+  "discount": 50.00,
+  "total": 688.00,
+  "currency": "PHP",
+  "notes": "Please deliver before 5 PM. Call before arriving.",
+  "shippingAddress": {
+    "firstName": "Juan",
+    "lastName": "Dela Cruz",
+    "phone": "+639171234567",
+    "email": "juan.delacruz@example.com",
+    "street1": "123 Bonifacio Street",
+    "street2": "Unit 4B, Green Tower",
+    "barangay": "Poblacion",
+    "city": "Makati City",
+    "state": "Metro Manila",
+    "region": "National Capital Region",
+    "postalCode": "1200",
+    "country": "Philippines"
+  },
+  "billingAddress": {
+    "firstName": "Juan",
+    "lastName": "Dela Cruz",
+    "phone": "+639171234567",
+    "street1": "123 Bonifacio Street",
+    "street2": "Unit 4B, Green Tower",
+    "city": "Makati City",
+    "state": "Metro Manila",
+    "postalCode": "1200",
+    "country": "Philippines"
+  },
+  "trackingNumber": "PH1234567890",
+  "shippedAt": "2025-11-02T10:00:00.000Z",
+  "deliveredAt": "2025-11-05T14:30:00.000Z",
+  "cancelledAt": null,
+  "createdAt": "2025-11-01T08:00:00.000Z",
+  "updatedAt": "2025-11-05T14:45:00.000Z",
+  
+  "_enums": {
+    "status": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"]
+  },
+  "_required_fields": ["id", "orderNumber", "userId", "status", "subtotal", "tax", "shipping", "total", "currency", "shippingAddress", "billingAddress", "createdAt", "updatedAt"],
+  "_optional_fields": ["discount", "notes", "trackingNumber", "shippedAt", "deliveredAt", "cancelledAt"],
+  "_relationships": {
+    "user": "User",
+    "items": "OrderItem[]",
+    "payments": "Payment[]"
+  },
+  "_notes": {
+    "orderNumber": "Auto-generated format: MASH-YYYY-NNNNNN",
+    "addresses": "Stored as JSON in database",
+    "currency": "Always PHP for Philippine marketplace",
+    "calculation": "total = subtotal + tax + shipping - discount",
+    "status_flow": "PENDING → CONFIRMED → PROCESSING → SHIPPED → DELIVERED"
+  },
+  "_order_lifecycle": {
+    "created": "2025-11-01T08:00:00.000Z",
+    "confirmed": "2025-11-01T08:15:00.000Z",
+    "processing": "2025-11-01T14:00:00.000Z",
+    "shipped": "2025-11-02T10:00:00.000Z",
+    "delivered": "2025-11-05T14:30:00.000Z"
+  }
+}

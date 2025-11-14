@@ -1,0 +1,38 @@
+{
+  "_comment": "ApiVersionUsage Table - Complete JSON Structure",
+  "_table": "api_version_usages",
+  "_description": "API version adoption tracking",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "version_001",
+  "version": "v2",
+  "endpoint": "/products",
+  "requestCount": 15420,
+  "uniqueUsers": 342,
+  "avgResponseTime": 145,
+  "errorRate": 0.02,
+  "date": "2025-11-10",
+  "createdAt": "2025-11-10T23:59:59.000Z",
+  
+  "_example_deprecated_version": {
+    "id": "version_002",
+    "version": "v1",
+    "endpoint": "/products",
+    "requestCount": 2540,
+    "uniqueUsers": 45,
+    "avgResponseTime": 230,
+    "errorRate": 0.15,
+    "date": "2025-11-10",
+    "createdAt": "2025-11-10T23:59:59.000Z"
+  },
+  
+  "_required_fields": ["id", "version", "endpoint", "requestCount", "uniqueUsers", "avgResponseTime", "errorRate", "date", "createdAt"],
+  "_optional_fields": [],
+  "_notes": {
+    "requestCount": "Total requests for this version/endpoint on date",
+    "uniqueUsers": "Distinct users who made requests",
+    "avgResponseTime": "Average response time in milliseconds",
+    "errorRate": "Percentage of failed requests (0.02 = 2%)",
+    "date": "Date for aggregated metrics (YYYY-MM-DD)"
+  }
+}

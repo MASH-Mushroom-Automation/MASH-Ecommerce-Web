@@ -1,0 +1,58 @@
+{
+  "_comment": "Sensor Table - Complete JSON Structure",
+  "_table": "sensors",
+  "_description": "Individual sensors attached to IoT devices",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "sensor_001",
+  "deviceId": "device_001",
+  "type": "temperature",
+  "name": "Temperature Sensor - Chamber 01",
+  "unit": "°C",
+  "minValue": 0.0,
+  "maxValue": 50.0,
+  "calibration": {
+    "offset": 0.5,
+    "multiplier": 1.0,
+    "lastCalibrated": "2025-10-01T08:00:00.000Z",
+    "calibratedBy": "admin_001"
+  },
+  "isActive": true,
+  "createdAt": "2025-06-01T08:30:00.000Z",
+  "updatedAt": "2025-10-01T08:00:00.000Z",
+  
+  "_required_fields": ["id", "deviceId", "type", "name", "unit", "isActive", "createdAt", "updatedAt"],
+  "_optional_fields": ["minValue", "maxValue", "calibration"],
+  "_relationships": {
+    "device": "Device",
+    "sensorData": "SensorData[]",
+    "alerts": "SensorAlert[]"
+  },
+  "_sensor_types": {
+    "temperature": {
+      "unit": "°C",
+      "typical_range": "18-30°C",
+      "optimal_mushroom": "20-25°C"
+    },
+    "humidity": {
+      "unit": "%",
+      "typical_range": "60-95%",
+      "optimal_mushroom": "80-90%"
+    },
+    "co2": {
+      "unit": "ppm",
+      "typical_range": "400-2000 ppm",
+      "optimal_mushroom": "800-1200 ppm"
+    },
+    "light": {
+      "unit": "lux",
+      "typical_range": "0-10000 lux",
+      "optimal_mushroom": "500-1000 lux"
+    },
+    "ph": {
+      "unit": "pH",
+      "typical_range": "4.0-8.0 pH",
+      "optimal_mushroom": "5.5-6.5 pH"
+    }
+  }
+}

@@ -25,7 +25,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, Upload, X, Info, CheckCircle, AlertTriangle, ListChecks, ArrowLeft } from "lucide-react";
+import { ChevronLeft, Upload, X, Plus, Info, CheckCircle, AlertTriangle, ListChecks, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 // Define a type for validation errors
 interface ValidationErrors {
@@ -87,6 +88,23 @@ export default function AddNewProduct() {
     }, 4000);
   };
 
+  const isValidPrice = (value: string) => {
+    if (!value) return false;
+    const priceNumber = Number(value);
+    return (
+      Number.isFinite(priceNumber) &&
+      priceNumber > 0 &&
+      /^\d+(?:\.\d{1,2})?$/.test(value)
+    );
+  };
+
+  const isValidQuantity = (value: string) => {
+    if (!value) return false;
+    const quantityNumber = Number(value);
+    return Number.isInteger(quantityNumber) && quantityNumber > 0;
+  };
+
+  // Handle image upload (mock implementation)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -108,7 +126,7 @@ export default function AddNewProduct() {
     newImages.splice(index, 1);
     setProductImages(newImages);
   };
-  
+
   // Function to restrict the 'e', '+', and '-' characters in number inputs
   const restrictExponential = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (['e', 'E', '+', '-'].includes(e.key)) {
@@ -116,7 +134,54 @@ export default function AddNewProduct() {
     }
   };
 
-  // --- VALIDATION LOGIC ---
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const validationErrors: string[] = [];
+
+    if (!isValidPrice(productPrice)) {
+      validationErrors.push(
+        "Please enter a valid price (e.g., 150 or 150.50)."
+      );
+    }
+
+    if (!isValidQuantity(productStock)) {
+      validationErrors.push(
+        "Stock must be a positive whole number (e.g., 10)."
+      );
+    }
+
+    if (!productWeight || Number(productWeight) <= 0) {
+      validationErrors.push("Weight must be greater than 0.");
+    }
+
+    if (validationErrors.length > 0) {
+      toast.error("Please review the highlighted fields", {
+        description: validationErrors.join(" \n"),
+      });
+      return;
+    }
+
+    // Prepare data for API submission
+    const productData = {
+      name: productName,
+      description: productDescription,
+      category: productCategory,
+      price: parseFloat(productPrice),
+      stock: parseInt(productStock),
+      weight: `${productWeight}${productUnit}`,
+      images: productImages,
+    };
+
+    // In a real application, you would send this data to your API
+    console.log("Product data to submit:", productData);
+
+    toast.success("Product details look great!", {
+      description:
+        "This is a mock submission—connect the API to start publishing products.",
+    });
+  };  // --- VALIDATION LOGIC ---
 
   const validateForm = useCallback(() => {
     const errors: ValidationErrors = {};
@@ -364,31 +429,8 @@ export default function AddNewProduct() {
 
   // --- MAIN RENDER ---
   return (
-    <div className="relative p-6 bg-background rounded-xl shadow-lg">
-      
-      {/* --- VISIBLE NOTIFICATION (TOAST) --- */}
-      {toastMessage && (
-        <div 
-          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-xl max-w-sm w-full transition-opacity duration-300 ${
-            toastType === 'success'
-              ? 'bg-green-600 text-white'
-              : 'bg-red-600 text-white'
-          } flex items-center gap-3`}
-        >
-          {toastType === 'success' ? (
-            <CheckCircle className="h-5 w-5" />
-          ) : (
-            <AlertTriangle className="h-5 w-5" />
-          )}
-          <span className="flex-grow text-sm font-medium">{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="flex-shrink-0">
-            <X className="h-4 w-4 opacity-75 hover:opacity-100" />
-          </button>
-        </div>
-      )}
-      {/* --- END VISIBLE NOTIFICATION (TOAST) --- */}
-
-      <div className="flex items-center gap-2 mb-6">
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <Link
           href="/seller/products"
           className="text-muted-foreground hover:text-foreground"

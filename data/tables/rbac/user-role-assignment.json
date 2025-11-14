@@ -1,0 +1,25 @@
+{
+  "_comment": "UserRoleAssignment Table - Complete JSON Structure",
+  "_table": "user_role_assignments",
+  "_description": "User-to-role mapping for RBAC",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "ura_001",
+  "userId": "cm3vxyz123456789",
+  "roleId": "role_001",
+  "grantedBy": "admin_001",
+  "grantedAt": "2025-06-15T10:00:00.000Z",
+  
+  "_required_fields": ["id", "userId", "roleId", "grantedBy", "grantedAt"],
+  "_optional_fields": [],
+  "_relationships": {
+    "user": "User",
+    "role": "Role",
+    "grantedByUser": "User"
+  },
+  "_notes": {
+    "multiple_roles": "Users can have multiple roles assigned",
+    "grantedBy": "User ID of admin who assigned this role",
+    "audit": "Track who granted role and when for security audit"
+  }
+}

@@ -29,13 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Filter, MoreVertical, Edit, Trash } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Filter, Edit, Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +44,7 @@ import {
 import { useSellerProducts } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SellerApi } from "@/lib/api/seller";
+import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerProducts() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -228,84 +223,58 @@ export default function SellerProducts() {
                     <TableCell className="text-sm">{product.category}</TableCell>
                     {/* Status badge cell */}
                     <TableCell>
-                      <Badge
-                        variant={
-                          product.status === "Active"
-                            ? "outline"
-                            : product.status === "Out of Stock"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          product.status === "Active"
-                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
-                            : product.status === "Out of Stock"
-                            ? ""
-                            : ""
-                        }
-                      >
-                        {product.status}
-                      </Badge>
+                      {getStatusBadge(product.status)}
                     </TableCell>
                     {/* Row actions cell */}
-                    <TableCell className="text-right pl-5">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                    <TableCell className="text-right pr-5">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/seller/products/edit/${product.id}`}>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="min-h-[44px] min-w-[44px]"
+                            className="h-9 px-3"
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Link
-                              href={`/seller/products/edit/${product.id}`}
-                              className="flex items-center w-full"
+                        </Link>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onSelect={(e) => e.preventDefault()}
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Product
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleDeleteProduct(product.id)
+                                }
+                                disabled={deletingProduct === product.id}
+                                className="bg-destructive hover:bg-destructive/90"
                               >
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Product
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteProduct(product.id)
-                                  }
-                                  disabled={deletingProduct === product.id}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  {deletingProduct === product.id
-                                    ? "Deleting..."
-                                    : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                {deletingProduct === product.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -432,27 +401,6 @@ export default function SellerProducts() {
         </div>
 
         <div className="py-4 border-t border-border">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       </div>
     </div>

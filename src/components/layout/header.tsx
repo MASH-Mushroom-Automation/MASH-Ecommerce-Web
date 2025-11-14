@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -16,20 +18,12 @@ import {
   Facebook,
   Instagram,
   Store,
-  AlertCircle,
 } from "lucide-react";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
 import { isAuthenticated, logout as authLogout } from "@/lib/auth";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,14 +34,179 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+
+
+type SellerStatus = "approved" | "pending" | "none";
+
+const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus }) => (
+  <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
+    <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+        {sellerStatus === "approved" ? (
+          <Link href="/seller/dashboard" className="hover:underline">
+            Seller Center
+          </Link>
+        ) : sellerStatus === "pending" ? (
+          <span
+            className="text-accent-foreground/80 cursor-not-allowed"
+            title="Your seller application is awaiting admin approval"
+          >
+            Application Pending ⏳
+          </span>
+        ) : (
+          <Link href="/start-selling" className="hover:underline">
+            Start Selling
+          </Link>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
+        <Link href="/blog" className="hover:underline whitespace-nowrap">
+          BLOG
+        </Link>
+        <span className="hidden sm:inline opacity-50">•</span>
+        <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
+          FAQ
+        </Link>
+        <span className="hidden sm:inline opacity-50">•</span>
+        <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
+          CONTACT US
+        </Link>
+        <span className="hidden sm:inline opacity-50">•</span>
+        <div className="hidden sm:flex items-center gap-2">
+          <a href="#" aria-label="Facebook" className="hover:text-primary-foreground">
+            <Facebook size={18} />
+          </a>
+          <a href="#" aria-label="Instagram" className="hover:text-primary-foreground">
+            <Instagram size={18} />
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 interface NavLinkProps {
   label: string;
   path: string;
+}
+
+export function SellerHeader() {
+  const { profile } = useUserProfile();
+  const [isMounted, setIsMounted] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const element = headerRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateHeight = () => {
+      const height = element.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--seller-header-height", `${height}px`);
+    };
+
+    updateHeight();
+
+    let observer: ResizeObserver | undefined;
+
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => updateHeight());
+      observer.observe(element);
+    }
+
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateHeight);
+      if (observer) {
+        observer.disconnect();
+      }
+      document.documentElement.style.removeProperty("--seller-header-height");
+    };
+  }, []);
+
+  const sellerStatus: SellerStatus = isMounted
+    ? ((profile?.sellerStatus as SellerStatus) || "none")
+    : "none";
+
+  return (
+    <header
+      ref={headerRef}
+      className="bg-background shadow-sm sticky top-0 z-50 border-b border-border"
+    >
+      <SellerInfoBar sellerStatus={sellerStatus} />
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-4">
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/Logo  v6 - Market.png"
+            alt="MASH Logo"
+            width={150}
+            height={50}
+            className="h-10 w-auto sm:h-12"
+            priority
+          />
+        </Link>
+        <div className="flex items-center gap-4">
+          <NotificationDropdown />
+          <ThemeSwitcher />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function SimpleHeader() {
+  const { profile } = useUserProfile();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const sellerStatus: SellerStatus = isMounted
+    ? ((profile?.sellerStatus as SellerStatus) || "none")
+    : "none";
+
+  return (
+    <header className="bg-background shadow-sm border-b border-border">
+      <SellerInfoBar sellerStatus={sellerStatus} />
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
+        <span className="w-9" aria-hidden="true" />
+        <Link href="/" className="flex items-center justify-center">
+          <Image
+            src="/Logo  v6 - Market.png"
+            alt="MASH Logo"
+            width={150}
+            height={50}
+            className="h-10 w-auto sm:h-12"
+            priority
+          />
+        </Link>
+        <ThemeSwitcher />
+      </div>
+    </header>
+  );
 }
 
 const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
@@ -74,7 +233,6 @@ export function Header() {
   const { clearCart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
 
@@ -87,83 +245,47 @@ export function Header() {
   }, []);
 
   // Three-state seller status logic
-  const sellerStatus = isMounted ? (profile?.sellerStatus || 'none') : 'none';
+  const sellerStatus: SellerStatus = isMounted
+    ? ((profile?.sellerStatus as SellerStatus) || "none")
+    : "none";
 
-  const handleLogout = () => {
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const handleLogoutConfirm = () => {
     authLogout();
     // Immediately clear in-memory state so UI updates without reload
     try {
       clearWishlist();
       clearCart();
     } catch {}
-    setIsLoggedIn(false);
-    setShowLogoutConfirm(false);
     router.push("/");
     router.refresh();
     toast.success("Signed out");
+    setLogoutDialogOpen(false);
   };
 
   return (
-    <header className="bg-background shadow-sm sticky top-0 z-50">
-      {/* Top Bar: Seller/Info Links */}
-      <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            {sellerStatus === 'approved' ? (
-              <Link href="/seller/dashboard" className="hover:underline">
-                Seller Center
-              </Link>
-            ) : sellerStatus === 'pending' ? (
-              <span className="text-yellow-300 cursor-not-allowed" title="Your seller application is awaiting admin approval">
-                Application Pending ⏳
-              </span>
-            ) : (
-              <Link href="/start-selling" className="hover:underline">
-                Start Selling
-              </Link>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/90">
-            <Link href="/blog" className="hover:underline whitespace-nowrap">
-              BLOG
-            </Link>
-            <span className="hidden sm:inline text-white/30">•</span>
-            <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
-              FAQ
-            </Link>
-            <span className="hidden sm:inline text-white/30">•</span>
-            <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
-              CONTACT US
-            </Link>
-            <span className="hidden sm:inline text-white/30">•</span>
-            <div className="hidden sm:flex items-center gap-2">
-              <a href="#" aria-label="Facebook" className="hover:text-gray-300">
-                <Facebook size={18} />
-              </a>
-              <a href="#" aria-label="Instagram" className="hover:text-gray-300">
-                <Instagram size={18} />
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+    <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
+      <SellerInfoBar sellerStatus={sellerStatus} />
 
-      {/* 2. Main Bar: Logo, Search, Cart, Login */}
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
         <Link href="/">
           <Image
             src="/Logo  v6 - Market.png"
             alt="MASH Logo"
             width={150}
             height={50}
-            className="h-12 w-auto"
+            className="h-10 w-auto sm:h-12"
+            priority
           />
         </Link>
 
-        {/* Actions (Cart, Wishlist, Login) */}
         <div className="hidden lg:flex items-center space-x-6">
           <ThemeSwitcher />
-          
           <CartDropdown />
 
           {isLoggedIn && (
@@ -186,9 +308,9 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex items-center space-x-2 hover:bg-gray-50 p-1 sm:p-2"
+                  className="flex items-center space-x-2 hover:bg-muted/40 border-border"
                 >
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary">
                     {profile?.avatar ? (
                       <Image
                         src={profile.avatar}
@@ -197,9 +319,7 @@ export function Header() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                        <User size={20} className="text-primary" />
-                      </div>
+                      <User size={20} className="absolute inset-0 m-auto" />
                     )}
                   </div>
                   <span className="hidden sm:inline font-medium">
@@ -223,8 +343,8 @@ export function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="text-red-600"
+                  onClick={handleLogoutClick}
+                  className="text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
@@ -246,40 +366,49 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Menu Trigger */}
-        <div className="lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          <ThemeSwitcher />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="border border-border lg:hidden"
+            onClick={() => router.push("/cart")}
+            aria-label="View cart"
+          >
+            <ShoppingCart className="h-5 w-5" />
+          </Button>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="border-border">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="bg-card text-foreground">
               <div className="flex flex-col space-y-4 p-4">
                 <nav className="flex flex-col space-y-2">
                   <Link
                     href="/"
-                    className="text-lg font-medium text-gray-600 hover:text-primary"
+                    className="text-lg font-medium text-muted-foreground hover:text-primary"
                   >
                     Home
                   </Link>
                   <Link
                     href="/shop"
-                    className="text-lg font-medium text-gray-600 hover:text-primary"
+                    className="text-lg font-medium text-muted-foreground hover:text-primary"
                   >
                     Products
                   </Link>
                   <Link
                     href="/grower"
-                    className="text-lg font-medium text-gray-600 hover:text-primary"
+                    className="text-lg font-medium text-muted-foreground hover:text-primary"
                   >
                     Growers
                   </Link>
                 </nav>
-                <div className="border-t pt-4">
+                <div className="border-t border-border pt-4 space-y-2">
                   <Link
                     href="/checkout"
-                    className="flex items-center space-x-2 text-gray-600 hover:text-primary"
+                    className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                   >
                     <ShoppingCart className="h-5 w-5" />
                     <span>Cart</span>
@@ -287,7 +416,7 @@ export function Header() {
                   {isLoggedIn && (
                     <Link
                       href="/wishlist"
-                      className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                      className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
                       <Heart className="h-5 w-5" />
                       <span>Wishlist</span>
@@ -295,7 +424,7 @@ export function Header() {
                   )}
                   <Link
                     href="/seller/dashboard"
-                    className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                    className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                   >
                     <Store className="h-5 w-5" />
                     <span>Seller Dashboard</span>
@@ -304,15 +433,15 @@ export function Header() {
                     <>
                       <Link
                         href="/profile/my-information"
-                        className="mt-2 flex items-center space-x-2 text-gray-600 hover:text-primary"
+                        className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                       >
                         <UserCircle className="h-5 w-5" />
                         <span>My Profile</span>
                       </Link>
                       <Button
                         variant="outline"
-                        className="mt-4 w-full text-red-600 border-red-600 hover:bg-red-50"
-                        onClick={() => setShowLogoutConfirm(true)}
+                        className="w-full border-destructive text-destructive hover:bg-destructive/10"
+                        onClick={handleLogoutClick}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
                         Logout
@@ -320,7 +449,7 @@ export function Header() {
                     </>
                   ) : (
                     <Link href="/login">
-                      <Button variant="primary" className="mt-4 w-full">
+                      <Button variant="primary" className="w-full">
                         <User className="mr-2 h-4 w-4" />
                         Login
                       </Button>
@@ -333,35 +462,29 @@ export function Header() {
         </div>
       </div>
 
-      {/* 3. Main Navigation Bar - Centered Links */}
-      <nav className="border-t border-gray-200 shadow-inner hidden lg:block">
+      <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
         <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
           <NavLink label="Home" path="/" />
           <NavLink label="Products" path="/shop" />
           <NavLink label="Growers" path="/grower" />
+          {sellerStatus === "approved" && (
+            <NavLink label="Dashboard" path="/seller/dashboard" />
+          )}
         </div>
       </nav>
 
       {/* Logout Confirmation Dialog */}
-      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="mt-2">
-              Are you sure you want to sign out? You'll need to log in again to access your account.
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay Logged In</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Yes, Logout
-            </AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,0 +1,69 @@
+{
+  "_comment": "DeviceCommand Table - Complete JSON Structure",
+  "_table": "device_commands",
+  "_description": "Commands sent to IoT devices for remote control",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "cmd_001",
+  "deviceId": "device_001",
+  "command": "SET_TEMPERATURE",
+  "parameters": {
+    "temperature": 25,
+    "duration": 3600,
+    "mode": "auto"
+  },
+  "status": "completed",
+  "response": {
+    "success": true,
+    "message": "Temperature set to 25°C",
+    "timestamp": "2025-11-10T09:00:05.000Z",
+    "currentValue": 25.0
+  },
+  "sentAt": "2025-11-10T09:00:00.000Z",
+  "acknowledgedAt": "2025-11-10T09:00:05.000Z",
+  
+  "_required_fields": ["id", "deviceId", "command", "status", "sentAt"],
+  "_optional_fields": ["parameters", "response", "acknowledgedAt"],
+  "_relationships": {
+    "device": "Device"
+  },
+  "_command_status": ["pending", "sent", "acknowledged", "completed", "failed", "timeout"],
+  "_common_commands": {
+    "SET_TEMPERATURE": {
+      "description": "Set target temperature",
+      "parameters": {
+        "temperature": "Target temp in °C",
+        "duration": "Duration in seconds (optional)"
+      }
+    },
+    "SET_HUMIDITY": {
+      "description": "Set target humidity",
+      "parameters": {
+        "humidity": "Target humidity in %",
+        "duration": "Duration in seconds (optional)"
+      }
+    },
+    "START_IRRIGATION": {
+      "description": "Start watering cycle",
+      "parameters": {
+        "duration": "Duration in seconds",
+        "flow_rate": "Flow rate in mL/min"
+      }
+    },
+    "STOP_IRRIGATION": {
+      "description": "Stop watering cycle",
+      "parameters": {}
+    },
+    "CAPTURE_IMAGE": {
+      "description": "Take photo with camera",
+      "parameters": {
+        "resolution": "Image resolution",
+        "quality": "JPEG quality 1-100"
+      }
+    },
+    "REBOOT": {
+      "description": "Reboot device",
+      "parameters": {}
+    }
+  }
+}

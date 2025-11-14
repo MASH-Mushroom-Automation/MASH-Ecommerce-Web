@@ -1,0 +1,25 @@
+{
+  "id": "review_001",
+  "productId": "prod_001",
+  "userId": "user_001",
+  "rating": 5,
+  "comment": "Absolutely fresh and delicious! The oyster mushrooms arrived in perfect condition. Used them in a stir-fry and they were amazing. Will definitely order again!",
+  
+  "images": [
+    "https://images.unsplash.com/photo-1589621316382-008455b857cd?w=600",
+    "https://images.unsplash.com/photo-1590666246243-8b3c0e12e63e?w=600"
+  ],
+  
+  "verified": true,
+  "helpful": 12,
+  
+  "reply": {
+    "sellerId": "user_002",
+    "sellerName": "Manila Urban Farm",
+    "message": "Thank you so much for your wonderful review! We're thrilled you enjoyed our oyster mushrooms. We harvest daily to ensure maximum freshness. Looking forward to serving you again!",
+    "date": "2025-11-06T10:00:00.000Z"
+  },
+  
+  "createdAt": "2025-11-05T18:30:00.000Z",
+  "updatedAt": "2025-11-06T10:00:00.000Z"
+}

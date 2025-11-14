@@ -1,0 +1,70 @@
+{
+  "_comment": "SystemConfig Table - Complete JSON Structure",
+  "_table": "system_configs",
+  "_description": "System-wide configuration settings",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "config_001",
+  "key": "MAINTENANCE_MODE",
+  "value": "false",
+  "description": "Enable maintenance mode to block all requests",
+  "category": "SYSTEM",
+  "isPublic": false,
+  "dataType": "BOOLEAN",
+  "validation": {
+    "type": "boolean",
+    "allowedValues": ["true", "false"]
+  },
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-11-01T08:00:00.000Z",
+  
+  "_example_payment_config": {
+    "id": "config_002",
+    "key": "PAYMENT_METHODS",
+    "value": "[\"GCASH\", \"MAYA\", \"CASH_ON_DELIVERY\", \"BANK_TRANSFER\"]",
+    "description": "Enabled payment methods",
+    "category": "PAYMENT",
+    "isPublic": true,
+    "dataType": "JSON"
+  },
+  
+  "_example_email_config": {
+    "id": "config_003",
+    "key": "SMTP_HOST",
+    "value": "smtp.gmail.com",
+    "description": "SMTP server hostname",
+    "category": "EMAIL",
+    "isPublic": false,
+    "dataType": "STRING",
+    "validation": {
+      "type": "hostname"
+    }
+  },
+  
+  "_example_rate_limit": {
+    "id": "config_004",
+    "key": "DEFAULT_RATE_LIMIT",
+    "value": "100",
+    "description": "Default API rate limit per minute",
+    "category": "API",
+    "isPublic": true,
+    "dataType": "INTEGER",
+    "validation": {
+      "type": "number",
+      "min": 1,
+      "max": 10000
+    }
+  },
+  
+  "_enums": {
+    "category": ["SYSTEM", "PAYMENT", "EMAIL", "SMS", "API", "SECURITY", "IOT", "ANALYTICS"],
+    "dataType": ["STRING", "INTEGER", "FLOAT", "BOOLEAN", "JSON", "URL", "EMAIL"]
+  },
+  "_required_fields": ["id", "key", "value", "category", "isPublic", "dataType", "createdAt", "updatedAt"],
+  "_optional_fields": ["description", "validation"],
+  "_notes": {
+    "key": "Unique configuration key (uppercase with underscores)",
+    "isPublic": "If true, visible to frontend via API",
+    "validation": "JSON schema for value validation"
+  }
+}

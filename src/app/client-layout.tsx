@@ -41,23 +41,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     >
       <CartProvider>
         <WishlistProvider>
-          <div className="min-h-screen flex flex-col">
-            {isAuthRoute ? (
-              <SimpleHeader />
-            ) : isSellerRoute ? (
+          {isSellerRoute ? (
+            // Seller routes get header and handle their own layout with sidebar
+            <div className="min-h-screen flex flex-col">
               <SellerHeader />
-            ) : (
-              <Header />
-            )}
-            <main className="flex-1">
               {children}
-              <MobileBottomNavSpacer />
-            </main>
-            <Footer />
-            <MobileBottomNav />
-            {/* Global toast portal */}
-            <Toaster position="top-right" richColors closeButton />
-          </div>
+              <Toaster position="bottom-center" richColors closeButton />
+            </div>
+          ) : (
+            // Regular routes get full layout with header, footer, and nav
+            <div className="min-h-screen flex flex-col">
+              {isAuthRoute ? <SimpleHeader /> : <Header />}
+              <main className="flex-1">
+                {children}
+                <MobileBottomNavSpacer />
+              </main>
+              <Footer />
+              <MobileBottomNav />
+              <Toaster position="bottom-center" richColors closeButton />
+            </div>
+          )}
         </WishlistProvider>
       </CartProvider>
     </ThemeProvider>

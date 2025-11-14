@@ -17,9 +17,10 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { ChevronRight, Loader2, AlertCircle, Check } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { SellerApplicationForm } from "../page";
 
@@ -60,10 +61,6 @@ const regions = [
 ];
 
 export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps) {
-  const mushroomTypesValue = form.watch("mushroomTypes");
-  const touched = form.formState.touchedFields as Record<string, any>;
-  const errors = form.formState.errors as Record<string, any>;
-
   return (
     <div className="min-h-screen bg-muted">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -79,7 +76,9 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
         <div className="bg-background rounded-2xl shadow-sm p-6 sm:p-8 lg:p-10">
           {/* Form Header */}
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-semibold">Seller Application Form</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+              Seller Application Form
+            </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Please fill in all required fields to complete your application.
               We'll review your information and get back to you within 2-3 business days.
@@ -93,39 +92,26 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Business Information
                 </h2>
-                <div className="space-y-4 sm:space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                   <FormField
                     control={form.control}
                     name="businessName"
                     render={({ field }) => (
-                      <FormItem className="relative">
+                      <FormItem>
                         <FormLabel>
                           Business Name <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            maxLength={24}
                             className="h-10 sm:h-12"
                             placeholder="Enter your business name"
                           />
                         </FormControl>
-                        <div className="h-5">
-                          {touched.businessName && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.businessName && field.value && !errors.businessName && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="businessType"
@@ -140,38 +126,32 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                               <SelectValue placeholder="Select business type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent 
-                            position="popper"
-                            sideOffset={4}
-                            align="start"
-                          >
+                          <SelectContent>
                             <SelectItem value="individual">Individual/Sole Proprietor</SelectItem>
                             <SelectItem value="company">Company/Corporation</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="taxId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>Tax ID Number (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea
+                          <Input
                             {...field}
-                            inputMode="numeric"
-                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                            rows={3}
-                            className="resize-none"
+                            className="h-10 sm:h-12"
                             placeholder="Enter your tax ID (if applicable)"
                           />
                         </FormControl>
                         <FormDescription className="text-xs sm:text-sm">
                           Providing a tax ID can speed up the verification process
                         </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -183,153 +163,68 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
                   Contact Details
                 </h2>
-                <div className="space-y-4 sm:space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                   <FormField
                     control={form.control}
                     name="fullName"
                     render={({ field }) => (
-                      <FormItem className="relative">
+                      <FormItem>
                         <FormLabel>
                           Full Name <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            maxLength={24}
                             className="h-10 sm:h-12"
                             placeholder="Juan Dela Cruz"
                           />
                         </FormControl>
-                        <div className="h-5">
-                          {touched.fullName && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.fullName && field.value && !errors.fullName && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="email"
-                    render={({ field }) => {
-                      const emailValue = field.value || "";
-                      const isEmpty = emailValue.length === 0;
-                      const isTouched = touched.email;
-                      const hasError = errors.email;
-                      
-                      // Simple email validation regex
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      const isValidEmail = emailValue.length > 0 && emailRegex.test(emailValue);
-                      const hasInvalidFormat = !isEmpty && !isValidEmail;
-                      
-                      return (
-                        <FormItem className="relative">
-                          <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              className="h-10 sm:h-12"
-                              placeholder="juan@example.com"
-                            />
-                          </FormControl>
-                          <div className="h-5">
-                            {isTouched && isEmpty && (
-                              <div className="text-xs text-yellow-600">
-                                <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                              </div>
-                            )}
-                            {!isEmpty && hasInvalidFormat && (
-                              <div className="text-xs text-yellow-600">
-                                <AlertCircle className="inline mr-1 h-4 w-4" />Please enter a valid email address
-                              </div>
-                            )}
-                            {!isEmpty && isValidEmail && !hasError && (
-                              <div className="text-xs text-green-600">
-                                <Check className="inline mr-1 h-4 w-4" />Looks good
-                              </div>
-                            )}
-                          </div>
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Email Address <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            className="h-10 sm:h-12"
+                            placeholder="juan@example.com"
+                            inputMode="email"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-
                   <FormField
                     control={form.control}
                     name="phone"
-                    render={({ field }) => {
-                      const phoneValue = field.value || "";
-                      const phoneLength = phoneValue.length;
-                      const isValidLength = phoneLength === 11;
-                      const isEmpty = phoneLength === 0;
-                      const isTouched = touched.phone;
-                      const hasError = errors.phone;
-                      
-                      return (
-                        <FormItem className="relative">
-                          <FormLabel>
-                            Phone Number <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              inputMode="numeric"
-                              maxLength={11}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, "");
-                                if (value.length <= 11) {
-                                  field.onChange(value);
-                                }
-                              }}
-                              className="h-10 sm:h-12"
-                              placeholder="09569552608"
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs sm:text-sm">
-                            Must be exactly 11 digits (e.g., 09569552608)
-                          </FormDescription>
-                          <div className="h-5">
-                            {isTouched && isEmpty && (
-                              <div className="text-xs text-yellow-600">
-                                <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                              </div>
-                            )}
-                            {isTouched && !isEmpty && !isValidLength && !hasError && (
-                              <div className="text-xs text-yellow-600">
-                                <AlertCircle className="inline mr-1 h-4 w-4" />
-                                {phoneLength < 11 
-                                  ? `Please enter ${11 - phoneLength} more digit${11 - phoneLength > 1 ? 's' : ''}`
-                                  : "Phone number must be exactly 11 digits"}
-                              </div>
-                            )}
-                            {isTouched && !isEmpty && isValidLength && !hasError && (
-                              <div className="text-xs text-green-600">
-                                <Check className="inline mr-1 h-4 w-4" />Looks good
-                              </div>
-                            )}
-                            {!isTouched && !isEmpty && !isValidLength && (
-                              <div className="text-xs text-yellow-600">
-                                <AlertCircle className="inline mr-1 h-4 w-4" />
-                                {phoneLength < 11 
-                                  ? `Please enter ${11 - phoneLength} more digit${11 - phoneLength > 1 ? 's' : ''}`
-                                  : "Phone number must be exactly 11 digits"}
-                              </div>
-                            )}
-                          </div>
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Phone Number <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="tel"
+                            className="h-10 sm:h-12"
+                            placeholder="+63 956 955 2608"
+                            inputMode="tel"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-
                   <FormField
                     control={form.control}
                     name="city"
@@ -345,15 +240,15 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                             placeholder="Enter your city"
                           />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="region"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>
                           Region <span className="text-red-500">*</span>
                         </FormLabel>
@@ -363,12 +258,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                               <SelectValue placeholder="Select your region" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent 
-                            position="popper"
-                            sideOffset={4}
-                            align="start"
-                            className="max-h-[300px]"
-                          >
+                          <SelectContent>
                             {regions.map((region) => (
                               <SelectItem key={region} value={region}>
                                 {region}
@@ -376,38 +266,27 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="address"
                     render={({ field }) => (
-                      <FormItem className="relative">
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>
                           Complete Address <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input
+                          <Textarea
                             {...field}
-                            maxLength={64}
-                            className="h-10 sm:h-12"
+                            rows={3}
+                            className="resize-none"
                             placeholder="House/Unit number, Street, Barangay..."
                           />
                         </FormControl>
-                        <div className="h-5">
-                          {touched.address && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.address && field.value && !errors.address && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -464,80 +343,32 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                             />
                           ))}
                         </div>
-
-                        {/* If 'Other' selected, reveal an input */}
-                        {mushroomTypesValue?.includes("Other") && (
-                          <div className="mt-3">
-                            <FormField
-                              control={form.control}
-                              name="mushroomOther"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Other - please specify</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} placeholder="Specify other mushroom type" />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        )}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="productionCapacity"
-                    render={({ field }) => {
-                      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        // Only allow numeric input
-                        const value = e.target.value.replace(/\D/g, "");
-                        field.onChange(value);
-                      };
-
-                      const handleBlur = () => {
-                        // Append " kg" if there's a value and it doesn't already end with " kg"
-                        const value = field.value || "";
-                        const numericValue = value.replace(/\D/g, "");
-                        if (numericValue && !value.endsWith(" kg")) {
-                          field.onChange(numericValue + " kg");
-                        }
-                        field.onBlur();
-                      };
-
-                      const handleFocus = () => {
-                        // Remove " kg" when focusing so user can edit the number
-                        const value = field.value || "";
-                        const numericValue = value.replace(/\s*kg\s*$/i, "").replace(/\D/g, "");
-                        field.onChange(numericValue);
-                      };
-
-                      return (
-                        <FormItem>
-                          <FormLabel>
-                            Monthly Production Capacity <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              onChange={handleChange}
-                              onBlur={handleBlur}
-                              onFocus={handleFocus}
-                              inputMode="numeric"
-                              className="h-10 sm:h-12"
-                              placeholder="e.g., 500"
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs sm:text-sm">
-                            Approximate monthly production in kilograms
-                          </FormDescription>
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Monthly Production Capacity <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="h-10 sm:h-12"
+                            placeholder="e.g., 500kg per month"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs sm:text-sm">
+                          Approximate monthly production in kilograms
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-
                   <FormField
                     control={form.control}
                     name="certifications"
@@ -552,114 +383,37 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                             placeholder="List any certifications (e.g., Organic, GAP, HACCP)"
                           />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
               </div>
 
-              {/* Banking Details */}
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
-                  Banking Details
+              {/* Payment Information - Coming Soon */}
+              <div className="bg-muted/50 border border-border rounded-lg p-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
+                  Payment Information
                 </h2>
-                <div className="space-y-4 sm:space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="bankName"
-                    render={({ field }) => (
-                      <FormItem className="relative">
-                        <FormLabel>
-                          Bank Name <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            maxLength={24}
-                            className="h-10 sm:h-12"
-                            placeholder="e.g., BDO, BPI, Metrobank"
-                          />
-                        </FormControl>
-                        <div className="h-5">
-                          {touched.bankName && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.bankName && field.value && !errors.bankName && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="accountNumber"
-                    render={({ field }) => (
-                      <FormItem className="relative">
-                        <FormLabel>
-                          Account Number <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            inputMode="numeric"
-                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                            className="h-10 sm:h-12"
-                            placeholder="Enter your account number"
-                          />
-                        </FormControl>
-                        <div className="h-5">
-                          {touched.accountNumber && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.accountNumber && field.value && !errors.accountNumber && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="accountName"
-                    render={({ field }) => (
-                      <FormItem className="relative">
-                        <FormLabel>
-                          Account Holder Name <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            maxLength={24}
-                            className="h-10 sm:h-12"
-                            placeholder="Name as it appears on your bank account"
-                          />
-                        </FormControl>
-                        <div className="h-5">
-                          {touched.accountName && !field.value && (
-                            <div className="text-xs text-yellow-600">
-                              <AlertCircle className="inline mr-1 h-4 w-4" />This field is required
-                            </div>
-                          )}
-                          {touched.accountName && field.value && !errors.accountName && (
-                            <div className="text-xs text-green-600">
-                              <Check className="inline mr-1 h-4 w-4" />Looks good
-                            </div>
-                          )}
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Payment processing will be set up after your seller application is approved.
+                  </p>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-sm font-medium text-foreground">Coming Soon:</span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      PayMongo
+                    </span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      GCash
+                    </span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      Maya
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    💡 You&apos;ll be able to connect your preferred payment method once approved.
+                  </p>
                 </div>
               </div>
 
@@ -688,6 +442,7 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                           </Link>{" "}
                           <span className="text-red-500">*</span>
                         </FormLabel>
+                        <FormMessage />
                       </div>
                     </FormItem>
                   )}
@@ -729,4 +484,3 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
     </div>
   );
 }
-

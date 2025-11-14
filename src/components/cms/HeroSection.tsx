@@ -9,6 +9,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { HeroSection as HeroSectionType } from "@/hooks/useCMS";
@@ -61,7 +63,10 @@ export const CMSHeroSection: React.FC<CMSHeroSectionProps> = ({ data }) => {
   };
 
   return (
-    <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+    <section
+      className="relative h-[420px] sm:h-[480px] lg:h-[620px] overflow-hidden mb-8 sm:mb-0"
+      aria-label="Featured marketplace highlights"
+    >
       <Carousel
         opts={{ loop: true }}
         setApi={setApi}
@@ -70,7 +75,7 @@ export const CMSHeroSection: React.FC<CMSHeroSectionProps> = ({ data }) => {
         <CarouselContent className="h-full -ml-0">
           {data.backgroundImages.map((image, index) => (
             <CarouselItem key={index} className="pl-0 basis-full">
-              <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px]">
+              <div className="relative w-full h-[420px] sm:h-[480px] lg:h-[620px]">
                 <Image
                   src={image}
                   alt={`Hero Background ${index + 1}`}
@@ -82,12 +87,14 @@ export const CMSHeroSection: React.FC<CMSHeroSectionProps> = ({ data }) => {
             </CarouselItem>
           ))}
         </CarouselContent>
+        <CarouselPrevious className="hidden sm:flex bg-white/80 text-foreground hover:bg-white" />
+        <CarouselNext className="hidden sm:flex bg-white/80 text-foreground hover:bg-white" />
       </Carousel>
 
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30 pointer-events-none z-10" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-24">
         <div className="max-w-4xl">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
             {data.title}
@@ -95,25 +102,42 @@ export const CMSHeroSection: React.FC<CMSHeroSectionProps> = ({ data }) => {
           <p className="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl leading-relaxed">
             {data.subtitle}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link href={data.primaryButton.url}>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+            <Link href={data.primaryButton.url} className="w-full sm:w-auto">
               <Button
-                className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg ${getButtonClasses(data.primaryButton.variant)}`}
+                className={`w-full px-4 sm:px-8 py-2.5 sm:py-4 h-auto text-sm sm:text-lg rounded-lg font-semibold transition-all duration-200 shadow-lg ${getButtonClasses(data.primaryButton.variant)}`}
                 variant={getButtonVariant(data.primaryButton.variant)}
               >
                 {data.primaryButton.text}
               </Button>
             </Link>
-            <Link href={data.secondaryButton.url}>
+            <Link href={data.secondaryButton.url} className="w-full sm:w-auto">
               <Button
                 variant={getButtonVariant(data.secondaryButton.variant)}
-                className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg border-2 border-white font-semibold transition-all duration-200 transform hover:scale-105 ${getButtonClasses(data.secondaryButton.variant)}`}
+                className={`w-full px-4 sm:px-8 py-2.5 sm:py-4 h-auto text-sm sm:text-lg rounded-lg border border-white font-semibold transition-all duration-200 ${getButtonClasses(data.secondaryButton.variant)}`}
               >
                 {data.secondaryButton.text}
               </Button>
             </Link>
           </div>
         </div>
+      </div>
+
+      <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-2">
+        {data.backgroundImages.map((_, index) => (
+          <button
+            key={`hero-dot-${index}`}
+            type="button"
+            onClick={() => api?.scrollTo(index)}
+            className={`h-2.5 w-2.5 rounded-full transition-colors duration-200 ${
+              currentSlide === index
+                ? "bg-white"
+                : "bg-white/40 hover:bg-white/70"
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+            aria-pressed={currentSlide === index}
+          />
+        ))}
       </div>
     </section>
   );

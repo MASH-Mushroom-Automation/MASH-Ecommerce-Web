@@ -1,0 +1,12 @@
+{
+  "id": "cat_002",
+  "name": "Dried Mushrooms",
+  "slug": "dried-mushrooms",
+  "description": "Premium dried mushrooms with concentrated flavors and nutrients. Long shelf life for your convenience.",
+  "image": "https://images.unsplash.com/photo-1584010356564-c84ddc954dc2?w=400",
+  "parentId": null,
+  "order": 2,
+  "isActive": true,
+  "createdAt": "2025-06-01T08:00:00.000Z",
+  "updatedAt": "2025-10-01T12:00:00.000Z"
+}

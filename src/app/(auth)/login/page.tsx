@@ -13,16 +13,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { setAuthToken } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { humanizeError } from "@/lib/error-messages";
 
 // Load environment variables (default to production backend)
 const API_ENDPOINT =
   process.env.NEXT_PUBLIC_API_ENDPOINT ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://mash-backend-api.up.railway.app";
+  "https://mash-backend-api-production.up.railway.app";
 
 const isPhone = (val: string) => {
-  // Simple phone validation: +country or local digits (10-15)
-  return /^\+?\d{10,15}$/.test(val);
+  // Philippine phone validation: 09XXXXXXXXX or +639XXXXXXXXX
+  return /^(09|\+639)\d{9}$/.test(val);
 };
 
 const validatePassword = (val: string) => {
@@ -162,10 +163,9 @@ export default function LoginPage() {
       // Parse backend response which contains `data.accessToken`, `data.refreshToken` and `data.user`
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message =
-          (json && (json.message || json.data?.message)) ||
-          "Invalid credentials";
-        toast.error(message);
+        const serverMessage = json && (json.message || json.data?.message);
+        const errorMessage = humanizeError(serverMessage || "Invalid credentials");
+        toast.error(errorMessage);
         return;
       }
 
@@ -174,7 +174,7 @@ export default function LoginPage() {
       const user = json?.data?.user || json?.user || null;
 
       if (!accessToken) {
-        toast.error("Login succeeded but no access token was returned.");
+        toast.error("Login successful, but we couldn't complete the process. Please try again.");
         return;
       }
 
@@ -192,17 +192,14 @@ export default function LoginPage() {
         // ignore storage errors
       }
 
-      toast.success(`Signed in as ${user?.email || data.identifier}.`);
+      toast.success(`Welcome back, ${user?.firstName || data.identifier}!`);
       // Redirect to the original page or home
       router.push(redirectUrl || "/");
       router.refresh();
-    } catch {
-      // Network error or endpoint not available: use mock success to keep UX flowing in dev
-      setAuthToken("mock-token", !!data.rememberMe);
-      toast.success(`Signed in as ${data.identifier}.`);
-      // Redirect to the original page or home
-      router.push(redirectUrl || "/");
-      router.refresh();
+    } catch (error) {
+      // Network error or endpoint not available
+      const errorMessage = humanizeError(error);
+      toast.error(errorMessage);
     }
   };
 

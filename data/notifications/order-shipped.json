@@ -1,0 +1,21 @@
+{
+  "id": "notif_001",
+  "userId": "user_001",
+  "type": "order_status",
+  "title": "Your order has been shipped!",
+  "message": "Good news! Your order #order_001 is on its way. Expected delivery: November 5, 2025 (2:00 PM - 4:00 PM)",
+  
+  "data": {
+    "orderId": "order_001",
+    "status": "SHIPPED",
+    "trackingNumber": "MASH-TRACK-001",
+    "estimatedDelivery": "2025-11-05T14:00:00.000Z"
+  },
+  
+  "actionUrl": "/profile/order-history/order_001",
+  
+  "isRead": false,
+  "readAt": null,
+  
+  "createdAt": "2025-11-05T09:30:00.000Z"
+}

@@ -1,0 +1,49 @@
+{
+  "_comment": "ImportExportJob Table - Complete JSON Structure",
+  "_table": "import_export_jobs",
+  "_description": "Bulk import/export job tracking with progress",
+  "_schema_reference": "MASH-Backend/prisma/schema.prisma",
+  
+  "id": "job_001",
+  "type": "IMPORT",
+  "entity": "PRODUCTS",
+  "status": "COMPLETED",
+  "templateId": "template_001",
+  "fileUrl": "https://storage.mash.com/imports/products_2025.csv",
+  "totalRecords": 500,
+  "processedRecords": 500,
+  "successCount": 485,
+  "errorCount": 15,
+  "startedAt": "2025-11-10T08:00:00.000Z",
+  "completedAt": "2025-11-10T08:15:00.000Z",
+  "createdBy": "cm3vxyz123456789",
+  "createdAt": "2025-11-10T08:00:00.000Z",
+  "updatedAt": "2025-11-10T08:15:00.000Z",
+  
+  "_example_export_job": {
+    "id": "job_002",
+    "type": "EXPORT",
+    "entity": "ORDERS",
+    "status": "RUNNING",
+    "fileUrl": null,
+    "totalRecords": 1200,
+    "processedRecords": 850,
+    "successCount": 850,
+    "errorCount": 0,
+    "startedAt": "2025-11-10T09:00:00.000Z",
+    "completedAt": null
+  },
+  
+  "_enums": {
+    "type": ["IMPORT", "EXPORT"],
+    "entity": ["PRODUCTS", "USERS", "ORDERS", "CATEGORIES", "DEVICES", "SENSORS"],
+    "status": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"]
+  },
+  "_required_fields": ["id", "type", "entity", "status", "totalRecords", "processedRecords", "successCount", "errorCount", "createdBy", "createdAt", "updatedAt"],
+  "_optional_fields": ["templateId", "fileUrl", "startedAt", "completedAt"],
+  "_relationships": {
+    "template": "ImportExportTemplate?",
+    "createdByUser": "User",
+    "errors": "ImportExportError[]"
+  }
+}
