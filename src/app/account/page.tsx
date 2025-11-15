@@ -12,9 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Mail, Calendar, Shield, CheckCircle } from "lucide-react";
+import { Loader2, User, Mail, Calendar, Shield, CheckCircle, Edit } from "lucide-react";
 import Link from "next/link";
 import { ProfileSkeleton, AccountInfoSkeleton } from "@/components/ui/loading-skeleton";
+import { UserAvatar } from "@/components/user-avatar";
 
 export default function AccountPage() {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
@@ -134,13 +135,34 @@ export default function AccountPage() {
           {/* Clerk User Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Authentication Account
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  <CardTitle>Authentication Account</CardTitle>
+                </div>
+                <Link href="/profile/edit">
+                  <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                </Link>
+              </div>
               <CardDescription>Your Clerk authentication information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Profile Avatar Section */}
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <UserAvatar size="lg" editable />
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {clerkUser.firstName} {clerkUser.lastName}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {clerkUser.emailAddresses[0]?.emailAddress}
+                  </p>
+                </div>
+              </div>
+
               <div className="flex items-start gap-3">
                 <Mail className="h-5 w-5 mt-0.5 text-muted-foreground" />
                 <div className="flex-1">
