@@ -23,7 +23,7 @@ import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { Badge } from "@/components/ui/badge";
-import { isAuthenticated, logout as authLogout } from "@/lib/auth";
+import { useUser, useClerk } from "@clerk/nextjs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,14 +231,14 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
 export function Header() {
   const { wishlistCount, clearWishlist } = useWishlist();
   const { clearCart } = useCart();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, isLoaded: clerkLoaded } = useUser();
+  const { signOut } = useClerk();
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
 
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
-  }, []);
+  // Use Clerk's authentication state
+  const isLoggedIn = clerkLoaded && !!user;
 
   useEffect(() => {
     setIsMounted(true);
@@ -255,17 +255,21 @@ export function Header() {
     setLogoutDialogOpen(true);
   };
 
-  const handleLogoutConfirm = () => {
-    authLogout();
-    // Immediately clear in-memory state so UI updates without reload
+  const handleLogoutConfirm = async () => {
     try {
+      // Sign out from Clerk
+      await signOut();
+      // Clear in-memory state
       clearWishlist();
       clearCart();
-    } catch {}
-    router.push("/");
-    router.refresh();
-    toast.success("Signed out");
-    setLogoutDialogOpen(false);
+      router.push("/");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to sign out");
+    } finally {
+      setLogoutDialogOpen(false);
+    }
   };
 
   return (
@@ -352,7 +356,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/login">
+            <Link href="/sign-in">
               <Button
                 variant="primary"
                 size="lg"
@@ -360,7 +364,7 @@ export function Header() {
                 className="flex items-center space-x-2"
               >
                 <User size={20} />
-                <span className="hidden sm:inline">Login</span>
+                <span className="hidden sm:inline">Sign In</span>
               </Button>
             </Link>
           )}
@@ -448,10 +452,10 @@ export function Header() {
                       </Button>
                     </>
                   ) : (
-                    <Link href="/login">
+                    <Link href="/sign-in">
                       <Button variant="primary" className="w-full">
                         <User className="mr-2 h-4 w-4" />
-                        Login
+                        Sign In
                       </Button>
                     </Link>
                   )}
