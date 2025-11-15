@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Link as LinkIcon, Unlink, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { FormSkeleton } from "@/components/ui/loading-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,10 +141,19 @@ export default function SettingsPage() {
 
   if (!clerkLoaded || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary-medium" />
-          <p className="mt-4 text-muted-foreground">Loading settings...</p>
+      <div className="min-h-screen bg-gradient-to-b from-primary-dark/5 to-white py-12 px-4">
+        <div className="container mx-auto max-w-3xl">
+          {/* Header skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="h-10 w-64 bg-gray-200 rounded mb-2"></div>
+            <div className="h-5 w-96 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Settings card skeleton */}
+          <div className="rounded-lg bg-white p-6 shadow">
+            <div className="mb-4 h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
+            <FormSkeleton />
+          </div>
         </div>
       </div>
     );

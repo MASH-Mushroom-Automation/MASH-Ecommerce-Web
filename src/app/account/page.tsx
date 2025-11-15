@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Mail, Calendar, Shield, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { ProfileSkeleton, AccountInfoSkeleton } from "@/components/ui/loading-skeleton";
 
 export default function AccountPage() {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
@@ -62,10 +63,27 @@ export default function AccountPage() {
 
   if (!clerkLoaded || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary-medium" />
-          <p className="mt-4 text-muted-foreground">Loading your account...</p>
+      <div className="min-h-screen bg-gradient-to-b from-primary-dark/5 to-white py-12 px-4">
+        <div className="container mx-auto max-w-4xl">
+          {/* Header skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="h-10 w-64 bg-gray-200 rounded mb-2"></div>
+            <div className="h-5 w-48 bg-gray-200 rounded"></div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Profile card skeleton */}
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="mb-4 h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
+              <ProfileSkeleton />
+            </div>
+
+            {/* Account info skeleton */}
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="mb-4 h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
+              <AccountInfoSkeleton />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -125,11 +143,19 @@ export default function AccountPage() {
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
                 <Mail className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">
-                    {clerkUser.emailAddresses[0]?.emailAddress}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      {clerkUser.emailAddresses[0]?.emailAddress}
+                    </p>
+                    {clerkUser.emailAddresses[0]?.verification?.status === "verified" && (
+                      <Badge variant="default" className="gap-1 text-xs bg-green-100 text-green-800 hover:bg-green-200">
+                        <CheckCircle className="h-3 w-3" />
+                        Verified
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
