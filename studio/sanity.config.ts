@@ -52,6 +52,11 @@ export default defineConfig({
   projectId,
   dataset,
 
+  // Deployment configuration for auto-deployment
+  deployment: {
+    appId: 'ydg9aldo9kaje3bknmhjq0pl',
+  },
+
   plugins: [
     // Presentation tool configuration for Visual Editing
     presentationTool({

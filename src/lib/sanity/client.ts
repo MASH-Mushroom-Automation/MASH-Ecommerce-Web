@@ -10,9 +10,9 @@ import imageUrlBuilder from "@sanity/image-url";
 import type { SanityImageSource } from "@sanity/image-url/lib/types/types";
 
 // Sanity project configuration
-export const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "z9tn0u8x";
+export const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "2grm6gj7";
 export const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
-export const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2025-09-25";
+export const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2024-11-19";
 export const useCdn = process.env.NODE_ENV === "production";
 
 // Optional: Sanity API token for authenticated requests (read/write)

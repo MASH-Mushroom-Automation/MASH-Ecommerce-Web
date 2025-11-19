@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
@@ -16,118 +16,46 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SlidersHorizontal, Grid, List } from "lucide-react";
-import {
-  useProducts,
-  useProductCategories,
-  useProductGrowers,
-} from "@/hooks/useProducts";
-import {
-  ProductGridSkeleton,
-  LoadingSpinner,
-} from "@/components/ui/loading-spinner";
-import { ProductsListParams, ProductApiResponse } from "@/types/api";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useSanityProducts } from "@/hooks/useSanityProducts";
+import { useSanityCategories } from "@/hooks/useSanityCategories";
+import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
+import type { ProductFilters } from "@/types/sanity";
 
 export default function ProductCatalogPage() {
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedGrowers, setSelectedGrowers] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 12000]);
-
-  // Sort and pagination
-  const [sort, setSort] = useState("featured");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [accumulatedProducts, setAccumulatedProducts] = useState<
-    ProductApiResponse[]
-  >([]);
+  const [sort, setSort] = useState<ProductFilters["sortBy"]>("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
-  // API parameters
-  const [apiParams, setApiParams] = useState<ProductsListParams>({
-    page: 1,
-    limit: itemsPerPage,
-    minPrice: 0,
-    maxPrice: 12000,
-  });
-
-  // Fetch data using custom hooks
-  const { products, loading, error, pagination, setParams } =
-    useProducts(apiParams);
-  const { categories } = useProductCategories();
-  const { growers } = useProductGrowers();
   const { addToCart } = useCart();
 
-  // Debounce filter changes (5 seconds)
-  const debouncedCategories = useDebounce(selectedCategories, 5000);
-  const debouncedGrowers = useDebounce(selectedGrowers, 5000);
-  const debouncedPriceRange = useDebounce(priceRange, 5000);
-  const debouncedSort = useDebounce(sort, 5000);
-
-  // Update API parameters when debounced filters change
-  useEffect(() => {
-    const newParams: ProductsListParams = {
-      page: currentPage,
-      limit: itemsPerPage,
-      minPrice: debouncedPriceRange[0],
-      maxPrice: debouncedPriceRange[1],
-      category:
-        debouncedCategories.length > 0 ? debouncedCategories[0] : undefined,
-      grower: debouncedGrowers.length > 0 ? debouncedGrowers[0] : undefined,
-    };
-
-    // Handle sorting
-    if (debouncedSort === "price-asc") {
-      newParams.sortBy = "price";
-      newParams.sortOrder = "asc";
-    } else if (debouncedSort === "price-desc") {
-      newParams.sortBy = "price";
-      newParams.sortOrder = "desc";
-    }
-
-    setApiParams(newParams);
-    setParams(newParams);
-  }, [
-    debouncedCategories,
-    debouncedGrowers,
-    debouncedPriceRange,
-    debouncedSort,
-    currentPage,
-    itemsPerPage,
-    setParams,
-  ]);
-
-  // Reset page and accumulated products when filters or items per page change
-  useEffect(() => {
-    setCurrentPage(1);
-    setAccumulatedProducts([]);
-  }, [selectedCategories, selectedGrowers, priceRange, sort, itemsPerPage]);
-
-  // Accumulate products when new page loads
-  useEffect(() => {
-    if (products && products.length > 0) {
-      if (currentPage === 1) {
-        // Replace accumulated products when going back to page 1
-        setAccumulatedProducts(products);
-      } else {
-        // Append new products when loading more
-        setAccumulatedProducts((prev) => [...prev, ...products]);
-      }
-      setIsLoadingMore(false);
-    }
-  }, [products, currentPage]);
-
-  const handleLoadMore = () => {
-    setIsLoadingMore(true);
-    setCurrentPage((prev) => prev + 1);
+  // Build filters for Sanity query
+  const filters: ProductFilters = {
+    category: selectedCategories.length > 0 ? selectedCategories[0] : undefined,
+    minPrice: priceRange[0],
+    maxPrice: priceRange[1],
+    sortBy: sort,
+    isAvailable: true,
   };
 
-  const hasMoreProducts = pagination && currentPage < pagination.totalPages;
+  // Fetch products from Sanity CMS
+  const { products: allProducts, loading, error } = useSanityProducts(filters);
+  
+  // Fetch categories from Sanity CMS
+  const { categories: sanityCategories } = useSanityCategories();
+
+  // Client-side pagination (showing first N products)
+  const displayedProducts = allProducts.slice(0, itemsPerPage);
+  const hasMoreProducts = allProducts.length > displayedProducts.length;
+
+  // Extract category names from Sanity categories
+  const categories = sanityCategories.map((cat) => cat.name);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -135,16 +63,10 @@ export default function ProductCatalogPage() {
         ? prev.filter((c) => c !== category)
         : [...prev, category]
     );
-    setCurrentPage(1);
   };
 
-  const toggleGrower = (grower: string) => {
-    setSelectedGrowers((prev) =>
-      prev.includes(grower)
-        ? prev.filter((g) => g !== grower)
-        : [...prev, grower]
-    );
-    setCurrentPage(1);
+  const handleLoadMore = () => {
+    setItemsPerPage((prev) => prev + 12);
   };
 
   return (
@@ -177,28 +99,7 @@ export default function ProductCatalogPage() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-bold text-foreground mb-4 text-base">
-                  Grower
-                </h3>
-                <div className="space-y-3">
-                  {growers.map((grower) => (
-                    <div key={grower} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`grower-${grower}`}
-                        checked={selectedGrowers.includes(grower)}
-                        onCheckedChange={() => toggleGrower(grower)}
-                      />
-                      <Label
-                        htmlFor={`grower-${grower}`}
-                        className="text-sm text-muted-foreground cursor-pointer font-normal leading-tight"
-                      >
-                        {grower}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+
 
               <div>
                 <h3 className="font-bold text-foreground mb-4 text-base">
@@ -291,32 +192,7 @@ export default function ProductCatalogPage() {
                         </div>
                       </div>
 
-                      {/* Grower */}
-                      <div>
-                        <h3 className="font-bold text-foreground mb-4 text-base">
-                          Grower
-                        </h3>
-                        <div className="space-y-3">
-                          {growers.map((grower) => (
-                            <div
-                              key={grower}
-                              className="flex items-center space-x-3"
-                            >
-                              <Checkbox
-                                id={`mobile-grower-${grower}`}
-                                checked={selectedGrowers.includes(grower)}
-                                onCheckedChange={() => toggleGrower(grower)}
-                              />
-                              <Label
-                                htmlFor={`mobile-grower-${grower}`}
-                                className="text-sm text-muted-foreground cursor-pointer font-normal leading-tight"
-                              >
-                                {grower}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+
 
                       {/* Price Range */}
                       <div>
@@ -376,7 +252,7 @@ export default function ProductCatalogPage() {
 
               {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
-                <Select value={sort} onValueChange={setSort}>
+                <Select value={sort} onValueChange={(value) => setSort(value as ProductFilters["sortBy"])}>
                   <SelectTrigger className="w-full sm:w-[180px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -445,18 +321,18 @@ export default function ProductCatalogPage() {
             </div>
 
             {/* Product Grid */}
-            {loading && currentPage === 1 ? (
+            {loading ? (
               <ProductGridSkeleton count={itemsPerPage} />
             ) : error ? (
               <div className="text-center py-12">
                 <p className="text-destructive mb-4">
-                  Error loading products: {error}
+                  Error loading products: {error.message}
                 </p>
                 <Button onClick={() => window.location.reload()}>
                   Try Again
                 </Button>
               </div>
-            ) : accumulatedProducts.length === 0 ? (
+            ) : displayedProducts.length === 0 ? (
               <EmptyState
                 icon={Package}
                 title="No Products Found"
@@ -464,7 +340,6 @@ export default function ProductCatalogPage() {
                 actionLabel="Clear Filters"
                 onAction={() => {
                   setSelectedCategories([]);
-                  setSelectedGrowers([]);
                   setPriceRange([0, 12000]);
                   setSort("featured");
                 }}
@@ -473,22 +348,22 @@ export default function ProductCatalogPage() {
               <>
                 {viewMode === "grid" ? (
                   <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {accumulatedProducts.map((product) => (
+                    {displayedProducts.map((product) => (
                       <ProductCard
                         key={product.id}
                         id={product.id}
                         name={product.name}
-                        farm={product.grower}
+                        farm={product.category || "MASH"}
                         price={product.price}
-                        unit={product.weight}
+                        unit={product.unit || "250g"}
                         image={product.image}
-                        inStock={product.inStock !== false}
+                        inStock={product.stock > 0}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {accumulatedProducts.map((product) => (
+                    {displayedProducts.map((product) => (
                       <div
                         key={product.id}
                         className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 flex flex-col md:flex-row gap-3"
@@ -508,11 +383,10 @@ export default function ProductCatalogPage() {
                               {product.name}
                             </h3>
                             <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">
-                              by {product.grower}
+                              {product.category || "MASH"}
                             </p>
                             <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
-                              Fresh, locally-sourced mushrooms perfect for any
-                              culinary creation.
+                              {product.description || "Fresh, locally-sourced mushrooms perfect for any culinary creation."}
                             </p>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -521,10 +395,10 @@ export default function ProductCatalogPage() {
                                 ₱{product.price.toFixed(2)}
                               </span>
                               <span className="text-[11px] sm:text-xs text-muted-foreground">
-                                per {product.weight}
+                                per {product.unit || "250g"}
                               </span>
                             </div>
-                            {product.inStock === false ? (
+                            {product.stock === 0 ? (
                               <span className="text-[11px] sm:text-xs text-destructive font-medium">
                                 Out of Stock
                               </span>
@@ -552,10 +426,10 @@ export default function ProductCatalogPage() {
                   <div className="flex justify-center mt-8">
                     <Button
                       onClick={handleLoadMore}
-                      disabled={isLoadingMore}
+                      disabled={loading}
                       className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-2"
                     >
-                      {isLoadingMore ? "Loading..." : "Load More"}
+                      {loading ? "Loading..." : "Load More"}
                     </Button>
                   </div>
                 )}

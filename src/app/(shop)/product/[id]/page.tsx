@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart } from "lucide-react";
-import { useProduct } from "@/hooks/useProducts";
+// TEMPORARILY DISABLED: Will be replaced with Sanity slug-based routing
+// import { useProduct } from "@/hooks/useProducts";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { isAuthenticated } from "@/lib/auth";
@@ -288,22 +289,40 @@ function RelatedProductsSection({
 
 export default function ProductDetailsRoute({ params }: Props) {
   const { id } = use(params);
-  const { product, loading, error } = useProduct(id);
+  // TEMPORARILY DISABLED: Will be replaced with Sanity slug-based routing in Phase 4
+  // const { product, loading, error } = useProduct(id);
 
-  if (loading) {
-    return (
-      <div className="bg-background min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" className="mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading product details...</p>
-        </div>
+  // Temporary message until Phase 4 is implemented
+  return (
+    <div className="bg-background min-h-screen flex items-center justify-center">
+      <div className="text-center max-w-md px-4">
+        <div className="text-6xl mb-4">🍄</div>
+        <h1 className="text-2xl font-bold mb-2">Product Details Coming Soon</h1>
+        <p className="text-muted-foreground mb-6">
+          Product detail pages will be updated to use Sanity CMS in Phase 4 of the integration.
+        </p>
+        <Link href="/shop">
+          <Button>Browse Products</Button>
+        </Link>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error || !product) {
-    return notFound();
-  }
+  // Original code (will be restored in Phase 4 with Sanity slug routing)
+  // if (loading) {
+  //   return (
+  //     <div className="bg-background min-h-screen flex items-center justify-center">
+  //       <div className="text-center">
+  //         <Spinner size="lg" className="mx-auto mb-4" />
+  //         <p className="text-muted-foreground">Loading product details...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  return <ProductDetailsContent product={product} />;
+  // if (error || !product) {
+  //   return notFound();
+  // }
+
+  // return <ProductDetailsContent product={product} />;
 }
