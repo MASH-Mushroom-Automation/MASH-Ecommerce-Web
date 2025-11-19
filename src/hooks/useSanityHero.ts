@@ -65,12 +65,24 @@ export function useSanityHero(): UseSanityHeroReturn {
       const data: SanityHeroCarousel | null = await sanityClient.fetch(query);
 
       if (data && data.slides) {
-        // Filter active slides and sort by order
-        const activeSlides = data.slides
-          .filter(slide => slide.isActive)
+        // Filter and sort slides
+        // Handle old data structure where isActive/order might be null
+        const processedSlides = data.slides
+          .filter(slide => {
+            // If isActive is null/undefined, treat as active (for backwards compatibility)
+            return slide.isActive !== false;
+          })
+          .map((slide, index) => ({
+            ...slide,
+            // Fill in missing required fields with defaults
+            subtitle: slide.subtitle || '',
+            buttonStyle: slide.buttonStyle || 'primary',
+            order: slide.order || (index + 1),
+            isActive: slide.isActive !== false,
+          }))
           .sort((a, b) => a.order - b.order);
         
-        setSlides(activeSlides);
+        setSlides(processedSlides);
       } else {
         setSlides([]);
       }

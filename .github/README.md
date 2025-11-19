@@ -74,11 +74,14 @@
 #### 5. **✅ Hero Section COMPLETE** → [`SANITY_HERO_SETUP_COMPLETE.md`](./SANITY_HERO_SETUP_COMPLETE.md)
 🎉 **IMPLEMENTATION DONE!** - Hero carousel is live and connected to Sanity! Real-time editing enabled!
 
+#### 6. **🎉 Hero Carousel FIXED** → [`HERO_CAROUSEL_FIXED.md`](./HERO_CAROUSEL_FIXED.md)
+✅ **YOUR HERO IS WORKING!** - 2 slides showing! Update guide included!
+
 ---
 
 ### 📚 **COMPLETE GUIDES**
 
-#### 6. **🆕 Complete Data Guide** → [`COMPLETE_SANITY_DATA_GUIDE.md`](./COMPLETE_SANITY_DATA_GUIDE.md)
+#### 7. **🆕 Complete Data Guide** → [`COMPLETE_SANITY_DATA_GUIDE.md`](./COMPLETE_SANITY_DATA_GUIDE.md)
 ⭐ **MOST FEATURES!** - 30+ products with ALL fields, subcategories, promotions + images
 
 #### 7. **Quick Start** → [`KENNETH_QUICK_START.md`](./KENNETH_QUICK_START.md)

@@ -146,7 +146,7 @@ export const SanityHeroCarousel: React.FC = () => {
   if (slides.length === 1) {
     const slide = slides[0];
     return (
-      <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+      <section className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden">
         {/* Background Image */}
         {slide.image ? (
           <>
@@ -157,31 +157,35 @@ export const SanityHeroCarousel: React.FC = () => {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 z-10" />
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary-dark via-primary-medium to-primary-light" />
         )}
 
-        {/* Content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-              {slide.title}
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl leading-relaxed">
-              {slide.subtitle}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Link href={slide.buttonLink} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant={getButtonVariant(slide.buttonStyle)}
-                  className="w-full sm:w-auto"
-                >
-                  {slide.buttonText}
-                </Button>
-              </Link>
+        {/* Content - Centered */}
+        <div className="relative z-20 h-full flex items-center justify-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-2xl">
+                {slide.title}
+              </h1>
+              {slide.subtitle && (
+                <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+                  {slide.subtitle}
+                </p>
+              )}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Link href={slide.buttonLink}>
+                  <Button
+                    size="lg"
+                    variant={getButtonVariant(slide.buttonStyle)}
+                    className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    {slide.buttonText}
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -191,7 +195,7 @@ export const SanityHeroCarousel: React.FC = () => {
 
   // Multiple slides - show carousel
   return (
-    <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+    <section className="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden">
       <Carousel
         opts={{ loop: true }}
         plugins={[plugin.current]}
@@ -214,7 +218,7 @@ export const SanityHeroCarousel: React.FC = () => {
                       className="object-cover"
                       priority={index === 0}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30 z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 z-10" />
                   </>
                 ) : (
                   <div 
@@ -229,25 +233,29 @@ export const SanityHeroCarousel: React.FC = () => {
                   />
                 )}
 
-                {/* Content */}
-                <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-                  <div className="max-w-3xl">
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-                      {slide.title}
-                    </h1>
-                    <p className="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl leading-relaxed">
-                      {slide.subtitle}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                      <Link href={slide.buttonLink} className="w-full sm:w-auto">
-                        <Button
-                          size="lg"
-                          variant={getButtonVariant(slide.buttonStyle)}
-                          className="w-full sm:w-auto"
-                        >
-                          {slide.buttonText}
-                        </Button>
-                      </Link>
+                {/* Content - Centered */}
+                <div className="relative z-20 h-full flex items-center justify-center">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div className="max-w-4xl mx-auto">
+                      <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {slide.title}
+                      </h1>
+                      {slide.subtitle && (
+                        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+                          {slide.subtitle}
+                        </p>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <Link href={slide.buttonLink}>
+                          <Button
+                            size="lg"
+                            variant={getButtonVariant(slide.buttonStyle)}
+                            className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                          >
+                            {slide.buttonText}
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -262,16 +270,16 @@ export const SanityHeroCarousel: React.FC = () => {
       </Carousel>
 
       {/* Navigation Dots */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-black/30 backdrop-blur-sm px-4 py-3 rounded-full">
         {slides.map((_, index) => (
           <button
             key={`dot-${index}`}
             type="button"
             onClick={() => api?.scrollTo(index)}
-            className={`h-2.5 w-2.5 rounded-full transition-all duration-200 ${
+            className={`h-3 rounded-full transition-all duration-300 ${
               currentSlide === index
-                ? "bg-white w-8"
-                : "bg-white/40 hover:bg-white/70"
+                ? "bg-white w-10 shadow-lg"
+                : "bg-white/50 w-3 hover:bg-white/80 hover:w-6"
             }`}
             aria-label={`Go to slide ${index + 1}`}
             aria-pressed={currentSlide === index}
