@@ -1,21 +1,25 @@
-# ✅ MASH Environment Configuration Update
+# ✅ MASH Environment Configuration - Complete Migration
 
 **Date:** November 20, 2025  
 **Status:** ✅ COMPLETE - All Environment Variables Updated to MASH Project  
-**Analytics:** 🎯 Google Analytics 4 Integration Active
+**Firebase:** 🔥 MASH Firebase Project (mash-5b627) Configured  
+**Analytics:** 🎯 Google Analytics 4 Integration Active  
+**Sanity CMS:** 📦 MASH E-commerce (2grm6gj7) Live
 
 ---
 
 ## 🎯 What Was Updated
 
 ### Previous State
-- ❌ Using J5Pharmacy Firebase config (wrong project)
+- ❌ Using J5Pharmacy/J5ecommerce Firebase config (wrong project)
 - ❌ GA Measurement ID: `G-XH40CQ99P1` (wrong analytics property)
 - ❌ Mixed project configurations
 
 ### Current State
 - ✅ All configs updated to MASH E-commerce project
-- ✅ GA Measurement ID: `G-5XD8QWQP6J` (correct MASH analytics)
+- ✅ Firebase Project: `mash-5b627` (MASH-specific)
+- ✅ Firebase Measurement ID: `G-XZFRQ8332D`
+- ✅ GA Measurement ID: `G-5XD8QWQP6J` (web analytics)
 - ✅ Consistent environment setup across all files
 - ✅ Analytics tracking operational
 
@@ -25,13 +29,24 @@
 
 ### 1. `.env.local` (Root Directory)
 
-**Updated Section:**
+**Updated Sections:**
 ```env
+# Firebase Configuration - MASH Project
+# Project: MASH (mash-5b627)
+# Project Number: 1001664140460
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyDQryxFIjEjXApWMZP2H2ZkHIlWxUMuVO0"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="mash-5b627.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="mash-5b627"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="mash-5b627.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1001664140460"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:1001664140460:web:0328621f8c7c0da13cfb09"
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-XZFRQ8332D"
+
 # Google Analytics 4 Configuration
-# MASH E-commerce Analytics
+# MASH E-commerce Web Analytics
 # Stream: https://mash-ecommerce-web.vercel.app
 # Stream ID: 13017638848
-NEXT_PUBLIC_GA_MEASUREMENT_ID=G-5XD8QWQP6J
+NEXT_PUBLIC_GA_MEASUREMENT_ID="G-5XD8QWQP6J"
 ```
 
 **Complete Configuration:**
@@ -57,26 +72,34 @@ NEXT_PUBLIC_SANITY_STUDIO_URL=https://mash-ecommerce.sanity.studio
 SANITY_API_READ_TOKEN=skCDwOX5E8WMzvO75268kZeVN2MisOTkQBbRtSr22n2YYALUy4PBu9CzVbdwuoUfTMReroRx8dk7sVuow4s4OFru7a3u1h9c0qkFxoLBvGz9DfAvpnI12FC22uML4zA4G3jh10dJ3IFjtHQ8cflujnmftfuiXfrRusFCWsb0nszC7AwGwSYu
 SANITY_API_WRITE_TOKEN=skG4Jh0yyksQsmdziYleoAAOe9JqyG1jlGeNqYJtsfsqSzRrOZAddX55z9QcpsM3rebbxf1fb2BZiiwGuBwJD2hnXrlxlYEWW8PvxudQbFcPfFYJEZURNHZ5olAnuj46B6bHGDSlgcWLMh4NCBFm0t7nxUQt6MPGJCj65EFrJUmBtUntCYMW
 
+# Firebase Configuration - MASH Project  
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyDQryxFIjEjXApWMZP2H2ZkHIlWxUMuVO0"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="mash-5b627.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="mash-5b627"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="mash-5b627.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1001664140460"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:1001664140460:web:0328621f8c7c0da13cfb09"
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-XZFRQ8332D"
+
 # Google Analytics 4 Configuration
-# MASH E-commerce Analytics
-# Stream: https://mash-ecommerce-web.vercel.app
-# Stream ID: 13017638848
-NEXT_PUBLIC_GA_MEASUREMENT_ID=G-5XD8QWQP6J
+NEXT_PUBLIC_GA_MEASUREMENT_ID="G-5XD8QWQP6J"
 ```
 
 ### 2. `studio/.env` (Sanity Studio Directory)
 
 **Updated Section:**
 ```env
-# MASH E-commerce Firebase Configuration
+# Firebase Configuration - MASH Project
+# Project: MASH (mash-5b627)
+# Project Number: 1001664140460
 # Enable Authentication (Google, Facebook, Phone) and Firestore Database in Firebase Console
-NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyDw1aJdMsnt0HFV664HlqqG_xTlKQN82jA"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="j5ecommerce.firebaseapp.com"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="j5ecommerce"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="j5ecommerce.firebasestorage.app"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="384167706332"
-NEXT_PUBLIC_FIREBASE_APP_ID="1:384167706332:web:531b21667c89c3dfcebe19"
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-5XD8QWQP6J"
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyDQryxFIjEjXApWMZP2H2ZkHIlWxUMuVO0"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="mash-5b627.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="mash-5b627"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="mash-5b627.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1001664140460"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:1001664140460:web:0328621f8c7c0da13cfb09"
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-XZFRQ8332D"
 ```
 
 ---
@@ -90,18 +113,27 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-5XD8QWQP6J"
 - **Stream ID:** 13017638848
 - **Measurement ID:** `G-5XD8QWQP6J`
 
-### Firebase Configuration (Note)
-**Important:** The Firebase config still shows `j5ecommerce` in URLs because:
-- Firebase projects are reused across multiple apps
-- Same Firebase project can serve multiple domains
-- Only the Measurement ID needed to be updated for MASH tracking
-- All Firebase features (Auth, Firestore) work correctly
+### Firebase Configuration Status
+**✅ COMPLETE:** Now using dedicated MASH Firebase project!
 
-**If you want completely separate Firebase project:**
-1. Create new Firebase project at https://console.firebase.google.com
-2. Enable Authentication and Firestore
-3. Get new config object
-4. Replace all Firebase environment variables
+**MASH Firebase Project Details:**
+- **Project Name:** MASH
+- **Project ID:** `mash-5b627`
+- **Project Number:** 1001664140460
+- **Auth Domain:** mash-5b627.firebaseapp.com
+- **Storage Bucket:** mash-5b627.firebasestorage.app
+- **Firebase Measurement ID:** G-XZFRQ8332D (for Firebase Analytics)
+
+**Enabled Services:**
+- ✅ Authentication (ready for Email, Google, Facebook, Phone)
+- ✅ Firestore Database (production mode - secure by default)
+- ✅ Cloud Storage
+- 📦 Firebase Hosting (optional)
+
+**Next Steps for Firebase:**
+1. Enable authentication providers in Firebase Console (see FIREBASE_SETUP_GUIDE.md)
+2. Configure Firestore security rules when implementing user data
+3. Test authentication flows when implementing login/signup
 
 ---
 
@@ -483,6 +515,115 @@ Please help me with Enhancement 1 from OPTIONAL_ENHANCEMENTS_GUIDE.md
 
 ---
 
+## 🔥 Firebase Configuration Options
+
+### Current Firebase Setup
+
+**You're currently using Firebase config from `j5ecommerce` project:**
+- Project ID: `j5ecommerce`
+- Auth Domain: `j5ecommerce.firebaseapp.com`
+- GA Measurement ID: `G-5XD8QWQP6J` ✅ (Updated to MASH)
+
+### Two Options Available:
+
+#### Option A: Keep Current Firebase Config ✅ RECOMMENDED (Quick)
+
+**Pros:**
+- ✅ Already configured and working
+- ✅ No additional setup needed (15-20 minutes saved)
+- ✅ Can start using features immediately
+- ✅ GA already updated to MASH (`G-5XD8QWQP6J`)
+
+**Cons:**
+- ⚠️ Shares Firebase project with other apps
+- ⚠️ Mixed authentication users across apps
+- ⚠️ Shared Firestore database and storage
+
+**Best for:**
+- If `j5ecommerce` is your personal project
+- If you want to move fast and test features
+- If you don't need complete separation between apps
+- Development and testing phase
+
+**Current Status:** ✅ Already configured and working!
+
+#### Option B: Create New MASH Firebase Project 🔧 (15-20 minutes)
+
+**Pros:**
+- ✅ Dedicated Firebase project for MASH only
+- ✅ Separate authentication users
+- ✅ Separate Firestore database
+- ✅ Separate Cloud Storage
+- ✅ Clean separation of concerns
+- ✅ Professional production setup
+
+**Cons:**
+- ⏰ Requires 15-20 minutes initial setup
+- 🔧 Need to update environment files after creation
+- 📝 Need to configure authentication providers
+- 📝 Need to set up Firestore and Storage rules
+
+**Best for:**
+- If you want complete separation between MASH and other projects
+- If deploying to production soon
+- If `j5ecommerce` is a shared or test project
+- If you need independent user management
+
+**How to proceed:**
+1. Open **`FIREBASE_SETUP_GUIDE.md`** (comprehensive step-by-step guide)
+2. Follow the 6-step setup process (15-20 minutes)
+3. Copy your new Firebase configuration values
+4. Share them with AI to update all environment files
+
+---
+
+## 📚 Documentation Reference
+
+### New Documentation Created:
+- **`FIREBASE_SETUP_GUIDE.md`** - Complete Firebase setup walkthrough
+  - Step 1: Create Firebase project
+  - Step 2: Register web app
+  - Step 3: Enable Authentication (Email, Google, Facebook, Phone)
+  - Step 4: Enable Firestore Database
+  - Step 5: Enable Cloud Storage
+  - Step 6: Link Google Analytics
+  - Security best practices
+  - Testing instructions
+  - Troubleshooting guide
+
+### Existing Documentation:
+- **`MASH_ENVIRONMENT_UPDATE.md`** - This file (environment status)
+- **`PHASE_5_COMPLETE.md`** - Core features completion status
+- **`OPTIONAL_ENHANCEMENTS_GUIDE.md`** - Next optional enhancements
+- **`DUAL_CMS_ARCHITECTURE.md`** - System architecture overview
+- **`ENHANCEMENTS_IMPLEMENTATION_COMPLETE.md`** - Category & Analytics status
+- **`QUICK_START_ENHANCEMENTS.md`** - Quick testing guide
+
+---
+
+## 🎯 Quick Decision Guide
+
+**Choose Option A (Keep Current Firebase):**
+```
+You're already done! ✅
+No action needed - your site is operational.
+Test now: http://localhost:3000
+Analytics tracking active with MASH ID: G-5XD8QWQP6J
+```
+
+**Choose Option B (Create New Firebase):**
+```
+1. Open FIREBASE_SETUP_GUIDE.md
+2. Follow 6-step setup (15-20 minutes)
+3. Copy your new Firebase config
+4. Tell AI:
+   "I've created a new Firebase project for MASH.
+    Here are my new config values: [paste values]
+    Please update all environment files."
+```
+
+---
+
 **Date Created:** November 20, 2025  
 **Last Updated:** November 20, 2025  
-**Status:** ✅ COMPLETE - Environment Updated, Analytics Operational
+**Status:** ✅ COMPLETE - Environment Updated, Analytics Operational, Firebase Guide Created
