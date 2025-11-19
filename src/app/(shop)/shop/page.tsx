@@ -352,6 +352,7 @@ export default function ProductCatalogPage() {
                       <ProductCard
                         key={product.id}
                         id={product.id}
+                        slug={product.slug} // Pass slug for SEO-friendly URLs
                         name={product.name}
                         farm={product.category || "MASH"}
                         price={product.price}

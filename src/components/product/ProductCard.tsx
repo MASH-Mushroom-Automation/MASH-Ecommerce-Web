@@ -15,6 +15,7 @@ import { getGrowerUrl } from "@/lib/grower-utils";
 
 interface ProductCardProps {
   id: string;
+  slug?: string; // Sanity slug for SEO-friendly URLs
   name: string;
   farm?: string;
   price: number;
@@ -25,6 +26,7 @@ interface ProductCardProps {
 
 export function ProductCard({
   id,
+  slug,
   name,
   farm,
   price,
@@ -32,6 +34,8 @@ export function ProductCard({
   image,
   inStock = true,
 }: ProductCardProps) {
+  // Use slug for URL if available (Sanity products), otherwise fall back to ID
+  const productUrl = slug ? `/product/${slug}` : `/product/${id}`;
   const router = useRouter();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
@@ -66,7 +70,7 @@ export function ProductCard({
     <div className="bg-card rounded-lg overflow-hidden border border-border shadow-sm hover:shadow transition-shadow duration-200 flex flex-col h-full">
       {/* Product Image */}
       <Link
-        href={`/product/${id}`}
+        href={productUrl}
         className="block relative aspect-square bg-muted"
       >
         <Image
@@ -110,7 +114,7 @@ export function ProductCard({
 
       {/* Product Info */}
       <div className="p-3 flex flex-col flex-grow">
-        <Link href={`/product/${id}`} className="mb-auto">
+        <Link href={productUrl} className="mb-auto">
           <h3 className="font-semibold text-foreground text-sm line-clamp-2 hover:text-primary transition-colors">
             {name}
           </h3>
