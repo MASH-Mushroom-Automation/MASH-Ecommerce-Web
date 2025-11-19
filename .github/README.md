@@ -10,46 +10,107 @@
 
 ### ⚠️ Your Homepage Shows "No featured products available yet"
 
-**FIX THIS NOW (30-45 minutes):**
+**FIX THIS NOW - Choose Your Path:**
 
-👉 **Open and follow:** [`BULK_SAMPLE_DATA_GUIDE.md`](./BULK_SAMPLE_DATA_GUIDE.md)
+### ⚡ **Option 1: COPY/PASTE (NO IMAGES!) - 30-40 min** ⭐ **EASIEST!**
+👉 **Open:** [`COPY_PASTE_PRODUCTS_NO_IMAGES.md`](./COPY_PASTE_PRODUCTS_NO_IMAGES.md) 🔥 **NEW!**
 
-**What You'll Do:**
-1. Open Sanity Studio: https://mash-ecommerce.sanity.studio
-2. Create 6 categories (copy/paste from guide)
-3. Add 20 sample mushroom products (templates provided)
-4. Mark 8+ products as "Featured"  
-5. Refresh homepage → Products appear! ✅
+**What You'll Get:**
+- 30 products - **JUST COPY/PASTE TEXT!** (no images needed!)
+- 12 categories (main + subcategories)
+- 10 featured products for homepage
+- 13 products with promotions
+- **SKIP ALL IMAGES** - add them later when you have them!
+- **Result:** Homepage works immediately! You'll add images later! 🚀
 
-**After This:**
-- ✅ Homepage displays 8 featured products in carousel
-- ✅ Shop page shows 20+ products with filters
-- ✅ Fully functional e-commerce site
+### 🎯 **Option 2: COMPLETE GUIDE (With Images - 60-90 min)**
+👉 **Open:** [`COMPLETE_SANITY_DATA_GUIDE.md`](./COMPLETE_SANITY_DATA_GUIDE.md)
+
+**What You'll Get:**
+- 30+ products with FULL details (all fields + images)
+- 12+ categories (hierarchical with subcategories!)
+- 10 featured products for homepage
+- Products with promotions (percentage & fixed discounts)
+- Product gallery support (multiple images)
+- SKU codes, stock management, weight/units
+- **Result:** Professional e-commerce catalog! 🎉
+
+### ⚡ **Option 3: Quick Start (30 min)**
+👉 **Open:** [`KENNETH_QUICK_START.md`](./KENNETH_QUICK_START.md)
+
+**What You'll Get:**
+- 10 essential products (faster setup)
+- 6 basic categories
+- 8 featured products for homepage
+- **Result:** Homepage works immediately! 🚀
+
+### 📋 **Option 4: Original Guide (45 min)**
+👉 **Open:** [`BULK_SAMPLE_DATA_GUIDE.md`](./BULK_SAMPLE_DATA_GUIDE.md)
+
+**What You'll Get:**
+- 20 products with good details
+- 6 categories
+- 10 featured products
+- **Result:** Balanced approach! ⚖️
 
 ---
 
 ## 📖 Essential Documentation (Keep These)
 
-### 1. **Start Here** → [`BULK_SAMPLE_DATA_GUIDE.md`](./BULK_SAMPLE_DATA_GUIDE.md)
-⭐ **DO THIS FIRST!** - Add sample products to Sanity
+### 🔥 **QUICK START GUIDES**
 
-### 2. **Project Status** → [`COMPLETE_IMPLEMENTATION_STATUS.md`](./COMPLETE_IMPLEMENTATION_STATUS.md)
-Overview of what's working and what's next
+#### 1. **👋 START HERE!** → [`START_HERE_KENNETH.md`](./START_HERE_KENNETH.md)
+**YOUR PERSONAL GUIDE!** Everything explained simply. Read this first!
 
-### 3. **Environment Config** → [`MASH_ENVIRONMENT_VERIFICATION.md`](./MASH_ENVIRONMENT_VERIFICATION.md)
-All environment variables (Firebase, Sanity, Analytics)
+#### 2. **✅ Quick Checklist** → [`QUICK_CHECKLIST.md`](./QUICK_CHECKLIST.md)
+**PRINTABLE CHECKLIST!** Tick boxes as you go. 30-minute guide!
 
-### 4. **CMS Architecture** → [`DUAL_CMS_ARCHITECTURE.md`](./DUAL_CMS_ARCHITECTURE.md)
-How Sanity CMS and JSON CMS work together
+#### 3. **⚡ Copy/Paste (No Images!)** → [`COPY_PASTE_PRODUCTS_NO_IMAGES.md`](./COPY_PASTE_PRODUCTS_NO_IMAGES.md)
+🔥 **EASIEST!** - 30 products in 30-40 min, **NO IMAGES NEEDED!** Add images later!
 
-### 5. **Optional Features** → [`OPTIONAL_ENHANCEMENTS_GUIDE.md`](./OPTIONAL_ENHANCEMENTS_GUIDE.md)
-5 optional enhancements you can add later
+#### 4. **🎨 Hero Section Setup** → [`HERO_SECTION_SANITY_GUIDE.md`](./HERO_SECTION_SANITY_GUIDE.md)
+⭐ **NEW!** - Configure homepage hero carousel in Sanity. 10-15 minutes!
 
-### 6. **Sanity Reference** → [`SANITY_QUICK_REFERENCE.md`](./SANITY_QUICK_REFERENCE.md)
-Quick guide for using Sanity Studio
+#### 5. **✅ Hero Section COMPLETE** → [`SANITY_HERO_SETUP_COMPLETE.md`](./SANITY_HERO_SETUP_COMPLETE.md)
+🎉 **IMPLEMENTATION DONE!** - Hero carousel is live and connected to Sanity! Real-time editing enabled!
 
-### 7. **AI Guidelines** → [`copilot-instructions.md`](./copilot-instructions.md)
-Instructions for AI coding assistants
+---
+
+### 📚 **COMPLETE GUIDES**
+
+#### 6. **🆕 Complete Data Guide** → [`COMPLETE_SANITY_DATA_GUIDE.md`](./COMPLETE_SANITY_DATA_GUIDE.md)
+⭐ **MOST FEATURES!** - 30+ products with ALL fields, subcategories, promotions + images
+
+#### 7. **Quick Start** → [`KENNETH_QUICK_START.md`](./KENNETH_QUICK_START.md)
+⚡ **FAST!** - 10 products in 30 minutes
+
+#### 8. **Original Guide** → [`BULK_SAMPLE_DATA_GUIDE.md`](./BULK_SAMPLE_DATA_GUIDE.md)
+📦 20 products in 45 minutes
+
+#### 9. **Guide Summary** → [`SANITY_DATA_GUIDE_SUMMARY.md`](./SANITY_DATA_GUIDE_SUMMARY.md)
+📊 Overview of what each guide offers
+
+---
+
+### 🛠️ **TECHNICAL DOCUMENTATION**
+
+#### 10. **Project Status** → [`COMPLETE_IMPLEMENTATION_STATUS.md`](./COMPLETE_IMPLEMENTATION_STATUS.md)
+📈 Overview of what's working and what's next
+
+#### 9. **Environment Config** → [`MASH_ENVIRONMENT_VERIFICATION.md`](./MASH_ENVIRONMENT_VERIFICATION.md)
+🔐 All environment variables (Firebase, Sanity, Analytics)
+
+#### 10. **CMS Architecture** → [`DUAL_CMS_ARCHITECTURE.md`](./DUAL_CMS_ARCHITECTURE.md)
+🏗️ How Sanity CMS and JSON CMS work together
+
+#### 11. **Optional Features** → [`OPTIONAL_ENHANCEMENTS_GUIDE.md`](./OPTIONAL_ENHANCEMENTS_GUIDE.md)
+✨ 5 optional enhancements you can add later
+
+#### 12. **Sanity Reference** → [`SANITY_QUICK_REFERENCE.md`](./SANITY_QUICK_REFERENCE.md)
+📚 Quick guide for using Sanity Studio
+
+#### 13. **AI Guidelines** → [`copilot-instructions.md`](./copilot-instructions.md)
+🤖 Instructions for AI coding assistants
 
 ---
 

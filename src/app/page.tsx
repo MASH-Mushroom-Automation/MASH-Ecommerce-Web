@@ -8,9 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useHomePageData } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { CMSHeroSection } from "@/components/cms/HeroSection";
+import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
-import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
+import { useFeatureSections } from "@/hooks/useCMS";
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import {
@@ -19,49 +19,8 @@ import {
 } from "@/components/ui/skeleton-loaders";
 
 const HeroSection: React.FC = () => {
-  const { heroes, loading, error } = useHeroSections();
-
-  if (loading) {
-    return (
-      <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/10 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-primary/30 mx-auto"></div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-foreground animate-pulse">
-                Discovering fresh mushrooms...
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your marketplace is loading
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (heroes.length === 0) {
-    return null;
-  }
-
-  return <CMSHeroSection data={heroes[0]} />;
+  // Use Sanity CMS for hero carousel with real-time updates
+  return <SanityHeroCarousel />;
 };
 
 const WhyMASHSection: React.FC = () => {

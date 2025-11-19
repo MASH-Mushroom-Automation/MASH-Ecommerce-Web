@@ -173,7 +173,10 @@ export const heroCarouselQuery = `*[_type == "heroCarousel"][0] {
     subtitle,
     buttonText,
     buttonLink,
-    "image": image.asset->url
+    buttonStyle,
+    "image": image.asset->url,
+    order,
+    isActive
   }
 }`;
 
