@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "id": "faq-1",
+      "question": "How fresh are your mushrooms?",
+      "answer": "Our mushrooms are harvested daily and delivered within 24 hours. We guarantee maximum freshness!",
+      "category": "cat-2",
+      "order": 1,
+      "isActive": true
+    },
+    {
+      "id": "faq-2",
+      "question": "Do you deliver nationwide?",
+      "answer": "Currently, we deliver to Metro Manila and nearby provinces. We're expanding soon!",
+      "category": "cat-1",
+      "order": 1,
+      "isActive": true
+    },
+    {
+      "id": "faq-3",
+      "question": "How long do mushrooms stay fresh?",
+      "answer": "Fresh mushrooms last 5-7 days when stored properly in the refrigerator. Dried mushrooms last up to 6 months.",
+      "category": "cat-4",
+      "order": 1,
+      "isActive": true
+    },
+    {
+      "id": "faq-4",
+      "question": "Are your mushrooms organic?",
+      "answer": "Yes! All our mushrooms are grown organically without pesticides or harmful chemicals.",
+      "category": "cat-2",
+      "order": 2,
+      "isActive": true
+    },
+    {
+      "id": "faq-5",
+      "question": "How do I use the mushroom growing kits?",
+      "answer": "Our growing kits come with detailed instructions. Simply place in indirect sunlight, mist daily, and harvest in 7-10 days!",
+      "category": "cat-3",
+      "order": 1,
+      "isActive": true
+    },
+    {
+      "id": "faq-6",
+      "question": "What's your return policy?",
+      "answer": "If you're not satisfied with your purchase, contact us within 24 hours for a full refund or replacement.",
+      "category": "cat-1",
+      "order": 2,
+      "isActive": true
+    }
+  ]
+}

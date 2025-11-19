@@ -2,23 +2,52 @@
 
 This folder contains comprehensive documentation for the **MASH E-Commerce Web** project.
 
-**Important:** MASH now supports **DUAL CMS**:
-- **Sanity CMS** - For E-Commerce products (recommended for non-technical users) ⭐ NEW
-- **Custom JSON-based CMS** - For static marketing content
+**✅ DUAL CMS ARCHITECTURE - FULLY OPERATIONAL:**
+- **✅ Sanity CMS** - E-Commerce products (DEPLOYED TO PRODUCTION) ⭐
+- **✅ Custom JSON CMS** - Static marketing content (IMPLEMENTED & READY)
+
+**📖 Complete Architecture Guide:** `DUAL_CMS_ARCHITECTURE.md` ⭐ START HERE
 
 ---
 
 ## 📚 Documentation Index
 
-### 🎯 Sanity CMS Integration (E-Commerce Products) ⭐ NEW
+### 🏗️ **NEW: Dual CMS Architecture** ⭐ START HERE
+
+#### `DUAL_CMS_ARCHITECTURE.md`
+**Complete guide to MASH's dual content management system**
+- **Status:** ✅ FULLY OPERATIONAL (Both CMS systems integrated)
+- **Sanity CMS:** Products, categories, blog, hero carousel
+- **JSON CMS:** Features, FAQ, about, team, contact
+- Architecture overview with diagrams
+- When to use each CMS system
+- Usage guides for both systems
+- Current deployment status
+- Next steps and best practices
+
+**When to use:** Understanding the full CMS architecture, deciding which CMS to use
+
+---
+
+### 🎯 Sanity CMS Integration (E-Commerce Products) ✅ DEPLOYED
+
+#### `SANITY_NEW_PROJECT_SETUP.md`
+**Latest project setup with new tokens and deployment**
+- **Status:** ✅ COMPLETE - New project (2grm6gj7) deployed
+- **Production:** https://mash-ecommerce.sanity.studio
+- **Local:** http://localhost:3333
+- New API tokens configured
+- Environment variables updated
+- Studio deployed and operational
+
+**When to use:** Reference for current Sanity setup, tokens, and deployment info
 
 #### `SANITY_INTEGRATION_PROGRESS.md`
-**Current progress report for Sanity CMS integration**
+**Integration progress report**
 - Integration status: 60% complete
-- Sanity Studio running at http://localhost:3333
+- Sanity Studio deployed
 - Product schema with full e-commerce fields
 - Step-by-step guide for non-technical users
-- Dual CMS architecture explained
 - Next steps and remaining tasks
 
 **When to use:** Check current Sanity integration status, learn how to add products

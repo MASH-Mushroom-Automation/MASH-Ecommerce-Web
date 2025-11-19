@@ -2,19 +2,50 @@
 // src/lib/cms/database.ts
 
 import { CMS_CONFIG } from './config';
+import fs from 'fs';
+import path from 'path';
 
-// Simple in-memory database for initial implementation
-// TODO: Replace with actual PostgreSQL implementation
-
+// File-based database reading from data/cms/ directory
 interface DatabaseRecord {
   id: string;
   [key: string]: any;
 }
 
-// In-memory storage (temporary - replace with actual DB)
-const cmsStorage = new Map<string, DatabaseRecord[]>();
+// Path to CMS data directory
+const CMS_DATA_DIR = path.join(process.cwd(), 'data', 'cms');
 
-// Initialize default data
+// Helper to read JSON file
+function readJsonFile(filename: string): any {
+  try {
+    const filePath = path.join(CMS_DATA_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`CMS file not found: ${filePath}`);
+      return { data: [] };
+    }
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(fileContent);
+  } catch (error) {
+    console.error(`Error reading CMS file ${filename}:`, error);
+    return { data: [] };
+  }
+}
+
+// Helper to write JSON file
+function writeJsonFile(filename: string, data: any): void {
+  try {
+    const filePath = path.join(CMS_DATA_DIR, filename);
+    // Ensure directory exists
+    if (!fs.existsSync(CMS_DATA_DIR)) {
+      fs.mkdirSync(CMS_DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error(`Error writing CMS file ${filename}:`, error);
+    throw error;
+  }
+}
+
+// Initialize default data (no longer needed - reading from files)
 function initializeDefaultData() {
   // Hero sections
   cmsStorage.set('hero', [

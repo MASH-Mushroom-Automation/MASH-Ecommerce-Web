@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "features-1",
+      "title": "Why Choose MASH Mushrooms?",
+      "subtitle": "Quality, Freshness, and Sustainability",
+      "features": [
+        {
+          "id": "f1",
+          "icon": "Leaf",
+          "headline": "100% Organic",
+          "subheadline": "Grown without pesticides or chemicals"
+        },
+        {
+          "id": "f2",
+          "icon": "Truck",
+          "headline": "Fresh Delivery",
+          "subheadline": "Delivered within 24 hours of harvest"
+        },
+        {
+          "id": "f3",
+          "icon": "Sprout",
+          "headline": "Sustainable Farming",
+          "subheadline": "Eco-friendly cultivation methods"
+        },
+        {
+          "id": "f4",
+          "icon": "Shield",
+          "headline": "Quality Guaranteed",
+          "subheadline": "100% satisfaction or money back"
+        }
+      ],
+      "isActive": true
+    }
+  ]
+}

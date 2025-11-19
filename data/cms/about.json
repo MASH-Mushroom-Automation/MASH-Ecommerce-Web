@@ -1,0 +1,41 @@
+{
+  "hero": {
+    "title": "About MASH Mushrooms",
+    "subtitle": "Growing Quality, Delivering Freshness",
+    "backgroundImage": "/images/about-hero.jpg"
+  },
+  "mission": {
+    "title": "Our Mission",
+    "content": "To provide the freshest, highest-quality mushrooms while promoting sustainable farming practices and healthy eating."
+  },
+  "vision": {
+    "title": "Our Vision",
+    "content": "To become the leading mushroom supplier in the Philippines, known for quality, freshness, and innovation."
+  },
+  "story": {
+    "title": "Our Story",
+    "content": "MASH was founded in 2023 with a passion for mushrooms and sustainable farming. We started with a small greenhouse and have grown into a modern mushroom farm supplying fresh produce to families across Metro Manila."
+  },
+  "values": [
+    {
+      "id": "v1",
+      "title": "Quality First",
+      "description": "We never compromise on the quality of our mushrooms"
+    },
+    {
+      "id": "v2",
+      "title": "Sustainability",
+      "description": "Eco-friendly farming practices for a better tomorrow"
+    },
+    {
+      "id": "v3",
+      "title": "Customer Satisfaction",
+      "description": "Your satisfaction is our top priority"
+    },
+    {
+      "id": "v4",
+      "title": "Innovation",
+      "description": "Constantly improving our cultivation methods"
+    }
+  ]
+}
