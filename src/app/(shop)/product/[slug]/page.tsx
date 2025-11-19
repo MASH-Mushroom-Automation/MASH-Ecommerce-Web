@@ -11,7 +11,6 @@ import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { useSanityProduct } from "@/hooks/useSanityProducts";
-import { getGrowerUrl } from "@/lib/grower-utils";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -31,7 +30,11 @@ export default function ProductDetailPage({ params }: Props) {
   // Set active image when product loads
   React.useEffect(() => {
     if (product && !activeImage) {
-      setActiveImage(product.images?.[0] ?? product.image);
+      const firstImage = product.images?.[0] ?? product.image;
+      // Only set if we have a valid image URL
+      if (firstImage && firstImage !== '' && firstImage !== 'null') {
+        setActiveImage(firstImage);
+      }
     }
   }, [product, activeImage]);
 
@@ -51,10 +54,23 @@ export default function ProductDetailPage({ params }: Props) {
   }
 
   const inWishlist = isInWishlist(product.id);
-  const allImages =
-    product.images && product.images.length > 0
-      ? product.images
-      : [product.image];
+  
+  // Filter out empty/null/invalid images and ensure we have valid URLs
+  const validImages = [
+    ...(product.images && Array.isArray(product.images) 
+      ? product.images.filter(img => img && img !== '' && img !== 'null' && img.startsWith('http')) 
+      : []),
+    product.image
+  ].filter((img, index, self) => 
+    img && img !== '' && img !== 'null' && img.startsWith('http') && self.indexOf(img) === index
+  );
+  
+  const allImages = validImages.length > 0 
+    ? validImages 
+    : ['https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image'];
+  
+  // Set activeImage to first valid image if not set
+  const displayImage = activeImage && activeImage !== '' ? activeImage : allImages[0];
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
@@ -83,7 +99,8 @@ export default function ProductDetailPage({ params }: Props) {
           text: product.description,
           url: window.location.href,
         });
-      } catch (err) {
+      } catch {
+        // Share cancelled or failed - silent fail
         console.log("Share cancelled");
       }
     } else {
@@ -109,14 +126,20 @@ export default function ProductDetailPage({ params }: Props) {
           <div className="space-y-4">
             {/* Main Image */}
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-              <Image
-                src={activeImage}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
+              {displayImage && displayImage.startsWith('http') ? (
+                <Image
+                  src={displayImage}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                  No Image Available
+                </div>
+              )}
             </div>
 
             {/* Image Thumbnails */}
@@ -125,21 +148,27 @@ export default function ProductDetailPage({ params }: Props) {
                 {allImages.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveImage(img)}
+                    onClick={() => img && img.startsWith('http') && setActiveImage(img)}
                     className={cn(
                       "relative aspect-square bg-muted rounded-lg overflow-hidden border-2 transition-all",
-                      activeImage === img
+                      displayImage === img
                         ? "border-primary"
                         : "border-transparent hover:border-border"
                     )}
                   >
-                    <Image
-                      src={img}
-                      alt={`${product.name} - Image ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 25vw, 12vw"
-                    />
+                    {img && img.startsWith('http') ? (
+                      <Image
+                        src={img}
+                        alt={`${product.name} - Image ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 25vw, 12vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-xs text-muted-foreground">
+                        N/A
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -148,16 +177,6 @@ export default function ProductDetailPage({ params }: Props) {
 
           {/* Product Details */}
           <div className="space-y-6">
-            {/* Farm Badge */}
-            {product.farm && (
-              <Link
-                href={getGrowerUrl(product.farm)}
-                className="inline-flex items-center text-sm text-primary hover:underline"
-              >
-                🌾 Farm: @{product.farm}
-              </Link>
-            )}
-
             {/* Product Name */}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">
