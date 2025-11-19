@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
@@ -10,6 +11,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
+import { initGA, logPageView } from "@/lib/analytics";
 
 const AUTH_ROUTES = [
   "/login",
@@ -24,13 +26,25 @@ const AUTH_ROUTES = [
 
 const SELLER_ROUTES = ["/seller", "/start-selling"];
 
-export function ClientLayout({ children }: { children: React.ReactNode }) {
+export function ClientLayout({ children }: { children: React.Node }) {
   const pathname = usePathname();
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isSellerRoute = SELLER_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
+
+  // Initialize Google Analytics on mount
+  useEffect(() => {
+    initGA();
+  }, []);
+
+  // Track page views on route change
+  useEffect(() => {
+    if (pathname) {
+      logPageView(pathname);
+    }
+  }, [pathname]);
 
   return (
     <ThemeProvider

@@ -12,6 +12,7 @@ import { CMSHeroSection } from "@/components/cms/HeroSection";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
 import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
+import { useSanityCategories } from "@/hooks/useSanityCategories";
 import {
   ProductListSkeleton,
   GrowerListSkeleton,
@@ -199,6 +200,117 @@ const FeaturedProductsSection: React.FC = () => {
   );
 };
 
+// Category Showcase Components
+const CategoryCard: React.FC<{
+  name: string;
+  slug: string;
+  image?: string;
+  productCount?: number;
+}> = ({ name, slug, image, productCount }) => {
+  return (
+    <Link href={`/shop?category=${slug}`}>
+      <div className="group relative overflow-hidden rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300">
+        {image ? (
+          <div className="aspect-square overflow-hidden">
+            <Image
+              src={image}
+              alt={name}
+              width={400}
+              height={400}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <span className="text-6xl opacity-20">🍄</span>
+          </div>
+        )}
+        <div className="p-4 text-center">
+          <h3 className="font-bold text-lg text-gray-800">{name}</h3>
+          {productCount !== undefined && (
+            <p className="text-sm text-muted-foreground">
+              {productCount} {productCount === 1 ? 'product' : 'products'}
+            </p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const FeaturedCategoriesSection: React.FC = () => {
+  const { categories, loading, error } = useSanityCategories(true);
+
+  if (loading) {
+    return (
+      <section className="py-12 md:py-16 lg:py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+            Shop by Category
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-gray-200 rounded-xl mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-12 md:py-16 lg:py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error loading categories: {error.message}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Only show parent categories (no parent)
+  const parentCategories = categories.filter(cat => !cat.parentId);
+
+  if (parentCategories.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-12 md:py-16 lg:py-20 bg-white">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+          Shop by Category
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {parentCategories.slice(0, 4).map((category) => (
+            <CategoryCard
+              key={category.id}
+              name={category.name}
+              slug={category.slug}
+              image={category.image}
+              productCount={category.productCount}
+            />
+          ))}
+        </div>
+        <div className="text-center mt-8">
+          <Link
+            href="/shop"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark transition-colors"
+          >
+            View All Categories
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const GrowerCard: React.FC<{
   grower: {
     id: number;
@@ -336,6 +448,7 @@ export default function Home() {
       <main>
         <HeroSection />
         <FeaturedProductsSection />
+        <FeaturedCategoriesSection />
         <WhyMASHSection />
         <FeaturedGrowersSection />
       </main>

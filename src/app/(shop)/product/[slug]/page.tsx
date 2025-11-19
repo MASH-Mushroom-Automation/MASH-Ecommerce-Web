@@ -11,6 +11,7 @@ import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { useSanityProduct } from "@/hooks/useSanityProducts";
+import { trackProductView, trackAddToCart } from "@/lib/analytics";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -37,6 +38,18 @@ export default function ProductDetailPage({ params }: Props) {
       }
     }
   }, [product, activeImage]);
+
+  // Track product view when product loads
+  React.useEffect(() => {
+    if (product) {
+      trackProductView({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+      });
+    }
+  }, [product]);
 
   if (loading) {
     return (
@@ -86,6 +99,16 @@ export default function ProductDetailPage({ params }: Props) {
 
   const handleAddToCart = () => {
     addToCart(product.id, product.price, quantity);
+    
+    // Track add to cart event
+    trackAddToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity,
+      category: product.category,
+    });
+    
     toast.success(`${product.name} added to cart!`, {
       description: `${quantity} ${product.unit || "unit"}(s) added`,
     });

@@ -12,6 +12,7 @@ import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { getGrowerUrl } from "@/lib/grower-utils";
+import { trackAddToCart } from "@/lib/analytics";
 
 interface ProductCardProps {
   id: string;
@@ -60,6 +61,14 @@ export function ProductCard({
     e.stopPropagation();
 
     addToCart(id, price, 1);
+
+    // Track add to cart event
+    trackAddToCart({
+      id,
+      name,
+      price,
+      quantity: 1,
+    });
 
     toast.success(`${name} added to cart!`, {
       description: "View your cart to proceed to checkout",
