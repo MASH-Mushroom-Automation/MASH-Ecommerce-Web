@@ -154,8 +154,9 @@ export const SanityHeroCarousel: React.FC = () => {
               src={slide.image}
               alt={slide.title}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority
+              sizes="100vw"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 z-10" />
           </>
@@ -195,7 +196,7 @@ export const SanityHeroCarousel: React.FC = () => {
 
   // Multiple slides - show carousel
   return (
-    <section className="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden">
+    <section className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden">
       <Carousel
         opts={{ loop: true }}
         plugins={[plugin.current]}
@@ -215,8 +216,9 @@ export const SanityHeroCarousel: React.FC = () => {
                       src={slide.image}
                       alt={slide.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-center"
                       priority={index === 0}
+                      sizes="100vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 z-10" />
                   </>
