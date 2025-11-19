@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { CMSHeroSection } from "@/components/cms/HeroSection";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
 import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
+import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import {
   ProductListSkeleton,
   GrowerListSkeleton,
@@ -107,7 +108,8 @@ const WhyMASHSection: React.FC = () => {
 };
 
 const FeaturedProductsSection: React.FC = () => {
-  const { homeData, loading, error } = useHomePageData();
+  // Use Sanity CMS for featured products
+  const { products, loading, error } = useSanityFeaturedProducts(8);
 
   if (loading) {
     return (
@@ -133,8 +135,23 @@ const FeaturedProductsSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-red-600 mb-4">Error loading featured products</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">No featured products available yet.</p>
+            <Link href="/shop">
+              <Button>Browse All Products</Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -155,16 +172,17 @@ const FeaturedProductsSection: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {homeData?.featuredProducts?.slice(0, 4).map((product) => (
+          {products.slice(0, 8).map((product) => (
             <ProductCard
               key={product.id}
               id={product.id}
+              slug={product.slug}
               name={product.name}
-              farm={product.grower}
+              farm={product.category || "MASH Market"}
               price={product.price}
-              unit={product.weight}
+              unit={product.unit || "kg"}
               image={product.image}
-              inStock={product.inStock}
+              inStock={product.isAvailable}
             />
           ))}
         </div>
