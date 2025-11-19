@@ -7,10 +7,11 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect } from "react";
-import type { ProductApiResponse } from "@/types/api";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
+import { useSanityProducts } from "@/hooks/useSanityProducts";
+import type { SanityProduct } from "@/types/sanity";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,54 +26,40 @@ import {
 
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist } = useWishlist();
-  const [wishlistItems, setWishlistItems] = useState<ProductApiResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [wishlistItems, setWishlistItems] = useState<SanityProduct[]>([]);
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+
+  // Fetch all products from Sanity
+  const { products, loading, error } = useSanityProducts();
 
   // Ensure we're on the client side
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Fetch wishlist items when wishlistIds change
+  // Filter products by wishlist IDs
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !products) return;
 
-    const fetchWishlistItems = async () => {
-      if (wishlistIds.length === 0) {
-        setWishlistItems([]);
-        setLoading(false);
-        return;
-      }
+    if (wishlistIds.length === 0) {
+      setWishlistItems([]);
+      return;
+    }
 
-      setLoading(true);
-      setError(null);
+    // Filter Sanity products by wishlist IDs
+    const filtered = products.filter((product) =>
+      wishlistIds.includes(product._id)
+    );
+    setWishlistItems(filtered);
+  }, [wishlistIds, products, isClient]);
 
-      try {
-        // Fetch all products and filter by wishlist IDs
-        const { ProductsApi } = await import("@/lib/api/products");
-        const response = await ProductsApi.getProducts({ limit: 1000 }); // Get all products
-        const filtered = response.data.filter((product) =>
-          wishlistIds.includes(product.id)
-        );
-        setWishlistItems(filtered);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load wishlist"
-        );
-        toast.error(
-          err instanceof Error ? err.message : "Failed to load wishlist"
-        );
-        setWishlistItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWishlistItems();
-  }, [wishlistIds, isClient]);
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load wishlist products");
+    }
+  }, [error]);
 
   // Show loading state while hydrating
   if (!isClient) {
@@ -163,14 +150,15 @@ export default function WishlistPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {wishlistItems.map((product) => (
               <ProductCard
-                key={product.id}
-                id={product.id}
+                key={product._id}
+                id={product._id}
+                slug={product.slug?.current}
                 name={product.name}
-                farm={product.grower}
+                farm={product.category?.name || "MASH Mushrooms"}
                 price={product.price}
-                unit={product.weight}
-                image={product.image}
-                inStock={product.inStock}
+                unit={`${product.weight}${product.unit}`}
+                image={product.mainImage || "/placeholder-product.jpg"}
+                inStock={product.isAvailable && product.stock > 0}
               />
             ))}
           </div>
