@@ -46,56 +46,77 @@ import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+import { useSanitySiteSettings, useSanityAnnouncementBar } from "@/hooks/useSanitySiteSettings";
 
 
 type SellerStatus = "approved" | "pending" | "none";
 
-const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus }) => (
-  <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
-    <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-        {sellerStatus === "approved" ? (
-          <Link href="/seller/dashboard" className="hover:underline">
-            Seller Center
+const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus }) => {
+  const { settings } = useSanitySiteSettings();
+  
+  return (
+    <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
+      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          {sellerStatus === "approved" ? (
+            <Link href="/seller/dashboard" className="hover:underline">
+              Seller Center
+            </Link>
+          ) : sellerStatus === "pending" ? (
+            <span
+              className="text-accent-foreground/80 cursor-not-allowed"
+              title="Your seller application is awaiting admin approval"
+            >
+              Application Pending ⏳
+            </span>
+          ) : (
+            <Link href="/start-selling" className="hover:underline">
+              Start Selling
+            </Link>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
+          <Link href="/blog" className="hover:underline whitespace-nowrap">
+            BLOG
           </Link>
-        ) : sellerStatus === "pending" ? (
-          <span
-            className="text-accent-foreground/80 cursor-not-allowed"
-            title="Your seller application is awaiting admin approval"
-          >
-            Application Pending ⏳
-          </span>
-        ) : (
-          <Link href="/start-selling" className="hover:underline">
-            Start Selling
+          <span className="hidden sm:inline opacity-50">•</span>
+          <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
+            FAQ
           </Link>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
-        <Link href="/blog" className="hover:underline whitespace-nowrap">
-          BLOG
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
-          FAQ
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
-          CONTACT US
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <div className="hidden sm:flex items-center gap-2">
-          <a href="#" aria-label="Facebook" className="hover:text-primary-foreground">
-            <Facebook size={18} />
-          </a>
-          <a href="#" aria-label="Instagram" className="hover:text-primary-foreground">
-            <Instagram size={18} />
-          </a>
+          <span className="hidden sm:inline opacity-50">•</span>
+          <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
+            CONTACT US
+          </Link>
+          <span className="hidden sm:inline opacity-50">•</span>
+          <div className="hidden sm:flex items-center gap-2">
+            {settings?.socialMedia?.facebook && (
+              <a 
+                href={settings.socialMedia.facebook} 
+                aria-label="Facebook" 
+                className="hover:text-primary-foreground"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Facebook size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.instagram && (
+              <a 
+                href={settings.socialMedia.instagram} 
+                aria-label="Instagram" 
+                className="hover:text-primary-foreground"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Instagram size={18} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface NavLinkProps {
   label: string;
@@ -235,6 +256,8 @@ export function Header() {
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
+  const { settings } = useSanitySiteSettings();
+  const { announcementBar } = useSanityAnnouncementBar();
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated());
@@ -269,20 +292,40 @@ export function Header() {
   };
 
   return (
-    <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
-      <SellerInfoBar sellerStatus={sellerStatus} />
+    <>
+      {/* Announcement Bar - Real-time from Sanity CMS */}
+      {announcementBar?.enabled && (
+        <div 
+          className="text-center py-2 px-4 text-sm font-medium"
+          style={{
+            backgroundColor: announcementBar.backgroundColor || '#6A994E',
+            color: announcementBar.textColor || '#ffffff'
+          }}
+        >
+          {announcementBar.link ? (
+            <Link href={announcementBar.link} className="hover:underline">
+              {announcementBar.message}
+            </Link>
+          ) : (
+            <span>{announcementBar.message}</span>
+          )}
+        </div>
+      )}
 
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
-        <Link href="/">
-          <Image
-            src="/Logo  v6 - Market.png"
-            alt="MASH Logo"
-            width={150}
-            height={50}
-            className="h-10 w-auto sm:h-12"
-            priority
-          />
-        </Link>
+      <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
+        <SellerInfoBar sellerStatus={sellerStatus} />
+
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
+          <Link href="/">
+            <Image
+              src={settings?.logo || "/Logo  v6 - Market.png"}
+              alt={settings?.companyName || "MASH Logo"}
+              width={150}
+              height={50}
+              className="h-10 w-auto sm:h-12"
+              priority
+            />
+          </Link>
 
         <div className="hidden lg:flex items-center space-x-6">
           <ThemeSwitcher />
@@ -489,5 +532,6 @@ export function Header() {
         </AlertDialogContent>
       </AlertDialog>
     </header>
+    </>
   );
 }

@@ -253,3 +253,152 @@ export interface TransformedGrower {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Sanity Site Settings
+ * Singleton document for site-wide settings
+ */
+export interface SanitySiteSettings {
+  _id: string;
+  _createdAt: string;
+  _updatedAt: string;
+  _type: 'siteSettings';
+  companyName: string;
+  tagline?: string;
+  description?: string;
+  logo?: string;
+  favicon?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    linkedin?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+  announcementBar?: {
+    enabled: boolean;
+    message: string;
+    link?: string;
+    backgroundColor?: string;
+    textColor?: string;
+  };
+  footer?: {
+    aboutText?: string;
+    copyrightText?: string;
+    showNewsletter?: boolean;
+    newsletterTitle?: string;
+    newsletterDescription?: string;
+    links?: Array<{
+      title: string;
+      url: string;
+      external?: boolean;
+    }>;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    ogImage?: string;
+  };
+  businessHours?: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+  };
+  features?: {
+    enableBlog?: boolean;
+    enableShop?: boolean;
+    enableGrowerProfiles?: boolean;
+    enableReviews?: boolean;
+    enableWishlist?: boolean;
+  };
+}
+
+/**
+ * Transformed Site Settings
+ * Simplified structure for frontend consumption
+ */
+export interface TransformedSiteSettings {
+  id: string;
+  companyName: string;
+  tagline?: string;
+  description?: string;
+  logo?: string;
+  favicon?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    full?: string;
+  };
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    linkedin?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+  announcementBar?: {
+    enabled: boolean;
+    message: string;
+    link?: string;
+    backgroundColor?: string;
+    textColor?: string;
+  };
+  footer?: {
+    aboutText?: string;
+    copyrightText?: string;
+    showNewsletter?: boolean;
+    newsletterTitle?: string;
+    newsletterDescription?: string;
+    links?: Array<{
+      title: string;
+      url: string;
+      external?: boolean;
+    }>;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    ogImage?: string;
+  };
+  businessHours?: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+    formatted?: string;
+  };
+  features?: {
+    enableBlog?: boolean;
+    enableShop?: boolean;
+    enableGrowerProfiles?: boolean;
+    enableReviews?: boolean;
+    enableWishlist?: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}

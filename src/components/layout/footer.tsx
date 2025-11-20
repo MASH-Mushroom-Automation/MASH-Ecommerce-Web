@@ -1,21 +1,25 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Facebook, MapPin, Phone, Mail, Youtube } from "lucide-react";
+import { useSanitySiteSettings } from "@/hooks/useSanitySiteSettings";
 
 export function Footer() {
+  const { settings } = useSanitySiteSettings();
+
   return (
     <footer className="bg-muted text-foreground border-t border-border font-['Roboto']">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Main Content Grid: Logo/Info (col-1), Shop (col-2), Customer Service (col-3), About MASH (col-4) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
-          {/* Column 1: MASH Logo/Brand Info and Social Media */}
-          {/* This will be updated to CMS */}
+          {/* Column 1: MASH Logo/Brand Info and Social Media - Real-time from Sanity CMS */}
           <div className="col-span-2 md:col-span-1 flex flex-col items-center text-center">
-            {/* MASH Logo */}
+            {/* MASH Logo - Real-time */}
             <div className="mb-6">
               <Image
-                src="/Logo  v6 - Market.png"
-                alt="MASH Market"
+                src={settings?.logo || "/Logo  v6 - Market.png"}
+                alt={settings?.companyName || "MASH Market"}
                 width={180}
                 height={60}
                 className="h-auto w-auto max-w-[180px]"
@@ -44,34 +48,39 @@ export function Footer() {
               />
             </div>
 
-            {/* Social Media */}
-            {/* This will be updated to CMS */}
+            {/* Social Media - Real-time from Sanity CMS */}
             <div className="flex justify-center space-x-4 mt-6">
-              <a
-                href="https://www.facebook.com/MASHMarketPH/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground hover:text-primary"
-                aria-label="Facebook"
-              >
-                <Facebook size={24} />
-              </a>
-              <a
-                href="https://www.youtube.com/@MASH-UCC"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground hover:text-primary"
-                aria-label="YouTube"
-              >
-                <Youtube size={24} />
-              </a>
-              <a
-                href="mailto:mash.mushroom.automation@gmail.com"
-                className="text-foreground hover:text-primary"
-                aria-label="Email"
-              >
-                <Mail size={24} />
-              </a>
+              {settings?.socialMedia?.facebook && (
+                <a
+                  href={settings.socialMedia.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={24} />
+                </a>
+              )}
+              {settings?.socialMedia?.youtube && (
+                <a
+                  href={settings.socialMedia.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary"
+                  aria-label="YouTube"
+                >
+                  <Youtube size={24} />
+                </a>
+              )}
+              {settings?.contactEmail && (
+                <a
+                  href={`mailto:${settings.contactEmail}`}
+                  className="text-foreground hover:text-primary"
+                  aria-label="Email"
+                >
+                  <Mail size={24} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -162,39 +171,47 @@ export function Footer() {
               </li>
             </ul>
 
-            {/* Contact Details  */}
-            {/* This will be updated to CMS */}
+            {/* Contact Details - Real-time from Sanity CMS */}
             <div className="text-sm space-y-3">
-              <div className="flex items-center space-x-2">
-                <MapPin size={16} />
-                <a
-                  href="https://maps.app.goo.gl/fSRj6x1EwbNM3X3C9"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  UCC Congressional Campus
-                </a>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Phone size={16} />
-                <span>+63 956 955 2608</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Mail size={16} />
-                <span>zenGarden@gmail.com</span>
-              </div>
+              {settings?.address?.full && (
+                <div className="flex items-center space-x-2">
+                  <MapPin size={16} />
+                  <span className="hover:underline">
+                    {settings.address.full}
+                  </span>
+                </div>
+              )}
+              {settings?.contactPhone && (
+                <div className="flex items-center space-x-2">
+                  <Phone size={16} />
+                  <a href={`tel:${settings.contactPhone}`} className="hover:underline">
+                    {settings.contactPhone}
+                  </a>
+                </div>
+              )}
+              {settings?.contactEmail && (
+                <div className="flex items-center space-x-2">
+                  <Mail size={16} />
+                  <a href={`mailto:${settings.contactEmail}`} className="hover:underline">
+                    {settings.contactEmail}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Copyright Bar */}
+      {/* Copyright Bar - Real-time from Sanity CMS */}
       <div className="border-t border-border pt-3 pb-4 text-center text-xs text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} ZenThesis. All rights reserved.</p>
-        <p className="mt-1">
-          @ Zen Garden
+        <p>
+          {settings?.footer?.copyrightText || `© ${new Date().getFullYear()} ${settings?.companyName || 'MASH'}. All rights reserved.`}
         </p>
+        {settings?.footer?.aboutText && (
+          <p className="mt-1">
+            {settings.footer.aboutText}
+          </p>
+        )}
       </div>
     </footer>
   );
