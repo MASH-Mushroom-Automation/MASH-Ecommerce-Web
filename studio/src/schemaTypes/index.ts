@@ -7,6 +7,10 @@ import {review} from './documents/review'
 import {productVariant} from './documents/productVariant'
 import {productBundle} from './documents/productBundle'
 import {order} from './documents/order'
+import {coupon} from './documents/coupon'
+import {promotion} from './documents/promotion'
+import {emailCampaign} from './documents/emailCampaign'
+import {analytics} from './documents/analytics'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -32,6 +36,10 @@ export const schemaTypes = [
   productVariant,
   productBundle,
   order,
+  coupon,
+  promotion,
+  emailCampaign,
+  analytics,
   // Objects
   blockContent,
   infoSection,
