@@ -97,6 +97,50 @@ export function useSanityHero(): UseSanityHeroReturn {
 
   useEffect(() => {
     fetchHero();
+
+    // Set up real-time listener for immediate updates
+    const query = `*[_type == "heroCarousel"][0] {
+      slides[] {
+        title,
+        subtitle,
+        buttonText,
+        buttonLink,
+        buttonStyle,
+        "image": image.asset->url,
+        order,
+        isActive
+      }
+    }`;
+
+    // Subscribe to changes (Sanity's live updates)
+    const subscription = sanityClient
+      .listen(query, {}, { includeResult: true })
+      .subscribe((update) => {
+        // Check if this is a mutation event with result
+        if (update.type === 'mutation' && 'result' in update && update.result) {
+          const data = update.result as unknown as SanityHeroCarousel;
+          if (data && data.slides) {
+            const processedSlides = data.slides
+              .filter(slide => slide.isActive !== false)
+              .map((slide, index) => ({
+                ...slide,
+                subtitle: slide.subtitle || '',
+                buttonStyle: slide.buttonStyle || 'primary',
+                order: slide.order || (index + 1),
+                isActive: slide.isActive !== false,
+              }))
+              .sort((a, b) => a.order - b.order);
+            
+            setSlides(processedSlides);
+            console.log('🔄 Hero carousel updated in real-time!');
+          }
+        }
+      });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {

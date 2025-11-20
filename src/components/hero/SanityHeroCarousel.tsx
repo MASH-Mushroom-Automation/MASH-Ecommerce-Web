@@ -146,7 +146,7 @@ export const SanityHeroCarousel: React.FC = () => {
   if (slides.length === 1) {
     const slide = slides[0];
     return (
-      <section className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden">
+      <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
         {/* Background Image */}
         {slide.image ? (
           <>
@@ -165,9 +165,9 @@ export const SanityHeroCarousel: React.FC = () => {
         )}
 
         {/* Content - Centered */}
-        <div className="relative z-20 h-full flex items-center justify-center">
+        <div className="relative z-20 h-full flex items-center justify-center py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto space-y-8">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-2xl">
                 {slide.title}
               </h1>
@@ -196,7 +196,7 @@ export const SanityHeroCarousel: React.FC = () => {
 
   // Multiple slides - show carousel
   return (
-    <section className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden">
+    <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
       <Carousel
         opts={{ loop: true }}
         plugins={[plugin.current]}
@@ -236,9 +236,9 @@ export const SanityHeroCarousel: React.FC = () => {
                 )}
 
                 {/* Content - Centered */}
-                <div className="relative z-20 h-full flex items-center justify-center">
+                <div className="relative z-20 h-full flex items-center justify-center py-20">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <div className="max-w-4xl mx-auto">
+                    <div className="max-w-4xl mx-auto space-y-8">
                       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {slide.title}
                       </h1>
