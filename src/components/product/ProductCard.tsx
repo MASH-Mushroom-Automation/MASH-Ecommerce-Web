@@ -13,6 +13,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { getGrowerUrl } from "@/lib/grower-utils";
 import { trackAddToCart } from "@/lib/analytics";
+import { StockBadge } from "./StockBadge";
 
 interface ProductCardProps {
   id: string;
@@ -128,6 +129,10 @@ export function ProductCard({
             {name}
           </h3>
         </Link>
+        {/* Real-time Stock Badge */}
+        <div className="mt-2">
+          <StockBadge productId={id} showQuantity={false} variant="sm" />
+        </div>
       </div>
 
       {/* Price and Add to Cart - Fixed at bottom */}

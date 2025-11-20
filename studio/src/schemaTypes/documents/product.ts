@@ -118,6 +118,103 @@ export const product = defineType({
       validation: (rule) => rule.required().min(0).integer(),
     }),
     defineField({
+      name: 'inventory',
+      title: 'Inventory Management',
+      type: 'object',
+      fields: [
+        {
+          name: 'quantityInStock',
+          title: 'Quantity in Stock',
+          type: 'number',
+          validation: (rule) => rule.min(0).integer(),
+          description: 'Current stock quantity',
+        },
+        {
+          name: 'lowStockThreshold',
+          title: 'Low Stock Threshold',
+          type: 'number',
+          validation: (rule) => rule.min(0).integer(),
+          initialValue: 10,
+          description: 'Alert when stock falls below this number',
+        },
+        {
+          name: 'trackInventory',
+          title: 'Track Inventory',
+          type: 'boolean',
+          initialValue: true,
+          description: 'Enable/disable inventory tracking for this product',
+        },
+        {
+          name: 'allowBackorders',
+          title: 'Allow Backorders',
+          type: 'boolean',
+          initialValue: false,
+          description: 'Allow orders when out of stock',
+        },
+        {
+          name: 'stockHistory',
+          title: 'Stock History',
+          type: 'array',
+          of: [
+            {
+              type: 'object',
+              fields: [
+                {
+                  name: 'date',
+                  type: 'datetime',
+                  title: 'Date',
+                },
+                {
+                  name: 'quantity',
+                  type: 'number',
+                  title: 'Quantity Changed',
+                },
+                {
+                  name: 'newTotal',
+                  type: 'number',
+                  title: 'New Total Stock',
+                },
+                {
+                  name: 'reason',
+                  type: 'string',
+                  title: 'Reason',
+                  options: {
+                    list: [
+                      {title: 'Restock', value: 'restock'},
+                      {title: 'Sale', value: 'sale'},
+                      {title: 'Adjustment', value: 'adjustment'},
+                      {title: 'Return', value: 'return'},
+                      {title: 'Damaged', value: 'damaged'},
+                    ],
+                  },
+                },
+                {
+                  name: 'notes',
+                  type: 'text',
+                  title: 'Notes',
+                },
+              ],
+              preview: {
+                select: {
+                  date: 'date',
+                  quantity: 'quantity',
+                  reason: 'reason',
+                },
+                prepare({date, quantity, reason}) {
+                  return {
+                    title: `${quantity > 0 ? '+' : ''}${quantity} - ${reason}`,
+                    subtitle: new Date(date).toLocaleDateString(),
+                  }
+                },
+              },
+            },
+          ],
+          readOnly: true,
+          description: 'Automatically tracked stock changes',
+        },
+      ],
+    }),
+    defineField({
       name: 'description',
       title: 'Description',
       type: 'text',
