@@ -6,6 +6,7 @@ import {product} from './documents/product'
 import {review} from './documents/review'
 import {productVariant} from './documents/productVariant'
 import {productBundle} from './documents/productBundle'
+import {order} from './documents/order'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -30,6 +31,7 @@ export const schemaTypes = [
   review,
   productVariant,
   productBundle,
+  order,
   // Objects
   blockContent,
   infoSection,
