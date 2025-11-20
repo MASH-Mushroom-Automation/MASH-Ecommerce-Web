@@ -1,11 +1,11 @@
   # 🍄 MASH E-COMMERCE - COMPLETE MASTER PLAN
 
-**Last Updated:** November 21, 2025 - 8:00 AM  
+**Last Updated:** November 21, 2025 - 8:45 AM  
 **Living Document:** Update this as you complete each phase  
 **Your Single Source of Truth:** Complete Phase-Based Implementation Guide  
-**Current Status:** 🎯 Phase 2.5 COMPLETE! Now Ready for Phase 3 (Images) 📸
+**Current Status:** ✅ Schema Fixed! 🔴 **DO NOW:** Link References (45 min) → Then Images! 🖼️
 
-**📊 Project Maturity:** Enhanced Foundation (2.5/8 phases complete - CMS Fully Enhanced!)
+**📊 Project Maturity:** Enhanced Foundation (2.5/8 phases - 90% complete!)
 
 **🆕 NEW FEATURES ADDED:**
 - ✅ Enhanced Product Schema (improved CMS structure)
@@ -153,13 +153,47 @@ Don't forget to celebrate milestones! When you complete a phase:
 
 ---
 
-## 🎯 **WHAT YOU NEED TO DO NEXT (30 MINUTES)**
+## 🎯 **WHAT YOU NEED TO DO NOW (45 MINUTES)**
 
-### **YOUR IMMEDIATE TASK: Add Product Images**
+### **🔴 URGENT TASK 1: Fix Reference Fields (30-45 min)**
+
+**Time Required:** 30-45 minutes  
+**Difficulty:** Easy (just clicking and searching)  
+**Status:** 🔴 **DO THIS FIRST - Open Checklist in Notepad!**
+
+**✅ Good News:** You've filled ALL the data! The "No items" in "Suggested Products" and "Related Bundles" is NOT an error - Sanity reference fields need manual linking.
+
+#### **📋 Quick Instructions:**
+
+**For EACH of your 15 products:**
+
+1. **Open product in Sanity Studio** (http://localhost:3333)
+2. **Scroll to "Suggested Products" field**
+3. **Click "+ Add Item" button** (appears on hover)
+4. **Search for product** (e.g., "shiitake", "oyster")
+5. **Select 3-5 products** customers might like
+6. **Scroll to "Related Bundles" field**
+7. **Click "+ Add Item"**
+8. **Search and select 1-2 bundles**
+9. **Click "Publish"** (top right)
+10. **Next product!**
+
+**💡 I've opened a detailed checklist in Notepad with specific suggestions for each product!**
+
+**Example for "Fresh Oyster Mushrooms":**
+- **Suggested Products:** Shiitake, Enoki, Lion's Mane, King Oyster, Maitake
+- **Related Bundles:** Starter Bundle, Gourmet Bundle
+
+**⏱️ Time per product:** 2-3 minutes  
+**📂 Complete guide:** `.github/PHASE_2.5_REFERENCE_LINKING_CHECKLIST.md` (OPEN NOW!)
+
+---
+
+### **⚡ TASK 2: Add Product Images (30 min) - DO AFTER REFERENCES**
 
 **Time Required:** 30 minutes  
 **Difficulty:** Easy (drag & drop images)  
-**Status:** 🔴 **NOT STARTED - DO THIS TODAY!**
+**Status:** ⏳ **START AFTER REFERENCE FIELDS COMPLETE**
 
 #### **Step-by-Step Instructions:**
 
@@ -176,6 +210,7 @@ Don't forget to celebrate milestones! When you complete a phase:
    - Scroll to "Product Image" field
    - Click "Upload" or drag image file
    - Adjust crop/hotspot if needed
+   - Add **Alt Text** for SEO
    - Click "Publish" button (top right)
    - Repeat for next product
 
@@ -185,7 +220,7 @@ Don't forget to celebrate milestones! When you complete a phase:
    - **Quality:** High resolution, clear focus
    - **File size:** < 2MB (optimized)
    - **Content:** Close-up of mushrooms, well-lit
-   - **Alt text:** Will add after upload (e.g., "Fresh oyster mushrooms in basket")
+   - **Alt text:** e.g., "Fresh oyster mushrooms in basket"
 
 4. **Where to Get Images:**
    - Unsplash.com (search "mushrooms")
@@ -197,6 +232,7 @@ Don't forget to celebrate milestones! When you complete a phase:
 - [ ] Test frontend (http://localhost:3000/shop)
 - [ ] Verify all products display with images
 - [ ] Check product detail pages load
+- [ ] Update this document: Phase 3 → 100%
 - [ ] Move to Phase 4 (Frontend Integration)
 
 ---

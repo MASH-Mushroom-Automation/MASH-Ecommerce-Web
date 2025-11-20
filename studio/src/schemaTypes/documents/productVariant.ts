@@ -20,6 +20,26 @@ export const productVariant = defineType({
       validation: (Rule) => Rule.required(),
       description: 'The product this variant belongs to',
     }),
+    
+    // Basic Info
+    defineField({
+      name: 'name',
+      title: 'Name',
+      type: 'string',
+      validation: (Rule) => Rule.required().min(2).max(100),
+      description: 'Full name for this variant (e.g., "King Oyster Mushrooms - Large")',
+    }),
+    defineField({
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: 'name',
+        maxLength: 96,
+      },
+      validation: (Rule) => Rule.required(),
+      description: 'URL-friendly version of the name',
+    }),
     defineField({
       name: 'variantName',
       title: 'Variant Name',
@@ -33,6 +53,31 @@ export const productVariant = defineType({
       type: 'string',
       validation: (Rule) => Rule.required(),
       description: 'Unique SKU for this variant',
+    }),
+    
+    // Variant Type & Value
+    defineField({
+      name: 'variantType',
+      title: 'Variant Type',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Size', value: 'Size'},
+          {title: 'Weight', value: 'Weight'},
+          {title: 'Color', value: 'Color'},
+          {title: 'Type', value: 'Type'},
+          {title: 'Package', value: 'Package'},
+        ],
+      },
+      validation: (Rule) => Rule.required(),
+      description: 'Type of variant (e.g., Size, Weight, Color)',
+    }),
+    defineField({
+      name: 'variantValue',
+      title: 'Variant Value',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+      description: 'Value of the variant (e.g., "Large (600g)", "250g Pack")',
     }),
 
     // Variant Options
@@ -79,6 +124,21 @@ export const productVariant = defineType({
       title: 'Weight',
       type: 'string',
       description: 'Weight specification (e.g., "250g", "1kg")',
+    }),
+    defineField({
+      name: 'weightUnit',
+      title: 'Weight Unit',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Grams (g)', value: 'g'},
+          {title: 'Kilograms (kg)', value: 'kg'},
+          {title: 'Ounces (oz)', value: 'oz'},
+          {title: 'Pounds (lb)', value: 'lb'},
+        ],
+      },
+      initialValue: 'g',
+      description: 'Unit of measurement for weight',
     }),
     defineField({
       name: 'customAttribute',
@@ -157,24 +217,26 @@ export const productVariant = defineType({
 
   preview: {
     select: {
+      name: 'name',
       productName: 'product.name',
-      variantName: 'variantName',
-      sku: 'sku',
+      variantType: 'variantType',
+      variantValue: 'variantValue',
       price: 'price',
       stock: 'stockQuantity',
-      size: 'size',
-      color: 'color',
       weight: 'weight',
+      weightUnit: 'weightUnit',
       isAvailable: 'isAvailable',
     },
-    prepare({productName, variantName, sku, price, stock, size, color, weight, isAvailable}) {
-      const attributes = [size, color, weight].filter(Boolean).join(' • ')
+    prepare({name, productName, variantType, variantValue, price, stock, weight, weightUnit, isAvailable}) {
+      const variantInfo = variantType && variantValue ? `${variantType}: ${variantValue}` : ''
+      const weightInfo = weight && weightUnit ? `${weight}${weightUnit}` : ''
+      const attributes = [variantInfo, weightInfo].filter(Boolean).join(' • ')
       const stockStatus = stock === 0 ? '🔴 Out of Stock' : stock < 10 ? '🟡 Low Stock' : '🟢 In Stock'
       const availabilityEmoji = isAvailable ? '✅' : '❌'
 
       return {
-        title: `${variantName} ${availabilityEmoji}`,
-        subtitle: `${productName} • ${attributes} • ₱${price?.toFixed(2)} • ${stockStatus} (${stock})`,
+        title: `${name || productName} ${availabilityEmoji}`,
+        subtitle: `${attributes} • ₱${price?.toFixed(2)} • ${stockStatus} (${stock})`,
         media: TagIcon,
       }
     },
