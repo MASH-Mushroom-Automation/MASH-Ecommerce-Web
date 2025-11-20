@@ -323,6 +323,272 @@ export const product = defineType({
       description: 'Bundles that include this product or similar products',
       validation: (Rule) => Rule.max(4),
     }),
+
+    // ========================================
+    // 🆕 PHASE 2.5: ENHANCED E-COMMERCE FEATURES
+    // ========================================
+
+    // Suggested Products & Smart Recommendations
+    defineField({
+      name: 'suggestedProducts',
+      title: 'Suggested Products (You May Also Like)',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'product'}]}],
+      description: 'AI-powered suggestions shown as "You may also like" - helps customers discover complementary products',
+      validation: (Rule) => Rule.max(8),
+      options: {
+        layout: 'grid',
+      },
+    }),
+    defineField({
+      name: 'productTags',
+      title: 'Product Tags (Smart Search)',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Tags help customers find related products (e.g., "organic", "high-protein", "easy-to-cook", "vegan")',
+      options: {
+        layout: 'tags',
+      },
+      validation: (Rule) => Rule.max(10),
+    }),
+    defineField({
+      name: 'complementaryProducts',
+      title: 'Complementary Products (Frequently Bought Together)',
+      type: 'array',
+      of: [{
+        type: 'reference',
+        to: [{type: 'product'}],
+        options: {
+          filter: '_type == "product" && _id != ^._id', // Don't suggest itself
+        },
+      }],
+      description: 'Products often purchased with this item (shows in cart and product page)',
+      validation: (Rule) => Rule.max(4),
+    }),
+
+    // Mushroom-Specific Freshness & Quality
+    defineField({
+      name: 'freshnessInfo',
+      title: 'Freshness Information',
+      type: 'object',
+      description: 'Critical for fresh mushrooms - harvest to delivery tracking',
+      fields: [
+        {
+          name: 'harvestWindow',
+          title: 'Typical Harvest to Delivery Time',
+          type: 'string',
+          options: {
+            list: [
+              {title: 'Within 24 hours', value: '24h'},
+              {title: 'Within 48 hours', value: '48h'},
+              {title: '3-5 days', value: '3-5d'},
+              {title: 'Not applicable (dried/kit)', value: 'n/a'},
+            ],
+          },
+          initialValue: '24h',
+        },
+        {
+          name: 'shelfLife',
+          title: 'Shelf Life (after delivery)',
+          type: 'string',
+          options: {
+            list: [
+              {title: '3-5 days (refrigerated)', value: '3-5d'},
+              {title: '5-7 days (refrigerated)', value: '5-7d'},
+              {title: '1-2 weeks (refrigerated)', value: '1-2w'},
+              {title: '6-12 months (dried)', value: '6-12m'},
+              {title: '1+ year (dried)', value: '1y+'},
+            ],
+          },
+          initialValue: '5-7d',
+        },
+        {
+          name: 'storageInstructions',
+          title: 'Storage Instructions',
+          type: 'text',
+          rows: 3,
+          placeholder: 'E.g., "Store in paper bag in refrigerator. Do not wash until ready to use. Keep dry to prevent slimy texture."',
+        },
+        {
+          name: 'qualityIndicators',
+          title: 'Quality Indicators (What to Look For)',
+          type: 'text',
+          rows: 3,
+          placeholder: 'E.g., "Firm caps, no slimy texture, fresh earthy smell, no dark spots or discoloration"',
+        },
+      ],
+    }),
+
+    // Preparation & Cooking Information
+    defineField({
+      name: 'preparationInfo',
+      title: 'Preparation & Cooking',
+      type: 'object',
+      description: 'Help customers prepare and cook mushrooms correctly',
+      fields: [
+        {
+          name: 'difficultyLevel',
+          title: 'Preparation Difficulty',
+          type: 'string',
+          options: {
+            list: [
+              {title: '⭐ Beginner-Friendly', value: 'beginner'},
+              {title: '⭐⭐ Intermediate', value: 'intermediate'},
+              {title: '⭐⭐⭐ Advanced', value: 'advanced'},
+            ],
+          },
+          initialValue: 'beginner',
+        },
+        {
+          name: 'cookingTime',
+          title: 'Typical Cooking Time',
+          type: 'string',
+          placeholder: 'E.g., "10-15 minutes" or "5-8 minutes"',
+        },
+        {
+          name: 'preparationTips',
+          title: 'Preparation Tips',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Step-by-step tips for preparing this mushroom',
+        },
+        {
+          name: 'recipeIdeas',
+          title: 'Recipe Ideas',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Quick recipe suggestions (e.g., "Sautéed with garlic butter", "Stir-fry with vegetables")',
+        },
+      ],
+    }),
+
+    // Same-Day Delivery Options (Lalamove Integration)
+    defineField({
+      name: 'deliveryOptions',
+      title: 'Delivery Options',
+      type: 'object',
+      description: 'Configure same-day delivery via Lalamove for fresh mushrooms',
+      fields: [
+        {
+          name: 'sameDayDeliveryEligible',
+          title: 'Same-Day Delivery Available (Lalamove)',
+          type: 'boolean',
+          description: 'Can this product be delivered same-day via Lalamove?',
+          initialValue: true,
+        },
+        {
+          name: 'deliveryZones',
+          title: 'Delivery Zones',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Areas where same-day delivery is available',
+          options: {
+            list: [
+              {title: 'Metro Manila (All areas)', value: 'metro-manila'},
+              {title: 'Quezon City', value: 'quezon-city'},
+              {title: 'Makati', value: 'makati'},
+              {title: 'BGC Taguig', value: 'bgc'},
+              {title: 'Mandaluyong', value: 'mandaluyong'},
+              {title: 'Pasig', value: 'pasig'},
+              {title: 'Manila (City proper)', value: 'manila'},
+              {title: 'Muntinlupa', value: 'muntinlupa'},
+              {title: 'Parañaque', value: 'paranaque'},
+              {title: 'Las Piñas', value: 'las-pinas'},
+              {title: 'Nationwide (Standard Delivery)', value: 'nationwide'},
+            ],
+          },
+        },
+        {
+          name: 'deliveryNotes',
+          title: 'Special Delivery Notes',
+          type: 'text',
+          rows: 2,
+          placeholder: 'E.g., "Requires refrigerated transport", "Handle with care - delicate caps", "Keep upright during delivery"',
+        },
+        {
+          name: 'perishable',
+          title: 'Perishable Item',
+          type: 'boolean',
+          initialValue: true,
+          description: 'Mark as perishable for special handling instructions to Lalamove driver',
+        },
+      ],
+    }),
+
+    // Delivery Weight & Dimensions (for Lalamove Pricing)
+    defineField({
+      name: 'deliveryWeight',
+      title: 'Delivery Weight & Dimensions',
+      type: 'object',
+      description: 'Used to calculate Lalamove delivery pricing automatically',
+      fields: [
+        {
+          name: 'packageWeight',
+          title: 'Package Weight (kg)',
+          type: 'number',
+          description: 'Total weight including packaging materials',
+          validation: (Rule) => Rule.min(0).max(50),
+        },
+        {
+          name: 'packageDimensions',
+          title: 'Package Dimensions (cm)',
+          type: 'object',
+          fields: [
+            {
+              name: 'length',
+              title: 'Length (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+            {
+              name: 'width',
+              title: 'Width (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+            {
+              name: 'height',
+              title: 'Height (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+          ],
+        },
+      ],
+    }),
+
+    // Enhanced Product Search & Discovery
+    defineField({
+      name: 'searchKeywords',
+      title: 'Search Keywords (SEO)',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Additional search terms customers might use (e.g., "oyster mushroom", "pleurotus", "mushroom powder")',
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'nutritionalHighlights',
+      title: 'Nutritional Highlights',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Key health benefits to display on product cards',
+      options: {
+        list: [
+          {title: '🌟 High in Vitamin D', value: 'vitamin-d'},
+          {title: '💪 Rich in Antioxidants', value: 'antioxidants'},
+          {title: '🥩 High Protein', value: 'high-protein'},
+          {title: '🪶 Low Calorie', value: 'low-calorie'},
+          {title: '🛡️ Immune Support', value: 'immune-support'},
+          {title: '❤️ Heart Healthy', value: 'heart-healthy'},
+          {title: '🌱 Vegan', value: 'vegan'},
+          {title: '🌾 Organic', value: 'organic'},
+          {title: '🧠 Brain Health', value: 'brain-health'},
+          {title: '🦴 Bone Health', value: 'bone-health'},
+        ],
+      },
+    }),
   ],
   preview: {
     select: {
