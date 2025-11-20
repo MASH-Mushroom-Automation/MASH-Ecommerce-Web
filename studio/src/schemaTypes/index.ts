@@ -3,6 +3,7 @@ import {page} from './documents/page'
 import {post} from './documents/post'
 import {category} from './documents/category'
 import {product} from './documents/product'
+import {review} from './documents/review'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -24,6 +25,7 @@ export const schemaTypes = [
   person,
   category,
   product,
+  review,
   // Objects
   blockContent,
   infoSection,
