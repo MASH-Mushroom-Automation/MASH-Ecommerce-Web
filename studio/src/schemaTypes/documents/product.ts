@@ -288,6 +288,41 @@ export const product = defineType({
       description: 'When should the promotion end?',
       hidden: ({document}) => !document?.isOnPromo,
     }),
+    
+    // Product Variants (Phase 9)
+    defineField({
+      name: 'hasVariants',
+      title: 'Has Variants',
+      type: 'boolean',
+      initialValue: false,
+      description: 'Does this product have size/color/weight variants?',
+    }),
+    defineField({
+      name: 'variants',
+      title: 'Product Variants',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'productVariant'}]}],
+      description: 'Add product variants (size, color, weight options)',
+      hidden: ({document}) => !document?.hasVariants,
+    }),
+    
+    // Related Products & Bundles (Phase 9)
+    defineField({
+      name: 'relatedProducts',
+      title: 'Related Products',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'product'}]}],
+      description: 'Products that customers might also be interested in',
+      validation: (Rule) => Rule.max(8),
+    }),
+    defineField({
+      name: 'relatedBundles',
+      title: 'Related Bundles',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'productBundle'}]}],
+      description: 'Bundles that include this product or similar products',
+      validation: (Rule) => Rule.max(4),
+    }),
   ],
   preview: {
     select: {
