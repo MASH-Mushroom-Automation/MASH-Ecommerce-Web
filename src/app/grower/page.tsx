@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, MapPin, Phone, Clock, Send, Store, X } from "lucide-react";
-import { useGrowers } from "@/hooks/useMain";
+import { useSanityGrowers } from "@/hooks/useSanityGrowers";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { isAuthenticated } from "@/lib/auth";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import type { Grower } from "@/types/api";
+import type { TransformedGrower } from "@/types/sanity";
 import { GrowerListSkeleton } from "@/components/ui/skeleton-loaders";
 
 // --- HELPER & UI COMPONENTS ---
@@ -53,10 +53,10 @@ const GrowerInfoRow = ({
 
 // --- MAIN GROWERS PAGE COMPONENT ---
 export default function GrowersPage() {
-  const { growers, loading, error } = useGrowers();
+  const { growers, loading, error } = useSanityGrowers({ isActive: true });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [selectedGrower, setSelectedGrower] = useState<Grower | null>(null);
+  const [selectedGrower, setSelectedGrower] = useState<TransformedGrower | null>(null);
   const [showNearMe, setShowNearMe] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -255,16 +255,16 @@ export default function GrowersPage() {
             {filteredGrowers.slice(0, displayCount).map((grower) => (
               <Link
                 key={grower.id}
-                href={`/grower/${grower.id}`}
+                href={`/grower/${grower.slug}`}
                 className="group flex"
               >
                 <Card className="p-6 h-full hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-primary flex flex-col w-full">
                   {/* Grower Logo */}
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                      {grower.logo ? (
+                      {grower.image ? (
                         <Image
-                          src={grower.logo}
+                          src={grower.image}
                           alt={grower.name}
                           width={64}
                           height={64}
@@ -280,9 +280,9 @@ export default function GrowersPage() {
                       <h2 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
                         {grower.name}
                       </h2>
-                      {grower.tagline && (
+                      {grower.bio && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {grower.tagline}
+                          {grower.bio.slice(0, 50)}...
                         </p>
                       )}
                     </div>
@@ -290,12 +290,15 @@ export default function GrowersPage() {
 
                   {/* Grower Info */}
                   <div className="space-y-2 text-sm flex-grow">
-                    <GrowerInfoRow
-                      icon={MapPin}
-                      text={grower.location || grower.address}
-                    />
-                    <GrowerInfoRow icon={Phone} text={grower.phone} />
-                    <GrowerInfoRow icon={Clock} text={grower.hours} />
+                    {grower.location && (
+                      <GrowerInfoRow icon={MapPin} text={grower.location} />
+                    )}
+                    {grower.contactPhone && (
+                      <GrowerInfoRow icon={Phone} text={grower.contactPhone} />
+                    )}
+                    {grower.specialties && grower.specialties.length > 0 && (
+                      <GrowerInfoRow icon={Store} text={grower.specialties.slice(0, 2).join(", ")} />
+                    )}
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-border">
@@ -356,11 +359,11 @@ export default function GrowersPage() {
                 </button>
               </div>
 
-              {showNearMe && selectedGrower && (
+              {showNearMe && selectedGrower && selectedGrower.coordinates && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Growers List for Map */}
                   <div className="lg:col-span-1 space-y-3">
-                    {growers.map((grower) => (
+                    {growers.filter(g => g.coordinates).map((grower) => (
                       <Card
                         key={grower.id}
                         onClick={() => setSelectedGrower(grower)}
@@ -378,21 +381,23 @@ export default function GrowersPage() {
                             </h3>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
-                              {grower.location || grower.address}
+                              {grower.location || 'Location not specified'}
                             </p>
                           </div>
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex flex-col items-center text-xs text-muted-foreground hover:text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="bg-primary text-primary-foreground rounded-full p-2">
-                              <Send className="w-3 h-3" />
-                            </div>
-                            <span className="mt-1 text-[10px]">Go</span>
-                          </a>
+                          {grower.coordinates && (
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coordinates.lat},${grower.coordinates.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex flex-col items-center text-xs text-muted-foreground hover:text-foreground"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="bg-primary text-primary-foreground rounded-full p-2">
+                                <Send className="w-3 h-3" />
+                              </div>
+                              <span className="mt-1 text-[10px]">Go</span>
+                            </a>
+                          )}
                         </div>
                       </Card>
                     ))}
@@ -402,7 +407,7 @@ export default function GrowersPage() {
                   <div className="lg:col-span-2">
                     <div className="w-full h-[500px] bg-muted rounded-lg overflow-hidden shadow-md">
                       <iframe
-                        src={`https://maps.google.com/maps?q=${selectedGrower.coords.lat},${selectedGrower.coords.lng}&hl=en&z=14&output=embed`}
+                        src={`https://maps.google.com/maps?q=${selectedGrower.coordinates.lat},${selectedGrower.coordinates.lng}&hl=en&z=14&output=embed`}
                         width="100%"
                         height="100%"
                         style={{ border: 0 }}

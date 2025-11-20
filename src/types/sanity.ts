@@ -189,3 +189,67 @@ export function transformSanityCategory(category: SanityCategory): TransformedCa
     image: category.image,
   };
 }
+
+/**
+ * Sanity Grower
+ * Matches the grower document type in Sanity Studio
+ */
+export interface SanityGrower {
+  _id: string;
+  _createdAt: string;
+  _updatedAt: string;
+  name: string;
+  slug: {
+    current: string;
+    _type: 'slug';
+  };
+  bio?: string;
+  location?: string;
+  region?: string;
+  image?: string; // Profile image URL
+  coverImage?: string; // Cover/banner image URL
+  farmImages?: string[]; // Array of farm images
+  specialties?: string[]; // Types of mushrooms grown
+  certifications?: string[]; // Certifications
+  contactEmail?: string;
+  contactPhone?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  isActive?: boolean;
+  rating?: number;
+  totalReviews?: number;
+  joinedDate?: string;
+}
+
+/**
+ * Transformed Grower
+ * Simplified structure for frontend consumption
+ */
+export interface TransformedGrower {
+  id: string;
+  name: string;
+  slug: string;
+  bio?: string;
+  location?: string;
+  region?: string;
+  image?: string;
+  coverImage?: string;
+  farmImages?: string[];
+  specialties?: string[];
+  certifications?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  isActive?: boolean;
+  rating?: number;
+  totalReviews?: number;
+  productCount?: number;
+  joinedDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
