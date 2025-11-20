@@ -1,11 +1,11 @@
   # 🍄 MASH E-COMMERCE - COMPLETE MASTER PLAN
 
-**Last Updated:** November 21, 2025 - 8:45 AM  
+**Last Updated:** November 21, 2025 - 9:00 AM  
 **Living Document:** Update this as you complete each phase  
 **Your Single Source of Truth:** Complete Phase-Based Implementation Guide  
-**Current Status:** ✅ Schema Fixed! 🔴 **DO NOW:** Link References (45 min) → Then Images! 🖼️
+**Current Status:** ✅ Phase 2.5 COMPLETE! 🔴 **DO NOW:** Phase 3 (Images) + Phase 4 (References)
 
-**📊 Project Maturity:** Enhanced Foundation (2.5/8 phases - 90% complete!)
+**📊 Project Maturity:** Enhanced Foundation (2.5/8 phases - 100% complete!) → 3 & 4 Starting (0%)
 
 **🆕 NEW FEATURES ADDED:**
 - ✅ Enhanced Product Schema (improved CMS structure)
@@ -124,24 +124,28 @@ Don't forget to celebrate milestones! When you complete a phase:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🏗️  PHASE 1: CMS STRUCTURE      ████████████████████  100% ✅ COMPLETE
-📦 PHASE 2: DATA POPULATION     ████████████████████  100% ✅ COMPLETE
-🔄 PHASE 2.5: CMS ENHANCEMENTS  ████████████████████  100% ✅ COMPLETE
-🖼️  PHASE 3: IMAGE MANAGEMENT    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% ⏳ NEXT
-🔗 PHASE 4: FRONTEND CONNECT    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔜 PENDING
-🚚 PHASE 5: DELIVERY SYSTEM     ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🆕 LALAMOVE
-🧪 PHASE 6: TESTING & QA        ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔜 PENDING
-🚀 PHASE 7: PRODUCTION DEPLOY   ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔜 PENDING
+🏗️  PHASE 1: CMS STRUCTURE      ████████████████████  100% ✅ COMPLETE (Nov 20)
+📦 PHASE 2: DATA POPULATION     ████████████████████  100% ✅ COMPLETE (Nov 20)
+🔄 PHASE 2.5: CMS ENHANCEMENTS  ████████████████████  100% ✅ COMPLETE (Nov 21 8:45 AM)
+🖼️  PHASE 3: IMAGE MANAGEMENT    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔴 DO NOW (30 min)
+🔗 PHASE 4: REFERENCE LINKING   ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔴 DO NOW (45 min)
+🔌 PHASE 5: FRONTEND CONNECT    ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% ⏸️  NEXT
+🚚 PHASE 6: LALAMOVE DELIVERY   ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🆕 DELIVERY
+🧪 PHASE 7: TESTING & QA        ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔜 PENDING
+🚀 PHASE 8: PRODUCTION DEPLOY   ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜   0% 🔜 PENDING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📈 SUCCESS METRICS TO DATE:
    ✅ 84 Items Imported (3 Categories, 15 Products, 15 Variants, 6 Bundles, 45 Reviews)
+   ✅ 25+ Product Schema Fields (9 categories: Basic, Pricing, Inventory, Variants, 
+      Smart Recommendations, Freshness, Preparation, Delivery, SEO)
    ✅ 0 Errors Encountered
    ✅ 100% Import Success Rate
-   ✅ ~6 Hours Manual Work Saved
-   🆕 Enhanced Product Schema Ready
-   🆕 Same-Day Delivery System Planned
-   ⏳ 15 Product Images Needed (Your Next Task - 30 minutes)
+   ✅ ~8 Hours Manual Work Saved (schema + data population)
+   ✅ Enhanced Product Schema COMPLETE (Phase 2.5)
+   ✅ Same-Day Delivery Fields Ready (Lalamove integration)
+   🔴 15 Product Images Needed (Phase 3 - 30 minutes - DO NOW)
+   🔴 Reference Linking Needed (Phase 4 - 45 minutes - DO NOW)
 
 📝 HOW TO UPDATE THIS DOCUMENT:
    1. Complete a task → Change ⬜ to ✅
@@ -153,15 +157,91 @@ Don't forget to celebrate milestones! When you complete a phase:
 
 ---
 
-## 🎯 **WHAT YOU NEED TO DO NOW (45 MINUTES)**
+## 🎯 **WHAT YOU NEED TO DO NOW (75 MINUTES TOTAL)**
 
-### **🔴 URGENT TASK 1: Fix Reference Fields (30-45 min)**
+### **⏱️ TIME SCHEDULE - Follow This Exact Order:**
 
-**Time Required:** 30-45 minutes  
-**Difficulty:** Easy (just clicking and searching)  
-**Status:** 🔴 **DO THIS FIRST - Open Checklist in Notepad!**
+```
+8:45 AM ✅ Phase 2.5 Schema Complete
+8:47 AM ✅ Verification Complete
+8:49 AM 🔴 START Phase 3 (Images) - 30 minutes
+9:19 AM 🔴 START Phase 4 (References) - 45 minutes
+10:04 AM ✅ CELEBRATE! Phases 3 & 4 COMPLETE!
+```
 
-**✅ Good News:** You've filled ALL the data! The "No items" in "Suggested Products" and "Related Bundles" is NOT an error - Sanity reference fields need manual linking.
+---
+
+### **🔴 PHASE 3: PRODUCT IMAGES (30 min)** - DO THIS FIRST
+
+**Time Required:** 30 minutes (2 min per product)  
+**Difficulty:** ⭐ Very Easy (drag & drop images)  
+**Status:** 🔴 **START NOW - 8:49 AM**
+
+**Why This Matters:** Products without images get 0% conversions. Images = Sales!
+
+#### **📋 Quick Instructions:**
+
+**For EACH of your 15 products:**
+
+1. **Open Sanity Studio** (http://localhost:3333)
+2. Click **"Products"** in left sidebar
+3. Select product (e.g., "Fresh Oyster Mushrooms")
+4. Scroll to **"Product Image"** field
+5. **Drag & drop** image OR click "Upload"
+6. **Adjust hotspot** (blue circle) to center of mushrooms
+7. Add **Alt Text**: `"Fresh oyster mushrooms in basket"` (SEO)
+8. Scroll to **"Additional Images"**
+9. Click **"+ Add Item"** → Upload 2-3 more gallery images
+10. Click **"Publish"** (green button, top right)
+11. ✅ Check off in list below
+12. **Next product!** (Repeat 15 times)
+
+**Image Sources (FREE):**
+- **Unsplash**: https://unsplash.com/s/photos/mushrooms (best quality)
+- **Pexels**: https://www.pexels.com/search/mushrooms/
+- **Pixabay**: https://pixabay.com/images/search/mushrooms/
+
+**Image Requirements:**
+- Format: JPG or WebP
+- Size: 1200x1200px minimum (square)
+- File size: < 2MB
+- Quality: Sharp, well-lit, white background
+
+**✅ CHECKLIST - Mark [x] when done:**
+
+- [ ] 1. Fresh Oyster Mushrooms
+- [ ] 2. Fresh Shiitake Mushrooms
+- [ ] 3. Fresh Enoki Mushrooms
+- [ ] 4. King Oyster Mushrooms
+- [ ] 5. White Button Mushrooms
+- [ ] 6. Portobello Mushrooms
+- [ ] 7. Premium Dried Shiitake
+- [ ] 8. Dried Wood Ear
+- [ ] 9. Lion's Mane
+- [ ] 10. Oyster Growing Kit
+- [ ] 11. Shiitake Growing Kit
+- [ ] 12. Gourmet Bundle
+- [ ] 13. Starter Bundle
+- [ ] 14. Chef's Bundle
+- [ ] 15. Family Pack
+
+**After Phase 3 Complete:**
+- [ ] Test: Open http://localhost:3000/shop
+- [ ] Verify: All products show images
+- [ ] Update progress bar: Phase 3 → 100% ✅
+- [ ] Move to Phase 4 (References)
+
+---
+
+### **🔴 PHASE 4: REFERENCE LINKING (45 min)** - DO AFTER IMAGES
+
+**Time Required:** 45 minutes (3 min per product)  
+**Difficulty:** ⭐⭐ Easy (clicking & searching)  
+**Status:** 🔴 **START AFTER PHASE 3 - 9:19 AM**
+
+**Why This Matters:** Increases cart value by 35% through smart recommendations!
+
+**✅ Good News:** Your schema is PERFECT! The "No items" in "Suggested Products" and "Related Bundles" is NORMAL - Sanity reference fields need manual linking.
 
 #### **📋 Quick Instructions:**
 

@@ -1,5 +1,8 @@
 # MASH E-Commerce Platform - AI Coding Guide
 
+**Last Updated:** November 21, 2025  
+**Project Status:** Phase 2.5 - Enhanced Foundation with CMS Integration
+
 ## 📋 Table of Contents
 
 1. [Project Overview](#project-overview)
@@ -7,24 +10,35 @@
 3. [Critical Development Workflows](#critical-development-workflows)
 4. [Project-Specific Conventions](#project-specific-conventions)
 5. [Essential Documentation](#essential-documentation)
-6. [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
-7. [Integration Points](#integration-points)
-8. [Known Limitations & TODOs](#known-limitations--todos)
-9. [🔐 Complete Authentication System](#-complete-authentication-system-documentation)
+6. [🎯 AI Agent Workflow for Sanity CMS Tasks](#-ai-agent-workflow-for-sanity-cms-tasks)
+7. [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
+8. [Integration Points](#integration-points)
+9. [Known Limitations & TODOs](#known-limitations--todos)
+10. [🔐 Complete Authentication System](#-complete-authentication-system-documentation)
 
 ---
 
 ## Project Overview
 
-MASH is a mushroom e-commerce platform built with **Next.js 15 (App Router)**, TypeScript, Tailwind CSS, and shadcn/ui. The app connects to a NestJS + Prisma + PostgreSQL backend hosted on Railway. This is a production-ready frontend with hybrid mock/real data support.
-
-**Tech Stack:**
+MASH is a **mushroom e-commerce platform** built with **Next.js 15 (App Router)**, TypeScript, Tailwind CSS, and shadcn/ui. The platform features:
 
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui (Radix UI)
-- **Backend**: NestJS + Prisma + PostgreSQL (Railway hosted)
+- **Backend**: NestJS + Prisma + PostgreSQL (Railway hosted at `localhost:3000/api/v1`)
+- **CMS**: Sanity Studio for content management (separate `/studio` directory)
 - **Auth**: JWT-based with 6-digit email verification codes
 - **State**: React Hook Form + Zod validation
-- **Build**: Turbopack enabled for faster builds
+- **Build**: Turbopack enabled (faster dev/build)
+- **Deployment**: Vercel-optimized with auto-deployment from main branch
+
+### Three-Tier Data Architecture
+
+MASH uses a **hybrid data strategy** with three sources:
+
+1. **NestJS Backend** (`localhost:3000/api/v1`) - Transactional data (products, orders, users)
+2. **Sanity CMS** (`studio/`, port 3333) - Marketing content (hero, features, FAQs, blog posts)
+3. **Mock Data** (`data/`) - Development fallback when backend unavailable
+
+**Critical**: Set `NEXT_PUBLIC_USE_MOCK_DATA=false` to use real backend
 
 ## Architecture Principles
 
@@ -42,12 +56,19 @@ Routes use Next.js route groups `(folder)` for logical organization WITHOUT affe
 
 ### Data Flow Strategy
 
-The app uses a **feature flag system** to toggle between mock and real API data:
+MASH uses a **dual-backend architecture** with smart routing:
 
-- Set `NEXT_PUBLIC_USE_MOCK_DATA=false` in `.env.local` to use Railway backend
-- Set `NEXT_PUBLIC_USE_MOCK_DATA=true` for local development with mock data
-- API client (`src/lib/api-client.ts`) handles auth tokens, refresh logic, and error responses
-- Backend API base URL: `http://localhost:3000/api/v1`
+**1. NestJS Backend** (`localhost:3000/api/v1`) - Transactional Data
+- Products, orders, users, addresses, payments
+- Handled by `src/lib/api-client.ts` (JWT auth, token refresh, error handling)
+- Toggle with `NEXT_PUBLIC_USE_MOCK_DATA=false` (real) or `true` (mock)
+
+**2. Sanity CMS** (`localhost:3333`, deployed to Sanity Cloud) - Content Data
+- Hero sections, features, FAQs, blog posts, team info
+- Accessed via `src/lib/cms/database.ts` (HeroAPI, FeaturesAPI, FAQAPI)
+- Always fetches from Sanity Cloud (no mock toggle)
+
+**Email-Dependent Routing**: Authentication endpoints (`/auth/register`, `/auth/verify-email-code`) automatically route to local backend when `NEXT_PUBLIC_EMAIL_SERVICE_ENV=local` (see `src/lib/api-client.ts` lines 17-47)
 
 ### Component Architecture
 
@@ -69,13 +90,346 @@ All UI components are built with **shadcn/ui** (Radix UI + Tailwind) - see `src/
 ### Running the App
 
 ```bash
-npm run dev          # Start dev server with Turbopack (faster builds)
+npm run dev          # Start Next.js dev server at localhost:3000 (Turbopack enabled)
 npm run build        # Production build with Turbopack
 npm start            # Run production build
 npm run lint         # ESLint check
 ```
 
 **Note**: Turbopack is enabled by default (`--turbopack` flag in package.json)
+
+### Sanity CMS Workflow - Complete Guide
+
+#### **Architecture Overview**
+
+Sanity Studio is a **separate project** in `/studio` directory with its own:
+- `package.json` - Independent dependencies
+- `sanity.config.ts` - Studio configuration
+- `src/schemaTypes/` - 15+ content type definitions
+- Dev server on port 3333 (separate from Next.js on port 3000)
+
+**Critical Workflow**: 
+1. **Content Changes**: Edit in Sanity Studio (localhost:3333) → Auto-publishes to Sanity Cloud
+2. **Frontend Fetches**: Next.js fetches from Sanity Cloud via `src/lib/cms/database.ts`
+3. **No Restart Needed**: Frontend sees changes on next page load (5-minute cache TTL)
+
+**Sanity Project Details**:
+- Project ID: `ydg9aldo9kaje3bknmhjq0pl` (in `studio/sanity.config.ts`)
+- Dataset: `production`
+- Schema: 15+ content types (hero, features, post, page, settings)
+- Visual Editing: Available via Presentation Tool in Studio
+
+#### **Starting Sanity Studio**
+
+```bash
+# From project root
+cd studio
+npm run dev          # Starts at localhost:3333
+
+# Studio opens in browser automatically
+# Login with Sanity account (Google OAuth)
+```
+
+#### **Complete Schema Structure (15+ Content Types)**
+
+**E-Commerce Documents:**
+1. **`product`** (25+ fields) - Main product catalog
+   - Basic Info: name, slug, description, image, images[], category, SKU
+   - Pricing: price, isOnPromo, promoType, promoPercentage, promoPrice, promoEndDate
+   - Inventory: quantity, lowStockThreshold, trackInventory, allowBackorders, stockHistory[]
+   - Variants: hasVariants, variants[] (references to productVariant)
+   - Smart Recommendations: suggestedProducts[], complementaryProducts[], relatedBundles[]
+   - Freshness: freshnessInfo{harvestWindow, shelfLife, storageInstructions, qualityIndicators}
+   - Preparation: preparationInfo{difficultyLevel, cookingTime, preparationTips[], recipeIdeas[]}
+   - Delivery: deliveryOptions{sameDayDeliveryEligible, deliveryZones[], perishable}, deliveryWeight{packageWeight, packageDimensions}
+   - SEO: searchKeywords[], nutritionalHighlights[], isFeatured
+
+2. **`category`** - Product categories (Fresh, Dried, Kits)
+3. **`productVariant`** - Size/weight options (Small, Medium, Large)
+4. **`productBundle`** - Package deals with savings
+5. **`review`** - Customer reviews with ratings
+6. **`order`** - Order management
+7. **`coupon`** - Discount codes
+8. **`promotion`** - Marketing campaigns
+
+**Content Documents:**
+9. **`hero`** - Homepage hero sections
+10. **`features`** - Feature highlights
+11. **`faq`** - FAQ items
+12. **`post`** - Blog posts
+13. **`page`** - CMS pages
+14. **`author`** - Blog authors
+15. **`teamMember`** - Team profiles
+
+**Singletons:**
+- **`settings`** - Global site config
+- **`featuredProducts`** - Homepage products
+- **`navigation`** - Menu structure
+
+#### **Product Schema Deep Dive (25+ Fields)**
+
+The product schema is **organized into 9 categories** for complete e-commerce functionality:
+
+**1. Basic Info (7 fields):**
+```typescript
+{
+  name: string,              // "Fresh Oyster Mushrooms"
+  slug: { current: string }, // "fresh-oyster-mushrooms"
+  description: blockContent, // Rich text editor
+  shortDescription: string,  // For product cards
+  image: image,             // Main product image
+  images: image[],          // Gallery (2-4 images)
+  category: reference,      // Link to category doc
+  SKU: string,              // "MUSH-OYS-001"
+}
+```
+
+**2. Pricing (7 fields):**
+```typescript
+{
+  price: number,            // ₱350
+  isOnPromo: boolean,       // true/false
+  promoType: string,        // "percentage" or "fixed"
+  promoPercentage: number,  // 22 (for 22% off)
+  promoPrice: number,       // ₱273 (auto-calculated)
+  promoEndDate: datetime,   // Expiry date
+  compareAtPrice: number,   // Original price for strikethrough
+}
+```
+
+**3. Inventory (6 fields):**
+```typescript
+{
+  quantity: number,           // 150 (units in stock)
+  lowStockThreshold: number,  // 20 (when to show "Low Stock")
+  trackInventory: boolean,    // Enable/disable stock tracking
+  allowBackorders: boolean,   // Allow orders when out of stock
+  stockStatus: string,        // "in-stock", "low-stock", "out-of-stock"
+  stockHistory: array,        // Track inventory changes over time
+}
+```
+
+**4. Variants (4 fields):**
+```typescript
+{
+  hasVariants: boolean,     // Does product have size options?
+  variants: reference[],    // Array of productVariant references
+  weight: number,          // Default weight (grams)
+  unit: string,            // "grams", "kg", "piece"
+}
+```
+
+**5. Smart Recommendations (5 fields):**
+```typescript
+{
+  suggestedProducts: reference[],      // "You May Also Like" (max 8)
+  relatedProducts: reference[],        // Similar products
+  complementaryProducts: reference[],  // "Frequently Bought Together" (max 4)
+  relatedBundles: reference[],         // Package deals
+  productTags: string[],               // ["bestseller", "organic", "fresh"]
+}
+```
+
+**6. Freshness & Quality (4 fields):**
+```typescript
+{
+  freshnessInfo: {
+    harvestWindow: string,        // "Harvested within 24 hours"
+    shelfLife: string,            // "5-7 days refrigerated"
+    storageInstructions: text,    // How to store
+    qualityIndicators: string[],  // ["firm texture", "no dark spots"]
+  }
+}
+```
+
+**7. Preparation (4 fields):**
+```typescript
+{
+  preparationInfo: {
+    difficultyLevel: string,      // "beginner", "intermediate", "advanced"
+    cookingTime: number,          // Minutes
+    preparationTips: string[],    // Tips array
+    recipeIdeas: array[],         // Recipe suggestions with links
+  }
+}
+```
+
+**8. Same-Day Delivery (Lalamove) (6 fields):**
+```typescript
+{
+  deliveryOptions: {
+    sameDayDeliveryEligible: boolean,  // Can be delivered same-day?
+    deliveryZones: string[],           // ["Metro Manila", "Quezon City"]
+    perishable: boolean,               // Requires cold transport?
+  },
+  deliveryWeight: {
+    packageWeight: number,             // 0.5 (kg)
+    packageDimensions: {
+      length: number,                  // cm
+      width: number,
+      height: number,
+    }
+  }
+}
+```
+
+**9. SEO & Discovery (3 fields):**
+```typescript
+{
+  searchKeywords: string[],         // ["oyster", "fresh", "mushroom"]
+  nutritionalHighlights: array[],   // Nutrition facts
+  isFeatured: boolean,              // Show on homepage?
+}
+```
+
+#### **Critical CMS Operations**
+
+**1. Adding Product Images (Phase 3):**
+```bash
+# In Sanity Studio (localhost:3333)
+1. Click "Products" → Select product
+2. Scroll to "Product Image" field
+3. Drag & drop image OR click "Upload"
+4. Adjust hotspot (blue circle) to center focus
+5. Add Alt Text: "Fresh oyster mushrooms in basket" (SEO)
+6. Scroll to "Additional Images" → Click "+ Add Item"
+7. Upload 2-4 gallery images
+8. Click "Publish" (green button, top right)
+
+# Image Requirements:
+- Format: JPG, PNG, or WebP
+- Size: 1200x1200px minimum (square ratio)
+- File size: < 2MB (Sanity auto-optimizes)
+- Quality: High resolution, sharp focus, bright lighting
+```
+
+**2. Linking Related Products (Phase 4):**
+```bash
+# In Sanity Studio
+1. Open product → Scroll to "Suggested Products"
+2. Click "+ Add Item" button
+3. Search for product: Type "shiitake" or "oyster"
+4. Click product to add → Repeat 3-5 times
+5. Scroll to "Complementary Products" → Add 2-3 items
+6. Scroll to "Related Bundles" → Add 1-2 bundles
+7. Click "Publish"
+
+# Smart Suggestions Strategy:
+- Fresh Mushrooms → Suggest other fresh + growing kits
+- Dried Mushrooms → Suggest other dried + fresh alternatives
+- Growing Kits → Suggest fresh mushrooms + other kits
+- Bundles → Suggest individual products + other bundles
+```
+
+**3. Frontend Integration Pattern:**
+```typescript
+// src/lib/cms/database.ts - Fetching from Sanity
+import { client } from '@/lib/cms/sanity';
+
+// Fetch products with suggested products
+const products = await client.fetch(`
+  *[_type == "product"] {
+    _id,
+    name,
+    slug,
+    price,
+    image,
+    suggestedProducts[]-> {
+      _id,
+      name,
+      price,
+      image
+    },
+    complementaryProducts[]-> {
+      _id,
+      name,
+      price,
+      image
+    }
+  }
+`);
+
+// Use in component
+export default async function ProductPage() {
+  const products = await getProducts();
+  return <ProductGrid products={products} />;
+}
+```
+
+#### **Visual Editing Workflow**
+
+Sanity's **Presentation Tool** allows real-time preview of CMS changes:
+
+1. In Studio, click **"Presentation"** tab (top bar)
+2. Opens split-screen: Studio on left, Frontend preview on right
+3. Edit content in Studio → See changes instantly in preview
+4. Click "Publish" when satisfied
+
+**Preview URL**: Configured to `http://localhost:3000` in `studio/sanity.config.ts`
+
+#### **Deployment & Publishing**
+
+**Content Publishing:**
+- All changes in Studio are **drafts** until you click "Publish"
+- Published content is **immediately available** via Sanity Cloud CDN
+- Frontend fetches from CDN with 5-minute cache (revalidate: 300)
+
+**Studio Deployment:**
+- Studio auto-deploys to Sanity Cloud via GitHub Actions
+- Access deployed Studio: `https://[project-id].sanity.studio`
+- Changes to schema require re-deployment (push to `main` branch)
+
+#### **Data Migration & Import**
+
+**Bulk Import Pattern** (used in Phase 2):
+```bash
+# See data/cms/ for import scripts
+node data/cms/import-categories.js   # Import 3 categories
+node data/cms/import-products.js     # Import 15 products
+node data/cms/import-variants.js     # Import 15 variants
+node data/cms/import-bundles.js      # Import 6 bundles
+node data/cms/import-reviews.js      # Import 45 reviews
+
+# Import uses Sanity Client API:
+import { createClient } from '@sanity/client';
+
+const client = createClient({
+  projectId: 'ydg9aldo9kaje3bknmhjq0pl',
+  dataset: 'production',
+  token: process.env.SANITY_AUTH_TOKEN, // Write access
+  useCdn: false,
+});
+
+await client.create({ _type: 'product', ...data });
+```
+
+#### **Common CMS Tasks**
+
+**Update Product Stock:**
+```typescript
+// In Studio → Products → Select product → Change "quantity" field
+// Or via API:
+await client.patch(productId)
+  .set({ quantity: 50 })
+  .commit();
+```
+
+**Add Promotional Pricing:**
+```typescript
+// In Studio:
+1. Toggle "Is On Promo?" = true
+2. Select "Promo Type" = "percentage"
+3. Enter "Promo Percentage" = 20
+4. Set "Promo End Date" = future date
+5. Publish → Frontend shows discounted price
+```
+
+**Feature Product on Homepage:**
+```typescript
+// In Studio → Products → Select product
+// Toggle "Is Featured?" = true
+// Product appears in homepage featured section
+```
 
 ### Authentication & Route Protection
 
@@ -142,9 +496,34 @@ Middleware (`src/middleware.ts`) handles route protection:
 ### Adding New Routes
 
 1. Create page in appropriate route group: `app/(group)/route/page.tsx`
-2. Update `src/middleware.ts` if route needs protection (add to `protectedRoutes` array)
+2. Update `middleware.ts` if route needs protection (see below)
 3. Add `loading.tsx` for loading states and `error.tsx` for error boundaries
 4. Use `"use client"` directive ONLY if page needs client-side interactivity
+
+**Middleware Route Protection** (`middleware.ts` in root, NOT `src/`):
+
+```typescript
+// middleware.ts - Located at ROOT level (not src/middleware.ts)
+const protectedRoutes = [
+  '/checkout',      // Requires auth
+  '/seller',        // Seller dashboard
+  '/profile/my-information',
+  '/profile/order-history',
+  '/wishlist',
+];
+
+const authRoutes = [
+  '/login', '/signup',  // Redirect to /catalog if authenticated
+  '/forgot-password', '/verify-otp',
+];
+
+const publicRoutes = [
+  '/', '/catalog', '/product',  // Always accessible
+  '/about', '/grower', '/contact', '/faq',
+];
+```
+
+**Add new protected route**: Add path to `protectedRoutes` array → unauthenticated users redirect to `/login?redirect=<path>`
 
 ### API Integration Pattern
 
@@ -211,23 +590,181 @@ function ProductList() {
 
 Before making significant changes, review these docs:
 
-- `docs/AUTH_IMPLEMENTATION_GUIDE.md` - **Complete authentication setup** (register → verify → login → forgot password)
-- `docs/COMPLETE_ARCHITECTURE.md` - Full file structure and status
-- `docs/BACKEND_API_CONNECTION_GUIDE.md` - Complete API integration guide (550+ lines)
-- `docs/API_QUICK_REFERENCE.md` - Quick API endpoints reference
-- `docs/COMPONENT_GUIDE.md` - Component usage patterns
-- `data/QUICK_REFERENCE.md` - JSON data structure examples
-- `docs/QUICK_REFERENCE.md` - Route groups and common tasks
+### **📋 Master Planning Documents** (Your Single Source of Truth)
+
+- **`.github/MASTER_IMPLEMENTATION_PLAN.md`** (2830+ lines) - **Living document** with complete phase-by-phase roadmap
+  - 8 phases with progress tracking (Phases 1-2.5 complete at 100%)
+  - Detailed task breakdowns with time estimates
+  - Session logs for tracking daily progress
+  - Phase 3 & 4 marked **URGENT** with 75-minute completion goal
+  - Use this as your daily checklist - update as you complete tasks
+
+- **`.github/SANITY_CMS_COMPLETE_WORKFLOW.md`** (15,000+ words) - **Complete Sanity CMS workflow guide**
+  - Step-by-step instructions for Phases 3-7
+  - Product schema deep dive (25+ fields across 9 categories)
+  - Smart product suggestions organized by category
+  - Complete e-commerce customer journey (discovery → checkout → delivery)
+  - Lalamove same-day delivery integration guide (~8 hours)
+  - Testing checklist with 40+ verification items
+  - **Use this for CMS operations** - all Sanity tasks reference this doc
+
+### **🏗️ Architecture & Backend**
+
+- `docs/COMPLETE_ARCHITECTURE.md` (540 lines) - Full file structure and implementation status
+- `docs/BACKEND_API_CONNECTION_GUIDE.md` (1024 lines) - Complete NestJS API integration with examples
+- `docs/API_QUICK_REFERENCE.md` - Quick endpoint reference (9 resources, Railway backend)
+- `docs/AUTH_IMPLEMENTATION_GUIDE.md` - JWT auth flow (register → 6-digit email code → verify → login)
+
+### **🎨 Design & Components**
+
+- `docs/COLOR_PALETTE.md` - Design system colors
+  - Primary Dark: `#1E392A` (buttons, headers)
+  - Primary Medium: `#6A994E` (secondary actions)
+  - Primary Light: `#A7C957` (badges, success states)
+- `docs/COMPONENT_GUIDE.md` - shadcn/ui component patterns and usage
+- `data/QUICK_REFERENCE.md` - JSON structure examples (products, orders, users)
+
+### **📦 Sanity CMS Specific**
+
+- `studio/README.md` - Sanity Studio setup and initial schema overview
+- `studio/src/schemaTypes/documents/product.ts` (623 lines) - **Complete product schema**
+  - 25+ fields organized into 9 categories
+  - Reference this when adding/modifying product fields
+  - Phase 2.5 enhancements already implemented (suggestedProducts, freshnessInfo, deliveryOptions)
+
+### **🔗 Quick Development Links**
+
+- **Sanity Studio**: `http://localhost:3333` (login required)
+- **Frontend Dev**: `http://localhost:3000` (Next.js with Turbopack)
+- **Backend API**: `http://localhost:3000/api/v1` (Railway production)
+- **Local Backend**: `http://localhost:3000/api/v1` (for email endpoints with NEXT_PUBLIC_EMAIL_SERVICE_ENV=local)
+
+### **📈 Current Project Status (November 21, 2025)**
+
+**✅ Completed (100%):**
+- Phase 1: CMS Structure (13 document types + 4 singletons)
+- Phase 2: Data Population (84 items: 3 categories, 15 products, 15 variants, 6 bundles, 45 reviews)
+- Phase 2.5: Enhanced Product Schema (25+ fields with smart recommendations, freshness tracking, Lalamove delivery fields)
+
+**🔴 URGENT - DO NOW (Next 75 minutes):**
+- Phase 3: Product Images (30 min) - Upload images for 15 products
+- Phase 4: Reference Linking (45 min) - Link suggested products, complementary products, related bundles
+
+**⏸️ NEXT (Upcoming Sessions):**
+- Phase 5: Frontend Integration (~4 hours) - Connect Sanity CMS to product pages, display recommendations
+- Phase 6: Lalamove Same-Day Delivery (~8 hours) - Integrate Lalamove API, add delivery options to checkout
+- Phase 7: Testing & QA (~2 hours) - End-to-end testing, mobile responsiveness
+- Phase 8: Production Deployment (~1 hour) - Deploy to Vercel, verify Sanity CDN
+
+**🎯 Immediate Action Items:**
+1. Open `.github/MASTER_IMPLEMENTATION_PLAN.md` → Read "WHAT YOU NEED TO DO NOW" section
+2. Open Sanity Studio (`cd studio && npm run dev`)
+3. Follow Phase 3 checklist (add images to 15 products)
+4. Follow Phase 4 checklist (link references for 15 products)
+5. Test frontend display (`npm run dev` → visit `/shop`)
+6. Update progress bars in MASTER_IMPLEMENTATION_PLAN.md
+7. Mark tasks complete in both plan documents
+
+## 🎯 AI Agent Workflow for Sanity CMS Tasks
+
+### **When Asked to Work with Products/CMS:**
+
+**1. First, Check Current Phase:**
+```bash
+# Open MASTER_IMPLEMENTATION_PLAN.md
+# Check progress bars - are we in Phase 3 (Images) or Phase 4 (References)?
+# Read "WHAT YOU NEED TO DO NOW" section
+```
+
+**2. Verify Sanity Studio is Running:**
+```bash
+cd studio
+npm run dev  # Should be at http://localhost:3333
+```
+
+**3. For Image Upload Tasks (Phase 3):**
+- Guide user through Sanity Studio UI (can't automate image selection)
+- Provide checklist format with 15 products
+- Include image requirements table
+- Reference free image sources (Unsplash, Pexels, Pixabay)
+- Explain hotspot adjustment for focal point
+- Emphasize alt text for SEO
+
+**4. For Reference Linking Tasks (Phase 4):**
+- Provide smart suggestions organized by product category:
+  - Fresh → other fresh + kits
+  - Dried → other dried + fresh alternatives
+  - Kits → fresh + other kits
+  - Bundles → individual products + other bundles
+- Use searchable product names ("shiitake", "oyster")
+- Explain "+ Add Item" button behavior in Sanity
+- Show example GROQ query for verification
+
+**5. For Schema Updates:**
+- **Never edit** `studio/src/schemaTypes/documents/product.ts` directly without reading full file first
+- Phase 2.5 schema has 25+ fields - verify field doesn't exist before adding
+- Check if field should be in existing category (Basic, Pricing, Inventory, etc.)
+- Update MASTER_IMPLEMENTATION_PLAN.md after schema changes
+
+**6. For Frontend Integration:**
+- Use GROQ queries via `src/lib/cms/database.ts`
+- Reference fields with `->` for relationships (e.g., `suggestedProducts[]->`)
+- Always include image URL builder for Sanity images
+- Cache strategy: revalidate every 300 seconds (5 minutes)
+
+**7. Progress Tracking:**
+- Update checklists in MASTER_IMPLEMENTATION_PLAN.md as tasks complete
+- Change `[ ]` to `[x]` for completed items
+- Update progress bars: `⬜⬜⬜⬜⬜` → `████████████████████`
+- Add session log entry with completion time
+
+### **Critical Files to Reference:**
+
+**For CMS Structure Questions:**
+→ `studio/src/schemaTypes/documents/product.ts` (623 lines, complete schema)
+
+**For Implementation Steps:**
+→ `.github/MASTER_IMPLEMENTATION_PLAN.md` (current phase tasks)
+→ `.github/SANITY_CMS_COMPLETE_WORKFLOW.md` (detailed workflow)
+
+**For Frontend Integration:**
+→ `src/lib/cms/database.ts` (HeroAPI, FeaturesAPI, FAQAPI examples)
+→ `src/lib/cms/sanity.ts` (client configuration)
+
+**For Product Suggestions:**
+→ `.github/SANITY_CMS_COMPLETE_WORKFLOW.md` (lines 150-250, smart suggestions by category)
+
+### **Common Questions & Answers:**
+
+**Q: "Why do products show 'No items' in Suggested Products?"**
+A: Normal! Reference fields need manual linking in Sanity Studio. This is Phase 4 work.
+
+**Q: "Should I add a new field to product schema?"**
+A: Check Phase 2.5 schema first - we have 25+ fields already (Basic, Pricing, Inventory, Variants, Smart Recommendations, Freshness, Preparation, Delivery, SEO). Field likely exists.
+
+**Q: "How do I test CMS changes?"**
+A: Edit in Studio (localhost:3333) → Publish → Frontend fetches automatically (5-min cache). No restart needed.
+
+**Q: "What's the Lalamove integration timeline?"**
+A: Phase 6 (~8 hours). Delivery fields already in product schema. See SANITY_CMS_COMPLETE_WORKFLOW.md section "Phase C: Same-Day Delivery".
+
+**Q: "How many products need images/references?"**
+A: 15 products total (6 fresh, 3 dried, 2 specialty, 4 bundles). See checklist in MASTER_IMPLEMENTATION_PLAN.md.
 
 ## Common Pitfalls to Avoid
 
 1. **Don't** use route group folder names in URLs - they're for organization only
 2. **Don't** add `"use client"` unless component needs browser APIs or React hooks
-3. **Don't** forget to update middleware when adding protected routes
-4. **Don't** use lowercase enums when sending to backend - always use UPPERCASE
-5. **Don't** assume authentication is set up - auth token is TODO placeholder in middleware
+3. **Don't** forget middleware is at **root level** (`middleware.ts`), NOT `src/middleware.ts`
+4. **Don't** update middleware without updating `protectedRoutes`, `authRoutes`, or `publicRoutes` arrays
+5. **Don't** use lowercase enums when sending to backend - always use UPPERCASE (e.g., `USER`, `BUYER`, `GROWER`)
 6. **Don't** create duplicate components - check `src/components/ui/` first (40+ shadcn components)
 7. **Don't** hardcode API URLs - use `process.env.NEXT_PUBLIC_API_URL` from env vars
+8. **Don't** edit Sanity content in code - use Studio UI at `localhost:3333` (changes sync automatically)
+9. **Don't** restart Next.js server for CMS changes - frontend fetches from Sanity Cloud (5-min cache)
+10. **Don't** add fields to product schema without checking Phase 2.5 enhancements first - 25+ fields already exist
+11. **Don't** provide generic product suggestions - use category-specific strategy from SANITY_CMS_COMPLETE_WORKFLOW.md
+12. **Don't** forget to update progress bars after completing tasks - user needs visible progress tracking
 
 ## Integration Points
 
@@ -239,32 +776,107 @@ Before making significant changes, review these docs:
 - Error format: `{ success: false, message: string, error?: string }`
 - Success format: `{ success: true, data: T, pagination?: {...} }`
 
+### Sanity CMS Integration
+
+**Architecture**: Separate Sanity Studio project in `/studio` directory with full schema definitions
+
+**Content Types** (15+ schemas in `studio/src/schemaTypes/`):
+- **E-Commerce**: `product` (25+ fields), `category`, `productVariant`, `productBundle`, `review`
+- **Orders**: `order`, `coupon`, `promotion`
+- **Homepage**: `hero`, `features`, `faq` (pulled via `HeroAPI`, `FeaturesAPI`, `FAQAPI`)
+- **Blog**: `post`, `author`, `category` (with SEO fields, slugs)
+- **Pages**: `page`, `settings` (for global site config)
+- **Team**: `teamMember` (about page team section)
+
+**Enhanced Product Schema (Phase 2.5)** - 25+ fields across 9 categories:
+1. **Basic Info**: name, slug, description, image, images, category, SKU
+2. **Pricing**: price, isOnPromo, promoType, promoPercentage, promoPrice, promoEndDate
+3. **Inventory**: quantity, lowStockThreshold, trackInventory, allowBackorders, stockHistory
+4. **Variants**: hasVariants, variants (size/weight options), weight, unit
+5. **Smart Recommendations**: suggestedProducts, relatedProducts, complementaryProducts, relatedBundles
+6. **Freshness & Quality**: harvestWindow, shelfLife, storageInstructions, qualityIndicators
+7. **Preparation**: difficultyLevel, cookingTime, preparationTips, recipeIdeas
+8. **Same-Day Delivery**: sameDayDeliveryEligible, deliveryZones, perishable, packageWeight, dimensions
+9. **SEO & Discovery**: productTags, searchKeywords, nutritionalHighlights, isFeatured
+
+**Critical Fields for E-Commerce**:
+- `suggestedProducts` - "You May Also Like" (max 8 products)
+- `complementaryProducts` - "Frequently Bought Together" (max 4)
+- `freshnessInfo.shelfLife` - Critical for fresh mushrooms (e.g., "5-7 days refrigerated")
+- `deliveryOptions.sameDayDeliveryEligible` - Enable Lalamove same-day delivery
+- `deliveryWeight.packageWeight` - Used to calculate Lalamove delivery fee (₱150-₱300)
+
+**Fetching Pattern** (`src/lib/cms/database.ts`):
+```typescript
+// Example: Fetch products with suggested products
+import { client } from '@/lib/cms/sanity';
+
+const products = await client.fetch(`
+  *[_type == "product"] {
+    _id,
+    name,
+    price,
+    image,
+    suggestedProducts[]-> {
+      _id,
+      name,
+      price,
+      image
+    }
+  }
+`);
+```
+
+**Visual Editing**: Sanity Presentation Tool configured to preview changes at `localhost:3000` before publishing
+
+**Deployment**: Studio auto-deploys to Sanity Cloud via GitHub Actions (on push to `main` branch)
+
 ### External Dependencies
 
-- **Clerk** (auth - not fully integrated, using placeholder middleware)
-- **shadcn/ui** + Radix UI primitives (all UI components)
-- **Framer Motion** (animations)
-- **React Hook Form** + Zod (form validation)
-- **Recharts** (seller dashboard charts)
-- **Embla Carousel** (product images)
-- **Lucide React** (icons)
+- **Sanity CMS** (`@sanity/client`, `next-sanity`) - Headless CMS for marketing content
+- **shadcn/ui** + Radix UI primitives (40+ components in `src/components/ui/`)
+- **Framer Motion** (page transitions, animations)
+- **React Hook Form** + Zod (form validation with schema)
+- **Recharts** (seller dashboard analytics)
+- **Embla Carousel** (`embla-carousel-react`) - product image galleries
+- **Lucide React** (icon system)
+- **date-fns** (date formatting)
+- **Axios** (HTTP client for backend API)
+- ~~**Clerk**~~ (NOT used - auth is custom JWT implementation)
 
 ### Environment Variables Required
 
+**Frontend** (`.env.local` in root):
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
-NEXT_PUBLIC_USE_MOCK_DATA=false
-NEXT_PUBLIC_ENABLE_API_LOGGING=true
+# NestJS Backend
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1       # Railway production backend
+NEXT_PUBLIC_LOCAL_API_URL=http://localhost:3000/api/v1  # Local backend for email endpoints
+NEXT_PUBLIC_USE_MOCK_DATA=false                         # false=real API, true=mock data
+NEXT_PUBLIC_EMAIL_SERVICE_ENV=local                     # Routes auth endpoints to local backend
+NEXT_PUBLIC_ENABLE_API_LOGGING=true                     # Console logs for API debugging
+
+# Sanity CMS (optional - uses defaults if not set)
+NEXT_PUBLIC_SANITY_PROJECT_ID=ydg9aldo9kaje3bknmhjq0pl
+NEXT_PUBLIC_SANITY_DATASET=production
+NEXT_PUBLIC_SANITY_API_VERSION=2024-01-01
+```
+
+**Sanity Studio** (`studio/.env.local`):
+```env
+SANITY_STUDIO_PROJECT_ID=ydg9aldo9kaje3bknmhjq0pl
+SANITY_STUDIO_DATASET=production
+SANITY_STUDIO_PREVIEW_URL=http://localhost:3000  # For Visual Editing
 ```
 
 ## Known Limitations & TODOs
 
-- TypeScript/ESLint errors ignored during builds (temporary)
-- Clerk integration is planned but not fully implemented (middleware uses placeholder auth)
-- Some seller pages use mock data: refunds, notifications, settings, handover centers, shipping channels
-- WebSocket integration planned for real-time device updates (see `src/lib/websocket/`)
-- CMS integration partial (see `src/lib/cms/` and `src/types/cms.ts`)
-- **Verify OTP page** currently uses 4-digit input - needs update to 6-digit for email verification codes
+- **TypeScript/ESLint errors ignored during builds** (`typescript.ignoreBuildErrors: true` in `next.config.ts`) - temporary for rapid development
+- **Verify OTP page** uses 4-digit input - needs update to 6-digit for backend compatibility
+- **Seller pages partial mock data**: refunds, notifications, settings, handover centers, shipping channels
+- **WebSocket not implemented**: Real-time device updates planned (see `src/lib/websocket/`)
+- **Sanity CMS partial integration**: Homepage (hero, features, FAQ) implemented, blog/team pages need component updates
+- **Email service**: Auth endpoints require local backend with email configured (Railway backend pending email setup)
+- ~~**Clerk**~~ - NOT used, removed from architecture (custom JWT auth instead)
 
 ---
 
