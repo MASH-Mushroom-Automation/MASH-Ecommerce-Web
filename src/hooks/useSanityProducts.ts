@@ -5,9 +5,9 @@
  * Supports filtering, sorting, and pagination.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { sanityClient } from '@/lib/sanity/client';
-import type { SanityProduct, ProductFilters, TransformedProduct, transformSanityProduct } from '@/types/sanity';
+import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
 
 interface UseSanityProductsReturn {
   products: TransformedProduct[];
@@ -35,7 +35,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -153,10 +153,104 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchProducts();
+
+    // Build query for real-time subscription
+    let query = `*[_type == "product"`;
+    if (filters?.isAvailable !== false) {
+      query += ` && isAvailable == true`;
+    }
+    if (filters?.category) {
+      query += ` && category->slug.current == "${filters.category}"`;
+    }
+    if (filters?.featured) {
+      query += ` && isFeatured == true`;
+    }
+    if (filters?.search) {
+      query += ` && name match "${filters.search}*"`;
+    }
+    query += `]`;
+    
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case 'price-asc':
+          query += ` | order(price asc)`;
+          break;
+        case 'price-desc':
+          query += ` | order(price desc)`;
+          break;
+        case 'name':
+          query += ` | order(name asc)`;
+          break;
+        case 'newest':
+          query += ` | order(_createdAt desc)`;
+          break;
+        case 'featured':
+          query += ` | order(isFeatured desc, _createdAt desc)`;
+          break;
+        default:
+          query += ` | order(isFeatured desc, _createdAt desc)`;
+      }
+    } else {
+      query += ` | order(isFeatured desc, _createdAt desc)`;
+    }
+
+    query += ` {
+      _id,
+      _createdAt,
+      _updatedAt,
+      name,
+      slug,
+      description,
+      price,
+      compareAtPrice,
+      "stock": quantity,
+      sku,
+      weight,
+      unit,
+      isAvailable,
+      isFeatured,
+      "isPromo": isOnPromo,
+      promoEndDate,
+      "mainImage": image.asset->url,
+      "images": images[].asset->url,
+      category->{ _id, name, slug, description },
+      subcategory->{ _id, name, slug }
+    }`;
+
+    // Set up real-time listener
+    const subscription = sanityClient
+      .listen(query, {}, { includeResult: true })
+      .subscribe(async (update) => {
+        if (update.type === 'mutation' && 'result' in update && update.result) {
+          const data = update.result as unknown as SanityProduct[];
+          
+          if (Array.isArray(data)) {
+            // Apply client-side price filtering
+            let filteredData = data;
+            if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
+              filteredData = data.filter((product) => {
+                if (filters.minPrice !== undefined && product.price < filters.minPrice) return false;
+                if (filters.maxPrice !== undefined && product.price > filters.maxPrice) return false;
+                return true;
+              });
+            }
+            
+            const { transformSanityProduct } = await import('@/types/sanity');
+            const transformedProducts = filteredData.map(transformSanityProduct);
+            setProducts(transformedProducts);
+            console.log('🔄 Products updated in real-time!', { count: transformedProducts.length });
+          }
+        }
+      });
+
+    return () => {
+      subscription.unsubscribe();
+      console.log('🧹 Products subscription cleaned up');
+    };
   }, [
     filters?.category,
     filters?.minPrice,
@@ -165,6 +259,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     filters?.isAvailable,
     filters?.search,
     filters?.sortBy,
+    fetchProducts,
   ]);
 
   return {
@@ -245,6 +340,49 @@ export function useSanityProduct(slug: string) {
 
     if (slug) {
       fetchProduct();
+
+      // Set up real-time listener for single product
+      const query = `*[_type == "product" && slug.current == "${slug}"][0] {
+        _id,
+        _createdAt,
+        _updatedAt,
+        name,
+        slug,
+        description,
+        price,
+        compareAtPrice,
+        "stock": quantity,
+        sku,
+        weight,
+        unit,
+        isAvailable,
+        isFeatured,
+        "isPromo": isOnPromo,
+        promoEndDate,
+        "mainImage": image.asset->url,
+        "images": images[].asset->url,
+        category->{ _id, name, slug, description },
+        subcategory->{ _id, name, slug }
+      }`;
+
+      const subscription = sanityClient
+        .listen(query, {}, { includeResult: true })
+        .subscribe(async (update) => {
+          if (update.type === 'mutation' && 'result' in update && update.result) {
+            const data = update.result as unknown as SanityProduct;
+            
+            if (data) {
+              const { transformSanityProduct } = await import('@/types/sanity');
+              setProduct(transformSanityProduct(data));
+              console.log('🔄 Product updated in real-time!', data.name);
+            }
+          }
+        });
+
+      return () => {
+        subscription.unsubscribe();
+        console.log('🧹 Product subscription cleaned up');
+      };
     }
   }, [slug]);
 
@@ -309,6 +447,46 @@ export function useSanityFeaturedProducts(limit: number = 8) {
     }
 
     fetchFeaturedProducts();
+
+    // Set up real-time listener for featured products
+    const query = `*[_type == "product" && isFeatured == true && isAvailable == true] | order(_createdAt desc) [0...${limit}] {
+      _id,
+      _createdAt,
+      name,
+      slug,
+      description,
+      price,
+      compareAtPrice,
+      "stock": quantity,
+      sku,
+      weight,
+      unit,
+      "isPromo": isOnPromo,
+      promoEndDate,
+      "mainImage": image.asset->url,
+      "images": images[].asset->url,
+      category->{ name, slug }
+    }`;
+
+    const subscription = sanityClient
+      .listen(query, {}, { includeResult: true })
+      .subscribe(async (update) => {
+        if (update.type === 'mutation' && 'result' in update && update.result) {
+          const data = update.result as unknown as SanityProduct[];
+          
+          if (Array.isArray(data)) {
+            const { transformSanityProduct } = await import('@/types/sanity');
+            const transformedProducts = data.map(transformSanityProduct);
+            setProducts(transformedProducts);
+            console.log('🔄 Featured products updated in real-time!', { count: transformedProducts.length });
+          }
+        }
+      });
+
+    return () => {
+      subscription.unsubscribe();
+      console.log('🧹 Featured products subscription cleaned up');
+    };
   }, [limit]);
 
   return { products, loading, error };
