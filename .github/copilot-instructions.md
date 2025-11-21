@@ -948,6 +948,14 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
   - `deliveryStatus` tracking
   - `trackingNumber` field
 
+**For Production Testing:**
+→ `.github/PRODUCTION_TEST_PLAN.md` (complete test plan with actual delivery details)
+  - Step-by-step webhook configuration
+  - Real delivery coordinates (Novaliches → Caloocan)
+  - Timeline breakdown (0-35 minutes)
+  - Emergency contacts and troubleshooting
+  - Post-delivery documentation template
+
 ### **Environment Variables**
 
 Already configured in `.env.local` and `studio/.env.local`:
@@ -1010,9 +1018,21 @@ Phase 7-8 Complete (Optional):
 
 ### **Next Immediate Action**
 
+**🚨 FOR PRODUCTION TESTING TODAY:**
+
+1. **Read Test Plan**: Open `.github/PRODUCTION_TEST_PLAN.md`
+2. **Fix Webhook URL**: Register ngrok URL in Lalamove dashboard (15 min)
+3. **Install Free Map**: Follow `.github/LEAFLET_MAP_SETUP.md` (15 min optional)
+4. **Test Sandbox**: Complete flow before production (15 min)
+5. **Switch to Production**: Update .env.local, test with real delivery
+6. **Monitor Delivery**: Track via ngrok dashboard + tracking page (30 min)
+7. **Document Results**: Record test outcomes and issues
+
+**FOR LONG-TERM IMPLEMENTATION:**
+
 1. **Read Complete Guide**: Open `.github/LALAMOVE_INTEGRATION_COMPLETE.md`
-2. **Set Up Postman**: Copy templates, test sandbox API
-3. **Test Your Delivery**: Use actual coordinates for quotation
+2. **Set Up Postman**: Copy templates with updated coordinates
+3. **Test Your Delivery**: Use actual coordinates (Novaliches → Caloocan)
 4. **Start Phase 1**: Build quotation system (3 hours)
 5. **Report Progress**: Update phase status after each completion
 
