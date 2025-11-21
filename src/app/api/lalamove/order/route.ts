@@ -26,9 +26,27 @@ export async function POST(request: NextRequest) {
       remarks,
     } = body;
     
+    // Validate required fields
     if (!quotationId || !senderStopId || !recipientStopId) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
+        { success: false, message: 'Missing required fields: quotationId, senderStopId, recipientStopId' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate customer info
+    if (!recipientName || !recipientPhone) {
+      return NextResponse.json(
+        { success: false, message: 'Missing customer info: name and phone required' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate phone format (E.164: +63XXXXXXXXXX)
+    const phoneRegex = /^\+63\d{10}$/;
+    if (!phoneRegex.test(recipientPhone)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid phone format. Use E.164 format: +639XXXXXXXXX' },
         { status: 400 }
       );
     }
@@ -86,14 +104,15 @@ export async function POST(request: NextRequest) {
       message: 'Delivery order placed successfully',
     });
 
-  } catch (error: any) {
-    console.error('[API] Place order error:', error);
+  } catch (error) {
+    const err = error as Error;
+    console.error('[API] Place order error:', err);
     
     return NextResponse.json(
       {
         success: false,
-        message: error.message || 'Failed to place delivery order',
-        error: process.env.NODE_ENV === 'development' ? error.toString() : undefined,
+        message: err.message || 'Failed to place delivery order',
+        error: process.env.NODE_ENV === 'development' ? err.toString() : undefined,
       },
       { status: 500 }
     );
@@ -124,13 +143,14 @@ export async function GET(request: NextRequest) {
       data: order,
     });
 
-  } catch (error: any) {
-    console.error('[API] Get order error:', error);
+  } catch (error) {
+    const err = error as Error;
+    console.error('[API] Get order error:', err);
     
     return NextResponse.json(
       {
         success: false,
-        message: error.message || 'Failed to get order details',
+        message: err.message || 'Failed to get order details',
       },
       { status: 500 }
     );
@@ -167,13 +187,14 @@ export async function DELETE(request: NextRequest) {
       message: 'Order cancelled successfully',
     });
 
-  } catch (error: any) {
-    console.error('[API] Cancel order error:', error);
+  } catch (error) {
+    const err = error as Error;
+    console.error('[API] Cancel order error:', err);
     
     return NextResponse.json(
       {
         success: false,
-        message: error.message || 'Failed to cancel order',
+        message: err.message || 'Failed to cancel order',
       },
       { status: 500 }
     );

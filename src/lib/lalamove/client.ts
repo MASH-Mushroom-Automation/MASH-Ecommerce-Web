@@ -181,15 +181,26 @@ export class LalamoveClient {
     const responseData = await response.json();
 
     if (!response.ok) {
+      // Log detailed error response for debugging
       console.error('[Lalamove] Error:', {
         status: response.status,
         statusText: response.statusText,
         error: responseData,
+        errors: responseData.errors || 'No error details',
       });
-      throw new Error(
-        responseData.message || 
-        `Lalamove API error: ${response.status} ${response.statusText}`
-      );
+      
+      // Extract validation errors if available
+      let errorMessage = `Lalamove API error: ${response.status} ${response.statusText}`;
+      if (responseData.errors && Array.isArray(responseData.errors)) {
+        const validationErrors = responseData.errors.map((err: { field?: string; message?: string }) => {
+          return `${err.field || 'unknown'}: ${err.message || JSON.stringify(err)}`;
+        }).join(', ');
+        errorMessage = `Validation failed: ${validationErrors}`;
+      } else if (responseData.message) {
+        errorMessage = responseData.message;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     console.log('[Lalamove] Success:', {

@@ -33,8 +33,8 @@ export default function LalamoveTestPage() {
     lat: '14.741238399110145',
     lng: '121.00588596965112',
     address: '936 Llano Road, Caloocan, 1400 Metro Manila',
-    name: '[TO BE FILLED]',
-    phone: '+63',
+    name: 'Test Customer', // Default test customer name
+    phone: '+639171234567', // Default test customer phone (E.164 format)
   };
 
   const testGetQuotation = async () => {
