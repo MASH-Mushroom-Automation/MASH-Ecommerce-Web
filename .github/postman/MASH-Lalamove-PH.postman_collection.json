@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "J5 Pharmacy - Lalamove PH Integration",
-    "description": "Complete Postman collection for testing Lalamove API integration with J5 Pharmacy e-commerce system. This collection includes all endpoints needed for delivery integration in the Philippines market.",
+    "name": "MASH E-Commerce - Lalamove PH Integration",
+    "description": "Complete Postman collection for testing Lalamove API integration with MASH E-Commerce (Mushroom delivery platform). This collection includes all endpoints needed for same-day delivery integration in the Philippines market.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "j5pharmacy"
+    "_exporter_id": "mash-ecommerce"
   },
   "auth": {
     "type": "noauth"
@@ -237,7 +237,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"data\": {\n    \"serviceType\": \"MOTORCYCLE\",\n    \"language\": \"en_PH\",\n    \"stops\": [\n      {\n        \"coordinates\": {\n          \"lat\": \"{{pharmacyLat}}\",\n          \"lng\": \"{{pharmacyLng}}\"\n        },\n        \"address\": \"{{pharmacyAddress}}\"\n      },\n      {\n        \"coordinates\": {\n          \"lat\": \"{{testCustomerLat}}\",\n          \"lng\": \"{{testCustomerLng}}\"\n        },\n        \"address\": \"{{testCustomerAddress}}\"\n      }\n    ],\n    \"item\": {\n      \"quantity\": \"1\",\n      \"weight\": \"LESS_THAN_3_KG\",\n      \"categories\": [\"FOOD_DELIVERY\"],\n      \"handlingInstructions\": [\"KEEP_UPRIGHT\"]\n    }\n  }\n}",
+          "raw": "{\n  \"data\": {\n    \"serviceType\": \"MOTORCYCLE\",\n    \"language\": \"en_PH\",\n    \"stops\": [\n      {\n        \"coordinates\": {\n          \"lat\": \"{{storeLat}}\",\n          \"lng\": \"{{storeLng}}\"\n        },\n        \"address\": \"{{storeAddress}}\"\n      },\n      {\n        \"coordinates\": {\n          \"lat\": \"{{testCustomerLat}}\",\n          \"lng\": \"{{testCustomerLng}}\"\n        },\n        \"address\": \"{{testCustomerAddress}}\"\n      }\n    ],\n    \"item\": {\n      \"quantity\": \"1\",\n      \"weight\": \"LESS_THAN_3_KG\",\n      \"categories\": [\"FOOD_DELIVERY\"],\n      \"handlingInstructions\": [\"KEEP_UPRIGHT\"]\n    }\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -249,7 +249,7 @@
           "host": ["{{host}}"],
           "path": ["v3", "quotations"]
         },
-        "description": "Request an immediate delivery quotation from J5 Pharmacy (San Jose Del Monte, Bulacan) to a test customer address (Quezon City). This will return a price estimate that's valid for 5 minutes."
+        "description": "Request an immediate delivery quotation from MASH E-Commerce store (1019 Quirino Highway, Novaliches, Quezon City) to customer address (936 Llano Road, Caloocan). This will return a price estimate that's valid for 5 minutes."
       }
     },
     {
@@ -307,7 +307,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"data\": {\n    \"scheduleAt\": \"{{scheduleAt}}\",\n    \"serviceType\": \"MOTORCYCLE\",\n    \"language\": \"en_PH\",\n    \"stops\": [\n      {\n        \"coordinates\": {\n          \"lat\": \"{{pharmacyLat}}\",\n          \"lng\": \"{{pharmacyLng}}\"\n        },\n        \"address\": \"{{pharmacyAddress}}\"\n      },\n      {\n        \"coordinates\": {\n          \"lat\": \"{{testCustomerLat}}\",\n          \"lng\": \"{{testCustomerLng}}\"\n        },\n        \"address\": \"{{testCustomerAddress}}\"\n      }\n    ],\n    \"item\": {\n      \"quantity\": \"1\",\n      \"weight\": \"LESS_THAN_3_KG\",\n      \"categories\": [\"FOOD_DELIVERY\"],\n      \"handlingInstructions\": [\"KEEP_UPRIGHT\"]\n    }\n  }\n}",
+          "raw": "{\n  \"data\": {\n    \"scheduleAt\": \"{{scheduleAt}}\",\n    \"serviceType\": \"MOTORCYCLE\",\n    \"language\": \"en_PH\",\n    \"stops\": [\n      {\n        \"coordinates\": {\n          \"lat\": \"{{storeLat}}\",\n          \"lng\": \"{{storeLng}}\"\n        },\n        \"address\": \"{{storeAddress}}\"\n      },\n      {\n        \"coordinates\": {\n          \"lat\": \"{{testCustomerLat}}\",\n          \"lng\": \"{{testCustomerLng}}\"\n        },\n        \"address\": \"{{testCustomerAddress}}\"\n      }\n    ],\n    \"item\": {\n      \"quantity\": \"1\",\n      \"weight\": \"LESS_THAN_3_KG\",\n      \"categories\": [\"FOOD_DELIVERY\"],\n      \"handlingInstructions\": [\"KEEP_UPRIGHT\"]\n    }\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -430,7 +430,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"data\": {\n    \"quotationId\": \"{{quotationId}}\",\n    \"sender\": {\n      \"stopId\": \"{{senderStopId}}\",\n      \"name\": \"{{pharmacyName}}\",\n      \"phone\": \"{{pharmacyPhone}}\"\n    },\n    \"recipients\": [\n      {\n        \"stopId\": \"{{recipientStopId}}\",\n        \"name\": \"{{testCustomerName}}\",\n        \"phone\": \"{{testCustomerPhone}}\",\n        \"remarks\": \"Order #TEST001\\nMedicines (3 items)\\nPlease handle with care\\nCall upon arrival\"\n      }\n    ],\n    \"isPODEnabled\": true,\n    \"partner\": \"J5Pharmacy\",\n    \"metadata\": {\n      \"orderId\": \"TEST001\",\n      \"orderDate\": \"2025-11-17\",\n      \"pharmacyBranch\": \"San Jose Del Monte\",\n      \"itemCount\": \"3\"\n    }\n  }\n}",
+          "raw": "{\n  \"data\": {\n    \"quotationId\": \"{{quotationId}}\",\n    \"sender\": {\n      \"stopId\": \"{{senderStopId}}\",\n      \"name\": \"{{storeName}}\",\n      \"phone\": \"{{storePhone}}\"\n    },\n    \"recipients\": [\n      {\n        \"stopId\": \"{{recipientStopId}}\",\n        \"name\": \"{{testCustomerName}}\",\n        \"phone\": \"{{testCustomerPhone}}\",\n        \"remarks\": \"Order #MASH-TEST001\\nFresh Mushrooms (2kg)\\nKeep refrigerated\\nFragile - Handle with care\\nCall upon arrival\"\n      }\n    ],\n    \"isPODEnabled\": true,\n    \"partner\": \"MASH-Ecommerce\",\n    \"metadata\": {\n      \"orderId\": \"MASH-TEST001\",\n      \"orderDate\": \"2025-11-22\",\n      \"storeBranch\": \"Novaliches Main\",\n      \"itemType\": \"Fresh Mushrooms\",\n      \"weight\": \"2kg\"\n    }\n  }\n}",
           "options": {
             "raw": {
               "language": "json"

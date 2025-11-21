@@ -1,11 +1,11 @@
-# J5 Pharmacy - Lalamove API Postman Testing
+# MASH E-Commerce - Lalamove API Postman Testing
 
-This folder contains ready-to-use Postman collection and environment files for testing Lalamove API integration with your J5 Pharmacy e-commerce system.
+This folder contains ready-to-use Postman collection and environment files for testing Lalamove API integration with your MASH E-Commerce mushroom delivery platform.
 
 ## 📁 Files
 
-- **`PH.postman_environment.json`** - Environment with your sandbox API credentials pre-configured
-- **`J5Pharmacy-Lalamove-PH.postman_collection.json`** - Complete collection with 10 API endpoints
+- **`PH.postman_environment.json`** - Environment with MASH sandbox API credentials pre-configured
+- **`MASH-Lalamove-PH.postman_collection.json`** - Complete collection with 10 API endpoints (renamed from J5Pharmacy)
 - **`README.md`** - This file with setup instructions and testing workflow
 - **`TESTING_CHECKLIST.md`** - ⭐ Comprehensive step-by-step testing checklist with checkboxes
 - **`QUICK_FIX.md`** - ⚡ Troubleshooting guide if your first test fails
@@ -93,10 +93,22 @@ Host: https://rest.sandbox.lalamove.com
 
 ### Step 3: Run Your First Test
 
-1. Open the collection "J5 Pharmacy - Lalamove PH Integration"
+1. Open the collection "MASH E-Commerce - Lalamove PH Integration"
 2. Click on "1. Get City Info (Philippines)"
 3. Click the blue "Send" button
 4. You should see a 200 OK response with available services in the Philippines
+
+**⚠️ IMPORTANT**: Before testing orders, fill in customer details:
+- Open environment variables
+- Update `testCustomerName` (currently "[TO BE FILLED]")
+- Update `testCustomerPhone` (currently "+63")
+
+**Your Test Delivery Route**:
+- **Pickup**: 1019 Quirino Highway, Novaliches (Melrhin Bayan, +63 966 169 2000)
+- **Dropoff**: 936 Llano Road, Caloocan (Customer name/phone required)
+- **Distance**: ~7.5 km
+- **Expected Cost**: ₱150-₱200
+- **Expected Time**: 25-35 minutes
 
 **Expected Response**:
 ```json
