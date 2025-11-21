@@ -47,14 +47,15 @@ function resolveHref(documentType?: string, slug?: string): string | undefined {
 // Main Sanity configuration
 export default defineConfig({
   name: 'default',
-  title: 'MASH E-Commerce',
+  title: 'MASH E-Commerce - PP_Namias',
 
   projectId,
   dataset,
 
-  // Deployment configuration for auto-deployment
+  // Deployment configuration for PP_Namias project
+  // ✅ Updated to gerattrr (Nov 22, 2025)
   deployment: {
-    appId: 'ydg9aldo9kaje3bknmhjq0pl',
+    appId: 'gerattrr',
   },
 
   plugins: [

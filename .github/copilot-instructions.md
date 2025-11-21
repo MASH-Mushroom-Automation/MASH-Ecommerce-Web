@@ -1,7 +1,8 @@
 # MASH E-Commerce Platform - AI Coding Guide
 
 **Last Updated:** November 21, 2025  
-**Project Status:** Phase 2.5 - Enhanced Foundation with CMS Integration
+**Project Status:** Phase 2.5 - Enhanced Foundation with CMS Integration  
+**⚠️ MIGRATION IN PROGRESS**: Sanity CMS migrating from MASH (2grm6gj7) → PP_Namias (gerattrr)
 
 ## 📋 Table of Contents
 
@@ -100,6 +101,21 @@ npm run lint         # ESLint check
 
 ### Sanity CMS Workflow - Complete Guide
 
+#### **⚠️ MIGRATION NOTICE - READ FIRST**
+
+**Current Status**: Migrating from MASH project (quota exceeded) to PP_Namias project (fresh free tier)
+
+| Detail | Old Project (MASH) | New Project (PP_Namias) |
+|--------|-------------------|-------------------------|
+| Project ID | `2grm6gj7` | `gerattrr` ✅ |
+| Status | ❌ Quota Exceeded | ✅ Active |
+| Plan | Free (trial expired) | Free (permanent) |
+| API Quota | 100k/month (exceeded) | 250k/month |
+| Real-Time | Disabled | **STAYS DISABLED** (FREE TIER) |
+
+**Migration Guide**: See `.github/SANITY_MIGRATION_PLAN.md` for complete step-by-step instructions  
+**Quick Start**: See `SANITY_MIGRATION_QUICKSTART.md` for 40-minute fast track
+
 #### **Architecture Overview**
 
 Sanity Studio is a **separate project** in `/studio` directory with its own:
@@ -112,12 +128,15 @@ Sanity Studio is a **separate project** in `/studio` directory with its own:
 1. **Content Changes**: Edit in Sanity Studio (localhost:3333) → Auto-publishes to Sanity Cloud
 2. **Frontend Fetches**: Next.js fetches from Sanity Cloud via `src/lib/cms/database.ts`
 3. **No Restart Needed**: Frontend sees changes on next page load (5-minute cache TTL)
+4. **⚠️ Real-Time DISABLED**: Manual refresh required (FREE TIER optimization)
 
-**Sanity Project Details**:
-- Project ID: `ydg9aldo9kaje3bknmhjq0pl` (in `studio/sanity.config.ts`)
+**Sanity Project Details** (Post-Migration):
+- **NEW Project ID**: `gerattrr` (PP_Namias) - Update all references!
+- **OLD Project ID**: `2grm6gj7` (MASH) - Do NOT use (quota exceeded)
 - Dataset: `production`
 - Schema: 15+ content types (hero, features, post, page, settings)
 - Visual Editing: Available via Presentation Tool in Studio
+- Team Seats: 20 users (invite collaborators with Admin/Editor/Viewer roles)
 
 #### **Starting Sanity Studio**
 
