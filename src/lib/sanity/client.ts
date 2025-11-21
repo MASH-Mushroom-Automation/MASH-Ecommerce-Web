@@ -13,7 +13,8 @@ import type { SanityImageSource } from "@sanity/image-url/lib/types/types";
 export const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "2grm6gj7";
 export const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
 export const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2024-11-19";
-export const useCdn = process.env.NODE_ENV === "production";
+// ALWAYS use CDN to reduce API quota usage (with longer cache)
+export const useCdn = true;
 
 // Optional: Sanity API token for authenticated requests (read/write)
 // Use read token for public content, write token for admin operations
@@ -29,9 +30,15 @@ export const sanityClient = createClient({
   projectId,
   dataset,
   apiVersion,
-  useCdn, // Use CDN in production for faster response times
+  useCdn, // Use CDN to reduce API quota usage
   token, // Optional: for authenticated requests
   perspective: "published", // Only fetch published content
+  // Aggressive caching to avoid quota limits
+  stega: {
+    enabled: false, // Disable Stega encoding to reduce overhead
+  },
+  // Request deduplication (prevent duplicate requests)
+  resultSourceMap: false,
 });
 
 /**

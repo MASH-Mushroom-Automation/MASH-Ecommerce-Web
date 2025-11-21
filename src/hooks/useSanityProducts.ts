@@ -3,11 +3,18 @@
  * 
  * Custom React hook for fetching products from Sanity CMS.
  * Supports filtering, sorting, and pagination.
+ * 
+ * ⚠️ QUOTA WARNING: Real-time subscriptions are DISABLED to avoid API quota limits.
+ * Use refetch() to manually refresh data.
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import { sanityClient } from '@/lib/sanity/client';
 import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
+
+// Memory cache to prevent duplicate API calls (1 minute TTL)
+const productCache = new Map<string, { data: TransformedProduct[]; timestamp: number }>();
+const CACHE_TTL = 60000; // 1 minute
 
 interface UseSanityProductsReturn {
   products: TransformedProduct[];
@@ -156,8 +163,26 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
   }, [filters]);
 
   useEffect(() => {
-    fetchProducts();
+    // Check cache first
+    const cacheKey = JSON.stringify(filters || {});
+    const cached = productCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('📦 Using cached products (avoiding API call)');
+      setProducts(cached.data);
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch if cache miss or expired
+    fetchProducts().then(() => {
+      // Store in cache after successful fetch
+      productCache.set(cacheKey, { data: products, timestamp: Date.now() });
+    });
 
+    // ⚠️ REAL-TIME SUBSCRIPTIONS DISABLED TO SAVE API QUOTA
+    // Uncomment only if you upgrade to Growth/Team plan
+    /*
     // Build query for real-time subscription
     let query = `*[_type == "product"`;
     if (filters?.isAvailable !== false) {
@@ -221,7 +246,9 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       subcategory->{ _id, name, slug }
     }`;
 
+    // ⚠️ REAL-TIME LISTENER DISABLED - Uncomment only if upgraded to Growth/Team plan
     // Set up real-time listener
+    /*
     const subscription = sanityClient
       .listen(query, {}, { includeResult: true })
       .subscribe(async (update) => {
@@ -251,6 +278,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       subscription.unsubscribe();
       console.log('🧹 Products subscription cleaned up');
     };
+    */
   }, [
     filters?.category,
     filters?.minPrice,
