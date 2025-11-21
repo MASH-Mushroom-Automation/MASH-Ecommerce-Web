@@ -178,7 +178,27 @@ export class LalamoveClient {
       body: bodyString || undefined,
     });
 
-    const responseData = await response.json();
+    // Handle empty responses (204 No Content, common for DELETE requests)
+    const contentType = response.headers.get('content-type');
+    let responseData: { data?: T; errors?: Array<{ field?: string; message?: string }>; message?: string } = {};
+    
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      if (text && text.length > 0) {
+        responseData = JSON.parse(text);
+      }
+    } else if (response.status !== 204) {
+      // Try to parse as JSON if not 204 No Content
+      try {
+        const text = await response.text();
+        if (text && text.length > 0) {
+          responseData = JSON.parse(text);
+        }
+      } catch {
+        // Not JSON, that's ok for DELETE requests
+        console.log('[Lalamove] Non-JSON response (expected for DELETE)');
+      }
+    }
 
     if (!response.ok) {
       // Log detailed error response for debugging
@@ -205,10 +225,16 @@ export class LalamoveClient {
 
     console.log('[Lalamove] Success:', {
       status: response.status,
-      data: responseData.data,
+      method,
+      hasData: !!responseData.data,
     });
 
-    return responseData;
+    // For DELETE requests (204 No Content), return empty data object
+    if (response.status === 204 || !responseData.data) {
+      return { data: {} as T };
+    }
+
+    return responseData as { data: T };
   }
 
   /**
