@@ -12,10 +12,11 @@
 4. [Project-Specific Conventions](#project-specific-conventions)
 5. [Essential Documentation](#essential-documentation)
 6. [🎯 AI Agent Workflow for Sanity CMS Tasks](#-ai-agent-workflow-for-sanity-cms-tasks)
-7. [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
-8. [Integration Points](#integration-points)
-9. [Known Limitations & TODOs](#known-limitations--todos)
-10. [🔐 Complete Authentication System](#-complete-authentication-system-documentation)
+7. [🚚 Lalamove Same-Day Delivery Integration](#-lalamove-same-day-delivery-integration)
+8. [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
+9. [Integration Points](#integration-points)
+10. [Known Limitations & TODOs](#known-limitations--todos)
+11. [🔐 Complete Authentication System](#-complete-authentication-system-documentation)
 
 ---
 
@@ -769,6 +770,279 @@ A: Phase 6 (~8 hours). Delivery fields already in product schema. See SANITY_CMS
 
 **Q: "How many products need images/references?"**
 A: 15 products total (6 fresh, 3 dried, 2 specialty, 4 bundles). See checklist in MASTER_IMPLEMENTATION_PLAN.md.
+
+---
+
+## 🚚 Lalamove Same-Day Delivery Integration
+
+### **Complete Documentation**
+
+**Master Guide**: `.github/LALAMOVE_INTEGRATION_COMPLETE.md` (100+ pages, 8 phases, 16-20 hours)
+
+This is your **single source of truth** for all Lalamove integration work. It includes:
+- Complete API documentation (10 endpoints)
+- Phase-by-phase implementation guide
+- Postman collection templates
+- Production testing checklist
+- Real delivery test plan with your actual addresses
+- Webhook setup and monitoring
+- Chat integration research
+- Troubleshooting guide
+
+### **Current Status** (November 22, 2025)
+
+**Infrastructure Ready**:
+- ✅ Lalamove API credentials in `.env.local` (sandbox + production)
+- ✅ Product schema has delivery fields (`sameDayDeliveryEligible`, `deliveryWeight`, `packageDimensions`)
+- ✅ Order schema supports Lalamove tracking
+- ✅ Test delivery details documented (Novaliches → Caloocan)
+
+**Implementation Needed** (0% complete):
+- ❌ Backend API routes (`/api/lalamove/*`)
+- ❌ Lalamove service class (`src/lib/lalamove/client.ts`)
+- ❌ Frontend delivery selection UI
+- ❌ Real-time tracking page
+- ❌ Webhook handler
+- ❌ Admin delivery management
+
+### **8 Implementation Phases**
+
+| Phase | Name | Duration | Priority | Status |
+|-------|------|----------|----------|--------|
+| 1 | Quotation System | 3h | 🔴 Critical | 🔴 Not Started |
+| 2 | Order Placement | 3h | 🔴 Critical | 🔴 Not Started |
+| 3 | Order Tracking | 2h | 🟠 High | 🔴 Not Started |
+| 4 | Driver Details | 1.5h | 🟠 High | 🔴 Not Started |
+| 5 | Order Management | 2h | 🟡 Medium | 🔴 Not Started |
+| 6 | Webhooks | 3h | 🔴 Critical | 🔴 Not Started |
+| 7 | Priority Delivery | 1.5h | 🟢 Low | 🔴 Not Started |
+| 8 | Chat Integration | 4h | 🟢 Low | 🔴 Not Started |
+
+### **Your Test Delivery Details**
+
+You have a **real delivery planned** with actual addresses:
+
+**PICKUP** (Your Store):
+```
+Address: 1019 Quirino Highway, Brgy Sta. Monica, Novaliches, Quezon City
+Contact: Melrhin Bayan (+63 966 169 2000)
+Coordinates: 14.724177785776938, 121.03866187637956
+Landmark: In front of BDO
+```
+
+**DROPOFF** (Customer):
+```
+Address: 936 Llano Road, Caloocan, 1400 Metro Manila
+Coordinates: 14.741238399110145, 121.00588596965112
+Distance: ~7.5 km
+Estimated Cost: ₱150-₱200
+```
+
+### **Postman Collection Ready**
+
+Complete collection with 10 requests:
+1. Get Quotation - Get delivery price
+2. Place Order - Book driver
+3. Get Order Details - Track status
+4. Get Driver Details - Driver info
+5. Update Order - Modify delivery
+6. Cancel Order - Cancel booking
+7. Get Cities - Available areas
+8. Get Vehicle Types - Motorcycle/Car/Van
+9. Setup Webhook - Real-time updates
+10. Set Priority - Express delivery
+
+**Pre-request scripts** included for HMAC signature generation.
+
+### **AI Agent Workflow for Lalamove Tasks**
+
+#### **When Asked to Work with Lalamove:**
+
+**1. First, Check Current Phase:**
+```bash
+# Open LALAMOVE_INTEGRATION_COMPLETE.md
+# Check which phase we're in (1-8)
+# Read phase-specific tasks and requirements
+```
+
+**2. Understand the Customer Flow:**
+```
+Browse Products → Add to Cart → Checkout → Select Same-Day Delivery
+   ↓
+Enter Address → Get Quotation (₱150-₱300) → Confirm Order → Payment
+   ↓
+Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered!
+```
+
+**3. For Quotation System (Phase 1):**
+- Create Lalamove client class with HMAC signature
+- Build `/api/lalamove/quotation` endpoint
+- Add quotation UI to checkout page
+- Test with actual coordinates from test delivery
+- Implement 5-minute cache to save API calls
+
+**4. For Order Placement (Phase 2):**
+- Use quotation ID from Phase 1
+- Create order with full pickup/dropoff details
+- Store Lalamove order ID in database
+- Update order status to "ASSIGNING_DRIVER"
+- Send confirmation email with tracking link
+
+**5. For Tracking (Phase 3):**
+- Build tracking page with Google Maps
+- Show driver location (updates every 30s)
+- Display status timeline (ordered → assigned → pickup → delivery)
+- Add manual refresh button
+
+**6. For Webhooks (Phase 6):**
+- Create `/api/webhooks/lalamove` endpoint
+- Verify webhook signature for security
+- Handle 8 event types (driver assigned, status changed, etc.)
+- Update database on each webhook
+- Send push notifications to customer
+
+**7. For Testing:**
+- Use Postman collection with sandbox API first
+- Switch to production when ready for live test
+- Follow production testing checklist (9 steps)
+- Monitor webhooks in real-time
+- Log all API calls for debugging
+
+**8. For Production Deployment:**
+- Update environment variables to production
+- Configure webhook URL in Lalamove dashboard
+- Set up ngrok for local webhook testing
+- Test with small order first
+- Monitor costs and delivery success rate
+
+### **Critical Files to Reference:**
+
+**For Complete Guide:**
+→ `.github/LALAMOVE_INTEGRATION_COMPLETE.md` (master document)
+
+**For Phase-Specific Tasks:**
+→ `.github/LALAMOVE_INTEGRATION_COMPLETE.md` sections:
+  - Phase 1-8 implementation details
+  - API code examples
+  - Frontend component templates
+  - Webhook handler code
+
+**For API Testing:**
+→ `.github/LALAMOVE_INTEGRATION_COMPLETE.md` "Postman Collection Guide"
+  - Pre-request scripts
+  - Request templates
+  - Test scripts
+  - Production switching guide
+
+**For Product Schema:**
+→ `studio/src/schemaTypes/documents/product.ts` (lines 465-540)
+  - `sameDayDeliveryEligible` (boolean)
+  - `deliveryZones` (array)
+  - `packageWeight` (kg)
+  - `packageDimensions` (L x W x H)
+  - `perishable` (boolean)
+
+**For Order Schema:**
+→ `studio/src/schemaTypes/documents/order.ts` (line 343)
+  - `shippingMethod: "lalamove"` option
+  - `deliveryStatus` tracking
+  - `trackingNumber` field
+
+### **Environment Variables**
+
+Already configured in `.env.local` and `studio/.env.local`:
+
+```env
+# Lalamove API (Same-Day Delivery)
+LALAMOVE_API_KEY="pk_test_8611e4fa8a2f51f6664d26aded0e5d2b"
+LALAMOVE_API_SECRET="sk_test_KeCmtaJPeTEUwiP1N+upaT/2IH1Ckqqmd23db8+hVJnaysSpQVkRdbzIm2LlDztq"
+LALAMOVE_HOST="https://rest.sandbox.lalamove.com"  # Sandbox for testing
+LALAMOVE_MARKET="PH"
+```
+
+**Production Keys** (when ready):
+- Get from: https://www.lalamove.com/ph/business
+- Update `LALAMOVE_HOST` to `https://rest.lalamove.com`
+- Replace test keys with production keys
+
+### **Quick Start Commands**
+
+```bash
+# Test Lalamove API (Postman)
+1. Import collection from LALAMOVE_INTEGRATION_COMPLETE.md
+2. Set collection variables (apiKey, apiSecret, baseUrl)
+3. Run "1. Get Quotation" with test coordinates
+4. Verify response (₱150-₱200 range)
+5. Run "2. Place Order" (sandbox only)
+
+# Start Implementation
+1. Create src/lib/lalamove/client.ts
+2. Implement HMAC signature generation
+3. Build getQuotation() method
+4. Test with actual delivery coordinates
+5. Move to Phase 2 (Order Placement)
+```
+
+### **Success Criteria**
+
+Phase 1-2 Complete (Critical):
+- [ ] Can get quotation with real coordinates
+- [ ] Price displayed on checkout page
+- [ ] Can place order and get order ID
+- [ ] Order saved to database with tracking link
+
+Phase 3-4 Complete (High Priority):
+- [ ] Tracking page shows real-time driver location
+- [ ] Status timeline updates correctly
+- [ ] Driver details visible (name, phone, vehicle)
+- [ ] Customer can call driver
+
+Phase 5-6 Complete (Medium Priority):
+- [ ] Admin can cancel/modify orders
+- [ ] Webhooks received and processed
+- [ ] Database updates on each webhook
+- [ ] Push notifications sent to customer
+
+Phase 7-8 Complete (Optional):
+- [ ] Priority delivery option available
+- [ ] Chat interface functional
+- [ ] Customer-driver messaging works
+
+### **Next Immediate Action**
+
+1. **Read Complete Guide**: Open `.github/LALAMOVE_INTEGRATION_COMPLETE.md`
+2. **Set Up Postman**: Copy templates, test sandbox API
+3. **Test Your Delivery**: Use actual coordinates for quotation
+4. **Start Phase 1**: Build quotation system (3 hours)
+5. **Report Progress**: Update phase status after each completion
+
+### **Common Questions & Answers:**
+
+**Q: "Do I need to create a new Lalamove account?"**
+A: No! API credentials already in `.env.local`. Test with sandbox, upgrade to production when ready.
+
+**Q: "Can I test without making a real delivery?"**
+A: Yes! Use sandbox API (`https://rest.sandbox.lalamove.com`) for testing. No charges, simulated drivers.
+
+**Q: "How do I get production API keys?"**
+A: Log in to https://www.lalamove.com/ph/business → Settings → API → Generate production credentials.
+
+**Q: "What if webhook doesn't work locally?"**
+A: Use ngrok to expose localhost: `ngrok http 3000` → Copy URL → Set as webhook URL in Lalamove dashboard.
+
+**Q: "Can customers track deliveries in real-time?"**
+A: Yes! Phase 3 builds tracking page with Google Maps showing driver location (updates every 30s).
+
+**Q: "How much does Lalamove cost?"**
+A: ₱150-₱300 per delivery depending on distance, vehicle type, and time. Your test delivery: ~₱180.
+
+**Q: "Can I cancel orders?"**
+A: Yes (Phase 5). Cancel within 5 minutes for full refund. After 5 min, cancellation fee applies.
+
+**Q: "Does Lalamove support chat?"**
+A: Not officially. Phase 8 explores alternatives (Twilio SMS relay, in-app messaging with push to driver).
+
+---
 
 ## Common Pitfalls to Avoid
 
