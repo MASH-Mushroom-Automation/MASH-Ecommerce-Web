@@ -1,0 +1,68 @@
+[
+  {
+    "_type": "category",
+    "categoryName": "Fresh Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-mushrooms"
+    },
+    "description": "Farm-fresh mushrooms harvested daily for maximum flavor and nutrition. Our fresh mushrooms are grown in controlled environments using sustainable practices, ensuring premium quality and consistent supply year-round.",
+    "featuredCategory": true,
+    "isActive": true,
+    "sortOrder": 1,
+    "seoTitle": "Fresh Mushrooms Philippines - Farm Direct | MASH",
+    "seoDescription": "Buy fresh oyster, shiitake, and lion's mane mushrooms delivered same-day in Metro Manila. Locally grown, pesticide-free, and harvested to order.",
+    "seoKeywords": [
+      "fresh mushrooms philippines",
+      "oyster mushroom",
+      "shiitake mushroom",
+      "fresh fungi",
+      "farm fresh mushrooms",
+      "metro manila mushrooms"
+    ]
+  },
+  {
+    "_type": "category",
+    "categoryName": "Dried Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "dried-mushrooms"
+    },
+    "description": "Premium dried mushrooms with intensified flavors and extended shelf life. Perfect for soups, broths, and rehydrating for various recipes. Our drying process preserves nutritional value while concentrating the umami taste.",
+    "featuredCategory": true,
+    "isActive": true,
+    "sortOrder": 2,
+    "seoTitle": "Dried Mushrooms Philippines - Premium Quality | MASH",
+    "seoDescription": "Shop dried shiitake, oyster, and mixed mushrooms. Long shelf life, intense flavor, perfect for cooking. Free delivery in Metro Manila.",
+    "seoKeywords": [
+      "dried mushrooms",
+      "shiitake dried",
+      "dried oyster mushroom",
+      "dehydrated mushrooms",
+      "mushroom powder",
+      "cooking mushrooms"
+    ]
+  },
+  {
+    "_type": "category",
+    "categoryName": "Growing Kits & Accessories",
+    "slug": {
+      "_type": "slug",
+      "current": "growing-kits"
+    },
+    "description": "Everything you need to grow your own mushrooms at home. Our beginner-friendly kits include substrate, spawn, and detailed instructions. Experience the joy of harvesting fresh mushrooms from your own kitchen!",
+    "featuredCategory": false,
+    "isActive": true,
+    "sortOrder": 3,
+    "seoTitle": "Mushroom Growing Kits Philippines - Grow Your Own | MASH",
+    "seoDescription": "Easy mushroom growing kits for beginners. Grow oyster, shiitake, or lion's mane at home. Complete kit with instructions. Fun and educational!",
+    "seoKeywords": [
+      "mushroom growing kit",
+      "grow mushrooms at home",
+      "diy mushroom kit",
+      "mushroom cultivation",
+      "home farming",
+      "urban gardening"
+    ]
+  }
+]
