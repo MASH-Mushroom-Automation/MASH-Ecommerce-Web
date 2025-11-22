@@ -12,42 +12,63 @@
     "price": 350,
     "compareAtPrice": 450,
     "quantity": 150,
-    "lowStockThreshold": 20,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
     "weight": 250,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh Oyster Mushrooms 250g | MASH Philippines",
-    "seoDescription": "Buy fresh oyster mushrooms harvested daily. Perfect texture, mild flavor, ideal for Asian cooking. Same-day delivery in Metro Manila.",
-    "searchKeywords": ["oyster mushroom", "pleurotus", "fresh mushroom", "asian mushroom", "stir-fry mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "BGC Taguig", "Mandaluyong", "Pasig"],
-    "perishable": true,
-    "packageWeight": 0.3,
-    "packageDimensions": {
-      "length": 20,
-      "width": 15,
-      "height": 8
+    "unit": "g",
+    "searchKeywords": [
+      "oyster mushroom",
+      "pleurotus",
+      "fresh mushroom",
+      "asian mushroom",
+      "stir-fry mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.3,
+      "packageDimensions": {
+        "length": 20,
+        "width": 15,
+        "height": 8
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 24 hours before delivery",
-      "shelfLife": "5-7 days refrigerated (2-4°C)",
-      "storageInstructions": "Store in paper bag in refrigerator. Do not wash until ready to use.",
-      "qualityIndicators": ["Firm texture", "Light gray color", "No dark spots", "Fresh mushroom aroma"]
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag in refrigerator. Do not wash until ready to use. Keep dry to prevent slimy texture.",
+      "qualityIndicators": "Firm texture, light gray color, no dark spots, fresh mushroom aroma"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 10,
-      "preparationTips": ["Gently wipe with damp cloth", "Tear into bite-sized pieces", "Cook on medium-high heat", "Season at the end"],
+      "cookingTime": "10-12 minutes",
+      "preparationTips": [
+        "Gently wipe with damp cloth",
+        "Tear into bite-sized pieces",
+        "Cook on medium-high heat",
+        "Season at the end"
+      ],
       "recipeIdeas": [
-        {"name": "Garlic Butter Oyster Mushrooms", "time": "15 min"},
-        {"name": "Oyster Mushroom Stir-Fry", "time": "20 min"},
-        {"name": "Creamy Mushroom Pasta", "time": "25 min"}
+        "Sautéed with garlic butter",
+        "Asian-style stir-fry with vegetables",
+        "Creamy mushroom pasta"
       ]
     },
-    "nutritionalHighlights": ["High in Vitamin D", "Rich in Antioxidants", "Low Calorie", "High Protein", "Heart Healthy"]
+    "nutritionalHighlights": [
+      "vitamin-d",
+      "antioxidants",
+      "low-calorie",
+      "high-protein",
+      "heart-healthy"
+    ]
   },
   {
     "_type": "product",
@@ -62,42 +83,67 @@
     "price": 450,
     "compareAtPrice": 550,
     "quantity": 100,
-    "lowStockThreshold": 15,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 15,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 300,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh King Oyster Mushrooms 300g | MASH Philippines",
-    "seoDescription": "Premium king oyster mushrooms with meaty texture. Perfect for grilling and gourmet cooking. Farm-fresh quality, same-day delivery.",
-    "searchKeywords": ["king oyster", "king trumpet", "pleurotus eryngii", "meaty mushroom", "grill mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "BGC Taguig"],
-    "perishable": true,
-    "packageWeight": 0.35,
-    "packageDimensions": {
-      "length": 25,
-      "width": 15,
-      "height": 10
+    "unit": "g",
+    "searchKeywords": [
+      "king oyster",
+      "king trumpet",
+      "pleurotus eryngii",
+      "meaty mushroom",
+      "grill mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.35,
+      "packageDimensions": {
+        "length": 25,
+        "width": 15,
+        "height": 10
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 24 hours",
-      "shelfLife": "7-10 days refrigerated",
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in paper bag, keep dry, refrigerate immediately.",
-      "qualityIndicators": ["Thick white stems", "Firm to touch", "Small brown caps", "No moisture"]
+      "qualityIndicators": "Thick white stems, Firm to touch, Small brown caps, No moisture"
     },
     "preparationInfo": {
       "difficultyLevel": "intermediate",
-      "cookingTime": 15,
-      "preparationTips": ["Slice lengthwise for steaks", "Score surface for grill marks", "High heat searing recommended", "Season generously"],
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Slice lengthwise for steaks",
+        "Score surface for grill marks",
+        "High heat searing recommended",
+        "Season generously"
+      ],
       "recipeIdeas": [
-        {"name": "Grilled King Oyster Steaks", "time": "20 min"},
-        {"name": "King Oyster Scallops (Vegan)", "time": "15 min"},
-        {"name": "Roasted King Oyster with Herbs", "time": "30 min"}
+        "Grilled King Oyster Steaks (20 min)",
+        "King Oyster Scallops (Vegan) (15 min)",
+        "Roasted King Oyster with Herbs (30 min)"
       ]
     },
-    "nutritionalHighlights": ["High Protein", "Low Calorie", "Heart Healthy", "Immune Support"]
+    "nutritionalHighlights": [
+      "high-protein",
+      "low-calorie",
+      "heart-healthy",
+      "immune-support"
+    ]
   },
   {
     "_type": "product",
@@ -112,42 +158,68 @@
     "price": 400,
     "compareAtPrice": 500,
     "quantity": 120,
-    "lowStockThreshold": 20,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 20,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 200,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh Shiitake Mushrooms 200g | MASH Philippines",
-    "seoDescription": "Premium fresh shiitake mushrooms with rich umami flavor. Perfect for Asian cooking, soups, and stir-fries. Farm-fresh quality.",
-    "searchKeywords": ["shiitake", "lentinula edodes", "umami mushroom", "japanese mushroom", "chinese mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "Mandaluyong", "Pasig"],
-    "perishable": true,
-    "packageWeight": 0.25,
-    "packageDimensions": {
-      "length": 20,
-      "width": 15,
-      "height": 8
+    "unit": "g",
+    "searchKeywords": [
+      "shiitake",
+      "lentinula edodes",
+      "umami mushroom",
+      "japanese mushroom",
+      "chinese mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "mandaluyong",
+        "pasig"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.25,
+      "packageDimensions": {
+        "length": 20,
+        "width": 15,
+        "height": 8
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 24 hours",
-      "shelfLife": "7-10 days refrigerated",
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in paper bag, remove any moisture, refrigerate.",
-      "qualityIndicators": ["Brown caps with white edges", "Firm texture", "Strong mushroom aroma", "No slime"]
+      "qualityIndicators": "Brown caps with white edges, Firm texture, Strong mushroom aroma, No slime"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 12,
-      "preparationTips": ["Remove tough stems", "Slice caps for even cooking", "Save stems for stock", "Don't overcrowd pan"],
+      "cookingTime": "12 minutes",
+      "preparationTips": [
+        "Remove tough stems",
+        "Slice caps for even cooking",
+        "Save stems for stock",
+        "Don't overcrowd pan"
+      ],
       "recipeIdeas": [
-        {"name": "Shiitake Miso Soup", "time": "15 min"},
-        {"name": "Shiitake Fried Rice", "time": "20 min"},
-        {"name": "Shiitake Ramen Topping", "time": "10 min"}
+        "Shiitake Miso Soup (15 min)",
+        "Shiitake Fried Rice (20 min)",
+        "Shiitake Ramen Topping (10 min)"
       ]
     },
-    "nutritionalHighlights": ["Rich in Antioxidants", "Immune Support", "High in Vitamin D", "Heart Healthy"]
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d",
+      "heart-healthy"
+    ]
   },
   {
     "_type": "product",
@@ -162,42 +234,67 @@
     "price": 500,
     "compareAtPrice": 650,
     "quantity": 80,
-    "lowStockThreshold": 10,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 250,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh Lion's Mane Mushrooms 250g | MASH Philippines",
-    "seoDescription": "Premium lion's mane mushrooms with seafood-like texture. Known for brain health benefits. Limited supply, order now!",
-    "searchKeywords": ["lions mane", "hericium erinaceus", "brain mushroom", "cognitive health", "medicinal mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "BGC Taguig"],
-    "perishable": true,
-    "packageWeight": 0.3,
-    "packageDimensions": {
-      "length": 25,
-      "width": 20,
-      "height": 12
+    "unit": "g",
+    "searchKeywords": [
+      "lions mane",
+      "hericium erinaceus",
+      "brain mushroom",
+      "cognitive health",
+      "medicinal mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.3,
+      "packageDimensions": {
+        "length": 25,
+        "width": 20,
+        "height": 12
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 24 hours",
-      "shelfLife": "5-7 days refrigerated",
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in paper bag, handle gently, refrigerate immediately.",
-      "qualityIndicators": ["White color", "Fluffy texture", "No discoloration", "Fresh scent"]
+      "qualityIndicators": "White color, Fluffy texture, No discoloration, Fresh scent"
     },
     "preparationInfo": {
       "difficultyLevel": "intermediate",
-      "cookingTime": 15,
-      "preparationTips": ["Slice into steaks", "Pat dry before cooking", "High heat for crispy edges", "Don't overcook"],
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Slice into steaks",
+        "Pat dry before cooking",
+        "High heat for crispy edges",
+        "Don't overcook"
+      ],
       "recipeIdeas": [
-        {"name": "Lion's Mane 'Crab' Cakes", "time": "30 min"},
-        {"name": "Sautéed Lion's Mane with Garlic", "time": "15 min"},
-        {"name": "Lion's Mane Stir-Fry", "time": "20 min"}
+        "Lion's Mane 'Crab' Cakes (30 min)",
+        "Sautéed Lion's Mane with Garlic (15 min)",
+        "Lion's Mane Stir-Fry (20 min)"
       ]
     },
-    "nutritionalHighlights": ["Brain Health", "Immune Support", "High Protein", "Rich in Antioxidants"]
+    "nutritionalHighlights": [
+      "brain-health",
+      "immune-support",
+      "high-protein",
+      "antioxidants"
+    ]
   },
   {
     "_type": "product",
@@ -212,42 +309,68 @@
     "price": 300,
     "compareAtPrice": 380,
     "quantity": 200,
-    "lowStockThreshold": 30,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": false,
+    "inventory": {
+      "lowStockThreshold": 30,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
     "weight": 500,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh Button Mushrooms 500g | MASH Philippines",
-    "seoDescription": "Classic white button mushrooms for everyday cooking. Fresh, versatile, affordable. Family pack 500g.",
-    "searchKeywords": ["button mushroom", "white mushroom", "agaricus", "pizza mushroom", "everyday mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "Mandaluyong", "Pasig", "Manila"],
-    "perishable": true,
-    "packageWeight": 0.55,
-    "packageDimensions": {
-      "length": 25,
-      "width": 20,
-      "height": 10
+    "unit": "g",
+    "searchKeywords": [
+      "button mushroom",
+      "white mushroom",
+      "agaricus",
+      "pizza mushroom",
+      "everyday mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "mandaluyong",
+        "pasig",
+        "manila"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.55,
+      "packageDimensions": {
+        "length": 25,
+        "width": 20,
+        "height": 10
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 48 hours",
-      "shelfLife": "7-10 days refrigerated",
+      "harvestWindow": "48h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in original packaging or paper bag, refrigerate.",
-      "qualityIndicators": ["Firm and white", "Closed caps", "No bruising", "Clean appearance"]
+      "qualityIndicators": "Firm and white, Closed caps, No bruising, Clean appearance"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 8,
-      "preparationTips": ["Wipe clean, don't wash", "Slice evenly", "Quick cooking recommended", "Season to taste"],
+      "cookingTime": "8 minutes",
+      "preparationTips": [
+        "Wipe clean, don't wash",
+        "Slice evenly",
+        "Quick cooking recommended",
+        "Season to taste"
+      ],
       "recipeIdeas": [
-        {"name": "Mushroom Pizza Topping", "time": "10 min"},
-        {"name": "Garlic Mushroom Pasta", "time": "15 min"},
-        {"name": "Mushroom Salad", "time": "5 min"}
+        "Mushroom Pizza Topping (10 min)",
+        "Garlic Mushroom Pasta (15 min)",
+        "Mushroom Salad (5 min)"
       ]
     },
-    "nutritionalHighlights": ["Low Calorie", "High in Vitamin D", "Heart Healthy"]
+    "nutritionalHighlights": [
+      "low-calorie",
+      "vitamin-d",
+      "heart-healthy"
+    ]
   },
   {
     "_type": "product",
@@ -262,42 +385,67 @@
     "price": 450,
     "compareAtPrice": 550,
     "quantity": 90,
-    "lowStockThreshold": 15,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": false,
+    "inventory": {
+      "lowStockThreshold": 15,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
     "weight": 400,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Fresh Portobello Mushrooms 400g | MASH Philippines",
-    "seoDescription": "Large portobello mushrooms perfect for grilling and stuffing. Meaty texture, rich flavor. Great meat substitute.",
-    "searchKeywords": ["portobello", "portabella", "large mushroom", "grill mushroom", "burger mushroom"],
-    "sameDayDeliveryEligible": true,
-    "deliveryZones": ["Metro Manila", "Quezon City", "Makati", "BGC Taguig"],
-    "perishable": true,
-    "packageWeight": 0.45,
-    "packageDimensions": {
-      "length": 30,
-      "width": 20,
-      "height": 10
+    "unit": "g",
+    "searchKeywords": [
+      "portobello",
+      "portabella",
+      "large mushroom",
+      "grill mushroom",
+      "burger mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.45,
+      "packageDimensions": {
+        "length": 30,
+        "width": 20,
+        "height": 10
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Harvested within 24 hours",
-      "shelfLife": "5-7 days refrigerated",
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in paper bag, gill side up, refrigerate.",
-      "qualityIndicators": ["Large brown caps", "Dark gills underneath", "Firm texture", "No moisture"]
+      "qualityIndicators": "Large brown caps, Dark gills underneath, Firm texture, No moisture"
     },
     "preparationInfo": {
       "difficultyLevel": "intermediate",
-      "cookingTime": 20,
-      "preparationTips": ["Remove stems", "Scrape out gills if desired", "Brush caps clean", "Marinate before grilling"],
+      "cookingTime": "20 minutes",
+      "preparationTips": [
+        "Remove stems",
+        "Scrape out gills if desired",
+        "Brush caps clean",
+        "Marinate before grilling"
+      ],
       "recipeIdeas": [
-        {"name": "Grilled Portobello Burgers", "time": "25 min"},
-        {"name": "Stuffed Portobello Caps", "time": "35 min"},
-        {"name": "Portobello Steaks", "time": "20 min"}
+        "Grilled Portobello Burgers (25 min)",
+        "Stuffed Portobello Caps (35 min)",
+        "Portobello Steaks (20 min)"
       ]
     },
-    "nutritionalHighlights": ["High Protein", "Low Calorie", "Vegan", "Heart Healthy"]
+    "nutritionalHighlights": [
+      "high-protein",
+      "low-calorie",
+      "vegan",
+      "heart-healthy"
+    ]
   },
   {
     "_type": "product",
@@ -312,42 +460,63 @@
     "price": 600,
     "compareAtPrice": 750,
     "quantity": 50,
-    "lowStockThreshold": 10,
-    "trackInventory": true,
-    "allowBackorders": true,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 100,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Dried Shiitake Mushrooms 100g | MASH Philippines",
-    "seoDescription": "Premium dried shiitake mushrooms. Grade A quality, intense umami flavor. Long shelf life, perfect for Asian cooking.",
-    "searchKeywords": ["dried shiitake", "dried mushroom", "umami", "asian cooking", "mushroom stock"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Nationwide"],
-    "perishable": false,
-    "packageWeight": 0.12,
-    "packageDimensions": {
-      "length": 15,
-      "width": 10,
-      "height": 5
+    "unit": "g",
+    "searchKeywords": [
+      "dried shiitake",
+      "dried mushroom",
+      "umami",
+      "asian cooking",
+      "mushroom stock"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Dried within 24 hours of harvest",
-      "shelfLife": "12 months in airtight container",
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
       "storageInstructions": "Store in cool, dry place. Keep sealed after opening.",
-      "qualityIndicators": ["Thick caps", "Dark brown color", "Strong aroma", "No moisture"]
+      "qualityIndicators": "Thick caps, Dark brown color, Strong aroma, No moisture"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 30,
-      "preparationTips": ["Soak in warm water 20-30 min", "Save soaking liquid for stock", "Remove tough stems", "Use in soups or stir-fries"],
+      "cookingTime": "30 minutes",
+      "preparationTips": [
+        "Soak in warm water 20-30 min",
+        "Save soaking liquid for stock",
+        "Remove tough stems",
+        "Use in soups or stir-fries"
+      ],
       "recipeIdeas": [
-        {"name": "Shiitake Mushroom Stock", "time": "45 min"},
-        {"name": "Dried Shiitake Stir-Fry", "time": "35 min"},
-        {"name": "Shiitake Ramen Broth", "time": "60 min"}
+        "Shiitake Mushroom Stock (45 min)",
+        "Dried Shiitake Stir-Fry (35 min)",
+        "Shiitake Ramen Broth (60 min)"
       ]
     },
-    "nutritionalHighlights": ["Rich in Antioxidants", "Immune Support", "High in Vitamin D"]
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d"
+    ]
   },
   {
     "_type": "product",
@@ -362,41 +531,59 @@
     "price": 550,
     "compareAtPrice": 700,
     "quantity": 60,
-    "lowStockThreshold": 10,
-    "trackInventory": true,
-    "allowBackorders": true,
-    "availableForPurchase": true,
-    "featuredProduct": false,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": false,
     "weight": 100,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Dried Oyster Mushrooms 100g | MASH Philippines",
-    "seoDescription": "Premium dried oyster mushrooms. Quick rehydration, delicate flavor. Perfect pantry staple for everyday cooking.",
-    "searchKeywords": ["dried oyster", "dried mushroom", "pantry staple", "quick rehydrate"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Nationwide"],
-    "perishable": false,
-    "packageWeight": 0.12,
-    "packageDimensions": {
-      "length": 15,
-      "width": 10,
-      "height": 5
+    "unit": "g",
+    "searchKeywords": [
+      "dried oyster",
+      "dried mushroom",
+      "pantry staple",
+      "quick rehydrate"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Dried within 24 hours",
-      "shelfLife": "12 months sealed",
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
       "storageInstructions": "Keep in airtight container, cool and dry.",
-      "qualityIndicators": ["Light gray color", "Whole pieces", "No discoloration"]
+      "qualityIndicators": "Light gray color, Whole pieces, No discoloration"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 15,
-      "preparationTips": ["Soak 15-20 minutes", "Drain and squeeze gently", "Use immediately after rehydrating"],
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Soak 15-20 minutes",
+        "Drain and squeeze gently",
+        "Use immediately after rehydrating"
+      ],
       "recipeIdeas": [
-        {"name": "Oyster Mushroom Soup", "time": "25 min"},
-        {"name": "Rehydrated Mushroom Stir-Fry", "time": "20 min"}
+        "Oyster Mushroom Soup (25 min)",
+        "Rehydrated Mushroom Stir-Fry (20 min)"
       ]
     },
-    "nutritionalHighlights": ["Low Calorie", "High in Vitamin D"]
+    "nutritionalHighlights": [
+      "low-calorie",
+      "vitamin-d"
+    ]
   },
   {
     "_type": "product",
@@ -411,41 +598,60 @@
     "price": 650,
     "compareAtPrice": 800,
     "quantity": 40,
-    "lowStockThreshold": 8,
-    "trackInventory": true,
-    "allowBackorders": true,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 8,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 100,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Dried Mixed Mushrooms 100g | MASH Philippines",
-    "seoDescription": "Premium blend of dried shiitake, oyster, and wood ear mushrooms. Complex flavors, best value variety pack.",
-    "searchKeywords": ["dried mixed mushroom", "mushroom blend", "variety pack", "asian cooking"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Nationwide"],
-    "perishable": false,
-    "packageWeight": 0.12,
-    "packageDimensions": {
-      "length": 15,
-      "width": 10,
-      "height": 5
+    "unit": "g",
+    "searchKeywords": [
+      "dried mixed mushroom",
+      "mushroom blend",
+      "variety pack",
+      "asian cooking"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Dried within 24 hours",
-      "shelfLife": "12 months sealed",
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
       "storageInstructions": "Store in airtight container, away from sunlight.",
-      "qualityIndicators": ["Mixed colors", "Intact pieces", "Strong aroma"]
+      "qualityIndicators": "Mixed colors, Intact pieces, Strong aroma"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 25,
-      "preparationTips": ["Soak 20-30 minutes", "Different types may need different soak times", "Use in broths and stews"],
+      "cookingTime": "25 minutes",
+      "preparationTips": [
+        "Soak 20-30 minutes",
+        "Different types may need different soak times",
+        "Use in broths and stews"
+      ],
       "recipeIdeas": [
-        {"name": "Mixed Mushroom Hot Pot", "time": "40 min"},
-        {"name": "Asian Mushroom Soup", "time": "30 min"}
+        "Mixed Mushroom Hot Pot (40 min)",
+        "Asian Mushroom Soup (30 min)"
       ]
     },
-    "nutritionalHighlights": ["Rich in Antioxidants", "Immune Support", "High in Vitamin D"]
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d"
+    ]
   },
   {
     "_type": "product",
@@ -460,42 +666,64 @@
     "price": 800,
     "compareAtPrice": 1000,
     "quantity": 30,
-    "lowStockThreshold": 5,
-    "trackInventory": true,
-    "allowBackorders": true,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 50,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Mushroom Powder Blend 50g | MASH Philippines",
-    "seoDescription": "Premium mushroom powder blend for health and cooking. Shiitake, reishi, lion's mane. Add to smoothies, coffee, or meals.",
-    "searchKeywords": ["mushroom powder", "medicinal mushroom", "supplement", "superfood", "functional food"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Nationwide"],
-    "perishable": false,
-    "packageWeight": 0.08,
-    "packageDimensions": {
-      "length": 10,
-      "width": 10,
-      "height": 5
+    "unit": "g",
+    "searchKeywords": [
+      "mushroom powder",
+      "medicinal mushroom",
+      "supplement",
+      "superfood",
+      "functional food"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.08,
+      "packageDimensions": {
+        "length": 10,
+        "width": 10,
+        "height": 5
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Processed within 48 hours of harvest",
-      "shelfLife": "18 months sealed",
+      "harvestWindow": "48h",
+      "shelfLife": "5-7d",
       "storageInstructions": "Keep in airtight container, cool and dry place.",
-      "qualityIndicators": ["Fine powder", "Brown color", "Strong mushroom aroma"]
+      "qualityIndicators": "Fine powder, Brown color, Strong mushroom aroma"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 2,
-      "preparationTips": ["Start with 1/4 teaspoon", "Mix into liquids or food", "Can be added to cooking", "Best in hot beverages"],
+      "cookingTime": "2 minutes",
+      "preparationTips": [
+        "Start with 1/4 teaspoon",
+        "Mix into liquids or food",
+        "Can be added to cooking",
+        "Best in hot beverages"
+      ],
       "recipeIdeas": [
-        {"name": "Mushroom Coffee", "time": "5 min"},
-        {"name": "Mushroom Smoothie", "time": "5 min"},
-        {"name": "Mushroom Seasoning", "time": "1 min"}
+        "Mushroom Coffee (5 min)",
+        "Mushroom Smoothie (5 min)",
+        "Mushroom Seasoning (1 min)"
       ]
     },
-    "nutritionalHighlights": ["Brain Health", "Immune Support", "Rich in Antioxidants", "Organic"]
+    "nutritionalHighlights": [
+      "brain-health",
+      "immune-support",
+      "antioxidants",
+      "organic"
+    ]
   },
   {
     "_type": "product",
@@ -510,41 +738,63 @@
     "price": 1200,
     "compareAtPrice": 1500,
     "quantity": 20,
-    "lowStockThreshold": 5,
-    "trackInventory": true,
-    "allowBackorders": true,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 30,
-    "unitOfMeasurement": "ml",
-    "seoTitle": "Mushroom Extract Tincture 30ml | MASH Philippines",
-    "seoDescription": "Premium concentrated mushroom extract. Dual-extraction reishi, chaga, turkey tail. Immune support and cognitive health.",
-    "searchKeywords": ["mushroom extract", "tincture", "medicinal mushroom", "immune support", "cognitive health"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Nationwide"],
-    "perishable": false,
-    "packageWeight": 0.06,
-    "packageDimensions": {
-      "length": 12,
-      "width": 5,
-      "height": 5
+    "unit": "g",
+    "searchKeywords": [
+      "mushroom extract",
+      "tincture",
+      "medicinal mushroom",
+      "immune support",
+      "cognitive health"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.06,
+      "packageDimensions": {
+        "length": 12,
+        "width": 5,
+        "height": 5
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Extracted within 72 hours",
-      "shelfLife": "24 months sealed, 6 months after opening",
+      "harvestWindow": "n/a",
+      "shelfLife": "6-12m",
       "storageInstructions": "Keep in cool, dark place. Refrigerate after opening.",
-      "qualityIndicators": ["Dark brown liquid", "Strong mushroom scent", "No sediment"]
+      "qualityIndicators": "Dark brown liquid, Strong mushroom scent, No sediment"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 1,
-      "preparationTips": ["Use dropper for dosing", "1-2 droppers daily", "Mix with water or juice", "Best taken on empty stomach"],
+      "cookingTime": "1 minutes",
+      "preparationTips": [
+        "Use dropper for dosing",
+        "1-2 droppers daily",
+        "Mix with water or juice",
+        "Best taken on empty stomach"
+      ],
       "recipeIdeas": [
-        {"name": "Morning Tonic", "time": "2 min"},
-        {"name": "Evening Wellness Shot", "time": "2 min"}
+        "Morning Tonic (2 min)",
+        "Evening Wellness Shot (2 min)"
       ]
     },
-    "nutritionalHighlights": ["Immune Support", "Brain Health", "Rich in Antioxidants", "Organic"]
+    "nutritionalHighlights": [
+      "immune-support",
+      "brain-health",
+      "antioxidants",
+      "organic"
+    ]
   },
   {
     "_type": "product",
@@ -559,38 +809,56 @@
     "price": 1500,
     "compareAtPrice": 1800,
     "quantity": 25,
-    "lowStockThreshold": 5,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 2000,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Oyster Mushroom Growing Kit | MASH Philippines",
-    "seoDescription": "Grow your own oyster mushrooms at home! Complete kit with substrate and instructions. Harvest in 7-14 days.",
-    "searchKeywords": ["growing kit", "mushroom kit", "home growing", "diy mushroom", "oyster kit"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Metro Manila", "Luzon"],
-    "perishable": false,
-    "packageWeight": 2.5,
-    "packageDimensions": {
-      "length": 30,
-      "width": 25,
-      "height": 20
+    "unit": "g",
+    "searchKeywords": [
+      "growing kit",
+      "mushroom kit",
+      "home growing",
+      "diy mushroom",
+      "oyster kit"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 2.5,
+      "packageDimensions": {
+        "length": 30,
+        "width": 25,
+        "height": 20
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Fresh spawn inoculated within 7 days",
-      "shelfLife": "Start within 30 days of receipt",
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
       "storageInstructions": "Keep in cool place until ready to start. Follow included instructions.",
-      "qualityIndicators": ["White mycelium visible", "No contamination", "Fresh smell"]
+      "qualityIndicators": "White mycelium visible, No contamination, Fresh smell"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 0,
-      "preparationTips": ["Cut X on bag", "Mist 2-3 times daily", "Keep in indirect light", "Maintain humidity"],
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Cut X on bag",
+        "Mist 2-3 times daily",
+        "Keep in indirect light",
+        "Maintain humidity"
+      ],
       "recipeIdeas": [
-        {"name": "Setup and Care Guide", "time": "10 min"},
-        {"name": "Harvest Instructions", "time": "5 min"}
+        "Setup and Care Guide (10 min)",
+        "Harvest Instructions (5 min)"
       ]
     },
     "nutritionalHighlights": []
@@ -608,38 +876,56 @@
     "price": 1800,
     "compareAtPrice": 2200,
     "quantity": 20,
-    "lowStockThreshold": 4,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 4,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 2500,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Shiitake Mushroom Growing Kit | MASH Philippines",
-    "seoDescription": "Grow premium shiitake mushrooms at home! Hardwood substrate kit. Multiple harvests, detailed guide included.",
-    "searchKeywords": ["shiitake kit", "growing kit", "hardwood substrate", "home mushroom", "gourmet kit"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Metro Manila", "Luzon"],
-    "perishable": false,
-    "packageWeight": 3.0,
-    "packageDimensions": {
-      "length": 35,
-      "width": 25,
-      "height": 20
+    "unit": "g",
+    "searchKeywords": [
+      "shiitake kit",
+      "growing kit",
+      "hardwood substrate",
+      "home mushroom",
+      "gourmet kit"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 3,
+      "packageDimensions": {
+        "length": 35,
+        "width": 25,
+        "height": 20
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Fresh spawn, ready to fruit",
-      "shelfLife": "Start within 30 days",
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store in cool, dark place until setup.",
-      "qualityIndicators": ["White mycelium on wood", "No green mold", "Hardwood smell"]
+      "qualityIndicators": "White mycelium on wood, No green mold, Hardwood smell"
     },
     "preparationInfo": {
       "difficultyLevel": "intermediate",
-      "cookingTime": 0,
-      "preparationTips": ["Soak block 24 hours before fruiting", "Maintain high humidity", "Cooler temps preferred", "Multiple harvests possible"],
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Soak block 24 hours before fruiting",
+        "Maintain high humidity",
+        "Cooler temps preferred",
+        "Multiple harvests possible"
+      ],
       "recipeIdeas": [
-        {"name": "Shiitake Kit Setup", "time": "30 min"},
-        {"name": "Harvest and Care", "time": "15 min"}
+        "Shiitake Kit Setup (30 min)",
+        "Harvest and Care (15 min)"
       ]
     },
     "nutritionalHighlights": []
@@ -657,38 +943,56 @@
     "price": 2000,
     "compareAtPrice": 2500,
     "quantity": 15,
-    "lowStockThreshold": 3,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 3,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 2500,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Lion's Mane Growing Kit | MASH Philippines",
-    "seoDescription": "Grow rare lion's mane mushrooms at home! Premium kit with complete instructions. Brain health benefits.",
-    "searchKeywords": ["lions mane kit", "medicinal mushroom", "brain mushroom", "growing kit", "rare mushroom"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Metro Manila", "Luzon"],
-    "perishable": false,
-    "packageWeight": 3.0,
-    "packageDimensions": {
-      "length": 35,
-      "width": 25,
-      "height": 20
+    "unit": "g",
+    "searchKeywords": [
+      "lions mane kit",
+      "medicinal mushroom",
+      "brain mushroom",
+      "growing kit",
+      "rare mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 3,
+      "packageDimensions": {
+        "length": 35,
+        "width": 25,
+        "height": 20
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "Fresh spawn, ready to fruit",
-      "shelfLife": "Start within 30 days",
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
       "storageInstructions": "Keep in cool place, away from direct sunlight.",
-      "qualityIndicators": ["White fluffy mycelium", "No contamination", "Fresh scent"]
+      "qualityIndicators": "White fluffy mycelium, No contamination, Fresh scent"
     },
     "preparationInfo": {
       "difficultyLevel": "intermediate",
-      "cookingTime": 0,
-      "preparationTips": ["Maintain high humidity (85-95%)", "Provide fresh air exchange", "Cooler temperatures better", "Gentle misting"],
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Maintain high humidity (85-95%)",
+        "Provide fresh air exchange",
+        "Cooler temperatures better",
+        "Gentle misting"
+      ],
       "recipeIdeas": [
-        {"name": "Lion's Mane Kit Setup", "time": "30 min"},
-        {"name": "Fruiting and Harvest", "time": "15 min"}
+        "Lion's Mane Kit Setup (30 min)",
+        "Fruiting and Harvest (15 min)"
       ]
     },
     "nutritionalHighlights": []
@@ -706,38 +1010,56 @@
     "price": 2500,
     "compareAtPrice": 3200,
     "quantity": 10,
-    "lowStockThreshold": 2,
-    "trackInventory": true,
-    "allowBackorders": false,
-    "availableForPurchase": true,
-    "featuredProduct": true,
+    "inventory": {
+      "lowStockThreshold": 2,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
     "weight": 6000,
-    "unitOfMeasurement": "grams",
-    "seoTitle": "Beginner Mushroom Growing Combo Kit | MASH Philippines",
-    "seoDescription": "Complete mushroom growing bundle for beginners! 3 kits + tools. Best value. Start growing oyster and shiitake mushrooms today.",
-    "searchKeywords": ["combo kit", "beginner kit", "mushroom bundle", "starter pack", "best value"],
-    "sameDayDeliveryEligible": false,
-    "deliveryZones": ["Metro Manila", "Luzon"],
-    "perishable": false,
-    "packageWeight": 7.0,
-    "packageDimensions": {
-      "length": 40,
-      "width": 35,
-      "height": 30
+    "unit": "g",
+    "searchKeywords": [
+      "combo kit",
+      "beginner kit",
+      "mushroom bundle",
+      "starter pack",
+      "best value"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 7,
+      "packageDimensions": {
+        "length": 40,
+        "width": 35,
+        "height": 30
+      }
     },
     "freshnessInfo": {
-      "harvestWindow": "All kits fresh and ready",
-      "shelfLife": "Start within 30 days",
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
       "storageInstructions": "Store kits in cool place. Tools ready to use immediately.",
-      "qualityIndicators": ["All kits show mycelium", "Tools included", "Complete instructions"]
+      "qualityIndicators": "All kits show mycelium, Tools included, Complete instructions"
     },
     "preparationInfo": {
       "difficultyLevel": "beginner",
-      "cookingTime": 0,
-      "preparationTips": ["Start with oyster kit first", "Use hygrometer to monitor humidity", "Keep spray bottle for misting", "Follow included guide"],
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Start with oyster kit first",
+        "Use hygrometer to monitor humidity",
+        "Keep spray bottle for misting",
+        "Follow included guide"
+      ],
       "recipeIdeas": [
-        {"name": "Complete Beginner Guide", "time": "45 min"},
-        {"name": "Troubleshooting Tips", "time": "10 min"}
+        "Complete Beginner Guide (45 min)",
+        "Troubleshooting Tips (10 min)"
       ]
     },
     "nutritionalHighlights": []

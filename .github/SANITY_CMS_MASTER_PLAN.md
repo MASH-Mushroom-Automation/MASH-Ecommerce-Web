@@ -18,7 +18,8 @@
 | **2. Category Import** | ✅ **COMPLETE** | 10 min | 🔴 Critical | - |
 | **2.1. Fix Import Script** | ✅ **COMPLETE** | 15 min | 🔴 Critical | - |
 | **3. Products Data + Import** | ✅ **COMPLETE** | 1.5h | 🔴 Critical | - |
-| **4. Image Upload** | ⏳ Pending | 30 min | 🟠 High | Collect images |
+| **3.1. Fix Schema Errors** | ✅ **COMPLETE** | 30 min | 🔴 Critical | - |
+| **4. Image Upload** | 🟡 **NEXT** | 30-60 min | 🟠 High | Collect images |
 | **5. Variants Creation** | ⏳ Pending | 45 min | 🟠 High | Create variants.json |
 | **6. Relationship Linking** | ⏳ Pending | 1h | 🔴 Critical | Create link script |
 | **7. Bundles Creation** | ⏳ Pending | 30 min | 🟡 Medium | Create bundles.json |
