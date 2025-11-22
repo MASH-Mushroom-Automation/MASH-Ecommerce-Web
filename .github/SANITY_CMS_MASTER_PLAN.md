@@ -15,7 +15,8 @@
 | Phase | Status | Duration | Priority | Next Action |
 |-------|--------|----------|----------|-------------|
 | **1. Script Infrastructure** | ✅ **COMPLETE** | 2h | 🔴 Critical | - |
-| **2. Category Import** | 🟡 **READY TO TEST** | 10 min | 🔴 Critical | Run import script NOW |
+| **2. Category Import** | ✅ **COMPLETE** | 10 min | 🔴 Critical | Fix deduplication |
+| **2.1. Fix Import Script** | 🔴 **URGENT** | 15 min | 🔴 Critical | Add slug checking NOW |
 | **3. Products Data + Import** | ⏳ Pending | 1.5h | 🔴 Critical | Create products.json |
 | **4. Image Upload** | ⏳ Pending | 30 min | 🟠 High | Collect images |
 | **5. Variants Creation** | ⏳ Pending | 45 min | 🟠 High | Create variants.json |
@@ -25,11 +26,21 @@
 | **9. Validation & Testing** | ⏳ Pending | 1h | 🔴 Critical | Create validate script |
 | **10. Studio Deployment** | ⏳ Pending | 30 min | 🟠 High | Deploy to Sanity Cloud |
 
-**🚨 IMMEDIATE ACTION REQUIRED (Next 10 minutes)**:
-1. ✅ Dependencies installed? Run: `npm install @sanity/client dotenv`
-2. 🔵 Test connection: `node scripts/sanity/test-connection.js`
-3. 🔵 Import categories: `node scripts/sanity/import-categories.js`
-4. 🔵 Verify in Studio: `cd studio && npm run dev` → Check http://localhost:3333
+**🚨 IMMEDIATE ACTION REQUIRED (Next 15 minutes)**:
+
+**Phase 2 Testing - COMPLETE ✅** (November 22, 2025 - 3:15 PM)
+1. ✅ Dependencies installed - up to date
+2. ✅ Connection tested - gerattrr/production connected
+3. ✅ Categories imported - 3 categories created (6 total with duplicates)
+4. ✅ Studio verified - accessible at localhost:3333
+
+**⚠️ Issue Found:** Import created duplicates (3 original + 3 new = 6 total)
+
+**🔧 NEXT ACTION (15 minutes):**
+1. 🔴 Fix `import-categories.js` - Add deduplication by slug
+2. 🔴 Delete 3 duplicate categories in Studio manually
+3. 🔴 Re-test import script to verify fix works
+4. 🟢 Proceed to Phase 3 (Products)
 
 ---
 

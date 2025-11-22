@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const {createDocuments, countDocuments} = require('./lib/sanity-client');
+const {createDocuments, countDocuments, fetchDocuments} = require('./lib/sanity-client');
 
 async function importCategories() {
   console.log('📦 Importing Categories to Sanity...\n');
@@ -15,10 +15,24 @@ async function importCategories() {
     const existingCount = await countDocuments('category');
     console.log(`   Current categories in Sanity: ${existingCount}`);
 
+    // Fetch existing category slugs to prevent duplicates
+    const existingCategories = await fetchDocuments('*[_type == "category"]{ slug }');
+    const existingSlugs = existingCategories.map(cat => cat.slug.current);
+    console.log(`   Existing slugs: ${existingSlugs.join(', ') || 'none'}`);
+
     // Load category data
     const dataPath = path.join(__dirname, '../../data/sanity/categories.json');
-    const categories = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    console.log(`   Categories to import: ${categories.length}\n`);
+    const allCategories = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    
+    // Filter out categories that already exist (deduplication)
+    const categories = allCategories.filter(cat => !existingSlugs.includes(cat.slug.current));
+    console.log(`   Categories to import: ${categories.length} (${allCategories.length - categories.length} skipped - already exist)\n`);
+
+    // Skip if no new categories to import
+    if (categories.length === 0) {
+      console.log('✅ All categories already exist. No import needed.');
+      return { results: [] };
+    }
 
     // Create categories
     console.log('   Creating categories...');
