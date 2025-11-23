@@ -1,0 +1,155 @@
+[
+  {
+    "_type": "productBundle",
+    "bundleName": "Gourmet Fresh Starter Pack",
+    "slug": {
+      "_type": "slug",
+      "current": "gourmet-fresh-starter-pack"
+    },
+    "description": "Perfect introduction to gourmet mushrooms with our three most popular fresh varieties. Great for beginners!",
+    "tagline": "Save 15% on Fresh Favorites!",
+    "productSlugs": [
+      "fresh-oyster-mushrooms",
+      "fresh-shiitake-mushrooms",
+      "fresh-button-mushrooms"
+    ],
+    "bundlePrice": 950,
+    "originalPrice": 1100,
+    "discountPercentage": 15,
+    "savingsAmount": 150,
+    "bundleActive": true,
+    "featuredBundle": true,
+    "badge": "Best Seller",
+    "sortOrder": 1,
+    "seoTitle": "Gourmet Fresh Mushroom Starter Pack - Save 15% | MASH",
+    "seoDescription": "Try our top 3 fresh mushrooms in one convenient bundle. Oyster, Shiitake, and Button mushrooms delivered fresh. Perfect for gourmet cooking."
+  },
+  {
+    "_type": "productBundle",
+    "bundleName": "Dried Collection Bundle",
+    "slug": {
+      "_type": "slug",
+      "current": "dried-collection-bundle"
+    },
+    "description": "Complete dried mushroom collection for long-term storage and intense umami flavors. Perfect for soups, broths, and Asian cuisine.",
+    "tagline": "Save 20% on Premium Dried!",
+    "productSlugs": [
+      "dried-shiitake-mushrooms",
+      "dried-oyster-mushrooms",
+      "dried-mixed-mushrooms"
+    ],
+    "bundlePrice": 1440,
+    "originalPrice": 1800,
+    "discountPercentage": 20,
+    "savingsAmount": 360,
+    "bundleActive": true,
+    "featuredBundle": true,
+    "badge": "Great Value",
+    "sortOrder": 2,
+    "seoTitle": "Dried Mushroom Collection - Save 20% | MASH",
+    "seoDescription": "Complete set of premium dried mushrooms. Shiitake, Oyster, and Mixed varieties for authentic Asian cuisine. Long shelf life guaranteed."
+  },
+  {
+    "_type": "productBundle",
+    "bundleName": "Grow Your Own Bundle",
+    "slug": {
+      "_type": "slug",
+      "current": "grow-your-own-bundle"
+    },
+    "description": "Everything you need to start growing mushrooms at home! Includes two premium growing kits plus mushroom powder for culinary experiments.",
+    "tagline": "Save 25% - Start Growing Today!",
+    "productSlugs": [
+      "oyster-mushroom-growing-kit",
+      "shiitake-mushroom-growing-kit",
+      "mushroom-powder"
+    ],
+    "bundlePrice": 2850,
+    "originalPrice": 3800,
+    "discountPercentage": 25,
+    "savingsAmount": 950,
+    "bundleActive": true,
+    "featuredBundle": true,
+    "badge": "Beginner Friendly",
+    "sortOrder": 3,
+    "seoTitle": "Mushroom Growing Kit Bundle - Save 25% | MASH",
+    "seoDescription": "Start your mushroom farming journey! Two premium growing kits + mushroom powder. Perfect for beginners, includes full instructions."
+  },
+  {
+    "_type": "productBundle",
+    "bundleName": "Fresh Favorites Trio",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-favorites-trio"
+    },
+    "description": "Our three most popular fresh mushrooms loved by home cooks and professional chefs alike. Perfect for weekly meal planning.",
+    "tagline": "Weekly Fresh Selection - 10% Off!",
+    "productSlugs": [
+      "fresh-oyster-mushrooms",
+      "fresh-king-oyster-mushrooms",
+      "fresh-lions-mane-mushrooms"
+    ],
+    "bundlePrice": 1080,
+    "originalPrice": 1200,
+    "discountPercentage": 10,
+    "savingsAmount": 120,
+    "bundleActive": true,
+    "featuredBundle": false,
+    "badge": "Chef's Choice",
+    "sortOrder": 4,
+    "seoTitle": "Fresh Mushroom Favorites Bundle | MASH Philippines",
+    "seoDescription": "Top 3 fresh mushrooms in one bundle. Oyster, King Oyster, and Lion's Mane delivered daily. Perfect for gourmet cooking."
+  },
+  {
+    "_type": "productBundle",
+    "bundleName": "Complete Mushroom Experience",
+    "slug": {
+      "_type": "slug",
+      "current": "complete-mushroom-experience"
+    },
+    "description": "The ultimate mushroom bundle! Fresh, dried, and growing kit plus specialty products. Perfect for mushroom enthusiasts.",
+    "tagline": "Ultimate Bundle - Save 30%!",
+    "productSlugs": [
+      "fresh-oyster-mushrooms",
+      "dried-shiitake-mushrooms",
+      "oyster-mushroom-growing-kit",
+      "mushroom-powder",
+      "mushroom-extract-tincture"
+    ],
+    "bundlePrice": 3150,
+    "originalPrice": 4500,
+    "discountPercentage": 30,
+    "savingsAmount": 1350,
+    "bundleActive": true,
+    "featuredBundle": true,
+    "badge": "Best Value",
+    "sortOrder": 5,
+    "seoTitle": "Complete Mushroom Experience Bundle - Save 30% | MASH",
+    "seoDescription": "Everything mushroom in one bundle! Fresh, dried, growing kit, powder, and extract. Perfect gift for mushroom lovers."
+  },
+  {
+    "_type": "productBundle",
+    "bundleName": "Premium Gift Box",
+    "slug": {
+      "_type": "slug",
+      "current": "premium-gift-box"
+    },
+    "description": "Curated selection of our finest mushrooms and specialty products. Beautifully packaged, perfect for gifting to food enthusiasts.",
+    "tagline": "Premium Selection - 20% Off!",
+    "productSlugs": [
+      "fresh-lions-mane-mushrooms",
+      "dried-shiitake-mushrooms",
+      "mushroom-powder",
+      "mushroom-extract-tincture"
+    ],
+    "bundlePrice": 2400,
+    "originalPrice": 3000,
+    "discountPercentage": 20,
+    "savingsAmount": 600,
+    "bundleActive": true,
+    "featuredBundle": false,
+    "badge": "Gift Set",
+    "sortOrder": 6,
+    "seoTitle": "Premium Mushroom Gift Box - Save 20% | MASH",
+    "seoDescription": "Luxury mushroom gift set with Lion's Mane, Shiitake, powder, and extract. Perfect gift for health-conscious food lovers."
+  }
+]
