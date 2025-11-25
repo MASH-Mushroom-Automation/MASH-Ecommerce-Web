@@ -21,20 +21,22 @@ export default function LalamoveTestPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Test coordinates from your actual delivery
+  // PICKUP: Paulo's shop (Novaliches bayan, katabi ng McDonald's)
   const defaultPickup = {
-    lat: '14.724177785776938',
-    lng: '121.03866187637956',
-    address: '1019 Quirino Highway, Brgy Sta. Monica, Novaliches, Quezon City',
-    name: 'Melrhin Bayan',
-    phone: '+639661692000',
+    lat: '14.71913537416188',
+    lng: '121.03718747595673',
+    address: '266 Quirino Hwy, Novaliches, Quezon City, Metro Manila',
+    name: 'Paulo Tongco',
+    phone: '+639327677205',
   };
 
+  // DROPOFF: Mary Jane (Llano Road, Caloocan, tapat ng INFINITY WASH)
   const defaultDropoff = {
-    lat: '14.741238399110145',
-    lng: '121.00588596965112',
-    address: '936 Llano Road, Caloocan, 1400 Metro Manila',
-    name: 'Test Customer', // Default test customer name
-    phone: '+639171234567', // Default test customer phone (E.164 format)
+    lat: '14.740767636934477',
+    lng: '121.00192598578872',
+    address: '936 Llano Rd, Caloocan, Metro Manila',
+    name: 'Mary Jane Bahay',
+    phone: '+639272533969',
   };
 
   const testGetQuotation = async () => {
