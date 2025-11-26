@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '.env.local' });
 const { readFileSync } = require('fs');
 const { join } = require('path');
 const { createClient } = require('@sanity/client');

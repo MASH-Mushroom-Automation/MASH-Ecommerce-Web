@@ -3,6 +3,7 @@
  * Re-uploads images and ensures proper asset references
  */
 
+require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
 const path = require('path');
 const {createClient} = require('@sanity/client');
