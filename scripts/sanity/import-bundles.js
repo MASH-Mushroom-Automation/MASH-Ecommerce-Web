@@ -67,28 +67,32 @@ async function importBundles() {
     // Step 4: Transform bundles with product references
     console.log('3️⃣  Transforming bundles with product references...');
     const transformedBundles = bundlesData.map(bundle => {
-      // Convert product slugs to Sanity references
-      const bundleProducts = bundle.productSlugs
-        .map(slug => {
+      // Convert product slugs to proper products array structure
+      const products = bundle.productSlugs
+        .map((slug, index) => {
           const productId = productMap[slug];
           if (!productId) {
             console.warn(`   ⚠️  Warning: Product not found for slug "${slug}"`);
             return null;
           }
           return {
-            _type: 'reference',
-            _ref: productId,
-            _key: productId,
+            _type: 'object',
+            _key: `${productId}-${index}`,
+            product: {
+              _type: 'reference',
+              _ref: productId,
+            },
+            quantity: 1,
           };
         })
         .filter(ref => ref !== null);
 
-      // Remove productSlugs array and add bundleProducts
+      // Remove productSlugs array and add products
       const { productSlugs, ...bundleWithoutSlugs } = bundle;
 
       return {
         ...bundleWithoutSlugs,
-        bundleProducts,
+        products,
       };
     });
 
@@ -112,9 +116,10 @@ async function importBundles() {
     // Step 6: Display bundle details
     console.log('   New bundles to create:');
     newBundles.forEach((bundle, index) => {
+      const originalPrice = Math.round(bundle.bundlePrice / (1 - bundle.discountPercentage / 100));
       console.log(`   ${index + 1}. ${bundle.bundleName}`);
-      console.log(`      ├─ Products: ${bundle.bundleProducts.length} items`);
-      console.log(`      ├─ Price: ₱${bundle.bundlePrice} (was ₱${bundle.originalPrice})`);
+      console.log(`      ├─ Products: ${bundle.products.length} items`);
+      console.log(`      ├─ Price: ₱${bundle.bundlePrice} (was ₱${originalPrice})`);
       console.log(`      └─ Save: ${bundle.discountPercentage}% (₱${bundle.savingsAmount})`);
     });
     console.log();
