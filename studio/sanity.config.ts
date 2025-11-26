@@ -18,7 +18,8 @@ import {
 import {assist} from '@sanity/assist'
 
 // Environment variables for project configuration
-const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'your-projectID'
+// ✅ MASH CMS Project (Growth Trial, 10M API calls/month)
+const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'xyq5fhxs'
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
 
 // URL for preview functionality, defaults to localhost:3000 if not set
@@ -47,16 +48,13 @@ function resolveHref(documentType?: string, slug?: string): string | undefined {
 // Main Sanity configuration
 export default defineConfig({
   name: 'default',
-  title: 'MASH E-Commerce - PP_Namias',
+  title: 'MASH E-Commerce CMS',
 
   projectId,
   dataset,
 
-  // Deployment configuration for PP_Namias project
-  // ✅ Updated to gerattrr (Nov 22, 2025)
-  deployment: {
-    appId: 'gerattrr',
-  },
+  // Deployment configuration - will be set during first deploy
+  // Run: npx sanity deploy
 
   plugins: [
     // Presentation tool configuration for Visual Editing

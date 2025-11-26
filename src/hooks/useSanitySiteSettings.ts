@@ -279,83 +279,44 @@ export function useSanitySiteSettings() {
       setLoading(true);
       setError(null);
 
-      // GROQ query for singleton site settings document
-      const query = `*[_type == "siteSettings"][0] {
+      // 🚨 TEMPORARY FIX: Query only fields that exist in current schema
+      // Schema file: studio/src/schemaTypes/singletons/settings.tsx
+      // Current schema has: title, description, ogImage
+      // TODO: Extend schema to include all fields (see SANITY_PRODUCTS_INTEGRATION_PLAN.md Phase 0)
+      const query = `*[_type == "settings"][0] {
         _id,
         _createdAt,
         _updatedAt,
         _type,
-        companyName,
-        tagline,
+        title,
         description,
-        "logo": logo.asset->url,
-        "favicon": favicon.asset->url,
-        contactEmail,
-        contactPhone,
-        address {
-          street,
-          city,
-          state,
-          zipCode,
-          country
-        },
-        socialMedia {
-          facebook,
-          instagram,
-          twitter,
-          linkedin,
-          youtube,
-          tiktok
-        },
-        announcementBar {
-          enabled,
-          message,
-          link,
-          backgroundColor,
-          textColor
-        },
-        footer {
-          aboutText,
-          copyrightText,
-          showNewsletter,
-          newsletterTitle,
-          newsletterDescription,
-          links[] {
-            title,
-            url,
-            external
-          }
-        },
-        seo {
-          metaTitle,
-          metaDescription,
-          keywords,
-          "ogImage": ogImage.asset->url
-        },
-        businessHours {
-          monday,
-          tuesday,
-          wednesday,
-          thursday,
-          friday,
-          saturday,
-          sunday
-        },
-        features {
-          enableBlog,
-          enableShop,
-          enableGrowerProfiles,
-          enableReviews,
-          enableWishlist
-        }
+        "ogImage": ogImage.asset->url
       }`;
 
-      console.log('📦 Fetching site settings from Sanity...');
-      const data = await sanityClient.fetch<SanitySiteSettings>(query);
+      console.log('📦 Fetching site settings from Sanity (simplified query)...');
+      const data = await sanityClient.fetch<any>(query);
       
       if (data) {
-        setSettings(transformSiteSettings(data));
-        console.log('✅ Site settings fetched');
+        // Transform simplified data to expected format
+        const transformedData: TransformedSiteSettings = {
+          id: data._id,
+          companyName: data.title || 'MASH Mushroom E-Commerce',
+          tagline: 'Premium Quality Mushrooms',
+          description: Array.isArray(data.description) ? data.description.map((block: any) => block.children?.map((child: any) => child.text).join(' ')).join('\n') : data.description,
+          logo: undefined,
+          favicon: undefined,
+          contactEmail: undefined,
+          contactPhone: undefined,
+          address: undefined,
+          socialMedia: undefined,
+          announcementBar: undefined,
+          footer: undefined,
+          seo: undefined,
+          businessHours: undefined,
+          features: undefined,
+        };
+        setSettings(transformedData);
+        console.log('✅ Site settings fetched (simplified)');
       } else {
         setSettings(null);
         console.log('⚠️ No site settings found');

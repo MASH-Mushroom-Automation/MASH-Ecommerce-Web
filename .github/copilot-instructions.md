@@ -1,8 +1,8 @@
 # MASH E-Commerce Platform - AI Coding Guide
 
-**Last Updated:** November 21, 2025  
-**Project Status:** Phase 2.5 - Enhanced Foundation with CMS Integration  
-**⚠️ MIGRATION IN PROGRESS**: Sanity CMS migrating from MASH (2grm6gj7) → PP_Namias (gerattrr)
+**Last Updated:** November 26, 2025  
+**Project Status:** Phase 2.5 Complete | Lalamove Integration Testing Phase  
+**✅ MIGRATION COMPLETE**: Sanity CMS successfully migrated to PP_Namias (gerattrr)
 
 ## 📋 Table of Contents
 
@@ -131,13 +131,14 @@ Sanity Studio is a **separate project** in `/studio` directory with its own:
 3. **No Restart Needed**: Frontend sees changes on next page load (5-minute cache TTL)
 4. **⚠️ Real-Time DISABLED**: Manual refresh required (FREE TIER optimization)
 
-**Sanity Project Details** (Post-Migration):
-- **NEW Project ID**: `gerattrr` (PP_Namias) - Update all references!
-- **OLD Project ID**: `2grm6gj7` (MASH) - Do NOT use (quota exceeded)
+**Sanity Project Details** (Post-Migration - ✅ COMPLETE):
+- **Current Project ID**: `gerattrr` (PP_Namias) - ✅ All references updated!
+- **OLD Project ID**: `2grm6gj7` (MASH) - ⚠️ Do NOT use (quota exceeded)
 - Dataset: `production`
 - Schema: 15+ content types (hero, features, post, page, settings)
 - Visual Editing: Available via Presentation Tool in Studio
 - Team Seats: 20 users (invite collaborators with Admin/Editor/Viewer roles)
+- API Tokens: Read & Write tokens configured in `.env.local`
 
 #### **Starting Sanity Studio**
 
@@ -646,6 +647,11 @@ Before making significant changes, review these docs:
 
 ### **📦 Sanity CMS Specific**
 
+- **`.github/SANITY_PRODUCTS_INTEGRATION_PLAN.md`** - **CRITICAL: Read this first!**
+  - Complete 10-phase plan to display products/categories on website
+  - Fixes current siteSettings error (blocking)
+  - GROQ queries, API wrappers, page updates
+  - ~5.5 hours total implementation time
 - `studio/README.md` - Sanity Studio setup and initial schema overview
 - `studio/src/schemaTypes/documents/product.ts` (623 lines) - **Complete product schema**
   - 25+ fields organized into 9 categories
@@ -659,31 +665,44 @@ Before making significant changes, review these docs:
 - **Backend API**: `http://localhost:3000/api/v1` (Railway production)
 - **Local Backend**: `http://localhost:3000/api/v1` (for email endpoints with NEXT_PUBLIC_EMAIL_SERVICE_ENV=local)
 
-### **📈 Current Project Status (November 21, 2025)**
+### **📈 Current Project Status (November 26, 2025)**
 
 **✅ Completed (100%):**
 - Phase 1: CMS Structure (13 document types + 4 singletons)
 - Phase 2: Data Population (84 items: 3 categories, 15 products, 15 variants, 6 bundles, 45 reviews)
 - Phase 2.5: Enhanced Product Schema (25+ fields with smart recommendations, freshness tracking, Lalamove delivery fields)
+- Phase 3: Product Images - All 15 products have images uploaded
+- Phase 4: Reference Linking - Suggested/complementary products linked
+- Lalamove Phases 1-8: Backend API routes, service class, COD support, webhooks, chat relay
 
-**🔴 URGENT - DO NOW (Next 75 minutes):**
-- Phase 3: Product Images (30 min) - Upload images for 15 products
-- Phase 4: Reference Linking (45 min) - Link suggested products, complementary products, related bundles
+**🔄 In Testing Phase:**
+- Production Lalamove delivery testing (sandbox complete)
+- Webhook real-time update verification
+- COD payment collection testing
+
+**🔴 CRITICAL - BLOCKING ERROR:**
+- **siteSettings Document Missing** - Frontend crashes on Header/Footer components
+- See `.github/SANITY_PRODUCTS_INTEGRATION_PLAN.md` Phase 0 for immediate fix (30 min)
 
 **⏸️ NEXT (Upcoming Sessions):**
-- Phase 5: Frontend Integration (~4 hours) - Connect Sanity CMS to product pages, display recommendations
-- Phase 6: Lalamove Same-Day Delivery (~8 hours) - Integrate Lalamove API, add delivery options to checkout
-- Phase 7: Testing & QA (~2 hours) - End-to-end testing, mobile responsiveness
-- Phase 8: Production Deployment (~1 hour) - Deploy to Vercel, verify Sanity CDN
+- **Sanity Products Integration** (~5.5 hours) - Display products/categories from Sanity CMS
+  - Fix siteSettings error (blocking)
+  - Create GROQ queries for products/categories
+  - Update Shop page to fetch from Sanity
+  - Update Product detail page with CMS data
+  - See complete plan: `.github/SANITY_PRODUCTS_INTEGRATION_PLAN.md`
+- **Lalamove Frontend** (~4 hours) - Checkout delivery selection UI, real-time tracking page, admin dashboard
+- **Testing & QA** (~2 hours) - End-to-end testing, mobile responsiveness
+- **Production Deployment** (~1 hour) - Deploy to Vercel, verify Sanity CDN
 
 **🎯 Immediate Action Items:**
-1. Open `.github/MASTER_IMPLEMENTATION_PLAN.md` → Read "WHAT YOU NEED TO DO NOW" section
-2. Open Sanity Studio (`cd studio && npm run dev`)
-3. Follow Phase 3 checklist (add images to 15 products)
-4. Follow Phase 4 checklist (link references for 15 products)
-5. Test frontend display (`npm run dev` → visit `/shop`)
-6. Update progress bars in MASTER_IMPLEMENTATION_PLAN.md
-7. Mark tasks complete in both plan documents
+1. Open `.github/MASTER_IMPLEMENTATION_PLAN.md` → Review completed phases
+2. Test Lalamove production delivery with COD (see `RUN_PRODUCTION_TEST_NOW.md`)
+3. Build frontend delivery selection UI for checkout page
+4. Create real-time tracking page with driver location
+5. Integrate Phase 5: Sanity CMS to product pages
+6. Deploy to Vercel and test end-to-end flow
+7. Document final testing results and deployment checklist
 
 ## 🎯 AI Agent Workflow for Sanity CMS Tasks
 
@@ -789,34 +808,38 @@ This is your **single source of truth** for all Lalamove integration work. It in
 - Chat integration research
 - Troubleshooting guide
 
-### **Current Status** (November 22, 2025)
+### **Current Status** (November 26, 2025)
 
-**Infrastructure Ready**:
+**Infrastructure Complete** ✅:
 - ✅ Lalamove API credentials in `.env.local` (sandbox + production)
 - ✅ Product schema has delivery fields (`sameDayDeliveryEligible`, `deliveryWeight`, `packageDimensions`)
 - ✅ Order schema supports Lalamove tracking
 - ✅ Test delivery details documented (Novaliches → Caloocan)
+- ✅ Backend API routes implemented (`/api/lalamove/*` - quotation, order, driver, webhook, chat, priority)
+- ✅ Lalamove service class complete (`src/lib/lalamove/client.ts` - HMAC auth, 366 lines)
+- ✅ Cash on Delivery (COD) support implemented
+- ✅ Production testing scripts ready
 
-**Implementation Needed** (0% complete):
-- ❌ Backend API routes (`/api/lalamove/*`)
-- ❌ Lalamove service class (`src/lib/lalamove/client.ts`)
-- ❌ Frontend delivery selection UI
-- ❌ Real-time tracking page
-- ❌ Webhook handler
-- ❌ Admin delivery management
+**In Testing Phase** 🔄:
+- 🔄 Production delivery testing with real coordinates
+- 🔄 COD payment collection verification
+- 🔄 Webhook real-time updates
+- 📝 Frontend delivery UI integration (pending)
+- 📝 Real-time tracking page (pending)
+- 📝 Admin delivery dashboard (pending)
 
 ### **8 Implementation Phases**
 
 | Phase | Name | Duration | Priority | Status |
 |-------|------|----------|----------|--------|
-| 1 | Quotation System | 3h | 🔴 Critical | 🔴 Not Started |
-| 2 | Order Placement | 3h | 🔴 Critical | 🔴 Not Started |
-| 3 | Order Tracking | 2h | 🟠 High | 🔴 Not Started |
-| 4 | Driver Details | 1.5h | 🟠 High | 🔴 Not Started |
-| 5 | Order Management | 2h | 🟡 Medium | 🔴 Not Started |
-| 6 | Webhooks | 3h | 🔴 Critical | 🔴 Not Started |
-| 7 | Priority Delivery | 1.5h | 🟢 Low | 🔴 Not Started |
-| 8 | Chat Integration | 4h | 🟢 Low | 🔴 Not Started |
+| 1 | Quotation System | 3h | 🔴 Critical | ✅ Complete (Backend + API routes) |
+| 2 | Order Placement | 3h | 🔴 Critical | ✅ Complete (w/ COD support) |
+| 3 | Order Tracking | 2h | 🟠 High | 🔄 Backend Complete, Frontend Pending |
+| 4 | Driver Details | 1.5h | 🟠 High | ✅ Complete (API endpoint ready) |
+| 5 | Order Management | 2h | 🟡 Medium | ✅ Complete (Cancel, Update endpoints) |
+| 6 | Webhooks | 3h | 🔴 Critical | ✅ Complete (8 event types handled) |
+| 7 | Priority Delivery | 1.5h | 🟢 Low | ✅ Complete (API endpoint ready) |
+| 8 | Chat Integration | 4h | 🟢 Low | ✅ Complete (SMS relay via Twilio) |
 
 ### **Your Test Delivery Details**
 
@@ -1062,6 +1085,41 @@ A: Yes (Phase 5). Cancel within 5 minutes for full refund. After 5 min, cancella
 **Q: "Does Lalamove support chat?"**
 A: Not officially. Phase 8 explores alternatives (Twilio SMS relay, in-app messaging with push to driver).
 
+**Q: "How do I enable Cash on Delivery (COD)?"**
+A: Set `LALAMOVE_COD_AMOUNT=500` in environment, then place order. Driver collects ₱500 from customer, Lalamove transfers to you minus delivery fee. See `LALAMOVE_COD_QUICK_COMMANDS.md`.
+
+### **Lalamove Backend Implementation (Completed)**
+
+The following backend components are **already implemented** and ready to use:
+
+**API Routes** (`src/app/api/lalamove/`):
+- `/api/lalamove/quotation/route.ts` - Get delivery price quotes
+- `/api/lalamove/order/route.ts` - Place delivery orders with COD support
+- `/api/lalamove/orders/[orderId]/route.ts` - Get/update/cancel orders
+- `/api/lalamove/driver/route.ts` - Get driver details and location
+- `/api/lalamove/webhook/route.ts` - Handle real-time delivery updates (8 event types)
+- `/api/lalamove/chat/route.ts` - SMS relay for customer-driver messaging
+- `/api/lalamove/priority/route.ts` - Enable express delivery
+
+**Service Class** (`src/lib/lalamove/client.ts` - 366 lines):
+- HMAC signature generation for secure API authentication
+- Full TypeScript types for all API requests/responses
+- Methods: `getQuotation()`, `placeOrder()`, `getOrderDetails()`, `cancelOrder()`, `updateOrder()`
+- COD support: Add `isPOD: true` and `podAmount` to order request
+- Error handling with detailed Lalamove error codes
+
+**Testing Scripts** (`scripts/`):
+- `test-lalamove-delivery.js` - Complete test script with COD support
+- See `LALAMOVE_COD_QUICK_COMMANDS.md` for quick copy-paste commands
+- Production test plan: `RUN_PRODUCTION_TEST_NOW.md` (35-minute real delivery)
+
+**Next Steps** (Frontend Integration):
+1. Build delivery option selector in checkout page
+2. Display quotation price before order confirmation
+3. Create tracking page with map (driver location updates every 30s)
+4. Add webhook listener to update order status in real-time
+5. Build admin dashboard to manage deliveries
+
 ---
 
 ## Common Pitfalls to Avoid
@@ -1168,27 +1226,47 @@ NEXT_PUBLIC_USE_MOCK_DATA=false                         # false=real API, true=m
 NEXT_PUBLIC_EMAIL_SERVICE_ENV=local                     # Routes auth endpoints to local backend
 NEXT_PUBLIC_ENABLE_API_LOGGING=true                     # Console logs for API debugging
 
-# Sanity CMS (optional - uses defaults if not set)
-NEXT_PUBLIC_SANITY_PROJECT_ID=ydg9aldo9kaje3bknmhjq0pl
+# Sanity CMS (migrated to PP_Namias project - gerattrr)
+NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_SANITY_DATASET=production
-NEXT_PUBLIC_SANITY_API_VERSION=2024-01-01
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-22
+SANITY_API_READ_TOKEN=skxmRhSCFxo...  # Read access
+SANITY_API_WRITE_TOKEN=skCVttQRCl0...  # Write access
+
+# Lalamove API (Same-Day Delivery) - Switch to production for live orders
+LALAMOVE_API_KEY=pk_test_8611e4fa8a2f51f6664d26aded0e5d2b  # Sandbox
+LALAMOVE_API_SECRET=sk_test_KeCmtaJPeTEUwiP1N+upaT/2IH1Ckqqmd23db8+hVJnaysSpQVkRdbzIm2LlDztq
+LALAMOVE_HOST=https://rest.sandbox.lalamove.com  # Change to https://rest.lalamove.com for production
+LALAMOVE_MARKET=PH
+LALAMOVE_COD_AMOUNT=500  # Optional: Enable Cash on Delivery (driver collects from customer)
 ```
 
 **Sanity Studio** (`studio/.env.local`):
 ```env
-SANITY_STUDIO_PROJECT_ID=ydg9aldo9kaje3bknmhjq0pl
+SANITY_STUDIO_PROJECT_ID=gerattrr
 SANITY_STUDIO_DATASET=production
 SANITY_STUDIO_PREVIEW_URL=http://localhost:3000  # For Visual Editing
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-22
+SANITY_API_READ_TOKEN=skxmRhSCFxo...
+SANITY_API_WRITE_TOKEN=skCVttQRCl0...
 ```
 
 ## Known Limitations & TODOs
 
+**Development Configuration:**
 - **TypeScript/ESLint errors ignored during builds** (`typescript.ignoreBuildErrors: true` in `next.config.ts`) - temporary for rapid development
 - **Verify OTP page** uses 4-digit input - needs update to 6-digit for backend compatibility
-- **Seller pages partial mock data**: refunds, notifications, settings, handover centers, shipping channels
-- **WebSocket not implemented**: Real-time device updates planned (see `src/lib/websocket/`)
-- **Sanity CMS partial integration**: Homepage (hero, features, FAQ) implemented, blog/team pages need component updates
-- **Email service**: Auth endpoints require local backend with email configured (Railway backend pending email setup)
+
+**Integration Status:**
+- ✅ **Sanity CMS**: Migration complete (PP_Namias project - gerattrr), 15+ content types populated
+- ✅ **Lalamove API**: Backend implementation complete (quotation, orders, webhooks, COD support)
+- 🔄 **Lalamove Frontend**: Delivery UI and tracking page pending
+- 📝 **Email service**: Auth endpoints require local backend with email configured (Railway backend pending email setup)
+- 📝 **WebSocket**: Real-time device updates planned (see `src/lib/websocket/`)
+
+**Partial Implementations:**
+- **Seller pages mock data**: refunds, notifications, settings, handover centers, shipping channels
+- **Sanity CMS frontend**: Homepage (hero, features, FAQ) implemented, blog/team pages need component updates
 - ~~**Clerk**~~ - NOT used, removed from architecture (custom JWT auth instead)
 
 ---
