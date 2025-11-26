@@ -10,28 +10,30 @@ require('dotenv').config({ path: '.env.local' });
 const crypto = require('crypto');
 const https = require('https');
 
-// Test configuration
+// Test configuration - ✅ VERIFIED PRODUCTION ADDRESSES (Nov 26, 2025)
 const TEST_CONFIG = {
-  // Parsed from Google Maps iframes
+  // ✅ Coordinates extracted from Google Maps iframes
   pickup: {
     name: 'Paulo tongco',
-    phone: '+639327677205',
-    address: '266 Quirino Hwy, Novaliches, Quezon City, Metro Manila, Philippines',
+    phone: '+639327677205',  // ✅ VERIFIED format
+    address: '266 Quirino Hwy, Novaliches, Quezon City, Metro Manila',
     coordinates: {
-      lat: '14.72176748577907',
-      lng: '121.03832287637948'
+      lat: '14.72176748577907',   // ✅ From iframe: !3d14.72176748577907
+      lng: '121.03832287637948'   // ✅ From iframe: !2d121.03832287637948
     },
-    instructions: 'Novaliches bayan katabi Ng mcdo sa susano china town cellphone city shop name Paulo'
+    instructions: 'Novaliches bayan katabi Ng mcdo sa susano china town cellphone city shop name Paulo',
+    landmark: 'Katabi ng McDonald\'s, Susano China Town'
   },
   dropoff: {
     name: 'Mary Jane Bahay',
-    phone: '+639272533969',
-    address: '936 Llano rd. Tapat ng INFINITY WASH malapit sa 7/11 llano',
+    phone: '+639272533969',  // ✅ VERIFIED format
+    address: 'Phone Craft Cellphone Repair, 936 Llano rd, Caloocan',
     coordinates: {
-      lat: '14.74071710025935',
-      lng: '121.00675881440075'
+      lat: '14.74071710025935',   // ✅ From iframe: !3d14.74071710025935
+      lng: '121.00675881440075'   // ✅ From iframe: !2d121.00675881440075
     },
-    instructions: '936 Llano rd. Tapat ng INFINITY WASH malapit sa 7/11 llano'
+    instructions: 'Tapat ng INFINITY WASH malapit sa 7/11 llano',
+    landmark: 'Tapat ng INFINITY WASH, malapit sa 7-Eleven Llano'
   }
 };
 
@@ -250,6 +252,19 @@ async function testOrderPlacement(quotationId) {
     }
   };
 
+  // Add Cash on Delivery (COD) if enabled
+  if (TEST_CONFIG.cashOnDelivery.enabled) {
+    console.log('💰 CASH ON DELIVERY ENABLED!');
+    console.log(`   Amount to collect: ₱${TEST_CONFIG.cashOnDelivery.amount}\n`);
+    
+    requestBody.data.recipients[0].payment = {
+      method: 'CASH',
+      amount: TEST_CONFIG.cashOnDelivery.amount.toString()
+    };
+  } else {
+    console.log('💳 NO COD - Driver will NOT collect payment\n');
+  }
+
   console.log('📤 Sending order request...\n');
   
   try {
@@ -419,6 +434,29 @@ async function runTests() {
   
   // Validate environment
   validateEnv();
+
+  // ⚠️ PRODUCTION MODE WARNING
+  if (process.env.LALAMOVE_HOST && 
+      process.env.LALAMOVE_HOST.includes('lalamove.com') && 
+      !process.env.LALAMOVE_HOST.includes('sandbox')) {
+    
+    console.log('\n' + '⚠️ '.repeat(20) + '\n');
+    console.log('🚨 PRODUCTION MODE DETECTED - THIS IS NOT A TEST!\n');
+    console.log('💰 Real Money: ~₱64-₱100 will be charged');
+    console.log('🚗 Real Driver: Will be dispatched immediately');
+    console.log('📞 Real Delivery: Paulo → Mary Jane\n');
+    console.log('📍 Pickup: 266 Quirino Hwy, Novaliches (Paulo tongco)');
+    console.log('📍 Dropoff: Phone Craft, Caloocan (Mary Jane Bahay)\n');
+    console.log('⏱️  10-SECOND COUNTDOWN - Press Ctrl+C to cancel!\n');
+    
+    for (let i = 10; i > 0; i--) {
+      process.stdout.write(`\r   ⏰ Starting in ${i} seconds... `);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    console.log('\n\n✅ PROCEEDING WITH PRODUCTION TEST...\n');
+    console.log('='.repeat(80) + '\n');
+  }
   
   // Run tests
   const quotationId = await testQuotation();

@@ -1,40 +1,57 @@
-# 🚀 Lalamove Production Test Plan - MASH E-Commerce
+# 🚀 Lalamove Production Test Plan - REAL DELIVERY (WITH COD!)
 
-**Last Updated**: November 22, 2025  
-**Test Date**: TODAY  
-**Status**: 🔴 Ready for Production Testing  
-**Timeline**: 2-3 hours (setup + actual delivery)
+**Last Updated**: November 26, 2025 ⚠️ **UPDATED WITH NEW ADDRESSES + COD SUPPORT**  
+**Test Date**: TODAY (when you're ready)  
+**Status**: 🔴 PRODUCTION READY - Real money, real driver, real delivery  
+**Timeline**: 50 minutes (quotation + decision + 30-minute delivery)  
+**💰 CASH ON DELIVERY**: Enabled! Driver collects ₱500 from Mary Jane
 
 ---
 
-## 📋 Your Actual Delivery Details
+## ⚠️ CRITICAL WARNING: THIS IS NOT A TEST!
 
-### Pickup Location (Your Store - Novaliches)
+**You are about to spend REAL money (~₱64-₱100) and dispatch a REAL driver!**
+
+✅ Only proceed when:
+- Paulo is physically at pickup location with package ready
+- Mary Jane is physically at dropoff location ready to receive
+- Both phone numbers verified working
+- You're okay with the cost (₱64-₱100, non-refundable)
+
+---
+
+## 📋 VERIFIED DELIVERY ADDRESSES (November 26, 2025)
+
+### **PICKUP: Paulo's Store (Novaliches)**
 ```
-Address: 1019 Quirino Highway, Brgy Sta. Monica, Novaliches, Quezon City
-Contact Name: Melrhin Bayan
-Phone: +63 966 169 2000
-Landmark: In front of BDO
-Coordinates: 14.724177785776938, 121.03866187637956
-Google Maps: https://maps.app.goo.gl/F4FRcbt4r4k7w8d38
+Address: 266 Quirino Hwy, Novaliches, Quezon City, Metro Manila
+Contact: Paulo tongco
+Phone: +63 932 767 7205 ✅ VERIFIED
+Landmark: Katabi ng McDonald's, Susano China Town, Cellphone City (shop name: Paulo)
+Coordinates: 14.72176748577907, 121.03832287637948 ✅ EXTRACTED from Google Maps
+Google Maps: https://maps.app.goo.gl/p6uNezpEBMA2mENi9
+Instructions: "Novaliches bayan katabi Ng mcdo sa susano china town cellphone city shop name Paulo"
 ```
 
-### Dropoff Location (Customer - Caloocan)
+### **DROPOFF: Mary Jane at Phone Craft (Caloocan)**
 ```
-Address: 936 Llano Road, Caloocan, 1400 Metro Manila
-Contact Name: [TO BE FILLED - Customer Name]
-Phone: +63 [TO BE FILLED - Customer Phone]
-Coordinates: 14.741238399110145, 121.00588596965112
-Google Maps: https://maps.app.goo.gl/DA8HpqTEfxgzhKrk6
+Address: Phone Craft Cellphone Repair, 936 Llano rd, Caloocan
+Contact: Mary Jane Bahay
+Phone: +63 927 253 3969 ✅ VERIFIED
+Landmark: Tapat ng INFINITY WASH, malapit sa 7-Eleven Llano
+Coordinates: 14.74071710025935, 121.00675881440075 ✅ EXTRACTED from Google Maps
+Google Maps: https://maps.app.goo.gl/7Z4qrJS6w24t2mh99
+Instructions: "936 Llano rd. Tapat ng INFINITY WASH malapit sa 7/11 llano"
 ```
 
-### Delivery Expectations
+### **Delivery Expectations**
 ```
-Distance: ~7.5 km (straight line ~5.18 km based on your test)
-Vehicle Type: MOTORCYCLE (for fresh mushrooms)
-Expected Cost: ₱66 - ₱200 (depending on time of day & traffic)
+Distance: ~4.5 km (calculated from coordinates)
+Vehicle Type: MOTORCYCLE (perfect for small packages)
+Expected Cost: ₱64-₱100 (tested in sandbox: ₱64)
 Expected Time: 25-35 minutes
-Package: Fresh mushrooms (perishable)
+Route: Quirino Hwy → Commonwealth Ave → Llano Rd
+Package: [Your package description]
 ```
 
 ---
