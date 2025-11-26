@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       recipientPhone,
       orderNumber,
       remarks,
+      payment, // COD support: { method: 'CASH', amount: '500' }
     } = body;
     
     // Validate required fields
@@ -65,6 +66,13 @@ export async function POST(request: NextRequest) {
           name: recipientName || 'Customer',
           phone: recipientPhone,
           remarks: remarks || `Order #${orderNumber}\nFresh Mushrooms\nKeep refrigerated\nHandle with care`,
+          // Add Cash on Delivery (COD) if provided
+          ...(payment && {
+            payment: {
+              method: payment.method || 'CASH',
+              amount: payment.amount.toString(),
+            },
+          }),
         },
       ],
       isPODEnabled: true, // Enable Proof of Delivery photo
