@@ -17,18 +17,39 @@ import { useSanityAboutPage } from "@/hooks/useSanityAboutPage";
  * - Mentor section with thesis adviser info
  * - Team members section (fetched from person documents)
  */
+
+// Helper to convert PortableText blocks to plain strings
+function portableTextToStrings(blocks: any[] | undefined): string[] {
+  if (!blocks || !Array.isArray(blocks)) return [];
+  
+  return blocks
+    .filter(block => block._type === 'block')
+    .map(block => {
+      if (block.children && Array.isArray(block.children)) {
+        return block.children
+          .filter((child: any) => child._type === 'span')
+          .map((child: any) => child.text || '')
+          .join('');
+      }
+      return '';
+    })
+    .filter(text => text.trim() !== '');
+}
+
 export default function AboutPage() {
   const { content, loading, error } = useSanityAboutPage();
 
   // Transform Sanity content to match CMSAboutSection props
   const hero = content ? {
+    isActive: true,
     title: content.heroTitle,
     subtitle: content.heroSubtitle,
-    backgroundImage: content.heroImage,
+    backgroundImage: content.heroImage?.url,
   } : undefined;
 
-  const challenges = content?.challenges ? {
-    title: content.challengesTitle,
+  const challenges = content?.challenges?.length ? {
+    isActive: true,
+    title: content.challengesTitle || "The Challenge Facing Filipino Growers",
     subtitle: content.challengesSubtitle,
     items: content.challenges.map((c) => ({
       id: c._key,
@@ -38,10 +59,11 @@ export default function AboutPage() {
     })),
   } : undefined;
 
-  const solutions = content?.solutions ? {
-    title: content.solutionsTitle,
+  const solutions = content?.solutions?.length ? {
+    isActive: true,
+    title: content.solutionsTitle || "Our Solution: The M.A.S.H. System",
     subtitle: content.solutionsSubtitle,
-    items: content.solutions.map((s) => ({
+    solutions: content.solutions.map((s) => ({
       id: s._key,
       icon: s.icon || "CheckCircle",
       title: s.title,
@@ -49,29 +71,33 @@ export default function AboutPage() {
     })),
   } : undefined;
 
-  const vision = content ? {
+  // Convert PortableText to plain strings for vision content
+  const visionContentArray = portableTextToStrings(content?.visionContent);
+
+  const vision = content?.visionTitle ? {
+    isActive: true,
     title: content.visionTitle,
-    subtitle: content.visionSubtitle,
-    description: content.visionDescription,
-    image: content.visionImage,
-    goals: content.visionGoals || [],
+    content: visionContentArray.length > 0 ? visionContentArray : ["Building a sustainable future for Philippine mushroom cultivation through innovation and technology."],
+    callToAction: content.visionCTA || "Join us in growing the mushroom movement!",
   } : undefined;
 
   const mentor = content?.mentor ? {
-    title: "Our Thesis Adviser",
-    subtitle: content.mentorSubtitle,
-    name: content.mentor.name,
-    role: content.mentor.role,
-    bio: content.mentor.bio,
-    image: content.mentor.picture,
-    credentials: content.mentor.specializations || [],
+    isActive: true,
+    title: content.mentorTitle || "Our Thesis Adviser",
+    subtitle: content.mentorSubtitle || "Guiding our team towards academic excellence",
+    mentor: {
+      name: content.mentor.fullName,
+      title: content.mentor.role || "Thesis Adviser",
+      avatar: content.mentor.picture?.url,
+      bio: content.mentor.shortBio,
+    },
   } : undefined;
 
   // Transform team members from Sanity format
   const team = content?.teamMembers?.map((member) => ({
-    name: member.name,
+    name: member.fullName,
     role: member.role || "Team Member",
-    image: member.picture,
+    image: member.picture?.url,
     bio: member.shortBio,
     socialLinks: member.socialLinks,
   })) || [];
