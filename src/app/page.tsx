@@ -6,13 +6,13 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/product/ProductCard";
-import { useHomePageData } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
 import { CMSFeatureSection } from "@/components/cms/FeatureSection";
 import { useFeatureSections } from "@/hooks/useCMS";
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
+import { useSanityGrowers } from "@/hooks/useSanityGrowers"; // Phase 1: Use Sanity for growers
 import {
   ProductListSkeleton,
   GrowerListSkeleton,
@@ -272,20 +272,24 @@ const FeaturedCategoriesSection: React.FC = () => {
 
 const GrowerCard: React.FC<{
   grower: {
-    id: number;
+    id: string;
     name: string;
+    slug: string;
     logo?: string;
-    banner?: string;
+    image?: string;
+    coverImage?: string;
     location?: string;
     tagline?: string;
+    bio?: string;
+    isVerified?: boolean;
   };
 }> = ({ grower }) => (
   <Card className="flex flex-col h-full min-h-[380px] overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
     {/* Banner image or colored bar at top */}
-    {grower.banner ? (
+    {grower.coverImage ? (
       <div className="relative h-32 w-full">
         <Image
-          src={grower.banner}
+          src={grower.coverImage}
           alt={`${grower.name} banner`}
           fill
           className="object-cover"
@@ -300,34 +304,39 @@ const GrowerCard: React.FC<{
       <div className="flex-grow flex flex-col">
         <div className="flex justify-center -mt-10 mb-4 relative z-10">
           <Image
-            src={grower.logo || "/placeholder.png"}
+            src={grower.logo || grower.image || "/placeholder.png"}
             alt={grower.name}
             width={80}
             height={80}
-            className="rounded-full shadow-lg border-4 border-background bg-background"
+            className="rounded-full shadow-lg border-4 border-background bg-background object-cover"
           />
         </div>
-        <h3 className="text-2xl font-semibold mb-1 text-foreground">
-          {grower.name}
-        </h3>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <h3 className="text-2xl font-semibold text-foreground">
+            {grower.name}
+          </h3>
+          {grower.isVerified && (
+            <span title="Verified Seller" className="text-primary">✓</span>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm mb-3">
           {grower.location || "Location not specified"}
         </p>
         <p className="text-muted-foreground text-sm italic">
-          &ldquo;{grower.tagline || "Quality mushrooms from local growers"}
+          &ldquo;{grower.tagline || grower.bio || "Quality mushrooms from local growers"}
           &rdquo;
         </p>
       </div>
       {/* Action links - always at bottom with mt-auto */}
       <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-border">
         <Link
-          href={`/grower/${grower.id}`}
+          href={`/grower/${grower.slug || grower.id}`}
           className="text-primary font-semibold hover:underline text-sm"
         >
           Visit Store
         </Link>
         <Link
-          href={`/grower/${grower.id}`}
+          href={`/grower/${grower.slug || grower.id}`}
           className="text-muted-foreground hover:underline text-sm"
         >
           Read More
@@ -338,7 +347,8 @@ const GrowerCard: React.FC<{
 );
 
 const FeaturedGrowersSection: React.FC = () => {
-  const { homeData, loading, error } = useHomePageData();
+  // Phase 1: Use Sanity CMS for growers (replaces useHomePageData)
+  const { growers, loading, error } = useSanityGrowers({ isActive: true, limit: 6 });
 
   if (loading) {
     return (
@@ -360,7 +370,7 @@ const FeaturedGrowersSection: React.FC = () => {
 
   // Silently hide section if backend API is unavailable
   // (This prevents 404 errors from breaking the homepage)
-  if (error || !homeData?.topGrowers || homeData.topGrowers.length === 0) {
+  if (error || !growers || growers.length === 0) {
     return null;
   }
 
@@ -377,7 +387,7 @@ const FeaturedGrowersSection: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          {homeData?.topGrowers?.slice(0, 3).map((grower) => (
+          {growers.slice(0, 3).map((grower) => (
             <GrowerCard key={grower.id} grower={grower} />
           ))}
         </div>
