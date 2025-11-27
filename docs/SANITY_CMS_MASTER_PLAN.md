@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Last Updated:** November 27, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -15,7 +15,7 @@
 | **Phase 1.5** | Grower Images & Google Maps | ✅ **COMPLETE** | 100% |
 | **Phase 2** | FAQ Schema & Integration | ✅ **COMPLETE** | 100% |
 | **Phase 3** | Fix Category/Product Filtering | ✅ **COMPLETE** | 100% |
-| Phase 4 | Feature Section Schema | ⏳ Pending | 0% |
+| **Phase 4** | Feature Section Schema | ✅ **COMPLETE** | 100% |
 | Phase 5 | Navigation & Site Settings | ⏳ Pending | 0% |
 | Phase 6 | Testimonials & Banners | ⏳ Pending | 0% |
 | Phase 7 | Final Integration & Testing | ⏳ Pending | 0% |
@@ -48,6 +48,16 @@
 - [x] Category checkboxes now display `category.name` but use `category.slug` for filtering
 - [x] Fixed both desktop and mobile filter sidebars
 - [x] GROQ query `category->slug.current == "${filters.category}"` now works correctly
+
+### Phase 4 Deliverables ✅ (Feature Section - "Why MASH")
+- [x] Created `studio/src/schemaTypes/documents/featureSection.ts` (15+ fields, 2 groups)
+- [x] Schema includes: title, subtitle, features array, background style, columns, displayOrder
+- [x] Features array supports: icon (15 Lucide icons), headline, subheadline, link, isActive
+- [x] Created `src/hooks/useSanityFeatures.ts` with cache and real-time support
+- [x] Created `src/components/cms/SanityFeatureSection.tsx` with dynamic icon rendering
+- [x] Updated homepage to use `useSanityFeatures()` instead of old JSON-based hook
+- [x] Migrated 2 feature sections (7 features total) via `scripts/migrate-features-to-sanity.js`
+- [x] Homepage "Why MASH" section now fully editable in Sanity Studio
 
 ---
 
@@ -196,9 +206,9 @@ toggleCategory(category.slug) // "fresh-mushrooms"
 **Status:** ✅ RESOLVED in Phase 2
 **Solution:** Created faqCategory + faqItem schemas, migrated 19 FAQs, updated FAQ page
 
-#### 5. ❌ No Feature Section Schema
-**Impact:** "Why MASH" section on homepage not editable in CMS
-**Current:** Likely hardcoded in frontend
+#### 5. ✅ ~~No Feature Section Schema~~ (FIXED - Phase 4)
+**Status:** ✅ RESOLVED in Phase 4
+**Solution:** Created featureSection schema with 15+ fields, migrated 2 sections (7 features), homepage now uses Sanity
 
 ### Medium Priority Issues
 

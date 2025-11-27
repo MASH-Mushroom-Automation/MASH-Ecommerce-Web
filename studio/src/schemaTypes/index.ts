@@ -14,6 +14,7 @@ import {analytics} from './documents/analytics'
 import {grower} from './documents/grower' // Phase 1: Growers Schema
 import {faqCategory} from './documents/faqCategory' // Phase 2: FAQ Categories
 import {faqItem} from './documents/faqItem' // Phase 2: FAQ Items
+import {featureSection} from './documents/featureSection' // Phase 4: Feature Sections
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -36,6 +37,7 @@ export const schemaTypes = [
   grower, // Phase 1: Growers/Farms
   faqCategory, // Phase 2: FAQ Categories
   faqItem, // Phase 2: FAQ Items
+  featureSection, // Phase 4: Feature Sections (Why MASH)
   category,
   product,
   review,

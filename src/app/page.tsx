@@ -8,8 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
-import { CMSFeatureSection } from "@/components/cms/FeatureSection";
-import { useFeatureSections } from "@/hooks/useCMS";
+import { SanityFeatureSection } from "@/components/cms/SanityFeatureSection"; // Phase 4: Use Sanity
+import { useSanityFeatures } from "@/hooks/useSanityFeatures"; // Phase 4: Sanity hook
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import { useSanityGrowers } from "@/hooks/useSanityGrowers"; // Phase 1: Use Sanity for growers
@@ -24,7 +24,8 @@ const HeroSection: React.FC = () => {
 };
 
 const WhyMASHSection: React.FC = () => {
-  const { features, loading, error } = useFeatureSections();
+  // Phase 4: Use Sanity CMS for feature sections
+  const { features, loading, error } = useSanityFeatures({ homepageOnly: true });
 
   if (loading) {
     return (
@@ -52,7 +53,7 @@ const WhyMASHSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-red-600 mb-4">Error: {error?.message || 'Failed to load features'}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -64,7 +65,8 @@ const WhyMASHSection: React.FC = () => {
     return null;
   }
 
-  return <CMSFeatureSection data={features[0]} />;
+  // Phase 4: Render feature sections from Sanity CMS
+  return <SanityFeatureSection data={features[0]} />;
 };
 
 const FeaturedProductsSection: React.FC = () => {
