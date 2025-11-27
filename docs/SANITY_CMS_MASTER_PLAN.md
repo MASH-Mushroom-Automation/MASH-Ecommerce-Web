@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 4.0  
+**Version:** 5.0  
 **Last Updated:** November 28, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -20,7 +20,36 @@
 | **Phase 6** | Store/Location Pages | ✅ **COMPLETE** | 100% |
 | **Phase 7** | Testimonials & Banners | ✅ **COMPLETE** | 100% |
 | **Phase 8** | Blog & Content Pages | ✅ **COMPLETE** | 100% |
-| **Phase 9** | Final Integration & Testing | ⏳ Pending | 0% |
+| **Phase 9** | Final Integration & Testing | 🔄 **IN PROGRESS** | 30% |
+| **Phase 10** | Grower-Store Linking & Enhancements | ⏳ Pending | 0% |
+
+---
+
+## 🚨 CRITICAL ISSUES TO FIX
+
+### 1. About Page Team Not Showing (✅ FIXED November 28, 2025)
+
+**Issue:** `challenges.challenges is undefined` error
+**Root Cause:** About page was passing `items` prop but `CMSAboutSection` expects `challenges` array of strings
+**Solution:** Fixed data transformation in `src/app/about/page.tsx`:
+- Changed `items` → `challenges` (string array)
+- Added default fallback data for team, challenges, solutions
+- Fixed `member.name` → `member.fullName`
+
+### 2. Growers Not Linked to Stores
+
+**Issue:** When viewing a grower profile, no connection to their store location
+**Impact:** Users can't find where to buy products from specific growers
+**Solution (Phase 10):** Add `growers` reference array to `store.ts` schema
+
+### 3. Products/Categories Not Showing Properly on Website
+
+**Issue:** Some products/categories may not display correctly
+**Checks Needed:**
+- [ ] Verify all products have `isAvailable: true` in Sanity
+- [ ] Verify categories have correct slugs for filtering
+- [ ] Check that product images are uploaded (not placeholders)
+- [ ] Ensure price > 0 for all products
 
 ---
 
@@ -1834,7 +1863,7 @@ scripts/
 
 ---
 
-**Document Version:** 4.0  
+**Document Version:** 5.0  
 **Last Updated:** November 28, 2025  
 **Author:** AI Assistant (GitHub Copilot)  
 **Project:** MASH Mushroom E-Commerce Platform
@@ -1843,9 +1872,397 @@ scripts/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 5.0 | Nov 28, 2025 | Fixed About page error, added team members to Sanity, comprehensive improvements list, Phase 9/10 planning |
 | 4.0 | Nov 28, 2025 | Phase 8 complete: Blog categories, About/Contact singletons, enhanced post.ts & person.ts |
 | 3.0 | Nov 27, 2025 | Phase 7 complete: Testimonials & Banners, E-Commerce Flow section, Schema improvements list |
 | 2.1 | Nov 27, 2025 | Phase 6 complete: Store/Location Pages |
 | 2.0 | Nov 27, 2025 | Phase 5 complete: Site Settings & Navigation |
 | 1.5 | Nov 26, 2025 | Phase 4 complete: Feature Sections |
 | 1.0 | Nov 25, 2025 | Initial document: Phases 1-3 |
+
+---
+
+## 🔴 COMPREHENSIVE IMPROVEMENTS LIST
+
+This section lists all identified issues and improvements organized by priority and category.
+
+### 🚨 CRITICAL (Must Fix Before Launch)
+
+| # | Issue | Category | Impact | Solution | Est. Time |
+|---|-------|----------|--------|----------|-----------|
+| 1 | About page team not showing | Bug | ✅ FIXED | Fixed data transformation in page.tsx | Done |
+| 2 | Products not showing proper images | Content | Users see placeholders | Upload images in Sanity Studio | 1 hr manual |
+| 3 | Categories not filtering correctly | Bug | Shop page broken | Verify category slugs match | 30 min |
+| 4 | Header/Footer not using CMS | Integration | Can't update nav from CMS | Connect to useSanityNavigation | 2 hrs |
+
+### 🟠 HIGH PRIORITY (Phase 9)
+
+| # | Issue | Category | Impact | Solution | Est. Time |
+|---|-------|----------|--------|----------|-----------|
+| 5 | Growers not linked to Stores | Schema | Can't find grower's store | Add growers[] to store.ts | 2 hrs |
+| 6 | Missing team member photos | Content | About page incomplete | Upload photos in Sanity | 30 min |
+| 7 | Blog posts need cover images | Content | Blog looks empty | Upload images in Sanity | 30 min |
+| 8 | Announcement bar not connected | Integration | Can't update site-wide alerts | Use siteSettings.announcementBar | 1 hr |
+| 9 | Missing product variants display | Feature | Can't select sizes | Update product detail page | 3 hrs |
+
+### 🟡 MEDIUM PRIORITY (Phase 10)
+
+| # | Issue | Category | Impact | Solution | Est. Time |
+|---|-------|----------|--------|----------|-----------|
+| 10 | Product tags not searchable | Schema | Limited discovery | Create productTag schema | 3 hrs |
+| 11 | Bundle savings not calculated | Feature | Manual entry needed | Add auto-calculate helper | 2 hrs |
+| 12 | Reviews not connected to products | Integration | No social proof | Link useSanityReviews to product | 2 hrs |
+| 13 | Missing nutritional info display | Feature | Health info hidden | Add nutrition section to product page | 2 hrs |
+| 14 | Lalamove integration incomplete | Feature | No same-day delivery | Complete delivery integration | 8 hrs |
+
+### 🟢 LOW PRIORITY (Future)
+
+| # | Issue | Category | Impact | Solution | Est. Time |
+|---|-------|----------|--------|----------|-----------|
+| 15 | Analytics dashboard | Feature | No insights | Build admin analytics page | 5 hrs |
+| 16 | Recipe ideas on products | Content | Less engagement | Add recipe section to product | 3 hrs |
+| 17 | Wishlist functionality | Feature | Can't save products | Implement wishlist with Sanity | 4 hrs |
+| 18 | Customer reviews form | Feature | Can't collect reviews | Add review submission form | 3 hrs |
+| 19 | Newsletter integration | Feature | Can't collect emails | Connect form to email service | 2 hrs |
+| 20 | Search functionality | Feature | Can't search products | Implement Sanity search | 4 hrs |
+
+---
+
+## 📊 CURRENT SANITY STUDIO LAYOUT
+
+This is how the Sanity Studio is organized at http://localhost:3333:
+
+```
+📁 SANITY STUDIO (xyq5fhxs)
+│
+├── 🛒 E-COMMERCE
+│   ├── 📦 Products (18 products)
+│   │   └── Fresh Oyster, Shiitake, Lion's Mane, Growing Kits, etc.
+│   ├── 📂 Categories (6 categories)
+│   │   └── Fresh Mushrooms, Dried Mushrooms, Growing Kits, Bundles, Accessories, Specialty
+│   ├── 📐 Product Variants (size/weight options)
+│   ├── 🎁 Product Bundles (package deals)
+│   └── ⭐ Featured Products (singleton - homepage display)
+│
+├── 👨‍🌾 GROWERS & FARMS
+│   └── 🌾 Growers (4 grower profiles)
+│       └── JM Mushroom Farm, Verde Farm, Happy Spore Farm, Novaliches Shroom
+│
+├── 🏪 STORES & LOCATIONS
+│   └── 📍 Stores (4 locations)
+│       └── Main Store, Pickup Points, Partner Stores, Distribution Center
+│
+├── 📝 BLOG (Phase 8)
+│   ├── 📰 Posts (3 sample posts)
+│   ├── 🏷️ Categories (5 categories)
+│   │   └── Recipes, Growing Tips, Health & Nutrition, News, Community
+│   └── 👤 Authors & Team (8 persons)
+│       └── Kevin, Irheil Mae, Catherine, Jin, Kenneth, Emannuel, Ronan + Joemen (Mentor)
+│
+├── 📣 MARKETING
+│   ├── ⭐ Testimonials (6 testimonials)
+│   ├── 🎨 Banners (6 banners across 9 positions)
+│   ├── 🎟️ Coupons (discount codes)
+│   └── 📢 Promotions (marketing campaigns)
+│
+├── ❓ FAQ
+│   ├── 📋 FAQ Categories (5 categories)
+│   │   └── General, Ordering, Delivery, Products, Growing
+│   └── ❔ FAQ Items (19 questions)
+│
+├── ⚙️ SETTINGS
+│   ├── 🌐 Site Settings (singleton - company info, contact, social)
+│   ├── 🔗 Navigation (5 menus)
+│   │   └── header-main, header-secondary, footer-shop, footer-support, footer-about
+│   ├── ✨ Feature Sections (2 sections - Why MASH)
+│   ├── 🏠 Hero Carousel (singleton - homepage slider)
+│   ├── 📄 About Page (singleton - team, vision, challenges)
+│   └── 📞 Contact Page (singleton - hours, location, form)
+│
+└── 📊 OTHER
+    ├── 📄 Pages (CMS pages)
+    ├── 📧 Email Campaigns
+    ├── 📈 Analytics
+    └── 🛍️ Orders
+```
+
+---
+
+## 🔄 DATA FLOW: Website to CMS
+
+### How Each Page Gets Its Data
+
+| Page | URL | Sanity Data Sources | Hook(s) Used |
+|------|-----|---------------------|--------------|
+| **Homepage** | `/` | heroCarousel, featuredProducts, categories, growers, testimonials, features | `useSanityHero`, `useSanityFeaturedProducts`, `useSanityCategories`, `useSanityGrowers`, `useSanityTestimonials`, `useSanityFeatures` |
+| **Shop** | `/shop` | products, categories, banners | `useSanityProducts`, `useSanityCategories`, `useSanityBanners` |
+| **Product Detail** | `/product/[slug]` | product, variants, reviews, suggestedProducts | `useSanityProduct`, `useSanityVariants`, `useSanityReviews` |
+| **Grower List** | `/grower` | growers | `useSanityGrowers` |
+| **Grower Detail** | `/grower/[id]` | grower (single) | `useSanityGrower(id)` |
+| **Store List** | `/stores` | stores | `useSanityStores` |
+| **Store Detail** | `/stores/[slug]` | store (single) | `useSanityStore(slug)` |
+| **FAQ** | `/faq` | faqCategories, faqItems | `useSanityFAQs` |
+| **About** | `/about` | aboutPage singleton, persons (team) | `useSanityAboutPage` |
+| **Contact** | `/contact` | contactPage singleton | `useSanityContactPage` |
+| **Blog List** | `/blog` | posts, blogCategories | `useSanityBlogPosts` |
+| **Blog Post** | `/blog/[slug]` | post (single), author | `useSanityBlogPost(slug)` |
+| **Header** | (all pages) | siteSettings, navigation | `useSanitySiteSettings`, `useSanityNavigation` |
+| **Footer** | (all pages) | siteSettings, navigation | `useSanitySiteSettings`, `useSanityNavigation` |
+
+---
+
+## 🛠️ PHASE 9: FINAL INTEGRATION & TESTING
+
+### Status: 🔄 IN PROGRESS (30%)
+
+**Goal:** Connect all remaining components to CMS and verify everything works
+
+### Task Checklist
+
+#### 9.1 Header & Footer CMS Connection (Priority: HIGH)
+
+- [ ] **Header Navigation**
+  - File: `src/components/layout/Header.tsx`
+  - Connect to `useSanityNavigation('header-main')`
+  - Add logo from `useSanitySiteSettings()`
+  - Add announcement bar from site settings
+
+- [ ] **Footer Integration**
+  - File: `src/components/layout/Footer.tsx`
+  - Connect to `useSanitySiteSettings()` for company info
+  - Connect to `useSanityNavigation('footer-shop')` etc.
+  - Add social links from site settings
+
+#### 9.2 About Page Final Fixes (Priority: HIGH) ✅ PARTIALLY DONE
+
+- [x] Fix `challenges.challenges is undefined` error
+- [x] Add default team data as fallback
+- [x] Transform data correctly for CMSAboutSection
+- [ ] Upload team member photos in Sanity Studio
+- [ ] Link mentor (Joemen Barrios) to about page
+- [ ] Add challenges content in Sanity
+
+#### 9.3 Content Upload in Sanity Studio (Priority: MEDIUM)
+
+- [ ] **Team Photos** - Upload profile pictures for all 8 team members
+- [ ] **Blog Images** - Upload cover images for 3 blog posts
+- [ ] **Product Images** - Ensure all 18 products have proper images
+- [ ] **Category Images** - Upload images for all 6 categories
+- [ ] **Grower Images** - Verify all 4 growers have farm photos
+
+#### 9.4 Feature Testing (Priority: HIGH)
+
+- [ ] **Homepage Sections**
+  - [ ] Hero carousel slides correctly
+  - [ ] Featured products show correct items
+  - [ ] Categories display with images
+  - [ ] Features section (Why MASH) renders
+  - [ ] Growers section shows farms
+  - [ ] Testimonials carousel works
+
+- [ ] **Shop Page**
+  - [ ] Products load from Sanity
+  - [ ] Category filtering works
+  - [ ] Price filtering works
+  - [ ] Sort options work
+  - [ ] Pagination works
+
+- [ ] **Product Detail Page**
+  - [ ] Main image displays
+  - [ ] Gallery works
+  - [ ] Variants selectable
+  - [ ] Add to cart works
+  - [ ] Related products show
+
+- [ ] **Other Pages**
+  - [ ] FAQ accordion works
+  - [ ] About page shows team
+  - [ ] Contact page shows info
+  - [ ] Blog posts render
+  - [ ] Store locations display
+
+#### 9.5 Mobile Responsiveness (Priority: MEDIUM)
+
+- [ ] Homepage on mobile
+- [ ] Shop page on mobile
+- [ ] Product detail on mobile
+- [ ] Navigation menu on mobile
+- [ ] Footer on mobile
+
+---
+
+## 🛠️ PHASE 10: GROWER-STORE LINKING & ENHANCEMENTS
+
+### Status: ⏳ PENDING
+
+**Goal:** Connect growers to stores and add missing features
+
+### Task Checklist
+
+#### 10.1 Grower-Store Linking (Priority: HIGH)
+
+**Problem:** Growers and Stores are separate with no connection
+
+**Solution:**
+
+1. **Update Store Schema** (`studio/src/schemaTypes/documents/store.ts`)
+   ```typescript
+   defineField({
+     name: 'growers',
+     title: 'Associated Growers',
+     description: 'Growers whose products are available at this store',
+     type: 'array',
+     of: [{ type: 'reference', to: [{ type: 'grower' }] }],
+     group: 'growers',
+   }),
+   ```
+
+2. **Update Grower Schema** (`studio/src/schemaTypes/documents/grower.ts`)
+   ```typescript
+   defineField({
+     name: 'stores',
+     title: 'Available At Stores',
+     description: 'Stores where this grower\'s products can be purchased',
+     type: 'array',
+     of: [{ type: 'reference', to: [{ type: 'store' }] }],
+     group: 'business',
+   }),
+   ```
+
+3. **Update Store Detail Page** - Show "Meet Our Growers" section
+4. **Update Grower Detail Page** - Show "Find Products At" section
+
+#### 10.2 Product Tag Enhancement (Priority: MEDIUM)
+
+**Problem:** `productTags` is just `string[]`, not searchable
+
+**Solution:** Create dedicated `productTag` schema
+
+```typescript
+// studio/src/schemaTypes/documents/productTag.ts
+export const productTag = defineType({
+  name: 'productTag',
+  title: 'Product Tag',
+  type: 'document',
+  fields: [
+    defineField({ name: 'name', type: 'string' }),
+    defineField({ name: 'slug', type: 'slug' }),
+    defineField({ name: 'color', type: 'string', options: { list: ['green', 'blue', 'purple', 'orange', 'red'] } }),
+    defineField({ name: 'icon', type: 'string' }),
+    defineField({ name: 'description', type: 'text' }),
+  ],
+});
+```
+
+#### 10.3 Bundle Discount Automation (Priority: LOW)
+
+**Problem:** Bundle savings calculated manually
+
+**Solution:** Add helper function to `useSanityBundles.ts`
+```typescript
+function calculateBundleSavings(bundle: SanityBundle): number {
+  const regularTotal = bundle.products.reduce((sum, p) => sum + p.price, 0);
+  return regularTotal - bundle.bundlePrice;
+}
+```
+
+#### 10.4 Review Integration (Priority: MEDIUM)
+
+**Problem:** Reviews exist but not displayed on product pages
+
+**Solution:**
+1. Create `useProductReviews(productId)` hook
+2. Add reviews section to product detail page
+3. Show average rating on product cards
+
+---
+
+## 📝 QUICK REFERENCE: Common Tasks
+
+### How to Add a New Product
+
+1. Open Sanity Studio: `cd studio && npm run dev` → http://localhost:3333
+2. Click **E-Commerce** → **Products** → **+ Create**
+3. Fill required fields: Name, Slug, Image, Price, Category
+4. Add optional: Description, Variants, Tags, Freshness Info
+5. Click **Publish** (green button)
+6. Product appears on website within 5 minutes (CDN cache)
+
+### How to Update Team Members
+
+1. Open Sanity Studio → **Blog** → **Authors & Team**
+2. Select team member to edit
+3. Update info (name, role, bio, photo)
+4. Click **Publish**
+5. About page updates automatically
+
+### How to Create a Banner
+
+1. Open Sanity Studio → **Marketing** → **Banners** → **+ Create**
+2. Set position (e.g., `homepage-top`, `shop-top`, `announcement`)
+3. Add headline, image, CTA button
+4. Set start/end dates for scheduling
+5. Toggle `isActive: true`
+6. Click **Publish**
+
+### How to Add FAQ
+
+1. Open Sanity Studio → **FAQ** → **FAQ Items** → **+ Create**
+2. Select category (General, Ordering, etc.)
+3. Enter question and answer (rich text)
+4. Set display order
+5. Click **Publish**
+
+---
+
+## 📁 KEY FILES REFERENCE
+
+### Schema Files (Sanity Studio)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `studio/src/schemaTypes/documents/product.ts` | 623 | Main product schema (30+ fields) |
+| `studio/src/schemaTypes/documents/grower.ts` | 380 | Grower/farm profiles (25 fields) |
+| `studio/src/schemaTypes/documents/store.ts` | 450 | Store locations (25+ fields) |
+| `studio/src/schemaTypes/documents/testimonial.ts` | 220 | Customer testimonials |
+| `studio/src/schemaTypes/documents/banner.ts` | 280 | Promotional banners |
+| `studio/src/schemaTypes/documents/post.ts` | 304 | Blog posts |
+| `studio/src/schemaTypes/documents/person.ts` | 284 | Team/authors |
+| `studio/src/schemaTypes/singletons/siteSettings.ts` | 541 | Global site config |
+| `studio/src/schemaTypes/singletons/aboutPage.ts` | 280 | About page content |
+| `studio/src/schemaTypes/singletons/contactPage.ts` | 280 | Contact page content |
+
+### React Hooks (Data Fetching)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/hooks/useSanityProducts.ts` | 450+ | Products, featured, bundles |
+| `src/hooks/useSanityGrowers.ts` | 561 | Grower profiles |
+| `src/hooks/useSanityStores.ts` | 400+ | Store locations |
+| `src/hooks/useSanityFAQ.ts` | 470 | FAQs with categories |
+| `src/hooks/useSanityFeatures.ts` | 335 | Feature sections |
+| `src/hooks/useSanitySiteSettings.ts` | 804 | Site settings + navigation |
+| `src/hooks/useSanityTestimonials.ts` | 413 | Customer testimonials |
+| `src/hooks/useSanityBanners.ts` | 477 | Promotional banners |
+| `src/hooks/useSanityAboutPage.ts` | 500 | About page singleton |
+| `src/hooks/useSanityContactPage.ts` | 503 | Contact page singleton |
+| `src/hooks/useSanityBlogPosts.ts` | 400+ | Blog posts |
+| `src/hooks/useSanityHero.ts` | 152 | Hero carousel |
+
+### Migration Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/migrate-growers-to-sanity.js` | 4 grower profiles |
+| `scripts/migrate-faq-to-sanity.js` | 5 categories, 19 FAQs |
+| `scripts/migrate-features-to-sanity.js` | 2 feature sections |
+| `scripts/migrate-site-settings-to-sanity.js` | Site settings + 5 navs |
+| `scripts/migrate-stores-to-sanity.js` | 4 store locations |
+| `scripts/migrate-testimonials-to-sanity.js` | 6 testimonials |
+| `scripts/migrate-banners-to-sanity.js` | 6 banners |
+| `scripts/migrate-phase8-content.js` | Blog, team, About, Contact |
+| `scripts/update-team-members.js` | Correct team member names |
+
+---
+
+**END OF DOCUMENT**

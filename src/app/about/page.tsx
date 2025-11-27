@@ -36,50 +36,84 @@ function portableTextToStrings(blocks: any[] | undefined): string[] {
     .filter(text => text.trim() !== '');
 }
 
+// Default team data (used as fallback if Sanity has no team members)
+const DEFAULT_TEAM = [
+  { name: "Kevin A. Llanes", role: "Project Manager" },
+  { name: "Irheil Mae S. Antang", role: "Software Engineer" },
+  { name: "Ma. Catherine H. Bae", role: "Front-end Developer" },
+  { name: "Jin Harold A. Failana", role: "Hardware Programmer" },
+  { name: "Jhon Keneth Ryan B. Namias", role: "Back-end Developer" },
+  { name: "Emannuel L. Pabua", role: "Database Administrator" },
+  { name: "Ronan Renz T. Valencia", role: "Full Stack Developer" },
+];
+
+// Default challenges (common issues in mushroom farming)
+const DEFAULT_CHALLENGES = [
+  "Manual monitoring of temperature and humidity is time-consuming and error-prone",
+  "Inconsistent growing conditions lead to lower yields and quality",
+  "Lack of real-time data makes it difficult to optimize growing parameters",
+  "Limited access to markets and buyers for small-scale growers",
+];
+
+// Default solutions (MASH system benefits)
+const DEFAULT_SOLUTIONS = [
+  { id: "m", title: "M - Monitoring", description: "Real-time IoT sensors track temperature, humidity, and CO2 levels 24/7" },
+  { id: "a", title: "A - Automation", description: "Smart controllers automatically adjust growing conditions for optimal yield" },
+  { id: "s", title: "S - Sales", description: "E-commerce platform connects growers directly with buyers" },
+  { id: "h", title: "H - Hub", description: "Central dashboard for managing multiple growing facilities" },
+];
+
 export default function AboutPage() {
   const { content, loading, error } = useSanityAboutPage();
 
   // Transform Sanity content to match CMSAboutSection props
-  const hero = content ? {
+  const hero = {
     isActive: true,
-    title: content.heroTitle,
-    subtitle: content.heroSubtitle,
-    backgroundImage: content.heroImage?.url,
-  } : undefined;
+    title: content?.heroTitle || "Cultivating the Future of Philippine Agriculture",
+    subtitle: content?.heroSubtitle || "MASH combines IoT technology with sustainable farming practices to revolutionize mushroom cultivation in the Philippines.",
+    backgroundImage: content?.heroImage?.url,
+  };
 
-  const challenges = content?.challenges?.length ? {
-    isActive: true,
-    title: content.challengesTitle || "The Challenge Facing Filipino Growers",
-    subtitle: content.challengesSubtitle,
-    items: content.challenges.map((c) => ({
-      id: c._key,
-      icon: c.icon || "AlertTriangle",
-      title: c.title,
-      description: c.description,
-    })),
-  } : undefined;
+  // Transform challenges - expects array of strings
+  const challengeStrings = content?.challenges?.length 
+    ? content.challenges.map(c => c.description || c.title)
+    : DEFAULT_CHALLENGES;
 
-  const solutions = content?.solutions?.length ? {
+  const challenges = {
     isActive: true,
-    title: content.solutionsTitle || "Our Solution: The M.A.S.H. System",
-    subtitle: content.solutionsSubtitle,
-    solutions: content.solutions.map((s) => ({
-      id: s._key,
-      icon: s.icon || "CheckCircle",
-      title: s.title,
-      description: s.description,
-    })),
-  } : undefined;
+    title: content?.challengesTitle || "The Challenge Facing Filipino Growers",
+    subtitle: content?.challengesSubtitle || "Small-scale mushroom farmers face numerous obstacles",
+    challenges: challengeStrings,
+  };
+
+  // Transform solutions - expects array of { id, title, description }
+  const solutionItems = content?.solutions?.length 
+    ? content.solutions.map((s) => ({
+        id: s._key,
+        title: s.title,
+        description: s.description,
+      }))
+    : DEFAULT_SOLUTIONS;
+
+  const solutions = {
+    isActive: true,
+    title: content?.solutionsTitle || "Our Solution: The M.A.S.H. System",
+    subtitle: content?.solutionsSubtitle || "A comprehensive platform for modern mushroom farming",
+    solutions: solutionItems,
+  };
 
   // Convert PortableText to plain strings for vision content
   const visionContentArray = portableTextToStrings(content?.visionContent);
 
-  const vision = content?.visionTitle ? {
+  const vision = {
     isActive: true,
-    title: content.visionTitle,
-    content: visionContentArray.length > 0 ? visionContentArray : ["Building a sustainable future for Philippine mushroom cultivation through innovation and technology."],
-    callToAction: content.visionCTA || "Join us in growing the mushroom movement!",
-  } : undefined;
+    title: content?.visionTitle || "Our Vision for a Greener Tomorrow",
+    content: visionContentArray.length > 0 ? visionContentArray : [
+      "We envision a future where every Filipino mushroom grower has access to smart farming technology.",
+      "Through innovation and community, we're building a sustainable agricultural ecosystem.",
+    ],
+    callToAction: content?.visionCTA || "Join us in growing the mushroom movement!",
+  };
 
   const mentor = content?.mentor ? {
     isActive: true,
@@ -93,14 +127,17 @@ export default function AboutPage() {
     },
   } : undefined;
 
-  // Transform team members from Sanity format
-  const team = content?.teamMembers?.map((member) => ({
+  // Transform team members from Sanity format, fallback to default team
+  const sanityTeam = content?.teamMembers?.map((member) => ({
     name: member.fullName,
     role: member.role || "Team Member",
     image: member.picture?.url,
     bio: member.shortBio,
     socialLinks: member.socialLinks,
   })) || [];
+
+  // Use Sanity team if available, otherwise use default
+  const team = sanityTeam.length > 0 ? sanityTeam : DEFAULT_TEAM;
 
   return (
     <CMSAboutSection
