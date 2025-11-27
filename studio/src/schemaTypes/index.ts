@@ -15,9 +15,11 @@ import {grower} from './documents/grower' // Phase 1: Growers Schema
 import {faqCategory} from './documents/faqCategory' // Phase 2: FAQ Categories
 import {faqItem} from './documents/faqItem' // Phase 2: FAQ Items
 import {featureSection} from './documents/featureSection' // Phase 4: Feature Sections
+import {navigation} from './documents/navigation' // Phase 5: Navigation Menus
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
+import {siteSettings} from './singletons/siteSettings' // Phase 5: Site Settings
 import {featuredProducts} from './singletons/featuredProducts'
 import {heroCarousel} from './singletons/heroCarousel'
 import {link} from './objects/link'
@@ -28,6 +30,7 @@ import {blockContent} from './objects/blockContent'
 export const schemaTypes = [
   // Singletons
   settings,
+  siteSettings, // Phase 5: Comprehensive Site Settings
   featuredProducts,
   heroCarousel,
   // Documents
@@ -38,6 +41,7 @@ export const schemaTypes = [
   faqCategory, // Phase 2: FAQ Categories
   faqItem, // Phase 2: FAQ Items
   featureSection, // Phase 4: Feature Sections (Why MASH)
+  navigation, // Phase 5: Navigation Menus
   category,
   product,
   review,

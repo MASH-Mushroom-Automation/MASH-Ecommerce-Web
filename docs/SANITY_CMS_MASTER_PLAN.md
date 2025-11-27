@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Last Updated:** November 27, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -16,7 +16,7 @@
 | **Phase 2** | FAQ Schema & Integration | ✅ **COMPLETE** | 100% |
 | **Phase 3** | Fix Category/Product Filtering | ✅ **COMPLETE** | 100% |
 | **Phase 4** | Feature Section Schema | ✅ **COMPLETE** | 100% |
-| Phase 5 | Navigation & Site Settings | ⏳ Pending | 0% |
+| **Phase 5** | Navigation & Site Settings | ✅ **COMPLETE** | 100% |
 | Phase 6 | Testimonials & Banners | ⏳ Pending | 0% |
 | Phase 7 | Final Integration & Testing | ⏳ Pending | 0% |
 
@@ -58,6 +58,33 @@
 - [x] Updated homepage to use `useSanityFeatures()` instead of old JSON-based hook
 - [x] Migrated 2 feature sections (7 features total) via `scripts/migrate-features-to-sanity.js`
 - [x] Homepage "Why MASH" section now fully editable in Sanity Studio
+
+### Phase 5 Deliverables ✅ (Navigation & Site Settings)
+- [x] Created `studio/src/schemaTypes/singletons/siteSettings.ts` (8 field groups, 30+ fields)
+  - Company Info: name, tagline, description, logo, favicon
+  - Contact: email, phone, address (street, city, state, zip, country)
+  - Social Media: facebook, instagram, twitter, linkedin, youtube, tiktok
+  - Announcement Bar: enabled, message, link, colors
+  - Footer: aboutText, copyright, newsletter, links
+  - SEO: metaTitle, metaDescription, keywords, ogImage
+  - Business Hours: Monday-Sunday + timezone
+  - Features: toggles for blog, shop, growers, reviews, wishlist, same-day delivery
+- [x] Created `studio/src/schemaTypes/documents/navigation.ts`
+  - 7 menu types: header-main, header-secondary, header-mobile, footer-shop, footer-support, footer-about, footer-legal
+  - Nested menu support (dropdown menus)
+  - Icon support (14 Lucide icons)
+  - Highlight badges for menu items
+- [x] Updated `studio/src/schemaTypes/index.ts` with new imports
+- [x] Updated `src/hooks/useSanitySiteSettings.ts`:
+  - Full GROQ query for comprehensive siteSettings
+  - Fallback to legacy settings document
+  - Added `useSanityNavigation()` hook for menu fetching
+  - Added `useSanityAllNavigations()` for batch fetching
+  - Added `NavigationMenuItem` and `NavigationMenu` interfaces
+- [x] Created `scripts/migrate-site-settings-to-sanity.js`
+  - Migrates company info, contact, social links
+  - Creates 5 navigation menus (header + footer)
+  - Includes announcement bar config
 
 ---
 
@@ -635,63 +662,96 @@ query += ` {
 
 ---
 
-### Phase 5: Enhanced Site Settings (1-2 hours)
+### Phase 5: Enhanced Site Settings ✅ COMPLETE
 **Priority:** 🟡 Medium  
 **Goal:** Complete site settings with footer/header content
 
-#### Update Settings Schema:
-```typescript
-// Add to studio/src/schemaTypes/singletons/settings.tsx
+#### What Was Done:
 
-// Add Navigation
-defineField({
-  name: 'headerNavigation',
-  title: 'Header Navigation',
-  type: 'array',
-  of: [{ type: 'link' }],
-}),
-defineField({
-  name: 'footerNavigation',
-  title: 'Footer Navigation',
-  type: 'object',
-  fields: [
-    {
-      name: 'columns',
-      title: 'Footer Columns',
-      type: 'array',
-      of: [{
-        type: 'object',
-        fields: [
-          { name: 'title', title: 'Column Title', type: 'string' },
-          { name: 'links', title: 'Links', type: 'array', of: [{ type: 'link' }] },
-        ],
-      }],
-    },
-  ],
-}),
-// Add Contact Info
-defineField({
-  name: 'contactInfo',
-  title: 'Contact Information',
-  type: 'object',
-  fields: [
-    { name: 'email', title: 'Email', type: 'string' },
-    { name: 'phone', title: 'Phone', type: 'string' },
-    { name: 'address', title: 'Address', type: 'text' },
-  ],
-}),
-// Add Social Links
-defineField({
-  name: 'socialLinks',
-  title: 'Social Media Links',
-  type: 'object',
-  fields: [
-    { name: 'facebook', title: 'Facebook', type: 'url' },
-    { name: 'instagram', title: 'Instagram', type: 'url' },
-    { name: 'twitter', title: 'Twitter/X', type: 'url' },
-    { name: 'tiktok', title: 'TikTok', type: 'url' },
-  ],
-}),
+**1. Created siteSettings Singleton Schema** (`studio/src/schemaTypes/singletons/siteSettings.ts`)
+- 30+ fields organized into 8 field groups:
+  - **Company Info**: companyName, tagline, description, logo, favicon
+  - **Contact**: email, phone, address (street, city, state, zip, country)
+  - **Social Media**: facebook, instagram, twitter, linkedin, youtube, tiktok
+  - **Announcement Bar**: enabled, message, link, linkText, backgroundColor, textColor
+  - **Footer**: aboutText, copyright, newsletter (title, description, enabled), legal links
+  - **SEO**: metaTitle, metaDescription, keywords[], ogImage
+  - **Business Hours**: Monday-Sunday hours, timezone, holiday note
+  - **Features**: toggles for blog, shop, growers, reviews, wishlist, same-day delivery
+
+**2. Created Navigation Schema** (`studio/src/schemaTypes/documents/navigation.ts`)
+- 7 menu types: header-main, header-secondary, header-mobile, footer-shop, footer-support, footer-about, footer-legal
+- Nested children support for dropdown menus
+- Icon support (14 Lucide icons)
+- Highlight badges (New!, Sale, Hot)
+- Link types: internal path, external URL, page reference, none
+
+**3. Updated Schema Index** (`studio/src/schemaTypes/index.ts`)
+- Added siteSettings and navigation exports
+
+**4. Updated useSanitySiteSettings Hook** (`src/hooks/useSanitySiteSettings.ts`)
+- Full GROQ query for comprehensive siteSettings
+- Fallback to legacy settings document for backwards compatibility
+- Added `useSanityNavigation(menuType)` hook for menu fetching
+- Added `useSanityAllNavigations()` for batch fetching all menus
+- Added `NavigationMenuItem` and `NavigationMenu` TypeScript interfaces
+
+**5. Created Migration Script** (`scripts/migrate-site-settings-to-sanity.js`)
+- Migrates MASH company info with contact details
+- Creates 5 navigation menus:
+  - Main Navigation (4 items)
+  - Header Secondary Links (3 items)
+  - Footer - Shop (5 items)
+  - Footer - Customer Service (6 items)
+  - Footer - About MASH (4 items)
+- Includes announcement bar configuration
+
+#### Files Created/Modified:
+
+| File | Action | Description |
+|------|--------|-------------|
+| `studio/src/schemaTypes/singletons/siteSettings.ts` | Created | Comprehensive site settings singleton |
+| `studio/src/schemaTypes/documents/navigation.ts` | Created | Navigation menu schema with nested items |
+| `studio/src/schemaTypes/index.ts` | Modified | Added new schema exports |
+| `src/hooks/useSanitySiteSettings.ts` | Modified | Full GROQ query + navigation hooks |
+| `scripts/migrate-site-settings-to-sanity.js` | Created | Migration script |
+
+#### Data Migrated:
+
+| Content Type | Count | Details |
+|--------------|-------|---------|
+| Site Settings | 1 | Company: MASH Mushroom E-Commerce |
+| Navigation Menus | 5 | Header + Footer menus |
+| Menu Items | 22 | Across all menus |
+
+#### How to Use:
+
+```tsx
+// In Header/Footer components
+import { useSanitySiteSettings, useSanityNavigation } from '@/hooks/useSanitySiteSettings';
+
+function Header() {
+  const { settings } = useSanitySiteSettings();
+  const { menu: mainNav } = useSanityNavigation('header-main');
+  
+  return (
+    <header>
+      <img src={settings?.logo} alt={settings?.companyName} />
+      {settings?.announcementBar?.enabled && (
+        <div style={{ backgroundColor: settings.announcementBar.backgroundColor }}>
+          {settings.announcementBar.message}
+        </div>
+      )}
+      <nav>
+        {mainNav?.items.map((item) => (
+          <a key={item._key} href={item.internalPath || item.externalUrl}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+    </header>
+  );
+}
 ```
 
 ---
@@ -792,16 +852,19 @@ export const testimonial = defineType({
 │   │  ├── useSanityHero.ts ✅                │                   │
 │   │  ├── useSanityProducts.ts ✅            │                   │
 │   │  ├── useSanityCategories.ts ✅          │                   │
-│   │  ├── useSanityGrowers.ts ❌ (Missing)   │                   │
-│   │  ├── useSanityFAQ.ts ❌ (Missing)       │                   │
-│   │  └── useSanityFeatures.ts ❌ (Missing)  │                   │
+│   │  ├── useSanityGrowers.ts ✅             │                   │
+│   │  ├── useSanityFAQ.ts ✅                 │                   │
+│   │  ├── useSanityFeatures.ts ✅            │                   │
+│   │  └── useSanitySiteSettings.ts ✅        │                   │
 │   └─────────────────────────────────────────┘                   │
 │                                                                 │
-│   FALLBACK: MOCK DATA (src/lib/api/main.ts)                    │
+│   SANITY DATA (Migrated)                                       │
 │   ┌─────────────────────────────────────────┐                   │
-│   │  ⚠️ Currently used for:                 │                   │
-│   │  ├── MOCK_GROWERS (4 hardcoded)         │                   │
-│   │  └── MOCK_HERO_SLIDES (not used)        │                   │
+│   │  ✅ Growers (4)                          │                   │
+│   │  ✅ FAQs (5 categories, 19 items)        │                   │
+│   │  ✅ Features (2 sections, 7 items)       │                   │
+│   │  ✅ Site Settings (1 singleton)          │                   │
+│   │  ✅ Navigation (5 menus, 22 items)       │                   │
 │   └─────────────────────────────────────────┘                   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -811,33 +874,45 @@ export const testimonial = defineType({
 
 ## 📁 Files Summary
 
-### New Files to Create (Phase 1-6)
+### Created Files (Phase 1-5) ✅
 
 ```
 studio/src/schemaTypes/documents/
-├── grower.ts          (NEW - Phase 1)
-├── faq.ts             (NEW - Phase 2)
-├── featureSection.ts  (NEW - Phase 3)
-├── banner.ts          (NEW - Phase 6)
-└── testimonial.ts     (NEW - Phase 6)
+├── grower.ts            ✅ (Phase 1 - 20+ fields, 6 groups)
+├── faqCategory.ts       ✅ (Phase 2 - FAQ categories)
+├── faqItem.ts           ✅ (Phase 2 - FAQ items with category ref)
+├── featureSection.ts    ✅ (Phase 4 - 15+ fields, 2 groups)
+└── navigation.ts        ✅ (Phase 5 - 7 menu types, nested items)
+
+studio/src/schemaTypes/singletons/
+└── siteSettings.ts      ✅ (Phase 5 - 30+ fields, 8 groups)
 
 src/hooks/
-├── useSanityGrowers.ts     (NEW - Phase 1)
-├── useSanityFAQ.ts         (NEW - Phase 2)
-└── useSanityFeatures.ts    (NEW - Phase 3)
+├── useSanityGrowers.ts      ✅ (Phase 1 - real-time, filters)
+├── useSanityFAQ.ts          ✅ (Phase 2 - 5 hooks, API functions)
+├── useSanityFeatures.ts     ✅ (Phase 4 - cache, real-time)
+└── useSanitySiteSettings.ts ✅ (Phase 5 - navigation hooks added)
+
+scripts/
+├── migrate-growers-to-sanity.js       ✅ (4 growers)
+├── migrate-faq-to-sanity.js           ✅ (5 cats, 19 items)
+├── migrate-features-to-sanity.js      ✅ (2 sections, 7 items)
+└── migrate-site-settings-to-sanity.js ✅ (settings + 5 menus)
 ```
 
-### Files to Modify
+### Files Still to Create (Phase 6)
 
 ```
-studio/src/schemaTypes/index.ts      (Add new schema imports)
-studio/src/structure/index.ts        (Add sidebar items)
-studio/src/schemaTypes/singletons/settings.tsx  (Add nav, footer, social)
+studio/src/schemaTypes/documents/
+├── banner.ts          (Phase 6 - promotional banners)
+└── testimonial.ts     (Phase 6 - customer testimonials)
+```
 
-src/app/(shop)/shop/page.tsx         (Fix category filter)
-src/app/page.tsx                     (Use Sanity growers)
-src/app/faq/page.tsx                 (Use Sanity FAQ)
-src/app/grower/page.tsx              (Use Sanity growers)
+### Files Modified
+
+```
+studio/src/schemaTypes/index.ts      ✅ Added all new schema imports
+studio/src/structure/index.ts        ✅ Organized sidebar with sections
 src/lib/api/main.ts                  (Remove mock growers)
 src/hooks/useSanityProducts.ts       (Fix GROQ query)
 src/hooks/useSanityCategories.ts     (Return slug correctly)
@@ -851,35 +926,50 @@ src/hooks/useSanityCategories.ts     (Return slug correctly)
 - [x] Grower schema deployed to Sanity
 - [x] 4 growers added in Sanity Studio
 - [x] Homepage "Meet Our Growers" shows Sanity data
-- [x] Growers list page (`/grower`) works (already used Sanity)
-- [x] Individual grower page (`/grower/[slug]`) works (already used Sanity)
+- [x] Growers list page (`/grower`) works
+- [x] Individual grower page (`/grower/[slug]`) works
 - [ ] Grower images uploaded (manual step in Studio)
 - [ ] Map coordinates verified
 
-### Phase 2: FAQ
-- [ ] FAQ schema deployed
-- [ ] 10+ FAQs added in Sanity Studio
-- [ ] FAQ page shows categories
-- [ ] Accordion expand/collapse works
-- [ ] Search/filter works (if implemented)
+### Phase 2: FAQ ✅ Complete
+- [x] FAQ schemas deployed (faqCategory, faqItem)
+- [x] 5 categories + 19 FAQ items added in Sanity
+- [x] FAQ page shows categories
+- [x] Accordion expand/collapse works
+- [x] Search/filter works
 
-### Phase 3: Features
-- [ ] Feature section schema deployed
-- [ ] 4-6 features added in Sanity Studio
-- [ ] "Why MASH" section on homepage shows Sanity data
-- [ ] Icons render correctly
+### Phase 3: Category/Product Filter ✅ Complete
+- [x] Category filter uses slug instead of name
+- [x] Products filter correctly by category
+- [x] Both desktop and mobile filter sidebars work
 
-### Phase 4: Products/Categories
-- [ ] Category filter works correctly
-- [ ] All products show images
-- [ ] Product detail pages load
-- [ ] Add to cart works
-- [ ] Related products display
+### Phase 4: Features ✅ Complete
+- [x] Feature section schema deployed
+- [x] 2 sections + 7 features added in Sanity
+- [x] "Why MASH" section on homepage shows Sanity data
+- [x] Icons render correctly
 
-### Phase 5: Site Settings
-- [ ] Footer shows dynamic content
-- [ ] Social links work
-- [ ] Contact info displays correctly
+### Phase 5: Site Settings ✅ Complete
+- [x] siteSettings singleton schema deployed (30+ fields)
+- [x] Navigation schema deployed (7 menu types)
+- [x] 5 navigation menus created (22 items total)
+- [x] useSanitySiteSettings hook updated with GROQ query
+- [x] useSanityNavigation hook added
+- [ ] Upload logo image in Sanity Studio
+- [ ] Header/Footer components test with live data
+
+### Phase 6: Banners & Testimonials 🔴 Not Started
+- [ ] Banner schema deployed
+- [ ] Testimonial schema deployed
+- [ ] Homepage banners display
+- [ ] Customer testimonials display
+
+### Phase 7: Final Integration 🔴 Not Started
+- [ ] Real-time updates working
+- [ ] Cache invalidation working
+- [ ] Loading skeletons implemented
+- [ ] Error boundaries in place
+- [ ] Preview mode for drafts
 
 ---
 
@@ -888,14 +978,72 @@ src/hooks/useSanityCategories.ts     (Return slug correctly)
 | Phase | Duration | Dependencies | Status |
 |-------|----------|--------------|--------|
 | Phase 1: Growers | 2-3 hours | None | ✅ Complete |
-| Phase 2: FAQ | 1-2 hours | None | 🔴 Not Started |
-| Phase 3: Features | 1-2 hours | None | 🔴 Not Started |
-| Phase 4: Fix Products | 2-3 hours | None | 🔴 Not Started |
-| Phase 5: Settings | 1-2 hours | Phase 4 | 🔴 Not Started |
+| Phase 1.5: Images & Maps | 1-2 hours | Phase 1 | ✅ Complete |
+| Phase 2: FAQ | 1-2 hours | None | ✅ Complete |
+| Phase 3: Fix Category Filter | 1 hour | None | ✅ Complete |
+| Phase 4: Features | 1-2 hours | None | ✅ Complete |
+| Phase 5: Settings & Navigation | 2-3 hours | None | ✅ Complete |
 | Phase 6: Banners | 1-2 hours | None | 🔴 Not Started |
 | Phase 7: Polish | 2-3 hours | All above | 🔴 Not Started |
 
-**Total Estimated Time:** 12-17 hours
+**Total Estimated Time:** 12-17 hours  
+**Completed:** ~10 hours (Phases 1-5)  
+**Remaining:** ~4 hours (Phases 6-7)
+
+---
+
+## ✅ Phase 5 Complete (Site Settings & Navigation)
+
+### What Was Done
+
+1. **Created siteSettings Singleton Schema** (`studio/src/schemaTypes/singletons/siteSettings.ts`)
+   - 30+ fields organized into 8 groups:
+     - Company Info (name, tagline, description, logo, favicon)
+     - Contact (email, phone, address object)
+     - Social Media (facebook, instagram, twitter, linkedin, youtube, tiktok)
+     - Announcement Bar (enabled, message, link, colors)
+     - Footer (aboutText, copyright, newsletter, legal links)
+     - SEO (metaTitle, metaDescription, keywords, ogImage)
+     - Business Hours (Monday-Sunday, timezone, note)
+     - Features (toggles for blog, shop, growers, reviews, wishlist, same-day delivery)
+
+2. **Created Navigation Schema** (`studio/src/schemaTypes/documents/navigation.ts`)
+   - 7 menu types: header-main, header-secondary, header-mobile, footer-shop, footer-support, footer-about, footer-legal
+   - Nested children support for dropdown menus
+   - Icon support (14 Lucide icons)
+   - Highlight badges (New!, Sale, Hot)
+   - Link types: internal path, external URL, page reference, none
+
+3. **Updated Schema Index** (`studio/src/schemaTypes/index.ts`)
+   - Added siteSettings and navigation exports
+
+4. **Updated useSanitySiteSettings Hook** (`src/hooks/useSanitySiteSettings.ts`)
+   - Full GROQ query for comprehensive siteSettings
+   - Fallback to legacy settings document
+   - Added `useSanityNavigation(menuType)` hook
+   - Added `useSanityAllNavigations()` hook
+   - TypeScript interfaces for NavigationMenuItem, NavigationMenu
+
+5. **Created Migration Script** (`scripts/migrate-site-settings-to-sanity.js`)
+   - Migrates MASH company info
+   - Creates 5 navigation menus with 22 items total
+
+### Data Migrated
+
+| Content | Count | Details |
+|---------|-------|---------|
+| Site Settings | 1 | MASH Mushroom E-Commerce |
+| Main Navigation | 4 items | Shop, Our Growers, About, Contact |
+| Header Secondary | 3 items | Blog, FAQ, Contact Us |
+| Footer Shop | 5 items | All Products, Fresh, Dried, Growers, How to Order |
+| Footer Support | 6 items | FAQs, Contact, Shipping, Returns, Privacy, Terms |
+| Footer About | 4 items | About Us, Mission, Become Grower, Blog |
+
+### Next Steps for Phase 5
+1. Open Sanity Studio and upload logo image
+2. Test Header component with live siteSettings data
+3. Test Footer component with navigation menus
+4. Verify announcement bar displays correctly
 
 ---
 

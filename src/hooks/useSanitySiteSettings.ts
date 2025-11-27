@@ -90,6 +90,7 @@ export interface SanitySiteSettings {
     enableGrowerProfiles?: boolean;
     enableReviews?: boolean;
     enableWishlist?: boolean;
+    enableSameDayDelivery?: boolean; // Phase 5: Lalamove same-day delivery toggle
   };
 }
 
@@ -163,6 +164,7 @@ export interface TransformedSiteSettings {
     enableGrowerProfiles?: boolean;
     enableReviews?: boolean;
     enableWishlist?: boolean;
+    enableSameDayDelivery?: boolean; // Phase 5: Lalamove same-day delivery toggle
   };
   createdAt: string;
   updatedAt: string;
@@ -279,66 +281,151 @@ export function useSanitySiteSettings() {
       setLoading(true);
       setError(null);
 
-      // 🚨 TEMPORARY FIX: Query only fields that exist in current schema
-      // Schema file: studio/src/schemaTypes/singletons/settings.tsx
-      // Current schema has: title, description, ogImage
-      // TODO: Extend schema to include all fields (see SANITY_PRODUCTS_INTEGRATION_PLAN.md Phase 0)
-      const query = `*[_type == "settings"][0] {
+      // ✅ Phase 5 Update: Full query for comprehensive siteSettings schema
+      // Schema file: studio/src/schemaTypes/singletons/siteSettings.ts
+      const query = `*[_type == "siteSettings"][0] {
         _id,
         _createdAt,
         _updatedAt,
         _type,
-        title,
+        // Company Info
+        companyName,
+        tagline,
         description,
-        "ogImage": ogImage.asset->url
+        "logo": logo.asset->url,
+        "favicon": favicon.asset->url,
+        // Contact Info
+        contactEmail,
+        contactPhone,
+        address {
+          street,
+          city,
+          state,
+          zipCode,
+          country
+        },
+        // Social Media
+        socialMedia {
+          facebook,
+          instagram,
+          twitter,
+          linkedin,
+          youtube,
+          tiktok
+        },
+        // Announcement Bar
+        announcementBar {
+          enabled,
+          message,
+          link,
+          linkText,
+          backgroundColor,
+          textColor
+        },
+        // Footer
+        footer {
+          aboutText,
+          copyrightText,
+          showNewsletter,
+          newsletterTitle,
+          newsletterDescription,
+          links[] {
+            title,
+            url,
+            external
+          }
+        },
+        // SEO
+        seo {
+          metaTitle,
+          metaDescription,
+          keywords,
+          "ogImage": ogImage.asset->url
+        },
+        // Business Hours
+        businessHours {
+          monday,
+          tuesday,
+          wednesday,
+          thursday,
+          friday,
+          saturday,
+          sunday,
+          timezone,
+          note
+        },
+        // Features
+        features {
+          enableBlog,
+          enableShop,
+          enableGrowerProfiles,
+          enableReviews,
+          enableWishlist,
+          enableSameDayDelivery
+        }
       }`;
 
-      console.log('📦 Fetching site settings from Sanity (simplified query)...');
-      const data = await sanityClient.fetch<any>(query);
+      console.log('📦 Fetching site settings from Sanity (siteSettings)...');
+      const data = await sanityClient.fetch<SanitySiteSettings | null>(query);
       
       if (data) {
-        // Helper function to extract plain text from Portable Text
-        const extractPlainText = (portableText: any): string => {
-          if (!portableText) return '';
-          if (typeof portableText === 'string') return portableText;
-          if (!Array.isArray(portableText)) return '';
-          
-          return portableText
-            .map((block: any) => {
-              if (block._type === 'block' && block.children) {
-                return block.children
-                  .map((child: any) => child.text || '')
-                  .join('');
-              }
-              return '';
-            })
-            .filter(Boolean)
-            .join('\n');
-        };
-
-        // Transform simplified data to expected format
-        const transformedData: TransformedSiteSettings = {
-          id: data._id,
-          companyName: data.title || 'MASH Mushroom E-Commerce',
-          tagline: 'Premium Quality Mushrooms',
-          description: extractPlainText(data.description) || 'Premium quality fresh, dried, and specialty mushrooms delivered same-day',
-          logo: undefined,
-          favicon: undefined,
-          contactEmail: undefined,
-          contactPhone: undefined,
-          address: undefined,
-          socialMedia: undefined,
-          announcementBar: undefined,
-          footer: undefined,
-          seo: undefined,
-          businessHours: undefined,
-          features: undefined,
-        };
+        const transformedData = transformSiteSettings(data);
         setSettings(transformedData);
-        console.log('✅ Site settings fetched (simplified)');
+        console.log('✅ Site settings fetched successfully');
       } else {
-        setSettings(null);
-        console.log('⚠️ No site settings found');
+        // Fallback to legacy settings document if siteSettings not found
+        console.log('⚠️ No siteSettings found, trying legacy settings...');
+        const legacyQuery = `*[_type == "settings"][0] {
+          _id,
+          _createdAt,
+          _updatedAt,
+          _type,
+          title,
+          description,
+          "ogImage": ogImage.asset->url
+        }`;
+        
+        interface LegacySettings {
+          _id: string;
+          _createdAt: string;
+          _updatedAt: string;
+          _type: string;
+          title?: string;
+          description?: string;
+          ogImage?: string;
+        }
+        
+        const legacyData = await sanityClient.fetch<LegacySettings | null>(legacyQuery);
+        
+        if (legacyData) {
+          // Transform legacy data to expected format
+          const transformedLegacy: TransformedSiteSettings = {
+            id: legacyData._id,
+            companyName: legacyData.title || 'MASH Mushroom E-Commerce',
+            tagline: 'Premium Quality Mushrooms',
+            description: typeof legacyData.description === 'string' 
+              ? legacyData.description 
+              : 'Premium quality fresh, dried, and specialty mushrooms delivered same-day',
+            logo: undefined,
+            favicon: undefined,
+            contactEmail: undefined,
+            contactPhone: undefined,
+            address: undefined,
+            socialMedia: undefined,
+            announcementBar: undefined,
+            footer: undefined,
+            seo: legacyData.ogImage ? { ogImage: legacyData.ogImage } : undefined,
+            businessHours: undefined,
+            features: undefined,
+            createdAt: legacyData._createdAt,
+            updatedAt: legacyData._updatedAt,
+          };
+          setSettings(transformedLegacy);
+          console.log('✅ Legacy settings used as fallback');
+        } else {
+          setSettings(null);
+          console.log('⚠️ No settings found');
+        }
       }
     } catch (err) {
       console.error('❌ Error fetching site settings:', err);
@@ -354,7 +441,8 @@ export function useSanitySiteSettings() {
     // Set up REAL-TIME subscription for site settings
     console.log('🔌 Setting up site settings real-time subscription');
     
-    const query = `*[_type == "siteSettings"][0]`;
+    // Listen to both siteSettings and legacy settings
+    const query = `*[_type in ["siteSettings", "settings"]][0]`;
 
     const subscription = sanityClient
       .listen(query)
@@ -456,4 +544,260 @@ export function useSanityFooterContent() {
     loading,
     error,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NAVIGATION HOOKS - Phase 5
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Navigation Menu Item Interface
+ */
+export interface NavigationMenuItem {
+  _key: string;
+  label: string;
+  linkType: 'internal' | 'external' | 'pageRef' | 'none';
+  internalPath?: string;
+  externalUrl?: string;
+  pageReference?: {
+    _id: string;
+    slug?: { current: string };
+    title?: string;
+  };
+  openInNewTab?: boolean;
+  icon?: string;
+  highlight?: boolean;
+  highlightText?: string;
+  children?: NavigationMenuItem[];
+}
+
+/**
+ * Navigation Menu Interface
+ */
+export interface NavigationMenu {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  menuType: 'header-main' | 'header-secondary' | 'header-mobile' | 'footer-shop' | 'footer-support' | 'footer-about' | 'footer-legal';
+  items: NavigationMenuItem[];
+  isActive: boolean;
+  displayOrder: number;
+}
+
+/**
+ * Hook: useSanityNavigation
+ * Fetches navigation menus by type with real-time updates
+ * 
+ * @param menuType - Type of menu to fetch (e.g., 'header-main', 'footer-shop')
+ * @returns { menu, loading, error, refetch }
+ * 
+ * @example
+ * ```tsx
+ * const { menu } = useSanityNavigation('header-main');
+ * 
+ * return (
+ *   <nav>
+ *     {menu?.items.map((item) => (
+ *       <a key={item._key} href={item.internalPath || item.externalUrl}>
+ *         {item.label}
+ *       </a>
+ *     ))}
+ *   </nav>
+ * );
+ * ```
+ */
+export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
+  const [menu, setMenu] = useState<NavigationMenu | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchMenu = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const query = `*[_type == "navigation" && menuType == $menuType && isActive == true][0] {
+        _id,
+        title,
+        slug,
+        menuType,
+        displayOrder,
+        isActive,
+        items[] {
+          _key,
+          label,
+          linkType,
+          internalPath,
+          externalUrl,
+          pageReference-> {
+            _id,
+            slug,
+            title
+          },
+          openInNewTab,
+          icon,
+          highlight,
+          highlightText,
+          children[] {
+            _key,
+            label,
+            linkType,
+            internalPath,
+            externalUrl,
+            openInNewTab,
+            icon
+          }
+        }
+      }`;
+
+      console.log(`📦 Fetching ${menuType} navigation from Sanity...`);
+      const data = await sanityClient.fetch<NavigationMenu | null>(query, { menuType });
+      
+      if (data) {
+        setMenu(data);
+        console.log(`✅ ${menuType} navigation fetched (${data.items?.length || 0} items)`);
+      } else {
+        setMenu(null);
+        console.log(`⚠️ No ${menuType} navigation found`);
+      }
+    } catch (err) {
+      console.error(`❌ Error fetching ${menuType} navigation:`, err);
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [menuType]);
+
+  useEffect(() => {
+    fetchMenu();
+
+    // Set up REAL-TIME subscription for navigation
+    console.log(`🔌 Setting up ${menuType} navigation real-time subscription`);
+    
+    const query = `*[_type == "navigation" && menuType == $menuType]`;
+
+    const subscription = sanityClient
+      .listen(query, { menuType })
+      .subscribe((update) => {
+        console.log(`📡 ${menuType} navigation mutation event received:`, update.type);
+        
+        if (update.type === 'mutation') {
+          fetchMenu();
+          console.log(`🔄 ${menuType} navigation updated in real-time!`);
+        }
+      });
+
+    return () => {
+      subscription.unsubscribe();
+      console.log(`🧹 ${menuType} navigation subscription cleaned up`);
+    };
+  }, [fetchMenu, menuType]);
+
+  return { menu, loading, error, refetch: fetchMenu };
+}
+
+/**
+ * Hook: useSanityAllNavigations
+ * Fetches all navigation menus at once
+ * 
+ * @returns { navigations, loading, error }
+ */
+export function useSanityAllNavigations() {
+  const [navigations, setNavigations] = useState<NavigationMenu[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchNavigations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const query = `*[_type == "navigation" && isActive == true] | order(displayOrder asc) {
+        _id,
+        title,
+        slug,
+        menuType,
+        displayOrder,
+        isActive,
+        items[] {
+          _key,
+          label,
+          linkType,
+          internalPath,
+          externalUrl,
+          pageReference-> {
+            _id,
+            slug,
+            title
+          },
+          openInNewTab,
+          icon,
+          highlight,
+          highlightText,
+          children[] {
+            _key,
+            label,
+            linkType,
+            internalPath,
+            externalUrl,
+            openInNewTab,
+            icon
+          }
+        }
+      }`;
+
+      console.log('📦 Fetching all navigation menus from Sanity...');
+      const data = await sanityClient.fetch<NavigationMenu[]>(query);
+      
+      if (data) {
+        setNavigations(data);
+        console.log(`✅ All navigations fetched (${data.length} menus)`);
+      } else {
+        setNavigations([]);
+        console.log('⚠️ No navigation menus found');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching all navigations:', err);
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNavigations();
+
+    // Set up REAL-TIME subscription for all navigations
+    console.log('🔌 Setting up all navigations real-time subscription');
+    
+    const query = `*[_type == "navigation"]`;
+
+    const subscription = sanityClient
+      .listen(query)
+      .subscribe((update) => {
+        console.log('📡 Navigation mutation event received:', update.type);
+        
+        if (update.type === 'mutation') {
+          fetchNavigations();
+          console.log('🔄 Navigations updated in real-time!');
+        }
+      });
+
+    return () => {
+      subscription.unsubscribe();
+      console.log('🧹 All navigations subscription cleaned up');
+    };
+  }, [fetchNavigations]);
+
+  return { navigations, loading, error, refetch: fetchNavigations };
+}
+
+/**
+ * Helper: Get navigation menu by type from array
+ */
+export function getNavigationByType(
+  navigations: NavigationMenu[],
+  menuType: NavigationMenu['menuType']
+): NavigationMenu | undefined {
+  return navigations.find((nav) => nav.menuType === menuType);
 }
