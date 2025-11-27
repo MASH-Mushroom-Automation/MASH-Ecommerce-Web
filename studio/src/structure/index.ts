@@ -1,4 +1,4 @@
-import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon, PinIcon} from '@sanity/icons'
+import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon, PinIcon, CommentIcon, BlockElementIcon} from '@sanity/icons'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 import pluralize from 'pluralize-esm'
 
@@ -24,6 +24,8 @@ const DISABLED_TYPES = [
   'featureSection',     // Phase 4: Feature sections
   'navigation',         // Phase 5: Navigation menus
   'store',              // Phase 6: Store locations
+  'testimonial',        // Phase 7: Customer testimonials
+  'banner',             // Phase 7: Promotional banners
   'assist.instruction.context'
 ]
 
@@ -132,6 +134,36 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
           S.documentTypeList('store')
             .title('Store Locations')
             .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+        ),
+      // Divider
+      S.divider(),
+      // ===== MARKETING SECTION ===== (Phase 7)
+      S.listItem()
+        .title('📣 Marketing')
+        .icon(CommentIcon)
+        .child(
+          S.list()
+            .title('Marketing Content')
+            .items([
+              // Testimonials (Phase 7)
+              S.listItem()
+                .title('Customer Testimonials')
+                .icon(StarIcon)
+                .child(
+                  S.documentTypeList('testimonial')
+                    .title('Testimonials')
+                    .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+                ),
+              // Promotional Banners (Phase 7)
+              S.listItem()
+                .title('Promotional Banners')
+                .icon(BlockElementIcon)
+                .child(
+                  S.documentTypeList('banner')
+                    .title('Banners')
+                    .defaultOrdering([{ field: 'position', direction: 'asc' }, { field: 'sortOrder', direction: 'asc' }])
+                ),
+            ])
         ),
       // Divider
       S.divider(),

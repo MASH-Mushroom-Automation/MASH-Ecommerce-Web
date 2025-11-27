@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 2.1  
+**Version:** 3.0  
 **Last Updated:** November 27, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -18,7 +18,7 @@
 | **Phase 4** | Feature Section Schema | ✅ **COMPLETE** | 100% |
 | **Phase 5** | Navigation & Site Settings | ✅ **COMPLETE** | 100% |
 | **Phase 6** | Store/Location Pages | ✅ **COMPLETE** | 100% |
-| **Phase 7** | Testimonials & Banners | ⏳ Pending | 0% |
+| **Phase 7** | Testimonials & Banners | ✅ **COMPLETE** | 100% |
 | **Phase 8** | Blog & Content Pages | ⏳ Pending | 0% |
 | **Phase 9** | Final Integration & Testing | ⏳ Pending | 0% |
 
@@ -29,12 +29,13 @@
 1. [Executive Summary](#-executive-summary)
 2. [Current Environment Setup](#-current-environment-setup)
 3. [Complete Schema Reference](#-complete-schema-reference)
-4. [Data Flow Architecture](#-data-flow-architecture)
-5. [Identified Issues & Improvements](#-identified-issues--improvements)
-6. [Phase Implementation Guide](#-phase-implementation-guide)
-7. [Frontend Integration Map](#-frontend-integration-map)
-8. [Testing Checklist](#-testing-checklist)
-9. [Next Steps Guide](#-next-steps-guide)
+4. [E-Commerce Flow & Customer Journey](#-e-commerce-flow--customer-journey)
+5. [Data Flow Architecture](#-data-flow-architecture)
+6. [Identified Issues & Improvements](#-identified-issues--improvements)
+7. [Phase Implementation Guide](#-phase-implementation-guide)
+8. [Frontend Integration Map](#-frontend-integration-map)
+9. [Testing Checklist](#-testing-checklist)
+10. [Next Steps Guide](#-next-steps-guide)
 
 ---
 
@@ -68,11 +69,11 @@
 
 | Metric | Count | Notes |
 |--------|-------|-------|
-| **Document Types** | 18 | Products, Categories, Growers, FAQs, etc. |
+| **Document Types** | 21 | Products, Categories, Growers, FAQs, Testimonials, Banners, etc. |
 | **Singleton Types** | 4 | siteSettings, heroCarousel, featuredProducts, settings |
 | **Object Types** | 4 | blockContent, callToAction, infoSection, link |
-| **Custom Hooks** | 15 | All `useSanity*` hooks for data fetching |
-| **Migration Scripts** | 5 | For growers, FAQs, features, site settings, navigation |
+| **Custom Hooks** | 17 | All `useSanity*` hooks for data fetching |
+| **Migration Scripts** | 7 | For growers, FAQs, features, site settings, navigation, testimonials, banners |
 
 ---
 
@@ -158,12 +159,16 @@ export const sanityClient = createClient({
 │   ├── FAQ Categories (5 categories)
 │   └── FAQ Questions (19 items)
 │
-├── 📍 Store Locations ← NEW Phase 6
+├── 📍 Store Locations (Phase 6)
 │   └── Stores (main, pickup, partner, distribution)
 │
+├── 📣 Marketing (Phase 7) ← NEW
+│   ├── Customer Testimonials (6 documents)
+│   └── Promotional Banners (6 documents)
+│
 ├── ⚙️ Settings
-│   ├── Site Settings (singleton) ← Phase 5
-│   ├── Navigation Menus (5 menus) ← Phase 5
+│   ├── Site Settings (singleton)
+│   ├── Navigation Menus (5 menus)
 │   └── Feature Sections (2 sections)
 │
 └── 📄 Other Documents
@@ -177,7 +182,7 @@ export const sanityClient = createClient({
     └── Analytics
 ```
 
-### Document Schemas (19 Types)
+### Document Schemas (21 Types)
 
 | Schema | File | Fields | Purpose |
 |--------|------|--------|---------|
@@ -191,7 +196,9 @@ export const sanityClient = createClient({
 | `faqItem` | `documents/faqItem.ts` | 8 | FAQ questions/answers |
 | `featureSection` | `documents/featureSection.ts` | 15 | Homepage features |
 | `navigation` | `documents/navigation.ts` | 10 | Header/footer menus |
-| `store` | `documents/store.ts` | 25+ | Store locations ← NEW |
+| `store` | `documents/store.ts` | 25+ | Store locations |
+| `testimonial` | `documents/testimonial.ts` | 15+ | Customer testimonials ← NEW Phase 7 |
+| `banner` | `documents/banner.ts` | 25+ | Promotional banners ← NEW Phase 7 |
 | `page` | `documents/page.ts` | 10 | CMS pages |
 | `post` | `documents/post.ts` | 15 | Blog posts |
 | `person` | `documents/person.ts` | 8 | Authors/team |
@@ -380,6 +387,316 @@ features: {
 }
 ```
 
+### Testimonial Schema (Phase 7 - 15+ Fields)
+
+```typescript
+// studio/src/schemaTypes/documents/testimonial.ts (220+ lines)
+
+// ═══════════ CUSTOMER INFO ═══════════
+customerName: string        // "Maria Santos"
+customerTitle: string       // "Home Chef"
+customerCompany: string     // Company name (optional)
+location: string            // "Quezon City"
+customerImage: image        // Customer photo (with hotspot)
+
+// ═══════════ TESTIMONIAL CONTENT ═══════════
+rating: number              // 1-5 star rating
+headline: string            // Short attention-grabbing headline
+quote: text                 // Full testimonial text
+productPurchased: reference // → product document (optional)
+growerReference: reference  // → grower document (optional)
+
+// ═══════════ DISPLAY SETTINGS ═══════════
+displayPosition: number     // Order on page (1-10)
+isFeatured: boolean         // Show in featured section
+showOnHomepage: boolean     // Display on homepage
+isVerified: boolean         // Verified purchase badge
+isActive: boolean           // Enable/disable display
+```
+
+### Banner Schema (Phase 7 - 25+ Fields)
+
+```typescript
+// studio/src/schemaTypes/documents/banner.ts (280+ lines)
+
+// ═══════════ CONTENT ═══════════
+title: string               // Internal title for CMS
+headline: string            // Main banner text
+subheadline: string         // Secondary text
+description: text           // Full description
+
+// ═══════════ IMAGES ═══════════
+desktopImage: image         // Desktop banner image
+mobileImage: image          // Mobile-optimized image
+overlayOpacity: number      // 0-100% overlay darkness
+
+// ═══════════ STYLING ═══════════
+backgroundColor: string     // Hex color
+textColor: 'light' | 'dark' // Text contrast
+textAlignment: string       // 'left' | 'center' | 'right'
+size: 'small' | 'medium' | 'large' | 'full'
+
+// ═══════════ CALL TO ACTION ═══════════
+buttonText: string          // "Shop Now"
+buttonLink: string          // "/shop?promo=holiday"
+buttonStyle: string         // 'primary' | 'secondary' | 'ghost' | 'outline'
+promoCode: string           // "HOLIDAY25"
+showPromoCode: boolean      // Display code on banner
+
+// ═══════════ SCHEDULING ═══════════
+startDate: datetime         // When banner goes live
+endDate: datetime           // When banner expires
+timezone: string            // "Asia/Manila"
+
+// ═══════════ POSITION & PRIORITY ═══════════
+position: string            // Where to display:
+                            // 'homepage-top', 'homepage-middle', 'homepage-bottom'
+                            // 'shop-top', 'shop-sidebar'
+                            // 'product-bottom', 'cart-top', 'checkout-bottom'
+                            // 'announcement'
+priority: number            // Higher = shows first (1-100)
+isActive: boolean           // Enable/disable
+```
+
+---
+
+## 🛒 E-Commerce Flow & Customer Journey
+
+This section describes how customers interact with the MASH platform and which CMS schemas support each step.
+
+### Complete Customer Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        MASH E-COMMERCE CUSTOMER JOURNEY                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  1️⃣ DISCOVERY                                                                   │
+│  ├── Homepage Hero (heroCarousel singleton)                                     │
+│  │   └── Eye-catching slides with CTA buttons                                   │
+│  ├── Announcement Bar (siteSettings.announcementBar)                            │
+│  │   └── "🎉 Free Shipping on Orders Over ₱1,500!"                              │
+│  ├── Featured Products (useSanityFeaturedProducts)                              │
+│  │   └── 8 bestselling products from product schema                             │
+│  ├── Featured Growers (useSanityGrowers)                                        │
+│  │   └── 3 trusted farm partners with profiles                                  │
+│  └── Customer Testimonials (useSanityTestimonials) ← NEW Phase 7                │
+│      └── 6 real customer reviews with ratings                                   │
+│                                                                                 │
+│  2️⃣ BROWSING                                                                    │
+│  ├── Shop by Category (useSanityCategories)                                     │
+│  │   └── Fresh, Dried, Growing Kits, etc.                                       │
+│  ├── Product Grid (useSanityProducts)                                           │
+│  │   └── Filterable by category, price, availability                            │
+│  ├── Promotional Banners (useSanityBanners) ← NEW Phase 7                       │
+│  │   └── Shop-top banner with promo codes                                       │
+│  └── Search (product.searchKeywords)                                            │
+│      └── Keyword-based product discovery                                        │
+│                                                                                 │
+│  3️⃣ PRODUCT DETAIL                                                              │
+│  ├── Product Images (product.image, product.images)                             │
+│  │   └── Gallery with zoom and hotspot focus                                    │
+│  ├── Pricing (product.price, product.promoPrice)                                │
+│  │   └── Regular and promotional pricing                                        │
+│  ├── Variants (useSanityVariants)                                               │
+│  │   └── Size/weight options (100g, 250g, 500g)                                 │
+│  ├── Freshness Info (product.freshnessInfo)                                     │
+│  │   └── Harvest window, shelf life, storage tips                               │
+│  ├── Preparation (product.preparationInfo)                                      │
+│  │   └── Cooking time, difficulty, recipes                                      │
+│  ├── Related Products (product.suggestedProducts)                               │
+│  │   └── "You May Also Like" recommendations                                    │
+│  ├── Frequently Bought Together (product.complementaryProducts)                 │
+│  │   └── Cross-sell suggestions                                                 │
+│  └── Reviews (useSanityReviews)                                                 │
+│      └── Customer ratings and feedback                                          │
+│                                                                                 │
+│  4️⃣ TRUST BUILDING                                                              │
+│  ├── Grower Profile (useSanityGrower)                                           │
+│  │   └── Farm story, certifications, location map                               │
+│  ├── Why MASH Section (useSanityFeatures)                                       │
+│  │   └── Quality guarantee, farm-to-table, sustainable                          │
+│  ├── FAQ (useSanityFAQ)                                                         │
+│  │   └── 5 categories, 19 questions with answers                                │
+│  └── Store Locations (useSanityStores)                                          │
+│      └── Physical store addresses with hours                                    │
+│                                                                                 │
+│  5️⃣ CONVERSION                                                                  │
+│  ├── Cart (local state + cart banner from useSanityBanners)                     │
+│  │   └── "Add ₱300 more for FREE Delivery!" upsell                              │
+│  ├── Checkout Banner (useSanityBanners position: 'checkout-bottom')             │
+│  │   └── Last-minute offers or newsletter signup                                │
+│  └── Same-Day Delivery (product.deliveryOptions)                                │
+│      └── Lalamove integration for Metro Manila                                  │
+│                                                                                 │
+│  6️⃣ RETENTION                                                                   │
+│  ├── Newsletter (siteSettings.footer.showNewsletter)                            │
+│  │   └── Email signup with 10% off first order                                  │
+│  ├── Blog Posts (useSanityBlogPosts) ← Phase 8                                  │
+│  │   └── Recipes, tips, mushroom education                                      │
+│  └── Social Proof (useSanityTestimonials)                                       │
+│      └── Display on multiple pages                                              │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Page-by-Page CMS Integration
+
+#### Homepage (`/`)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🏠 HOMEPAGE                                                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 📢 ANNOUNCEMENT BAR (siteSettings.announcementBar)      │ │
+│ │ "🎉 Free Shipping on Orders Over ₱1,500!"               │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🖼️ HERO CAROUSEL (heroCarousel singleton)               │ │
+│ │ • Slide 1: Fresh Mushrooms - Farm to Table              │ │
+│ │ • Slide 2: Growing Kits - Grow Your Own                 │ │
+│ │ • Slide 3: Same-Day Delivery - Fresh Today              │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🛒 FEATURED PRODUCTS (useSanityFeaturedProducts)        │ │
+│ │ 8 bestselling products in a responsive grid             │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 📂 SHOP BY CATEGORY (useSanityCategories)               │ │
+│ │ Fresh | Dried | Growing Kits | Bundles                  │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ ✨ WHY MASH (useSanityFeatures)                         │ │
+│ │ • Farm Fresh Quality • Sustainable Practices            │ │
+│ │ • Same-Day Delivery  • Supporting Local Farmers         │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 👨‍🌾 MEET OUR GROWERS (useSanityGrowers)                  │ │
+│ │ 3 featured grower profiles with farm stories            │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ ⭐ CUSTOMER TESTIMONIALS (useSanityTestimonials) ← NEW  │ │
+│ │ 6 reviews in carousel with ratings and photos           │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Shop Page (`/shop`)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🛍️ SHOP PAGE                                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🎉 PROMOTIONAL BANNER (useSanityBanners position:shop)  │ │
+│ │ "Growing Kit Promo - 15% OFF with code GROWKIT15"       │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌──────────────┬──────────────────────────────────────────┐ │
+│ │ 📋 SIDEBAR   │ 🛒 PRODUCT GRID                          │ │
+│ │              │                                          │ │
+│ │ Categories   │ [Product] [Product] [Product] [Product]  │ │
+│ │ (useSanity   │ [Product] [Product] [Product] [Product]  │ │
+│ │  Categories) │ [Product] [Product] [Product] [Product]  │ │
+│ │              │                                          │ │
+│ │ Price Filter │ (useSanityProducts with filters)         │ │
+│ │              │                                          │ │
+│ │ Availability │                                          │ │
+│ └──────────────┴──────────────────────────────────────────┘ │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Product Detail (`/product/[slug]`)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🍄 PRODUCT DETAIL PAGE                                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ ┌──────────────────────┬────────────────────────────────┐   │
+│ │ 📸 PRODUCT GALLERY   │ 📝 PRODUCT INFO                │   │
+│ │                      │                                │   │
+│ │ • Main Image         │ Name: Fresh Oyster Mushrooms   │   │
+│ │ • Thumbnails (4)     │ Price: ₱350 (was ₱450)         │   │
+│ │ • Zoom on hover      │ Rating: ⭐⭐⭐⭐⭐ (24 reviews) │   │
+│ │                      │                                │   │
+│ │ (product.image,      │ Variants: 100g | 250g | 500g   │   │
+│ │  product.images)     │                                │   │
+│ │                      │ [Add to Cart] [Buy Now]        │   │
+│ └──────────────────────┴────────────────────────────────┘   │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🌿 FRESHNESS & QUALITY (product.freshnessInfo)          │ │
+│ │ Harvest: Within 24 hours | Shelf Life: 5-7 days         │ │
+│ │ Storage: Refrigerate in paper bag                       │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 👨‍🍳 PREPARATION (product.preparationInfo)                │ │
+│ │ Difficulty: Beginner | Cook Time: 15 mins               │ │
+│ │ Recipe Ideas: Stir-fry, Soup, Grilled                   │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 💡 YOU MAY ALSO LIKE (product.suggestedProducts)        │ │
+│ │ [Product] [Product] [Product] [Product]                 │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🛒 FREQUENTLY BOUGHT TOGETHER (complementaryProducts)   │ │
+│ │ [Product] + [Product] = Save ₱50!                       │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ ⭐ CUSTOMER REVIEWS (useSanityReviews)                  │ │
+│ │ 24 reviews • Average: 4.8/5                             │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Banner Positions Map
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    BANNER POSITIONS                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  HOMEPAGE                                                   │
+│  ├── 'homepage-top'     → After hero, before products      │
+│  ├── 'homepage-middle'  → Between sections                 │
+│  └── 'homepage-bottom'  → Before footer (newsletter)       │
+│                                                             │
+│  SHOP PAGE                                                  │
+│  ├── 'shop-top'         → Above product grid               │
+│  └── 'shop-sidebar'     → In filter sidebar                │
+│                                                             │
+│  PRODUCT PAGE                                               │
+│  └── 'product-bottom'   → After reviews                    │
+│                                                             │
+│  CART PAGE                                                  │
+│  └── 'cart-top'         → Upsell banner ("Add ₱300 more")  │
+│                                                             │
+│  CHECKOUT PAGE                                              │
+│  └── 'checkout-bottom'  → Last-minute offers               │
+│                                                             │
+│  ALL PAGES                                                  │
+│  └── 'announcement'     → Sticky top bar (site-wide)       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 🔄 Data Flow Architecture
@@ -443,8 +760,10 @@ features: {
 | `useSanityFeatures()` | SanityFeatureSection | Homepage |
 | `useSanitySiteSettings()` | Header, Footer | All pages |
 | `useSanityNavigation()` | Header, Footer | All pages |
-| `useSanityStores()` | StoreCard, StoreList | Store List ← NEW |
-| `useSanityStore(slug)` | StoreDetail | Store Detail ← NEW |
+| `useSanityStores()` | StoreCard, StoreList | Store List |
+| `useSanityStore(slug)` | StoreDetail | Store Detail |
+| `useSanityTestimonials()` | TestimonialsSection, TestimonialCard | Homepage, Product ← NEW Phase 7 |
+| `useSanityBanners()` | BannerSection, AnnouncementBar | All pages ← NEW Phase 7 |
 | `useSanityHero()` | SanityHeroCarousel | Homepage |
 
 ---
@@ -465,13 +784,15 @@ features: {
 
 ### Pending Improvements
 
-| Improvement | Priority | Phase | Estimated Time |
-|-------------|----------|-------|----------------|
+| Improvement | Priority | Phase | Status |
+|-------------|----------|-------|--------|
 | ~~Store/Location pages~~ | ~~🔴 High~~ | ~~Phase 6~~ | ✅ Complete |
-| Testimonials section | 🟡 Medium | Phase 7 | 2-3 hours |
-| Promotional banners | 🟡 Medium | Phase 7 | 2-3 hours |
-| Blog integration | 🟢 Low | Phase 8 | 4-5 hours |
-| Content pages (About, Contact) | 🟢 Low | Phase 8 | 2-3 hours |
+| ~~Testimonials section~~ | ~~🟡 Medium~~ | ~~Phase 7~~ | ✅ Complete |
+| ~~Promotional banners~~ | ~~🟡 Medium~~ | ~~Phase 7~~ | ✅ Complete |
+| Blog integration | 🟢 Low | Phase 8 | ⏳ Pending |
+| Content pages (About, Contact) | 🟢 Low | Phase 8 | ⏳ Pending |
+| Grower-Store Linking | 🟡 Medium | Phase 9 | ⏳ Pending |
+| Product Bundle Discounts | 🟢 Low | Phase 9 | ⏳ Pending |
 
 ### Improvement List by Category
 
@@ -484,13 +805,18 @@ features: {
    - Store detail page with hours, contact, services
    - Connected Header/Footer to CMS navigation
 
-❌ MISSING: Testimonials/Reviews Display
-   - Review schema exists but not connected to frontend
-   - No customer testimonials section on homepage
+✅ COMPLETE: Testimonials/Reviews Display (Phase 7)
+   - Created testimonial.ts schema with 15+ fields
+   - 6 sample testimonials migrated
+   - TestimonialsSection component with carousel
+   - Homepage integration complete
 
-❌ MISSING: Promotional Banners
-   - No way to add banners between sections
-   - Need: Banner schema with position, dates, CTA
+✅ COMPLETE: Promotional Banners (Phase 7)
+   - Created banner.ts schema with 25+ fields
+   - 9 banner positions across all pages
+   - 6 sample banners migrated
+   - Scheduling with start/end dates
+   - Promo code display with copy button
 
 ⚠️ PARTIAL: Product Images
    - Some products show placeholders
@@ -528,9 +854,59 @@ features: {
    - Footer customer service
    - Footer about links
 
-❌ MISSING: Header/Footer Using CMS Data
-   - Navigation schemas exist but not connected
-   - Header/Footer still use hardcoded links
+⚠️ PARTIAL: Header/Footer Using CMS Data
+   - Navigation schemas exist and connected
+   - Header uses useSanityNavigation('header-main')
+   - Footer uses multiple navigation hooks
+   - Fallback to hardcoded links when CMS unavailable
+```
+
+#### 4. Schema Improvements & Recommendations
+
+```
+📋 RECOMMENDED IMPROVEMENTS FOR FUTURE PHASES:
+
+🔗 GROWER-STORE LINKING (Priority: Medium)
+   Problem: Growers and Stores are separate schemas with no connection
+   Solution: Add "Meet Our Growers" to store pages
+   Implementation:
+   - Add `growers: reference[]` field to store.ts (link to grower documents)
+   - Display grower cards on store detail page
+   - Show "Visit Our Store" on grower profile pages
+   - Estimated time: 2-3 hours
+
+🏷️ PRODUCT TAGS ENHANCEMENT (Priority: Low)
+   Problem: productTags is just string array, not searchable/filterable
+   Solution: Create dedicated `productTag` schema for better UX
+   Implementation:
+   - Create productTag.ts with name, slug, color, icon
+   - Change product.productTags from string[] to reference[]
+   - Add tag cloud component for filtering
+   - Estimated time: 3-4 hours
+
+📦 BUNDLE DISCOUNT AUTOMATION (Priority: Low)
+   Problem: Bundle savings calculated manually
+   Solution: Auto-calculate bundle discount from individual products
+   Implementation:
+   - Add `calculateSavings()` helper in useSanityBundles
+   - Display "Save ₱XX" badge automatically
+   - Estimated time: 1-2 hours
+
+📊 ANALYTICS DASHBOARD (Priority: Low)
+   Problem: Analytics schema exists but not connected
+   Solution: Build simple admin dashboard
+   Implementation:
+   - Create /admin/analytics page
+   - Connect to analytics schema for views/sales data
+   - Estimated time: 4-5 hours
+
+🖼️ CATEGORY IMAGES (Priority: Medium)
+   Problem: Some categories show placeholder images
+   Solution: Ensure all 6 categories have proper images
+   Implementation:
+   - Upload category images in Sanity Studio
+   - Verify hotspot settings for responsive display
+   - Estimated time: 30 minutes (manual)
 ```
 
 ---
@@ -733,58 +1109,124 @@ export function useSanityStore(slug: string) {
 
 ---
 
-### Phase 7: Testimonials & Banners (4-6 hours)
+### Phase 7: Testimonials & Banners ✅ COMPLETE
 
-**Goal:** Add customer testimonials and promotional banners
+**Status:** ✅ Completed November 27, 2025  
+**Goal:** Add customer testimonials and promotional banners to the platform
 
-#### Schema to Create: `testimonial.ts`
+#### ✅ Created Files
+
+| File | Description |
+|------|-------------|
+| `studio/src/schemaTypes/documents/testimonial.ts` | Testimonial schema (15+ fields, 4 groups) |
+| `studio/src/schemaTypes/documents/banner.ts` | Banner schema (25+ fields, 6 groups) |
+| `src/hooks/useSanityTestimonials.ts` | Complete hook (413 lines) with 5 client hooks + 3 server functions |
+| `src/hooks/useSanityBanners.ts` | Complete hook (390+ lines) with position-based filtering |
+| `src/components/cms/TestimonialsSection.tsx` | Full testimonials component with carousel |
+| `src/components/cms/BannerSection.tsx` | Banner component with 9 position exports |
+| `scripts/migrate-testimonials-to-sanity.js` | Migration script for 6 sample testimonials |
+| `scripts/migrate-banners-to-sanity.js` | Migration script for 6 sample banners |
+
+#### ✅ Testimonial Schema Features
+
+- **Customer Info:** name, title, company, location, image (with hotspot)
+- **Content:** rating (1-5 stars), headline, quote, productPurchased reference, growerReference
+- **Media:** customer photo with responsive cropping
+- **Settings:** displayPosition, isFeatured, showOnHomepage, isVerified, isActive
+
+#### ✅ Testimonial Hooks
 
 ```typescript
-// studio/src/schemaTypes/documents/testimonial.ts
-export const testimonial = defineType({
-  name: 'testimonial',
-  title: 'Customer Testimonial',
-  type: 'document',
-  fields: [
-    { name: 'customerName', title: 'Customer Name', type: 'string' },
-    { name: 'customerImage', title: 'Photo', type: 'image' },
-    { name: 'location', title: 'Location', type: 'string' },
-    { name: 'rating', title: 'Rating', type: 'number', validation: (r) => r.min(1).max(5) },
-    { name: 'quote', title: 'Testimonial', type: 'text' },
-    { name: 'productPurchased', title: 'Product', type: 'reference', to: [{ type: 'product' }] },
-    { name: 'date', title: 'Date', type: 'date' },
-    { name: 'isFeatured', title: 'Featured', type: 'boolean' },
-    { name: 'isActive', title: 'Active', type: 'boolean' },
-  ],
-})
+// Client-side hooks
+useSanityTestimonials()         // All active testimonials
+useFeaturedTestimonials()       // Featured testimonials only
+useHomepageTestimonials()       // Homepage display testimonials
+useProductTestimonials(id)      // Testimonials for specific product
+useGrowerTestimonials(id)       // Testimonials for specific grower
+
+// Server-side functions
+fetchTestimonials()             // For Server Components
+fetchFeaturedTestimonials()     // For Server Components
+fetchHomepageTestimonials()     // For Server Components
+
+// Helper functions
+renderStarRating(rating)        // Render 1-5 star display
+getAverageRating(testimonials)  // Calculate average rating
+formatTestimonialDate(date)     // Format date for display
 ```
 
-#### Schema to Create: `banner.ts`
+#### ✅ Banner Schema Features
+
+- **Content:** title (internal), headline, subheadline, description
+- **Images:** desktopImage, mobileImage (both with hotspot), overlayOpacity
+- **Styling:** backgroundColor, textColor (light/dark), textAlignment, size
+- **CTA:** buttonText, buttonLink, buttonStyle, promoCode, showPromoCode
+- **Scheduling:** startDate, endDate, timezone
+- **Settings:** position, priority (1-100), isActive
+
+#### ✅ Banner Positions (9 total)
+
+| Position | Location | Use Case |
+|----------|----------|----------|
+| `homepage-top` | After hero | Main promotions |
+| `homepage-middle` | Between sections | Featured content |
+| `homepage-bottom` | Before footer | Newsletter signup |
+| `shop-top` | Above product grid | Category promos |
+| `shop-sidebar` | In filter sidebar | Special offers |
+| `product-bottom` | After reviews | Cross-sell |
+| `cart-top` | Top of cart | Upsell messaging |
+| `checkout-bottom` | Checkout footer | Last-minute offers |
+| `announcement` | Sticky top bar | Site-wide announcements |
+
+#### ✅ Banner Hooks
 
 ```typescript
-// studio/src/schemaTypes/documents/banner.ts
-export const banner = defineType({
-  name: 'banner',
-  title: 'Promotional Banner',
-  type: 'document',
-  fields: [
-    { name: 'title', title: 'Title', type: 'string' },
-    { name: 'subtitle', title: 'Subtitle', type: 'string' },
-    { name: 'image', title: 'Banner Image', type: 'image' },
-    { name: 'mobileImage', title: 'Mobile Image', type: 'image' },
-    { name: 'backgroundColor', title: 'Background Color', type: 'color' },
-    { name: 'textColor', title: 'Text Color', type: 'color' },
-    { name: 'buttonText', title: 'Button Text', type: 'string' },
-    { name: 'buttonLink', title: 'Button Link', type: 'string' },
-    { name: 'position', title: 'Position', type: 'string', options: {
-      list: ['homepage-top', 'homepage-middle', 'shop-top', 'checkout-bottom']
-    }},
-    { name: 'startDate', title: 'Start Date', type: 'datetime' },
-    { name: 'endDate', title: 'End Date', type: 'datetime' },
-    { name: 'isActive', title: 'Active', type: 'boolean' },
-  ],
-})
+// Client-side hooks
+useSanityBanners()              // All active banners
+useBannersByPosition(position)  // Banners for specific position
+useHomepageBanners()            // All homepage banners
+useAnnouncementBanner()         // Get announcement bar banner
+
+// Server-side functions
+fetchBanners()                  // For Server Components
+fetchBannersByPosition(pos)     // For Server Components
+fetchHomepageBanners()          // For Server Components
+
+// Helper functions
+getBannerHeightClass(size)      // Get Tailwind height class
+getTextColorClass(color)        // Get text/bg color classes
+getButtonVariant(style)         // Get Button component variant
+getTimeRemaining(endDate)       // Calculate countdown timer
 ```
+
+#### ✅ Banner Component Exports
+
+```typescript
+// Position-specific exports for easy use
+import { 
+  HomepageTopBanner,
+  HomepageMiddleBanner,
+  HomepageBottomBanner,
+  ShopTopBanner,
+  ShopSidebarBanner,
+  ProductBottomBanner,
+  CartTopBanner,
+  CheckoutBottomBanner,
+  AnnouncementBar
+} from '@/components/cms/BannerSection';
+
+// Usage example
+<HomepageTopBanner />  // Shows banner with position='homepage-top'
+```
+
+#### ✅ Data Migrated
+
+- **6 Customer Testimonials:** Maria Santos, Chef Ramon, Jessica Lim, Antonio Reyes, Dr. Patricia Cruz, Mark Gonzales
+- **6 Promotional Banners:** Holiday Sale, Free Shipping Announcement, New Grower Partnership, Growing Kit Promo, Newsletter Signup, Cart Upsell
+
+#### ✅ Homepage Integration
+
+TestimonialsSection component added to homepage after FeaturedGrowersSection with carousel display.
 
 ---
 
@@ -947,6 +1389,9 @@ studio/src/schemaTypes/
 │   ├── faqItem.ts              # FAQ questions (Phase 2)
 │   ├── featureSection.ts       # Homepage features (Phase 4)
 │   ├── navigation.ts           # Nav menus (Phase 5)
+│   ├── store.ts                # Store locations (Phase 6)
+│   ├── testimonial.ts          # Customer testimonials (Phase 7) ← NEW
+│   ├── banner.ts               # Promotional banners (Phase 7) ← NEW
 │   ├── page.ts                 # CMS pages
 │   ├── post.ts                 # Blog posts
 │   ├── person.ts               # Authors
@@ -977,7 +1422,9 @@ src/hooks/
 ├── useSanityFAQ.ts             # FAQs + categories (Phase 2)
 ├── useSanityFeatures.ts        # Feature sections (Phase 4)
 ├── useSanitySiteSettings.ts    # Site settings + navigation (Phase 5)
-├── useSanityStores.ts          # Store locations (Phase 6) ← NEW
+├── useSanityStores.ts          # Store locations (Phase 6)
+├── useSanityTestimonials.ts    # Customer testimonials (Phase 7) ← NEW
+├── useSanityBanners.ts         # Promotional banners (Phase 7) ← NEW
 ├── useSanityHero.ts            # Hero carousel
 ├── useSanityBundles.ts         # Product bundles
 ├── useSanityVariants.ts        # Product variants
@@ -989,6 +1436,17 @@ src/hooks/
 └── useSanityAnalytics.ts       # Analytics
 ```
 
+### Component Files (Phase 7)
+
+```
+src/components/cms/
+├── TestimonialsSection.tsx     # Testimonials carousel + cards (Phase 7) ← NEW
+├── BannerSection.tsx           # Banner display + 9 position exports (Phase 7) ← NEW
+├── SanityFeatureSection.tsx    # Feature display (Phase 4)
+├── FAQSection.tsx              # FAQ accordion
+└── ... other CMS components
+```
+
 ### Migration Scripts
 
 ```
@@ -997,6 +1455,9 @@ scripts/
 ├── migrate-faq-to-sanity.js          # Phase 2: 5 categories, 19 FAQs
 ├── migrate-features-to-sanity.js     # Phase 4: 2 sections, 7 features
 ├── migrate-site-settings-to-sanity.js # Phase 5: Settings + 5 nav menus
+├── migrate-stores-to-sanity.js       # Phase 6: 4 stores
+├── migrate-testimonials-to-sanity.js # Phase 7: 6 testimonials ← NEW
+├── migrate-banners-to-sanity.js      # Phase 7: 6 banners ← NEW
 └── check-*.js                         # Verification scripts
 ```
 
@@ -1047,13 +1508,38 @@ scripts/
 - `scripts/migrate-site-settings-to-sanity.js`
 - Updated `studio/src/structure/index.ts`
 
+
 **Data Migrated:** 
 - 1 siteSettings singleton (MASH company info)
 - 5 navigation menus (22 menu items total)
 
+### Phase 7: Testimonials & Banners (✅ Complete)
+
+**Files Created:**
+- `studio/src/schemaTypes/documents/testimonial.ts` (220+ lines, 4 groups)
+- `studio/src/schemaTypes/documents/banner.ts` (280+ lines, 6 groups)
+- `src/hooks/useSanityTestimonials.ts` (413 lines)
+- `src/hooks/useSanityBanners.ts` (390+ lines)
+- `src/components/cms/TestimonialsSection.tsx`
+- `src/components/cms/BannerSection.tsx`
+
+**Data Migrated:**
+- 6 customer testimonials with ratings
+- 6 promotional banners with scheduling
+
 ---
 
-**Document Version:** 2.0  
+**Document Version:** 3.0  
 **Last Updated:** November 27, 2025  
 **Author:** AI Assistant (GitHub Copilot)  
 **Project:** MASH Mushroom E-Commerce Platform
+
+### Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 3.0 | Nov 27, 2025 | Phase 7 complete: Testimonials & Banners, E-Commerce Flow section, Schema improvements list |
+| 2.1 | Nov 27, 2025 | Phase 6 complete: Store/Location Pages |
+| 2.0 | Nov 27, 2025 | Phase 5 complete: Site Settings & Navigation |
+| 1.5 | Nov 26, 2025 | Phase 4 complete: Feature Sections |
+| 1.0 | Nov 25, 2025 | Initial document: Phases 1-3 |

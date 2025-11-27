@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
 import { SanityFeatureSection } from "@/components/cms/SanityFeatureSection"; // Phase 4: Use Sanity
+import { TestimonialsSection } from "@/components/cms/TestimonialsSection"; // Phase 7: Customer Testimonials
 import { useSanityFeatures } from "@/hooks/useSanityFeatures"; // Phase 4: Sanity hook
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
@@ -415,6 +416,7 @@ export default function Home() {
         <FeaturedCategoriesSection />
         <WhyMASHSection />
         <FeaturedGrowersSection />
+        <TestimonialsSection />
       </main>
     </div>
   );

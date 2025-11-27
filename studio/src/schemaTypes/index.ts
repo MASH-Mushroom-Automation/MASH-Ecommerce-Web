@@ -17,6 +17,8 @@ import {faqItem} from './documents/faqItem' // Phase 2: FAQ Items
 import {featureSection} from './documents/featureSection' // Phase 4: Feature Sections
 import {navigation} from './documents/navigation' // Phase 5: Navigation Menus
 import {store} from './documents/store' // Phase 6: Store Locations
+import {testimonial} from './documents/testimonial' // Phase 7: Testimonials
+import {banner} from './documents/banner' // Phase 7: Promotional Banners
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -44,6 +46,8 @@ export const schemaTypes = [
   featureSection, // Phase 4: Feature Sections (Why MASH)
   navigation, // Phase 5: Navigation Menus
   store, // Phase 6: Store Locations
+  testimonial, // Phase 7: Customer Testimonials
+  banner, // Phase 7: Promotional Banners
   category,
   product,
   review,
