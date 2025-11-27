@@ -1,6 +1,7 @@
 import {person} from './documents/person'
 import {page} from './documents/page'
 import {post} from './documents/post'
+import {blogCategory} from './documents/blogCategory' // Phase 8: Blog Categories
 import {category} from './documents/category'
 import {product} from './documents/product'
 import {review} from './documents/review'
@@ -25,6 +26,8 @@ import {settings} from './singletons/settings'
 import {siteSettings} from './singletons/siteSettings' // Phase 5: Site Settings
 import {featuredProducts} from './singletons/featuredProducts'
 import {heroCarousel} from './singletons/heroCarousel'
+import {aboutPage} from './singletons/aboutPage' // Phase 8: About Page Content
+import {contactPage} from './singletons/contactPage' // Phase 8: Contact Page Content
 import {link} from './objects/link'
 import {blockContent} from './objects/blockContent'
 
@@ -36,9 +39,12 @@ export const schemaTypes = [
   siteSettings, // Phase 5: Comprehensive Site Settings
   featuredProducts,
   heroCarousel,
+  aboutPage, // Phase 8: About Page Content
+  contactPage, // Phase 8: Contact Page Content
   // Documents
   page,
   post,
+  blogCategory, // Phase 8: Blog Categories
   person,
   grower, // Phase 1: Growers/Farms
   faqCategory, // Phase 2: FAQ Categories
