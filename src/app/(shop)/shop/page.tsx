@@ -54,8 +54,10 @@ export default function ProductCatalogPage() {
   const displayedProducts = allProducts.slice(0, itemsPerPage);
   const hasMoreProducts = allProducts.length > displayedProducts.length;
 
-  // Extract category names from Sanity categories
-  const categories = sanityCategories.map((cat) => cat.name);
+  // Extract category names from Sanity categories (filter out null/undefined)
+  const categories = sanityCategories
+    .map((cat) => cat.name)
+    .filter((name): name is string => Boolean(name));
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
