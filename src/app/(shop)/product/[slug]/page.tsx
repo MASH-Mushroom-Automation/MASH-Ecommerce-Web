@@ -363,6 +363,133 @@ export default function ProductDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Frequently Bought Together Section */}
+        {product.complementaryProducts && product.complementaryProducts.length > 0 && (
+          <section className="mt-12 bg-muted/30 p-6 rounded-lg">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              ⚡ Frequently Bought Together
+            </h2>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Current Product */}
+              <div className="flex items-center gap-4 p-3 bg-background rounded-lg border">
+                <div className="relative w-16 h-16">
+                  {product.image && (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover rounded"
+                    />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium line-clamp-1">{product.name}</p>
+                  <p className="text-primary font-semibold">₱{product.price.toFixed(2)}</p>
+                </div>
+              </div>
+              
+              <span className="text-2xl text-muted-foreground">+</span>
+              
+              {/* Complementary Products */}
+              {product.complementaryProducts.slice(0, 2).map((item, idx) => (
+                <React.Fragment key={item.id}>
+                  <Link
+                    href={`/product/${item.slug}`}
+                    className="flex items-center gap-4 p-3 bg-background rounded-lg border hover:border-primary transition-colors"
+                  >
+                    <div className="relative w-16 h-16">
+                      {item.image && (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium line-clamp-1">{item.name}</p>
+                      <p className="text-primary font-semibold">₱{item.price.toFixed(2)}</p>
+                    </div>
+                  </Link>
+                  {idx < Math.min(product.complementaryProducts!.length - 1, 1) && (
+                    <span className="text-2xl text-muted-foreground">+</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            
+            {/* Bundle Total */}
+            <div className="mt-4 flex items-center justify-between border-t pt-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Bundle Price:</p>
+                <p className="text-2xl font-bold text-primary">
+                  ₱{(product.price + product.complementaryProducts.reduce((sum, p) => sum + p.price, 0)).toFixed(2)}
+                </p>
+              </div>
+              <Button 
+                onClick={() => {
+                  // Add all products to cart
+                  addToCart(product.id, product.price, 1);
+                  product.complementaryProducts?.forEach((p) => {
+                    addToCart(p.id, p.price, 1);
+                  });
+                  toast.success('Bundle added to cart!');
+                }}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Add Bundle to Cart
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {/* You May Also Like Section */}
+        {product.suggestedProducts && product.suggestedProducts.length > 0 && (
+          <section className="mt-16 border-t pt-12">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
+              You May Also Like
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {product.suggestedProducts.slice(0, 4).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/product/${item.slug}`}
+                  className="group"
+                >
+                  <div className="relative aspect-square bg-muted rounded-lg overflow-hidden mb-3">
+                    {item.image && item.image.startsWith('http') && (
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                    )}
+                    {item.isPromo && (
+                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                        SALE
+                      </span>
+                    )}
+                    {item.isFeatured && (
+                      <span className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                        ⭐
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {item.name}
+                  </h3>
+                  <p className="text-primary font-semibold">
+                    ₱{item.price.toFixed(2)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

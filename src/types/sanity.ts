@@ -112,6 +112,19 @@ export interface ProductFilters {
  * Product data transformed to match existing ProductCard interface
  * This bridges Sanity data structure with frontend components
  */
+/**
+ * Related Product (for suggestions and complementary)
+ */
+export interface RelatedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  image: string;
+  isPromo: boolean;
+  isFeatured?: boolean;
+}
+
 export interface TransformedProduct {
   id: string;
   name: string;
@@ -131,6 +144,11 @@ export interface TransformedProduct {
   isFeatured: boolean;
   isPromo: boolean;
   promoEndDate?: string;
+  
+  // E-Commerce Enhancements (Phase 9)
+  suggestedProducts?: RelatedProduct[];  // "You May Also Like"
+  complementaryProducts?: RelatedProduct[];  // "Frequently Bought Together"
+  productTags?: string[];  // Smart search tags
 }
 
 /**
@@ -154,6 +172,27 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
         : product.category.slug.current)
     : undefined;
 
+  // Transform suggested products
+  const suggestedProducts: RelatedProduct[] | undefined = (product as any).suggestedProducts?.map((p: any) => ({
+    id: p._id,
+    name: p.name,
+    slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
+    price: p.price || 0,
+    image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+    isPromo: p.isPromo || false,
+    isFeatured: p.isFeatured || false,
+  }));
+
+  // Transform complementary products
+  const complementaryProducts: RelatedProduct[] | undefined = (product as any).complementaryProducts?.map((p: any) => ({
+    id: p._id,
+    name: p.name,
+    slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
+    price: p.price || 0,
+    image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+    isPromo: p.isPromo || false,
+  }));
+
   return {
     id: product._id,
     name: product.name,
@@ -173,6 +212,11 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     isFeatured: product.isFeatured,
     isPromo: product.isPromo,
     promoEndDate: product.promoEndDate,
+    
+    // E-Commerce Enhancements
+    suggestedProducts: suggestedProducts?.length ? suggestedProducts : undefined,
+    complementaryProducts: complementaryProducts?.length ? complementaryProducts : undefined,
+    productTags: (product as any).productTags,
   };
 }
 

@@ -352,14 +352,34 @@ export function useSanityProduct(slug: string) {
           category->{
             _id,
             name,
-            slug,
+            "slug": slug.current,
             description
           },
           subcategory->{
             _id,
             name,
-            slug
-          }
+            "slug": slug.current
+          },
+          
+          // E-Commerce Enhancements: Related Products
+          suggestedProducts[]->{
+            _id,
+            name,
+            "slug": slug.current,
+            price,
+            "image": image.asset->url,
+            "isPromo": isOnPromo,
+            isFeatured
+          },
+          complementaryProducts[]->{
+            _id,
+            name,
+            "slug": slug.current,
+            price,
+            "image": image.asset->url,
+            "isPromo": isOnPromo
+          },
+          productTags
         }`;
 
         const data: SanityProduct | null = await sanityClient.fetch(query, { slug });
@@ -401,8 +421,26 @@ export function useSanityProduct(slug: string) {
         promoEndDate,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
-        category->{ _id, name, slug, description },
-        subcategory->{ _id, name, slug }
+        category->{ _id, name, "slug": slug.current, description },
+        subcategory->{ _id, name, "slug": slug.current },
+        suggestedProducts[]->{
+          _id,
+          name,
+          "slug": slug.current,
+          price,
+          "image": image.asset->url,
+          "isPromo": isOnPromo,
+          isFeatured
+        },
+        complementaryProducts[]->{
+          _id,
+          name,
+          "slug": slug.current,
+          price,
+          "image": image.asset->url,
+          "isPromo": isOnPromo
+        },
+        productTags
       }`;
 
       const subscription = sanityClient
