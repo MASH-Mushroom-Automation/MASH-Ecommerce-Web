@@ -103,13 +103,13 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         category->{
           _id,
           name,
-          slug,
+          "slug": slug.current,
           description
         },
         subcategory->{
           _id,
           name,
-          slug
+          "slug": slug.current
         }
       }`;
       

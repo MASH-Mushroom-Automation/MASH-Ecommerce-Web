@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 5.0  
-**Last Updated:** November 28, 2025  
+**Version:** 6.0  
+**Last Updated:** November 28, 2025 (Updated)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
 
@@ -20,36 +20,216 @@
 | **Phase 6** | Store/Location Pages | ✅ **COMPLETE** | 100% |
 | **Phase 7** | Testimonials & Banners | ✅ **COMPLETE** | 100% |
 | **Phase 8** | Blog & Content Pages | ✅ **COMPLETE** | 100% |
-| **Phase 9** | Final Integration & Testing | 🔄 **IN PROGRESS** | 30% |
+| **Phase 9** | Final Integration & Testing | 🔄 **IN PROGRESS** | 50% |
 | **Phase 10** | Grower-Store Linking & Enhancements | ⏳ Pending | 0% |
+| **Phase 11** | Meet Our Growers on Store Pages | ⏳ Pending | 0% |
 
 ---
 
-## 🚨 CRITICAL ISSUES TO FIX
+## 🚨 CRITICAL ISSUES TO FIX (Updated November 28, 2025)
 
-### 1. About Page Team Not Showing (✅ FIXED November 28, 2025)
+### 1. Shop Page Products Not Showing (✅ FIXED November 28, 2025)
+
+**Issue:** Shop page (`/shop`) showed "No Products Found" despite 15 products in Sanity
+**Root Cause:** Two bugs in `useSanityProducts.ts`:
+1. **Cache Bug**: Empty products cached on first load because `productCache.set()` used stale `products` state instead of freshly fetched data
+2. **GROQ Projection**: Category slug returned as object `{ current: string }` but transformation expected string
+
+**Solution Applied:**
+```typescript
+// Fixed in src/hooks/useSanityProducts.ts
+
+// 1. Cache BEFORE setState (using transformed data directly)
+const transformedProducts = filteredData.map(transformSanityProduct);
+productCache.set(cacheKey, { data: transformedProducts, timestamp: Date.now() });
+setProducts(transformedProducts);
+
+// 2. Fixed GROQ projection to return string slugs
+category->{
+  _id,
+  name,
+  "slug": slug.current,  // ← Fixed: Returns string, not object
+  description
+}
+
+// 3. Added cache clearing on hot reload
+if (typeof window !== 'undefined') {
+  productCache.clear();
+}
+```
+
+**Files Modified:**
+- `src/hooks/useSanityProducts.ts` (lines 155-180)
+- `src/types/sanity.ts` (lines 139-172)
+
+### 2. About Page Team Not Showing (✅ FIXED November 28, 2025)
 
 **Issue:** `challenges.challenges is undefined` error
 **Root Cause:** About page was passing `items` prop but `CMSAboutSection` expects `challenges` array of strings
-**Solution:** Fixed data transformation in `src/app/about/page.tsx`:
-- Changed `items` → `challenges` (string array)
-- Added default fallback data for team, challenges, solutions
-- Fixed `member.name` → `member.fullName`
+**Solution:** Fixed data transformation in `src/app/about/page.tsx`
 
-### 2. Growers Not Linked to Stores
+### 3. Growers Not Linked to Stores (⏳ Phase 10/11)
 
 **Issue:** When viewing a grower profile, no connection to their store location
 **Impact:** Users can't find where to buy products from specific growers
-**Solution (Phase 10):** Add `growers` reference array to `store.ts` schema
+**Solution:** 
+- Add `growers: reference[]` to `store.ts` schema
+- Add "Meet Our Growers" section to store pages
+- Add "Find At Our Stores" to grower pages
 
-### 3. Products/Categories Not Showing Properly on Website
+### 4. Products/Categories Filtering Verification (🔄 Ongoing)
 
-**Issue:** Some products/categories may not display correctly
-**Checks Needed:**
-- [ ] Verify all products have `isAvailable: true` in Sanity
-- [ ] Verify categories have correct slugs for filtering
-- [ ] Check that product images are uploaded (not placeholders)
-- [ ] Ensure price > 0 for all products
+**Status:** 15 products confirmed available in Sanity
+- All products have `isAvailable: true` ✅
+- All products have images ✅
+- All products have categories ✅
+- Price range: ₱300 - ₱2,500 ✅
+
+**Quick Verification Script:**
+```bash
+cd scripts && node check-products.js
+```
+
+---
+
+## 🔴 COMPREHENSIVE IMPROVEMENT LIST
+
+### Legend
+- 🚨 **CRITICAL** - Must fix before launch
+- 🔴 **HIGH** - Fix in next sprint (Phase 9-10)
+- 🟡 **MEDIUM** - Fix before production (Phase 11-12)
+- 🟢 **LOW** - Future enhancement
+
+### E-Commerce & Products
+
+| # | Issue | Priority | Category | Impact | Solution | Est. Time |
+|---|-------|----------|----------|--------|----------|-----------|
+| 1 | ~~Products not showing on shop~~ | 🚨 | Bug | ✅ FIXED | Cache + GROQ fix | Done |
+| 2 | Product variants not displayed | 🔴 | Feature | Can't select sizes | Update product detail page | 3 hrs |
+| 3 | "You May Also Like" not working | 🔴 | Feature | No cross-sell | Fetch suggestedProducts[] | 2 hrs |
+| 4 | "Frequently Bought Together" missing | 🔴 | Feature | No bundle upsell | Fetch complementaryProducts[] | 2 hrs |
+| 5 | Bundle savings not calculated | 🟡 | Feature | Manual entry | Add auto-calculate helper | 2 hrs |
+| 6 | Product reviews not connected | 🟡 | Integration | No social proof | Link useSanityReviews | 2 hrs |
+| 7 | Product search not working | 🟡 | Feature | Can't find products | Implement Sanity search | 4 hrs |
+| 8 | Product tags not filterable | 🟢 | Schema | Limited discovery | Create productTag schema | 3 hrs |
+
+### Growers & Stores
+
+| # | Issue | Priority | Category | Impact | Solution | Est. Time |
+|---|-------|----------|----------|--------|----------|-----------|
+| 9 | **Growers not on store pages** | 🔴 | Feature | Can't find growers | Add growers[] to store.ts | 2 hrs |
+| 10 | Store grower section missing | 🔴 | UI | No "Meet Our Growers" | Add GrowerCard to store detail | 2 hrs |
+| 11 | Grower → Store link missing | 🔴 | Feature | Can't find store | Add stores[] to grower.ts | 1 hr |
+| 12 | Store hours not displaying | 🟡 | Bug | Hours hidden | Fix operatingHours display | 1 hr |
+| 13 | Store map not loading | 🟡 | Integration | No map view | Check Google Maps API key | 1 hr |
+
+### Navigation & Site Settings
+
+| # | Issue | Priority | Category | Impact | Solution | Est. Time |
+|---|-------|----------|----------|--------|----------|-----------|
+| 14 | Header using hardcoded nav | 🔴 | Integration | Can't update from CMS | Connect useSanityNavigation | 2 hrs |
+| 15 | Footer using hardcoded links | 🔴 | Integration | Can't update from CMS | Connect to site settings | 2 hrs |
+| 16 | Announcement bar not connected | 🔴 | Integration | No site-wide alerts | Use siteSettings.announcementBar | 1 hr |
+| 17 | Social links not showing | 🟡 | Integration | No social presence | Fetch from siteSettings | 1 hr |
+| 18 | Logo not from CMS | 🟢 | Integration | Can't change logo | Fetch siteSettings.logo | 30 min |
+
+### Content Pages
+
+| # | Issue | Priority | Category | Impact | Solution | Est. Time |
+|---|-------|----------|----------|--------|----------|-----------|
+| 19 | ~~About page team error~~ | 🚨 | Bug | ✅ FIXED | Data transformation | Done |
+| 20 | About team photos missing | 🔴 | Content | Incomplete about | Upload in Sanity Studio | 30 min |
+| 21 | Blog cover images missing | 🟡 | Content | Blog looks empty | Upload in Sanity Studio | 30 min |
+| 22 | Contact form not submitting | 🟡 | Feature | Can't contact us | Add form handler | 3 hrs |
+| 23 | FAQ categories not clickable | 🟢 | UX | Poor navigation | Add category filter | 2 hrs |
+
+### Marketing & Banners
+
+| # | Issue | Priority | Category | Impact | Solution | Est. Time |
+|---|-------|----------|----------|--------|----------|-----------|
+| 24 | Testimonials not on homepage | 🔴 | Integration | No social proof | Add TestimonialsSection | 1 hr |
+| 25 | Homepage banners not showing | 🔴 | Integration | No promotions | Add BannerSection | 1 hr |
+| 26 | Shop page banner missing | 🟡 | Integration | No promo display | Add ShopTopBanner | 30 min |
+| 27 | Cart upsell banner missing | 🟢 | Integration | Less revenue | Add CartTopBanner | 30 min |
+
+---
+
+## 🎯 NEXT STEPS GUIDE (Prioritized Action Plan)
+
+### IMMEDIATE (Today - 2 hours)
+
+**Step 1: Verify Shop Page Fix (15 min)**
+```bash
+# 1. Start dev server
+npm run dev
+
+# 2. Open shop page
+# http://localhost:3000/shop
+
+# 3. Check browser console for:
+# "🔍 Fetching products from Sanity..."
+# "📡 Executing GROQ query..."
+# "📥 Raw Sanity response: 15 products"
+# "🛒 Fetched products from Sanity: 15"
+
+# 4. Products should display in grid
+```
+
+**Step 2: Upload Missing Content in Sanity (30 min)**
+```bash
+# 1. Start Sanity Studio
+cd studio && npm run dev
+# Open http://localhost:3333
+
+# 2. Upload Team Photos
+# Blog → Authors & Team → Each member → Upload picture
+
+# 3. Verify Product Images
+# E-Commerce → Products → Check each has image
+
+# 4. Verify Categories
+# E-Commerce → Categories → Check slugs match:
+# - fresh-mushrooms
+# - dried-mushrooms  
+# - growing-kits
+```
+
+**Step 3: Connect Header/Footer to CMS (1 hour)**
+
+Update `src/components/layout/Header.tsx`:
+```typescript
+// Add import
+import { useSanityNavigation, useSanitySiteSettings } from '@/hooks/useSanitySiteSettings';
+
+// In component
+const { settings } = useSanitySiteSettings();
+const { items: mainNav } = useSanityNavigation('header-main');
+
+// Use settings.logo, settings.companyName
+// Use mainNav for navigation items
+```
+
+### THIS WEEK (Phase 9 - 8 hours)
+
+| Priority | Task | Files | Est. |
+|----------|------|-------|------|
+| 1 | Add Testimonials to Homepage | `src/app/page.tsx` | 30 min |
+| 2 | Add Announcement Bar | `src/components/layout/Header.tsx` | 1 hr |
+| 3 | Connect Product Detail to Variants | `src/app/(shop)/product/[slug]/page.tsx` | 2 hrs |
+| 4 | Add Related Products section | `src/app/(shop)/product/[slug]/page.tsx` | 2 hrs |
+| 5 | Fix Store Hours Display | `src/app/stores/[slug]/page.tsx` | 1 hr |
+| 6 | Add Homepage Banners | `src/app/page.tsx` | 1 hr |
+
+### NEXT WEEK (Phase 10-11 - 12 hours)
+
+| Priority | Task | Files | Est. |
+|----------|------|-------|------|
+| 1 | **Add Growers to Store Schema** | `studio/src/schemaTypes/documents/store.ts` | 1 hr |
+| 2 | **Create "Meet Our Growers" section** | `src/app/stores/[slug]/page.tsx` | 2 hrs |
+| 3 | Add Stores to Grower Schema | `studio/src/schemaTypes/documents/grower.ts` | 1 hr |
+| 4 | Create "Find At Our Stores" section | `src/app/grower/[id]/page.tsx` | 2 hrs |
+| 5 | Implement Product Reviews | `src/app/(shop)/product/[slug]/page.tsx` | 3 hrs |
+| 6 | Add Search Functionality | `src/components/search/` | 3 hrs |
 
 ---
 
@@ -1863,7 +2043,7 @@ scripts/
 
 ---
 
-**Document Version:** 5.0  
+**Document Version:** 6.0  
 **Last Updated:** November 28, 2025  
 **Author:** AI Assistant (GitHub Copilot)  
 **Project:** MASH Mushroom E-Commerce Platform
@@ -1872,6 +2052,7 @@ scripts/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 6.0 | Nov 28, 2025 | Fixed Shop page cache bug, added Phase 11 (Meet Our Growers on Store Pages), comprehensive schema updates for grower-store linking |
 | 5.0 | Nov 28, 2025 | Fixed About page error, added team members to Sanity, comprehensive improvements list, Phase 9/10 planning |
 | 4.0 | Nov 28, 2025 | Phase 8 complete: Blog categories, About/Contact singletons, enhanced post.ts & person.ts |
 | 3.0 | Nov 27, 2025 | Phase 7 complete: Testimonials & Banners, E-Commerce Flow section, Schema improvements list |
@@ -2174,6 +2355,461 @@ function calculateBundleSavings(bundle: SanityBundle): number {
 1. Create `useProductReviews(productId)` hook
 2. Add reviews section to product detail page
 3. Show average rating on product cards
+
+---
+
+## 🛠️ PHASE 11: MEET OUR GROWERS ON STORE PAGES
+
+### Status: ⏳ PENDING
+
+**Goal:** Display associated growers on store detail pages with full profiles
+
+### Why This Matters
+
+Currently, stores and growers exist as separate entities. Customers visiting a store page cannot see which local farmers supply that store. This feature will:
+- Build trust by showing real farmer faces
+- Highlight local partnerships
+- Create a complete farm-to-store narrative
+- Improve SEO with rich content
+
+### Implementation Checklist
+
+#### 11.1 Schema Updates (Priority: HIGH)
+
+**1. Add `growers[]` to Store Schema**
+
+File: `studio/src/schemaTypes/documents/store.ts`
+
+```typescript
+// Add new group for growers
+groups: [
+  // ... existing groups
+  { name: 'growers', title: 'Growers & Partners', icon: Leaf },
+],
+
+// Add growers field after products section
+defineField({
+  name: 'growers',
+  title: 'Featured Growers',
+  description: 'Growers whose products are available at this store',
+  type: 'array',
+  of: [
+    {
+      type: 'reference',
+      to: [{ type: 'grower' }],
+    },
+  ],
+  group: 'growers',
+  validation: (Rule) => Rule.max(8).unique(),
+}),
+
+defineField({
+  name: 'showGrowersSection',
+  title: 'Show Meet Our Growers Section',
+  description: 'Display the growers section on the store page',
+  type: 'boolean',
+  initialValue: true,
+  group: 'growers',
+}),
+
+defineField({
+  name: 'growersSectionTitle',
+  title: 'Growers Section Title',
+  description: 'Custom title for the growers section',
+  type: 'string',
+  initialValue: 'Meet Our Growers',
+  placeholder: 'Meet Our Growers',
+  group: 'growers',
+}),
+
+defineField({
+  name: 'growersSectionSubtitle',
+  title: 'Growers Section Subtitle',
+  type: 'text',
+  rows: 2,
+  initialValue: 'Get to know the passionate farmers who grow the fresh mushrooms available at our store.',
+  group: 'growers',
+}),
+```
+
+**2. Add `stores[]` to Grower Schema (Bidirectional)**
+
+File: `studio/src/schemaTypes/documents/grower.ts`
+
+```typescript
+// Add to business group
+defineField({
+  name: 'availableAtStores',
+  title: 'Available At Stores',
+  description: 'Stores where products from this grower are sold',
+  type: 'array',
+  of: [
+    {
+      type: 'reference',
+      to: [{ type: 'store' }],
+    },
+  ],
+  group: 'business',
+}),
+```
+
+#### 11.2 Hook Updates (Priority: HIGH)
+
+**1. Update `useSanityStores.ts`**
+
+Add growers expansion to GROQ query:
+
+```typescript
+const STORE_QUERY = groq`
+  *[_type == "store" && slug.current == $slug][0] {
+    _id,
+    name,
+    slug,
+    // ... existing fields
+    
+    // Growers section
+    showGrowersSection,
+    growersSectionTitle,
+    growersSectionSubtitle,
+    growers[]-> {
+      _id,
+      name,
+      slug,
+      farmName,
+      "image": image.asset->url,
+      shortBio,
+      specialty,
+      certifications[],
+      location {
+        city,
+        province
+      },
+      products[]-> {
+        _id,
+        name,
+        slug,
+        "image": image.asset->url,
+        price
+      }
+    }
+  }
+`;
+```
+
+**2. Add Types**
+
+File: `src/types/sanity.ts`
+
+```typescript
+export interface StoreGrowerInfo {
+  _id: string;
+  name: string;
+  slug: { current: string };
+  farmName: string;
+  image: string | null;
+  shortBio: string;
+  specialty: string[];
+  certifications: string[];
+  location: {
+    city: string;
+    province: string;
+  };
+  products: Array<{
+    _id: string;
+    name: string;
+    slug: { current: string };
+    image: string | null;
+    price: number;
+  }>;
+}
+
+export interface SanityStore {
+  // ... existing fields
+  showGrowersSection: boolean;
+  growersSectionTitle: string;
+  growersSectionSubtitle: string;
+  growers: StoreGrowerInfo[];
+}
+```
+
+#### 11.3 Component Creation (Priority: HIGH)
+
+**1. Create `MeetOurGrowers.tsx`**
+
+File: `src/components/cms/MeetOurGrowers.tsx`
+
+```tsx
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { MapPin, Award, ShoppingBag } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import type { StoreGrowerInfo } from '@/types/sanity';
+
+interface MeetOurGrowersProps {
+  title?: string;
+  subtitle?: string;
+  growers: StoreGrowerInfo[];
+  showProducts?: boolean;
+  maxGrowers?: number;
+}
+
+export function MeetOurGrowers({
+  title = 'Meet Our Growers',
+  subtitle,
+  growers,
+  showProducts = true,
+  maxGrowers = 4,
+}: MeetOurGrowersProps) {
+  const displayedGrowers = growers.slice(0, maxGrowers);
+
+  if (!growers.length) return null;
+
+  return (
+    <section className="py-12 bg-muted/30">
+      <div className="container">
+        {/* Section Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-primary-dark mb-2">{title}</h2>
+          {subtitle && (
+            <p className="text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
+          )}
+        </div>
+
+        {/* Growers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {displayedGrowers.map((grower) => (
+            <Card key={grower._id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              {/* Grower Image */}
+              <div className="relative h-48 bg-muted">
+                {grower.image ? (
+                  <Image
+                    src={grower.image}
+                    alt={grower.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-4xl">👨‍🌾</span>
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="p-4">
+                {/* Grower Info */}
+                <h3 className="font-semibold text-lg mb-1">{grower.name}</h3>
+                <p className="text-sm text-primary-medium mb-2">{grower.farmName}</p>
+                
+                {/* Location */}
+                <div className="flex items-center text-sm text-muted-foreground mb-2">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  {grower.location?.city}, {grower.location?.province}
+                </div>
+
+                {/* Short Bio */}
+                {grower.shortBio && (
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {grower.shortBio}
+                  </p>
+                )}
+
+                {/* Certifications */}
+                {grower.certifications?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {grower.certifications.slice(0, 2).map((cert) => (
+                      <Badge key={cert} variant="secondary" className="text-xs">
+                        <Award className="w-3 h-3 mr-1" />
+                        {cert}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Products Preview */}
+                {showProducts && grower.products?.length > 0 && (
+                  <div className="border-t pt-3 mt-3">
+                    <p className="text-xs text-muted-foreground mb-2 flex items-center">
+                      <ShoppingBag className="w-3 h-3 mr-1" />
+                      Available Products:
+                    </p>
+                    <div className="flex gap-1 overflow-hidden">
+                      {grower.products.slice(0, 3).map((product) => (
+                        <Link
+                          key={product._id}
+                          href={`/product/${product.slug?.current || product._id}`}
+                          className="relative w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0 hover:ring-2 ring-primary"
+                        >
+                          {product.image ? (
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs">🍄</span>
+                          )}
+                        </Link>
+                      ))}
+                      {grower.products.length > 3 && (
+                        <span className="text-xs text-muted-foreground self-center">
+                          +{grower.products.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* View Profile Link */}
+                <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                  <Link href={`/grower/${grower.slug?.current || grower._id}`}>
+                    View Farm Profile
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* View All Link */}
+        {growers.length > maxGrowers && (
+          <div className="text-center mt-8">
+            <Button variant="outline" asChild>
+              <Link href="/grower">
+                View All {growers.length} Growers
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export default MeetOurGrowers;
+```
+
+#### 11.4 Store Page Integration (Priority: HIGH)
+
+**Update Store Detail Page**
+
+File: `src/app/(shop)/stores/[slug]/page.tsx`
+
+```tsx
+import { MeetOurGrowers } from '@/components/cms/MeetOurGrowers';
+
+export default async function StoreDetailPage({ params }) {
+  const store = await getStore(params.slug);
+
+  return (
+    <div>
+      {/* ... existing store info sections */}
+
+      {/* Meet Our Growers Section */}
+      {store.showGrowersSection && store.growers?.length > 0 && (
+        <MeetOurGrowers
+          title={store.growersSectionTitle}
+          subtitle={store.growersSectionSubtitle}
+          growers={store.growers}
+          showProducts={true}
+          maxGrowers={4}
+        />
+      )}
+
+      {/* ... rest of page */}
+    </div>
+  );
+}
+```
+
+#### 11.5 Data Migration (Priority: MEDIUM)
+
+**Create Migration Script**
+
+File: `scripts/link-growers-to-stores.js`
+
+```javascript
+const { createClient } = require('@sanity/client');
+
+const client = createClient({
+  projectId: 'xyq5fhxs',
+  dataset: 'production',
+  apiVersion: '2024-11-26',
+  token: process.env.SANITY_API_WRITE_TOKEN,
+  useCdn: false,
+});
+
+// Map growers to stores based on location
+const growerStoreMapping = {
+  // JM Mushroom Farm -> Main Store + Novaliches Pickup
+  'jm-mushroom-farm': ['main-store', 'novaliches-pickup'],
+  // Verde Farm -> Main Store + Caloocan Hub
+  'verde-farm': ['main-store', 'caloocan-hub'],
+  // Happy Spore Farm -> All stores
+  'happy-spore-farm': ['main-store', 'novaliches-pickup', 'caloocan-hub', 'qc-distribution'],
+  // Novaliches Shroom -> Novaliches Pickup + Main Store
+  'novaliches-shroom': ['novaliches-pickup', 'main-store'],
+};
+
+async function linkGrowersToStores() {
+  for (const [growerSlug, storeSlugs] of Object.entries(growerStoreMapping)) {
+    // Find grower
+    const grower = await client.fetch(
+      `*[_type == "grower" && slug.current == $slug][0]`,
+      { slug: growerSlug }
+    );
+
+    // Find stores
+    const stores = await client.fetch(
+      `*[_type == "store" && slug.current in $slugs]`,
+      { slugs: storeSlugs }
+    );
+
+    // Update each store to include this grower
+    for (const store of stores) {
+      await client.patch(store._id)
+        .setIfMissing({ growers: [] })
+        .append('growers', [{ _type: 'reference', _ref: grower._id }])
+        .commit();
+      
+      console.log(`✅ Linked ${grower.name} to ${store.name}`);
+    }
+  }
+
+  console.log('\\n🎉 All growers linked to stores!');
+}
+
+linkGrowersToStores().catch(console.error);
+```
+
+**Run:** `node scripts/link-growers-to-stores.js`
+
+### Phase 11 Testing Checklist
+
+- [ ] Store schema updated with `growers[]` field
+- [ ] Grower schema updated with `availableAtStores[]` field
+- [ ] `useSanityStores.ts` expands grower references
+- [ ] `StoreGrowerInfo` type added to `sanity.ts`
+- [ ] `MeetOurGrowers.tsx` component created
+- [ ] Store detail page shows growers section
+- [ ] Grower cards display correctly
+- [ ] Product thumbnails link to product pages
+- [ ] "View Farm Profile" links work
+- [ ] Migration script run successfully
+- [ ] Bidirectional links verified in Studio
+
+### Expected Outcome
+
+After Phase 11:
+- **Store Pages** show "Meet Our Growers" section with 1-4 grower cards
+- Each card shows: Photo, Name, Farm Name, Location, Short Bio, Certifications, Product Thumbnails
+- Clicking "View Farm Profile" goes to `/grower/[slug]`
+- Clicking product thumbnail goes to `/product/[slug]`
+- Store operators can manage which growers appear via Sanity Studio
 
 ---
 

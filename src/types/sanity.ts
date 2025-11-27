@@ -38,13 +38,14 @@ export interface SanityProduct {
 /**
  * Sanity Category
  * Matches the category document type in Sanity Studio
+ * Note: slug can be string (from GROQ projection) or object (direct query)
  */
 export interface SanityCategory {
   _id: string;
-  _createdAt: string;
-  _updatedAt: string;
+  _createdAt?: string;
+  _updatedAt?: string;
   name: string;
-  slug: {
+  slug: string | {
     current: string;
     _type: 'slug';
   };
@@ -146,17 +147,24 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     ? product.images.filter(img => img && img !== 'null')
     : [imageUrl];
 
+  // Handle category slug - might be string or object depending on GROQ projection
+  const categorySlug = product.category?.slug 
+    ? (typeof product.category.slug === 'string' 
+        ? product.category.slug 
+        : product.category.slug.current)
+    : undefined;
+
   return {
     id: product._id,
     name: product.name,
-    slug: product.slug.current,
+    slug: typeof product.slug === 'string' ? product.slug : product.slug.current,
     description: product.description,
     price: product.price,
     compareAtPrice: product.compareAtPrice,
     image: imageUrl,
     images: imageUrls,
     category: product.category?.name,
-    categorySlug: product.category?.slug.current,
+    categorySlug: categorySlug,
     stock: product.stock,
     sku: product.sku,
     weight: product.weight,
