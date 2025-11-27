@@ -358,17 +358,10 @@ const FeaturedGrowersSection: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
-        </div>
-      </section>
-    );
+  // Silently hide section if backend API is unavailable
+  // (This prevents 404 errors from breaking the homepage)
+  if (error || !homeData?.topGrowers || homeData.topGrowers.length === 0) {
+    return null;
   }
 
   return (

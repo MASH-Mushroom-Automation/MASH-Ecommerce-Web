@@ -148,11 +148,11 @@ export const SanityHeroCarousel: React.FC = () => {
     return (
       <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
         {/* Background Image */}
-        {slide.image ? (
+        {slide.image && slide.image.trim() !== '' ? (
           <>
             <Image
               src={slide.image}
-              alt={slide.title}
+              alt={slide.title || 'Hero slide'}
               fill
               className="object-cover object-center"
               priority
@@ -210,11 +210,11 @@ export const SanityHeroCarousel: React.FC = () => {
             <CarouselItem key={`slide-${index}`} className="pl-0 basis-full">
               <div className="relative w-full h-full">
                 {/* Background Image or Gradient */}
-                {slide.image ? (
+                {slide.image && slide.image.trim() !== '' ? (
                   <>
                     <Image
                       src={slide.image}
-                      alt={slide.title}
+                      alt={slide.title || 'Hero slide'}
                       fill
                       className="object-cover object-center"
                       priority={index === 0}
