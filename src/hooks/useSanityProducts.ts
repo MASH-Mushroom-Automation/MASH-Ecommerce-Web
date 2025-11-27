@@ -16,6 +16,12 @@ import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/
 const productCache = new Map<string, { data: TransformedProduct[]; timestamp: number }>();
 const CACHE_TTL = 60000; // 1 minute
 
+// Clear cache on hot reload during development
+if (typeof window !== 'undefined') {
+  productCache.clear();
+  console.log('🧹 Product cache cleared');
+}
+
 interface UseSanityProductsReturn {
   products: TransformedProduct[];
   loading: boolean;
@@ -43,6 +49,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProducts = useCallback(async () => {
+    console.log('🔍 Fetching products from Sanity with filters:', filters);
     try {
       setLoading(true);
       setError(null);
@@ -133,7 +140,9 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       }
 
       // Fetch from Sanity
+      console.log('📡 Executing GROQ query:', query.substring(0, 200) + '...');
       const data: SanityProduct[] = await sanityClient.fetch(query);
+      console.log('📥 Raw Sanity response:', data.length, 'products');
       
       // Client-side price filtering (more flexible than GROQ)
       let filteredData = data;
@@ -153,6 +162,12 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       const { transformSanityProduct } = await import('@/types/sanity');
       const transformedProducts = filteredData.map(transformSanityProduct);
       
+      console.log('🛒 Fetched products from Sanity:', transformedProducts.length);
+      
+      // Store in cache BEFORE setting state (use transformed data directly)
+      const cacheKey = JSON.stringify(filters || {});
+      productCache.set(cacheKey, { data: transformedProducts, timestamp: Date.now() });
+      
       setProducts(transformedProducts);
     } catch (err) {
       console.error('Error fetching products from Sanity:', err);
@@ -168,17 +183,14 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     const cached = productCache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('📦 Using cached products (avoiding API call)');
+      console.log('📦 Using cached products:', cached.data.length);
       setProducts(cached.data);
       setLoading(false);
       return;
     }
     
     // Fetch if cache miss or expired
-    fetchProducts().then(() => {
-      // Store in cache after successful fetch
-      productCache.set(cacheKey, { data: products, timestamp: Date.now() });
-    });
+    fetchProducts();
 
     // ⚠️ REAL-TIME SUBSCRIPTIONS DISABLED TO SAVE API QUOTA
     // Uncomment only if you upgrade to Growth/Team plan
