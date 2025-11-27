@@ -5,9 +5,9 @@ const { createClient } = require('@sanity/client');
 
 // Sanity client configuration
 const client = createClient({
-  projectId: process.env.SANITY_STUDIO_PROJECT_ID || 'gerattrr',
-  dataset: process.env.SANITY_STUDIO_DATASET || 'production',
-  apiVersion: '2024-01-01',
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs',
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
+  apiVersion: '2024-11-26',
   token: process.env.SANITY_AUTH_TOKEN,
   useCdn: false,
 });
