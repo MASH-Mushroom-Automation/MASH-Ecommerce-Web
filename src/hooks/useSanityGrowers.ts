@@ -17,20 +17,27 @@ export interface SanityGrower {
     _type: 'slug';
   };
   bio?: string;
+  tagline?: string;
+  description?: string;
   location?: string;
   region?: string;
-  image?: string; // Profile image URL
+  image?: string; // Profile image URL (from logo field)
   coverImage?: string; // Cover/banner image URL
   farmImages?: string[]; // Array of farm images
   specialties?: string[]; // Types of mushrooms grown
   certifications?: string[]; // Certifications
   contactEmail?: string;
   contactPhone?: string;
+  phone?: string;
+  email?: string;
+  operatingHours?: string;
   coordinates?: {
     lat: number;
     lng: number;
   };
   isActive?: boolean;
+  isVerified?: boolean;
+  isFeatured?: boolean;
   rating?: number;
   totalReviews?: number;
   joinedDate?: string;
@@ -45,20 +52,28 @@ export interface TransformedGrower {
   name: string;
   slug: string;
   bio?: string;
+  tagline?: string;
+  description?: string;
   location?: string;
   region?: string;
   image?: string;
+  logo?: string; // Alias for image
   coverImage?: string;
   farmImages?: string[];
   specialties?: string[];
   certifications?: string[];
   contactEmail?: string;
   contactPhone?: string;
+  phone?: string;
+  email?: string;
+  operatingHours?: string;
   coordinates?: {
     lat: number;
     lng: number;
   };
   isActive?: boolean;
+  isVerified?: boolean;
+  isFeatured?: boolean;
   rating?: number;
   totalReviews?: number;
   productCount?: number;
@@ -86,17 +101,25 @@ function transformGrower(grower: SanityGrower & { productCount?: number }): Tran
     name: grower.name,
     slug: grower.slug.current,
     bio: grower.bio,
+    tagline: grower.tagline,
+    description: grower.description,
     location: grower.location,
     region: grower.region,
     image: grower.image || '/images/default-grower.jpg',
+    logo: grower.image || '/images/default-grower.jpg', // Alias for GrowerCard
     coverImage: grower.coverImage,
     farmImages: grower.farmImages || [],
     specialties: grower.specialties || [],
     certifications: grower.certifications || [],
-    contactEmail: grower.contactEmail,
-    contactPhone: grower.contactPhone,
+    contactEmail: grower.contactEmail || grower.email,
+    contactPhone: grower.contactPhone || grower.phone,
+    phone: grower.phone,
+    email: grower.email,
+    operatingHours: grower.operatingHours,
     coordinates: grower.coordinates,
     isActive: grower.isActive !== false, // Default true
+    isVerified: grower.isVerified || false,
+    isFeatured: grower.isFeatured || false,
     rating: grower.rating || 0,
     totalReviews: grower.totalReviews || 0,
     productCount: grower.productCount || 0,
@@ -163,17 +186,24 @@ export function useSanityGrowers(filters?: GrowerFilters) {
         name,
         slug,
         bio,
+        tagline,
+        description,
         location,
         region,
-        "image": image.asset->url,
+        "image": logo.asset->url,
         "coverImage": coverImage.asset->url,
         "farmImages": farmImages[].asset->url,
         specialties,
         certifications,
         contactEmail,
         contactPhone,
+        phone,
+        email,
+        operatingHours,
         coordinates,
         isActive,
+        isVerified,
+        isFeatured,
         rating,
         totalReviews,
         joinedDate,
@@ -282,17 +312,24 @@ export function useSanityGrower(slug: string) {
         name,
         slug,
         bio,
+        tagline,
+        description,
         location,
         region,
-        "image": image.asset->url,
+        "image": logo.asset->url,
         "coverImage": coverImage.asset->url,
         "farmImages": farmImages[].asset->url,
         specialties,
         certifications,
         contactEmail,
         contactPhone,
+        phone,
+        email,
+        operatingHours,
         coordinates,
         isActive,
+        isVerified,
+        isFeatured,
         rating,
         totalReviews,
         joinedDate,

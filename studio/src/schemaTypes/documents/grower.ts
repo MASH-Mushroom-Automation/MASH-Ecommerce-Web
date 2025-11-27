@@ -77,6 +77,25 @@ export const grower = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: 'coverImage',
+      title: 'Cover/Banner Image',
+      type: 'image',
+      group: 'basic',
+      description: 'Banner image displayed at top of grower card and profile page (landscape format recommended, 16:9 ratio)',
+      options: {
+        hotspot: true,
+        accept: 'image/*',
+      },
+      fields: [
+        {
+          name: 'alt',
+          type: 'string',
+          title: 'Alternative Text',
+          description: 'Describes the image for accessibility and SEO',
+        },
+      ],
+    }),
+    defineField({
       name: 'tagline',
       title: 'Tagline',
       type: 'string',

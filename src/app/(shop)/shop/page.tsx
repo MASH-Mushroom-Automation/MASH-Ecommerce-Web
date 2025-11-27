@@ -54,16 +54,19 @@ export default function ProductCatalogPage() {
   const displayedProducts = allProducts.slice(0, itemsPerPage);
   const hasMoreProducts = allProducts.length > displayedProducts.length;
 
-  // Extract category names from Sanity categories (filter out null/undefined)
-  const categories = sanityCategories
-    .map((cat) => cat.name)
-    .filter((name): name is string => Boolean(name));
+  // Keep full category objects for both slug (filtering) and name (display)
+  // Filter out categories without valid slug
+  const categories = sanityCategories.filter(
+    (cat): cat is typeof cat & { slug: string; name: string } => 
+      Boolean(cat.slug) && Boolean(cat.name)
+  );
 
-  const toggleCategory = (category: string) => {
+  // Toggle category by SLUG (used for filtering)
+  const toggleCategory = (categorySlug: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(categorySlug)
+        ? prev.filter((c) => c !== categorySlug)
+        : [...prev, categorySlug]
     );
   };
 
@@ -84,17 +87,17 @@ export default function ProductCatalogPage() {
                 </h3>
                 <div className="space-y-3">
                   {categories.map((category) => (
-                    <div key={category} className="flex items-center space-x-3">
+                    <div key={category.slug} className="flex items-center space-x-3">
                       <Checkbox
-                        id={`category-${category}`}
-                        checked={selectedCategories.includes(category)}
-                        onCheckedChange={() => toggleCategory(category)}
+                        id={`category-${category.slug}`}
+                        checked={selectedCategories.includes(category.slug)}
+                        onCheckedChange={() => toggleCategory(category.slug)}
                       />
                       <Label
-                        htmlFor={`category-${category}`}
+                        htmlFor={`category-${category.slug}`}
                         className="text-sm text-muted-foreground cursor-pointer font-normal"
                       >
-                        {category}
+                        {category.name}
                       </Label>
                     </div>
                   ))}
@@ -175,19 +178,19 @@ export default function ProductCatalogPage() {
                         <div className="space-y-3">
                           {categories.map((category) => (
                             <div
-                              key={category}
+                              key={category.slug}
                               className="flex items-center space-x-3"
                             >
                               <Checkbox
-                                id={`mobile-category-${category}`}
-                                checked={selectedCategories.includes(category)}
-                                onCheckedChange={() => toggleCategory(category)}
+                                id={`mobile-category-${category.slug}`}
+                                checked={selectedCategories.includes(category.slug)}
+                                onCheckedChange={() => toggleCategory(category.slug)}
                               />
                               <Label
-                                htmlFor={`mobile-category-${category}`}
+                                htmlFor={`mobile-category-${category.slug}`}
                                 className="text-sm text-muted-foreground cursor-pointer font-normal"
                               >
-                                {category}
+                                {category.name}
                               </Label>
                             </div>
                           ))}

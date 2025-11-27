@@ -4,11 +4,12 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft, Mail, Award } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink } from "lucide-react";
 import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
+import { GoogleMap } from "@/components/maps/GoogleMap";
 
 export default function GrowerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -189,6 +190,12 @@ export default function GrowerDetailPage() {
                     </a>
                   </div>
                 )}
+                {grower.operatingHours && (
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-3 text-muted-foreground" />
+                    <span>{grower.operatingHours}</span>
+                  </div>
+                )}
                 {grower.region && (
                   <div className="flex items-center">
                     <Badge variant="secondary">{grower.region}</Badge>
@@ -197,28 +204,25 @@ export default function GrowerDetailPage() {
               </div>
               {grower.coordinates && (
                 <div className="mt-5">
-                  <div className="text-right mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">📍 Location</span>
                     <a
                       href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coordinates.lat},${grower.coordinates.lng}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                     >
-                      Get directions
+                      Get directions <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-                  <div className="w-full h-48 bg-muted rounded overflow-hidden">
-                    <iframe
-                      src={`https://maps.google.com/maps?q=${grower.coordinates.lat},${grower.coordinates.lng}&hl=en&z=14&output=embed`}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen={false}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title="Grower Location Map"
-                    />
-                  </div>
+                  <GoogleMap
+                    coordinates={grower.coordinates}
+                    growerName={grower.name}
+                    address={grower.location}
+                    height="200px"
+                    zoom={15}
+                    className="rounded-lg overflow-hidden"
+                  />
                 </div>
               )}
               

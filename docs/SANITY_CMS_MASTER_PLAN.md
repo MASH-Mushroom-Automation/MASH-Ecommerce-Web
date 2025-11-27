@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Last Updated:** November 27, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -12,8 +12,9 @@
 | Phase | Name | Status | Completion |
 |-------|------|--------|------------|
 | **Phase 1** | Growers Schema & Integration | ✅ **COMPLETE** | 100% |
+| **Phase 1.5** | Grower Images & Google Maps | ✅ **COMPLETE** | 100% |
 | **Phase 2** | FAQ Schema & Integration | ✅ **COMPLETE** | 100% |
-| Phase 3 | Fix Category/Product Filtering | ⏳ Pending | 0% |
+| **Phase 3** | Fix Category/Product Filtering | ✅ **COMPLETE** | 100% |
 | Phase 4 | Feature Section Schema | ⏳ Pending | 0% |
 | Phase 5 | Navigation & Site Settings | ⏳ Pending | 0% |
 | Phase 6 | Testimonials & Banners | ⏳ Pending | 0% |
@@ -26,6 +27,13 @@
 - [x] Migrated 4 growers to Sanity (via `scripts/migrate-growers-to-sanity.js`)
 - [x] Updated homepage FeaturedGrowersSection
 
+### Phase 1.5 Deliverables ✅ (Image & Maps Fix)
+- [x] Fixed GROQ queries to use `logo.asset->url` instead of `image.asset->url`
+- [x] Added `coverImage` field to grower schema for banner images
+- [x] Created `src/components/maps/GoogleMap.tsx` with @googlemaps/js-api-loader
+- [x] Configured Google Maps API key in `.env.local`
+- [x] Updated grower detail page with GoogleMap component and operating hours
+
 ### Phase 2 Deliverables ✅
 - [x] Created `studio/src/schemaTypes/documents/faqCategory.ts`
 - [x] Created `studio/src/schemaTypes/documents/faqItem.ts`
@@ -33,6 +41,13 @@
 - [x] Created `src/hooks/useSanityFAQ.ts` (5 hooks + API functions)
 - [x] Updated FAQ page to use Sanity hook
 - [x] Migrated 5 categories + 19 FAQ items to Sanity
+
+### Phase 3 Deliverables ✅ (Category/Product Filtering Fix)
+- [x] Fixed Shop page to use category SLUG for filtering instead of category NAME
+- [x] Updated `toggleCategory()` to track slugs (e.g., "fresh-mushrooms")
+- [x] Category checkboxes now display `category.name` but use `category.slug` for filtering
+- [x] Fixed both desktop and mobile filter sidebars
+- [x] GROQ query `category->slug.current == "${filters.category}"` now works correctly
 
 ---
 
@@ -157,28 +172,19 @@ seoTitle, seoDescription, seoKeywords
 
 ### Critical Issues (Blocking)
 
-#### 1. ❌ No Growers Schema
-**Impact:** "Meet Our Growers" section uses hardcoded mock data in `src/lib/api/main.ts`
-**Current Workaround:** Static array of 4 growers
+#### 1. ✅ ~~No Growers Schema~~ (FIXED - Phase 1)
+**Status:** ✅ RESOLVED in Phase 1 & 1.5
+**Solution:** Created grower schema, migration script, hooks, and fixed image display
+
+#### 2. ✅ ~~Products Not Displaying Correctly~~ (FIXED - Phase 3)
+**Status:** ✅ RESOLVED in Phase 3
+**Solution:** Shop page now uses `category.slug` for filtering instead of `category.name`
 
 ```typescript
-// Current hardcoded data in main.ts
-const MOCK_GROWERS = [
-  { id: 1, name: "Fungi Fresh Farms", ... },
-  { id: 2, name: "The Mushroom Patch Bukidnon", ... },
-  // etc.
-];
-```
-
-#### 2. ⚠️ Products Not Displaying Correctly
-**Issue:** Category filter returns wrong slugs
-**Root Cause:** Frontend uses `category.name` but filter needs `category.slug.current`
-
-```typescript
-// Current (WRONG)
+// BEFORE (WRONG) - used category.name
 toggleCategory(category.name) // "Fresh Mushrooms"
 
-// Should be (CORRECT)  
+// AFTER (CORRECT) - uses category.slug  
 toggleCategory(category.slug) // "fresh-mushrooms"
 ```
 
@@ -186,9 +192,9 @@ toggleCategory(category.slug) // "fresh-mushrooms"
 **Issue:** `featuredProducts` singleton exists but homepage fetches from mock data
 **File:** `src/hooks/useSanityProducts.ts` has `useSanityFeaturedProducts` but not used everywhere
 
-#### 4. ❌ No FAQ Schema
-**Impact:** FAQ page has no CMS content
-**Current:** No FAQ document type in Sanity
+#### 4. ✅ ~~No FAQ Schema~~ (FIXED - Phase 2)
+**Status:** ✅ RESOLVED in Phase 2
+**Solution:** Created faqCategory + faqItem schemas, migrated 19 FAQs, updated FAQ page
 
 #### 5. ❌ No Feature Section Schema
 **Impact:** "Why MASH" section on homepage not editable in CMS
