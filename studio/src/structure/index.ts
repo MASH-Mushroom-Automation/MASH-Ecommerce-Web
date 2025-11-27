@@ -1,4 +1,4 @@
-import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon, PinIcon, CommentIcon, BlockElementIcon} from '@sanity/icons'
+import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon, PinIcon, CommentIcon, BlockElementIcon, InfoOutlineIcon, EnvelopeIcon, BookIcon} from '@sanity/icons'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 import pluralize from 'pluralize-esm'
 
@@ -8,6 +8,7 @@ import pluralize from 'pluralize-esm'
  * Learn more: https://www.sanity.io/docs/structure-builder-introduction
  * 
  * Phase 5 Update: Added siteSettings singleton and navigation menus
+ * Phase 8 Update: Added aboutPage, contactPage singletons and blogCategory
  */
 
 // Types that are manually placed in the structure (not auto-listed)
@@ -26,6 +27,11 @@ const DISABLED_TYPES = [
   'store',              // Phase 6: Store locations
   'testimonial',        // Phase 7: Customer testimonials
   'banner',             // Phase 7: Promotional banners
+  'aboutPage',          // Phase 8: About page singleton
+  'contactPage',        // Phase 8: Contact page singleton
+  'blogCategory',       // Phase 8: Blog categories
+  'person',             // Phase 8: Team members/Authors
+  'post',               // Phase 8: Blog posts
   'assist.instruction.context'
 ]
 
@@ -137,6 +143,45 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
         ),
       // Divider
       S.divider(),
+      // ===== BLOG SECTION ===== (Phase 8)
+      S.listItem()
+        .title('📝 Blog')
+        .icon(BookIcon)
+        .child(
+          S.list()
+            .title('Blog Management')
+            .items([
+              // Blog Posts
+              S.listItem()
+                .title('Blog Posts')
+                .icon(DocumentTextIcon)
+                .child(
+                  S.documentTypeList('post')
+                    .title('Blog Posts')
+                    .defaultOrdering([{ field: 'date', direction: 'desc' }])
+                ),
+              // Blog Categories
+              S.listItem()
+                .title('Blog Categories')
+                .icon(TagIcon)
+                .child(
+                  S.documentTypeList('blogCategory')
+                    .title('Blog Categories')
+                    .defaultOrdering([{ field: 'displayOrder', direction: 'asc' }])
+                ),
+              // Authors/Team Members
+              S.listItem()
+                .title('Authors & Team')
+                .icon(UsersIcon)
+                .child(
+                  S.documentTypeList('person')
+                    .title('Authors & Team Members')
+                    .defaultOrdering([{ field: 'displayOrder', direction: 'asc' }])
+                ),
+            ])
+        ),
+      // Divider
+      S.divider(),
       // ===== MARKETING SECTION ===== (Phase 7)
       S.listItem()
         .title('📣 Marketing')
@@ -207,6 +252,18 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
                   S.documentTypeList('featureSection')
                     .title('Feature Sections')
                 ),
+              // Divider within settings
+              S.divider(),
+              // About Page (Phase 8)
+              S.listItem()
+                .title('About Page')
+                .icon(InfoOutlineIcon)
+                .child(S.document().schemaType('aboutPage').documentId('aboutPageDoc')),
+              // Contact Page (Phase 8)
+              S.listItem()
+                .title('Contact Page')
+                .icon(EnvelopeIcon)
+                .child(S.document().schemaType('contactPage').documentId('contactPageDoc')),
             ])
         ),
     ])
