@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { SlidersHorizontal, Grid, List } from "lucide-react";
+import { SlidersHorizontal, Grid, List, Search, X } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
@@ -32,6 +32,7 @@ export default function ProductCatalogPage() {
   const [sort, setSort] = useState<ProductFilters["sortBy"]>("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { addToCart } = useCart();
 
@@ -42,6 +43,7 @@ export default function ProductCatalogPage() {
     maxPrice: priceRange[1],
     sortBy: sort,
     isAvailable: true,
+    search: searchQuery.trim() || undefined,
   };
 
   // Fetch products from Sanity CMS
@@ -151,6 +153,34 @@ export default function ProductCatalogPage() {
 
           {/* Main Content */}
           <main className="flex-1">
+            {/* Search Bar */}
+            <div className="mb-4 sm:mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search products (e.g., oyster, shiitake, dried)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Showing results for &ldquo;<span className="font-medium text-foreground">{searchQuery}</span>&rdquo;
+                  {allProducts.length === 0 && " - No products found"}
+                </p>
+              )}
+            </div>
+
             {/* Header with Sort and Mobile Filter */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
               {/* Mobile Filter Button */}

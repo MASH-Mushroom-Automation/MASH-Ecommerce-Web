@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 7.0  
-**Last Updated:** November 28, 2025 (E-Commerce Improvements Implemented)  
+**Version:** 8.0  
+**Last Updated:** November 28, 2025 (Product Variants + Reviews Implemented)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
 
@@ -105,12 +105,12 @@ cd scripts && node check-products.js
 | # | Issue | Priority | Category | Impact | Solution | Est. Time |
 |---|-------|----------|----------|--------|----------|-----------|
 | 1 | ~~Products not showing on shop~~ | 🚨 | Bug | ✅ FIXED | Cache + GROQ fix | Done |
-| 2 | Product variants not displayed | 🔴 | Feature | Can't select sizes | Update product detail page | 3 hrs |
+| 2 | ~~Product variants not displayed~~ | 🔴 | Feature | ✅ FIXED | Added variant selector UI | Done |
 | 3 | ~~"You May Also Like" not working~~ | 🔴 | Feature | ✅ FIXED | Fetch suggestedProducts[] | Done |
 | 4 | ~~"Frequently Bought Together" missing~~ | 🔴 | Feature | ✅ FIXED | Fetch complementaryProducts[] | Done |
-| 5 | Bundle savings not calculated | 🟡 | Feature | Manual entry | Add auto-calculate helper | 2 hrs |
-| 6 | Product reviews not connected | 🟡 | Integration | No social proof | Link useSanityReviews | 2 hrs |
-| 7 | Product search not working | 🟡 | Feature | Can't find products | Implement Sanity search | 4 hrs |
+| 5 | ~~Bundle savings not calculated~~ | 🟡 | Feature | ✅ FIXED | Added 10% bundle discount display | Done |
+| 6 | ~~Product reviews not connected~~ | 🟡 | Integration | ✅ FIXED | Added reviews section to product page | Done |
+| 7 | ~~Product search not working~~ | 🟡 | Feature | ✅ FIXED | Added search bar to shop page | Done |
 | 8 | Product tags not filterable | 🟢 | Schema | Limited discovery | Create productTag schema | 3 hrs |
 
 ### Growers & Stores
@@ -626,11 +626,23 @@ export function useSanitySearch(searchTerm: string) {
 
 ### Completed Tasks ✅ (November 28, 2025)
 
+**Session 1: Suggested Products & Frequently Bought Together**
 - [x] **Task 1:** Update `useSanityProduct()` GROQ query to fetch `suggestedProducts[]` and `complementaryProducts[]`
 - [x] **Task 2:** Update `TransformedProduct` type with new fields (`RelatedProduct` interface added)
 - [x] **Task 3:** Add "You May Also Like" section to product detail page
 - [x] **Task 4:** Add "Frequently Bought Together" section to product detail page with "Add Bundle to Cart" button
 - [x] **Task 5:** Run `link-suggested-products.js` script to link all 15 products in Sanity
+
+**Session 2: Product Variants + Reviews + Search (Latest)**
+- [x] **Task 6:** Integrate `useSanityVariants` hook into product detail page
+- [x] **Task 7:** Add variant selector UI (size/weight/color buttons with selection state)
+- [x] **Task 8:** Display selected variant price, stock, and name
+- [x] **Task 9:** Integrate `useSanityReviews` hook into product detail page
+- [x] **Task 10:** Add Customer Reviews section with rating summary
+- [x] **Task 11:** Add rating distribution chart (5-star breakdown)
+- [x] **Task 12:** Display individual reviews with verified purchase badges
+- [x] **Task 13:** Add 10% bundle discount with savings calculation display
+- [x] **Task 14:** Add product search bar to shop page with real-time filtering
 
 ### Files Modified
 
@@ -638,37 +650,46 @@ export function useSanitySearch(searchTerm: string) {
 |------|---------|
 | `src/types/sanity.ts` | Added `RelatedProduct` interface, `suggestedProducts`, `complementaryProducts`, `productTags` to `TransformedProduct` |
 | `src/hooks/useSanityProducts.ts` | Updated GROQ query in `useSanityProduct()` to fetch related products |
-| `src/app/(shop)/product/[slug]/page.tsx` | Added "Frequently Bought Together" and "You May Also Like" sections |
+| `src/app/(shop)/product/[slug]/page.tsx` | Added variant selector, reviews section, bundle savings, "Frequently Bought Together" and "You May Also Like" sections |
+| `src/app/(shop)/shop/page.tsx` | Added search bar with real-time filtering |
 | `scripts/link-suggested-products.js` | Created script to auto-link products based on category strategy |
+| `scripts/check-variants-reviews.js` | Created script to check variants and reviews in Sanity |
 
-### Verified Working
+### Product Page Features Now Working
 
-- ✅ Product detail page shows "Frequently Bought Together" with bundled products
-- ✅ Product detail page shows "You May Also Like" grid (4 products)
-- ✅ "Add Bundle to Cart" button adds all products at once
-- ✅ All 15 products have 6 suggested and 3 complementary products linked
-- ✅ Real-time updates work when products are modified in Sanity Studio
+- ✅ **Variant Selector** - Size/weight/color selection buttons with visual feedback
+- ✅ **Selected Variant Display** - Shows variant name, price, and stock status
+- ✅ **Price Range** - Displays variant price range when no variant selected
+- ✅ **Customer Reviews Section** - Full review display with star ratings
+- ✅ **Rating Summary** - Average rating + recommendation percentage
+- ✅ **Rating Distribution** - 5-star breakdown chart
+- ✅ **Verified Purchase Badges** - Green badge for verified buyers
+- ✅ **Review Images** - Displays attached review images
+- ✅ **Helpful Count** - Shows how many found review helpful
+- ✅ **Frequently Bought Together** - Bundle display with total price
+- ✅ **Bundle Savings** - Shows 10% discount with strikethrough original price
+- ✅ **Add Bundle to Cart** - One-click add all bundle products
+- ✅ **You May Also Like** - 4-product grid with sale/featured badges
 
-### Next Tasks (Not Yet Started)
+### Shop Page Features Now Working
 
-Before the code changes work, ensure products have suggested/complementary products linked:
+- ✅ **Product Search** - Real-time search with instant filtering
+- ✅ **Search Results Count** - Shows "Showing results for..." with count
+- ✅ **Clear Search** - X button to clear search query
+- ✅ **Category Filter** - Filter by mushroom category
+- ✅ **Price Range Filter** - Slider for min/max price
+- ✅ **Sort Options** - Featured, Price Low-High, Price High-Low
+- ✅ **View Mode Toggle** - Grid or List view
 
-1. Open Sanity Studio → Products → Select any product
-2. Scroll to "Suggested Products (You May Also Like)"
-3. Click "+ Add Item" → Search for related products → Add 4-8 products
-4. Scroll to "Complementary Products (Frequently Bought Together)"
-5. Click "+ Add Item" → Add 2-4 complementary products
-6. Click "Publish"
+### Next Tasks (Remaining Issues)
 
-**Recommended Product Linking Strategy:**
+| # | Issue | Priority | Status |
+|---|-------|----------|--------|
+| 8 | Product tags filterable | 🟢 | Pending (Low Priority) |
+| 9-13 | Growers & Stores | 🔴 | Phase 10-11 |
+| 14-18 | Navigation & Settings | 🔴 | Pending |
 
-| Product Type | Suggested Products | Complementary Products |
-|--------------|-------------------|----------------------|
-| Fresh Oyster | Other fresh + 1 kit | Dried mushrooms + Growing kit |
-| Fresh Shiitake | Other fresh + bundles | Fresh oyster + Recipe book |
-| Dried Mushrooms | Other dried + fresh | Growing kit + Mushroom powder |
-| Growing Kits | Other kits + fresh | Substrate + Spray bottle |
-| Bundles | Individual products | Related bundles |
+**🎉 E-COMMERCE ISSUES 1-7 COMPLETE!**
 
 ---
 

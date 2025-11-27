@@ -5,12 +5,14 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ArrowLeft, Share2 } from "lucide-react";
+import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle } from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { useSanityProduct } from "@/hooks/useSanityProducts";
+import { useSanityVariants } from "@/hooks/useSanityVariants";
+import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -27,6 +29,22 @@ export default function ProductDetailPage({ params }: Props) {
   const [activeImage, setActiveImage] = useState<string>("");
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+
+  // Variants hook - only fetch when product is loaded
+  const { 
+    variants, 
+    summary: variantSummary, 
+    selectedVariant, 
+    selectVariant,
+    loading: variantsLoading 
+  } = useSanityVariants(product?.id || '');
+
+  // Reviews hook - only fetch when product is loaded
+  const { 
+    reviews, 
+    rating, 
+    loading: reviewsLoading 
+  } = useSanityReviews(product?.id || '');
 
   // Set active image when product loads
   React.useEffect(() => {
@@ -258,6 +276,122 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
+            {/* Variant Selector */}
+            {!variantsLoading && variants.length > 0 && (
+              <div className="space-y-4 border border-border rounded-lg p-4 bg-muted/20">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  📦 Select Option
+                  {variantSummary && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      ({variantSummary.totalVariants} options available)
+                    </span>
+                  )}
+                </h3>
+
+                {/* Size Options */}
+                {variantSummary?.sizes && variantSummary.sizes.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Size</label>
+                    <div className="flex flex-wrap gap-2">
+                      {variantSummary.sizes.map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => selectVariant({ size })}
+                          className={cn(
+                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
+                            selectedVariant?.size === size
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50 bg-background"
+                          )}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Weight Options */}
+                {variantSummary?.weights && variantSummary.weights.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Weight</label>
+                    <div className="flex flex-wrap gap-2">
+                      {variantSummary.weights.map((weight) => (
+                        <button
+                          key={weight}
+                          onClick={() => selectVariant({ weight })}
+                          className={cn(
+                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
+                            selectedVariant?.weight === weight
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50 bg-background"
+                          )}
+                        >
+                          {weight}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Color Options */}
+                {variantSummary?.colors && variantSummary.colors.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">Color</label>
+                    <div className="flex flex-wrap gap-2">
+                      {variantSummary.colors.map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => selectVariant({ color })}
+                          className={cn(
+                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
+                            selectedVariant?.color === color
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50 bg-background"
+                          )}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Variant Info */}
+                {selectedVariant && (
+                  <div className="pt-2 border-t border-border text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Selected:</span>
+                      <span className="font-semibold text-foreground">{selectedVariant.variantName}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-muted-foreground">Price:</span>
+                      <span className="font-bold text-primary">₱{selectedVariant.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-muted-foreground">Stock:</span>
+                      <span className={cn(
+                        "font-medium",
+                        selectedVariant.stockQuantity > 10 ? "text-green-600" :
+                        selectedVariant.stockQuantity > 0 ? "text-yellow-600" : "text-red-600"
+                      )}>
+                        {selectedVariant.stockQuantity > 0 
+                          ? `${selectedVariant.stockQuantity} available` 
+                          : "Out of stock"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Range Display */}
+                {variantSummary?.priceRange && !selectedVariant && (
+                  <div className="text-sm text-muted-foreground">
+                    Price range: <span className="font-semibold text-primary">{variantSummary.priceRange}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Quantity Selector */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
@@ -420,13 +554,33 @@ export default function ProductDetailPage({ params }: Props) {
               ))}
             </div>
             
-            {/* Bundle Total */}
-            <div className="mt-4 flex items-center justify-between border-t pt-4">
+            {/* Bundle Total with Savings */}
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-4 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Bundle Price:</p>
-                <p className="text-2xl font-bold text-primary">
-                  ₱{(product.price + product.complementaryProducts.reduce((sum, p) => sum + p.price, 0)).toFixed(2)}
-                </p>
+                {/* Calculate bundle savings (10% discount) */}
+                {(() => {
+                  const regularTotal = product.price + (product.complementaryProducts?.reduce((sum, p) => sum + p.price, 0) || 0);
+                  const bundleDiscount = 0.10; // 10% bundle discount
+                  const savings = regularTotal * bundleDiscount;
+                  const bundlePrice = regularTotal - savings;
+                  
+                  return (
+                    <>
+                      <p className="text-sm text-muted-foreground">Bundle Price:</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-primary">
+                          ₱{bundlePrice.toFixed(2)}
+                        </p>
+                        <p className="text-lg text-muted-foreground line-through">
+                          ₱{regularTotal.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-600 font-medium">
+                        🎉 Save ₱{savings.toFixed(2)} (10% bundle discount!)
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
               <Button 
                 onClick={() => {
@@ -435,7 +589,7 @@ export default function ProductDetailPage({ params }: Props) {
                   product.complementaryProducts?.forEach((p) => {
                     addToCart(p.id, p.price, 1);
                   });
-                  toast.success('Bundle added to cart!');
+                  toast.success('Bundle added to cart! You saved 10%');
                 }}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
@@ -488,6 +642,149 @@ export default function ProductDetailPage({ params }: Props) {
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Customer Reviews Section */}
+        {!reviewsLoading && rating && rating.totalReviews > 0 && (
+          <section className="mt-16 border-t pt-12">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
+              Customer Reviews
+            </h2>
+
+            {/* Rating Summary */}
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              {/* Overall Rating */}
+              <div className="bg-muted/30 rounded-lg p-6 text-center">
+                <div className="text-5xl font-bold text-primary mb-2">
+                  {rating.averageRating.toFixed(1)}
+                </div>
+                <div className="flex justify-center gap-1 mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={cn(
+                        "w-5 h-5",
+                        star <= Math.round(rating.averageRating)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-muted-foreground">
+                  Based on {rating.totalReviews} review{rating.totalReviews !== 1 ? "s" : ""}
+                </p>
+                {rating.recommendationPercentage > 0 && (
+                  <p className="text-sm text-green-600 mt-2 flex items-center justify-center gap-1">
+                    <ThumbsUp className="w-4 h-4" />
+                    {rating.recommendationPercentage}% would recommend
+                  </p>
+                )}
+              </div>
+
+              {/* Rating Distribution */}
+              <div className="space-y-2">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = rating.ratingDistribution[stars as keyof typeof rating.ratingDistribution];
+                  const percentage = rating.totalReviews > 0 
+                    ? (count / rating.totalReviews) * 100 
+                    : 0;
+                  return (
+                    <div key={stars} className="flex items-center gap-3">
+                      <span className="text-sm w-12 text-muted-foreground">{stars} star</span>
+                      <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-yellow-400 transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-sm w-8 text-muted-foreground text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Individual Reviews */}
+            <div className="space-y-6">
+              {reviews.slice(0, 5).map((review) => (
+                <div key={review.id} className="border-b border-border pb-6 last:border-0">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-foreground">{review.customerName}</span>
+                        {review.verifiedPurchase && (
+                          <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            <CheckCircle className="w-3 h-3" />
+                            Verified Purchase
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={cn(
+                                "w-4 h-4",
+                                star <= review.rating
+                                  ? "text-yellow-400 fill-yellow-400"
+                                  : "text-gray-300"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(review.reviewDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    {review.helpfulCount > 0 && (
+                      <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <ThumbsUp className="w-3 h-3" />
+                        {review.helpfulCount} found helpful
+                      </span>
+                    )}
+                  </div>
+                  
+                  {review.title && (
+                    <h4 className="font-semibold text-foreground mb-2">{review.title}</h4>
+                  )}
+                  
+                  <p className="text-muted-foreground leading-relaxed">{review.content}</p>
+                  
+                  {/* Review Images */}
+                  {review.images && review.images.length > 0 && (
+                    <div className="flex gap-2 mt-3">
+                      {review.images.slice(0, 3).map((img, idx) => (
+                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                          <Image
+                            src={img}
+                            alt={`Review image ${idx + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Load More Reviews */}
+            {reviews.length > 5 && (
+              <div className="text-center mt-8">
+                <Button variant="outline">
+                  View All {rating.totalReviews} Reviews
+                </Button>
+              </div>
+            )}
           </section>
         )}
       </div>
