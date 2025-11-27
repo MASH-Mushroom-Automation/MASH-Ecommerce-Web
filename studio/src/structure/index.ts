@@ -1,4 +1,4 @@
-import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon} from '@sanity/icons'
+import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon, PinIcon} from '@sanity/icons'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 import pluralize from 'pluralize-esm'
 
@@ -23,6 +23,7 @@ const DISABLED_TYPES = [
   'faqItem',
   'featureSection',     // Phase 4: Feature sections
   'navigation',         // Phase 5: Navigation menus
+  'store',              // Phase 6: Store locations
   'assist.instruction.context'
 ]
 
@@ -120,6 +121,17 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
                     .defaultOrdering([{ field: 'displayOrder', direction: 'asc' }])
                 ),
             ])
+        ),
+      // Divider
+      S.divider(),
+      // ===== STORE LOCATIONS SECTION ===== (Phase 6)
+      S.listItem()
+        .title('📍 Store Locations')
+        .icon(PinIcon)
+        .child(
+          S.documentTypeList('store')
+            .title('Store Locations')
+            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
         ),
       // Divider
       S.divider(),

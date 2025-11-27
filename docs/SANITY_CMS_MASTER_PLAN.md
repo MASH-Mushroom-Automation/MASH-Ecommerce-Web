@@ -1,6 +1,6 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Last Updated:** November 27, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
@@ -17,7 +17,7 @@
 | **Phase 3** | Fix Category/Product Filtering | ✅ **COMPLETE** | 100% |
 | **Phase 4** | Feature Section Schema | ✅ **COMPLETE** | 100% |
 | **Phase 5** | Navigation & Site Settings | ✅ **COMPLETE** | 100% |
-| **Phase 6** | Store/Location Pages | ⏳ Pending | 0% |
+| **Phase 6** | Store/Location Pages | ✅ **COMPLETE** | 100% |
 | **Phase 7** | Testimonials & Banners | ⏳ Pending | 0% |
 | **Phase 8** | Blog & Content Pages | ⏳ Pending | 0% |
 | **Phase 9** | Final Integration & Testing | ⏳ Pending | 0% |
@@ -158,9 +158,12 @@ export const sanityClient = createClient({
 │   ├── FAQ Categories (5 categories)
 │   └── FAQ Questions (19 items)
 │
+├── 📍 Store Locations ← NEW Phase 6
+│   └── Stores (main, pickup, partner, distribution)
+│
 ├── ⚙️ Settings
-│   ├── Site Settings (singleton) ← NEW Phase 5
-│   ├── Navigation Menus (5 menus) ← NEW Phase 5
+│   ├── Site Settings (singleton) ← Phase 5
+│   ├── Navigation Menus (5 menus) ← Phase 5
 │   └── Feature Sections (2 sections)
 │
 └── 📄 Other Documents
@@ -174,7 +177,7 @@ export const sanityClient = createClient({
     └── Analytics
 ```
 
-### Document Schemas (18 Types)
+### Document Schemas (19 Types)
 
 | Schema | File | Fields | Purpose |
 |--------|------|--------|---------|
@@ -188,6 +191,7 @@ export const sanityClient = createClient({
 | `faqItem` | `documents/faqItem.ts` | 8 | FAQ questions/answers |
 | `featureSection` | `documents/featureSection.ts` | 15 | Homepage features |
 | `navigation` | `documents/navigation.ts` | 10 | Header/footer menus |
+| `store` | `documents/store.ts` | 25+ | Store locations ← NEW |
 | `page` | `documents/page.ts` | 10 | CMS pages |
 | `post` | `documents/post.ts` | 15 | Blog posts |
 | `person` | `documents/person.ts` | 8 | Authors/team |
@@ -439,6 +443,8 @@ features: {
 | `useSanityFeatures()` | SanityFeatureSection | Homepage |
 | `useSanitySiteSettings()` | Header, Footer | All pages |
 | `useSanityNavigation()` | Header, Footer | All pages |
+| `useSanityStores()` | StoreCard, StoreList | Store List ← NEW |
+| `useSanityStore(slug)` | StoreDetail | Store Detail ← NEW |
 | `useSanityHero()` | SanityHeroCarousel | Homepage |
 
 ---
@@ -454,13 +460,14 @@ features: {
 | FAQ not editable in CMS | ✅ Fixed | Phase 2: Created faqCategory + faqItem schemas |
 | Feature sections hardcoded | ✅ Fixed | Phase 4: Created featureSection schema |
 | Site settings incomplete | ✅ Fixed | Phase 5: Created comprehensive siteSettings |
+| Store locations missing | ✅ Fixed | Phase 6: Created store schema and pages |
 | Duplicate ID error in Studio | ✅ Fixed | Changed document ID from `siteSettings` to `siteSettingsDoc` |
 
 ### Pending Improvements
 
 | Improvement | Priority | Phase | Estimated Time |
 |-------------|----------|-------|----------------|
-| Store/Location pages | 🔴 High | Phase 6 | 3-4 hours |
+| ~~Store/Location pages~~ | ~~🔴 High~~ | ~~Phase 6~~ | ✅ Complete |
 | Testimonials section | 🟡 Medium | Phase 7 | 2-3 hours |
 | Promotional banners | 🟡 Medium | Phase 7 | 2-3 hours |
 | Blog integration | 🟢 Low | Phase 8 | 4-5 hours |
@@ -471,10 +478,11 @@ features: {
 #### 1. E-Commerce Improvements
 
 ```
-❌ MISSING: Store/Pickup Location Pages
-   - Currently no dedicated store pages
-   - Growers have location but no store hours display
-   - Need: Store schema with hours, address, map integration
+✅ COMPLETE: Store/Pickup Location Pages (Phase 6)
+   - Created store.ts schema with 25+ fields
+   - Store list page with map and categories
+   - Store detail page with hours, contact, services
+   - Connected Header/Footer to CMS navigation
 
 ❌ MISSING: Testimonials/Reviews Display
    - Review schema exists but not connected to frontend
@@ -529,11 +537,69 @@ features: {
 
 ## 📋 Phase Implementation Guide
 
-### Phase 6: Store/Location Pages (3-4 hours)
+### Phase 6: Store/Location Pages ✅ COMPLETE
 
+**Status:** ✅ Completed November 27, 2025  
 **Goal:** Create dedicated store pages with hours, location, and pickup info
 
-#### Schema to Create: `store.ts`
+#### ✅ Created Files
+
+| File | Description |
+|------|-------------|
+| `studio/src/schemaTypes/documents/store.ts` | Store schema (25+ fields, 6 groups) |
+| `src/hooks/useSanityStores.ts` | Complete hook with 4 functions |
+| `src/app/stores/page.tsx` | Store list page with stats and categories |
+| `src/app/stores/[slug]/page.tsx` | Store detail page with hours, map, contact |
+| `scripts/migrate-stores-to-sanity.js` | Migration script for 4 sample stores |
+
+#### ✅ Store Schema Features
+
+- **Basic Info:** name, slug, storeType, description, isActive, isFeatured, sortOrder
+- **Location:** address (street, city, state, zip, country, landmark), coordinates, directionsUrl
+- **Hours:** operatingHours (7 days), timezone, hoursNote, isOpen24Hours
+- **Contact:** phone, email, whatsapp, messenger
+- **Services:** services array, deliveryZones, pickupInstructions
+- **Media:** image (with hotspot), gallery
+
+#### ✅ Store Types
+
+- 🏪 Main Store
+- 📦 Pickup Point
+- 🤝 Partner Store
+- 🚚 Distribution Center
+
+#### ✅ Hooks Created
+
+```typescript
+// Client-side hooks
+useSanityStores()         // All active stores
+useSanityStore(slug)      // Single store by slug
+useFeaturedStores()       // Featured stores only
+useStoresByType(type)     // Stores by type
+
+// Server-side functions
+fetchStores()             // For Server Components
+fetchStoreBySlug(slug)    // For Server Components
+fetchFeaturedStores()     // For Server Components
+```
+
+#### ✅ Header & Footer CMS Connection
+
+- **Header:** Now uses `useSanityNavigation('header-main')` for dynamic navigation
+- **Footer:** Now uses `useSanityNavigation('footer-shop')`, `useSanityNavigation('footer-support')`, `useSanityNavigation('footer-about')` for dynamic navigation
+- **Fallback:** Both components have hardcoded fallback links when CMS is unavailable
+
+#### ⚠️ Note: API Token Issue
+
+The migration script requires valid API tokens. If you see "Session does not match project host" error:
+1. Go to https://sanity.io/manage/project/xyq5fhxs/api
+2. Generate new tokens with Editor permissions
+3. Update `.env.local` with new `SANITY_API_WRITE_TOKEN`
+4. Or add stores manually in Sanity Studio at localhost:3333
+
+---
+
+### Phase 6 Original Schema (For Reference)
 
 ```typescript
 // studio/src/schemaTypes/documents/store.ts
@@ -911,6 +977,7 @@ src/hooks/
 ├── useSanityFAQ.ts             # FAQs + categories (Phase 2)
 ├── useSanityFeatures.ts        # Feature sections (Phase 4)
 ├── useSanitySiteSettings.ts    # Site settings + navigation (Phase 5)
+├── useSanityStores.ts          # Store locations (Phase 6) ← NEW
 ├── useSanityHero.ts            # Hero carousel
 ├── useSanityBundles.ts         # Product bundles
 ├── useSanityVariants.ts        # Product variants

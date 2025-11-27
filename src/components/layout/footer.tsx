@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, MapPin, Phone, Mail, Youtube } from "lucide-react";
-import { useSanitySiteSettings } from "@/hooks/useSanitySiteSettings";
+import { Facebook, MapPin, Phone, Mail, Youtube, Instagram, Twitter } from "lucide-react";
+import { useSanitySiteSettings, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 export function Footer() {
   const { settings } = useSanitySiteSettings();
+  const { menu: shopNav } = useSanityNavigation('footer-shop');
+  const { menu: supportNav } = useSanityNavigation('footer-support');
+  const { menu: aboutNav } = useSanityNavigation('footer-about');
 
   return (
     <footer className="bg-muted text-foreground border-t border-border font-['Roboto']">
@@ -61,6 +64,28 @@ export function Footer() {
                   <Facebook size={24} />
                 </a>
               )}
+              {settings?.socialMedia?.instagram && (
+                <a
+                  href={settings.socialMedia.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary"
+                  aria-label="Instagram"
+                >
+                  <Instagram size={24} />
+                </a>
+              )}
+              {settings?.socialMedia?.twitter && (
+                <a
+                  href={settings.socialMedia.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary"
+                  aria-label="Twitter"
+                >
+                  <Twitter size={24} />
+                </a>
+              )}
               {settings?.socialMedia?.youtube && (
                 <a
                   href={settings.socialMedia.youtube}
@@ -84,91 +109,149 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Shop Links */}
-          {/* This will be updated to CMS */}
+          {/* Column 2: Shop Links - CMS or Fallback */}
           <div className="md:pl-6">
             <h3 className="text-lg font-semibold mb-4 text-primary">Shop</h3>
             <ul className="space-y-3 text-sm">
-              <li>
-                <Link href="/shop" className="hover:underline">
-                  Products
-                </Link>
-              </li>
-              <li>
-                <Link href="/grower" className="hover:underline">
-                  Growers
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="hover:underline">
-                  How to Order
-                </Link>
-              </li>
+              {shopNav?.items?.length ? (
+                shopNav.items.map((item) => (
+                  <li key={item._key}>
+                    <Link 
+                      href={item.internalPath || item.externalUrl || '/'} 
+                      className="hover:underline"
+                      target={item.openInNewTab ? '_blank' : undefined}
+                      rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li>
+                    <Link href="/shop" className="hover:underline">
+                      Products
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/grower" className="hover:underline">
+                      Growers
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/stores" className="hover:underline">
+                      Store Locations
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/faq" className="hover:underline">
+                      How to Order
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
-          {/* Column 3: Customer Service Links */}
-          {/* This will be updated to CMS */}
+          {/* Column 3: Customer Service Links - CMS or Fallback */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-primary">
               Customer Service
             </h3>
             <ul className="space-y-3 text-sm">
-              <li>
-                <Link href="/faq" className="hover:underline">
-                  FAQs
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:underline">
-                  Contact Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/shipping-info" className="hover:underline">
-                  Shipping Info
-                </Link>
-              </li>
-              <li>
-                <Link href="/returns-policy" className="hover:underline">
-                  Return Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="hover:underline">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="hover:underline">
-                  Terms of Service
-                </Link>
-              </li>
+              {supportNav?.items?.length ? (
+                supportNav.items.map((item) => (
+                  <li key={item._key}>
+                    <Link 
+                      href={item.internalPath || item.externalUrl || '/'} 
+                      className="hover:underline"
+                      target={item.openInNewTab ? '_blank' : undefined}
+                      rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li>
+                    <Link href="/faq" className="hover:underline">
+                      FAQs
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="hover:underline">
+                      Contact Us
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/shipping-info" className="hover:underline">
+                      Shipping Info
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/returns-policy" className="hover:underline">
+                      Return Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/privacy" className="hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/terms" className="hover:underline">
+                      Terms of Service
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
-          {/* Column 4: About MASH & Contact Details */}
-          {/* This will be updated to CMS */}
+          {/* Column 4: About MASH & Contact Details - CMS or Fallback */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-primary">
               About MASH
             </h3>
             <ul className="space-y-3 text-sm mb-8">
-              <li>
-                <Link href="/about" className="hover:underline">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/about#mission" className="hover:underline">
-                  Our Mission
-                </Link>
-              </li>
-              <li>
-                <Link href="/start-selling" className="hover:underline">
-                  Become a Grower
-                </Link>
-              </li>
+              {aboutNav?.items?.length ? (
+                aboutNav.items.map((item) => (
+                  <li key={item._key}>
+                    <Link 
+                      href={item.internalPath || item.externalUrl || '/'} 
+                      className="hover:underline"
+                      target={item.openInNewTab ? '_blank' : undefined}
+                      rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li>
+                    <Link href="/about" className="hover:underline">
+                      About Us
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/about#mission" className="hover:underline">
+                      Our Mission
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/start-selling" className="hover:underline">
+                      Become a Grower
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/stores" className="hover:underline">
+                      Store Locations
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
 
             {/* Contact Details - Real-time from Sanity CMS */}

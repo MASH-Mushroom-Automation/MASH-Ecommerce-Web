@@ -46,7 +46,7 @@ import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
-import { useSanitySiteSettings, useSanityAnnouncementBar } from "@/hooks/useSanitySiteSettings";
+import { useSanitySiteSettings, useSanityAnnouncementBar, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 
 type SellerStatus = "approved" | "pending" | "none";
@@ -258,6 +258,7 @@ export function Header() {
   const { profile } = useUserProfile();
   const { settings } = useSanitySiteSettings();
   const { announcementBar } = useSanityAnnouncementBar();
+  const { menu: headerNav, loading: navLoading } = useSanityNavigation('header-main');
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated());
@@ -429,24 +430,47 @@ export function Header() {
             <SheetContent side="right" className="bg-card text-foreground">
               <div className="flex flex-col space-y-4 p-4">
                 <nav className="flex flex-col space-y-2">
-                  <Link
-                    href="/"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/shop"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Products
-                  </Link>
-                  <Link
-                    href="/grower"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Growers
-                  </Link>
+                  {/* CMS-driven navigation for mobile */}
+                  {headerNav?.items?.length ? (
+                    headerNav.items.map((item) => (
+                      <Link
+                        key={item._key}
+                        href={item.internalPath || item.externalUrl || '/'}
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                        target={item.openInNewTab ? '_blank' : undefined}
+                        rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                      >
+                        {item.label}
+                      </Link>
+                    ))
+                  ) : (
+                    <>
+                      <Link
+                        href="/"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        href="/shop"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Products
+                      </Link>
+                      <Link
+                        href="/grower"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Growers
+                      </Link>
+                      <Link
+                        href="/stores"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Stores
+                      </Link>
+                    </>
+                  )}
                 </nav>
                 <div className="border-t border-border pt-4 space-y-2">
                   <Link
@@ -507,11 +531,30 @@ export function Header() {
 
       <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
         <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
-          <NavLink label="Home" path="/" />
-          <NavLink label="Products" path="/shop" />
-          <NavLink label="Growers" path="/grower" />
-          {sellerStatus === "approved" && (
-            <NavLink label="Dashboard" path="/seller/dashboard" />
+          {/* Fallback navigation when CMS is loading or unavailable */}
+          {navLoading || !headerNav?.items?.length ? (
+            <>
+              <NavLink label="Home" path="/" />
+              <NavLink label="Products" path="/shop" />
+              <NavLink label="Growers" path="/grower" />
+              <NavLink label="Stores" path="/stores" />
+              {sellerStatus === "approved" && (
+                <NavLink label="Dashboard" path="/seller/dashboard" />
+              )}
+            </>
+          ) : (
+            <>
+              {headerNav.items.map((item) => (
+                <NavLink 
+                  key={item._key} 
+                  label={item.label} 
+                  path={item.internalPath || item.externalUrl || '/'} 
+                />
+              ))}
+              {sellerStatus === "approved" && (
+                <NavLink label="Dashboard" path="/seller/dashboard" />
+              )}
+            </>
           )}
         </div>
       </nav>
