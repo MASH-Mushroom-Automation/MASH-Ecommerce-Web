@@ -1,4 +1,4 @@
-import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon} from '@sanity/icons'
+import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon} from '@sanity/icons'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 import pluralize from 'pluralize-esm'
 
@@ -8,7 +8,7 @@ import pluralize from 'pluralize-esm'
  * Learn more: https://www.sanity.io/docs/structure-builder-introduction
  */
 
-const DISABLED_TYPES = ['settings', 'featuredProducts', 'heroCarousel', 'grower', 'product', 'category', 'assist.instruction.context']
+const DISABLED_TYPES = ['settings', 'featuredProducts', 'heroCarousel', 'grower', 'product', 'category', 'faqCategory', 'faqItem', 'assist.instruction.context']
 
 export const structure: StructureResolver = (S: StructureBuilder) =>
   S.list()
@@ -73,6 +73,36 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
                 .title('Featured Products')
                 .child(S.document().schemaType('featuredProducts').documentId('featuredProducts'))
                 .icon(SparklesIcon),
+            ])
+        ),
+      // Divider
+      S.divider(),
+      // ===== FAQ SECTION ===== (Phase 2)
+      S.listItem()
+        .title('❓ FAQ')
+        .icon(HelpCircleIcon)
+        .child(
+          S.list()
+            .title('FAQ Management')
+            .items([
+              // FAQ Categories
+              S.listItem()
+                .title('FAQ Categories')
+                .icon(TagIcon)
+                .child(
+                  S.documentTypeList('faqCategory')
+                    .title('FAQ Categories')
+                    .defaultOrdering([{ field: 'displayOrder', direction: 'asc' }])
+                ),
+              // FAQ Items
+              S.listItem()
+                .title('FAQ Questions')
+                .icon(HelpCircleIcon)
+                .child(
+                  S.documentTypeList('faqItem')
+                    .title('FAQ Questions')
+                    .defaultOrdering([{ field: 'displayOrder', direction: 'asc' }])
+                ),
             ])
         ),
       // Divider

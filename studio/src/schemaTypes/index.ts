@@ -12,6 +12,8 @@ import {promotion} from './documents/promotion'
 import {emailCampaign} from './documents/emailCampaign'
 import {analytics} from './documents/analytics'
 import {grower} from './documents/grower' // Phase 1: Growers Schema
+import {faqCategory} from './documents/faqCategory' // Phase 2: FAQ Categories
+import {faqItem} from './documents/faqItem' // Phase 2: FAQ Items
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -32,6 +34,8 @@ export const schemaTypes = [
   post,
   person,
   grower, // Phase 1: Growers/Farms
+  faqCategory, // Phase 2: FAQ Categories
+  faqItem, // Phase 2: FAQ Items
   category,
   product,
   review,
