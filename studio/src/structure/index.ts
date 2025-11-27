@@ -1,4 +1,4 @@
-import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon} from '@sanity/icons'
+import {CogIcon, SparklesIcon, ImagesIcon, UsersIcon, PackageIcon, TagIcon, HelpCircleIcon, MenuIcon, StarIcon, DocumentTextIcon} from '@sanity/icons'
 import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 import pluralize from 'pluralize-esm'
 
@@ -6,9 +6,25 @@ import pluralize from 'pluralize-esm'
  * Structure builder is useful whenever you want to control how documents are grouped and
  * listed in the studio or for adding additional in-studio previews or content to documents.
  * Learn more: https://www.sanity.io/docs/structure-builder-introduction
+ * 
+ * Phase 5 Update: Added siteSettings singleton and navigation menus
  */
 
-const DISABLED_TYPES = ['settings', 'featuredProducts', 'heroCarousel', 'grower', 'product', 'category', 'faqCategory', 'faqItem', 'assist.instruction.context']
+// Types that are manually placed in the structure (not auto-listed)
+const DISABLED_TYPES = [
+  'settings',           // Old settings schema (deprecated, replaced by siteSettings)
+  'siteSettings',       // Phase 5: New comprehensive site settings singleton
+  'featuredProducts', 
+  'heroCarousel', 
+  'grower', 
+  'product', 
+  'category', 
+  'faqCategory', 
+  'faqItem',
+  'featureSection',     // Phase 4: Feature sections
+  'navigation',         // Phase 5: Navigation menus
+  'assist.instruction.context'
+]
 
 export const structure: StructureResolver = (S: StructureBuilder) =>
   S.list()
@@ -117,9 +133,36 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
         }),
       // Divider
       S.divider(),
-      // ===== SETTINGS =====
+      // ===== SETTINGS SECTION ===== (Phase 5)
       S.listItem()
-        .title('⚙️ Site Settings')
-        .child(S.document().schemaType('settings').documentId('siteSettings'))
-        .icon(CogIcon),
+        .title('⚙️ Settings')
+        .icon(CogIcon)
+        .child(
+          S.list()
+            .title('Site Configuration')
+            .items([
+              // Site Settings Singleton (Phase 5 - Comprehensive)
+              S.listItem()
+                .title('Site Settings')
+                .icon(CogIcon)
+                .child(S.document().schemaType('siteSettings').documentId('siteSettingsDoc')),
+              // Navigation Menus (Phase 5)
+              S.listItem()
+                .title('Navigation Menus')
+                .icon(MenuIcon)
+                .child(
+                  S.documentTypeList('navigation')
+                    .title('Navigation Menus')
+                    .defaultOrdering([{ field: 'title', direction: 'asc' }])
+                ),
+              // Feature Sections (Phase 4)
+              S.listItem()
+                .title('Feature Sections')
+                .icon(StarIcon)
+                .child(
+                  S.documentTypeList('featureSection')
+                    .title('Feature Sections')
+                ),
+            ])
+        ),
     ])

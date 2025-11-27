@@ -29,7 +29,7 @@ const client = createClient({
 // ═══════════════════════════════════════════════════════════════════════════
 
 const siteSettingsData = {
-  _id: 'siteSettings', // Singleton ID
+  _id: 'siteSettingsDoc', // Singleton ID (matches structure.ts documentId)
   _type: 'siteSettings',
   
   // Company Info
