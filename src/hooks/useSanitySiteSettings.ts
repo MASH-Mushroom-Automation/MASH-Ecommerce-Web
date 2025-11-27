@@ -297,12 +297,31 @@ export function useSanitySiteSettings() {
       const data = await sanityClient.fetch<any>(query);
       
       if (data) {
+        // Helper function to extract plain text from Portable Text
+        const extractPlainText = (portableText: any): string => {
+          if (!portableText) return '';
+          if (typeof portableText === 'string') return portableText;
+          if (!Array.isArray(portableText)) return '';
+          
+          return portableText
+            .map((block: any) => {
+              if (block._type === 'block' && block.children) {
+                return block.children
+                  .map((child: any) => child.text || '')
+                  .join('');
+              }
+              return '';
+            })
+            .filter(Boolean)
+            .join('\n');
+        };
+
         // Transform simplified data to expected format
         const transformedData: TransformedSiteSettings = {
           id: data._id,
           companyName: data.title || 'MASH Mushroom E-Commerce',
           tagline: 'Premium Quality Mushrooms',
-          description: Array.isArray(data.description) ? data.description.map((block: any) => block.children?.map((child: any) => child.text).join(' ')).join('\n') : data.description,
+          description: extractPlainText(data.description) || 'Premium quality fresh, dried, and specialty mushrooms delivered same-day',
           logo: undefined,
           favicon: undefined,
           contactEmail: undefined,
