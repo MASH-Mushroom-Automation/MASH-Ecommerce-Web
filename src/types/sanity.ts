@@ -131,10 +131,10 @@ export interface RelatedProduct {
  * Tracks harvest window, shelf life, and storage for fresh mushrooms
  */
 export interface FreshnessInfo {
-  harvestWindow?: string;  // e.g., "Harvested within 24 hours"
-  shelfLife?: string;      // e.g., "5-7 days when refrigerated"
-  storageInstructions?: string;  // Storage tips
-  qualityIndicators?: string[];  // e.g., ["Firm texture", "White color"]
+  harvestWindow?: string;  // e.g., "24h", "48h", "3-5d"
+  shelfLife?: string;      // e.g., "5-7d", "1-2w", "6-12m"
+  storageInstructions?: string;  // Storage tips text
+  qualityIndicators?: string;  // Comma-separated string (text field in Sanity)
 }
 
 /**
@@ -143,13 +143,13 @@ export interface FreshnessInfo {
  */
 export interface PreparationInfo {
   difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
-  cookingTime?: number;  // in minutes
+  cookingTime?: string;  // String like "10-15 minutes"
   preparationTips?: string[];  // Array of tips
-  recipeIdeas?: RecipeIdea[];  // Array of recipe suggestions
+  recipeIdeas?: string[];  // Array of recipe suggestions (simple strings in Sanity)
 }
 
 /**
- * Recipe Idea
+ * Recipe Idea (for future use if we expand to objects)
  * Recipe suggestion with optional link
  */
 export interface RecipeIdea {

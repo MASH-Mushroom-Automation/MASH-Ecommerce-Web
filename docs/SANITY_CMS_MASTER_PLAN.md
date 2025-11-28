@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 11.1  
-**Last Updated:** November 28, 2025 (Session 4 - Product Page Enhancement)  
+**Version:** 11.2  
+**Last Updated:** November 28, 2025 (Session 4 - Product Page Enhancement + Bug Fixes)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
@@ -32,12 +32,13 @@
 | **Documents in CMS** | 172 items |
 | **Schemas Created** | 22 document + 6 singleton + 4 object types |
 | **Completed Phases** | 14 of 14 (100%) |
-| **Bug Fixes Applied** | 2 (Session 4) |
+| **Bug Fixes Applied** | 4 (Session 4) |
 | **UI Enhancements** | Product page now shows ALL rich CMS data |
 | **Remaining Issues** | 4 items (manual content + minor features) |
 | **Est. Completion** | 1-2 hours |
 
 ### What's Working ✅
+
 - ✅ Products display on shop page with filtering
 - ✅ Product variants, reviews, search, and tags
 - ✅ Growers linked to stores bidirectionally
@@ -47,7 +48,7 @@
 - ✅ Feature sections ("Why Choose MASH")
 - ✅ Hero carousel on homepage
 - ✅ Blog posts with categories
-- ✅ **Products have suggested/complementary links (15/15)** 
+- ✅ **Products have suggested/complementary links (15/15)**
 - ✅ **Testimonials showing on homepage**
 - ✅ **Promotional banners integrated**
 - ✅ **Header/Footer connected to CMS**
@@ -57,8 +58,10 @@
 - ✅ **Product page shows Cooking Guide (NEW)**
 - ✅ **Product page shows Delivery Options (NEW)**
 - ✅ **Product page shows Nutritional Highlights (NEW)**
+- ✅ **qualityIndicators string/array parsing fixed (NEW)**
 
 ### What Needs Work 🔄
+
 - ❌ Featured Products singleton needs content (manual in Studio)
 - ❌ Store hours display fix
 - ❌ Google Maps integration
@@ -69,29 +72,34 @@
 ## 🎨 Product Page Enhancement (Session 4)
 
 ### Overview
+
 Product detail pages now display ALL rich CMS data from Sanity, including freshness information, cooking guides, delivery options, and nutritional highlights.
 
 ### New UI Sections Added
 
 #### 1. 🌿 Freshness & Quality Card
-- **Harvest Window** - Shows when product was harvested
-- **Shelf Life** - How long product stays fresh
-- **Storage Instructions** - How to store properly
-- **Quality Indicators** - Visual badges (Firm texture, White color, etc.)
+
+- **Harvest Window** - Shows delivery timeframe (24h, 48h, 3-5d)
+- **Shelf Life** - How long product stays fresh (5-7d, 1-2w, etc.)
+- **Storage Instructions** - How to store properly (text field)
+- **Quality Indicators** - Visual badges (parsed from comma-separated text)
 
 #### 2. 👨‍🍳 Cooking Guide Card
+
 - **Difficulty Level** - Beginner/Intermediate/Advanced with color coding
-- **Cooking Time** - Minutes badge
-- **Preparation Tips** - Up to 3 tips displayed
-- **Recipe Ideas** - Links to recipe suggestions
+- **Cooking Time** - String format (e.g., "10-15 minutes")
+- **Preparation Tips** - Up to 3 tips displayed (array of strings)
+- **Recipe Ideas** - Simple string suggestions with 🍳 icon
 
 #### 3. 🚚 Delivery Options Card
+
 - **Same-Day Delivery** - Blue badge when eligible
 - **Perishable Warning** - Amber badge for cold transport
 - **Delivery Zones** - Metro Manila, Quezon City, etc.
 - **Package Weight** - For shipping calculation
 
 #### 4. ✨ Nutritional Highlights & Tags Section
+
 - **Nutritional Badges** - High Protein 💪, Low Calorie 🔥, Vitamin D ☀️, etc.
 - **Product Tags** - #organic, #fresh, #bestseller
 
@@ -105,32 +113,32 @@ Product detail pages now display ALL rich CMS data from Sanity, including freshn
 | `src/hooks/useSanityProducts.ts` | Expanded GROQ query to fetch freshnessInfo, preparationInfo, deliveryOptions, deliveryWeight, nutritionalHighlights, searchKeywords |
 | `src/app/(shop)/product/[slug]/page.tsx` | Added 3 new info cards + nutritional highlights section (250+ lines of UI) |
 
-### New TypeScript Interfaces
+### Correct TypeScript Interfaces (Matching Sanity Schema)
 
 ```typescript
 interface FreshnessInfo {
-  harvestWindow?: string;
-  shelfLife?: string;
-  storageInstructions?: string;
-  qualityIndicators?: string[];
+  harvestWindow?: string;      // "24h", "48h", "3-5d", "n/a"
+  shelfLife?: string;          // "5-7d", "1-2w", "6-12m"
+  storageInstructions?: string; // Text field
+  qualityIndicators?: string;  // Comma-separated text (NOT array!)
 }
 
 interface PreparationInfo {
   difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
-  cookingTime?: number;
-  preparationTips?: string[];
-  recipeIdeas?: RecipeIdea[];
+  cookingTime?: string;        // String like "10-15 minutes" (NOT number!)
+  preparationTips?: string[];  // Array of strings
+  recipeIdeas?: string[];      // Array of strings (NOT objects!)
 }
 
 interface DeliveryOptions {
   sameDayDeliveryEligible?: boolean;
-  deliveryZones?: string[];
-  deliveryNotes?: string;
+  deliveryZones?: string[];    // Array of zone values
+  deliveryNotes?: string;      // Text field
   perishable?: boolean;
 }
 ```
 
-### GROQ Query Expansion
+### GROQ Query (Simplified - No Nested Objects for recipeIdeas)
 
 ```groq
 // New fields added to useSanityProduct query:
@@ -144,7 +152,7 @@ preparationInfo {
   difficultyLevel,
   cookingTime,
   preparationTips,
-  recipeIdeas[] { name, description, url }
+  recipeIdeas  // Simple array, not nested objects
 },
 deliveryOptions {
   sameDayDeliveryEligible,
@@ -167,6 +175,7 @@ searchKeywords
 - **Dark Mode Support** - All cards work in light/dark themes
 - **Icon Integration** - Lucide icons: Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, etc.
 - **Badge System** - Color-coded badges for quality indicators, nutritional info, tags
+- **Smart Parsing** - `qualityIndicators` string is split by commas into array for display
 
 ---
 
@@ -217,6 +226,52 @@ defineField({
   group: 'team',
   hidden: true,
 }),
+```
+
+### Fix 3: qualityIndicators - "map is not a function" Error
+
+**Error:** `product.freshnessInfo.qualityIndicators.map is not a function`  
+**Root Cause:** In Sanity schema, `qualityIndicators` is a `text` field (string), not an array. The frontend was trying to `.map()` on a string.  
+**Solution:** Updated the product page to parse comma-separated string into array before mapping.
+
+**Files Modified:**
+- `src/types/sanity.ts` - Changed `qualityIndicators` type from `string[]` to `string`
+- `src/app/(shop)/product/[slug]/page.tsx` - Added string parsing logic
+
+```typescript
+// BEFORE (broken):
+{product.freshnessInfo.qualityIndicators.map((indicator, idx) => ...)} // ❌ String, not array!
+
+// AFTER (fixed):
+{(Array.isArray(product.freshnessInfo.qualityIndicators) 
+  ? product.freshnessInfo.qualityIndicators 
+  : product.freshnessInfo.qualityIndicators.split(',').map(s => s.trim()).filter(Boolean)
+).map((indicator, idx) => ...)} // ✅ Handles both string and array
+```
+
+### Fix 4: recipeIdeas - Incorrect GROQ Query
+
+**Error:** GROQ query expecting nested objects for `recipeIdeas[]`, but Sanity schema has simple strings  
+**Root Cause:** The GROQ query was fetching `recipeIdeas[] { name, description, url }` but the schema defines `recipeIdeas` as `array of [{type: 'string'}]`  
+**Solution:** Simplified the GROQ query and updated TypeScript types.
+
+**Files Modified:**
+- `src/hooks/useSanityProducts.ts` - Changed `recipeIdeas[] { name, description, url }` to just `recipeIdeas`
+- `src/types/sanity.ts` - Changed `recipeIdeas` type from `RecipeIdea[]` to `string[]`
+- `src/app/(shop)/product/[slug]/page.tsx` - Simplified recipe rendering
+
+```typescript
+// BEFORE (wrong GROQ):
+recipeIdeas[] { name, description, url }  // ❌ Expecting objects
+
+// AFTER (correct GROQ):
+recipeIdeas  // ✅ Simple array of strings
+
+// BEFORE (broken type):
+recipeIdeas?: RecipeIdea[];  // ❌ Wrong type
+
+// AFTER (correct type):
+recipeIdeas?: string[];  // ✅ Matches Sanity schema
 ```
 
 ---
@@ -4718,8 +4773,13 @@ Phase 14: ████████████████████ 100% - CM
 - Search functionality
 - Product variants
 
-✅ **Product Detail Page**
+✅ **Product Detail Page** (Enhanced Session 4)
 - Full product info from Sanity
+- **Freshness & Quality Card** (harvest, shelf life, storage, quality indicators)
+- **Cooking Guide Card** (difficulty, time, tips, recipes)
+- **Delivery Options Card** (same-day, zones, perishable warning)
+- **Nutritional Highlights** (badges with emojis)
+- **Product Tags** (hashtag-style badges)
 - "You May Also Like" (6 suggestions)
 - "Frequently Bought Together" (3 complements)
 - Reviews with ratings
@@ -4745,9 +4805,128 @@ Phase 14: ████████████████████ 100% - CM
 
 ---
 
+## 📋 Next Steps Guide (Phase 15+)
+
+### Phase 15: Product Variants on Product Page
+
+**Current State:** Variants exist in Sanity but not visible on product page
+**Goal:** Show variant selector (size/weight) with price changes
+
+**Files to Modify:**
+- `src/app/(shop)/product/[slug]/page.tsx` - Add variant selector UI
+- `src/hooks/useSanityVariants.ts` - Already exists, needs integration
+
+**Tasks:**
+1. Fetch variants in product page using `useSanityVariants(productId)`
+2. Add size/weight selector dropdown or button group
+3. Update price display when variant selected
+4. Update "Add to Cart" to include selected variant
+
+### Phase 16: Suggested Products Section
+
+**Current State:** `suggestedProducts` populated in CMS but not rendered
+**Goal:** Show "You May Also Like" section below product info
+
+**Files to Modify:**
+- `src/app/(shop)/product/[slug]/page.tsx` - Add suggested products grid
+- `src/components/product/ProductCard.tsx` - Reuse for suggestions
+
+**Tasks:**
+1. Add section after product description
+2. Display up to 6 suggested products in grid
+3. Use ProductCard component for each
+4. Add "View All" link to shop page
+
+### Phase 17: Complementary Products (Frequently Bought Together)
+
+**Current State:** `complementaryProducts` populated but not shown
+**Goal:** Show bundle suggestion with combined pricing
+
+**Files to Modify:**
+- `src/app/(shop)/product/[slug]/page.tsx`
+- New component: `src/components/product/FrequentlyBoughtTogether.tsx`
+
+**Tasks:**
+1. Create bundle display with checkboxes
+2. Show combined price with discount
+3. Add "Add All to Cart" functionality
+
+### Phase 18: Store Integration
+
+**Current State:** Stores exist but "Meet Our Growers" may not show on store pages
+**Goal:** Complete store-grower bidirectional display
+
+**Files to Check:**
+- `src/app/(locations)/stores/[slug]/page.tsx`
+- `src/hooks/useSanityStores.ts`
+
+**Tasks:**
+1. Verify store pages fetch growers
+2. Add "Meet Our Growers" grid section
+3. Link to grower profile pages
+
+### Phase 19: Categories Landing Page
+
+**Current State:** Categories list in sidebar/filter only
+**Goal:** Individual category pages with rich content
+
+**Files to Create:**
+- `src/app/(shop)/category/[slug]/page.tsx`
+
+**Tasks:**
+1. Create category detail page
+2. Show category description from CMS
+3. Display products in that category
+4. Add subcategory navigation
+
+### Phase 20: Enhanced Search & Discovery
+
+**Current State:** Basic search by name
+**Goal:** Search by tags, nutritional info, freshness
+
+**Files to Modify:**
+- `src/app/(shop)/shop/page.tsx`
+- `src/hooks/useSanityProducts.ts`
+
+**Tasks:**
+1. Add nutritional filter (High Protein, Vegan, etc.)
+2. Add freshness filter (Harvest: 24h, 48h)
+3. Add delivery zone filter (Same-day eligible)
+
+---
+
+## 🔴 Remaining Issues (Priority Order)
+
+### Critical (Fix This Week)
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Featured Products empty | Manual in Studio | Add 6-8 products to featuredProducts singleton |
+| Variants not showing on product page | `page.tsx` | Integrate useSanityVariants hook |
+| Suggested Products not rendering | `page.tsx` | Add section after description |
+
+### High Priority (Fix Next Week)
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Store hours display wrong format | `useSanityStores.ts` | Transform operatingHours object |
+| Google Maps not loading | `GoogleMap.tsx` | Debug API key, add fallback |
+| Contact form not submitting | Backend | Create API endpoint |
+
+### Medium Priority (Next Sprint)
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Blog post images missing | Manual in Studio | Upload cover images |
+| Team member photos missing | Manual in Studio | Upload avatar images |
+| Category pages empty | Create new page | Build category/[slug]/page.tsx |
+
+---
+
 **END OF DOCUMENT**
 
 **Version History:**
+- v11.2 (Nov 28, 2025) - Session 4: Product page enhancement, 4 bug fixes, types alignment
 - v10.1 (Nov 28, 2025) - Session 3: Product relationships, banners, navigation verified
 - v10.0 (Nov 28, 2025) - Complete audit, System Architecture, Schema Inventory
 - v9.0 (Nov 28, 2025) - Grower-Store linking complete

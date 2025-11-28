@@ -547,11 +547,15 @@ export default function ProductDetailPage({ params }: Props) {
                   </div>
                 )}
                 
-                {product.freshnessInfo.qualityIndicators && product.freshnessInfo.qualityIndicators.length > 0 && (
+                {product.freshnessInfo.qualityIndicators && (
                   <div className="pt-2">
                     <span className="text-sm font-medium text-foreground block mb-2">Quality Indicators</span>
                     <div className="flex flex-wrap gap-2">
-                      {product.freshnessInfo.qualityIndicators.map((indicator, idx) => (
+                      {/* Handle both string and array formats */}
+                      {(Array.isArray(product.freshnessInfo.qualityIndicators) 
+                        ? product.freshnessInfo.qualityIndicators 
+                        : product.freshnessInfo.qualityIndicators.split(',').map(s => s.trim()).filter(Boolean)
+                      ).map((indicator, idx) => (
                         <span 
                           key={idx} 
                           className="inline-flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded-full"
@@ -602,7 +606,7 @@ export default function ProductDetailPage({ params }: Props) {
                   {product.preparationInfo.cookingTime && (
                     <div className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-sm font-medium text-orange-700 dark:text-orange-300">
                       <Clock className="w-4 h-4" />
-                      {product.preparationInfo.cookingTime} min
+                      {product.preparationInfo.cookingTime}
                     </div>
                   )}
                 </div>
@@ -629,21 +633,7 @@ export default function ProductDetailPage({ params }: Props) {
                     <div className="space-y-2">
                       {product.preparationInfo.recipeIdeas.slice(0, 3).map((recipe, idx) => (
                         <div key={idx} className="bg-white/50 dark:bg-black/20 rounded-lg p-2">
-                          {recipe.url ? (
-                            <a 
-                              href={recipe.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="font-medium text-orange-600 hover:text-orange-700 dark:text-orange-400 text-sm"
-                            >
-                              {recipe.name} →
-                            </a>
-                          ) : (
-                            <span className="font-medium text-foreground text-sm">{recipe.name}</span>
-                          )}
-                          {recipe.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{recipe.description}</p>
-                          )}
+                          <span className="font-medium text-foreground text-sm">🍳 {recipe}</span>
                         </div>
                       ))}
                     </div>

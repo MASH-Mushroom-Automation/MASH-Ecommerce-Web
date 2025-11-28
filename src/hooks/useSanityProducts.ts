@@ -400,11 +400,7 @@ export function useSanityProduct(slug: string) {
             difficultyLevel,
             cookingTime,
             preparationTips,
-            recipeIdeas[] {
-              name,
-              description,
-              url
-            }
+            recipeIdeas
           },
           deliveryOptions {
             sameDayDeliveryEligible,
