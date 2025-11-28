@@ -1,9 +1,55 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 9.0  
-**Last Updated:** November 28, 2025 (Growers & Stores Linked!)  
+**Version:** 10.0  
+**Last Updated:** November 28, 2025 (Complete Audit & Reorganization)  
 **Project:** MASH Mushroom E-Commerce Platform  
-**CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)
+**CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
+**Documentation Author:** AI Development Assistant
+
+---
+
+## 📋 Quick Navigation
+
+- [Executive Summary](#-executive-summary)
+- [System Architecture](#-system-architecture)
+- [Schema Inventory](#-schema-inventory-22-document-types)
+- [Data Audit Results](#-data-audit-results-november-28-2025)
+- [Remaining Issues](#-remaining-issues-by-priority)
+- [Phase-by-Phase Guide](#-phase-by-phase-implementation-guide)
+- [Completed Work](#-completed-work-sessions-1-2)
+
+---
+
+## 📊 Executive Summary
+
+### Project Status: 85% Complete
+
+| Metric | Value |
+|--------|-------|
+| **Documents in CMS** | 172 items |
+| **Schemas Created** | 22 document + 6 singleton + 4 object types |
+| **Completed Phases** | 11 of 14 (79%) |
+| **Remaining Issues** | 14 items |
+| **Est. Completion** | 12-15 hours |
+
+### What's Working ✅
+- ✅ Products display on shop page with filtering
+- ✅ Product variants, reviews, search, and tags
+- ✅ Growers linked to stores bidirectionally
+- ✅ "Meet Our Growers" on store pages
+- ✅ "Find At Stores" on grower pages
+- ✅ FAQ system with categories
+- ✅ Feature sections ("Why Choose MASH")
+- ✅ Hero carousel on homepage
+- ✅ Blog posts with categories
+
+### What Needs Work 🔄
+- ❌ Products missing suggested/complementary links (0/15)
+- ❌ Featured Products singleton empty
+- ❌ Testimonials not on homepage
+- ❌ Promotional banners not integrated
+- ❌ Navigation/Footer using hardcoded data
+- ❌ Contact form not functional
 
 ---
 
@@ -23,6 +69,331 @@
 | **Phase 9** | Final Integration & Testing | ✅ **COMPLETE** | 100% |
 | **Phase 10** | Grower-Store Linking | ✅ **COMPLETE** | 100% |
 | **Phase 11** | Meet Our Growers on Store Pages | ✅ **COMPLETE** | 100% |
+| **Phase 12** | Product Relationships | 🔄 **IN PROGRESS** | 0% |
+| **Phase 13** | Homepage Marketing | 🔄 **PENDING** | 0% |
+| **Phase 14** | CMS-Driven Navigation | 🔄 **PENDING** | 0% |
+
+---
+
+## 🏗️ System Architecture
+
+### Technology Stack
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         MASH E-Commerce                              │
+├─────────────────────────────────────────────────────────────────────┤
+│  Frontend: Next.js 15 (App Router) + TypeScript + Tailwind CSS      │
+│  UI: shadcn/ui (Radix UI) + Lucide Icons                            │
+│  CMS: Sanity CMS v3 (xyq5fhxs - Growth Trial)                       │
+│  Backend: NestJS + Prisma + PostgreSQL (localhost:3000)             │
+│  Auth: Firebase Auth                                                 │
+│  Maps: Google Maps API                                               │
+│  Delivery: Lalamove API                                              │
+│  Analytics: Google Analytics 4                                       │
+│  Hosting: Vercel                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Environment Configuration
+
+```bash
+# Sanity CMS Configuration
+NEXT_PUBLIC_SANITY_PROJECT_ID=xyq5fhxs        # Project ID
+NEXT_PUBLIC_SANITY_DATASET=production          # Dataset name
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26      # API version
+SANITY_API_READ_TOKEN=sks0e1wiV7...            # Read-only token
+SANITY_API_WRITE_TOKEN=skxzRDFUcc...           # Write token
+NEXT_PUBLIC_SANITY_STUDIO_URL=https://mash-cms.sanity.studio
+NEXT_PUBLIC_SANITY_REALTIME_ENABLED=true       # Real-time updates
+
+# Google Maps API
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyDYw7Tke...
+
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_USE_MOCK_DATA=false                # Use Sanity CMS
+```
+
+### API Usage (Growth Trial)
+
+| Metric | Limit | Current Usage |
+|--------|-------|---------------|
+| API Requests | 10M/month | ~50K (0.5%) |
+| Real-time Updates | Unlimited | Enabled |
+| Datasets | 2 | 1 (production) |
+
+---
+
+## 📦 Schema Inventory (22 Document Types)
+
+### Document Types
+
+| Schema | Documents | Status | Description |
+|--------|-----------|--------|-------------|
+| `product` | 15 | ✅ Active | Main products |
+| `category` | 3 | ✅ Active | Product categories |
+| `grower` | 4 | ✅ Active | Farm/grower profiles |
+| `store` | 4 | ✅ Active | Store locations |
+| `review` | 39 | ✅ Active | Product reviews |
+| `productVariant` | 15 | ✅ Active | Size/weight variants |
+| `productBundle` | 6 | ✅ Active | Product bundles |
+| `post` | 3 | ✅ Active | Blog posts |
+| `faqItem` | 19 | ✅ Active | FAQ questions |
+| `faqCategory` | 5 | ✅ Active | FAQ categories |
+| `testimonial` | 6 | ✅ Active | Customer testimonials |
+| `banner` | 6 | ✅ Active | Promotional banners |
+| `person` | 14 | ✅ Active | Team members/authors |
+| `featureSection` | 2 | ✅ Active | Why Choose MASH |
+| `navigation` | 5 | ✅ Active | Menu structures |
+| `blogCategory` | 5 | ✅ Active | Blog categories |
+| `order` | 0 | 🔶 Empty | Order management |
+| `coupon` | 0 | 🔶 Empty | Discount coupons |
+| `promotion` | 0 | 🔶 Empty | Promotions |
+| `page` | 0 | 🔶 Empty | CMS pages |
+| `analytics` | - | 🔶 Unused | Analytics data |
+| `emailCampaign` | - | 🔶 Unused | Email campaigns |
+
+### Singleton Types (6 Total)
+
+| Singleton | Status | Description |
+|-----------|--------|-------------|
+| `siteSettings` | ✅ Configured | Logo, social links, announcement bar |
+| `heroCarousel` | ✅ Configured | Homepage hero slides |
+| `featuredProducts` | ❌ **Missing** | Featured products selection |
+| `aboutPage` | ✅ Configured | About page content |
+| `contactPage` | ✅ Configured | Contact page content |
+| `settings` | ⚠️ Deprecated | Old settings (use siteSettings) |
+
+### Object Types (4 Total)
+
+| Object | Used By | Description |
+|--------|---------|-------------|
+| `blockContent` | post, product | Rich text editor |
+| `callToAction` | banner, hero | CTA buttons |
+| `infoSection` | aboutPage | Info blocks |
+| `link` | navigation | Navigation links |
+
+---
+
+## 📊 Data Audit Results (November 28, 2025)
+
+### Document Counts
+
+| Document Type | Count | Status |
+|---------------|-------|--------|
+| Products | 15 | ✅ All with images, categories, tags |
+| Categories | 3 | ✅ Fresh (8), Dried (3), Kits (4) |
+| Growers | 4 | ✅ All linked to stores |
+| Stores | 4 | ✅ All linked to growers |
+| Reviews | 39 | ✅ |
+| Variants | 15 | ✅ |
+| Bundles | 6 | ✅ |
+| Blog Posts | 3 | ✅ |
+| FAQ Items | 19 | ✅ |
+| Testimonials | 6 | ✅ |
+| Banners | 6 | ✅ |
+| Team Members | 14 | ✅ |
+
+### Data Quality Issues
+
+| Check | Current | Expected | Status |
+|-------|---------|----------|--------|
+| Products with images | 15/15 | 15/15 | ✅ |
+| Products with categories | 15/15 | 15/15 | ✅ |
+| Products with tags | 15/15 | 15/15 | ✅ |
+| Growers linked to stores | 4/4 | 4/4 | ✅ |
+| Stores linked to growers | 4/4 | 4/4 | ✅ |
+| **Products with suggestedProducts** | **0/15** | 15/15 | ❌ **FIX** |
+| **Products with complementaryProducts** | **0/15** | 15/15 | ❌ **FIX** |
+| **Featured Products singleton** | **Missing** | Created | ❌ **FIX** |
+
+### Grower-Store Relationships
+
+```
+🔗 GROWER → STORE LINKS:
+------------------------
+The Mushroom Patch Bukidnon → MASH Main Store, Organic Market QC
+Fungi Fresh Farms → MASH Main Store, Caloocan Pickup, Commonwealth Pickup
+Kabutehan ni Aling Nena → MASH Main Store, Caloocan Pickup
+Shroomz → MASH Main Store, Organic Market QC, Commonwealth Pickup
+
+📁 CATEGORY → PRODUCT COUNTS:
+-----------------------------
+Fresh Mushrooms:              8 products
+Dried Mushrooms:              3 products
+Growing Kits & Accessories:   4 products
+```
+
+---
+
+## 🚨 Remaining Issues By Priority
+
+### 🔴 CRITICAL (Fix First)
+
+| # | Issue | Impact | Solution | Time |
+|---|-------|--------|----------|------|
+| 1 | Products missing suggestedProducts | "You May Also Like" broken | Run link-suggested-products.js | 30m |
+| 2 | Products missing complementaryProducts | "Frequently Bought" broken | Run link-suggested-products.js | 30m |
+| 3 | Featured Products singleton empty | Homepage lacks curated products | Create in Sanity Studio | 15m |
+| 4 | Testimonials not on homepage | No social proof | Uncomment TestimonialsSection | 30m |
+| 5 | Homepage banners missing | No promotions visible | Add BannerSection component | 1h |
+
+### 🟠 HIGH (Important for UX)
+
+| # | Issue | Impact | Solution | Time |
+|---|-------|--------|----------|------|
+| 6 | Header using hardcoded nav | Can't update from CMS | Connect useSanityNavigation | 2h |
+| 7 | Footer using hardcoded links | Can't update from CMS | Connect useSanitySiteSettings | 2h |
+| 8 | Announcement bar hidden | No site-wide alerts | Enable siteSettings.announcementBar | 1h |
+| 9 | Store hours not displaying | Hours hidden | Fix operatingHours component | 1h |
+| 10 | Google Maps not loading | Map placeholder only | Check API key, add LoadScript | 1h |
+
+### 🟡 MEDIUM (Before Production)
+
+| # | Issue | Impact | Solution | Time |
+|---|-------|--------|----------|------|
+| 11 | About team photos missing | Placeholder images | Upload in Sanity Studio | 30m |
+| 12 | Blog cover images missing | Blog looks empty | Upload in Sanity Studio | 30m |
+| 13 | Contact form not submitting | Can't contact | Add form handler API | 3h |
+| 14 | Social links not showing | No social presence | Fetch from siteSettings | 30m |
+
+### 🟢 LOW (Future Enhancement)
+
+| # | Issue | Impact | Solution | Time |
+|---|-------|--------|----------|------|
+| 15 | FAQ category filter | Poor navigation | Add filter UI | 2h |
+| 16 | Logo not from CMS | Can't change logo | Fetch siteSettings.logo | 30m |
+| 17 | Store delivery zones | Info hidden | Add DeliveryZones component | 30m |
+| 18 | Cart upsell banner | Less revenue | Add CartTopBanner | 30m |
+
+---
+
+## 🛠️ Phase-by-Phase Implementation Guide
+
+### Phase 12: Product Relationships (Priority: 🔴 CRITICAL)
+**Time Estimate:** 1 hour  
+**Status:** 🔄 Ready to Start
+
+#### Problem
+Products have `suggestedProducts` and `complementaryProducts` fields but they're empty (0/15 linked). This breaks the "You May Also Like" and "Frequently Bought Together" sections.
+
+#### Solution: Run the linking script
+
+```bash
+# Terminal command
+cd c:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web\scripts
+node link-suggested-products.js
+```
+
+#### Verification Steps
+1. Open Sanity Studio (localhost:3333)
+2. Go to E-Commerce → Products
+3. Open any product
+4. Check "Suggested Products" has 3-5 items
+5. Check "Complementary Products" has 2-3 items
+
+#### Test on Frontend
+1. Go to `http://localhost:3000/product/[any-slug]`
+2. Scroll to see "You May Also Like"
+3. Scroll to see "Frequently Bought Together"
+
+---
+
+### Phase 13: Homepage Marketing (Priority: 🔴 CRITICAL)
+**Time Estimate:** 2 hours  
+**Status:** 🔄 Pending
+
+#### Task 13.1: Enable Testimonials Section
+
+**File:** `src/app/page.tsx`
+
+Ensure TestimonialsSection is imported and rendered:
+
+```tsx
+import { TestimonialsSection } from "@/components/cms/TestimonialsSection";
+
+// In return JSX, add:
+<TestimonialsSection />
+```
+
+#### Task 13.2: Add Banner Section
+
+**File:** `src/app/page.tsx`
+
+```tsx
+import { BannerSection } from "@/components/cms/BannerSection";
+import { useSanityBanners } from "@/hooks/useSanityBanners";
+
+// In component:
+const { banners } = useSanityBanners({ position: 'homepage' });
+
+// In JSX (after hero, before featured products):
+{banners.length > 0 && <BannerSection banners={banners} />}
+```
+
+#### Task 13.3: Create Featured Products in Sanity Studio
+
+1. Go to Settings → Featured Products
+2. Add title: "Our Bestsellers"
+3. Select 4-8 products
+4. Click Publish
+
+---
+
+### Phase 14: CMS-Driven Navigation (Priority: 🟠 HIGH)
+**Time Estimate:** 4 hours  
+**Status:** 🔄 Pending
+
+#### Task 14.1: Connect Header to CMS
+
+**File:** `src/components/layout/Header.tsx`
+
+```tsx
+import { useSanitySiteSettings } from "@/hooks/useSanitySiteSettings";
+import { useSanityNavigation } from "@/hooks/useSanityNavigation";
+
+// In component:
+const { settings } = useSanitySiteSettings();
+const { navigation } = useSanityNavigation('main-menu');
+
+// Use settings.logo instead of hardcoded logo
+// Use navigation.items for menu items
+```
+
+#### Task 14.2: Connect Footer to CMS
+
+**File:** `src/components/layout/Footer.tsx`
+
+```tsx
+import { useSanitySiteSettings } from "@/hooks/useSanitySiteSettings";
+
+// In component:
+const { settings } = useSanitySiteSettings();
+
+// Use settings.socialLinks for social icons
+// Use settings.contactInfo for address/phone
+```
+
+#### Task 14.3: Enable Announcement Bar
+
+**File:** Create `src/components/layout/AnnouncementBar.tsx`
+
+```tsx
+import { useSanitySiteSettings } from "@/hooks/useSanitySiteSettings";
+
+export function AnnouncementBar() {
+  const { settings } = useSanitySiteSettings();
+  
+  if (!settings?.announcementBar?.isActive) return null;
+  
+  return (
+    <div className="bg-primary text-white text-center py-2 px-4">
+      <p>{settings.announcementBar.text}</p>
+    </div>
+  );
+}
+```
 
 ---
 
@@ -3540,4 +3911,95 @@ After Phase 11:
 
 ---
 
+## 🔗 Quick Links
+
+### Sanity Studio URLs
+
+| Page | URL |
+|------|-----|
+| Studio Home | http://localhost:3333 |
+| All Products | http://localhost:3333/studio/structure/🛒%20E-Commerce/product |
+| All Growers | http://localhost:3333/studio/structure/🛒%20E-Commerce/grower |
+| All Stores | http://localhost:3333/studio/structure/📍%20Store%20Locations |
+| Site Settings | http://localhost:3333/studio/structure/⚙️%20Settings/siteSettingsDoc |
+| Hero Carousel | http://localhost:3333/studio/structure/🏠%20Homepage/heroCarousel |
+
+### Useful Terminal Commands
+
+```bash
+# Start Next.js frontend
+npm run dev
+
+# Start Sanity Studio
+cd studio && npm run dev
+
+# Audit Sanity data
+node scripts/audit-sanity-data.js
+
+# Link suggested products (FIX 0/15 ISSUE)
+node scripts/link-suggested-products.js
+
+# Link growers to stores
+node scripts/link-growers-stores.js
+
+# Add tags to products
+node scripts/add-product-tags.js
+```
+
+### GROQ Query Examples
+
+```groq
+// Get all products with category
+*[_type == "product"] {
+  _id,
+  name,
+  price,
+  category->{name, slug}
+}
+
+// Get products by category
+*[_type == "product" && category->slug.current == "fresh-mushrooms"]
+
+// Get store with growers
+*[_type == "store" && slug.current == $slug][0] {
+  ...,
+  growers[]->{name, slug, image}
+}
+
+// Get featured products
+*[_type == "product" && isFeatured == true][0..7]
+```
+
+---
+
+## 📞 Support & Resources
+
+- **Sanity Documentation:** https://www.sanity.io/docs
+- **GROQ Query Language:** https://www.sanity.io/docs/groq
+- **Project Dashboard:** https://sanity.io/manage/project/xyq5fhxs
+- **API Usage:** https://sanity.io/manage/project/xyq5fhxs/usage
+
+---
+
+## 📅 Next Session Checklist
+
+When continuing work, complete in this order:
+
+1. **[ ] Run `node scripts/link-suggested-products.js`** - Fix 0/15 product links
+2. **[ ] Create Featured Products singleton** - In Sanity Studio
+3. **[ ] Enable TestimonialsSection** - In `src/app/page.tsx`
+4. **[ ] Add BannerSection to homepage** - In `src/app/page.tsx`
+5. **[ ] Connect Header to CMS navigation** - In `src/components/layout/Header.tsx`
+6. **[ ] Connect Footer to CMS settings** - In `src/components/layout/Footer.tsx`
+7. **[ ] Upload team photos** - In Sanity Studio
+8. **[ ] Upload blog cover images** - In Sanity Studio
+
+---
+
 **END OF DOCUMENT**
+
+**Version History:**
+- v10.0 (Nov 28, 2025) - Complete audit, added System Architecture, Schema Inventory, Data Audit Results, Phase 12-14 guides
+- v9.0 (Nov 28, 2025) - Grower-Store linking complete, sessions 1-2 documented
+- v8.0 (Nov 27, 2025) - E-Commerce issues #1-8 resolved
+- v7.0 (Nov 26, 2025) - Initial CMS setup complete
