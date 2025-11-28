@@ -126,6 +126,62 @@ export interface RelatedProduct {
   isFeatured?: boolean;
 }
 
+/**
+ * Freshness Information
+ * Tracks harvest window, shelf life, and storage for fresh mushrooms
+ */
+export interface FreshnessInfo {
+  harvestWindow?: string;  // e.g., "Harvested within 24 hours"
+  shelfLife?: string;      // e.g., "5-7 days when refrigerated"
+  storageInstructions?: string;  // Storage tips
+  qualityIndicators?: string[];  // e.g., ["Firm texture", "White color"]
+}
+
+/**
+ * Preparation Information
+ * Cooking guidance for mushroom products
+ */
+export interface PreparationInfo {
+  difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
+  cookingTime?: number;  // in minutes
+  preparationTips?: string[];  // Array of tips
+  recipeIdeas?: RecipeIdea[];  // Array of recipe suggestions
+}
+
+/**
+ * Recipe Idea
+ * Recipe suggestion with optional link
+ */
+export interface RecipeIdea {
+  name: string;
+  description?: string;
+  url?: string;
+}
+
+/**
+ * Delivery Options
+ * Same-day delivery configuration for Lalamove integration
+ */
+export interface DeliveryOptions {
+  sameDayDeliveryEligible?: boolean;
+  deliveryZones?: string[];  // e.g., ["Metro Manila", "Quezon City"]
+  deliveryNotes?: string;
+  perishable?: boolean;
+}
+
+/**
+ * Delivery Weight
+ * Package weight and dimensions for shipping calculation
+ */
+export interface DeliveryWeight {
+  packageWeight?: number;  // in kg
+  packageDimensions?: {
+    length?: number;  // in cm
+    width?: number;
+    height?: number;
+  };
+}
+
 export interface TransformedProduct {
   id: string;
   name: string;
@@ -150,6 +206,14 @@ export interface TransformedProduct {
   suggestedProducts?: RelatedProduct[];  // "You May Also Like"
   complementaryProducts?: RelatedProduct[];  // "Frequently Bought Together"
   productTags?: string[];  // Smart search tags
+  
+  // Enhanced Product Info (Phase 10 - Rich CMS Data)
+  freshnessInfo?: FreshnessInfo;  // Harvest window, shelf life, storage
+  preparationInfo?: PreparationInfo;  // Cooking difficulty, time, tips, recipes
+  deliveryOptions?: DeliveryOptions;  // Same-day delivery, zones, perishable
+  deliveryWeight?: DeliveryWeight;  // Package weight and dimensions
+  nutritionalHighlights?: string[];  // Nutrition badges
+  searchKeywords?: string[];  // SEO keywords
 }
 
 /**
@@ -218,6 +282,14 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     suggestedProducts: suggestedProducts?.length ? suggestedProducts : undefined,
     complementaryProducts: complementaryProducts?.length ? complementaryProducts : undefined,
     productTags: (product as any).productTags,
+    
+    // Enhanced Product Info (Rich CMS Data)
+    freshnessInfo: (product as any).freshnessInfo || undefined,
+    preparationInfo: (product as any).preparationInfo || undefined,
+    deliveryOptions: (product as any).deliveryOptions || undefined,
+    deliveryWeight: (product as any).deliveryWeight || undefined,
+    nutritionalHighlights: (product as any).nutritionalHighlights || undefined,
+    searchKeywords: (product as any).searchKeywords || undefined,
   };
 }
 

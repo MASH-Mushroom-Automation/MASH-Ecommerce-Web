@@ -387,7 +387,41 @@ export function useSanityProduct(slug: string) {
             "image": image.asset->url,
             "isPromo": isOnPromo
           },
-          productTags
+          productTags,
+          
+          // Enhanced Product Info: Freshness, Preparation, Delivery
+          freshnessInfo {
+            harvestWindow,
+            shelfLife,
+            storageInstructions,
+            qualityIndicators
+          },
+          preparationInfo {
+            difficultyLevel,
+            cookingTime,
+            preparationTips,
+            recipeIdeas[] {
+              name,
+              description,
+              url
+            }
+          },
+          deliveryOptions {
+            sameDayDeliveryEligible,
+            deliveryZones,
+            deliveryNotes,
+            perishable
+          },
+          deliveryWeight {
+            packageWeight,
+            packageDimensions {
+              length,
+              width,
+              height
+            }
+          },
+          nutritionalHighlights,
+          searchKeywords
         }`;
 
         const data: SanityProduct | null = await sanityClient.fetch(query, { slug });
@@ -448,7 +482,13 @@ export function useSanityProduct(slug: string) {
           "image": image.asset->url,
           "isPromo": isOnPromo
         },
-        productTags
+        productTags,
+        freshnessInfo,
+        preparationInfo,
+        deliveryOptions,
+        deliveryWeight,
+        nutritionalHighlights,
+        searchKeywords
       }`;
 
       const subscription = sanityClient

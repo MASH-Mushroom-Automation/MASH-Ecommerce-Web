@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle } from "lucide-react";
+import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles } from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
@@ -497,6 +497,289 @@ export default function ProductDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Enhanced Product Information Sections */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+          
+          {/* Freshness Information Card */}
+          {product.freshnessInfo && (
+            product.freshnessInfo.harvestWindow || 
+            product.freshnessInfo.shelfLife || 
+            product.freshnessInfo.storageInstructions ||
+            (product.freshnessInfo.qualityIndicators && product.freshnessInfo.qualityIndicators.length > 0)
+          ) && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-6 border border-green-100 dark:border-green-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <Leaf className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Freshness & Quality</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {product.freshnessInfo.harvestWindow && (
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Harvest Window</span>
+                      <p className="text-sm text-muted-foreground">{product.freshnessInfo.harvestWindow}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {product.freshnessInfo.shelfLife && (
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Shelf Life</span>
+                      <p className="text-sm text-muted-foreground">{product.freshnessInfo.shelfLife}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {product.freshnessInfo.storageInstructions && (
+                  <div className="flex items-start gap-2">
+                    <Snowflake className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Storage</span>
+                      <p className="text-sm text-muted-foreground">{product.freshnessInfo.storageInstructions}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {product.freshnessInfo.qualityIndicators && product.freshnessInfo.qualityIndicators.length > 0 && (
+                  <div className="pt-2">
+                    <span className="text-sm font-medium text-foreground block mb-2">Quality Indicators</span>
+                    <div className="flex flex-wrap gap-2">
+                      {product.freshnessInfo.qualityIndicators.map((indicator, idx) => (
+                        <span 
+                          key={idx} 
+                          className="inline-flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded-full"
+                        >
+                          <CheckCircle className="w-3 h-3" />
+                          {indicator}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Preparation Information Card */}
+          {product.preparationInfo && (
+            product.preparationInfo.difficultyLevel || 
+            product.preparationInfo.cookingTime ||
+            (product.preparationInfo.preparationTips && product.preparationInfo.preparationTips.length > 0) ||
+            (product.preparationInfo.recipeIdeas && product.preparationInfo.recipeIdeas.length > 0)
+          ) && (
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-xl p-6 border border-orange-100 dark:border-orange-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
+                  <ChefHat className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Cooking Guide</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Difficulty & Time */}
+                <div className="flex flex-wrap gap-3">
+                  {product.preparationInfo.difficultyLevel && (
+                    <div className={cn(
+                      "px-3 py-1.5 rounded-lg text-sm font-medium",
+                      product.preparationInfo.difficultyLevel === 'beginner' && "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
+                      product.preparationInfo.difficultyLevel === 'intermediate' && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300",
+                      product.preparationInfo.difficultyLevel === 'advanced' && "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                    )}>
+                      {product.preparationInfo.difficultyLevel === 'beginner' && '🟢 '}
+                      {product.preparationInfo.difficultyLevel === 'intermediate' && '🟡 '}
+                      {product.preparationInfo.difficultyLevel === 'advanced' && '🔴 '}
+                      {product.preparationInfo.difficultyLevel.charAt(0).toUpperCase() + product.preparationInfo.difficultyLevel.slice(1)}
+                    </div>
+                  )}
+                  
+                  {product.preparationInfo.cookingTime && (
+                    <div className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-sm font-medium text-orange-700 dark:text-orange-300">
+                      <Clock className="w-4 h-4" />
+                      {product.preparationInfo.cookingTime} min
+                    </div>
+                  )}
+                </div>
+                
+                {/* Preparation Tips */}
+                {product.preparationInfo.preparationTips && product.preparationInfo.preparationTips.length > 0 && (
+                  <div className="pt-2">
+                    <span className="text-sm font-medium text-foreground block mb-2">Preparation Tips</span>
+                    <ul className="space-y-1.5">
+                      {product.preparationInfo.preparationTips.slice(0, 3).map((tip, idx) => (
+                        <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <Utensils className="w-3 h-3 text-orange-500 mt-1 flex-shrink-0" />
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Recipe Ideas */}
+                {product.preparationInfo.recipeIdeas && product.preparationInfo.recipeIdeas.length > 0 && (
+                  <div className="pt-2">
+                    <span className="text-sm font-medium text-foreground block mb-2">Recipe Ideas</span>
+                    <div className="space-y-2">
+                      {product.preparationInfo.recipeIdeas.slice(0, 3).map((recipe, idx) => (
+                        <div key={idx} className="bg-white/50 dark:bg-black/20 rounded-lg p-2">
+                          {recipe.url ? (
+                            <a 
+                              href={recipe.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-medium text-orange-600 hover:text-orange-700 dark:text-orange-400 text-sm"
+                            >
+                              {recipe.name} →
+                            </a>
+                          ) : (
+                            <span className="font-medium text-foreground text-sm">{recipe.name}</span>
+                          )}
+                          {recipe.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{recipe.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Delivery Options Card */}
+          {product.deliveryOptions && (
+            product.deliveryOptions.sameDayDeliveryEligible ||
+            (product.deliveryOptions.deliveryZones && product.deliveryOptions.deliveryZones.length > 0) ||
+            product.deliveryOptions.perishable
+          ) && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Delivery Options</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Same-Day Delivery Badge */}
+                {product.deliveryOptions.sameDayDeliveryEligible && (
+                  <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg">
+                    <Truck className="w-4 h-4" />
+                    <span className="text-sm font-medium">⚡ Same-Day Delivery Available</span>
+                  </div>
+                )}
+                
+                {/* Perishable Warning */}
+                {product.deliveryOptions.perishable && (
+                  <div className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-3 py-2 rounded-lg">
+                    <Snowflake className="w-4 h-4" />
+                    <span className="text-sm font-medium">🧊 Perishable - Cold Transport</span>
+                  </div>
+                )}
+                
+                {/* Delivery Zones */}
+                {product.deliveryOptions.deliveryZones && product.deliveryOptions.deliveryZones.length > 0 && (
+                  <div className="pt-2">
+                    <span className="text-sm font-medium text-foreground flex items-center gap-1 mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                      Delivery Zones
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {product.deliveryOptions.deliveryZones.map((zone, idx) => (
+                        <span 
+                          key={idx} 
+                          className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full"
+                        >
+                          {zone}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Delivery Notes */}
+                {product.deliveryOptions.deliveryNotes && (
+                  <div className="flex items-start gap-2 pt-2">
+                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-muted-foreground">{product.deliveryOptions.deliveryNotes}</p>
+                  </div>
+                )}
+                
+                {/* Package Weight */}
+                {product.deliveryWeight?.packageWeight && (
+                  <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                    Package weight: {product.deliveryWeight.packageWeight} kg
+                    {product.deliveryWeight.packageDimensions && (
+                      <span className="ml-2">
+                        ({product.deliveryWeight.packageDimensions.length} × {product.deliveryWeight.packageDimensions.width} × {product.deliveryWeight.packageDimensions.height} cm)
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Nutritional Highlights & Product Tags */}
+        {((product.nutritionalHighlights && product.nutritionalHighlights.length > 0) || 
+          (product.productTags && product.productTags.length > 0)) && (
+          <div className="mt-8 p-6 bg-muted/30 rounded-xl">
+            <div className="flex flex-wrap gap-6">
+              {/* Nutritional Highlights */}
+              {product.nutritionalHighlights && product.nutritionalHighlights.length > 0 && (
+                <div className="flex-1 min-w-[200px]">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    Nutritional Highlights
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.nutritionalHighlights.map((highlight, idx) => (
+                      <span 
+                        key={idx} 
+                        className="inline-flex items-center gap-1 text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium"
+                      >
+                        {highlight === 'high-protein' && '💪 '}
+                        {highlight === 'low-calorie' && '🔥 '}
+                        {highlight === 'vitamin-d' && '☀️ '}
+                        {highlight === 'antioxidants' && '🛡️ '}
+                        {highlight === 'fiber-rich' && '🌾 '}
+                        {highlight === 'immune-support' && '💪 '}
+                        {highlight === 'b-vitamins' && '⚡ '}
+                        {highlight === 'minerals' && '💎 '}
+                        {highlight.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Product Tags */}
+              {product.productTags && product.productTags.length > 0 && (
+                <div className="flex-1 min-w-[200px]">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Product Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.productTags.map((tag, idx) => (
+                      <span 
+                        key={idx} 
+                        className="text-sm bg-muted text-muted-foreground px-3 py-1.5 rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Frequently Bought Together Section */}
         {product.complementaryProducts && product.complementaryProducts.length > 0 && (
