@@ -8,7 +8,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { sanityClient } from "@/lib/sanity/client";
 
-// TypeScript interfaces
+// Raw Sanity response type (has _id from Sanity)
+interface SanityVariantResponse {
+  _id: string;
+  productId: string;
+  variantName: string;
+  sku: string;
+  size?: string;
+  color?: string;
+  weight?: string;
+  customAttribute?: string;
+  price: number;
+  compareAtPrice?: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  images?: string[];
+  isAvailable: boolean;
+  isDefault: boolean;
+  sortOrder: number;
+}
+
+// TypeScript interfaces (transformed with id instead of _id)
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -82,14 +102,28 @@ export function useSanityVariants(productId: string) {
         sortOrder
       }`;
 
-      const result = await sanityClient.fetch<ProductVariant[]>(query, {
+      const result = await sanityClient.fetch<SanityVariantResponse[]>(query, {
         productId,
       });
 
-      const transformedVariants = result.map((variant) => ({
-        ...variant,
+      const transformedVariants: ProductVariant[] = result.map((variant) => ({
         id: variant._id,
-      })) as ProductVariant[];
+        productId: variant.productId,
+        variantName: variant.variantName,
+        sku: variant.sku,
+        size: variant.size,
+        color: variant.color,
+        weight: variant.weight,
+        customAttribute: variant.customAttribute,
+        price: variant.price,
+        compareAtPrice: variant.compareAtPrice,
+        stockQuantity: variant.stockQuantity,
+        lowStockThreshold: variant.lowStockThreshold,
+        images: variant.images,
+        isAvailable: variant.isAvailable,
+        isDefault: variant.isDefault,
+        sortOrder: variant.sortOrder,
+      }));
 
       setVariants(transformedVariants);
 
@@ -137,17 +171,19 @@ export function useSanityVariants(productId: string) {
         if (defaultVariant && !selectedVariant) {
           setSelectedVariant(defaultVariant);
         }
+
+        console.log(
+          `✅ [VARIANTS] Loaded ${transformedVariants.length} variants`,
+          {
+            available: available.length,
+            priceRange: lowestPrice === highestPrice ? lowestPrice : [lowestPrice, highestPrice],
+          }
+        );
       } else {
         setSummary(null);
+        console.log(`✅ [VARIANTS] No variants found for product`);
       }
 
-      console.log(
-        `✅ [VARIANTS] Loaded ${transformedVariants.length} variants`,
-        {
-          available: available.length,
-          priceRange: lowestPrice === highestPrice ? lowestPrice : [lowestPrice, highestPrice],
-        }
-      );
       setError(null);
     } catch (err) {
       console.error("❌ [VARIANTS] Error fetching variants:", err);

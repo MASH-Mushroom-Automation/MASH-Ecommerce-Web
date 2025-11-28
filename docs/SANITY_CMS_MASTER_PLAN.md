@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 10.1  
-**Last Updated:** November 28, 2025 (Phase 12-13 Complete!)  
+**Version:** 11.0  
+**Last Updated:** November 28, 2025 (Session 4 - Bug Fix + Audit)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
@@ -11,26 +11,29 @@
 ## 📋 Quick Navigation
 
 - [Executive Summary](#-executive-summary)
+- [Bug Fixes Applied](#-bug-fixes-applied-session-4)
 - [System Architecture](#-system-architecture)
-- [Schema Inventory](#-schema-inventory-22-document-types)
+- [Complete Schema Reference](#-complete-schema-reference)
 - [Data Audit Results](#-data-audit-results-november-28-2025)
+- [Customer Journey Flow](#-customer-journey-flow)
+- [Improvement Phases](#-improvement-phases-15-20)
 - [Remaining Issues](#-remaining-issues-by-priority)
-- [Phase-by-Phase Guide](#-phase-by-phase-implementation-guide)
-- [Completed Work](#-completed-work-sessions-1-2)
+- [Completed Work](#-completed-work-sessions-1-3)
 
 ---
 
 ## 📊 Executive Summary
 
-### Project Status: 92% Complete
+### Project Status: 95% Complete
 
 | Metric | Value |
 |--------|-------|
 | **Documents in CMS** | 172 items |
 | **Schemas Created** | 22 document + 6 singleton + 4 object types |
-| **Completed Phases** | 13 of 14 (93%) |
-| **Remaining Issues** | 5 items |
-| **Est. Completion** | 4-5 hours |
+| **Completed Phases** | 14 of 14 (100%) |
+| **Bug Fixes Applied** | 2 (Session 4) |
+| **Remaining Issues** | 5 items (manual content + minor features) |
+| **Est. Completion** | 2-3 hours |
 
 ### What's Working ✅
 - ✅ Products display on shop page with filtering
@@ -42,10 +45,12 @@
 - ✅ Feature sections ("Why Choose MASH")
 - ✅ Hero carousel on homepage
 - ✅ Blog posts with categories
-- ✅ **Products have suggested/complementary links (15/15)** ← NEW
-- ✅ **Testimonials showing on homepage** ← NEW
-- ✅ **Promotional banners integrated** ← NEW
-- ✅ **Header/Footer connected to CMS** ← Already working
+- ✅ **Products have suggested/complementary links (15/15)** 
+- ✅ **Testimonials showing on homepage**
+- ✅ **Promotional banners integrated**
+- ✅ **Header/Footer connected to CMS**
+- ✅ **useSanityVariants bug fixed (Session 4)**
+- ✅ **About page schema fixed (legacy fields)**
 
 ### What Needs Work 🔄
 - ❌ Featured Products singleton needs content (manual in Studio)
@@ -53,6 +58,57 @@
 - ❌ Google Maps integration
 - ❌ Contact form submission
 - ❌ Team/Blog photos upload (manual in Studio)
+
+---
+
+## 🐛 Bug Fixes Applied (Session 4)
+
+### Fix 1: useSanityVariants.ts - "available is not defined" Error
+
+**Error:** `ReferenceError: available is not defined` at line 485  
+**Root Cause:** Variables `available`, `lowestPrice`, `highestPrice` used in `console.log()` outside their scope  
+**Solution:** Moved console.log inside the `if` block where variables are defined
+
+**File Modified:** `src/hooks/useSanityVariants.ts`
+
+```typescript
+// BEFORE (broken):
+} else {
+  setSummary(null);
+}
+console.log(`✅ [VARIANTS] Loaded...`, { available: available.length }); // ❌ OUT OF SCOPE
+
+// AFTER (fixed):
+console.log(`✅ [VARIANTS] Loaded...`, { available: available.length }); // ✅ INSIDE IF BLOCK
+} else {
+  setSummary(null);
+  console.log(`✅ [VARIANTS] No variants found`);
+}
+```
+
+### Fix 2: About Page Schema - Unknown Fields Error
+
+**Error:** `Unknown fields found: teamSectionSubtitle, teamSectionTitle`  
+**Root Cause:** Data has legacy field names that don't match current schema  
+**Solution:** Added hidden legacy field aliases in `aboutPage.ts`
+
+**File Modified:** `studio/src/schemaTypes/singletons/aboutPage.ts`
+
+```typescript
+// Added hidden legacy fields for backwards compatibility
+defineField({
+  name: 'teamSectionTitle',
+  type: 'string',
+  group: 'team',
+  hidden: true,
+}),
+defineField({
+  name: 'teamSectionSubtitle',
+  type: 'text',
+  group: 'team',
+  hidden: true,
+}),
+```
 
 ---
 
@@ -207,45 +263,479 @@ NEXT_PUBLIC_USE_MOCK_DATA=false                # Use Sanity CMS
 | Products with tags | 15/15 | 15/15 | ✅ |
 | Growers linked to stores | 4/4 | 4/4 | ✅ |
 | Stores linked to growers | 4/4 | 4/4 | ✅ |
-| **Products with suggestedProducts** | **0/15** | 15/15 | ❌ **FIX** |
-| **Products with complementaryProducts** | **0/15** | 15/15 | ❌ **FIX** |
-| **Featured Products singleton** | **Missing** | Created | ❌ **FIX** |
+| **Products with suggestedProducts** | **15/15** | 15/15 | ✅ **FIXED Session 3** |
+| **Products with complementaryProducts** | **15/15** | 15/15 | ✅ **FIXED Session 3** |
+| **Featured Products singleton** | **Missing** | Created | ❌ **Manual in Studio** |
 
-### Grower-Store Relationships
+---
+
+## 🛒 Customer Journey Flow (How CMS Data Flows to Frontend)
+
+This section explains how customers interact with CMS-managed content across the website.
+
+### Homepage Journey
 
 ```
-🔗 GROWER → STORE LINKS:
-------------------------
-The Mushroom Patch Bukidnon → MASH Main Store, Organic Market QC
-Fungi Fresh Farms → MASH Main Store, Caloocan Pickup, Commonwealth Pickup
-Kabutehan ni Aling Nena → MASH Main Store, Caloocan Pickup
-Shroomz → MASH Main Store, Organic Market QC, Commonwealth Pickup
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. CUSTOMER VISITS HOMEPAGE (http://localhost:3000)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [AnnouncementBar] ← siteSettings.announcementBar (if active)               │
+│  ─────────────────                                                           │
+│                                                                              │
+│  [Header] ← useSanitySiteSettings (logo, nav) + useSanityNavigation         │
+│  ─────────                                                                   │
+│                                                                              │
+│  [HeroCarousel] ← useSanityHero → heroCarousel singleton (3 slides)         │
+│  ───────────────                                                             │
+│                                                                              │
+│  [BannerSection position="homepage-top"] ← useSanityBanners                 │
+│  ────────────────────────────────────────                                    │
+│                                                                              │
+│  [FeaturedProducts] ← useSanityProducts { isFeatured: true }                │
+│  ──────────────────                                                          │
+│                                                                              │
+│  [CategoriesGrid] ← useSanityCategories → 3 categories with product counts  │
+│  ────────────────                                                            │
+│                                                                              │
+│  [WhyMASHSection] ← useSanityFeatures → "Why Choose MASH?" features         │
+│  ────────────────                                                            │
+│                                                                              │
+│  [BannerSection position="homepage-middle"] ← useSanityBanners              │
+│  ──────────────────────────────────────────                                  │
+│                                                                              │
+│  [FeaturedGrowersSection] ← useSanityGrowers { featured: true }             │
+│  ────────────────────────                                                    │
+│                                                                              │
+│  [TestimonialsSection] ← useSanityTestimonials → 6 customer testimonials    │
+│  ─────────────────────                                                       │
+│                                                                              │
+│  [Footer] ← useSanitySiteSettings (contact, social links)                   │
+│  ────────                                                                    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-📁 CATEGORY → PRODUCT COUNTS:
------------------------------
-Fresh Mushrooms:              8 products
-Dried Mushrooms:              3 products
-Growing Kits & Accessories:   4 products
+### Product Discovery Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. CUSTOMER BROWSES SHOP (/shop)                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [SearchBar] → useSanityProducts({ search: "oyster" })                      │
+│  ───────────                                                                 │
+│                                                                              │
+│  [CategoryFilter] → useSanityCategories → 3 categories                      │
+│  ────────────────                                                            │
+│                                                                              │
+│  [TagFilter] → useSanityProducts → 8 popular tags                           │
+│  ───────────                                                                 │
+│                                                                              │
+│  [ProductGrid] → useSanityProducts(filters) → 15 products                   │
+│  ─────────────                                                               │
+│    • Fresh Mushrooms (8): Oyster, Shiitake, Lion's Mane, Button...          │
+│    • Dried Mushrooms (3): Dried Shiitake, Dried Oyster, Mixed...            │
+│    • Growing Kits (4): Oyster Kit, Shiitake Kit, Lion's Mane Kit...         │
+│                                                                              │
+│  [Pagination] → 12 products per page, 2 pages total                         │
+│  ────────────                                                                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Product Detail Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. CUSTOMER VIEWS PRODUCT (/product/fresh-oyster-mushrooms)                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [ProductImages] → product.images[] (main + gallery)                        │
+│  ───────────────                                                             │
+│                                                                              │
+│  [ProductInfo] → name, price, description, category                         │
+│  ─────────────                                                               │
+│                                                                              │
+│  [VariantSelector] → useSanityVariants(productId) → sizes/weights           │
+│  ─────────────────                                                           │
+│    • 250g - ₱350                                                            │
+│    • 500g - ₱650 (default)                                                  │
+│    • 1kg - ₱1,200                                                           │
+│                                                                              │
+│  [AddToCart] → selected variant + quantity                                  │
+│  ───────────                                                                 │
+│                                                                              │
+│  [ProductReviews] → useSanityReviews(productId) → 39 reviews                │
+│  ────────────────                                                            │
+│    • Average: 4.7 stars                                                     │
+│    • "Great quality!" - Maria S.                                            │
+│                                                                              │
+│  [YouMayAlsoLike] → product.suggestedProducts[] → 6 related products        │
+│  ─────────────────                                                           │
+│                                                                              │
+│  [FrequentlyBoughtTogether] → product.complementaryProducts[] → 3 items     │
+│  ──────────────────────────                                                  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Store & Grower Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. CUSTOMER FINDS STORE (/stores/mash-main-novaliches)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [StoreHeader] → name, address, phone, image                                │
+│  ─────────────                                                               │
+│                                                                              │
+│  [OperatingHours] → operatingHours { monday: "9AM-6PM", ... }               │
+│  ────────────────                                                            │
+│                                                                              │
+│  [GoogleMap] → location { lat, lng, address }                               │
+│  ───────────                                                                 │
+│                                                                              │
+│  [MeetOurGrowers] → store.growers[] → growers who supply this store         │
+│  ────────────────                                                            │
+│    • The Mushroom Patch Bukidnon (4.9★)                                     │
+│    • Fungi Fresh Farms (4.8★)                                               │
+│                                                                              │
+│  [AvailableProducts] → products filtered by store availability              │
+│  ──────────────────                                                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 5. CUSTOMER VIEWS GROWER (/grower/mushroom-patch-bukidnon)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [GrowerProfile] → name, bio, image, certifications                         │
+│  ───────────────                                                             │
+│                                                                              │
+│  [GrowerStats] → rating, totalProducts, yearsExperience                     │
+│  ─────────────                                                               │
+│                                                                              │
+│  [GrowerProducts] → grower.products[] → products from this grower           │
+│  ────────────────                                                            │
+│                                                                              │
+│  [FindAtStores] → grower.availableAtStores[] → store locations              │
+│  ─────────────                                                               │
+│    • MASH Main Store - Novaliches                                           │
+│    • Organic Market QC                                                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Content Pages Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6. CUSTOMER READS CONTENT                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  /about → useSanityAboutPage                                                │
+│  ───────                                                                     │
+│    • Hero section (title, subtitle, image)                                  │
+│    • Challenges section (what we solve)                                     │
+│    • Solutions section (how we help)                                        │
+│    • Vision section (future goals)                                          │
+│    • Team section → 8 team members                                          │
+│                                                                              │
+│  /faq → useSanityFAQ                                                        │
+│  ─────                                                                       │
+│    • 5 FAQ categories                                                       │
+│    • 19 FAQ items                                                           │
+│    • Accordion UI                                                           │
+│                                                                              │
+│  /blog → useSanityBlogPosts                                                 │
+│  ──────                                                                      │
+│    • 3 blog posts                                                           │
+│    • 5 blog categories                                                      │
+│    • Author profiles                                                        │
+│                                                                              │
+│  /contact → useSanityContactPage                                            │
+│  ─────────                                                                   │
+│    • Contact info (phone, email, address)                                   │
+│    • Business hours                                                         │
+│    • Contact form (needs backend)                                           │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚨 Remaining Issues By Priority
+## 🔧 Complete Schema Reference
 
-### ✅ COMPLETED (Session 3 - November 28, 2025)
+### Product Schema (`studio/src/schemaTypes/documents/product.ts`)
 
-| # | Issue | Status | Solution Applied |
-|---|-------|--------|------------------|
-| 1 | Products missing suggestedProducts | ✅ FIXED | Ran link-suggested-products.js - 15/15 products linked |
-| 2 | Products missing complementaryProducts | ✅ FIXED | Ran link-suggested-products.js - 15/15 products linked |
-| 4 | Testimonials not on homepage | ✅ FIXED | TestimonialsSection already in page.tsx |
-| 5 | Homepage banners missing | ✅ FIXED | Added BannerSection to page.tsx |
-| 6 | Header using hardcoded nav | ✅ ALREADY WORKING | Uses useSanitySiteSettings + useSanityNavigation |
-| 7 | Footer using hardcoded links | ✅ ALREADY WORKING | Uses useSanitySiteSettings + useSanityNavigation |
-| 14 | Social links not showing | ✅ ALREADY WORKING | Fetch from siteSettings in Header/Footer |
-| 16 | Logo not from CMS | ✅ ALREADY WORKING | Fetches siteSettings.logo with fallback |
+The product schema is the most comprehensive with 30+ fields organized into groups:
 
-### 🟠 HIGH (Manual in Sanity Studio)
+```typescript
+// Key Fields for E-Commerce Display
+{
+  // BASIC INFO
+  name: string                    // "Fresh Oyster Mushrooms"
+  slug: { current: string }       // "fresh-oyster-mushrooms"
+  description: blockContent       // Rich text description
+  sku: string                     // "MUSH-OYS-001"
+  
+  // PRICING
+  price: number                   // 350 (in PHP)
+  compareAtPrice: number          // 450 (strikethrough price)
+  isOnPromo: boolean             // true/false
+  promoPercentage: number        // 22 (22% off)
+  
+  // INVENTORY
+  quantity: number               // 150 (stock)
+  lowStockThreshold: number      // 20
+  isAvailable: boolean           // true
+  
+  // IMAGES
+  image: image                   // Main product image
+  images: image[]                // Gallery images (2-4)
+  
+  // CATEGORIZATION
+  category: reference → category // Fresh Mushrooms
+  productTags: string[]          // ["fresh", "oyster", "bestseller"]
+  
+  // SMART RECOMMENDATIONS (Session 3 - NOW LINKED!)
+  suggestedProducts: reference[] // 6 products per product ✅
+  complementaryProducts: reference[] // 3 products per product ✅
+  
+  // VARIANTS
+  hasVariants: boolean           // true
+  variants: reference[]          // → productVariant documents
+}
+```
+
+### Grower Schema (`studio/src/schemaTypes/documents/grower.ts`)
+
+```typescript
+{
+  name: string                   // "The Mushroom Patch Bukidnon"
+  slug: { current: string }      // "mushroom-patch-bukidnon"
+  description: text              // Bio/about the grower
+  image: image                   // Profile photo
+  
+  // Contact
+  contactEmail: string
+  contactPhone: string
+  
+  // Location
+  location: {
+    address: string
+    city: string
+    province: string
+    coordinates: geopoint       // For map display
+  }
+  
+  // Certifications
+  certifications: string[]      // ["Organic", "GAP Certified"]
+  
+  // Stats
+  rating: number                // 4.9
+  totalProducts: number         // 15
+  yearsExperience: number       // 5
+  
+  // Relationships (Session 2 - LINKED!)
+  products: reference[]         // Products from this grower
+  availableAtStores: reference[] // ← Stores where available ✅
+  
+  // Display
+  featured: boolean             // Show on homepage
+  isActive: boolean            // Active grower
+}
+```
+
+### Store Schema (`studio/src/schemaTypes/documents/store.ts`)
+
+```typescript
+{
+  name: string                   // "MASH Main Store - Novaliches"
+  slug: { current: string }      // "mash-main-novaliches"
+  description: text              // About the store
+  image: image                   // Store photo
+  
+  // Contact
+  phone: string
+  email: string
+  
+  // Location
+  address: string
+  city: string
+  coordinates: geopoint         // For Google Maps
+  
+  // Operating Hours
+  operatingHours: {
+    monday: string              // "9:00 AM - 6:00 PM"
+    tuesday: string
+    // ... all days
+    notes: string               // "Closed on holidays"
+  }
+  
+  // Relationships (Session 2 - LINKED!)
+  growers: reference[]          // ← Growers who supply this store ✅
+  products: reference[]         // Products available at this store
+  
+  // Features
+  amenities: string[]           // ["Parking", "Air-conditioned"]
+  isPickupPoint: boolean       // Pickup location
+  isMainStore: boolean         // Primary store
+}
+```
+
+---
+
+## 📈 Improvement Phases (15-20)
+
+### Phase 15: Store Experience Enhancement (Priority: 🔴 HIGH)
+
+**Problem:** Store pages don't show operating hours or interactive maps properly.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 15.1 | Fix operating hours display | `stores/[slug]/page.tsx` | 30m |
+| 15.2 | Add Google Maps integration | `components/maps/GoogleMap.tsx` | 1h |
+| 15.3 | Add store amenities display | `stores/[slug]/page.tsx` | 30m |
+| 15.4 | Add "Get Directions" button | `stores/[slug]/page.tsx` | 15m |
+
+**Operating Hours Fix:**
+
+```tsx
+// In stores/[slug]/page.tsx
+{store.operatingHours && (
+  <div className="bg-muted p-4 rounded-lg">
+    <h3 className="font-semibold mb-2">Operating Hours</h3>
+    <ul className="space-y-1 text-sm">
+      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+        <li key={day} className="flex justify-between">
+          <span className="capitalize">{day}:</span>
+          <span>{store.operatingHours[day] || 'Closed'}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+```
+
+---
+
+### Phase 16: Contact Form & Submissions (Priority: 🟡 MEDIUM)
+
+**Problem:** Contact form doesn't submit anywhere.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 16.1 | Create API route for form | `app/api/contact/route.ts` | 1h |
+| 16.2 | Add email notification | `lib/email/sendgrid.ts` | 1h |
+| 16.3 | Store submissions in Sanity | `schemaTypes/contactSubmission.ts` | 30m |
+| 16.4 | Add form validation | `app/contact/page.tsx` | 30m |
+
+---
+
+### Phase 17: FAQ Category Filtering (Priority: 🟢 LOW)
+
+**Problem:** FAQ page shows all items, can't filter by category.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 17.1 | Add category tabs/filter | `app/faq/page.tsx` | 1h |
+| 17.2 | Add FAQ search | `app/faq/page.tsx` | 30m |
+| 17.3 | Improve accordion UX | `components/cms/FAQSection.tsx` | 30m |
+
+---
+
+### Phase 18: Blog Enhancements (Priority: 🟢 LOW)
+
+**Problem:** Blog is basic, needs more features.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 18.1 | Add blog search | `app/blog/page.tsx` | 1h |
+| 18.2 | Add related posts | `app/blog/[slug]/page.tsx` | 30m |
+| 18.3 | Add reading time | `app/blog/[slug]/page.tsx` | 15m |
+| 18.4 | Add social share buttons | `components/blog/ShareButtons.tsx` | 30m |
+| 18.5 | Upload cover images | Sanity Studio (manual) | 30m |
+
+---
+
+### Phase 19: Marketing Features (Priority: 🟡 MEDIUM)
+
+**Problem:** Missing promotional features for revenue.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 19.1 | Create coupon schema | Already exists in `coupon.ts` | - |
+| 19.2 | Add coupon input to cart | `app/cart/page.tsx` | 1h |
+| 19.3 | Create promotion schema | Already exists in `promotion.ts` | - |
+| 19.4 | Add flash sale banner | `components/marketing/FlashSale.tsx` | 1h |
+| 19.5 | Add countdown timer | `components/marketing/CountdownTimer.tsx` | 30m |
+
+---
+
+### Phase 20: Analytics & Performance (Priority: 🟢 LOW)
+
+**Problem:** No visibility into CMS performance.
+
+**Tasks:**
+
+| # | Task | File | Est. Time |
+|---|------|------|-----------|
+| 20.1 | Add view tracking | `analytics.ts` schema | 1h |
+| 20.2 | Track popular products | Backend integration | 2h |
+| 20.3 | Add admin dashboard | `app/admin/` | 4h |
+| 20.4 | Performance monitoring | Sanity dashboard | 30m |
+
+---
+
+## 🎯 Immediate Action Items (Next Session)
+
+### High Priority (Do Now)
+
+1. **Create Featured Products in Sanity Studio** (15 min)
+   - Go to Settings → Featured Products
+   - Add 4-8 products
+   - Publish
+
+2. **Upload Team Photos** (30 min)
+   - Go to Team Members
+   - Upload profile photos for all 8 members
+   - Add bio/description
+
+3. **Upload Blog Cover Images** (30 min)
+   - Go to Blog → Posts
+   - Upload cover image for each post
+   - Add alt text for SEO
+
+### Medium Priority (This Week)
+
+4. **Fix Store Operating Hours** (30 min)
+   - Update `stores/[slug]/page.tsx`
+   - Add proper operating hours display
+
+5. **Test Google Maps** (30 min)
+   - Verify API key in `.env.local`
+   - Check `GoogleMap.tsx` component
+   - Test on store pages
+
+### Low Priority (Future)
+
+6. **Add Contact Form API** (3 hours)
+7. **FAQ Category Filtering** (2 hours)
+8. **Blog Enhancements** (2 hours)
+
+---
 
 | # | Issue | Impact | Solution | Time |
 |---|-------|--------|----------|------|
