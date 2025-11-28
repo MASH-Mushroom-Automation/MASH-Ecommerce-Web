@@ -260,6 +260,23 @@ export const aboutPage = defineType({
       rows: 2,
       initialValue: 'The brilliant minds behind MASH - passionate about technology and sustainable agriculture.',
     }),
+    // Legacy field aliases (for backwards compatibility with imported data)
+    defineField({
+      name: 'teamSectionTitle',
+      title: 'Team Section Title (Legacy)',
+      type: 'string',
+      group: 'team',
+      hidden: true,
+      description: 'Legacy field - use teamTitle instead',
+    }),
+    defineField({
+      name: 'teamSectionSubtitle',
+      title: 'Team Section Subtitle (Legacy)',
+      type: 'text',
+      group: 'team',
+      hidden: true,
+      description: 'Legacy field - use teamSubtitle instead',
+    }),
     defineField({
       name: 'teamMembers',
       title: 'Team Members',
