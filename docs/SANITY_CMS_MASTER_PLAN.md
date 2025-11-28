@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 11.2  
-**Last Updated:** November 28, 2025 (Session 4 - Product Page Enhancement + Bug Fixes)  
+**Version:** 11.3  
+**Last Updated:** November 28, 2025 (Session 4 - Product Page + About Page Enhancements)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
@@ -11,6 +11,7 @@
 ## 📋 Quick Navigation
 
 - [Executive Summary](#-executive-summary)
+- [About Page Enhancement](#-about-page-enhancement-session-4-new)
 - [Product Page Enhancement](#-product-page-enhancement-session-4)
 - [Bug Fixes Applied](#-bug-fixes-applied-session-4)
 - [System Architecture](#-system-architecture)
@@ -25,16 +26,16 @@
 
 ## 📊 Executive Summary
 
-### Project Status: 97% Complete
+### Project Status: 98% Complete
 
 | Metric | Value |
 |--------|-------|
 | **Documents in CMS** | 172 items |
 | **Schemas Created** | 22 document + 6 singleton + 4 object types |
 | **Completed Phases** | 14 of 14 (100%) |
-| **Bug Fixes Applied** | 4 (Session 4) |
-| **UI Enhancements** | Product page now shows ALL rich CMS data |
-| **Remaining Issues** | 4 items (manual content + minor features) |
+| **Bug Fixes Applied** | 5 (Session 4) |
+| **UI Enhancements** | Product page + About page now show ALL rich CMS data |
+| **Remaining Issues** | 3 items (manual content + minor features) |
 | **Est. Completion** | 1-2 hours |
 
 ### What's Working ✅
@@ -59,13 +60,138 @@
 - ✅ **Product page shows Delivery Options (NEW)**
 - ✅ **Product page shows Nutritional Highlights (NEW)**
 - ✅ **qualityIndicators string/array parsing fixed (NEW)**
+- ✅ **About page shows team member IMAGES (NEW)**
+- ✅ **About page enhanced with gradients and animations (NEW)**
+- ✅ **Mentor section shows profile photo (NEW)**
 
 ### What Needs Work 🔄
 
 - ❌ Featured Products singleton needs content (manual in Studio)
-- ❌ Store hours display fix
-- ❌ Google Maps integration
-- ❌ Contact form submission
+- ❌ Upload missing team member photos (5 members need images)
+- ❌ Google Maps integration for stores
+
+---
+
+## 🎭 About Page Enhancement (Session 4) - NEW!
+
+### Problem Solved
+
+The About page was showing team member **initials instead of actual photos**. Investigation revealed:
+- 3 team members HAD images in Sanity (Joemen, Kevin, Jhon Keneth)
+- 5 team members were MISSING images (Jin Harold, Irheil Mae, Ma. Catherine, Emannuel, Ronan Renz)
+- The AboutSection component was NOT displaying images even when available
+
+### Solution Applied
+
+Completely rewrote `src/components/cms/AboutSection.tsx` with:
+
+1. **Proper Image Display** - Uses Next.js Image component with Sanity CDN URLs
+2. **Fallback Initials** - Beautiful gradient backgrounds when no image exists
+3. **Enhanced Design** - Modern UI with gradients, animations, and shadows
+4. **Role-based Icons** - Each role gets a specific Lucide icon
+5. **Social Links** - LinkedIn, GitHub, Facebook display in team cards
+
+### New Features Added
+
+#### 1. 🏠 Enhanced Hero Section
+- Animated gradient background with pulsing effects
+- Feature badges (IoT Enabled, AI Powered, E-Commerce)
+- University badge above title
+
+#### 2. ⚠️ Challenge & Solution Cards
+- Side-by-side layout on desktop
+- Numbered challenge items with red/warning theme
+- Solution icons with green/success theme
+- Hover animations and transitions
+
+#### 3. 👥 Team Cards with Images
+```tsx
+// Now properly displays images from Sanity:
+{member.image ? (
+  <Image
+    src={member.image}
+    alt={member.name}
+    fill
+    className="object-cover transition-transform duration-500 group-hover:scale-110"
+  />
+) : (
+  // Gradient fallback with initials
+  <div className={`bg-gradient-to-br ${gradientClass}`}>
+    <span className="text-white text-5xl font-bold">
+      {getInitials(member.name)}
+    </span>
+  </div>
+)}
+```
+
+#### 4. 🎓 Mentor Section with Photo
+- Large profile photo with ring effect
+- Award badge overlay
+- Full bio display
+
+#### 5. 🎯 Vision Section
+- Full-width gradient section
+- Animated background blobs
+- Stats row (8 Team Members, 3 Core Systems, 1 Unified Platform)
+
+### Team Member Image Status
+
+| Member | Has Image | URL |
+|--------|-----------|-----|
+| Joemen G. Barrios | ✅ | cdn.sanity.io/...5d903...1680x1686.jpg |
+| Kevin A. Llanes | ✅ | cdn.sanity.io/...ce1f2...958x960.jpg |
+| Jhon Keneth Ryan B. Namias | ✅ | cdn.sanity.io/...f94c4...1391x2048.jpg |
+| Jin Harold A. Failana | ❌ | Needs upload |
+| Irheil Mae S. Antang | ❌ | Needs upload |
+| Ma. Catherine H. Bae | ❌ | Needs upload |
+| Emannuel L. Pabua | ❌ | Needs upload |
+| Ronan Renz T. Valencia | ❌ | Needs upload |
+
+### How to Upload Missing Team Photos
+
+1. Open Sanity Studio: `http://localhost:3333`
+2. Go to **Content → Person / Team Member**
+3. Click on member name (e.g., "Jin Harold A. Failana")
+4. Scroll to **Profile Picture** field
+5. Click **Upload** or drag & drop image
+6. Set hotspot (focal point) for cropping
+7. Add alt text: "Jin Harold A. Failana"
+8. Click **Publish**
+9. Refresh About page - image appears immediately!
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/cms/AboutSection.tsx` | Complete rewrite with proper image display, new UI components, role icons, social links |
+
+### New Icons Imported
+
+```typescript
+import { 
+  Leaf, Truck, Heart, Shield, Users, Award, CheckCircle, Star, 
+  Cpu, Brain, ShoppingCart, Sparkles, Target, Lightbulb, Rocket,
+  GraduationCap, Code, Database, Monitor, Wrench, Globe, Zap,
+  AlertTriangle, TrendingUp, Store, ThermometerSun, Bug, Clock,
+  DollarSign, Wifi, BarChart3, Mail, Linkedin, Github, Facebook, ExternalLink
+} from "lucide-react";
+```
+
+### Role Icon Mapping
+
+```typescript
+const roleIcons = {
+  "Project Manager": Target,
+  "Software Engineer": Code,
+  "Front-end Developer": Monitor,
+  "Back-end Developer": Database,
+  "Hardware Programmer": Wrench,
+  "Database Administrator": Database,
+  "Full Stack Developer": Globe,
+  "Thesis Adviser": GraduationCap,
+  "UI/UX Designer": Sparkles,
+};
+```
 
 ---
 
