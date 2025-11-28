@@ -41,6 +41,21 @@ export interface SanityGrower {
   rating?: number;
   totalReviews?: number;
   joinedDate?: string;
+  
+  // Linked stores (from availableAtStores field)
+  availableAtStores?: Array<{
+    _id: string;
+    name: string;
+    slug: { current: string };
+    storeType: 'main' | 'pickup' | 'partner' | 'distribution';
+    address?: {
+      city?: string;
+      state?: string;
+    };
+    image?: {
+      asset: { _ref: string };
+    };
+  }>;
 }
 
 /**
@@ -78,6 +93,18 @@ export interface TransformedGrower {
   totalReviews?: number;
   productCount?: number;
   joinedDate?: string;
+  
+  // Linked stores where grower's products are available
+  availableAtStores?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    storeType: 'main' | 'pickup' | 'partner' | 'distribution';
+    city?: string;
+    state?: string;
+    imageUrl?: string;
+  }>;
+  
   createdAt: string;
   updatedAt: string;
 }
@@ -124,6 +151,18 @@ function transformGrower(grower: SanityGrower & { productCount?: number }): Tran
     totalReviews: grower.totalReviews || 0,
     productCount: grower.productCount || 0,
     joinedDate: grower.joinedDate,
+    // Transform linked stores
+    availableAtStores: grower.availableAtStores?.map(store => ({
+      id: store._id,
+      name: store.name,
+      slug: store.slug?.current || '',
+      storeType: store.storeType,
+      city: store.address?.city,
+      state: store.address?.state,
+      imageUrl: store.image?.asset?._ref 
+        ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs'}/${process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'}/${store.image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`
+        : undefined,
+    })),
     createdAt: grower._createdAt,
     updatedAt: grower._updatedAt,
   };
@@ -207,7 +246,15 @@ export function useSanityGrowers(filters?: GrowerFilters) {
         rating,
         totalReviews,
         joinedDate,
-        "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])
+        "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
+        availableAtStores[]-> {
+          _id,
+          name,
+          slug,
+          storeType,
+          address { city, state },
+          image
+        }
       }`;
 
       console.log('📦 Fetching growers from Sanity...');
@@ -333,7 +380,15 @@ export function useSanityGrower(slug: string) {
         rating,
         totalReviews,
         joinedDate,
-        "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])
+        "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
+        availableAtStores[]-> {
+          _id,
+          name,
+          slug,
+          storeType,
+          address { city, state },
+          image
+        }
       }`;
 
       console.log(`📦 Fetching grower "${slug}" from Sanity...`);

@@ -96,6 +96,18 @@ export const store = defineType({
       initialValue: false,
     }),
     defineField({
+      name: 'growers',
+      title: 'Associated Growers',
+      type: 'array',
+      group: 'basic',
+      of: [{
+        type: 'reference',
+        to: [{ type: 'grower' }],
+      }],
+      description: 'Growers who supply products to this store location',
+      validation: (Rule) => Rule.max(10),
+    }),
+    defineField({
       name: 'sortOrder',
       title: 'Sort Order',
       type: 'number',

@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight } from "lucide-react";
 import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -236,6 +236,64 @@ export default function GrowerDetailPage() {
                 </div>
               )}
             </div>
+            
+            {/* Find At Stores Section */}
+            {grower.availableAtStores && grower.availableAtStores.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 shadow-sm mt-6">
+                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Store className="w-4 h-4" />
+                  Find Our Products At
+                </h3>
+                <div className="space-y-3">
+                  {grower.availableAtStores.map((store) => (
+                    <Link
+                      key={store.id}
+                      href={`/stores/${store.slug}`}
+                      className="group flex items-center justify-between p-3 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Store Image */}
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {store.imageUrl ? (
+                            <Image
+                              src={store.imageUrl}
+                              alt={store.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Store className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Store Info */}
+                        <div>
+                          <div className="font-medium text-sm group-hover:text-primary transition-colors">
+                            {store.name}
+                          </div>
+                          {(store.city || store.state) && (
+                            <div className="text-xs text-muted-foreground">
+                              {[store.city, store.state].filter(Boolean).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+                
+                <Link
+                  href="/stores"
+                  className="mt-4 block text-center text-sm text-primary hover:underline"
+                >
+                  View All Store Locations
+                </Link>
+              </div>
+            )}
           </aside>
         </div>
       </div>

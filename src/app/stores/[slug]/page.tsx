@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { 
   MapPin, Phone, Mail, Clock, ChevronLeft, Navigation, 
   MessageCircle, CheckCircle, AlertCircle, ExternalLink,
-  Calendar, Package
+  Calendar, Package, Leaf, Star, Users
 } from 'lucide-react';
 import { fetchStoreBySlug, fetchStores, TransformedStore } from '@/hooks/useSanityStores';
 import { Button } from '@/components/ui/button';
@@ -572,6 +572,74 @@ export default async function StoreDetailPage({
               </CardHeader>
               <CardContent>
                 <ImageGallery images={store.gallery} />
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Meet Our Growers Section */}
+          {store.growers && store.growers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Leaf className="h-5 w-5 text-green-600" />
+                  Meet Our Growers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Fresh mushrooms at this location are supplied by these trusted local growers:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {store.growers.map((grower) => (
+                    <Link 
+                      key={grower.id}
+                      href={`/grower/${grower.slug}`}
+                      className="group flex items-center gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      {/* Grower Image */}
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                        {grower.imageUrl ? (
+                          <Image
+                            src={grower.imageUrl}
+                            alt={grower.name}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Users className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Grower Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium group-hover:text-primary transition-colors truncate">
+                          {grower.name}
+                        </h4>
+                        {grower.tagline && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {grower.tagline}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          {grower.isVerified && (
+                            <Badge variant="secondary" className="text-xs py-0">
+                              <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                              Verified
+                            </Badge>
+                          )}
+                          {grower.rating && grower.rating > 0 && (
+                            <span className="flex items-center text-xs text-muted-foreground">
+                              <Star className="h-3 w-3 mr-0.5 fill-yellow-400 text-yellow-400" />
+                              {grower.rating.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}

@@ -28,6 +28,7 @@ import type { ProductFilters } from "@/types/sanity";
 export default function ProductCatalogPage() {
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 12000]);
   const [sort, setSort] = useState<ProductFilters["sortBy"]>("featured");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -35,6 +36,18 @@ export default function ProductCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { addToCart } = useCart();
+
+  // Popular tags for quick filtering
+  const popularTags = [
+    { label: "Fresh", value: "fresh" },
+    { label: "Dried", value: "dried" },
+    { label: "Growing Kit", value: "growing-kit" },
+    { label: "Organic", value: "organic" },
+    { label: "Beginner Friendly", value: "beginner-friendly" },
+    { label: "Gourmet", value: "gourmet" },
+    { label: "Medicinal", value: "medicinal" },
+    { label: "High Protein", value: "high-fiber" },
+  ];
 
   // Build filters for Sanity query
   const filters: ProductFilters = {
@@ -44,6 +57,16 @@ export default function ProductCatalogPage() {
     sortBy: sort,
     isAvailable: true,
     search: searchQuery.trim() || undefined,
+    tags: selectedTags.length > 0 ? selectedTags : undefined,
+  };
+
+  // Toggle tag selection
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag)
+        ? prev.filter((t) => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   // Fetch products from Sanity CMS
@@ -147,6 +170,37 @@ export default function ProductCatalogPage() {
                     <span>₱{priceRange[1]}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Product Tags Filter */}
+              <div>
+                <h3 className="font-bold text-foreground mb-4 text-base">
+                  Filter by Tags
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {popularTags.map((tag) => (
+                    <button
+                      key={tag.value}
+                      onClick={() => toggleTag(tag.value)}
+                      className={cn(
+                        "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                        selectedTags.includes(tag.value)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                      )}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+                {selectedTags.length > 0 && (
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    className="mt-3 text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Clear tags
+                  </button>
+                )}
               </div>
             </div>
           </aside>
@@ -275,6 +329,37 @@ export default function ProductCatalogPage() {
                             <span>₱{priceRange[1]}</span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Product Tags Filter (Mobile) */}
+                      <div>
+                        <h3 className="font-bold text-foreground mb-4 text-base">
+                          Filter by Tags
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {popularTags.map((tag) => (
+                            <button
+                              key={tag.value}
+                              onClick={() => toggleTag(tag.value)}
+                              className={cn(
+                                "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                                selectedTags.includes(tag.value)
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                              )}
+                            >
+                              {tag.label}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedTags.length > 0 && (
+                          <button
+                            onClick={() => setSelectedTags([])}
+                            className="mt-3 text-xs text-muted-foreground hover:text-foreground underline"
+                          >
+                            Clear tags
+                          </button>
+                        )}
                       </div>
 
                       <Button className="w-full bg-primary hover:bg-primary/90">

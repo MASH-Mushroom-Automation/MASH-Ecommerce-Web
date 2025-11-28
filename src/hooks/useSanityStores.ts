@@ -72,6 +72,21 @@ export interface SanityStore {
     alt?: string;
     caption?: string;
   }>;
+  
+  // Growers (linked growers who supply to this store)
+  growers?: Array<{
+    _id: string;
+    name: string;
+    slug: { current: string };
+    tagline?: string;
+    isVerified?: boolean;
+    image?: {
+      asset: { _ref: string };
+      alt?: string;
+    };
+    specialties?: string[];
+    rating?: number;
+  }>;
 }
 
 /**
@@ -142,6 +157,18 @@ export interface TransformedStore {
     url: string;
     alt?: string;
     caption?: string;
+  }>;
+  
+  // Growers (linked growers who supply to this store)
+  growers?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    tagline?: string;
+    isVerified: boolean;
+    imageUrl?: string;
+    specialties?: string[];
+    rating?: number;
   }>;
   
   createdAt: string;
@@ -274,6 +301,18 @@ function transformStore(store: SanityStore): TransformedStore {
     caption: item.caption,
   })).filter(item => item.url);
 
+  // Transform growers
+  const growers = store.growers?.map(grower => ({
+    id: grower._id,
+    name: grower.name,
+    slug: grower.slug?.current || '',
+    tagline: grower.tagline,
+    isVerified: grower.isVerified ?? false,
+    imageUrl: grower.image?.asset?._ref ? buildImageUrl(grower.image.asset._ref) : undefined,
+    specialties: grower.specialties,
+    rating: grower.rating,
+  }));
+
   return {
     id: store._id,
     name: store.name,
@@ -315,6 +354,8 @@ function transformStore(store: SanityStore): TransformedStore {
     imageAlt: store.image?.alt,
     gallery,
     
+    growers,
+    
     createdAt: store._createdAt,
     updatedAt: store._updatedAt,
   };
@@ -348,7 +389,17 @@ const STORES_QUERY = `*[_type == "store" && isActive == true] | order(sortOrder 
   deliveryZones,
   pickupInstructions,
   image,
-  gallery
+  gallery,
+  growers[]-> {
+    _id,
+    name,
+    slug,
+    tagline,
+    isVerified,
+    image,
+    specialties,
+    rating
+  }
 }`;
 
 const STORE_BY_SLUG_QUERY = `*[_type == "store" && slug.current == $slug][0] {
@@ -378,7 +429,17 @@ const STORE_BY_SLUG_QUERY = `*[_type == "store" && slug.current == $slug][0] {
   deliveryZones,
   pickupInstructions,
   image,
-  gallery
+  gallery,
+  growers[]-> {
+    _id,
+    name,
+    slug,
+    tagline,
+    isVerified,
+    image,
+    specialties,
+    rating
+  }
 }`;
 
 const FEATURED_STORES_QUERY = `*[_type == "store" && isActive == true && isFeatured == true] | order(sortOrder asc, name asc) {

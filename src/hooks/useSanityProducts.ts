@@ -81,6 +81,13 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         )`;
       }
       
+      // Filter by tags
+      if (filters?.tags && filters.tags.length > 0) {
+        // Match products that have ALL selected tags
+        const tagConditions = filters.tags.map(tag => `"${tag}" in productTags`).join(' && ');
+        query += ` && (${tagConditions})`;
+      }
+      
       query += `] {
         _id,
         _createdAt,
@@ -98,6 +105,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         isFeatured,
         "isPromo": isOnPromo,
         promoEndDate,
+        productTags,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
         category->{

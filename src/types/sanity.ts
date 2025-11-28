@@ -104,6 +104,7 @@ export interface ProductFilters {
   featured?: boolean;
   isAvailable?: boolean;
   search?: string;
+  tags?: string[]; // Filter by product tags
   sortBy?: 'price-asc' | 'price-desc' | 'name' | 'newest' | 'featured';
 }
 

@@ -207,6 +207,15 @@ export const grower = defineType({
       validation: (Rule) => Rule.max(8),
     }),
     defineField({
+      name: 'suppliesTo',
+      title: 'Supplies To (Stores)',
+      type: 'array',
+      group: 'products',
+      of: [{type: 'reference', to: [{type: 'store'}]}],
+      description: 'Store locations this grower supplies mushrooms to',
+      validation: (Rule) => Rule.max(10),
+    }),
+    defineField({
       name: 'specialties',
       title: 'Mushroom Specialties',
       type: 'array',
