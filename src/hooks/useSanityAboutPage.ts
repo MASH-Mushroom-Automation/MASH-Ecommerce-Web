@@ -230,7 +230,8 @@ const ABOUT_PAGE_QUERY = `*[_type == "aboutPage"][0] {
   }
 }`
 
-const TEAM_MEMBERS_QUERY = `*[_type == "person" && showOnAboutPage == true && isActive == true] | order(displayOrder asc) {
+// Fetch only team members (exclude mentors - they have their own section)
+const TEAM_MEMBERS_QUERY = `*[_type == "person" && showOnAboutPage == true && isActive == true && personType != "mentor"] | order(displayOrder asc) {
   _id,
   firstName,
   lastName,
