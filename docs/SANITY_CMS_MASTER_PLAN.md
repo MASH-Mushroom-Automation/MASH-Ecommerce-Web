@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 11.4  
-**Last Updated:** November 29, 2025 (Session 5 - Bug Fixes + Google Maps Migration)  
+**Version:** 11.6  
+**Last Updated:** November 29, 2025 (Session 7 - Grower & Store Integration)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
@@ -5754,32 +5754,124 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
 ---
 
-## 📋 Next Steps Guide (Session 6)
+## 🚜 Session 7: Grower & Store Integration (November 29, 2025) - NEW!
+
+### Problem Identified
+
+**Sanity Studio Error:** Unknown field `availableAtStores` found
+```json
+{
+  "availableAtStores": [
+    { "_ref": "store-mash-novaliches-main", "_type": "reference" },
+    { "_ref": "store-caloocan-pickup", "_type": "reference" }
+  ]
+}
+```
+
+**Root Cause:** The grower schema had `suppliesTo` field defined, but existing data was using `availableAtStores` which wasn't defined in the schema.
+
+### Solution Applied
+
+1. **Added `availableAtStores` field to grower schema** (hidden, for backward compatibility)
+2. **Updated GROQ queries** to use `coalesce(suppliesTo, availableAtStores)` for fetching linked stores
+3. **Created migration script** to move data from `availableAtStores` → `suppliesTo`
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `studio/src/schemaTypes/documents/grower.ts` | Added `availableAtStores` field (hidden, legacy) |
+| `src/hooks/useSanityGrowers.ts` | Updated GROQ to use `coalesce(suppliesTo, availableAtStores)` |
+| `scripts/migrate-grower-stores.js` | NEW: Migration script for grower store data |
+
+### Schema Update (grower.ts)
+
+```typescript
+// Added legacy field for backward compatibility
+defineField({
+  name: 'availableAtStores',
+  title: 'Available At Stores (Legacy)',
+  type: 'array',
+  group: 'products',
+  of: [{type: 'reference', to: [{type: 'store'}]}],
+  description: '⚠️ DEPRECATED: Use "Supplies To (Stores)" instead.',
+  hidden: true, // Hide in studio but keep for data compatibility
+}),
+```
+
+### GROQ Query Update
+
+```groq
+// Before (only checked one field):
+availableAtStores[]-> { ... }
+
+// After (checks both fields, prefers suppliesTo):
+"availableAtStores": coalesce(suppliesTo, availableAtStores)[]-> {
+  _id,
+  name,
+  slug,
+  storeType,
+  address { city, state },
+  "image": mainImage
+}
+```
+
+### Migration Script Usage
+
+```bash
+# Migrate grower store references to canonical field
+node scripts/migrate-grower-stores.js
+
+# This will:
+# 1. Find growers with availableAtStores data
+# 2. Copy to suppliesTo field
+# 3. Clear availableAtStores field
+```
+
+---
+
+## 📋 Next Steps Guide (Session 7+)
 
 ### Immediate Actions (Do Now)
 
-1. **Fix Google Maps API Key** (5 minutes)
-   - Add localhost:3000/* to referrers in Google Cloud Console
-   - See Phase 15 for step-by-step instructions
+1. **Run Migration Script** (2 minutes)
+   ```bash
+   cd scripts
+   node migrate-grower-stores.js
+   ```
 
 2. **Create Featured Products** (10 minutes)
-   - Open Sanity Studio: http://localhost:3333
-   - Homepage → Featured Products
-   - Select 6-8 bestselling products
+   - Need Editor token first (see Token Fix below)
+   - Or manually in Sanity Studio
 
-3. **Verify All Fixes Work** (10 minutes)
-   - Test grower map: http://localhost:3000/grower/kabutehan-ni-aling-nena
-   - Test store map: http://localhost:3000/stores/mash-main-novaliches
-   - Test about page: http://localhost:3000/about
+3. **Test Category Pages** (5 minutes)
+   - http://localhost:3000/category/fresh-mushrooms
+   - http://localhost:3000/category/dried-mushrooms
+   - http://localhost:3000/category/growing-kits
+
+4. **Test Grower Pages** (5 minutes)
+   - http://localhost:3000/grower/kabutehan-ni-aling-nena
+   - Verify "Find Our Products At" section shows stores
+
+### Token Fix Required
+
+**Problem:** `SANITY_API_WRITE_TOKEN` has "Viewer" not "Editor" permissions.
+
+**Fix Steps:**
+1. Go to: https://www.sanity.io/manage/project/xyq5fhxs/api/tokens
+2. Create new token: Name = "Editor Token", Permissions = **Editor**
+3. Copy new token
+4. Update `.env.local`: `SANITY_API_WRITE_TOKEN=<new-token>`
+5. Run scripts: `node scripts/create-featured-products.js`
 
 ### This Week Priority
 
 | Task | Phase | Time | Impact |
 |------|-------|------|--------|
-| Google Maps API fix | 15 | 15m | 🚨 Critical |
-| Featured Products | 16 | 30m | 🔴 High |
-| Category pages | 17 | 2h | 🟠 High |
-| Store grower products | 18 | 1.5h | 🟠 High |
+| ✅ Category pages | 17 | 2h | Complete |
+| ✅ Grower-Store schema fix | 7 | 30m | Complete |
+| Token fix + Featured Products | 16 | 15m | 🔴 High |
+| Test all grower pages | - | 15m | 🟠 High |
 
 ### Next Week Priority
 
@@ -5791,9 +5883,100 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
 ---
 
+## 🗺️ Complete Schema Overview
+
+### Document Types (22)
+
+| Schema | Description | Count | Status |
+|--------|-------------|-------|--------|
+| `product` | E-commerce products | 15 | ✅ Active |
+| `category` | Product categories | 3 | ✅ Active |
+| `productVariant` | Size/weight options | 15 | ✅ Active |
+| `productBundle` | Package deals | 6 | ✅ Active |
+| `review` | Customer reviews | 39 | ✅ Active |
+| `grower` | Farms/growers | 4 | ✅ Active |
+| `store` | Store locations | 4 | ✅ Active |
+| `person` | Team members | 14 | ✅ Active |
+| `post` | Blog posts | 3 | ✅ Active |
+| `blogCategory` | Blog categories | 5 | ✅ Active |
+| `faqItem` | FAQ questions | 19 | ✅ Active |
+| `faqCategory` | FAQ categories | 5 | ✅ Active |
+| `featureSection` | Feature highlights | 2 | ✅ Active |
+| `testimonial` | Customer testimonials | 6 | ✅ Active |
+| `banner` | Promotional banners | 6 | ✅ Active |
+| `navigation` | Menu items | 5 | ✅ Active |
+| `order` | Orders | 0 | 📝 Schema only |
+| `coupon` | Discount codes | 0 | 📝 Schema only |
+| `promotion` | Campaigns | 0 | 📝 Schema only |
+| `analytics` | Page tracking | 0 | 📝 Schema only |
+| `emailCampaign` | Email marketing | 0 | 📝 Schema only |
+| `page` | CMS pages | 0 | 📝 Schema only |
+
+### Singleton Types (6)
+
+| Singleton | Description | Status |
+|-----------|-------------|--------|
+| `siteSettings` | Global site config | ✅ Configured |
+| `heroCarousel` | Homepage hero | ✅ 4 slides |
+| `featuredProducts` | Featured products | ⚠️ Needs content |
+| `aboutPage` | About page content | ✅ Configured |
+| `contactPage` | Contact page content | ✅ Configured |
+| `settings` | Legacy (deprecated) | ⚠️ Deprecated |
+
+### Object Types (4)
+
+| Object | Description | Used In |
+|--------|-------------|---------|
+| `blockContent` | Rich text editor | post, grower, page |
+| `callToAction` | CTA buttons | heroCarousel, banner |
+| `infoSection` | Content sections | aboutPage |
+| `link` | Navigation links | navigation, siteSettings |
+
+---
+
+## 🔗 E-Commerce Data Flow
+
+### Product Discovery Flow
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Homepage      │────▶│   Category      │────▶│   Product       │
+│                 │     │   /category/    │     │   /product/     │
+│ • Hero Carousel │     │   [slug]        │     │   [slug]        │
+│ • Featured      │     │                 │     │                 │
+│ • Categories    │     │ • Product Grid  │     │ • Full Details  │
+│ • Testimonials  │     │ • Filters       │     │ • Variants      │
+└─────────────────┘     │ • Tags          │     │ • Reviews       │
+                        │ • Price Range   │     │ • Suggestions   │
+                        └─────────────────┘     └─────────────────┘
+```
+
+### Grower-Store Relationship
+
+```
+┌─────────────────┐                    ┌─────────────────┐
+│     Grower      │◀───── supplies ────│     Store       │
+│  /grower/[id]   │      products      │  /stores/[slug] │
+│                 │                    │                 │
+│ • Profile       │                    │ • Location      │
+│ • Story         │                    │ • Hours         │
+│ • Products      │                    │ • Services      │
+│ • Certifications│                    │ • Growers List  │
+│ • Map Location  │                    │ • Map Location  │
+│ • Stores List ◀─┼────────────────────┼─▶ Growers List  │
+└─────────────────┘                    └─────────────────┘
+
+Bidirectional Reference:
+- Grower.suppliesTo → Store[]
+- Store.growers → Grower[]
+```
+
+---
+
 **END OF DOCUMENT**
 
 **Version History:**
+- v11.6 (Nov 29, 2025) - Session 7: Grower schema fix (availableAtStores), migration script, complete schema overview
 - v11.5 (Nov 29, 2025) - Session 6: Category detail pages, Featured Products token issue documented
 - v11.4 (Nov 29, 2025) - Session 5: Google Maps fix, mentor filter, complete schema audit, Phases 15-25
 - v11.2 (Nov 28, 2025) - Session 4: Product page enhancement, 4 bug fixes, types alignment

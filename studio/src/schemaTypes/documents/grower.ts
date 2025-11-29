@@ -215,6 +215,17 @@ export const grower = defineType({
       description: 'Store locations this grower supplies mushrooms to',
       validation: (Rule) => Rule.max(10),
     }),
+    // Legacy field - kept for backward compatibility with existing data
+    // This field was previously used but 'suppliesTo' is the canonical field
+    defineField({
+      name: 'availableAtStores',
+      title: 'Available At Stores (Legacy)',
+      type: 'array',
+      group: 'products',
+      of: [{type: 'reference', to: [{type: 'store'}]}],
+      description: '⚠️ DEPRECATED: Use "Supplies To (Stores)" instead. This field is kept for backward compatibility.',
+      hidden: true, // Hide in studio but keep for data compatibility
+    }),
     defineField({
       name: 'specialties',
       title: 'Mushroom Specialties',

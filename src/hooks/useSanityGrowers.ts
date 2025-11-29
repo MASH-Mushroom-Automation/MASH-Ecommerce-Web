@@ -247,13 +247,14 @@ export function useSanityGrowers(filters?: GrowerFilters) {
         totalReviews,
         joinedDate,
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
-        availableAtStores[]-> {
+        // Fetch linked stores from both fields (suppliesTo is canonical, availableAtStores is legacy)
+        "availableAtStores": coalesce(suppliesTo, availableAtStores)[]-> {
           _id,
           name,
           slug,
           storeType,
           address { city, state },
-          image
+          "image": mainImage
         }
       }`;
 
@@ -381,13 +382,14 @@ export function useSanityGrower(slug: string) {
         totalReviews,
         joinedDate,
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
-        availableAtStores[]-> {
+        // Fetch linked stores from both fields (suppliesTo is canonical, availableAtStores is legacy)
+        "availableAtStores": coalesce(suppliesTo, availableAtStores)[]-> {
           _id,
           name,
           slug,
           storeType,
           address { city, state },
-          image
+          "image": mainImage
         }
       }`;
 
