@@ -5150,25 +5150,562 @@ Phase 14: ████████████████████ 100% - CM
 
 ### High Priority (Fix Next Week)
 
-| Issue | File | Fix |
-|-------|------|-----|
-| Store hours display wrong format | `useSanityStores.ts` | Transform operatingHours object |
-| Google Maps not loading | `GoogleMap.tsx` | Debug API key, add fallback |
-| Contact form not submitting | Backend | Create API endpoint |
+| Issue | File | Fix | Status |
+|-------|------|-----|--------|
+| ~~Store hours display wrong format~~ | `useSanityStores.ts` | Transform operatingHours object | ✅ Done |
+| ~~Google Maps not loading~~ | `GoogleMap.tsx` | Migrated to new API (Session 5) | ✅ Done |
+| Google Maps API Key Referrer | Google Cloud Console | Add localhost:3000/* to referrers | 🔴 **FIX NOW** |
+| Contact form not submitting | Backend | Create API endpoint | 🔄 Pending |
 
 ### Medium Priority (Next Sprint)
 
-| Issue | File | Fix |
-|-------|------|-----|
-| Blog post images missing | Manual in Studio | Upload cover images |
-| Team member photos missing | Manual in Studio | Upload avatar images |
-| Category pages empty | Create new page | Build category/[slug]/page.tsx |
+| Issue | File | Fix | Status |
+|-------|------|-----|--------|
+| Blog post images missing | Manual in Studio | Upload cover images | 🔄 Pending |
+| ~~Team member photos missing~~ | Manual in Studio | All 7 members have images | ✅ Done (Session 5) |
+| Category pages empty | Create new page | Build category/[slug]/page.tsx | 🔄 Pending |
+
+---
+
+## 📊 Complete Schema Audit (November 29, 2025)
+
+### Current Sanity Schema Structure
+
+```
+📦 studio/src/schemaTypes/
+├── 📁 documents/ (22 document types)
+│   ├── analytics.ts         - Analytics tracking (unused)
+│   ├── banner.ts             - Promotional banners ✅
+│   ├── blogCategory.ts       - Blog categories ✅
+│   ├── category.ts           - Product categories (3 items) ✅
+│   ├── coupon.ts             - Discount coupons (empty)
+│   ├── emailCampaign.ts      - Email campaigns (unused)
+│   ├── faqCategory.ts        - FAQ categories (5 items) ✅
+│   ├── faqItem.ts            - FAQ questions (19 items) ✅
+│   ├── featureSection.ts     - Why Choose MASH (2 items) ✅
+│   ├── grower.ts             - Farm/grower profiles (4 items) ✅
+│   ├── navigation.ts         - Menu structures ✅
+│   ├── order.ts              - Order management (empty)
+│   ├── page.ts               - CMS pages (empty)
+│   ├── person.ts             - Team members/authors (8 items) ✅
+│   ├── post.ts               - Blog posts (3 items) ✅
+│   ├── product.ts            - Products (15 items, 30+ fields) ✅
+│   ├── productBundle.ts      - Product bundles (6 items) ✅
+│   ├── productVariant.ts     - Size/weight variants (15 items) ✅
+│   ├── promotion.ts          - Promotions (empty)
+│   ├── review.ts             - Customer reviews (39 items) ✅
+│   ├── store.ts              - Store locations (4 items) ✅
+│   └── testimonial.ts        - Customer testimonials (6 items) ✅
+├── 📁 singletons/ (6 singleton types)
+│   ├── aboutPage.ts          - About page content ✅
+│   ├── contactPage.ts        - Contact page content ✅
+│   ├── featuredProducts.ts   - Homepage featured products ⚠️ EMPTY
+│   ├── heroCarousel.ts       - Homepage hero slides ✅
+│   ├── settings.tsx          - Old settings (deprecated)
+│   └── siteSettings.ts       - Comprehensive site settings ✅
+└── 📁 objects/ (4 object types)
+    ├── blockContent.tsx      - Rich text editor
+    ├── callToAction.ts       - CTA buttons
+    ├── infoSection.ts        - Info blocks
+    └── link.ts               - Navigation links
+```
+
+### Frontend Hooks Inventory
+
+```
+📦 src/hooks/ (Sanity Integration Hooks)
+├── useSanityAboutPage.ts     - About page content + team members ✅
+├── useSanityAnalytics.ts     - Analytics data (unused)
+├── useSanityBanners.ts       - Promotional banners ✅
+├── useSanityBlogPosts.ts     - Blog posts + categories ✅
+├── useSanityBundles.ts       - Product bundles ✅
+├── useSanityCategories.ts    - Product categories ✅
+├── useSanityContactPage.ts   - Contact page content ✅
+├── useSanityFAQ.ts           - FAQ items + categories ✅
+├── useSanityFeatures.ts      - Feature sections ✅
+├── useSanityGrowers.ts       - Grower profiles + stores ✅
+├── useSanityHero.ts          - Hero carousel ✅
+├── useSanityInventory.ts     - Inventory management
+├── useSanityMarketing.ts     - Marketing features
+├── useSanityOrders.ts        - Order management
+├── useSanityProducts.ts      - Products + filtering ✅
+├── useSanityReviews.ts       - Product reviews ✅
+├── useSanitySiteSettings.ts  - Site-wide settings ✅
+├── useSanityStores.ts        - Store locations + growers ✅
+├── useSanityTestimonials.ts  - Customer testimonials ✅
+└── useSanityVariants.ts      - Product variants ✅
+```
+
+---
+
+## 🚨 Critical Issues & Fixes
+
+### Issue 1: Google Maps API RefererNotAllowedMapError
+
+**Error:** `RefererNotAllowedMapError` on `/grower/kabutehan-ni-aling-nena`
+
+**Root Cause:** The Google Maps API key has HTTP referrer restrictions that don't include `localhost:3000`.
+
+**Immediate Fix (5 minutes):**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Click on API key `AIzaSyDYw7TkeGXq6UJgms9AF06eRCYd3C-fqe8`
+3. Under "Application restrictions" → "Website restrictions"
+4. Add these referrers:
+   ```
+   http://localhost:3000/*
+   http://localhost:3001/*
+   http://127.0.0.1:3000/*
+   https://your-production-domain.com/*
+   https://*.vercel.app/*
+   ```
+5. Click "Save" → Wait 5 minutes for propagation
+
+**Verification:**
+- Visit `http://localhost:3000/grower/kabutehan-ni-aling-nena`
+- The map should now load without errors
+
+---
+
+## 🗺️ Customer Journey Flow (E-Commerce Data Flow)
+
+This section explains how CMS data flows from Sanity to the frontend and what users see at each step.
+
+### 1. Homepage Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ CUSTOMER VISITS http://localhost:3000                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ [Header] ← useSanitySiteSettings (logo, nav items)                  │
+│ ────────                                                             │
+│                                                                      │
+│ [HeroCarousel] ← useSanityHero → 3 slides with images               │
+│ ───────────────   │                                                  │
+│                   └─ Each slide has: title, subtitle, CTA button    │
+│                                                                      │
+│ [FeaturedProducts] ← useSanityProducts { isFeatured: true }         │
+│ ──────────────────   │                                               │
+│                      └─ ⚠️ PROBLEM: featuredProducts singleton empty │
+│                                                                      │
+│ [WhyMASHSection] ← useSanityFeatures → "Why Choose MASH?"           │
+│ ─────────────────  │                                                 │
+│                    └─ 4 feature cards with icons                    │
+│                                                                      │
+│ [TestimonialsSection] ← useSanityTestimonials → 6 reviews           │
+│ ──────────────────────                                               │
+│                                                                      │
+│ [Footer] ← useSanitySiteSettings (contact, social links)            │
+│ ────────                                                             │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Shop Page Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ CUSTOMER VISITS /shop                                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ [CategoryFilter] ← useSanityCategories                              │
+│ ────────────────   │                                                 │
+│                    └─ Fresh Mushrooms (8), Dried (3), Kits (4)      │
+│                                                                      │
+│ [ProductGrid] ← useSanityProducts(filters)                          │
+│ ─────────────   │                                                    │
+│                 ├─ 15 products with images, prices, tags            │
+│                 ├─ Pagination: 12 per page                          │
+│                 └─ Filters: category, price, tags, search           │
+│                                                                      │
+│ [ProductCard] → Clicking leads to /product/[slug]                   │
+│ ─────────────                                                        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Product Detail Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ CUSTOMER VISITS /product/fresh-oyster-mushrooms                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ [ProductImages] ← product.images (main + gallery)                   │
+│ ───────────────                                                      │
+│                                                                      │
+│ [ProductInfo] ← name, price, description, category                  │
+│ ─────────────                                                        │
+│                                                                      │
+│ [VariantSelector] ← useSanityVariants(productId)                    │
+│ ─────────────────   │                                                │
+│                     └─ 250g ₱350 | 500g ₱650 | 1kg ₱1,200           │
+│                                                                      │
+│ [FreshnessInfo] ← product.freshnessInfo                             │
+│ ───────────────   │                                                  │
+│                   └─ Harvest: 24h | Shelf: 5-7d | Storage tips      │
+│                                                                      │
+│ [CookingGuide] ← product.preparationInfo                            │
+│ ──────────────   │                                                   │
+│                  └─ Difficulty | Time | Tips | Recipes              │
+│                                                                      │
+│ [DeliveryOptions] ← product.deliveryOptions                         │
+│ ─────────────────   │                                                │
+│                     └─ Same-Day ✓ | Zones | Perishable warning      │
+│                                                                      │
+│ [YouMayAlsoLike] ← product.suggestedProducts[]                      │
+│ ────────────────   │                                                 │
+│                    └─ 6 related products (15/15 linked)             │
+│                                                                      │
+│ [ProductReviews] ← useSanityReviews(productId)                      │
+│ ────────────────   │                                                 │
+│                    └─ Average: 4.7★ | 39 total reviews              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 4. Store Page Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ CUSTOMER VISITS /stores/mash-main-novaliches                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ [StoreHeader] ← name, address, image, storeType badge               │
+│ ─────────────                                                        │
+│                                                                      │
+│ [OperatingHours] ← operatingHours { monday...sunday }               │
+│ ────────────────   │                                                 │
+│                    └─ Highlights today's hours                      │
+│                                                                      │
+│ [GoogleMap] ← coordinates { lat, lng }                              │
+│ ───────────   │                                                      │
+│               └─ ⚠️ REQUIRES: API key referrer fix                  │
+│                                                                      │
+│ [MeetOurGrowers] ← store.growers[]                                  │
+│ ────────────────   │                                                 │
+│                    └─ 2-4 grower cards linked to this store ✅      │
+│                                                                      │
+│ [Services] ← services[], pickupInstructions                         │
+│ ──────────                                                           │
+│                                                                      │
+│ [ContactCard] ← phone, email, whatsappUrl                           │
+│ ─────────────                                                        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 5. Grower Page Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ CUSTOMER VISITS /grower/kabutehan-ni-aling-nena                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ [GrowerHeader] ← name, tagline, location, logo                      │
+│ ──────────────                                                       │
+│                                                                      │
+│ [AboutSection] ← bio, specialties[], certifications[]               │
+│ ──────────────                                                       │
+│                                                                      │
+│ [ProductsGrid] ← useSanityGrowerProducts(growerId)                  │
+│ ──────────────   │                                                   │
+│                  └─ Products from this grower                       │
+│                                                                      │
+│ [GoogleMap] ← coordinates { lat, lng }                              │
+│ ───────────   │                                                      │
+│               └─ ⚠️ CURRENTLY BROKEN: RefererNotAllowedMapError     │
+│                                                                      │
+│ [FindAtStores] ← grower.availableAtStores[]                         │
+│ ──────────────   │                                                   │
+│                  └─ Store cards where this grower's products sold ✅│
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Improvement Phases (15-25)
+
+### Phase 15: Google Maps API Fix (Priority: 🚨 CRITICAL)
+**Time Estimate:** 15 minutes
+**Status:** 🔴 FIX NOW
+
+**Problem:** Google Maps showing `RefererNotAllowedMapError` on grower pages.
+
+**Tasks:**
+
+| # | Task | Location | Time |
+|---|------|----------|------|
+| 15.1 | Add localhost to API referrers | Google Cloud Console | 5m |
+| 15.2 | Add production domain to referrers | Google Cloud Console | 2m |
+| 15.3 | Add Vercel preview domains | Google Cloud Console | 3m |
+| 15.4 | Test on `/grower/kabutehan-ni-aling-nena` | Browser | 5m |
+
+**Step-by-Step Fix:**
+```
+1. Visit: https://console.cloud.google.com/apis/credentials
+2. Find: API key "AIzaSyDYw7TkeGXq6UJgms9AF06eRCYd3C-fqe8"
+3. Click to edit
+4. Under "Website restrictions" add:
+   - http://localhost:3000/*
+   - http://localhost:3001/*
+   - http://127.0.0.1:3000/*
+   - https://*.vercel.app/*
+5. Save and wait 5 minutes
+```
+
+---
+
+### Phase 16: Featured Products Singleton (Priority: 🔴 HIGH)
+**Time Estimate:** 30 minutes
+**Status:** 🔄 Pending
+
+**Problem:** Homepage "Featured Products" section has no curated products because the singleton is empty.
+
+**Tasks:**
+
+| # | Task | Location | Time |
+|---|------|----------|------|
+| 16.1 | Open Sanity Studio | localhost:3333 | 2m |
+| 16.2 | Navigate to Homepage → Featured Products | Studio UI | 1m |
+| 16.3 | Add section title | "Our Bestsellers" | 2m |
+| 16.4 | Select 6-8 products | Product references | 10m |
+| 16.5 | Publish changes | Studio UI | 1m |
+| 16.6 | Verify on homepage | localhost:3000 | 5m |
+
+**Alternative: Run Script**
+```bash
+node scripts/create-featured-products.js
+```
+
+---
+
+### Phase 17: Category Detail Pages (Priority: 🟠 HIGH)
+**Time Estimate:** 2 hours
+**Status:** ❌ Not Started
+
+**Problem:** Clicking on a category (Fresh, Dried, Kits) doesn't lead to a dedicated category page with filtered products.
+
+**Current Flow:**
+```
+Homepage → Category Card → ??? (no page)
+```
+
+**Desired Flow:**
+```
+Homepage → Category Card → /category/[slug] → Filtered products
+```
+
+**Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 17.1 | Create category page | `src/app/category/[slug]/page.tsx` | 45m |
+| 17.2 | Add category GROQ query | `useSanityCategories.ts` | 15m |
+| 17.3 | Create CategoryHeader component | `src/components/` | 20m |
+| 17.4 | Add SEO metadata | page.tsx | 15m |
+| 17.5 | Link from homepage | Category cards | 10m |
+| 17.6 | Test all 3 categories | Browser | 15m |
+
+**Implementation:**
+```tsx
+// src/app/category/[slug]/page.tsx
+import { fetchCategoryBySlug } from '@/hooks/useSanityCategories';
+import { useSanityProducts } from '@/hooks/useSanityProducts';
+
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const category = await fetchCategoryBySlug(params.slug);
+  const { products } = useSanityProducts({ category: category._id });
+  
+  return (
+    <div>
+      <CategoryHeader category={category} />
+      <ProductGrid products={products} />
+    </div>
+  );
+}
+```
+
+---
+
+### Phase 18: Store-Grower Relationship Enhancement (Priority: 🟠 HIGH)
+**Time Estimate:** 1.5 hours
+**Status:** ✅ Partially Done
+
+**Current State:**
+- ✅ Store pages show "Meet Our Growers" section
+- ✅ Grower pages show "Find At Stores" section
+- ⚠️ Store pages don't show grower products
+- ⚠️ No "Products from this grower at this store" view
+
+**Improvement Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 18.1 | Add grower products to store page | `stores/[slug]/page.tsx` | 30m |
+| 18.2 | Create GrowerProductsSection | `components/cms/` | 30m |
+| 18.3 | Link products to grower+store | GROQ query update | 20m |
+| 18.4 | Add "Available at" badge on products | ProductCard | 10m |
+
+---
+
+### Phase 19: Blog Enhancement (Priority: 🟡 MEDIUM)
+**Time Estimate:** 2 hours
+**Status:** ❌ Not Started
+
+**Problem:** Blog has 3 posts but is underutilized for SEO and engagement.
+
+**Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 19.1 | Add reading time | `useSanityBlogPosts.ts` | 15m |
+| 19.2 | Add related posts | `blog/[slug]/page.tsx` | 30m |
+| 19.3 | Add social share buttons | `ShareButtons.tsx` | 30m |
+| 19.4 | Add blog search | `blog/page.tsx` | 30m |
+| 19.5 | Upload cover images for all posts | Sanity Studio | 15m |
+
+---
+
+### Phase 20: Contact Form Backend (Priority: 🟡 MEDIUM)
+**Time Estimate:** 3 hours
+**Status:** ❌ Not Started
+
+**Problem:** Contact form on `/contact` page doesn't submit anywhere.
+
+**Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 20.1 | Create API route | `api/contact/route.ts` | 45m |
+| 20.2 | Add email notification | SendGrid/Resend | 45m |
+| 20.3 | Create contactSubmission schema | Sanity | 30m |
+| 20.4 | Store submissions in Sanity | API route | 30m |
+| 20.5 | Add form validation | Contact page | 30m |
+
+---
+
+### Phase 21: Marketing Features (Priority: 🟢 LOW)
+**Time Estimate:** 4 hours
+**Status:** ❌ Not Started
+
+**Problem:** Missing promotional features for revenue.
+
+**Tasks:**
+
+| # | Task | Schema | Time |
+|---|------|--------|------|
+| 21.1 | Activate coupon system | `coupon.ts` exists | 1h |
+| 21.2 | Add coupon input to cart | Cart page | 1h |
+| 21.3 | Create flash sale banner | New component | 1h |
+| 21.4 | Add countdown timer | New component | 1h |
+
+---
+
+### Phase 22: Search & Filtering Enhancement (Priority: 🟢 LOW)
+**Time Estimate:** 3 hours
+**Status:** ❌ Not Started
+
+**Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 22.1 | Add global search bar | Header | 45m |
+| 22.2 | Create search results page | `/search` | 1h |
+| 22.3 | Add price range filter | Shop page | 30m |
+| 22.4 | Add "In Stock Only" filter | Shop page | 15m |
+| 22.5 | Add sort options | Shop page | 30m |
+
+---
+
+### Phase 23: Performance & SEO (Priority: 🟢 LOW)
+**Time Estimate:** 2 hours
+**Status:** ❌ Not Started
+
+**Tasks:**
+
+| # | Task | File | Time |
+|---|------|------|------|
+| 23.1 | Add JSON-LD schema | Product pages | 30m |
+| 23.2 | Add OpenGraph images | Dynamic OG | 30m |
+| 23.3 | Add sitemap.xml | Auto-generate | 30m |
+| 23.4 | Add robots.txt | Root | 10m |
+| 23.5 | Optimize image loading | next.config.ts | 20m |
+
+---
+
+### Phase 24: Order Management (Priority: 🟢 LOW - Backend Dependent)
+**Time Estimate:** 8 hours
+**Status:** ❌ Not Started (requires NestJS backend)
+
+**Tasks:**
+
+| # | Task | Location | Time |
+|---|------|----------|------|
+| 24.1 | Integrate order schema | Sanity | 2h |
+| 24.2 | Create order confirmation | Email | 2h |
+| 24.3 | Order tracking page | `/orders/[id]` | 2h |
+| 24.4 | Order history | `/profile/orders` | 2h |
+
+---
+
+### Phase 25: Analytics Dashboard (Priority: 🟢 LOW)
+**Time Estimate:** 6 hours
+**Status:** ❌ Not Started
+
+**Tasks:**
+
+| # | Task | Location | Time |
+|---|------|----------|------|
+| 25.1 | Track page views | Analytics schema | 1h |
+| 25.2 | Track product views | Analytics schema | 1h |
+| 25.3 | Admin dashboard | `/admin/analytics` | 3h |
+| 25.4 | Weekly reports | Email/PDF | 1h |
+
+---
+
+## 📋 Next Steps Guide (Session 6)
+
+### Immediate Actions (Do Now)
+
+1. **Fix Google Maps API Key** (5 minutes)
+   - Add localhost:3000/* to referrers in Google Cloud Console
+   - See Phase 15 for step-by-step instructions
+
+2. **Create Featured Products** (10 minutes)
+   - Open Sanity Studio: http://localhost:3333
+   - Homepage → Featured Products
+   - Select 6-8 bestselling products
+
+3. **Verify All Fixes Work** (10 minutes)
+   - Test grower map: http://localhost:3000/grower/kabutehan-ni-aling-nena
+   - Test store map: http://localhost:3000/stores/mash-main-novaliches
+   - Test about page: http://localhost:3000/about
+
+### This Week Priority
+
+| Task | Phase | Time | Impact |
+|------|-------|------|--------|
+| Google Maps API fix | 15 | 15m | 🚨 Critical |
+| Featured Products | 16 | 30m | 🔴 High |
+| Category pages | 17 | 2h | 🟠 High |
+| Store grower products | 18 | 1.5h | 🟠 High |
+
+### Next Week Priority
+
+| Task | Phase | Time | Impact |
+|------|-------|------|--------|
+| Blog enhancements | 19 | 2h | 🟡 Medium |
+| Contact form | 20 | 3h | 🟡 Medium |
+| Marketing features | 21 | 4h | 🟢 Low |
 
 ---
 
 **END OF DOCUMENT**
 
 **Version History:**
+- v11.4 (Nov 29, 2025) - Session 5: Google Maps fix, mentor filter, complete schema audit, Phases 15-25
 - v11.2 (Nov 28, 2025) - Session 4: Product page enhancement, 4 bug fixes, types alignment
 - v10.1 (Nov 28, 2025) - Session 3: Product relationships, banners, navigation verified
 - v10.0 (Nov 28, 2025) - Complete audit, System Architecture, Schema Inventory
