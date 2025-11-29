@@ -262,6 +262,95 @@ Completely rewrote `src/components/cms/AboutSection.tsx` with:
 
 The mentor (Joemen G. Barrios) was incorrectly appearing in the team cards. Fixed by adding `personType != "mentor"` filter to the GROQ query in `useSanityAboutPage.ts`. Now the mentor only appears in the dedicated Mentor section.
 
+---
+
+## 🚀 Session 6: Category Pages & Featured Products (November 29, 2025) - NEW!
+
+### Tasks Completed
+
+#### 1. ✅ Category Detail Page Created
+
+**File Created:** `src/app/category/[slug]/page.tsx`
+
+A complete category detail page with the following features:
+
+**Features:**
+- **Category Hero Header** - Image, name, description, product count
+- **Breadcrumb Navigation** - Home > Shop > Category Name
+- **Product Grid** - Displays products filtered by category
+- **Price Range Filter** - Slider + input fields (₱0 - ₱12,000)
+- **Tag Filtering** - Fresh, Dried, Growing Kit, Organic, etc.
+- **Search Within Category** - Search products in current category only
+- **Sort Options** - Featured, Newest, Price Low→High, Price High→Low, Name A-Z
+- **View Mode Toggle** - Grid/List view (desktop)
+- **Other Categories Sidebar** - Quick navigation to other categories
+- **Responsive Design** - Mobile filter drawer, adaptive grid
+- **Load More Pagination** - Client-side pagination (12 products per load)
+- **Empty States** - Graceful handling of no products found
+
+**URL Pattern:** `/category/[slug]` (e.g., `/category/fresh-mushrooms`)
+
+**Example URLs:**
+- `/category/fresh-mushrooms` - Fresh Mushrooms (6 products)
+- `/category/dried-mushrooms` - Dried Mushrooms (3 products)
+- `/category/growing-kits` - Growing Kits (6 products)
+
+**Hooks Used:**
+- `useSanityCategory(slug)` - Fetch single category details
+- `useSanityCategories()` - Fetch all categories for sidebar
+- `useSanityProducts(filters)` - Fetch products filtered by category
+
+#### 2. ⚠️ Featured Products Token Issue
+
+**Problem:** Script `scripts/create-featured-products.js` failed with error:
+```
+ClientError: Insufficient permissions; permission "create" required
+```
+
+**Cause:** The `SANITY_API_WRITE_TOKEN` doesn't have Editor permissions.
+
+**Solution Required:**
+1. Go to: https://www.sanity.io/manage/project/xyq5fhxs/api/tokens
+2. Delete existing write token
+3. Create new token with **Editor** permissions
+4. Update `.env.local` with new token
+
+**Alternative (Manual):**
+1. Open Sanity Studio: http://localhost:3333
+2. Navigate to Featured Products singleton
+3. Manually select 6-8 products
+
+#### 3. ✅ Google Maps Referrers Added
+
+User confirmed adding localhost referrers to Google Maps API key:
+- `http://localhost:3000/*`
+- `http://localhost:3001/*`
+- `http://127.0.0.1:3000/*`
+
+Changes take 5 minutes to propagate in Google Cloud.
+
+### Session 6 Summary
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Category Pages | ✅ Complete | `/category/[slug]` with full filtering |
+| Featured Products Script | ⚠️ Token Issue | Need Editor token or manual selection |
+| Google Maps Referrers | ✅ Added | User configured in Google Cloud Console |
+
+### Testing Category Pages
+
+```bash
+# Start dev server
+npm run dev
+
+# Test category pages
+http://localhost:3000/category/fresh-mushrooms
+http://localhost:3000/category/dried-mushrooms
+http://localhost:3000/category/growing-kits
+```
+
+---
+
 ### How to Manage Team Photos
 
 1. Open Sanity Studio: `http://localhost:3333`
@@ -5705,6 +5794,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 **END OF DOCUMENT**
 
 **Version History:**
+- v11.5 (Nov 29, 2025) - Session 6: Category detail pages, Featured Products token issue documented
 - v11.4 (Nov 29, 2025) - Session 5: Google Maps fix, mentor filter, complete schema audit, Phases 15-25
 - v11.2 (Nov 28, 2025) - Session 4: Product page enhancement, 4 bug fixes, types alignment
 - v10.1 (Nov 28, 2025) - Session 3: Product relationships, banners, navigation verified
