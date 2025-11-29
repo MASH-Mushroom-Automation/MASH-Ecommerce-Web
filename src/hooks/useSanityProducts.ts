@@ -513,7 +513,8 @@ export function useSanityProduct(slug: string) {
 
 /**
  * Fetch featured products from Sanity CMS
- * Used for homepage product carousel
+ * Uses the featuredProducts singleton for curated selection
+ * Falls back to products with isFeatured flag if singleton is empty
  * 
  * @param limit - Number of featured products to fetch (default: 8)
  * @returns featured products, loading state, error
@@ -532,7 +533,50 @@ export function useSanityFeaturedProducts(limit: number = 8) {
         setLoading(true);
         setError(null);
 
-        const query = `*[_type == "product" && isFeatured == true && isAvailable == true] | order(_createdAt desc) [0...${limit}] {
+        // First, try to get products from the featuredProducts singleton
+        const singletonQuery = `*[_type == "featuredProducts"][0] {
+          title,
+          subtitle,
+          products[]-> {
+            _id,
+            _createdAt,
+            name,
+            slug,
+            description,
+            price,
+            compareAtPrice,
+            "stock": quantity,
+            sku,
+            weight,
+            unit,
+            "isPromo": isOnPromo,
+            promoEndDate,
+            "mainImage": image.asset->url,
+            "images": images[].asset->url,
+            category->{
+              name,
+              slug
+            }
+          }
+        }`;
+
+        const singletonData = await sanityClient.fetch(singletonQuery);
+        
+        if (singletonData?.products && singletonData.products.length > 0) {
+          // Use products from singleton
+          const { transformSanityProduct } = await import('@/types/sanity');
+          const transformedProducts = singletonData.products
+            .filter((p: SanityProduct | null) => p !== null)
+            .slice(0, limit)
+            .map(transformSanityProduct);
+          
+          setProducts(transformedProducts);
+          console.log('✅ Featured products loaded from singleton:', transformedProducts.length);
+          return;
+        }
+
+        // Fallback: Get products with isFeatured flag
+        const fallbackQuery = `*[_type == "product" && isFeatured == true && isAvailable == true] | order(_createdAt desc) [0...${limit}] {
           _id,
           _createdAt,
           name,
@@ -554,12 +598,13 @@ export function useSanityFeaturedProducts(limit: number = 8) {
           }
         }`;
 
-        const data: SanityProduct[] = await sanityClient.fetch(query);
+        const data: SanityProduct[] = await sanityClient.fetch(fallbackQuery);
         
         const { transformSanityProduct } = await import('@/types/sanity');
         const transformedProducts = data.map(transformSanityProduct);
         
         setProducts(transformedProducts);
+        console.log('⚠️ Featured products loaded from isFeatured flag:', transformedProducts.length);
       } catch (err) {
         console.error('Error fetching featured products from Sanity:', err);
         setError(err as Error);
@@ -570,39 +615,15 @@ export function useSanityFeaturedProducts(limit: number = 8) {
 
     fetchFeaturedProducts();
 
-    // Set up real-time listener for featured products
-    const query = `*[_type == "product" && isFeatured == true && isAvailable == true] | order(_createdAt desc) [0...${limit}] {
-      _id,
-      _createdAt,
-      name,
-      slug,
-      description,
-      price,
-      compareAtPrice,
-      "stock": quantity,
-      sku,
-      weight,
-      unit,
-      "isPromo": isOnPromo,
-      promoEndDate,
-      "mainImage": image.asset->url,
-      "images": images[].asset->url,
-      category->{ name, slug }
-    }`;
+    // Set up real-time listener for featuredProducts singleton
+    const singletonListenQuery = `*[_type == "featuredProducts"]`;
 
     const subscription = sanityClient
-      .listen(query, {}, { includeResult: true })
-      .subscribe(async (update) => {
-        if (update.type === 'mutation' && 'result' in update && update.result) {
-          const data = update.result as unknown as SanityProduct[];
-          
-          if (Array.isArray(data)) {
-            const { transformSanityProduct } = await import('@/types/sanity');
-            const transformedProducts = data.map(transformSanityProduct);
-            setProducts(transformedProducts);
-            console.log('🔄 Featured products updated in real-time!', { count: transformedProducts.length });
-          }
-        }
+      .listen(singletonListenQuery, {}, { includeResult: true })
+      .subscribe(async () => {
+        // Refetch when featuredProducts singleton changes
+        console.log('🔄 Featured products singleton changed, refetching...');
+        fetchFeaturedProducts();
       });
 
     return () => {
