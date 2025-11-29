@@ -1,7 +1,7 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 11.6  
-**Last Updated:** November 29, 2025 (Session 7 - Grower & Store Integration)  
+**Version:** 12.0  
+**Last Updated:** November 30, 2025 (Session 8 - Comprehensive Audit & Next Steps)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
@@ -10,65 +10,419 @@
 
 ## 📋 Quick Navigation
 
+- [🎯 NEXT STEPS GUIDE (SESSION 8)](#-next-steps-guide-session-8---priority-action-plan)
 - [Executive Summary](#-executive-summary)
-- [Session 5 Bug Fixes (NEW)](#-session-5-bug-fixes-november-29-2025---new)
-- [About Page Enhancement](#-about-page-enhancement-session-4---new)
-- [Product Page Enhancement](#-product-page-enhancement-session-4)
-- [Bug Fixes Applied (Session 4)](#-bug-fixes-applied-session-4)
+- [Session 7 Fixes](#-session-7-grower-store-integration)
+- [Session 5-6 Fixes](#-session-5-bug-fixes-november-29-2025---new)
 - [System Architecture](#-system-architecture)
 - [Complete Schema Reference](#-complete-schema-reference)
-- [Data Audit Results](#-data-audit-results-november-28-2025)
 - [Customer Journey Flow](#-customer-journey-flow)
 - [Improvement Phases](#-improvement-phases-15-20)
-- [Remaining Issues](#-remaining-issues-by-priority)
-- [Completed Work](#-completed-work-sessions-1-3)
+
+---
+
+## 🎯 NEXT STEPS GUIDE (Session 8) - PRIORITY ACTION PLAN
+
+**Audit Date:** November 30, 2025  
+**Status:** Critical gaps identified - immediate action required
+
+### 📊 Current Data Snapshot (Live Audit)
+
+| Document Type | Count | Status |
+|--------------|-------|--------|
+| Products | 15 | ✅ All have images, categories, tags |
+| Categories | 3 | ✅ Fresh, Dried, Growing Kits |
+| Growers | 4 | ✅ All linked to stores |
+| Stores | 4 | ✅ All linked to growers |
+| Reviews | 39 | ✅ Active |
+| Variants | 15 | ✅ Schema exists |
+| Bundles | 6 | ✅ Active |
+| FAQs | 19 | ✅ 5 categories |
+| Testimonials | 6 | ✅ Active |
+| Banners | 6 | ✅ Active |
+| Blog Posts | 3 | ✅ 5 categories |
+| Team Members | 8 | ✅ All with images |
+
+### 🚨 CRITICAL ISSUES FOUND
+
+| # | Issue | Impact | Status |
+|---|-------|--------|--------|
+| 1 | **Featured Products singleton missing** | Homepage lacks curated products section | ❌ Must fix NOW |
+| 2 | **Products not linked to suggested products (0/15)** | "You May Also Like" section empty | ❌ Script needed |
+| 3 | **Products not linked to complementary products (0/15)** | "Frequently Bought Together" empty | ❌ Script needed |
+| 4 | **Hero carousel only has 1 slide** | Homepage hero looks empty | ⚠️ Add more slides |
+| 5 | **Product hasVariants flag all false (0/15)** | Variant selector not triggering | ⚠️ Data fix needed |
+
+### 🔴 PHASE A: IMMEDIATE FIXES (Today - 45 minutes)
+
+#### A.1: Create Featured Products Singleton (15 min)
+
+**Option 1: Via Sanity Studio (Recommended)**
+1. Open Sanity Studio: http://localhost:3333
+2. Navigate to: **Settings → Featured Products**
+3. Click "Create"
+4. Fill in:
+   - Title: "Our Bestsellers"
+   - Subtitle: "Discover our most popular fresh mushrooms"
+5. Add 6-8 products:
+   - Fresh Oyster Mushrooms
+   - Fresh Shiitake Mushrooms
+   - Lion's Mane Mushrooms
+   - Dried Shiitake Mix
+   - Oyster Growing Kit
+   - Mushroom Starter Bundle
+6. Click **Publish**
+
+**Option 2: Via Script (if token has Editor permissions)**
+```bash
+cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
+node scripts/create-featured-products.js
+```
+
+#### A.2: Link Product Suggestions (15 min)
+
+Run the product linking script to populate suggested/complementary products:
+
+```bash
+cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
+node scripts/link-suggested-products.js
+```
+
+This will add 4-6 suggested products and 2-3 complementary products to each of the 15 products.
+
+#### A.3: Add More Hero Slides (15 min)
+
+**In Sanity Studio:**
+1. Navigate to: **Settings → Hero Carousel**
+2. Click "+ Add slide" button
+3. Add 2-3 more slides:
+
+**Slide 2: Fresh Products**
+- Title: "Farm Fresh Mushrooms"
+- Subtitle: "Harvested within 24 hours"
+- Button: "Shop Fresh" → /category/fresh-mushrooms
+- Upload: Fresh mushroom photo
+
+**Slide 3: Growing Kits**
+- Title: "Grow Your Own Mushrooms"
+- Subtitle: "Easy home growing kits"
+- Button: "Shop Kits" → /category/growing-kits
+- Upload: Growing kit photo
+
+**Slide 4: Meet Growers**
+- Title: "Meet Our Local Growers"
+- Subtitle: "Trusted Philippine mushroom farms"
+- Button: "Our Growers" → /grower
+- Upload: Grower/farm photo
+
+### 🟠 PHASE B: DATA QUALITY FIXES (This Week - 2 hours)
+
+#### B.1: Fix Product Variant Flags (30 min)
+
+Currently, products have variant documents but `hasVariants` flag is false. Run:
+
+```bash
+cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
+node scripts/fix-product-variants-flag.js
+```
+
+**Script to create:** `scripts/fix-product-variants-flag.js`
+```javascript
+// Sets hasVariants = true for products that have variant references
+```
+
+#### B.2: Verify Grower-Product Links (15 min)
+
+Ensure growers have featured products linked:
+1. Open each grower in Sanity Studio
+2. Check "Featured Products" field
+3. Add 3-5 relevant products per grower
+
+#### B.3: Test All Customer Journeys (1 hour)
+
+| Journey | URL | Expected Behavior | Status |
+|---------|-----|-------------------|--------|
+| Homepage | `/` | Hero, Featured, Categories, Testimonials | ⏳ Test |
+| Shop | `/shop` | 15 products with filters | ⏳ Test |
+| Category | `/category/fresh-mushrooms` | Filtered products | ⏳ Test |
+| Product | `/product/fresh-oyster-mushrooms` | Full details, variants, reviews | ⏳ Test |
+| Grower | `/grower/kabutehan-ni-aling-nena` | Profile + stores list | ⏳ Test |
+| Store | `/stores/mash-main-novaliches` | Location + growers list | ⏳ Test |
+| About | `/about` | Team + mentor | ✅ Tested |
+| FAQ | `/faq` | 19 questions, 5 categories | ⏳ Test |
+| Blog | `/blog` | 3 posts | ⏳ Test |
+
+### 🟡 PHASE C: STORE & GROWER ENHANCEMENTS (Next Week - 4 hours)
+
+#### C.1: Store Page Improvements
+
+**Current Issues:**
+- Operating hours not displaying properly
+- Map may need styling
+- Products at store not shown
+
+**Files to Update:**
+- `src/app/stores/[slug]/page.tsx`
+- `src/hooks/useSanityStores.ts`
+
+**Required Changes:**
+1. Add operating hours display with day-by-day breakdown
+2. Add "Products Available Here" section
+3. Add "Get Directions" button linking to Google Maps
+4. Show store amenities/services
+
+#### C.2: Grower Page Improvements
+
+**Current Issues:**
+- Products from grower not showcased enough
+- Story/bio could be more prominent
+
+**Files to Update:**
+- `src/app/grower/[id]/page.tsx`
+- `src/hooks/useSanityGrowers.ts`
+
+**Required Changes:**
+1. Feature grower's top products prominently
+2. Add grower story/bio section
+3. Show certifications with badges
+4. Add "Order from this Grower" CTA
+
+### 🟢 PHASE D: MARKETING & CONVERSION (Future - 6 hours)
+
+#### D.1: Homepage Marketing Sections
+
+| Section | Component | Data Source | Status |
+|---------|-----------|-------------|--------|
+| Announcement Bar | `AnnouncementBar.tsx` | siteSettings.announcementBar | ❌ Not integrated |
+| Promotional Banner | `BannerSection.tsx` | banners (position: homepage) | ⚠️ Needs testing |
+| Newsletter Signup | New component needed | New collection | ❌ Not created |
+| Trust Badges | New component needed | Static/CMS | ❌ Not created |
+
+#### D.2: Cart & Checkout Enhancements
+
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Bundle upsell in cart | ❌ Not implemented | 🟡 Medium |
+| Coupon code input | ❌ Not implemented | 🟡 Medium |
+| Shipping calculator | ❌ Not implemented | 🟡 Medium |
+| Lalamove integration | ⚠️ Backend ready | 🔴 High |
+
+---
+
+## 🗂️ COMPLETE SANITY SCHEMA REFERENCE
+
+### Schema File Locations
+
+```
+studio/src/schemaTypes/
+├── index.ts                    # Schema exports
+├── documents/
+│   ├── product.ts             # 🛒 Products (30+ fields)
+│   ├── category.ts            # 📁 Product categories
+│   ├── productVariant.ts      # 📏 Size/weight variants
+│   ├── productBundle.ts       # 📦 Package deals
+│   ├── review.ts              # ⭐ Customer reviews
+│   ├── grower.ts              # 🌱 Farm/grower profiles
+│   ├── store.ts               # 📍 Store locations
+│   ├── person.ts              # 👤 Team members
+│   ├── post.ts                # 📝 Blog posts
+│   ├── blogCategory.ts        # 🏷️ Blog categories
+│   ├── faqItem.ts             # ❓ FAQ questions
+│   ├── faqCategory.ts         # 📋 FAQ categories
+│   ├── featureSection.ts      # ✨ Feature highlights
+│   ├── testimonial.ts         # 💬 Customer testimonials
+│   ├── banner.ts              # 🖼️ Promotional banners
+│   ├── navigation.ts          # 🔗 Navigation menus
+│   ├── order.ts               # 🧾 Orders (schema only)
+│   ├── coupon.ts              # 🎟️ Coupons (schema only)
+│   ├── promotion.ts           # 📢 Promotions (schema only)
+│   ├── analytics.ts           # 📊 Analytics (schema only)
+│   └── emailCampaign.ts       # ✉️ Email campaigns (schema only)
+├── singletons/
+│   ├── siteSettings.ts        # ⚙️ Global site config
+│   ├── heroCarousel.ts        # 🎠 Homepage hero
+│   ├── featuredProducts.ts    # 🌟 Featured products
+│   ├── aboutPage.ts           # ℹ️ About page content
+│   ├── contactPage.ts         # 📞 Contact page content
+│   └── settings.tsx           # ⚠️ Legacy (deprecated)
+└── objects/
+    ├── blockContent.tsx       # 📄 Rich text editor
+    ├── callToAction.ts        # 🔘 CTA buttons
+    ├── infoSection.ts         # 📑 Content sections
+    └── link.ts                # 🔗 Navigation links
+```
+
+### Product Schema Fields (30+ fields)
+
+The product schema is organized into 9 categories:
+
+| Group | Fields | Purpose |
+|-------|--------|---------|
+| **Basic Info** | name, slug, description, sku, image, images | Core product identity |
+| **Pricing** | price, compareAtPrice, isOnPromo, promoPercentage | Pricing and discounts |
+| **Inventory** | quantity, inventory.trackInventory, inventory.lowStockThreshold | Stock management |
+| **Category** | category (reference), productTags[], searchKeywords[] | Organization & discovery |
+| **Variants** | hasVariants, weight, unit | Size/weight options |
+| **Recommendations** | suggestedProducts[], complementaryProducts[] | Cross-selling |
+| **Freshness** | freshnessInfo{harvestWindow, shelfLife, storageInstructions, qualityIndicators} | Quality info |
+| **Preparation** | preparationInfo{difficultyLevel, cookingTime, preparationTips[], recipeIdeas[]} | Cooking guide |
+| **Delivery** | deliveryOptions{sameDayDeliveryEligible, deliveryZones[], perishable}, deliveryWeight | Shipping |
+
+### Grower Schema Fields
+
+| Group | Fields | Purpose |
+|-------|--------|---------|
+| **Basic** | name, slug, logo, coverImage, tagline, description, story | Profile |
+| **Contact** | phone, email, operatingHours | Communication |
+| **Location** | location, address, coordinates, deliveryZones[] | Geographic |
+| **Products** | featuredProducts[], suppliesTo[] (stores), specialties[] | Offerings |
+| **Certifications** | certifications[] | Trust signals |
+| **Social** | socialLinks{facebook, instagram, tiktok, website} | Online presence |
+| **Settings** | isFeatured, isActive, isVerified, sortOrder, joinedDate | Display control |
+
+### Store Schema Fields
+
+| Group | Fields | Purpose |
+|-------|--------|---------|
+| **Basic** | name, slug, storeType, description, isActive, isFeatured | Identity |
+| **Location** | address{street, city, state, zipCode}, coordinates | Physical location |
+| **Hours** | operatingHours{monday-sunday, holidayHours, notes} | Schedule |
+| **Contact** | phone, email, website | Communication |
+| **Services** | services[], amenities[], isPickupPoint | Features |
+| **Growers** | growers[] (references) | Suppliers |
+| **Media** | mainImage, gallery[] | Visuals |
+
+### Hook-to-Schema Mapping
+
+| Hook | Schema(s) | GROQ Query Location |
+|------|-----------|---------------------|
+| `useSanityProducts` | product, category | lines 40-180 |
+| `useSanityCategories` | category | lines 15-45 |
+| `useSanityVariants` | productVariant | lines 50-120 |
+| `useSanityReviews` | review | lines 25-85 |
+| `useSanityGrowers` | grower, store | lines 30-150 |
+| `useSanityStores` | store, grower | lines 25-120 |
+| `useSanityFAQ` | faqItem, faqCategory | lines 20-100 |
+| `useSanityFeatures` | featureSection | lines 15-60 |
+| `useSanityBlogPosts` | post, blogCategory, person | lines 20-140 |
+| `useSanityTestimonials` | testimonial | lines 15-70 |
+| `useSanityBanners` | banner | lines 10-50 |
+| `useSanitySiteSettings` | siteSettings | lines 15-100 |
+| `useSanityHero` | heroCarousel | lines 10-60 |
+| `useSanityAboutPage` | aboutPage, person | lines 20-150 |
+| `useSanityContactPage` | contactPage | lines 15-80 |
 
 ---
 
 ## 📊 Executive Summary
 
-### Project Status: 99% Complete
+### Project Status: 95% Complete (Updated Nov 30, 2025)
 
 | Metric | Value |
 |--------|-------|
-| **Documents in CMS** | 172 items |
+| **Documents in CMS** | 134 items |
 | **Schemas Created** | 22 document + 6 singleton + 4 object types |
 | **Completed Phases** | 14 of 14 (100%) |
-| **Bug Fixes Applied** | 8 (Session 4 + Session 5) |
-| **UI Enhancements** | Product page + About page now show ALL rich CMS data |
-| **Remaining Issues** | 1 item (manual content - Featured Products singleton) |
-| **Est. Completion** | 30 minutes |
+| **Bug Fixes Applied** | 10 (Sessions 4-7) |
+| **UI Enhancements** | Product page + About page enhanced |
+| **Remaining Issues** | 5 critical items (see Phase A above) |
+| **Est. Completion** | 2-3 hours for Phase A+B |
 
 ### What's Working ✅
 
 - ✅ Products display on shop page with filtering
 - ✅ Product variants, reviews, search, and tags
-- ✅ Growers linked to stores bidirectionally
+- ✅ Growers linked to stores bidirectionally (4/4 each)
 - ✅ "Meet Our Growers" on store pages
 - ✅ "Find At Stores" on grower pages
-- ✅ FAQ system with categories
+- ✅ FAQ system with categories (19 items, 5 categories)
 - ✅ Feature sections ("Why Choose MASH")
-- ✅ Hero carousel on homepage
-- ✅ Blog posts with categories
-- ✅ **Products have suggested/complementary links (15/15)**
-- ✅ **Testimonials showing on homepage**
-- ✅ **Promotional banners integrated**
-- ✅ **Header/Footer connected to CMS**
-- ✅ **useSanityVariants bug fixed (Session 4)**
-- ✅ **About page schema fixed (legacy fields)**
-- ✅ **Product page shows Freshness Info (NEW)**
-- ✅ **Product page shows Cooking Guide (NEW)**
-- ✅ **Product page shows Delivery Options (NEW)**
-- ✅ **Product page shows Nutritional Highlights (NEW)**
-- ✅ **qualityIndicators string/array parsing fixed (NEW)**
-- ✅ **About page shows team member IMAGES (Session 5 verified: 7/7 have photos)**
-- ✅ **About page enhanced with gradients and animations (NEW)**
-- ✅ **Mentor section separated from team (Session 5 GROQ filter fix)**
-- ✅ **Google Maps component migrated to new API (Session 5)**
+- ✅ Hero carousel on homepage (needs more slides)
+- ✅ Blog posts with categories (3 posts)
+- ✅ Testimonials (6 items)
+- ✅ Promotional banners (6 items)
+- ✅ About page with team images (7/7 + 1 mentor)
+- ✅ Google Maps component (Session 5 fix)
+- ✅ Category detail pages (Session 6)
+- ✅ Grower schema backward compatibility (Session 7)
 
 ### What Needs Work 🔄
 
-- ❌ Featured Products singleton needs content (manual in Studio)
+- ❌ Featured Products singleton (Phase A.1 - needs manual creation in Studio)
+- ❌ Product suggestions not linked (Phase A.2 - **Token needs Editor permission with CREATE access**)
+- ❌ Hero carousel needs more slides (Phase A.3 - add 2-3 more slides in Studio)
+- ✅ Product hasVariants flags (Phase B.1 - **FIXED: 5/15 products now have hasVariants=true**)
+- ⚠️ Store operating hours display (Phase C.1)
+
+### ⚠️ Token Permission Issue
+
+**Problem:** The `SANITY_API_WRITE_TOKEN` has "Editor" permission but may not have CREATE access for new documents.
+
+**Evidence:**
+- ✅ `patch()` operations WORK (updating existing documents)
+- ❌ `create()` operations FAIL with "Insufficient permissions"
+- ❌ `createOrReplace()` operations FAIL
+
+**Solution:**
+1. Go to: https://www.sanity.io/manage/project/xyq5fhxs/api/tokens
+2. Create NEW token with **Editor** permission + **"Allow create/delete"** checkbox enabled
+3. Update `.env.local` with the new token:
+   ```
+   SANITY_API_WRITE_TOKEN=sk_new_token_here
+   ```
+
+**Alternative (Manual in Studio):**
+- Create Featured Products singleton manually in Sanity Studio
+- Link suggested products by editing each product in Studio
+
+---
+
+## 🔧 Session 8: Data Fixes (November 30, 2025)
+
+### Completed Fixes:
+
+1. **Product hasVariants Flags Fixed** ✅
+   - 5 products now have `hasVariants: true`
+   - Products: Fresh Oyster, Fresh Shiitake, Dried Shiitake, Mushroom Powder, Oyster Growing Kit
+   - Script: `scripts/fix-product-variants-flag.js`
+
+2. **Grower-Store Links Fixed** ✅ (Session 7)
+   - All 4 growers linked to stores via `suppliesTo` field
+   - Backward compatibility maintained for `availableAtStores`
+
+3. **Product Links Pending** ⏳
+   - Script ran but links not persisted (token permission issue)
+   - 0/15 products have suggestedProducts linked
+   - 0/15 products have complementaryProducts linked
+   - **Action:** Need token with CREATE permission or manual linking
+
+---
+
+## 🔧 Session 7: Grower & Store Integration (November 29, 2025)
+
+### Fix: Unknown Field "availableAtStores" Error
+
+**Problem:** Grower documents had `availableAtStores` data but the field wasn't in the schema.
+
+**Root Cause:** Data was imported with `availableAtStores` but schema only had `suppliesTo`.
+
+**Solution:**
+1. Added `availableAtStores` field to grower schema (hidden, backward compatibility)
+2. Updated GROQ queries to use `coalesce(suppliesTo, availableAtStores)`
+3. Created migration script to move data to canonical field
+
+**Files Modified:**
+- `studio/src/schemaTypes/documents/grower.ts`
+- `src/hooks/useSanityGrowers.ts`
+
+**Migration Completed:**
+```
+✅ Migrated 4 growers:
+- The Mushroom Patch Bukidnon (2 stores)
+- Fungi Fresh Farms (3 stores)
+- Kabutehan ni Aling Nena (2 stores)
+- Shroomz (3 stores)
+```
 
 ---
 
