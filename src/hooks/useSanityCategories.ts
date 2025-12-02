@@ -459,7 +459,7 @@ export function useSanityProductsByCategory(categorySlug: string, limit?: number
         slug,
         description,
         price,
-        "mainImage": mainImage.asset->url,
+        "mainImage": coalesce(mainImage.asset->url, image.asset->url),
         "images": images[].asset->url,
         category->{
           _id,

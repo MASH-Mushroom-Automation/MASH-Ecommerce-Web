@@ -5,6 +5,9 @@
  * GROQ (Graph-Relational Object Queries) is Sanity's query language.
  * 
  * Learn more: https://www.sanity.io/docs/groq
+ * 
+ * NOTE: Product images use `image` field, but some code expects `mainImage`.
+ * We use `coalesce(mainImage.asset->url, image.asset->url)` for compatibility.
  */
 
 /**
@@ -29,7 +32,7 @@ export const productsQuery = `*[_type == "product" && !(_id in path("drafts.**")
   isFeatured,
   isPromo,
   promoEndDate,
-  "mainImage": mainImage.asset->url,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   "images": images[].asset->url,
   category->{
     _id,
@@ -63,7 +66,7 @@ export const productBySlugQuery = `*[_type == "product" && slug.current == $slug
   isFeatured,
   isPromo,
   promoEndDate,
-  "mainImage": mainImage.asset->url,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   "images": images[].asset->url,
   category->{
     _id,
@@ -89,7 +92,7 @@ export const featuredProductsQuery = `*[_type == "product" && isFeatured == true
   compareAtPrice,
   isPromo,
   promoEndDate,
-  "mainImage": mainImage.asset->url,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   category->{
     name,
     slug
@@ -105,7 +108,7 @@ export const promoProductsQuery = `*[_type == "product" && isPromo == true && !(
   price,
   compareAtPrice,
   promoEndDate,
-  "mainImage": mainImage.asset->url,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   category->{
     name,
     slug
@@ -125,7 +128,7 @@ export const productsByCategoryQuery = `*[_type == "product" && category->slug.c
   isFeatured,
   isPromo,
   promoEndDate,
-  "mainImage": mainImage.asset->url,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   category->{
     name,
     slug
@@ -158,7 +161,7 @@ export const categoryBySlugQuery = `*[_type == "category" && slug.current == $sl
     description,
     price,
     compareAtPrice,
-    "mainImage": mainImage.asset->url
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
   }
 }`;
 
@@ -195,7 +198,7 @@ export const featuredProductsSingletonQuery = `*[_type == "featuredProducts"][0]
     description,
     price,
     compareAtPrice,
-    "mainImage": mainImage.asset->url
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
   }
 }`;
 
