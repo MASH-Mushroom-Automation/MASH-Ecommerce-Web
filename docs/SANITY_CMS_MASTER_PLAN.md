@@ -1,10 +1,466 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 14.0  
-**Last Updated:** December 2, 2025 (Session 10 - Phase A & B Complete!)  
+**Version:** 15.0  
+**Last Updated:** December 3, 2025 (Session 11 - Phase C Complete + Image Fix!)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
+
+---
+
+## 📋 Table of Contents
+
+1. [Session 11 Accomplishments](#-session-11-accomplishments-december-3-2025)
+2. [Current Schema Layout](#-current-schema-layout)
+3. [Improvement Phases (Roadmap)](#-improvement-phases-roadmap)
+4. [Customer Journey Flow](#-customer-journey-flow)
+5. [Next Steps Guide](#-next-steps-phase-d---marketing-enhancements)
+6. [Schema Reference](#-complete-sanity-schema-reference)
+7. [Previous Sessions](#-session-10-accomplishments-december-2-2025)
+
+---
+
+## 🎉 SESSION 11 ACCOMPLISHMENTS (December 3, 2025)
+
+### ✅ PHASE C COMPLETE - STORE & GROWER ENHANCEMENTS!
+
+| Task | Before | After | Status |
+|------|--------|-------|--------|
+| **Grower Schema Fix** | ❌ `products` field missing | ✅ Field added | ✅ DONE |
+| **ProductCard Slug Fix** | ❌ Wrong URLs (`/product/HK0ugG9...`) | ✅ Correct URLs (`/product/fresh-oyster`) | ✅ DONE |
+| **Array Keys Fix** | ❌ 4 growers missing `_key` | ✅ All arrays have keys | ✅ DONE |
+| **Store Page Error** | ❌ Server/client function error | ✅ Server-side fetch functions | ✅ DONE |
+| **Image Config** | ❌ Missing `maps.googleapis.com` | ✅ Added to remote patterns | ✅ DONE |
+| **Redirect Conflict** | ❌ `/stores` → `/shop` redirect blocking | ✅ Redirect removed | ✅ DONE |
+| **🔴 CRITICAL: Product Images** | ❌ Showing placeholders | ✅ Showing actual Sanity images | ✅ DONE |
+
+### 🔴 CRITICAL FIX: Product Images Now Display Correctly
+
+**Problem:** "Our Current Harvest" section on grower pages showed placeholder images instead of actual product images from Sanity.
+
+**Root Cause:** Schema field mismatch:
+- Product schema uses `image` field (not `mainImage`)
+- All GROQ queries were looking for `mainImage.asset->url`
+- Result: All products returned `null` for image URLs
+
+**Solution:** Updated ALL GROQ queries to use `coalesce()`:
+```groq
+// Before (broken):
+"mainImage": mainImage.asset->url
+
+// After (works with both field names):
+"mainImage": coalesce(mainImage.asset->url, image.asset->url)
+```
+
+**Files Fixed:**
+1. `src/hooks/useSanityGrowers.ts` (line 524)
+2. `src/hooks/useSanityCategories.ts` (line 462)
+3. `src/lib/sanity/queries.ts` (8 queries updated)
+
+**Verification:**
+```
+✅ Products WITH image URL: 15/15
+❌ Products WITHOUT image URL: 0/15
+🎉 SUCCESS! All product images now display correctly!
+```
+
+### 📁 Files Modified This Session
+
+| File | Change | Lines |
+|------|--------|-------|
+| `studio/src/schemaTypes/documents/grower.ts` | Added `products` array field | ~207 |
+| `src/app/grower/[id]/page.tsx` | Added `slug={p.slug?.current}` prop | ~155 |
+| `src/lib/sanity/stores.ts` | Created server-side fetch functions | NEW |
+| `src/app/stores/[slug]/page.tsx` | Updated imports | ~5 |
+| `next.config.ts` | Added image patterns, removed redirect | ~45 |
+| `src/hooks/useSanityGrowers.ts` | Fixed image query (coalesce) | 524 |
+| `src/hooks/useSanityCategories.ts` | Fixed image query (coalesce) | 462 |
+| `src/lib/sanity/queries.ts` | Fixed 8 image queries | Multiple |
+
+### 📝 Scripts Created
+
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `scripts/fix-array-keys.js` | Fix missing `_key` in arrays | ✅ Working |
+| `scripts/check-slugs.js` | Verify store/grower slugs | ✅ Working |
+| `scripts/check-product-images.js` | Analyze product image data | ✅ Working |
+| `scripts/verify-image-query.js` | Test coalesce query fix | ✅ Working |
+
+---
+
+## 📐 CURRENT SCHEMA LAYOUT
+
+### Document Types (22 schemas in `studio/src/schemaTypes/documents/`)
+
+| Schema | Purpose | Fields | Status | Used By |
+|--------|---------|--------|--------|---------|
+| **`product.ts`** | 🛒 Main products | 30+ | ✅ Active | Shop, Product detail, Cart |
+| **`category.ts`** | 📁 Product categories | 8 | ✅ Active | Shop filters, Navigation |
+| **`productVariant.ts`** | 📏 Size/weight options | 6 | ✅ Active | Product detail |
+| **`productBundle.ts`** | 📦 Package deals | 10 | ✅ Active | Shop (bundles filter) |
+| **`review.ts`** | ⭐ Customer reviews | 8 | ✅ Active | Product detail |
+| **`grower.ts`** | 🌱 Farm profiles | 25+ | ✅ Active | Grower pages, Store pages |
+| **`store.ts`** | 📍 Store locations | 18 | ✅ Active | Store pages, Grower pages |
+| **`person.ts`** | 👤 Team/authors | 12 | ✅ Active | About page, Blog posts |
+| **`post.ts`** | 📝 Blog posts | 15 | ✅ Active | Blog list, Blog detail |
+| **`blogCategory.ts`** | 🏷️ Blog categories | 4 | ✅ Active | Blog filters |
+| **`faqItem.ts`** | ❓ FAQ questions | 5 | ✅ Active | FAQ page |
+| **`faqCategory.ts`** | 📋 FAQ categories | 3 | ✅ Active | FAQ page |
+| **`featureSection.ts`** | ✨ Feature highlights | 6 | ✅ Active | Homepage |
+| **`testimonial.ts`** | 💬 Customer quotes | 7 | ✅ Active | Homepage, About |
+| **`banner.ts`** | 🖼️ Promo banners | 8 | ✅ Active | Homepage, Shop |
+| **`navigation.ts`** | 🔗 Nav menus | 5 | ✅ Active | Header, Footer |
+| **`order.ts`** | 🧾 Orders | 15 | ⚠️ Schema only | (Backend integration) |
+| **`coupon.ts`** | 🎟️ Discount codes | 8 | ⚠️ Schema only | (Backend integration) |
+| **`promotion.ts`** | 📢 Promotions | 10 | ⚠️ Schema only | (Backend integration) |
+| **`analytics.ts`** | 📊 Analytics | 6 | ⚠️ Schema only | (Future) |
+| **`emailCampaign.ts`** | ✉️ Email templates | 8 | ⚠️ Schema only | (Future) |
+| **`page.ts`** | 📄 CMS pages | 8 | ⚠️ Minimal use | Custom pages |
+
+### Singletons (6 schemas in `studio/src/schemaTypes/singletons/`)
+
+| Schema | Purpose | Fields | Status |
+|--------|---------|--------|--------|
+| **`siteSettings.ts`** | ⚙️ Global config | 15 | ✅ Active |
+| **`heroCarousel.ts`** | 🎠 Homepage hero | 6 | ✅ Active (5 slides) |
+| **`featuredProducts.ts`** | 🌟 Featured products | 4 | ✅ Active (8 products) |
+| **`aboutPage.ts`** | ℹ️ About content | 12 | ✅ Active |
+| **`contactPage.ts`** | 📞 Contact info | 8 | ✅ Active |
+| **`settings.tsx`** | ⚠️ Legacy | - | ❌ Deprecated |
+
+### Objects (4 schemas in `studio/src/schemaTypes/objects/`)
+
+| Schema | Purpose | Used In |
+|--------|---------|---------|
+| **`blockContent.tsx`** | 📄 Rich text editor | Posts, Products, Pages |
+| **`callToAction.ts`** | 🔘 CTA buttons | Hero, Banners |
+| **`infoSection.ts`** | 📑 Content blocks | About page |
+| **`link.ts`** | 🔗 Navigation links | Navigation, Footer |
+
+### Current Data Counts (LIVE)
+
+```
+📦 DOCUMENT COUNTS:
+----------------------------------------
+Products:         15 ✅ (all with images)
+Categories:       3 ✅
+Product Variants: 15 ✅
+Product Bundles:  6 ✅
+Reviews:          39 ✅
+Growers:          4 ✅ (all with products linked)
+Stores:           4 ✅ (all with growers linked)
+FAQ Items:        19 ✅ (5 categories)
+Testimonials:     6 ✅
+Banners:          6 ✅
+Blog Posts:       3 ✅ (5 categories)
+Team Members:     8 ✅ (7 team + 1 mentor)
+Features:         2 ✅
+Navigation:       5 ✅
+
+📌 SINGLETONS:
+----------------------------------------
+siteSettings:     ✅ exists
+heroCarousel:     ✅ 5 slides
+featuredProducts: ✅ 8 products
+aboutPage:        ✅ exists
+contactPage:      ✅ exists
+
+🔗 RELATIONSHIPS:
+----------------------------------------
+Growers → Products:     4/4 linked ✅
+Growers → Stores:       4/4 linked ✅
+Stores → Growers:       4/4 linked ✅
+Products → Suggested:   15/15 linked ✅
+Products → Complementary: 15/15 linked ✅
+```
+
+---
+
+## 🚀 IMPROVEMENT PHASES (ROADMAP)
+
+### Phase Overview
+
+| Phase | Name | Priority | Est. Time | Status |
+|-------|------|----------|-----------|--------|
+| A | Data Population | 🔴 Critical | 4h | ✅ COMPLETE |
+| B | Data Verification | 🔴 Critical | 2h | ✅ COMPLETE |
+| C | Store & Grower Enhancements | 🟠 High | 4h | ✅ COMPLETE |
+| **D** | **Marketing Enhancements** | 🟠 High | 6h | 🟡 NEXT |
+| E | Search & Discovery | 🟡 Medium | 4h | ⏳ Planned |
+| F | User Experience | 🟡 Medium | 5h | ⏳ Planned |
+| G | Analytics & Tracking | 🟢 Low | 3h | ⏳ Future |
+| H | Multi-language Support | 🟢 Low | 8h | ⏳ Future |
+
+---
+
+### 🟡 PHASE D: MARKETING ENHANCEMENTS (NEXT - 6 hours)
+
+**Priority:** 🟠 High  
+**Status:** Ready to Start  
+**Goal:** Improve conversion with marketing features
+
+#### D.1: "Meet Our Growers" on Store Pages ⚠️ MISSING FEATURE
+
+**Current State:** Store pages don't prominently feature the growers that supply them.
+
+**Schema Relationship:**
+- `store.growers[]` → references to grower documents
+- `grower.suppliesTo[]` → references to store documents
+- Bidirectional links exist in data but UI doesn't showcase them
+
+**Required Changes:**
+
+**File:** `src/app/stores/[slug]/page.tsx`
+```tsx
+// Add "Meet Our Growers" section after store info
+<section className="mt-8">
+  <h2 className="text-xl font-semibold mb-4">🌱 Meet Our Growers</h2>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {store.growers?.map((grower) => (
+      <GrowerCard 
+        key={grower._id}
+        grower={grower}
+        showProducts={true}  // Show top 3 products
+      />
+    ))}
+  </div>
+</section>
+```
+
+**GROQ Query Update:** `src/lib/sanity/stores.ts`
+```groq
+growers[]-> {
+  _id,
+  name,
+  slug,
+  tagline,
+  logo,
+  "topProducts": products[0...3]-> {
+    _id,
+    name,
+    slug,
+    price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  }
+}
+```
+
+**Estimated Time:** 1 hour
+
+#### D.2: Homepage Marketing Sections
+
+| Section | Component | Data Source | Status | Time |
+|---------|-----------|-------------|--------|------|
+| Announcement Bar | `AnnouncementBar.tsx` | siteSettings | ❌ Not integrated | 30m |
+| Promotional Banner | `BannerSection.tsx` | banners | ⚠️ Needs testing | 30m |
+| Newsletter Signup | New component | New collection | ❌ Not created | 1h |
+| Trust Badges | New component | Static/CMS | ❌ Not created | 30m |
+| "Shop by Category" Grid | New component | categories | ⚠️ Basic exists | 1h |
+
+#### D.3: Product Page Enhancements
+
+| Feature | Status | Priority | Time |
+|---------|--------|----------|------|
+| "Frequently Bought Together" | ⚠️ Data exists, UI missing | 🟠 High | 45m |
+| Freshness indicator badge | ❌ Not implemented | 🟡 Medium | 30m |
+| Storage tips tooltip | ❌ Not implemented | 🟡 Medium | 30m |
+| Recipe ideas section | ❌ Not implemented | 🟢 Low | 1h |
+| Grower attribution card | ⚠️ Partial | 🟡 Medium | 30m |
+
+---
+
+### 🟡 PHASE E: SEARCH & DISCOVERY (4 hours)
+
+**Goal:** Help customers find products faster
+
+#### E.1: Improved Search
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Search autocomplete** | Suggest products as user types | 1h |
+| **Search by tag** | Filter by `productTags[]` | 45m |
+| **Search history** | Remember recent searches | 30m |
+| **No results suggestions** | Show similar products | 45m |
+
+#### E.2: Smart Filtering
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Price range slider** | Dynamic min/max from products | 45m |
+| **Freshness filter** | "Harvested today", "This week" | 30m |
+| **Availability filter** | In stock, Low stock, Coming soon | 30m |
+| **Diet tags** | Organic, Vegan, Keto-friendly | 30m |
+
+---
+
+### 🟡 PHASE F: USER EXPERIENCE (5 hours)
+
+**Goal:** Improve overall UX and mobile experience
+
+#### F.1: Mobile Optimizations
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Sticky add-to-cart** | Fixed button on product pages | 45m |
+| **Bottom navigation** | Mobile nav bar | 1h |
+| **Swipe gestures** | Gallery swipe, cart swipe | 45m |
+| **Quick view modal** | Preview without leaving list | 1h |
+
+#### F.2: Loading States
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Skeleton loaders** | Replace spinners with skeletons | 30m |
+| **Optimistic updates** | Instant cart updates | 30m |
+| **Error boundaries** | Graceful error handling | 30m |
+
+---
+
+### 🟢 PHASE G: ANALYTICS & TRACKING (3 hours)
+
+**Goal:** Track user behavior for optimization
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Page views** | Track which pages are visited | 30m |
+| **Product views** | Track product popularity | 30m |
+| **Add to cart events** | Track conversion funnel | 30m |
+| **Search analytics** | Track search queries | 30m |
+| **Checkout analytics** | Track drop-off points | 30m |
+| **Dashboard** | View analytics in Sanity Studio | 30m |
+
+---
+
+### 🟢 PHASE H: MULTI-LANGUAGE SUPPORT (8 hours)
+
+**Goal:** Support Filipino (Tagalog) alongside English
+
+| Feature | Description | Time |
+|---------|-------------|------|
+| **Schema localization** | Add `_i18n` fields | 2h |
+| **UI translations** | Translate all static text | 3h |
+| **Language switcher** | Header component | 1h |
+| **SEO** | Localized meta tags | 1h |
+| **Testing** | Verify all translations | 1h |
+
+---
+
+## 🛒 CUSTOMER JOURNEY FLOW
+
+### Complete E-commerce Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CUSTOMER JOURNEY                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  1. DISCOVERY                                                        │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
+│  │   Homepage  │ → │   Shop      │ → │  Category   │              │
+│  │  (hero +    │    │  (filters + │    │  (filtered  │              │
+│  │  featured)  │    │  products)  │    │  products)  │              │
+│  └─────────────┘    └─────────────┘    └─────────────┘              │
+│        ↓                  ↓                  ↓                       │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │                    2. PRODUCT DETAIL                      │        │
+│  │  ┌───────────────────────────────────────────────────┐  │        │
+│  │  │  • Images gallery                                   │  │        │
+│  │  │  • Price + promo badge                             │  │        │
+│  │  │  • Variant selection (size/weight)                 │  │        │
+│  │  │  • "Add to Cart" button                            │  │        │
+│  │  │  • Freshness info (harvest date, storage)          │  │        │
+│  │  │  • "You May Also Like" (suggestedProducts)         │  │        │
+│  │  │  • "Frequently Bought Together" (complementary)    │  │        │
+│  │  │  • Reviews section                                 │  │        │
+│  │  │  • "From [Grower Name]" attribution                │  │        │
+│  │  └───────────────────────────────────────────────────┘  │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        ↓                                                             │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │                       3. CART                             │        │
+│  │  • Line items with quantity controls                     │        │
+│  │  • Subtotal + shipping estimate                          │        │
+│  │  • Coupon code input (Phase D)                           │        │
+│  │  • "You May Also Like" upsells                           │        │
+│  │  • "Proceed to Checkout" button                          │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        ↓                                                             │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │                     4. CHECKOUT                           │        │
+│  │  Step 1: Delivery Address                                │        │
+│  │  Step 2: Delivery Method                                 │        │
+│  │          • Standard (2-3 days)                           │        │
+│  │          • Lalamove Same-Day (₱150-300)                  │        │
+│  │          • Store Pickup (free)                           │        │
+│  │  Step 3: Payment                                         │        │
+│  │          • GCash, Maya, COD                              │        │
+│  │  Step 4: Review & Place Order                            │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        ↓                                                             │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │                  5. ORDER TRACKING                        │        │
+│  │  • Order confirmation page                               │        │
+│  │  • Email confirmation                                    │        │
+│  │  • Real-time tracking (Lalamove)                         │        │
+│  │  • Order history in profile                              │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Pages & Their Data Sources
+
+| Page | URL | Primary Data | Secondary Data |
+|------|-----|--------------|----------------|
+| **Homepage** | `/` | heroCarousel, featuredProducts | features, testimonials, banners |
+| **Shop** | `/shop` | products (all) | categories (for filters) |
+| **Category** | `/shop/[category]` | products (by category) | category info |
+| **Product** | `/product/[slug]` | single product | variants, reviews, suggested |
+| **Cart** | `/cart` | localStorage cart | products (for upsells) |
+| **Checkout** | `/checkout` | user address | stores (for pickup) |
+| **Store List** | `/stores` | stores (all) | growers (linked) |
+| **Store Detail** | `/stores/[slug]` | single store | growers, products |
+| **Grower List** | `/grower` | growers (all) | stores, products |
+| **Grower Detail** | `/grower/[id]` | single grower | products, stores |
+| **About** | `/about` | aboutPage | team members, mentor |
+| **FAQ** | `/faq` | faqItems | faqCategories |
+| **Blog** | `/blog` | posts | blogCategories, authors |
+| **Blog Post** | `/blog/[slug]` | single post | author, related posts |
+| **Contact** | `/contact` | contactPage | siteSettings |
+
+---
+
+## 🎯 NEXT STEPS: PHASE D - MARKETING ENHANCEMENTS
+
+### Immediate Actions (This Session)
+
+1. **"Meet Our Growers" Section** (1 hour)
+   - Update `src/lib/sanity/stores.ts` query to include grower products
+   - Add GrowerCard section to store detail page
+   - Test with all 4 stores
+
+2. **Announcement Bar** (30 min)
+   - Integrate siteSettings.announcementBar
+   - Add dismiss functionality
+   - Test on homepage
+
+3. **"Frequently Bought Together"** (45 min)
+   - Add UI section on product page
+   - Use `complementaryProducts[]` data
+   - Add "Add All to Cart" button
+
+### Quick Start Commands
+
+```bash
+# Start dev server
+cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
+npm run dev
+
+# Test URLs (port may vary):
+# - Store with growers: http://localhost:3002/stores/mash-novaliches-main
+# - Grower with products: http://localhost:3002/grower/fungi-fresh-farms
+# - Product with suggestions: http://localhost:3002/product/fresh-oyster-mushrooms
+```
 
 ---
 
