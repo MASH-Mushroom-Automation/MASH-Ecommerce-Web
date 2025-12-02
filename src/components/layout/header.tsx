@@ -18,7 +18,9 @@ import {
   Facebook,
   Instagram,
   Store,
+  Search,
 } from "lucide-react";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
@@ -328,6 +330,15 @@ export function Header() {
             />
           </Link>
 
+          {/* Search Bar - Hidden on small screens, visible on md+ */}
+          <div className="hidden md:block flex-1 max-w-md mx-4">
+            <SearchAutocomplete 
+              placeholder="Search mushrooms, kits, dried..."
+              showRecent={true}
+              showTrending={true}
+            />
+          </div>
+
         <div className="hidden lg:flex items-center space-x-6">
           <ThemeSwitcher />
           <CartDropdown />
@@ -429,6 +440,15 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="bg-card text-foreground">
               <div className="flex flex-col space-y-4 p-4">
+                {/* Mobile Search Bar */}
+                <div className="mb-2">
+                  <SearchAutocomplete 
+                    placeholder="Search products..."
+                    showRecent={true}
+                    showTrending={true}
+                  />
+                </div>
+                
                 <nav className="flex flex-col space-y-2">
                   {/* CMS-driven navigation for mobile */}
                   {headerNav?.items?.length ? (
