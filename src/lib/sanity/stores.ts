@@ -78,6 +78,13 @@ export interface SanityStore {
     };
     specialties?: string[];
     rating?: number;
+    topProducts?: Array<{
+      _id: string;
+      name: string;
+      slug: string;
+      price: number;
+      mainImage?: string;
+    }>;
   }>;
 }
 
@@ -145,6 +152,13 @@ export interface TransformedStore {
     imageUrl?: string;
     specialties?: string[];
     rating?: number;
+    topProducts?: Array<{
+      id: string;
+      name: string;
+      slug: string;
+      price: number;
+      imageUrl?: string;
+    }>;
   }>;
   createdAt: string;
   updatedAt: string;
@@ -266,6 +280,13 @@ function transformStore(store: SanityStore): TransformedStore {
     imageUrl: grower.image?.asset?._ref ? buildImageUrl(grower.image.asset._ref) : undefined,
     specialties: grower.specialties,
     rating: grower.rating,
+    topProducts: grower.topProducts?.map(product => ({
+      id: product._id,
+      name: product.name,
+      slug: product.slug || '',
+      price: product.price,
+      imageUrl: product.mainImage || undefined,
+    })),
   }));
 
   return {
@@ -347,7 +368,14 @@ const STORES_QUERY = `*[_type == "store" && isActive == true] | order(sortOrder 
     isVerified,
     image,
     specialties,
-    rating
+    rating,
+    "topProducts": products[0...3]-> {
+      _id,
+      name,
+      "slug": slug.current,
+      price,
+      "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+    }
   }
 }`;
 
@@ -387,7 +415,14 @@ const STORE_BY_SLUG_QUERY = `*[_type == "store" && slug.current == $slug][0] {
     isVerified,
     image,
     specialties,
-    rating
+    rating,
+    "topProducts": products[0...3]-> {
+      _id,
+      name,
+      "slug": slug.current,
+      price,
+      "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+    }
   }
 }`;
 

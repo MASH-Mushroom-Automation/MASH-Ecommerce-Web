@@ -1,22 +1,98 @@
 # 🍄 MASH E-Commerce - Sanity CMS Master Plan
 
-**Version:** 15.0  
-**Last Updated:** December 3, 2025 (Session 11 - Phase C Complete + Image Fix!)  
+**Version:** 16.0  
+**Last Updated:** December 3, 2025 (Session 12 - Phase D Complete! 🎉)  
 **Project:** MASH Mushroom E-Commerce Platform  
 **CMS:** Sanity CMS (Project ID: `xyq5fhxs` - Growth Trial)  
 **Documentation Author:** AI Development Assistant
 
 ---
 
+## 🎉 SESSION 12 ACCOMPLISHMENTS (December 3, 2025) - PHASE D COMPLETE!
+
+### ✅ PHASE D: MARKETING ENHANCEMENTS - ALL DONE!
+
+| Task | Status | Details |
+|------|--------|---------|
+| **D.1: "Meet Our Growers" + Top Products** | ✅ DONE | Added grower's top 3 products to store pages |
+| **D.2: Verify "Frequently Bought Together"** | ✅ VERIFIED | Section exists and works (lines 775-863) |
+| **D.3: Verify "You May Also Like"** | ✅ VERIFIED | Section exists and works (lines 866-912) |
+| **D.4: Announcement Bar** | ✅ ALREADY WORKING | Data exists in Sanity, integrated in header |
+
+### 📁 Files Modified This Session
+
+| File | Change |
+|------|--------|
+| `src/lib/sanity/stores.ts` | Added `topProducts` to GROQ queries for growers |
+| `src/lib/sanity/stores.ts` | Updated interfaces (SanityStore, TransformedStore) |
+| `src/lib/sanity/stores.ts` | Updated transformStore function to include topProducts |
+| `src/app/stores/[slug]/page.tsx` | Enhanced "Meet Our Growers" UI with product display |
+| `src/components/cms/AnnouncementBar.tsx` | Created reusable component (already integrated in header) |
+| `scripts/setup-announcement-bar.js` | Script to verify/create announcement bar data |
+| `scripts/check-grower-products.js` | Script to verify grower-product relationships |
+
+### 🔍 Data Verification Results
+
+**Announcement Bar:** ✅ Enabled in Sanity
+```json
+{
+  "enabled": true,
+  "message": "🎉 Free Shipping on Orders Over ₱1,500! Use code FREESHIP",
+  "link": "/shop",
+  "linkText": "Shop Now",
+  "backgroundColor": "#1E392A",
+  "textColor": "#FFFFFF"
+}
+```
+
+**Grower Products:** ✅ All 4 growers have products linked
+- Fungi Fresh Farms: 4 products ✅
+- Kabutehan ni Aling Nena: 4 products ✅
+- Shroomz: 4 products ✅
+- The Mushroom Patch Bukidnon: 3 products ✅
+
+**Store Growers:** ✅ All 4 stores have growers with products
+- MASH Main Store - Novaliches: 4 growers, all with products ✅
+- Caloocan Pickup Point: 2 growers, all with products ✅
+- Commonwealth Pickup Point: 2 growers, all with products ✅
+- Organic Market QC: 2 growers, all with products ✅
+
+### 🌐 Test URLs (Dev Server at port 3001)
+
+| Page | URL | Features |
+|------|-----|----------|
+| **Homepage** | http://localhost:3001 | Announcement Bar at top |
+| **Store with Growers** | http://localhost:3001/stores/mash-novaliches-main | "Meet Our Growers" + Top Products |
+| **Product Detail** | http://localhost:3001/product/fresh-oyster-mushrooms | "Frequently Bought Together" + "You May Also Like" |
+| **Shop Page** | http://localhost:3001/shop | Category filtering |
+
+---
+
+## 🚨 DISCOVERY: ALL PHASE D FEATURES WERE ALREADY IMPLEMENTED!
+
+**User assumed these features were missing - they were NOT!**
+
+| Feature | Status | File Location | Lines |
+|---------|--------|---------------|-------|
+| **"Meet Our Growers" on Stores** | ✅ EXISTS (Now Enhanced!) | `src/app/stores/[slug]/page.tsx` | 580-695 |
+| **"Frequently Bought Together"** | ✅ EXISTS | `src/app/(shop)/product/[slug]/page.tsx` | 775-863 |
+| **"You May Also Like"** | ✅ EXISTS | `src/app/(shop)/product/[slug]/page.tsx` | 866-912 |
+| **Announcement Bar** | ✅ EXISTS | `src/components/layout/header.tsx` | 296-309 |
+
+**Enhancement Made:** Added grower's TOP PRODUCTS to "Meet Our Growers" cards on store pages.
+
+---
+
 ## 📋 Table of Contents
 
-1. [Session 11 Accomplishments](#-session-11-accomplishments-december-3-2025)
-2. [Current Schema Layout](#-current-schema-layout)
-3. [Improvement Phases (Roadmap)](#-improvement-phases-roadmap)
-4. [Customer Journey Flow](#-customer-journey-flow)
-5. [Next Steps Guide](#-next-steps-phase-d---marketing-enhancements)
-6. [Schema Reference](#-complete-sanity-schema-reference)
-7. [Previous Sessions](#-session-10-accomplishments-december-2-2025)
+1. [Session 12 Accomplishments](#-session-12-accomplishments-december-3-2025---phase-d-complete)
+2. [Session 11 Accomplishments](#-session-11-accomplishments-december-3-2025)
+3. [Current Schema Layout](#-current-schema-layout)
+4. [Improvement Phases (Roadmap)](#-improvement-phases-roadmap)
+5. [Phase D Implementation Guide](#-phase-d-implementation-guide-next-session)
+6. [Customer Journey Flow](#-customer-journey-flow)
+7. [Schema Reference](#-complete-sanity-schema-reference)
+8. [Previous Sessions](#-session-10-accomplishments-december-2-2025)
 
 ---
 
@@ -185,91 +261,53 @@ Products → Complementary: 15/15 linked ✅
 | A | Data Population | 🔴 Critical | 4h | ✅ COMPLETE |
 | B | Data Verification | 🔴 Critical | 2h | ✅ COMPLETE |
 | C | Store & Grower Enhancements | 🟠 High | 4h | ✅ COMPLETE |
-| **D** | **Marketing Enhancements** | 🟠 High | 6h | 🟡 NEXT |
-| E | Search & Discovery | 🟡 Medium | 4h | ⏳ Planned |
+| **D** | **Marketing Enhancements** | 🟠 High | 6h | ✅ COMPLETE (Session 12) |
+| E | Search & Discovery | 🟡 Medium | 4h | 🟡 NEXT |
 | F | User Experience | 🟡 Medium | 5h | ⏳ Planned |
 | G | Analytics & Tracking | 🟢 Low | 3h | ⏳ Future |
 | H | Multi-language Support | 🟢 Low | 8h | ⏳ Future |
 
 ---
 
-### 🟡 PHASE D: MARKETING ENHANCEMENTS (NEXT - 6 hours)
+### ✅ PHASE D: MARKETING ENHANCEMENTS (COMPLETED!)
 
 **Priority:** 🟠 High  
-**Status:** Ready to Start  
+**Status:** ✅ COMPLETE (December 3, 2025 - Session 12)  
 **Goal:** Improve conversion with marketing features
 
-#### D.1: "Meet Our Growers" on Store Pages ⚠️ MISSING FEATURE
+#### D.1: "Meet Our Growers" + Top Products ✅ DONE
 
-**Current State:** Store pages don't prominently feature the growers that supply them.
+**What Was Done:**
+- Updated GROQ query in `src/lib/sanity/stores.ts` to include grower's top products
+- Added `topProducts` field to both `SanityStore` and `TransformedStore` interfaces
+- Enhanced "Meet Our Growers" UI in `src/app/stores/[slug]/page.tsx`:
+  - Shows grower cards with image, name, tagline, verified badge, rating
+  - NEW: Displays top 3 products with thumbnails, names, and prices
+  - Products link directly to product detail pages
 
-**Schema Relationship:**
-- `store.growers[]` → references to grower documents
-- `grower.suppliesTo[]` → references to store documents
-- Bidirectional links exist in data but UI doesn't showcase them
+**Files Modified:**
+- `src/lib/sanity/stores.ts` - GROQ queries, interfaces, transform function
+- `src/app/stores/[slug]/page.tsx` - Enhanced UI with product display
 
-**Required Changes:**
+#### D.2: Homepage Marketing Sections ✅ VERIFIED
 
-**File:** `src/app/stores/[slug]/page.tsx`
-```tsx
-// Add "Meet Our Growers" section after store info
-<section className="mt-8">
-  <h2 className="text-xl font-semibold mb-4">🌱 Meet Our Growers</h2>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {store.growers?.map((grower) => (
-      <GrowerCard 
-        key={grower._id}
-        grower={grower}
-        showProducts={true}  // Show top 3 products
-      />
-    ))}
-  </div>
-</section>
-```
+| Section | Component | Data Source | Status |
+|---------|-----------|-------------|--------|
+| Announcement Bar | `header.tsx` (integrated) | siteSettings.announcementBar | ✅ Working |
+| Hero Carousel | `SanityHeroCarousel` | heroCarousel | ✅ Working |
+| Featured Products | `useSanityFeaturedProducts` | featuredProducts | ✅ Working |
+| Feature Section | `SanityFeatureSection` | featureSection | ✅ Working |
 
-**GROQ Query Update:** `src/lib/sanity/stores.ts`
-```groq
-growers[]-> {
-  _id,
-  name,
-  slug,
-  tagline,
-  logo,
-  "topProducts": products[0...3]-> {
-    _id,
-    name,
-    slug,
-    price,
-    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
-  }
-}
-```
+#### D.3: Product Page Marketing ✅ VERIFIED
 
-**Estimated Time:** 1 hour
-
-#### D.2: Homepage Marketing Sections
-
-| Section | Component | Data Source | Status | Time |
-|---------|-----------|-------------|--------|------|
-| Announcement Bar | `AnnouncementBar.tsx` | siteSettings | ❌ Not integrated | 30m |
-| Promotional Banner | `BannerSection.tsx` | banners | ⚠️ Needs testing | 30m |
-| Newsletter Signup | New component | New collection | ❌ Not created | 1h |
-| Trust Badges | New component | Static/CMS | ❌ Not created | 30m |
-| "Shop by Category" Grid | New component | categories | ⚠️ Basic exists | 1h |
-
-#### D.3: Product Page Enhancements
-
-| Feature | Status | Priority | Time |
-|---------|--------|----------|------|
-| "Frequently Bought Together" | ⚠️ Data exists, UI missing | 🟠 High | 45m |
-| Freshness indicator badge | ❌ Not implemented | 🟡 Medium | 30m |
-| Storage tips tooltip | ❌ Not implemented | 🟡 Medium | 30m |
-| Recipe ideas section | ❌ Not implemented | 🟢 Low | 1h |
-| Grower attribution card | ⚠️ Partial | 🟡 Medium | 30m |
+| Section | Lines | Data Source | Status |
+|---------|-------|-------------|--------|
+| "Frequently Bought Together" | 775-863 | complementaryProducts[] | ✅ Working (10% bundle) |
+| "You May Also Like" | 866-912 | suggestedProducts[] | ✅ Working |
 
 ---
 
-### 🟡 PHASE E: SEARCH & DISCOVERY (4 hours)
+### 🟡 PHASE E: SEARCH & DISCOVERY (NEXT - 4 hours)
 
 **Goal:** Help customers find products faster
 
@@ -290,6 +328,15 @@ growers[]-> {
 | **Freshness filter** | "Harvested today", "This week" | 30m |
 | **Availability filter** | In stock, Low stock, Coming soon | 30m |
 | **Diet tags** | Organic, Vegan, Keto-friendly | 30m |
+
+#### E.3: Homepage Marketing (Nice-to-Have)
+
+| Section | Component | Status | Time |
+|---------|-----------|--------|------|
+| Promotional Banner | `BannerSection.tsx` | ⚠️ Needs testing | 30m |
+| Newsletter Signup | New component | ❌ Not created | 1h |
+| Trust Badges | New component | ❌ Not created | 30m |
+| "Shop by Category" Grid | Improve existing | ⚠️ Basic exists | 1h |
 
 ---
 
@@ -430,37 +477,850 @@ growers[]-> {
 
 ---
 
-## 🎯 NEXT STEPS: PHASE D - MARKETING ENHANCEMENTS
+## ✅ PHASE D COMPLETED - MARKETING ENHANCEMENTS
 
-### Immediate Actions (This Session)
+### Completed Actions (Session 12)
 
-1. **"Meet Our Growers" Section** (1 hour)
-   - Update `src/lib/sanity/stores.ts` query to include grower products
-   - Add GrowerCard section to store detail page
-   - Test with all 4 stores
+1. **"Meet Our Growers" Section** ✅ DONE
+   - Updated `src/lib/sanity/stores.ts` query to include grower's top products
+   - Enhanced UI to show product thumbnails, names, and prices
+   - All 4 stores now show growers with their products
 
-2. **Announcement Bar** (30 min)
-   - Integrate siteSettings.announcementBar
-   - Add dismiss functionality
-   - Test on homepage
+2. **Announcement Bar** ✅ ALREADY WORKING
+   - Data exists in Sanity siteSettings
+   - Already integrated in `src/components/layout/header.tsx`
+   - Shows "🎉 Free Shipping on Orders Over ₱1,500!"
 
-3. **"Frequently Bought Together"** (45 min)
-   - Add UI section on product page
-   - Use `complementaryProducts[]` data
-   - Add "Add All to Cart" button
+3. **"Frequently Bought Together"** ✅ VERIFIED
+   - Section exists at product page lines 775-863
+   - Uses `complementaryProducts[]` data with 10% bundle discount
+   - "Add Bundle to Cart" button working
 
-### Quick Start Commands
+4. **"You May Also Like"** ✅ VERIFIED
+   - Section exists at product page lines 866-912
+   - Uses `suggestedProducts[]` data
+   - Shows 4 suggested products
+
+### Test Commands
 
 ```bash
 # Start dev server
 cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
 npm run dev
 
-# Test URLs (port may vary):
-# - Store with growers: http://localhost:3002/stores/mash-novaliches-main
-# - Grower with products: http://localhost:3002/grower/fungi-fresh-farms
-# - Product with suggestions: http://localhost:3002/product/fresh-oyster-mushrooms
+# Current Test URLs (port 3001):
+# - Homepage (Announcement Bar): http://localhost:3001
+# - Store with growers + products: http://localhost:3001/stores/mash-novaliches-main
+# - Product with suggestions: http://localhost:3001/product/fresh-oyster-mushrooms
 ```
+
+---
+
+## 🎯 NEXT STEPS: PHASE E - ADVANCED FEATURES
+
+### Future Improvements
+
+1. **Category Page Enhancements** (Phase E)
+   - Add advanced filters (price range, in-stock)
+   - Add sorting options
+   - Add pagination
+
+2. **Search Enhancement** (Phase E)
+   - Implement fuzzy search
+   - Add search suggestions
+   - Search by grower/category
+
+3. **Order & Checkout** (Phase F)
+   - Integrate order schema with checkout flow
+   - Add coupon/promotion support
+   - Stock management
+
+---
+
+## 🔴 KNOWN ISSUES & IMPROVEMENTS LIST
+
+### Critical Issues - ALL FIXED! ✅
+
+| # | Issue | Location | Impact | Solution | Status |
+|---|-------|----------|--------|----------|--------|
+| 1 | Product images show placeholder | Grower page, Category page | ⚠️ High | Use `coalesce()` in GROQ | ✅ FIXED |
+| 2 | ProductCard wrong URLs | `/grower/[id]` page | ⚠️ High | Pass `slug` prop | ✅ FIXED |
+| 3 | Store page server error | `/stores/[slug]` | ⚠️ High | Server-side fetch | ✅ FIXED |
+| 4 | Missing `_key` in arrays | Grower `suppliesTo` | ⚠️ Medium | Run fix script | ✅ FIXED |
+
+### UI/UX Improvements - Phase D Complete!
+
+| # | Feature | Before | After | Status |
+|---|---------|--------|-------|--------|
+| 1 | **"Meet Our Growers" on Stores** | Basic cards | Cards with top products | ✅ DONE |
+| 2 | **"Frequently Bought Together"** | Existed but unverified | Verified working | ✅ VERIFIED |
+| 3 | **"You May Also Like"** | Existed but unverified | Verified working | ✅ VERIFIED |
+| 4 | **Announcement Bar** | Not connected | Already working | ✅ VERIFIED |
+
+### Future UI/UX Improvements (Phase E+)
+
+| # | Feature | Current State | Improvement | Priority | Phase |
+|---|---------|---------------|-------------|----------|-------|
+| 1 | **Category Page Products** | ⚠️ Basic grid | Add filters, sorting, pagination | 🟠 Medium | E |
+| 4 | **Announcement Bar** | ❌ Not connected | Connect to siteSettings CMS | 🟠 Medium | D |
+| 5 | **Product Freshness Badge** | ❌ Not shown | Display "Harvested Today" badge | 🟡 Low | D |
+| 6 | **Grower Attribution** | ⚠️ Partial | Show grower card on product page | 🟡 Low | D |
+| 7 | **Search Autocomplete** | ❌ Basic search | Suggest products while typing | 🟡 Low | E |
+| 8 | **Mobile Bottom Nav** | ❌ Missing | Fixed bottom navigation | 🟡 Low | F |
+
+### Schema Improvements Needed
+
+| # | Schema | Current Fields | Missing Fields | Reason |
+|---|--------|----------------|----------------|--------|
+| 1 | `store.ts` | growers[] | products[] | Show products available at store |
+| 2 | `product.ts` | suggestedProducts[] | grower (reference) | Link product to its grower |
+| 3 | `product.ts` | freshnessInfo | harvestDate (date) | Track actual harvest date |
+| 4 | `siteSettings.ts` | announcementBar | announcementBarEnabled | Toggle visibility |
+| 5 | `store.ts` | services[] | popularProducts[] | Show bestsellers at store |
+
+---
+
+## 📋 DETAILED SCHEMA DOCUMENTATION
+
+### 1. Product Schema (`studio/src/schemaTypes/documents/product.ts`)
+
+**Total Fields:** 30+  
+**Groups:** Basic, Pricing, Inventory, Category, Media, SEO
+
+```typescript
+// Key Fields Structure
+{
+  name: string,                    // "Fresh Oyster Mushrooms"
+  slug: { current: string },       // "fresh-oyster-mushrooms"
+  image: { asset: { _ref } },      // Main product image
+  images: [{ asset }],             // Gallery images
+  category: reference,             // → category document
+  price: number,                   // 350 (in PHP)
+  compareAtPrice: number,          // Original price if on sale
+  
+  // Promo System
+  isOnPromo: boolean,
+  promoType: "percentage" | "fixed",
+  promoPercentage: number,         // 20 for 20% off
+  promoPrice: number,              // Fixed promo price
+  promoEndDate: datetime,
+  
+  // Inventory
+  quantity: number,                // Stock count
+  isAvailable: boolean,
+  lowStockThreshold: number,       // Alert when below
+  
+  // Recommendations (WORKING ✅)
+  suggestedProducts: reference[],  // "You May Also Like"
+  complementaryProducts: reference[], // "Frequently Bought Together"
+  
+  // Freshness (Optional)
+  freshnessInfo: {
+    harvestWindow: string,
+    shelfLife: string,
+    storageInstructions: string,
+    qualityIndicators: string[]
+  },
+  
+  // Tags & Discovery
+  productTags: string[],           // ["fresh", "organic", "gourmet"]
+  searchKeywords: string[],
+  isFeatured: boolean
+}
+```
+
+**GROQ Query Example:**
+```groq
+*[_type == "product" && slug.current == $slug][0] {
+  _id,
+  name,
+  price,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+  "images": images[].asset->url,
+  category-> { name, slug },
+  suggestedProducts[]-> {
+    _id, name, slug, price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  },
+  complementaryProducts[]-> {
+    _id, name, slug, price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  }
+}
+```
+
+---
+
+### 2. Store Schema (`studio/src/schemaTypes/documents/store.ts`)
+
+**Total Fields:** 18  
+**Groups:** Basic, Location, Hours, Contact, Services, Media
+
+```typescript
+// Key Fields Structure
+{
+  name: string,                    // "MASH Main Store - Novaliches"
+  slug: { current: string },       // "mash-novaliches-main"
+  storeType: "main" | "pickup" | "partner" | "distribution",
+  description: string,
+  isActive: boolean,
+  isFeatured: boolean,
+  sortOrder: number,
+  
+  // Location
+  address: {
+    street: string,                // "1019 Quirino Highway"
+    city: string,                  // "Novaliches, Quezon City"
+    state: string,                 // "Metro Manila"
+    zipCode: string,
+    landmark: string
+  },
+  coordinates: { lat: number, lng: number },
+  directionsUrl: string,           // Google Maps link
+  
+  // Operating Hours
+  operatingHours: {
+    monday: string,                // "8:00 AM - 6:00 PM"
+    tuesday: string,
+    // ... all days
+    sunday: string
+  },
+  hoursNote: string,               // "Closed on holidays"
+  isOpen24Hours: boolean,
+  
+  // Contact
+  phone: string,
+  email: string,
+  whatsapp: string,
+  
+  // Services
+  services: string[],              // ["pickup", "same-day-delivery"]
+  deliveryZones: string[],
+  pickupInstructions: string,
+  
+  // Relationships
+  growers: reference[],            // → grower documents
+  // ⚠️ MISSING: products[] - Should show products at this store
+}
+```
+
+**Current GROQ Query:**
+```groq
+*[_type == "store" && slug.current == $slug][0] {
+  _id,
+  name,
+  slug,
+  storeType,
+  address,
+  operatingHours,
+  phone,
+  email,
+  growers[]-> {
+    _id,
+    name,
+    slug,
+    tagline,
+    "logo": logo.asset->url,
+    specialties
+  }
+}
+```
+
+**⚠️ IMPROVEMENT NEEDED:** Add grower products to query:
+```groq
+growers[]-> {
+  _id,
+  name,
+  slug,
+  tagline,
+  "logo": logo.asset->url,
+  "topProducts": products[0...3]-> {
+    _id, name, slug, price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  }
+}
+```
+
+---
+
+### 3. Grower Schema (`studio/src/schemaTypes/documents/grower.ts`)
+
+**Total Fields:** 25+  
+**Groups:** Basic, Contact, Location, Products, Social, Settings
+
+```typescript
+// Key Fields Structure
+{
+  name: string,                    // "Fungi Fresh Farms"
+  slug: { current: string },       // "fungi-fresh-farms"
+  logo: image,                     // Farm logo/photo
+  coverImage: image,               // Banner image
+  tagline: string,                 // "Urban-grown gourmet mushrooms"
+  description: string,
+  story: blockContent[],           // Rich text story
+  
+  // Contact
+  phone: string,
+  email: string,
+  operatingHours: string,          // "7AM - 9PM, Mon-Fri"
+  
+  // Location
+  location: string,                // Short: "Caloocan City"
+  address: string,                 // Full address
+  coordinates: { lat, lng },
+  deliveryZones: string[],
+  
+  // Products
+  products: reference[],           // All products (✅ ADDED Session 11)
+  featuredProducts: reference[],   // Products to showcase (max 8)
+  suppliesTo: reference[],         // Store locations
+  specialties: string[],           // ["oyster", "shiitake"]
+  
+  // Certifications
+  certifications: string[],        // ["organic", "gap", "fda"]
+  
+  // Social
+  socialLinks: {
+    facebook: url,
+    instagram: url,
+    tiktok: url,
+    website: url
+  },
+  
+  // Settings
+  isFeatured: boolean,
+  isActive: boolean,
+  isVerified: boolean,
+  sortOrder: number,
+  joinedDate: date
+}
+```
+
+---
+
+### 4. Singletons Reference
+
+#### `heroCarousel` (Homepage Hero)
+```typescript
+{
+  slides: [{
+    _key: string,
+    title: string,
+    subtitle: string,
+    buttonText: string,
+    buttonLink: string,
+    image: image,
+    backgroundColor: string
+  }]
+}
+```
+
+#### `featuredProducts` (Homepage Featured)
+```typescript
+{
+  title: string,                   // "Our Bestsellers"
+  subtitle: string,
+  products: reference[]            // → product documents (max 8)
+}
+```
+
+#### `siteSettings` (Global Config)
+```typescript
+{
+  siteName: string,
+  siteDescription: string,
+  logo: image,
+  favicon: image,
+  
+  // Contact
+  email: string,
+  phone: string,
+  address: string,
+  
+  // Social
+  socialLinks: { facebook, instagram, twitter, youtube },
+  
+  // SEO
+  defaultMetaTitle: string,
+  defaultMetaDescription: string,
+  
+  // Announcement Bar (⚠️ NOT CONNECTED TO UI)
+  announcementBar: {
+    enabled: boolean,
+    message: string,
+    link: string,
+    backgroundColor: string
+  }
+}
+```
+
+---
+
+## 🔄 DATA FLOW ARCHITECTURE
+
+### How Data Flows from Sanity to Frontend
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA FLOW DIAGRAM                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  SANITY STUDIO (localhost:3333)                                      │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │  Content Editor makes changes:                           │        │
+│  │  • Add/edit products, growers, stores                    │        │
+│  │  • Upload images                                         │        │
+│  │  • Link relationships (suggestions, growers→stores)      │        │
+│  │  • Publish changes → Saved to Sanity Cloud               │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        │                                                             │
+│        ▼                                                             │
+│  SANITY CLOUD (xyq5fhxs.api.sanity.io)                              │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │  • Stores all documents                                  │        │
+│  │  • Hosts images via CDN (cdn.sanity.io)                 │        │
+│  │  • Provides GROQ API for queries                        │        │
+│  │  • 10M API calls/month (Growth Trial)                   │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        │                                                             │
+│        ▼                                                             │
+│  NEXT.JS HOOKS (src/hooks/useSanity*.ts)                            │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │  • useSanityProducts() → Fetch all products              │        │
+│  │  • useSanityProduct(slug) → Fetch single product         │        │
+│  │  • useSanityCategories() → Fetch categories              │        │
+│  │  • useSanityGrowers() → Fetch growers                    │        │
+│  │  • useSanityStores() → Fetch stores                      │        │
+│  │  • Each hook: GROQ query → Transform → Cache → Return    │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│        │                                                             │
+│        ▼                                                             │
+│  REACT COMPONENTS (src/app/**/page.tsx)                             │
+│  ┌─────────────────────────────────────────────────────────┐        │
+│  │  • Receive data from hooks                               │        │
+│  │  • Render UI with Sanity data                           │        │
+│  │  • Handle user interactions                              │        │
+│  └─────────────────────────────────────────────────────────┘        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Files for Each Feature
+
+| Feature | Hook | Page | Schema |
+|---------|------|------|--------|
+| **Products** | `useSanityProducts.ts` | `shop/page.tsx` | `product.ts` |
+| **Product Detail** | `useSanityProduct()` | `product/[slug]/page.tsx` | `product.ts` |
+| **Categories** | `useSanityCategories.ts` | `shop/page.tsx` | `category.ts` |
+| **Growers** | `useSanityGrowers.ts` | `grower/page.tsx` | `grower.ts` |
+| **Grower Detail** | `useSanityGrower()` | `grower/[id]/page.tsx` | `grower.ts` |
+| **Stores** | `useSanityStores.ts` | `stores/page.tsx` | `store.ts` |
+| **Store Detail** | `fetchStoreBySlug()` | `stores/[slug]/page.tsx` | `store.ts` |
+| **Hero** | `useSanityHero.ts` | Homepage | `heroCarousel.ts` |
+| **Featured** | `useSanityFeaturedProducts()` | Homepage | `featuredProducts.ts` |
+
+---
+
+## ⚙️ ENVIRONMENT CONFIGURATION
+
+### Required Environment Variables
+
+**File:** `.env.local` (root directory)
+
+```env
+# Sanity CMS Configuration
+NEXT_PUBLIC_SANITY_PROJECT_ID=xyq5fhxs          # Project ID
+NEXT_PUBLIC_SANITY_DATASET=production            # Dataset name
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26        # API version
+SANITY_API_READ_TOKEN=sks0e1wi...                # Read-only token
+SANITY_API_WRITE_TOKEN=skg6OmFJ...               # Write token (for scripts)
+
+# Feature Flags
+NEXT_PUBLIC_USE_MOCK_DATA=false                  # false = use Sanity CMS
+NEXT_PUBLIC_SANITY_REALTIME_ENABLED=true         # Real-time updates
+
+# Google Maps (for store/grower maps)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyDY...
+
+# Lalamove (same-day delivery)
+LALAMOVE_API_KEY=pk_test_8611...
+LALAMOVE_API_SECRET=sk_test_KeCm...
+LALAMOVE_HOST=https://rest.lalamove.com
+LALAMOVE_MARKET=PH
+
+# Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-5XD8QWQP6J
+```
+
+### Sanity Studio Configuration
+
+**File:** `studio/.env` (studio directory)
+
+```env
+SANITY_STUDIO_PROJECT_ID=xyq5fhxs
+SANITY_STUDIO_DATASET=production
+```
+
+---
+
+## 📋 PHASE D: IMPLEMENTATION GUIDE (NEXT SESSION)
+
+### Overview: What Exists vs What Needs Work
+
+| Feature | Schema Exists | Data Exists | UI Exists | Status |
+|---------|--------------|-------------|-----------|--------|
+| **"Meet Our Growers" on Stores** | ✅ `store.growers[]` | ✅ 4/4 linked | ✅ Enhanced! | ✅ DONE (+ Top Products) |
+| **"Frequently Bought Together"** | ✅ `complementaryProducts[]` | ✅ 15/15 linked | ✅ Lines 775-863 | ✅ VERIFIED |
+| **"You May Also Like"** | ✅ `suggestedProducts[]` | ✅ 15/15 linked | ✅ Lines 866-912 | ✅ VERIFIED |
+| **Announcement Bar** | ✅ `siteSettings.announcementBar` | ✅ Enabled | ✅ header.tsx | ✅ WORKING |
+
+---
+
+### D.1: "Meet Our Growers" Enhancement ✅ COMPLETED
+
+**Status:** ✅ DONE (Session 12)  
+**Location:** `src/app/stores/[slug]/page.tsx` lines 580-695
+
+**What Was Done:**
+- Updated GROQ query to include grower's top products
+- Added product thumbnails, names, and prices to grower cards
+- All 4 stores now show growers with their top 3 products
+
+**Files Modified:**
+- `src/lib/sanity/stores.ts` - Added `topProducts` to GROQ query
+- `src/app/stores/[slug]/page.tsx` - Enhanced UI with product display
+
+**GROQ Query (Already Applied):**
+
+```groq
+growers[]-> {
+  _id,
+  name,
+  slug,
+  tagline,
+  isVerified,
+  image,
+  specialties,
+  rating,
+  "topProducts": products[0...3]-> {
+    _id,
+    name,
+    "slug": slug.current,
+    price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  }
+}
+growers[]-> {
+  _id,
+  name,
+  slug,
+  tagline,
+  isVerified,
+  rating,
+  "logo": logo.asset->url,
+  specialties,
+  "topProducts": products[0...3]-> {
+    _id,
+    name,
+    "slug": slug.current,
+    price,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+  }
+}
+```
+
+**UI Update - Add Products Display:**
+
+**File:** `src/app/stores/[slug]/page.tsx`
+
+After the grower info section (around line 640), add:
+
+```tsx
+{/* Grower's Top Products */}
+{grower.topProducts && grower.topProducts.length > 0 && (
+  <div className="mt-3 pt-3 border-t">
+    <p className="text-xs text-muted-foreground mb-2">Top Products:</p>
+    <div className="flex gap-2">
+      {grower.topProducts.slice(0, 3).map((product) => (
+        <Link
+          key={product._id}
+          href={`/product/${product.slug}`}
+          className="flex items-center gap-2 text-xs bg-muted/50 px-2 py-1 rounded hover:bg-muted transition-colors"
+        >
+          {product.mainImage && (
+            <Image
+              src={product.mainImage}
+              alt={product.name}
+              width={24}
+              height={24}
+              className="rounded object-cover"
+            />
+          )}
+          <span className="truncate max-w-[80px]">{product.name}</span>
+        </Link>
+      ))}
+    </div>
+  </div>
+)}
+```
+
+---
+
+### D.2: Verify "Frequently Bought Together" (15 min)
+
+**Current State:** ✅ Already implemented  
+**Location:** `src/app/(shop)/product/[slug]/page.tsx` lines 775-863
+
+**What's Working:**
+- Shows current product + 2 complementary products
+- Calculates 10% bundle discount
+- "Add Bundle to Cart" button works
+
+**Verification Steps:**
+
+1. Start dev server: `npm run dev`
+2. Visit: `http://localhost:3000/product/fresh-oyster-mushrooms`
+3. Scroll to "⚡ Frequently Bought Together" section
+4. Verify images display correctly (not placeholders)
+5. Check that "+ Add Bundle to Cart" works
+
+**If Images Don't Display:**
+
+The GROQ query in `useSanityProduct()` may need the `coalesce()` fix:
+
+**File:** `src/hooks/useSanityProducts.ts` (find `useSanityProduct` function)
+
+```groq
+// Ensure complementaryProducts query uses coalesce:
+complementaryProducts[]-> {
+  _id,
+  name,
+  "slug": slug.current,
+  price,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url)
+}
+```
+
+---
+
+### D.3: Verify "You May Also Like" (15 min)
+
+**Current State:** ✅ Already implemented  
+**Location:** `src/app/(shop)/product/[slug]/page.tsx` lines 866-912
+
+**What's Working:**
+- Shows 4 suggested products in grid
+- Links to product pages
+- Shows sale/featured badges
+
+**Verification Steps:**
+
+1. Visit: `http://localhost:3000/product/fresh-oyster-mushrooms`
+2. Scroll to "You May Also Like" section
+3. Verify 4 products display with images
+4. Click a product to verify navigation works
+
+**If Images Don't Display:**
+
+Same fix as D.2 - ensure `suggestedProducts` query uses `coalesce()`.
+
+---
+
+### D.4: Announcement Bar Implementation (45 min) 🔴 NEW
+
+**Current State:** ❌ Not connected to UI  
+**Schema Location:** `studio/src/schemaTypes/singletons/siteSettings.ts`
+
+**Step 1: Check if Announcement Bar Data Exists**
+
+Run this script:
+
+```bash
+node -e "
+const { createClient } = require('@sanity/client');
+require('dotenv').config({ path: '.env.local' });
+
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: 'production',
+  apiVersion: '2024-11-26',
+  token: process.env.SANITY_API_READ_TOKEN,
+  useCdn: false
+});
+
+client.fetch(\`*[_type == 'siteSettings'][0] {
+  announcementBar
+}\`).then(data => {
+  console.log('Announcement Bar Data:');
+  console.log(JSON.stringify(data, null, 2));
+});
+"
+```
+
+**Step 2: Create AnnouncementBar Component**
+
+**File:** `src/components/cms/AnnouncementBar.tsx` (NEW FILE)
+
+```tsx
+"use client";
+
+import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import Link from 'next/link';
+import { sanityClient } from '@/lib/sanity/client';
+
+interface AnnouncementBarData {
+  enabled: boolean;
+  message: string;
+  link?: string;
+  linkText?: string;
+  backgroundColor?: string;
+  textColor?: string;
+}
+
+export function AnnouncementBar() {
+  const [data, setData] = useState<AnnouncementBarData | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    // Check if user already dismissed
+    const isDismissed = sessionStorage.getItem('announcementDismissed');
+    if (isDismissed) {
+      setDismissed(true);
+      return;
+    }
+
+    // Fetch announcement bar data from Sanity
+    sanityClient
+      .fetch(`*[_type == "siteSettings"][0].announcementBar`)
+      .then((result) => {
+        if (result?.enabled) {
+          setData(result);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const handleDismiss = () => {
+    sessionStorage.setItem('announcementDismissed', 'true');
+    setDismissed(true);
+  };
+
+  if (!data || dismissed || !data.enabled) return null;
+
+  const bgColor = data.backgroundColor || '#1E392A';
+  const textColor = data.textColor || '#FFFFFF';
+
+  return (
+    <div
+      className="relative py-2 px-4 text-center text-sm font-medium"
+      style={{ backgroundColor: bgColor, color: textColor }}
+    >
+      <div className="container mx-auto flex items-center justify-center gap-2">
+        <span>{data.message}</span>
+        {data.link && data.linkText && (
+          <Link
+            href={data.link}
+            className="underline hover:no-underline font-semibold"
+          >
+            {data.linkText}
+          </Link>
+        )}
+      </div>
+      <button
+        onClick={handleDismiss}
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:opacity-70 transition-opacity"
+        aria-label="Dismiss announcement"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+```
+
+**Step 3: Add to Layout**
+
+**File:** `src/app/layout.tsx` or `src/components/Header.tsx`
+
+```tsx
+import { AnnouncementBar } from '@/components/cms/AnnouncementBar';
+
+// Add BEFORE the main header:
+<AnnouncementBar />
+<Header />
+```
+
+**Step 4: Add Data in Sanity Studio**
+
+1. Open Sanity Studio: `http://localhost:3333`
+2. Go to "Site Settings"
+3. Find "Announcement Bar" section
+4. Fill in:
+   - **Enabled:** ✅ Check
+   - **Message:** "🍄 FREE SHIPPING on orders over ₱1,500!"
+   - **Link:** "/shop"
+   - **Link Text:** "Shop Now"
+   - **Background Color:** "#1E392A" (primary dark)
+   - **Text Color:** "#FFFFFF" (white)
+5. Publish
+
+**Step 5: Verify**
+
+1. Refresh homepage
+2. See announcement bar at top
+3. Click "Shop Now" to verify link
+4. Click X to dismiss
+5. Refresh - should stay dismissed (session storage)
+
+---
+
+### D.5: Quick Test Commands
+
+```bash
+# Start development server
+cd "C:\Users\Kenneth\Desktop\PP Namias\MASH-Ecommerce-Web"
+npm run dev
+
+# Test URLs:
+# Homepage:                   http://localhost:3000
+# Store with Growers:         http://localhost:3000/stores/mash-novaliches-main
+# Product with Suggestions:   http://localhost:3000/product/fresh-oyster-mushrooms
+# Shop (all products):        http://localhost:3000/shop
+
+# Run data verification:
+node scripts/quick-audit.js
+
+# Check product images:
+node scripts/check-product-images.js
+
+# Check grower-store links:
+node scripts/check-growers-stores.js
+```
+
+---
+
+### D.6: Files to Modify Summary
+
+| Task | File | Lines | Change |
+|------|------|-------|--------|
+| Grower Products Query | `src/lib/sanity/stores.ts` | ~200 | Add `topProducts` to GROQ |
+| Grower Products UI | `src/app/stores/[slug]/page.tsx` | ~640 | Add product display |
+| Announcement Bar | `src/components/cms/AnnouncementBar.tsx` | NEW | Create component |
+| Announcement Bar | Already integrated in header | - | Already working |
+| Verify Images | All coalesce queries in place | - | Already fixed in Session 11 |
+
+---
+
+### D.7: Completion Summary
+
+| Task | Time | Status |
+|------|------|--------|
+| D.1: Grower Products on Stores | 30 min | ✅ DONE |
+| D.2: Verify Frequently Bought Together | 15 min | ✅ VERIFIED |
+| D.3: Verify You May Also Like | 15 min | ✅ VERIFIED |
+| D.4: Announcement Bar | - | ✅ ALREADY WORKING |
+| **Total** | **1 hour** | ✅ COMPLETE |
 
 ---
 
