@@ -151,6 +151,7 @@ export default function GrowerDetailPage() {
                     <ProductCard
                       key={p._id}
                       id={p._id}
+                      slug={p.slug?.current}
                       name={p.name}
                       farm={grower.name}
                       price={p.price}

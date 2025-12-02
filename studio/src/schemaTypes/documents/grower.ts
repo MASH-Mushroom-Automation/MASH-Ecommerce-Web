@@ -198,12 +198,20 @@ export const grower = defineType({
 
     // ===== PRODUCTS =====
     defineField({
+      name: 'products',
+      title: 'All Products',
+      type: 'array',
+      group: 'products',
+      of: [{type: 'reference', to: [{type: 'product'}]}],
+      description: 'All products from this grower (linked from product.grower reference)',
+    }),
+    defineField({
       name: 'featuredProducts',
       title: 'Featured Products',
       type: 'array',
       group: 'products',
       of: [{type: 'reference', to: [{type: 'product'}]}],
-      description: 'Products from this grower to showcase',
+      description: 'Products from this grower to showcase on homepage (max 8)',
       validation: (Rule) => Rule.max(8),
     }),
     defineField({

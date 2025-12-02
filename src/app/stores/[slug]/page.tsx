@@ -7,7 +7,8 @@ import {
   MessageCircle, CheckCircle, AlertCircle, ExternalLink,
   Calendar, Package, Leaf, Star, Users
 } from 'lucide-react';
-import { fetchStoreBySlug, fetchStores, TransformedStore } from '@/hooks/useSanityStores';
+// Use server-side store functions (not "use client" hooks) for generateStaticParams & generateMetadata
+import { fetchStoreBySlug, fetchStores, type TransformedStore } from '@/lib/sanity/stores';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
