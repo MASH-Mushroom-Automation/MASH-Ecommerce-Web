@@ -26,6 +26,8 @@ const publicRoutes = [
   "/product",
   "/about",
   "/grower",
+  "/stores",
+  "/shop",
   "/contact",
   "/faq",
   "/privacy",
