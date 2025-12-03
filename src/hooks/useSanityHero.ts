@@ -75,7 +75,10 @@ export function useSanityHero(): UseSanityHeroReturn {
           .map((slide, index) => ({
             ...slide,
             // Fill in missing required fields with defaults
+            title: slide.title || 'Welcome to MASH',
             subtitle: slide.subtitle || '',
+            buttonText: slide.buttonText || '',
+            buttonLink: slide.buttonLink || '',
             buttonStyle: slide.buttonStyle || 'primary',
             order: slide.order || (index + 1),
             isActive: slide.isActive !== false,

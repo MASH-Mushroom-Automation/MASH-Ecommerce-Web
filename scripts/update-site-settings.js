@@ -74,7 +74,7 @@ async function main() {
         // Footer Configuration
         footer: {
           aboutText: 'MASH connects you directly with local mushroom growers, bringing you the freshest, highest-quality mushrooms. From farm to table, we ensure quality every step of the way.',
-          copyrightText: '© {year} MASH Market. All rights reserved.',
+          copyrightText: '© 2025 MASH Market. All rights reserved.',
           showNewsletter: true,
           newsletterTitle: 'Stay Updated',
           newsletterDescription: 'Subscribe to get updates on new products, recipes, and special offers.'

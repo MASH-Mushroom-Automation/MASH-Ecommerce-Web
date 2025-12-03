@@ -176,17 +176,29 @@ export const SanityHeroCarousel: React.FC = () => {
                   {slide.subtitle}
                 </p>
               )}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Link href={slide.buttonLink}>
-                  <Button
-                    size="lg"
-                    variant={getButtonVariant(slide.buttonStyle)}
-                    className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-                  >
-                    {slide.buttonText}
-                  </Button>
-                </Link>
-              </div>
+              {slide.buttonText && (
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  {slide.buttonLink ? (
+                    <Link href={slide.buttonLink}>
+                      <Button
+                        size="lg"
+                        variant={getButtonVariant(slide.buttonStyle)}
+                        className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                      >
+                        {slide.buttonText}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      size="lg"
+                      variant={getButtonVariant(slide.buttonStyle)}
+                      className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                    >
+                      {slide.buttonText}
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -247,17 +259,29 @@ export const SanityHeroCarousel: React.FC = () => {
                           {slide.subtitle}
                         </p>
                       )}
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                        <Link href={slide.buttonLink}>
-                          <Button
-                            size="lg"
-                            variant={getButtonVariant(slide.buttonStyle)}
-                            className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-                          >
-                            {slide.buttonText}
-                          </Button>
-                        </Link>
-                      </div>
+                      {slide.buttonText && (
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                          {slide.buttonLink ? (
+                            <Link href={slide.buttonLink}>
+                              <Button
+                                size="lg"
+                                variant={getButtonVariant(slide.buttonStyle)}
+                                className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                              >
+                                {slide.buttonText}
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button
+                              size="lg"
+                              variant={getButtonVariant(slide.buttonStyle)}
+                              className="px-8 py-6 text-lg font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                            >
+                              {slide.buttonText}
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
