@@ -99,8 +99,9 @@ export const category = defineType({
     defineField({
       name: 'seoKeywords',
       title: 'SEO Keywords',
-      type: 'string',
-      description: 'Comma-separated keywords for search optimization',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Keywords for search optimization (add one keyword per item)',
     }),
   ],
   preview: {
