@@ -9,8 +9,9 @@ import { createClient } from "next-sanity";
 import imageUrlBuilder from "@sanity/image-url";
 import type { SanityImageSource } from "@sanity/image-url/lib/types/types";
 
-// Sanity project configuration - MASH CMS (xyq5fhxs)
-export const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "xyq5fhxs";
+// Sanity project configuration - PP_Namias Free Project (gerattrr)
+// Migrated from MASH CMS (xyq5fhxs) on December 6, 2025
+export const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "gerattrr";
 export const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
 export const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2024-11-26";
 // ALWAYS use CDN to reduce API quota usage (with longer cache)

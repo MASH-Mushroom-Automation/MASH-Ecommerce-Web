@@ -19,7 +19,7 @@ import {assist} from '@sanity/assist'
 
 // Environment variables for project configuration
 // ✅ MASH CMS Project (Growth Trial, 10M API calls/month)
-const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'xyq5fhxs'
+const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'gerattrr'
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
 
 // URL for preview functionality, defaults to localhost:3000 if not set

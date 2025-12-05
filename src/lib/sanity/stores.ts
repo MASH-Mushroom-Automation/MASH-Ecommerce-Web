@@ -211,7 +211,7 @@ function checkIsOpenNow(hours?: Record<string, string | undefined>, isOpen24Hour
 function buildImageUrl(ref?: string): string | undefined {
   if (!ref) return undefined;
   
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs';
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr';
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production';
   
   const parts = ref.replace('image-', '').split('-');

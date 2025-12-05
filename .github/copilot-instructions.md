@@ -1,8 +1,81 @@
 # MASH E-Commerce Platform - AI Coding Guide
 
-**Last Updated:** November 26, 2025  
-**Project Status:** Phase 2.5 Complete | Lalamove Integration Testing Phase  
-**✅ MIGRATION COMPLETE**: Sanity CMS successfully migrated to PP_Namias (gerattrr)
+**Last Updated:** December 6, 2025  
+**Project Status:** Phase 2.5 Complete | Sanity Migration to Free Project  
+**⚠️ MIGRATION REQUIRED**: Switch from MASH CMS (xyq5fhxs) to PP_Namias Free (gerattrr)
+
+---
+
+## 🚨 URGENT: Sanity CMS Migration
+
+**Current Issue:** Cannot edit/deploy current Sanity project (xyq5fhxs - Growth Trial)
+
+**Solution:** Migrate to PP_Namias free project (gerattrr)
+
+📋 **See:** `.github/SANITY_FREE_MIGRATION_PLAN.md` for complete migration guide
+
+### Quick Migration Reference
+
+| Setting | OLD (Don't Use) | NEW (Use This) |
+|---------|-----------------|----------------|
+| Project ID | `xyq5fhxs` | `gerattrr` |
+| Plan | Growth Trial (issues) | **Free (permanent)** |
+| Studio URL | mash-cms.sanity.studio | ppnamias.sanity.studio |
+| Dashboard | sanity.io/manage/project/xyq5fhxs | **sanity.io/manage/project/gerattrr** |
+
+### Files to Update
+1. `.env.local` - Change `NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr`
+2. `studio/.env.local` - Change `SANITY_STUDIO_PROJECT_ID=gerattrr`
+3. `studio/.env` - Already correct (`gerattrr`)
+4. `src/lib/sanity/client.ts` - Update default fallback
+
+---
+
+## 🚀 Quick Reference (TL;DR)
+
+### Start Development
+```bash
+npm install && npm run dev    # Frontend: localhost:3001 (Turbopack)
+cd studio && npm run dev      # Sanity Studio: localhost:3333
+# Backend runs on localhost:3000 (separate MASH-Backend repo)
+```
+
+### Key Architecture Decisions
+| Decision | Pattern | Why |
+|----------|---------|-----|
+| Data source | Sanity CMS for products/content, Backend API for auth/orders | CMS for marketers, API for transactions |
+| API routing | Dual-backend (`api-client.ts`) | Email endpoints use local, others use production |
+| State | React Context (`Cart`, `Wishlist`) + localStorage | Persist cart across sessions |
+| Components | shadcn/ui (Radix) in `src/components/ui/` | 60+ accessible components |
+| Auth | JWT cookies + refresh tokens | Backend handles, frontend stores |
+
+### File Location Cheatsheet
+| Need to... | Look in... |
+|------------|------------|
+| Add UI component | `src/components/ui/` (shadcn) |
+| Add page | `src/app/(route-group)/path/page.tsx` |
+| Add API route | `src/app/api/resource/route.ts` |
+| Fetch from Sanity | `src/lib/sanity/queries.ts` |
+| Fetch from Backend | `src/lib/api/*.ts` |
+| Add hook | `src/hooks/use*.ts` |
+| Edit CMS schema | `studio/src/schemaTypes/documents/` |
+
+### Environment Variables (Critical)
+```env
+NEXT_PUBLIC_USE_MOCK_DATA=false          # Must be false for real data
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr   # PP_Namias Free Project
+```
+
+### CORS Origins (PP_Namias Project)
+| Origin | Purpose |
+|--------|---------|
+| `http://localhost:5173` | Vite dev |
+| `http://localhost:3333` | Sanity Studio dev |
+| `http://localhost:3001` | Next.js dev |
+| `https://ppnamias.sanity.studio` | Deployed Studio |
+
+---
 
 ## 📋 Table of Contents
 

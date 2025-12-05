@@ -232,7 +232,7 @@ function buildImageUrl(ref?: string): string | undefined {
   if (!ref) return undefined;
   
   // Extract project ID and dataset from environment
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs';
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr';
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production';
   
   // Parse the image reference

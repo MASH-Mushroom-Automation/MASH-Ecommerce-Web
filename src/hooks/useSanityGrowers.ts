@@ -160,7 +160,7 @@ function transformGrower(grower: SanityGrower & { productCount?: number }): Tran
       city: store.address?.city,
       state: store.address?.state,
       imageUrl: store.image?.asset?._ref 
-        ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs'}/${process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'}/${store.image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`
+        ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr'}/${process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'}/${store.image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`
         : undefined,
     })),
     createdAt: grower._createdAt,
