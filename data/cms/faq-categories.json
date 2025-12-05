@@ -1,0 +1,8 @@
+{
+  "data": [
+    { "id": "cat-1", "name": "Ordering & Delivery", "slug": "ordering-delivery", "order": 1 },
+    { "id": "cat-2", "name": "Product Information", "slug": "products", "order": 2 },
+    { "id": "cat-3", "name": "Growing Kits", "slug": "growing-kits", "order": 3 },
+    { "id": "cat-4", "name": "Storage & Preparation", "slug": "storage", "order": 4 }
+  ]
+}

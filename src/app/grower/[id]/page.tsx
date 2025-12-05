@@ -4,47 +4,18 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft } from "lucide-react";
-import { useGrower } from "@/hooks/useMain";
-import { ProductsApi } from "@/lib/api/products";
-import type { ProductApiResponse } from "@/types/api";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight } from "lucide-react";
+import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-
-function normalizeGrowerKey(name: string) {
-  return name.replace(/[^a-zA-Z0-9]/g, "");
-}
+import { Badge } from "@/components/ui/badge";
+import { GoogleMap } from "@/components/maps/GoogleMap";
 
 export default function GrowerDetailPage() {
   const params = useParams<{ id: string }>();
-  const id = Number(params?.id);
-  const { grower, loading, error } = useGrower(id);
-  const [products, setProducts] = React.useState<ProductApiResponse[]>([]);
-  const [loadingProducts, setLoadingProducts] = React.useState(true);
-
-  React.useEffect(() => {
-    let active = true;
-    const fetchProducts = async () => {
-      if (!grower) return;
-      setLoadingProducts(true);
-      try {
-        const key = normalizeGrowerKey(grower.name);
-        const res = await ProductsApi.getProducts({ grower: key, limit: 12 });
-        if (!active) return;
-        setProducts(res.data || []);
-      } catch {
-        if (!active) return;
-        setProducts([]);
-      } finally {
-        if (!active) return;
-        setLoadingProducts(false);
-      }
-    };
-    fetchProducts();
-    return () => {
-      active = false;
-    };
-  }, [grower]);
+  const slug = params?.id; // Now expecting slug instead of ID
+  const { grower, loading, error } = useSanityGrower(slug);
+  const { products, loading: loadingProducts } = useSanityGrowerProducts(grower?.id || '', 12);
 
   if (loading) {
     return (
@@ -97,7 +68,7 @@ export default function GrowerDetailPage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white/20">
               <Image
-                src={grower.logo || "/placeholder.png"}
+                src={grower.image || "/placeholder.png"}
                 alt={grower.name}
                 fill
                 className="object-cover"
@@ -123,19 +94,39 @@ export default function GrowerDetailPage() {
           <div className="lg:col-span-2">
             <section className="mb-10">
               <h2 className="text-xl font-semibold text-foreground mb-3">
-                Our Story
+                About {grower.name}
               </h2>
               <div className="prose prose-sm sm:prose-base max-w-none text-muted-foreground">
                 <p>
-                  {grower.name} proudly cultivates high-quality mushrooms in{" "}
-                  {grower.location || "the Philippines"}.{" "}
-                  {grower.tagline ||
-                    "We’re passionate about freshness, sustainability, and supporting local communities."}
+                  {grower.bio || `${grower.name} proudly cultivates high-quality mushrooms in ${grower.location || "the Philippines"}.`}
                 </p>
-                <p>
-                  We harvest at peak freshness and work closely with MASH to
-                  bring our produce straight to your kitchen.
-                </p>
+                
+                {/* Specialties */}
+                {grower.specialties && grower.specialties.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Specialties</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {grower.specialties.map((specialty, index) => (
+                        <Badge key={index} variant="secondary">{specialty}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Certifications */}
+                {grower.certifications && grower.certifications.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <Award className="w-4 h-4" />
+                      Certifications
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {grower.certifications.map((cert, index) => (
+                        <Badge key={index} variant="outline" className="border-primary text-primary">{cert}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -158,13 +149,14 @@ export default function GrowerDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {products.map((p) => (
                     <ProductCard
-                      key={p.id}
-                      id={p.id}
+                      key={p._id}
+                      id={p._id}
+                      slug={p.slug?.current}
                       name={p.name}
-                      farm={p.grower}
+                      farm={grower.name}
                       price={p.price}
-                      unit={p.weight}
-                      image={p.image}
+                      unit={p.unit || 'pc'}
+                      image={p.mainImage || '/placeholder.png'}
                       inStock={p.inStock}
                     />
                   ))}
@@ -176,49 +168,133 @@ export default function GrowerDetailPage() {
           <aside className="lg:col-span-1">
             <div className="rounded-lg border bg-card p-5 shadow-sm">
               <h3 className="font-semibold text-foreground mb-4">
-                Contact & Hours
+                Contact Information
               </h3>
               <div className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-start">
-                  <MapPin className="w-4 h-4 mr-3 text-muted-foreground mt-0.5" />
-                  <span>{grower.address}</span>
-                </div>
-                <div className="flex items-center">
-                  <Phone className="w-4 h-4 mr-3 text-muted-foreground" />
-                  <span>{grower.phone}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-3 text-muted-foreground" />
-                  <span>{grower.hours}</span>
-                </div>
-              </div>
-              {grower.coords && (
-                <div className="mt-5">
-                  <div className="text-right mb-2">
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coords.lat},${grower.coords.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Get directions
+                {grower.location && (
+                  <div className="flex items-start">
+                    <MapPin className="w-4 h-4 mr-3 text-muted-foreground mt-0.5" />
+                    <span>{grower.location}</span>
+                  </div>
+                )}
+                {grower.contactPhone && (
+                  <div className="flex items-center">
+                    <Phone className="w-4 h-4 mr-3 text-muted-foreground" />
+                    <span>{grower.contactPhone}</span>
+                  </div>
+                )}
+                {grower.contactEmail && (
+                  <div className="flex items-center">
+                    <Mail className="w-4 h-4 mr-3 text-muted-foreground" />
+                    <a href={`mailto:${grower.contactEmail}`} className="hover:text-primary">
+                      {grower.contactEmail}
                     </a>
                   </div>
-                  <div className="w-full h-48 bg-muted rounded overflow-hidden">
-                    <iframe
-                      src={`https://maps.google.com/maps?q=${grower.coords.lat},${grower.coords.lng}&hl=en&z=14&output=embed`}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen={false}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title="Grower Location Map"
-                    />
+                )}
+                {grower.operatingHours && (
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-3 text-muted-foreground" />
+                    <span>{grower.operatingHours}</span>
+                  </div>
+                )}
+                {grower.region && (
+                  <div className="flex items-center">
+                    <Badge variant="secondary">{grower.region}</Badge>
+                  </div>
+                )}
+              </div>
+              {grower.coordinates && (
+                <div className="mt-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">📍 Location</span>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coordinates.lat},${grower.coordinates.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      Get directions <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <GoogleMap
+                    coordinates={grower.coordinates}
+                    growerName={grower.name}
+                    address={grower.location}
+                    height="200px"
+                    zoom={15}
+                    className="rounded-lg overflow-hidden"
+                  />
+                </div>
+              )}
+              
+              {/* Product Count Badge */}
+              {grower.productCount !== undefined && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{grower.productCount}</div>
+                    <div className="text-xs text-muted-foreground">Products Available</div>
                   </div>
                 </div>
               )}
             </div>
+            
+            {/* Find At Stores Section */}
+            {grower.availableAtStores && grower.availableAtStores.length > 0 && (
+              <div className="rounded-lg border bg-card p-5 shadow-sm mt-6">
+                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Store className="w-4 h-4" />
+                  Find Our Products At
+                </h3>
+                <div className="space-y-3">
+                  {grower.availableAtStores.map((store) => (
+                    <Link
+                      key={store.id}
+                      href={`/stores/${store.slug}`}
+                      className="group flex items-center justify-between p-3 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Store Image */}
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {store.imageUrl ? (
+                            <Image
+                              src={store.imageUrl}
+                              alt={store.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Store className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Store Info */}
+                        <div>
+                          <div className="font-medium text-sm group-hover:text-primary transition-colors">
+                            {store.name}
+                          </div>
+                          {(store.city || store.state) && (
+                            <div className="text-xs text-muted-foreground">
+                              {[store.city, store.state].filter(Boolean).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+                
+                <Link
+                  href="/stores"
+                  className="mt-4 block text-center text-sm text-primary hover:underline"
+                >
+                  View All Store Locations
+                </Link>
+              </div>
+            )}
           </aside>
         </div>
       </div>

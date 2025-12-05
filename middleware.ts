@@ -26,6 +26,8 @@ const publicRoutes = [
   "/product",
   "/about",
   "/grower",
+  "/stores",
+  "/shop",
   "/contact",
   "/faq",
   "/privacy",
@@ -37,6 +39,12 @@ const publicRoutes = [
 // All routes are now public - no authentication checks
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Skip middleware for API routes (including webhooks)
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+  
   console.log("Middleware accessed for path:", pathname);
 
   // Get authentication token from cookies

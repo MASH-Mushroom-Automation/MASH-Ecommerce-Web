@@ -1,0 +1,622 @@
+import {PackageIcon} from '@sanity/icons'
+import {defineField, defineType} from 'sanity'
+
+export const product = defineType({
+  name: 'product',
+  title: 'Product',
+  type: 'document',
+  icon: PackageIcon,
+  fields: [
+    defineField({
+      name: 'name',
+      title: 'Product Name',
+      type: 'string',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: 'name',
+        maxLength: 96,
+      },
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'image',
+      title: 'Product Image',
+      type: 'image',
+      options: {
+        hotspot: true,
+      },
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'reference',
+      to: [{type: 'category'}],
+      validation: (rule) => rule.required(),
+      description: 'Select the most specific category (subcategory if available)',
+    }),
+    defineField({
+      name: 'price',
+      title: 'Regular Price',
+      type: 'number',
+      validation: (rule) => rule.required().min(0),
+    }),
+    defineField({
+      name: 'isOnPromo',
+      title: 'On Promotion',
+      type: 'boolean',
+      initialValue: false,
+      description: 'Enable this to put the product on promotion',
+    }),
+    defineField({
+      name: 'promoType',
+      title: 'Promotion Type',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Percentage Discount', value: 'percentage'},
+          {title: 'Fixed Price', value: 'fixed'},
+        ],
+        layout: 'radio',
+      },
+      hidden: ({document}) => !document?.isOnPromo,
+      validation: (rule) =>
+        rule.custom((promoType, context) => {
+          const {document} = context as {document: any}
+          if (document?.isOnPromo && !promoType) {
+            return 'Please select a promotion type'
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'promoPercentage',
+      title: 'Discount Percentage',
+      type: 'number',
+      description: 'Enter discount percentage (e.g., 20 for 20% off)',
+      hidden: ({document}) => document?.promoType !== 'percentage',
+      validation: (rule) =>
+        rule.custom((promoPercentage, context) => {
+          const {document} = context as {document: any}
+          if (document?.isOnPromo && document?.promoType === 'percentage') {
+            if (!promoPercentage) return 'Discount percentage is required'
+            if (promoPercentage <= 0 || promoPercentage >= 100) {
+              return 'Percentage must be between 1 and 99'
+            }
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'promoPrice',
+      title: 'Promotional Price',
+      type: 'number',
+      description: 'Enter the promotional price',
+      hidden: ({document}) => document?.promoType !== 'fixed',
+      validation: (rule) =>
+        rule.custom((promoPrice, context) => {
+          const {document} = context as {document: any}
+          if (document?.isOnPromo && document?.promoType === 'fixed') {
+            if (!promoPrice) return 'Promotional price is required'
+            if (promoPrice <= 0) return 'Price must be greater than 0'
+            if (promoPrice >= document?.price) {
+              return 'Promotional price must be less than regular price'
+            }
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'quantity',
+      title: 'Quantity in Stock',
+      type: 'number',
+      validation: (rule) => rule.required().min(0).integer(),
+    }),
+    defineField({
+      name: 'inventory',
+      title: 'Inventory Management',
+      type: 'object',
+      fields: [
+        {
+          name: 'quantityInStock',
+          title: 'Quantity in Stock',
+          type: 'number',
+          validation: (rule) => rule.min(0).integer(),
+          description: 'Current stock quantity',
+        },
+        {
+          name: 'lowStockThreshold',
+          title: 'Low Stock Threshold',
+          type: 'number',
+          validation: (rule) => rule.min(0).integer(),
+          initialValue: 10,
+          description: 'Alert when stock falls below this number',
+        },
+        {
+          name: 'trackInventory',
+          title: 'Track Inventory',
+          type: 'boolean',
+          initialValue: true,
+          description: 'Enable/disable inventory tracking for this product',
+        },
+        {
+          name: 'allowBackorders',
+          title: 'Allow Backorders',
+          type: 'boolean',
+          initialValue: false,
+          description: 'Allow orders when out of stock',
+        },
+        {
+          name: 'stockHistory',
+          title: 'Stock History',
+          type: 'array',
+          of: [
+            {
+              type: 'object',
+              fields: [
+                {
+                  name: 'date',
+                  type: 'datetime',
+                  title: 'Date',
+                },
+                {
+                  name: 'quantity',
+                  type: 'number',
+                  title: 'Quantity Changed',
+                },
+                {
+                  name: 'newTotal',
+                  type: 'number',
+                  title: 'New Total Stock',
+                },
+                {
+                  name: 'reason',
+                  type: 'string',
+                  title: 'Reason',
+                  options: {
+                    list: [
+                      {title: 'Restock', value: 'restock'},
+                      {title: 'Sale', value: 'sale'},
+                      {title: 'Adjustment', value: 'adjustment'},
+                      {title: 'Return', value: 'return'},
+                      {title: 'Damaged', value: 'damaged'},
+                    ],
+                  },
+                },
+                {
+                  name: 'notes',
+                  type: 'text',
+                  title: 'Notes',
+                },
+              ],
+              preview: {
+                select: {
+                  date: 'date',
+                  quantity: 'quantity',
+                  reason: 'reason',
+                },
+                prepare({date, quantity, reason}) {
+                  return {
+                    title: `${quantity > 0 ? '+' : ''}${quantity} - ${reason}`,
+                    subtitle: new Date(date).toLocaleDateString(),
+                  }
+                },
+              },
+            },
+          ],
+          readOnly: true,
+          description: 'Automatically tracked stock changes',
+        },
+      ],
+    }),
+    defineField({
+      name: 'description',
+      title: 'Description',
+      type: 'text',
+      rows: 5,
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'sku',
+      title: 'SKU',
+      type: 'string',
+      description: 'Stock Keeping Unit - unique product identifier',
+    }),
+    defineField({
+      name: 'isAvailable',
+      title: 'Available for Purchase',
+      type: 'boolean',
+      initialValue: true,
+    }),
+    defineField({
+      name: 'images',
+      title: 'Additional Images',
+      type: 'array',
+      of: [
+        {
+          type: 'image',
+          options: {
+            hotspot: true,
+          },
+        },
+      ],
+      description: 'Upload multiple product images (gallery)',
+    }),
+    defineField({
+      name: 'weight',
+      title: 'Weight',
+      type: 'number',
+      description: 'Product weight in grams',
+    }),
+    defineField({
+      name: 'unit',
+      title: 'Unit of Measurement',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Grams (g)', value: 'g'},
+          {title: 'Kilograms (kg)', value: 'kg'},
+          {title: 'Pieces (pcs)', value: 'pcs'},
+          {title: 'Pack', value: 'pack'},
+          {title: 'Box', value: 'box'},
+        ],
+      },
+      initialValue: 'g',
+    }),
+    defineField({
+      name: 'isFeatured',
+      title: 'Featured Product',
+      type: 'boolean',
+      initialValue: false,
+      description: 'Display in featured products section',
+    }),
+    defineField({
+      name: 'compareAtPrice',
+      title: 'Compare at Price',
+      type: 'number',
+      description: 'Original price before discount (for display purposes)',
+    }),
+    defineField({
+      name: 'promoEndDate',
+      title: 'Promotion End Date',
+      type: 'datetime',
+      description: 'When should the promotion end?',
+      hidden: ({document}) => !document?.isOnPromo,
+    }),
+    
+    // Product Variants (Phase 9)
+    defineField({
+      name: 'hasVariants',
+      title: 'Has Variants',
+      type: 'boolean',
+      initialValue: false,
+      description: 'Does this product have size/color/weight variants?',
+    }),
+    defineField({
+      name: 'variants',
+      title: 'Product Variants',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'productVariant'}]}],
+      description: 'Add product variants (size, color, weight options)',
+      hidden: ({document}) => !document?.hasVariants,
+    }),
+    
+    // Related Products & Bundles (Phase 9)
+    defineField({
+      name: 'relatedProducts',
+      title: 'Related Products',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'product'}]}],
+      description: 'Products that customers might also be interested in',
+      validation: (Rule) => Rule.max(8),
+    }),
+    defineField({
+      name: 'relatedBundles',
+      title: 'Related Bundles',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'productBundle'}]}],
+      description: 'Bundles that include this product or similar products',
+      validation: (Rule) => Rule.max(4),
+    }),
+
+    // ========================================
+    // 🆕 PHASE 2.5: ENHANCED E-COMMERCE FEATURES
+    // ========================================
+
+    // Suggested Products & Smart Recommendations
+    defineField({
+      name: 'suggestedProducts',
+      title: 'Suggested Products (You May Also Like)',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'product'}]}],
+      description: 'AI-powered suggestions shown as "You may also like" - helps customers discover complementary products',
+      validation: (Rule) => Rule.max(8),
+      options: {
+        layout: 'grid',
+      },
+    }),
+    defineField({
+      name: 'productTags',
+      title: 'Product Tags (Smart Search)',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Tags help customers find related products (e.g., "organic", "high-protein", "easy-to-cook", "vegan")',
+      options: {
+        layout: 'tags',
+      },
+      validation: (Rule) => Rule.max(10),
+    }),
+    defineField({
+      name: 'complementaryProducts',
+      title: 'Complementary Products (Frequently Bought Together)',
+      type: 'array',
+      of: [{
+        type: 'reference',
+        to: [{type: 'product'}],
+        options: {
+          filter: '_type == "product" && _id != ^._id', // Don't suggest itself
+        },
+      }],
+      description: 'Products often purchased with this item (shows in cart and product page)',
+      validation: (Rule) => Rule.max(4),
+    }),
+
+    // Mushroom-Specific Freshness & Quality
+    defineField({
+      name: 'freshnessInfo',
+      title: 'Freshness Information',
+      type: 'object',
+      description: 'Critical for fresh mushrooms - harvest to delivery tracking',
+      fields: [
+        {
+          name: 'harvestWindow',
+          title: 'Typical Harvest to Delivery Time',
+          type: 'string',
+          options: {
+            list: [
+              {title: 'Within 24 hours', value: '24h'},
+              {title: 'Within 48 hours', value: '48h'},
+              {title: '3-5 days', value: '3-5d'},
+              {title: 'Not applicable (dried/kit)', value: 'n/a'},
+            ],
+          },
+          initialValue: '24h',
+        },
+        {
+          name: 'shelfLife',
+          title: 'Shelf Life (after delivery)',
+          type: 'string',
+          options: {
+            list: [
+              {title: '3-5 days (refrigerated)', value: '3-5d'},
+              {title: '5-7 days (refrigerated)', value: '5-7d'},
+              {title: '1-2 weeks (refrigerated)', value: '1-2w'},
+              {title: '6-12 months (dried)', value: '6-12m'},
+              {title: '1+ year (dried)', value: '1y+'},
+            ],
+          },
+          initialValue: '5-7d',
+        },
+        {
+          name: 'storageInstructions',
+          title: 'Storage Instructions',
+          type: 'text',
+          rows: 3,
+          placeholder: 'E.g., "Store in paper bag in refrigerator. Do not wash until ready to use. Keep dry to prevent slimy texture."',
+        },
+        {
+          name: 'qualityIndicators',
+          title: 'Quality Indicators (What to Look For)',
+          type: 'text',
+          rows: 3,
+          placeholder: 'E.g., "Firm caps, no slimy texture, fresh earthy smell, no dark spots or discoloration"',
+        },
+      ],
+    }),
+
+    // Preparation & Cooking Information
+    defineField({
+      name: 'preparationInfo',
+      title: 'Preparation & Cooking',
+      type: 'object',
+      description: 'Help customers prepare and cook mushrooms correctly',
+      fields: [
+        {
+          name: 'difficultyLevel',
+          title: 'Preparation Difficulty',
+          type: 'string',
+          options: {
+            list: [
+              {title: '⭐ Beginner-Friendly', value: 'beginner'},
+              {title: '⭐⭐ Intermediate', value: 'intermediate'},
+              {title: '⭐⭐⭐ Advanced', value: 'advanced'},
+            ],
+          },
+          initialValue: 'beginner',
+        },
+        {
+          name: 'cookingTime',
+          title: 'Typical Cooking Time',
+          type: 'string',
+          placeholder: 'E.g., "10-15 minutes" or "5-8 minutes"',
+        },
+        {
+          name: 'preparationTips',
+          title: 'Preparation Tips',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Step-by-step tips for preparing this mushroom',
+        },
+        {
+          name: 'recipeIdeas',
+          title: 'Recipe Ideas',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Quick recipe suggestions (e.g., "Sautéed with garlic butter", "Stir-fry with vegetables")',
+        },
+      ],
+    }),
+
+    // Same-Day Delivery Options (Lalamove Integration)
+    defineField({
+      name: 'deliveryOptions',
+      title: 'Delivery Options',
+      type: 'object',
+      description: 'Configure same-day delivery via Lalamove for fresh mushrooms',
+      fields: [
+        {
+          name: 'sameDayDeliveryEligible',
+          title: 'Same-Day Delivery Available (Lalamove)',
+          type: 'boolean',
+          description: 'Can this product be delivered same-day via Lalamove?',
+          initialValue: true,
+        },
+        {
+          name: 'deliveryZones',
+          title: 'Delivery Zones',
+          type: 'array',
+          of: [{type: 'string'}],
+          description: 'Areas where same-day delivery is available',
+          options: {
+            list: [
+              {title: 'Metro Manila (All areas)', value: 'metro-manila'},
+              {title: 'Quezon City', value: 'quezon-city'},
+              {title: 'Makati', value: 'makati'},
+              {title: 'BGC Taguig', value: 'bgc'},
+              {title: 'Mandaluyong', value: 'mandaluyong'},
+              {title: 'Pasig', value: 'pasig'},
+              {title: 'Manila (City proper)', value: 'manila'},
+              {title: 'Muntinlupa', value: 'muntinlupa'},
+              {title: 'Parañaque', value: 'paranaque'},
+              {title: 'Las Piñas', value: 'las-pinas'},
+              {title: 'Nationwide (Standard Delivery)', value: 'nationwide'},
+            ],
+          },
+        },
+        {
+          name: 'deliveryNotes',
+          title: 'Special Delivery Notes',
+          type: 'text',
+          rows: 2,
+          placeholder: 'E.g., "Requires refrigerated transport", "Handle with care - delicate caps", "Keep upright during delivery"',
+        },
+        {
+          name: 'perishable',
+          title: 'Perishable Item',
+          type: 'boolean',
+          initialValue: true,
+          description: 'Mark as perishable for special handling instructions to Lalamove driver',
+        },
+      ],
+    }),
+
+    // Delivery Weight & Dimensions (for Lalamove Pricing)
+    defineField({
+      name: 'deliveryWeight',
+      title: 'Delivery Weight & Dimensions',
+      type: 'object',
+      description: 'Used to calculate Lalamove delivery pricing automatically',
+      fields: [
+        {
+          name: 'packageWeight',
+          title: 'Package Weight (kg)',
+          type: 'number',
+          description: 'Total weight including packaging materials',
+          validation: (Rule) => Rule.min(0).max(50),
+        },
+        {
+          name: 'packageDimensions',
+          title: 'Package Dimensions (cm)',
+          type: 'object',
+          fields: [
+            {
+              name: 'length',
+              title: 'Length (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+            {
+              name: 'width',
+              title: 'Width (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+            {
+              name: 'height',
+              title: 'Height (cm)',
+              type: 'number',
+              validation: (Rule) => Rule.min(1).max(200),
+            },
+          ],
+        },
+      ],
+    }),
+
+    // Enhanced Product Search & Discovery
+    defineField({
+      name: 'searchKeywords',
+      title: 'Search Keywords (SEO)',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Additional search terms customers might use (e.g., "oyster mushroom", "pleurotus", "mushroom powder")',
+      options: {
+        layout: 'tags',
+      },
+    }),
+    defineField({
+      name: 'nutritionalHighlights',
+      title: 'Nutritional Highlights',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'Key health benefits to display on product cards',
+      options: {
+        list: [
+          {title: '🌟 High in Vitamin D', value: 'vitamin-d'},
+          {title: '💪 Rich in Antioxidants', value: 'antioxidants'},
+          {title: '🥩 High Protein', value: 'high-protein'},
+          {title: '🪶 Low Calorie', value: 'low-calorie'},
+          {title: '🛡️ Immune Support', value: 'immune-support'},
+          {title: '❤️ Heart Healthy', value: 'heart-healthy'},
+          {title: '🌱 Vegan', value: 'vegan'},
+          {title: '🌾 Organic', value: 'organic'},
+          {title: '🧠 Brain Health', value: 'brain-health'},
+          {title: '🦴 Bone Health', value: 'bone-health'},
+        ],
+      },
+    }),
+  ],
+  preview: {
+    select: {
+      title: 'name',
+      subtitle: 'category.name',
+      media: 'image',
+      price: 'price',
+      quantity: 'quantity',
+      isOnPromo: 'isOnPromo',
+      promoType: 'promoType',
+      promoPercentage: 'promoPercentage',
+      promoPrice: 'promoPrice',
+    },
+    prepare({title, subtitle, media, price, quantity, isOnPromo, promoType, promoPercentage, promoPrice}) {
+      let priceDisplay = `₱${price}`
+      
+      if (isOnPromo) {
+        const finalPrice = promoType === 'percentage' 
+          ? price - (price * (promoPercentage / 100))
+          : promoPrice
+        priceDisplay = `₱${finalPrice.toFixed(2)} (was ₱${price}) 🏷️`
+      }
+      
+      return {
+        title,
+        subtitle: `${subtitle || 'No category'} - ${priceDisplay} (Stock: ${quantity})`,
+        media,
+      }
+    },
+  },
+})

@@ -1,0 +1,1067 @@
+[
+  {
+    "_type": "product",
+    "name": "Fresh Oyster Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-oyster-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Premium fresh oyster mushrooms harvested daily for maximum flavor and nutrition. Known for their delicate texture and mild, savory taste. Perfect for stir-fries, soups, and pasta dishes.",
+    "sku": "MUSH-OYSTER-250",
+    "price": 350,
+    "compareAtPrice": 450,
+    "quantity": 150,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
+    "weight": 250,
+    "unit": "g",
+    "searchKeywords": [
+      "oyster mushroom",
+      "pleurotus",
+      "fresh mushroom",
+      "asian mushroom",
+      "stir-fry mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.3,
+      "packageDimensions": {
+        "length": 20,
+        "width": 15,
+        "height": 8
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag in refrigerator. Do not wash until ready to use. Keep dry to prevent slimy texture.",
+      "qualityIndicators": "Firm texture, light gray color, no dark spots, fresh mushroom aroma"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "10-12 minutes",
+      "preparationTips": [
+        "Gently wipe with damp cloth",
+        "Tear into bite-sized pieces",
+        "Cook on medium-high heat",
+        "Season at the end"
+      ],
+      "recipeIdeas": [
+        "Sautéed with garlic butter",
+        "Asian-style stir-fry with vegetables",
+        "Creamy mushroom pasta"
+      ]
+    },
+    "nutritionalHighlights": [
+      "vitamin-d",
+      "antioxidants",
+      "low-calorie",
+      "high-protein",
+      "heart-healthy"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Fresh King Oyster Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-king-oyster-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Premium king oyster mushrooms with thick, meaty stems and delicate caps. Known for their seafood-like texture when cooked. Perfect for grilling, roasting, and gourmet dishes.",
+    "sku": "MUSH-KING-300",
+    "price": 450,
+    "compareAtPrice": 550,
+    "quantity": 100,
+    "inventory": {
+      "lowStockThreshold": 15,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 300,
+    "unit": "g",
+    "searchKeywords": [
+      "king oyster",
+      "king trumpet",
+      "pleurotus eryngii",
+      "meaty mushroom",
+      "grill mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.35,
+      "packageDimensions": {
+        "length": 25,
+        "width": 15,
+        "height": 10
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag, keep dry, refrigerate immediately.",
+      "qualityIndicators": "Thick white stems, Firm to touch, Small brown caps, No moisture"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "intermediate",
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Slice lengthwise for steaks",
+        "Score surface for grill marks",
+        "High heat searing recommended",
+        "Season generously"
+      ],
+      "recipeIdeas": [
+        "Grilled King Oyster Steaks (20 min)",
+        "King Oyster Scallops (Vegan) (15 min)",
+        "Roasted King Oyster with Herbs (30 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "high-protein",
+      "low-calorie",
+      "heart-healthy",
+      "immune-support"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Fresh Shiitake Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-shiitake-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Premium fresh shiitake mushrooms with rich umami flavor. Prized in Asian cuisine for their meaty texture and aromatic qualities. Perfect for soups, stir-fries, and noodle dishes.",
+    "sku": "MUSH-SHIITAKE-200",
+    "price": 400,
+    "compareAtPrice": 500,
+    "quantity": 120,
+    "inventory": {
+      "lowStockThreshold": 20,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 200,
+    "unit": "g",
+    "searchKeywords": [
+      "shiitake",
+      "lentinula edodes",
+      "umami mushroom",
+      "japanese mushroom",
+      "chinese mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "mandaluyong",
+        "pasig"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.25,
+      "packageDimensions": {
+        "length": 20,
+        "width": 15,
+        "height": 8
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag, remove any moisture, refrigerate.",
+      "qualityIndicators": "Brown caps with white edges, Firm texture, Strong mushroom aroma, No slime"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "12 minutes",
+      "preparationTips": [
+        "Remove tough stems",
+        "Slice caps for even cooking",
+        "Save stems for stock",
+        "Don't overcrowd pan"
+      ],
+      "recipeIdeas": [
+        "Shiitake Miso Soup (15 min)",
+        "Shiitake Fried Rice (20 min)",
+        "Shiitake Ramen Topping (10 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d",
+      "heart-healthy"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Fresh Lion's Mane Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-lions-mane-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Rare lion's mane mushrooms with unique seafood-like flavor and texture. Known for potential cognitive health benefits. Perfect for gourmet dishes and health-conscious cooking.",
+    "sku": "MUSH-LIONS-250",
+    "price": 500,
+    "compareAtPrice": 650,
+    "quantity": 80,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 250,
+    "unit": "g",
+    "searchKeywords": [
+      "lions mane",
+      "hericium erinaceus",
+      "brain mushroom",
+      "cognitive health",
+      "medicinal mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.3,
+      "packageDimensions": {
+        "length": 25,
+        "width": 20,
+        "height": 12
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag, handle gently, refrigerate immediately.",
+      "qualityIndicators": "White color, Fluffy texture, No discoloration, Fresh scent"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "intermediate",
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Slice into steaks",
+        "Pat dry before cooking",
+        "High heat for crispy edges",
+        "Don't overcook"
+      ],
+      "recipeIdeas": [
+        "Lion's Mane 'Crab' Cakes (30 min)",
+        "Sautéed Lion's Mane with Garlic (15 min)",
+        "Lion's Mane Stir-Fry (20 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "brain-health",
+      "immune-support",
+      "high-protein",
+      "antioxidants"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Fresh Button Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-button-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Classic white button mushrooms - versatile and mild-flavored. Perfect for everyday cooking, salads, pizzas, and pasta. Family pack size for best value.",
+    "sku": "MUSH-BUTTON-500",
+    "price": 300,
+    "compareAtPrice": 380,
+    "quantity": 200,
+    "inventory": {
+      "lowStockThreshold": 30,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
+    "weight": 500,
+    "unit": "g",
+    "searchKeywords": [
+      "button mushroom",
+      "white mushroom",
+      "agaricus",
+      "pizza mushroom",
+      "everyday mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "mandaluyong",
+        "pasig",
+        "manila"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.55,
+      "packageDimensions": {
+        "length": 25,
+        "width": 20,
+        "height": 10
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "48h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in original packaging or paper bag, refrigerate.",
+      "qualityIndicators": "Firm and white, Closed caps, No bruising, Clean appearance"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "8 minutes",
+      "preparationTips": [
+        "Wipe clean, don't wash",
+        "Slice evenly",
+        "Quick cooking recommended",
+        "Season to taste"
+      ],
+      "recipeIdeas": [
+        "Mushroom Pizza Topping (10 min)",
+        "Garlic Mushroom Pasta (15 min)",
+        "Mushroom Salad (5 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "low-calorie",
+      "vitamin-d",
+      "heart-healthy"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Fresh Portobello Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "fresh-portobello-mushrooms"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Large portobello mushrooms with rich, meaty flavor. Perfect for grilling, stuffing, or as a burger substitute. Fully mature cremini mushrooms with deep umami taste.",
+    "sku": "MUSH-PORTO-400",
+    "price": 450,
+    "compareAtPrice": 550,
+    "quantity": 90,
+    "inventory": {
+      "lowStockThreshold": 15,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": false,
+    "weight": 400,
+    "unit": "g",
+    "searchKeywords": [
+      "portobello",
+      "portabella",
+      "large mushroom",
+      "grill mushroom",
+      "burger mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": true,
+      "deliveryZones": [
+        "metro-manila",
+        "quezon-city",
+        "makati",
+        "bgc"
+      ],
+      "perishable": true
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.45,
+      "packageDimensions": {
+        "length": 30,
+        "width": 20,
+        "height": 10
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in paper bag, gill side up, refrigerate.",
+      "qualityIndicators": "Large brown caps, Dark gills underneath, Firm texture, No moisture"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "intermediate",
+      "cookingTime": "20 minutes",
+      "preparationTips": [
+        "Remove stems",
+        "Scrape out gills if desired",
+        "Brush caps clean",
+        "Marinate before grilling"
+      ],
+      "recipeIdeas": [
+        "Grilled Portobello Burgers (25 min)",
+        "Stuffed Portobello Caps (35 min)",
+        "Portobello Steaks (20 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "high-protein",
+      "low-calorie",
+      "vegan",
+      "heart-healthy"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Dried Shiitake Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "dried-shiitake-mushrooms"
+    },
+    "categorySlug": "dried-mushrooms",
+    "description": "Premium dried shiitake mushrooms with concentrated umami flavor. Long shelf life, perfect for stocks, soups, and rehydrating. Grade A quality with thick caps.",
+    "sku": "MUSH-DRY-SHII-100",
+    "price": 600,
+    "compareAtPrice": 750,
+    "quantity": 50,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 100,
+    "unit": "g",
+    "searchKeywords": [
+      "dried shiitake",
+      "dried mushroom",
+      "umami",
+      "asian cooking",
+      "mushroom stock"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
+      "storageInstructions": "Store in cool, dry place. Keep sealed after opening.",
+      "qualityIndicators": "Thick caps, Dark brown color, Strong aroma, No moisture"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "30 minutes",
+      "preparationTips": [
+        "Soak in warm water 20-30 min",
+        "Save soaking liquid for stock",
+        "Remove tough stems",
+        "Use in soups or stir-fries"
+      ],
+      "recipeIdeas": [
+        "Shiitake Mushroom Stock (45 min)",
+        "Dried Shiitake Stir-Fry (35 min)",
+        "Shiitake Ramen Broth (60 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Dried Oyster Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "dried-oyster-mushrooms"
+    },
+    "categorySlug": "dried-mushrooms",
+    "description": "Premium dried oyster mushrooms with delicate flavor. Rehydrates quickly, perfect for soups and stir-fries. Long shelf life, convenient pantry staple.",
+    "sku": "MUSH-DRY-OYST-100",
+    "price": 550,
+    "compareAtPrice": 700,
+    "quantity": 60,
+    "inventory": {
+      "lowStockThreshold": 10,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": false,
+    "weight": 100,
+    "unit": "g",
+    "searchKeywords": [
+      "dried oyster",
+      "dried mushroom",
+      "pantry staple",
+      "quick rehydrate"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
+      "storageInstructions": "Keep in airtight container, cool and dry.",
+      "qualityIndicators": "Light gray color, Whole pieces, No discoloration"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "15 minutes",
+      "preparationTips": [
+        "Soak 15-20 minutes",
+        "Drain and squeeze gently",
+        "Use immediately after rehydrating"
+      ],
+      "recipeIdeas": [
+        "Oyster Mushroom Soup (25 min)",
+        "Rehydrated Mushroom Stir-Fry (20 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "low-calorie",
+      "vitamin-d"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Dried Mixed Mushrooms",
+    "slug": {
+      "_type": "slug",
+      "current": "dried-mixed-mushrooms"
+    },
+    "categorySlug": "dried-mushrooms",
+    "description": "Premium blend of dried shiitake, oyster, and wood ear mushrooms. Perfect for complex flavors in soups, stews, and Asian dishes. Best value variety pack.",
+    "sku": "MUSH-DRY-MIX-100",
+    "price": 650,
+    "compareAtPrice": 800,
+    "quantity": 40,
+    "inventory": {
+      "lowStockThreshold": 8,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 100,
+    "unit": "g",
+    "searchKeywords": [
+      "dried mixed mushroom",
+      "mushroom blend",
+      "variety pack",
+      "asian cooking"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.12,
+      "packageDimensions": {
+        "length": 15,
+        "width": 10,
+        "height": 5
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "24h",
+      "shelfLife": "1y+",
+      "storageInstructions": "Store in airtight container, away from sunlight.",
+      "qualityIndicators": "Mixed colors, Intact pieces, Strong aroma"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "25 minutes",
+      "preparationTips": [
+        "Soak 20-30 minutes",
+        "Different types may need different soak times",
+        "Use in broths and stews"
+      ],
+      "recipeIdeas": [
+        "Mixed Mushroom Hot Pot (40 min)",
+        "Asian Mushroom Soup (30 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "antioxidants",
+      "immune-support",
+      "vitamin-d"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Mushroom Powder",
+    "slug": {
+      "_type": "slug",
+      "current": "mushroom-powder"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Ultra-fine mushroom powder blend (shiitake, reishi, lion's mane). Perfect for smoothies, coffee, cooking, or as a nutritional supplement. Concentrated health benefits.",
+    "sku": "MUSH-POWDER-50",
+    "price": 800,
+    "compareAtPrice": 1000,
+    "quantity": 30,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 50,
+    "unit": "g",
+    "searchKeywords": [
+      "mushroom powder",
+      "medicinal mushroom",
+      "supplement",
+      "superfood",
+      "functional food"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.08,
+      "packageDimensions": {
+        "length": 10,
+        "width": 10,
+        "height": 5
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "48h",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Keep in airtight container, cool and dry place.",
+      "qualityIndicators": "Fine powder, Brown color, Strong mushroom aroma"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "2 minutes",
+      "preparationTips": [
+        "Start with 1/4 teaspoon",
+        "Mix into liquids or food",
+        "Can be added to cooking",
+        "Best in hot beverages"
+      ],
+      "recipeIdeas": [
+        "Mushroom Coffee (5 min)",
+        "Mushroom Smoothie (5 min)",
+        "Mushroom Seasoning (1 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "brain-health",
+      "immune-support",
+      "antioxidants",
+      "organic"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Mushroom Extract Tincture",
+    "slug": {
+      "_type": "slug",
+      "current": "mushroom-extract-tincture"
+    },
+    "categorySlug": "fresh-mushrooms",
+    "description": "Concentrated liquid mushroom extract (reishi, chaga, turkey tail). Premium dual-extraction process. Perfect for daily immune support and cognitive health.",
+    "sku": "MUSH-EXTRACT-30",
+    "price": 1200,
+    "compareAtPrice": 1500,
+    "quantity": 20,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": true
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 30,
+    "unit": "g",
+    "searchKeywords": [
+      "mushroom extract",
+      "tincture",
+      "medicinal mushroom",
+      "immune support",
+      "cognitive health"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "nationwide"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 0.06,
+      "packageDimensions": {
+        "length": 12,
+        "width": 5,
+        "height": 5
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "n/a",
+      "shelfLife": "6-12m",
+      "storageInstructions": "Keep in cool, dark place. Refrigerate after opening.",
+      "qualityIndicators": "Dark brown liquid, Strong mushroom scent, No sediment"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "1 minutes",
+      "preparationTips": [
+        "Use dropper for dosing",
+        "1-2 droppers daily",
+        "Mix with water or juice",
+        "Best taken on empty stomach"
+      ],
+      "recipeIdeas": [
+        "Morning Tonic (2 min)",
+        "Evening Wellness Shot (2 min)"
+      ]
+    },
+    "nutritionalHighlights": [
+      "immune-support",
+      "brain-health",
+      "antioxidants",
+      "organic"
+    ]
+  },
+  {
+    "_type": "product",
+    "name": "Oyster Mushroom Growing Kit",
+    "slug": {
+      "_type": "slug",
+      "current": "oyster-mushroom-growing-kit"
+    },
+    "categorySlug": "growing-kits",
+    "description": "Complete oyster mushroom growing kit. Harvest your own fresh mushrooms in 7-14 days! Includes substrate, spawn, and detailed instructions. Perfect for beginners.",
+    "sku": "KIT-OYSTER-01",
+    "price": 1500,
+    "compareAtPrice": 1800,
+    "quantity": 25,
+    "inventory": {
+      "lowStockThreshold": 5,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 2000,
+    "unit": "g",
+    "searchKeywords": [
+      "growing kit",
+      "mushroom kit",
+      "home growing",
+      "diy mushroom",
+      "oyster kit"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 2.5,
+      "packageDimensions": {
+        "length": 30,
+        "width": 25,
+        "height": 20
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Keep in cool place until ready to start. Follow included instructions.",
+      "qualityIndicators": "White mycelium visible, No contamination, Fresh smell"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Cut X on bag",
+        "Mist 2-3 times daily",
+        "Keep in indirect light",
+        "Maintain humidity"
+      ],
+      "recipeIdeas": [
+        "Setup and Care Guide (10 min)",
+        "Harvest Instructions (5 min)"
+      ]
+    },
+    "nutritionalHighlights": []
+  },
+  {
+    "_type": "product",
+    "name": "Shiitake Mushroom Growing Kit",
+    "slug": {
+      "_type": "slug",
+      "current": "shiitake-mushroom-growing-kit"
+    },
+    "categorySlug": "growing-kits",
+    "description": "Premium shiitake growing kit with hardwood substrate. Harvest gourmet shiitake mushrooms at home in 10-21 days. Multiple flushes possible. Intermediate level.",
+    "sku": "KIT-SHIITAKE-01",
+    "price": 1800,
+    "compareAtPrice": 2200,
+    "quantity": 20,
+    "inventory": {
+      "lowStockThreshold": 4,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 2500,
+    "unit": "g",
+    "searchKeywords": [
+      "shiitake kit",
+      "growing kit",
+      "hardwood substrate",
+      "home mushroom",
+      "gourmet kit"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 3,
+      "packageDimensions": {
+        "length": 35,
+        "width": 25,
+        "height": 20
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store in cool, dark place until setup.",
+      "qualityIndicators": "White mycelium on wood, No green mold, Hardwood smell"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "intermediate",
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Soak block 24 hours before fruiting",
+        "Maintain high humidity",
+        "Cooler temps preferred",
+        "Multiple harvests possible"
+      ],
+      "recipeIdeas": [
+        "Shiitake Kit Setup (30 min)",
+        "Harvest and Care (15 min)"
+      ]
+    },
+    "nutritionalHighlights": []
+  },
+  {
+    "_type": "product",
+    "name": "Lion's Mane Mushroom Growing Kit",
+    "slug": {
+      "_type": "slug",
+      "current": "lions-mane-growing-kit"
+    },
+    "categorySlug": "growing-kits",
+    "description": "Rare lion's mane growing kit. Grow your own medicinal mushrooms at home! Includes premium substrate and detailed care guide. Harvest in 14-21 days.",
+    "sku": "KIT-LIONS-01",
+    "price": 2000,
+    "compareAtPrice": 2500,
+    "quantity": 15,
+    "inventory": {
+      "lowStockThreshold": 3,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 2500,
+    "unit": "g",
+    "searchKeywords": [
+      "lions mane kit",
+      "medicinal mushroom",
+      "brain mushroom",
+      "growing kit",
+      "rare mushroom"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 3,
+      "packageDimensions": {
+        "length": 35,
+        "width": 25,
+        "height": 20
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Keep in cool place, away from direct sunlight.",
+      "qualityIndicators": "White fluffy mycelium, No contamination, Fresh scent"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "intermediate",
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Maintain high humidity (85-95%)",
+        "Provide fresh air exchange",
+        "Cooler temperatures better",
+        "Gentle misting"
+      ],
+      "recipeIdeas": [
+        "Lion's Mane Kit Setup (30 min)",
+        "Fruiting and Harvest (15 min)"
+      ]
+    },
+    "nutritionalHighlights": []
+  },
+  {
+    "_type": "product",
+    "name": "Beginner Mushroom Combo Kit",
+    "slug": {
+      "_type": "slug",
+      "current": "beginner-mushroom-combo-kit"
+    },
+    "categorySlug": "growing-kits",
+    "description": "Complete beginner bundle: 2 oyster kits + 1 shiitake kit + spray bottle + thermometer/hygrometer. Everything you need to start your mushroom growing journey. Best value!",
+    "sku": "KIT-COMBO-01",
+    "price": 2500,
+    "compareAtPrice": 3200,
+    "quantity": 10,
+    "inventory": {
+      "lowStockThreshold": 2,
+      "trackInventory": true,
+      "allowBackorders": false
+    },
+    "isAvailable": true,
+    "isFeatured": true,
+    "weight": 6000,
+    "unit": "g",
+    "searchKeywords": [
+      "combo kit",
+      "beginner kit",
+      "mushroom bundle",
+      "starter pack",
+      "best value"
+    ],
+    "deliveryOptions": {
+      "sameDayDeliveryEligible": false,
+      "deliveryZones": [
+        "metro-manila",
+        "luzon"
+      ],
+      "perishable": false
+    },
+    "deliveryWeight": {
+      "packageWeight": 7,
+      "packageDimensions": {
+        "length": 40,
+        "width": 35,
+        "height": 30
+      }
+    },
+    "freshnessInfo": {
+      "harvestWindow": "n/a",
+      "shelfLife": "5-7d",
+      "storageInstructions": "Store kits in cool place. Tools ready to use immediately.",
+      "qualityIndicators": "All kits show mycelium, Tools included, Complete instructions"
+    },
+    "preparationInfo": {
+      "difficultyLevel": "beginner",
+      "cookingTime": "0 minutes",
+      "preparationTips": [
+        "Start with oyster kit first",
+        "Use hygrometer to monitor humidity",
+        "Keep spray bottle for misting",
+        "Follow included guide"
+      ],
+      "recipeIdeas": [
+        "Complete Beginner Guide (45 min)",
+        "Troubleshooting Tips (10 min)"
+      ]
+    },
+    "nutritionalHighlights": []
+  }
+]

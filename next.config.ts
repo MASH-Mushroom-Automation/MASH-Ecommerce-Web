@@ -11,7 +11,24 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.sanity.io",
+        pathname: '/images/**',
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+      },
+      {
+        protocol: "https",
+        hostname: "maps.googleapis.com",
+        pathname: '/maps/api/staticmap**',
+      },
     ],
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   // Temporarily ignore TypeScript errors during build
   typescript: {
@@ -28,11 +45,6 @@ const nextConfig: NextConfig = {
         source: '/sell-with-us',
         destination: '/start-selling',
         permanent: true, // 301 redirect for SEO
-      },
-      {
-        source: '/stores',
-        destination: '/shop',
-        permanent: false, // 302 redirect (temporary)
       },
       {
         source: '/catalog',

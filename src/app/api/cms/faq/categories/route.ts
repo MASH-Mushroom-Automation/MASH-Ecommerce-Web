@@ -2,15 +2,11 @@
 // src/app/api/cms/faq/categories/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CMS } from '@/lib/cms/database';
+import { FAQAPI } from '@/lib/cms/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const categories = await CMS.findAll('faq_categories', {
-      activeOnly: true,
-      sortBy: 'displayOrder',
-      sortOrder: 'asc'
-    });
+    const categories = await FAQAPI.getAllCategories();
 
     return NextResponse.json({
       data: categories,

@@ -1,10 +1,11 @@
 "use client";
 
 import { CMSFAQSection } from "@/components/cms/FAQSection";
-import { useFAQs } from "@/hooks/useCMS";
+import { useSanityFAQs } from "@/hooks/useSanityFAQ";
 
 export default function FAQPage() {
-  const { faqs, loading, error } = useFAQs();
+  // Phase 2: Using Sanity CMS for FAQ data
+  const { faqs, loading, error } = useSanityFAQs();
 
   return <CMSFAQSection faqs={faqs} loading={loading} error={error} />;
 }

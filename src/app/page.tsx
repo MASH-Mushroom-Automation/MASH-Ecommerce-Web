@@ -6,64 +6,28 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/product/ProductCard";
-import { useHomePageData } from "@/hooks/useMain";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { CMSHeroSection } from "@/components/cms/HeroSection";
-import { CMSFeatureSection } from "@/components/cms/FeatureSection";
-import { useHeroSections, useFeatureSections } from "@/hooks/useCMS";
+import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
+import { SanityFeatureSection } from "@/components/cms/SanityFeatureSection"; // Phase 4: Use Sanity
+import { TestimonialsSection } from "@/components/cms/TestimonialsSection"; // Phase 7: Customer Testimonials
+import { BannerSection } from "@/components/cms/BannerSection"; // Phase 7: Promotional Banners
+import { useSanityFeatures } from "@/hooks/useSanityFeatures"; // Phase 4: Sanity hook
+import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
+import { useSanityCategories } from "@/hooks/useSanityCategories";
+import { useSanityGrowers } from "@/hooks/useSanityGrowers"; // Phase 1: Use Sanity for growers
 import {
   ProductListSkeleton,
   GrowerListSkeleton,
 } from "@/components/ui/skeleton-loaders";
 
 const HeroSection: React.FC = () => {
-  const { heroes, loading, error } = useHeroSections();
-
-  if (loading) {
-    return (
-      <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/10 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-2 border-primary/30 mx-auto"></div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-foreground animate-pulse">
-                Discovering fresh mushrooms...
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your marketplace is loading
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (heroes.length === 0) {
-    return null;
-  }
-
-  return <CMSHeroSection data={heroes[0]} />;
+  // Use Sanity CMS for hero carousel with real-time updates
+  return <SanityHeroCarousel />;
 };
 
 const WhyMASHSection: React.FC = () => {
-  const { features, loading, error } = useFeatureSections();
+  // Phase 4: Use Sanity CMS for feature sections
+  const { features, loading, error } = useSanityFeatures({ homepageOnly: true });
 
   if (loading) {
     return (
@@ -91,7 +55,7 @@ const WhyMASHSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-red-600 mb-4">Error: {error?.message || 'Failed to load features'}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -103,11 +67,13 @@ const WhyMASHSection: React.FC = () => {
     return null;
   }
 
-  return <CMSFeatureSection data={features[0]} />;
+  // Phase 4: Render feature sections from Sanity CMS
+  return <SanityFeatureSection data={features[0]} />;
 };
 
 const FeaturedProductsSection: React.FC = () => {
-  const { homeData, loading, error } = useHomePageData();
+  // Use Sanity CMS for featured products
+  const { products, loading, error } = useSanityFeaturedProducts(8);
 
   if (loading) {
     return (
@@ -133,8 +99,23 @@ const FeaturedProductsSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
+            <p className="text-red-600 mb-4">Error loading featured products</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">No featured products available yet.</p>
+            <Link href="/shop">
+              <Button>Browse All Products</Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -155,16 +136,17 @@ const FeaturedProductsSection: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {homeData?.featuredProducts?.slice(0, 4).map((product) => (
+          {products.slice(0, 8).map((product) => (
             <ProductCard
               key={product.id}
               id={product.id}
+              slug={product.slug}
               name={product.name}
-              farm={product.grower}
+              farm={product.category || "MASH Market"}
               price={product.price}
-              unit={product.weight}
+              unit={product.unit || "kg"}
               image={product.image}
-              inStock={product.inStock}
+              inStock={product.isAvailable}
             />
           ))}
         </div>
@@ -181,22 +163,137 @@ const FeaturedProductsSection: React.FC = () => {
   );
 };
 
+// Category Showcase Components
+const CategoryCard: React.FC<{
+  name: string;
+  slug: string;
+  image?: string;
+  productCount?: number;
+}> = ({ name, slug, image, productCount }) => {
+  return (
+    <Link href={`/shop?category=${slug}`}>
+      <div className="group relative overflow-hidden rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300">
+        {image ? (
+          <div className="aspect-square overflow-hidden">
+            <Image
+              src={image}
+              alt={name}
+              width={400}
+              height={400}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <span className="text-6xl opacity-20">🍄</span>
+          </div>
+        )}
+        <div className="p-4 text-center">
+          <h3 className="font-bold text-lg text-gray-800">{name}</h3>
+          {productCount !== undefined && (
+            <p className="text-sm text-muted-foreground">
+              {productCount} {productCount === 1 ? 'product' : 'products'}
+            </p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const FeaturedCategoriesSection: React.FC = () => {
+  const { categories, loading, error } = useSanityCategories({ includeProductCount: true });
+
+  if (loading) {
+    return (
+      <section className="py-12 md:py-16 lg:py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+            Shop by Category
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-gray-200 rounded-xl mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-12 md:py-16 lg:py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error loading categories: {error.message}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Only show parent categories (no parent)
+  const parentCategories = categories.filter(cat => !cat.parentId);
+
+  if (parentCategories.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-12 md:py-16 lg:py-20 bg-white">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+          Shop by Category
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {parentCategories.slice(0, 4).map((category) => (
+            <CategoryCard
+              key={category.id}
+              name={category.name}
+              slug={category.slug}
+              image={category.image}
+              productCount={category.productCount}
+            />
+          ))}
+        </div>
+        <div className="text-center mt-8">
+          <Link
+            href="/shop"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark transition-colors"
+          >
+            View All Categories
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const GrowerCard: React.FC<{
   grower: {
-    id: number;
+    id: string;
     name: string;
+    slug: string;
     logo?: string;
-    banner?: string;
+    image?: string;
+    coverImage?: string;
     location?: string;
     tagline?: string;
+    bio?: string;
+    isVerified?: boolean;
   };
 }> = ({ grower }) => (
   <Card className="flex flex-col h-full min-h-[380px] overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
     {/* Banner image or colored bar at top */}
-    {grower.banner ? (
+    {grower.coverImage ? (
       <div className="relative h-32 w-full">
         <Image
-          src={grower.banner}
+          src={grower.coverImage}
           alt={`${grower.name} banner`}
           fill
           className="object-cover"
@@ -211,34 +308,39 @@ const GrowerCard: React.FC<{
       <div className="flex-grow flex flex-col">
         <div className="flex justify-center -mt-10 mb-4 relative z-10">
           <Image
-            src={grower.logo || "/placeholder.png"}
+            src={grower.logo || grower.image || "/placeholder.png"}
             alt={grower.name}
             width={80}
             height={80}
-            className="rounded-full shadow-lg border-4 border-background bg-background"
+            className="rounded-full shadow-lg border-4 border-background bg-background object-cover"
           />
         </div>
-        <h3 className="text-2xl font-semibold mb-1 text-foreground">
-          {grower.name}
-        </h3>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <h3 className="text-2xl font-semibold text-foreground">
+            {grower.name}
+          </h3>
+          {grower.isVerified && (
+            <span title="Verified Seller" className="text-primary">✓</span>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm mb-3">
           {grower.location || "Location not specified"}
         </p>
         <p className="text-muted-foreground text-sm italic">
-          &ldquo;{grower.tagline || "Quality mushrooms from local growers"}
+          &ldquo;{grower.tagline || grower.bio || "Quality mushrooms from local growers"}
           &rdquo;
         </p>
       </div>
       {/* Action links - always at bottom with mt-auto */}
       <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-border">
         <Link
-          href={`/grower/${grower.id}`}
+          href={`/grower/${grower.slug || grower.id}`}
           className="text-primary font-semibold hover:underline text-sm"
         >
           Visit Store
         </Link>
         <Link
-          href={`/grower/${grower.id}`}
+          href={`/grower/${grower.slug || grower.id}`}
           className="text-muted-foreground hover:underline text-sm"
         >
           Read More
@@ -249,7 +351,8 @@ const GrowerCard: React.FC<{
 );
 
 const FeaturedGrowersSection: React.FC = () => {
-  const { homeData, loading, error } = useHomePageData();
+  // Phase 1: Use Sanity CMS for growers (replaces useHomePageData)
+  const { growers, loading, error } = useSanityGrowers({ isActive: true, limit: 6 });
 
   if (loading) {
     return (
@@ -269,17 +372,10 @@ const FeaturedGrowersSection: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error}</p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
-        </div>
-      </section>
-    );
+  // Silently hide section if backend API is unavailable
+  // (This prevents 404 errors from breaking the homepage)
+  if (error || !growers || growers.length === 0) {
+    return null;
   }
 
   return (
@@ -295,7 +391,7 @@ const FeaturedGrowersSection: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          {homeData?.topGrowers?.slice(0, 3).map((grower) => (
+          {growers.slice(0, 3).map((grower) => (
             <GrowerCard key={grower.id} grower={grower} />
           ))}
         </div>
@@ -317,9 +413,13 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <main>
         <HeroSection />
+        <BannerSection position="homepage-top" /> {/* Promotional banner after hero */}
         <FeaturedProductsSection />
+        <FeaturedCategoriesSection />
         <WhyMASHSection />
+        <BannerSection position="homepage-middle" /> {/* Mid-page promotional banner */}
         <FeaturedGrowersSection />
+        <TestimonialsSection />
       </main>
     </div>
   );

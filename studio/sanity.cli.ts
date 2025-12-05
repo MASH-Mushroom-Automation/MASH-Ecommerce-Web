@@ -1,0 +1,20 @@
+/**
+ * Sanity CLI Configuration
+ * This file configures the Sanity CLI tool with project-specific settings
+ * and customizes the Vite bundler configuration.
+ * Learn more: https://www.sanity.io/docs/cli
+ */
+
+import {defineCliConfig} from 'sanity/cli'
+
+const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'xyq5fhxs'
+const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
+
+export default defineCliConfig({
+  api: {
+    projectId,
+    dataset,
+  },
+  // Deployment config will be set during first deploy
+  // Run: npx sanity deploy
+})

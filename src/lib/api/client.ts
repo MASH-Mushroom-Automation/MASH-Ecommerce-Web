@@ -67,7 +67,10 @@ apiClient.interceptors.response.use(
       } else if (status === 403) {
         console.error('[API] Forbidden - Insufficient permissions');
       } else if (status === 404) {
-        console.error('[API] Resource not found');
+        // Suppress 404 errors - expected when backend not running
+        if (process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === 'true') {
+          console.warn('[API] Resource not found - using CMS data instead');
+        }
       } else if (status === 500) {
         console.error('[API] Server error');
       }

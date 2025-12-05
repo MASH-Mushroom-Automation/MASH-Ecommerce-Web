@@ -1,0 +1,227 @@
+{
+  "fresh-oyster-mushrooms": {
+    "suggestedProducts": [
+      "fresh-shiitake-mushrooms",
+      "fresh-king-oyster-mushrooms",
+      "dried-oyster-mushrooms",
+      "oyster-mushroom-growing-kit",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "dried-shiitake-mushrooms",
+      "mushroom-extract-tincture",
+      "fresh-button-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "fresh-king-oyster-mushrooms": {
+    "suggestedProducts": [
+      "fresh-oyster-mushrooms",
+      "fresh-shiitake-mushrooms",
+      "fresh-portobello-mushrooms",
+      "dried-oyster-mushrooms",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "dried-mixed-mushrooms",
+      "mushroom-extract-tincture",
+      "fresh-button-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "fresh-shiitake-mushrooms": {
+    "suggestedProducts": [
+      "fresh-oyster-mushrooms",
+      "dried-shiitake-mushrooms",
+      "fresh-lions-mane-mushrooms",
+      "shiitake-mushroom-growing-kit",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "dried-oyster-mushrooms",
+      "mushroom-extract-tincture",
+      "fresh-portobello-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "fresh-lions-mane-mushrooms": {
+    "suggestedProducts": [
+      "fresh-shiitake-mushrooms",
+      "fresh-oyster-mushrooms",
+      "lions-mane-growing-kit",
+      "mushroom-extract-tincture",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "dried-shiitake-mushrooms",
+      "fresh-king-oyster-mushrooms",
+      "dried-mixed-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "fresh-button-mushrooms": {
+    "suggestedProducts": [
+      "fresh-portobello-mushrooms",
+      "fresh-oyster-mushrooms",
+      "fresh-shiitake-mushrooms",
+      "dried-mixed-mushrooms",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "fresh-king-oyster-mushrooms",
+      "dried-shiitake-mushrooms",
+      "mushroom-extract-tincture"
+    ],
+    "relatedBundles": []
+  },
+  "fresh-portobello-mushrooms": {
+    "suggestedProducts": [
+      "fresh-button-mushrooms",
+      "fresh-king-oyster-mushrooms",
+      "fresh-shiitake-mushrooms",
+      "dried-mixed-mushrooms",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "fresh-oyster-mushrooms",
+      "dried-shiitake-mushrooms",
+      "mushroom-extract-tincture"
+    ],
+    "relatedBundles": []
+  },
+  "dried-shiitake-mushrooms": {
+    "suggestedProducts": [
+      "fresh-shiitake-mushrooms",
+      "dried-oyster-mushrooms",
+      "dried-mixed-mushrooms",
+      "shiitake-mushroom-growing-kit",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "fresh-oyster-mushrooms",
+      "mushroom-extract-tincture",
+      "dried-mixed-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "dried-oyster-mushrooms": {
+    "suggestedProducts": [
+      "fresh-oyster-mushrooms",
+      "dried-shiitake-mushrooms",
+      "dried-mixed-mushrooms",
+      "oyster-mushroom-growing-kit",
+      "mushroom-powder"
+    ],
+    "complementaryProducts": [
+      "fresh-shiitake-mushrooms",
+      "mushroom-extract-tincture",
+      "dried-mixed-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "dried-mixed-mushrooms": {
+    "suggestedProducts": [
+      "dried-shiitake-mushrooms",
+      "dried-oyster-mushrooms",
+      "fresh-oyster-mushrooms",
+      "mushroom-powder",
+      "mushroom-extract-tincture"
+    ],
+    "complementaryProducts": [
+      "fresh-shiitake-mushrooms",
+      "fresh-button-mushrooms",
+      "beginner-mushroom-combo-kit"
+    ],
+    "relatedBundles": []
+  },
+  "mushroom-powder": {
+    "suggestedProducts": [
+      "mushroom-extract-tincture",
+      "dried-shiitake-mushrooms",
+      "dried-mixed-mushrooms",
+      "fresh-lions-mane-mushrooms",
+      "beginner-mushroom-combo-kit"
+    ],
+    "complementaryProducts": [
+      "fresh-oyster-mushrooms",
+      "dried-oyster-mushrooms",
+      "fresh-shiitake-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "mushroom-extract-tincture": {
+    "suggestedProducts": [
+      "mushroom-powder",
+      "fresh-lions-mane-mushrooms",
+      "dried-shiitake-mushrooms",
+      "lions-mane-growing-kit",
+      "beginner-mushroom-combo-kit"
+    ],
+    "complementaryProducts": [
+      "fresh-oyster-mushrooms",
+      "dried-mixed-mushrooms",
+      "fresh-shiitake-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "oyster-mushroom-growing-kit": {
+    "suggestedProducts": [
+      "fresh-oyster-mushrooms",
+      "shiitake-mushroom-growing-kit",
+      "lions-mane-growing-kit",
+      "beginner-mushroom-combo-kit",
+      "dried-oyster-mushrooms"
+    ],
+    "complementaryProducts": [
+      "mushroom-powder",
+      "dried-mixed-mushrooms",
+      "mushroom-extract-tincture"
+    ],
+    "relatedBundles": []
+  },
+  "shiitake-mushroom-growing-kit": {
+    "suggestedProducts": [
+      "fresh-shiitake-mushrooms",
+      "oyster-mushroom-growing-kit",
+      "lions-mane-growing-kit",
+      "beginner-mushroom-combo-kit",
+      "dried-shiitake-mushrooms"
+    ],
+    "complementaryProducts": [
+      "mushroom-powder",
+      "dried-mixed-mushrooms",
+      "mushroom-extract-tincture"
+    ],
+    "relatedBundles": []
+  },
+  "lions-mane-growing-kit": {
+    "suggestedProducts": [
+      "fresh-lions-mane-mushrooms",
+      "oyster-mushroom-growing-kit",
+      "shiitake-mushroom-growing-kit",
+      "beginner-mushroom-combo-kit",
+      "mushroom-extract-tincture"
+    ],
+    "complementaryProducts": [
+      "mushroom-powder",
+      "dried-shiitake-mushrooms",
+      "fresh-oyster-mushrooms"
+    ],
+    "relatedBundles": []
+  },
+  "beginner-mushroom-combo-kit": {
+    "suggestedProducts": [
+      "oyster-mushroom-growing-kit",
+      "shiitake-mushroom-growing-kit",
+      "lions-mane-growing-kit",
+      "mushroom-powder",
+      "dried-mixed-mushrooms"
+    ],
+    "complementaryProducts": [
+      "fresh-oyster-mushrooms",
+      "fresh-shiitake-mushrooms",
+      "mushroom-extract-tincture"
+    ],
+    "relatedBundles": []
+  }
+}

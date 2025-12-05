@@ -2,7 +2,7 @@
 // src/app/api/cms/faq/[id]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CMS } from '@/lib/cms/database';
+import { FAQAPI } from '@/lib/cms/database';
 
 interface RouteParams {
   params: {
@@ -12,7 +12,7 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const faq = await CMS.findById('faq_items', params.id);
+    const faq = await FAQAPI.getById(params.id);
 
     if (!faq) {
       return NextResponse.json({

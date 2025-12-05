@@ -1,5 +1,6 @@
 // CMS-based FAQ Component
 // src/components/cms/FAQSection.tsx
+// Supports both legacy useCMS FAQGroup and new Sanity FAQ types
 
 import React from "react";
 import {
@@ -12,10 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { FAQGroup } from "@/hooks/useCMS";
+import type { FAQGroup } from "@/hooks/useCMS";
+import type { SanityFAQGroup } from "@/hooks/useSanityFAQ";
+
+// Union type to support both legacy and Sanity FAQ formats
+type FAQGroupType = FAQGroup | SanityFAQGroup;
 
 interface CMSFAQSectionProps {
-  faqs: FAQGroup[];
+  faqs: FAQGroupType[];
   loading?: boolean;
   error?: string | null;
 }

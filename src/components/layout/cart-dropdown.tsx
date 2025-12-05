@@ -13,7 +13,8 @@ import {
 import { ShoppingCart, X, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
-import { useProducts } from "@/hooks/useProducts";
+// TEMPORARILY DISABLED: Backend API not ready yet
+// import { useProducts } from "@/hooks/useProducts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,8 @@ import {
 export function CartDropdown() {
   const cartData = useCart();
   const { items, summary, updateQuantity, removeFromCart, clearCart } = cartData;
-  const { products } = useProducts({ limit: 100 });
+  // TEMPORARILY DISABLED: Backend API not ready, cart items should already have product details
+  // const { products } = useProducts({ limit: 100 });
   const [prevItemCount, setPrevItemCount] = useState(0);
   const [animate, setAnimate] = useState(false);
 
@@ -44,14 +46,15 @@ export function CartDropdown() {
     setPrevItemCount(totalItems);
   }, [totalItems, prevItemCount]);
 
+  // Cart items should already have product details from when they were added
   const cartItemsWithDetails = (items || []).map((cartItem) => {
-    const product = products.find((p) => p.id === cartItem.productId);
+    // Assuming cart items already have name, image, etc. from when added
     return {
       ...cartItem,
-      name: product?.name || "Product",
-      image: product?.image || "/placeholder.png",
-      grower: product?.grower || "Unknown",
-      unit: product?.weight || "unit",
+      name: cartItem.name || "Product",
+      image: cartItem.image || "/placeholder.png",
+      grower: cartItem.grower || "Unknown",
+      unit: cartItem.unit || "unit",
     };
   });
 

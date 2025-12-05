@@ -18,7 +18,9 @@ import {
   Facebook,
   Instagram,
   Store,
+  Search,
 } from "lucide-react";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CartDropdown } from "@/components/layout/cart-dropdown";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
@@ -46,56 +48,77 @@ import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
+import { useSanitySiteSettings, useSanityAnnouncementBar, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 
 type SellerStatus = "approved" | "pending" | "none";
 
-const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus }) => (
-  <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
-    <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-        {sellerStatus === "approved" ? (
-          <Link href="/seller/dashboard" className="hover:underline">
-            Seller Center
+const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus }) => {
+  const { settings } = useSanitySiteSettings();
+  
+  return (
+    <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
+      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          {sellerStatus === "approved" ? (
+            <Link href="/seller/dashboard" className="hover:underline">
+              Seller Center
+            </Link>
+          ) : sellerStatus === "pending" ? (
+            <span
+              className="text-accent-foreground/80 cursor-not-allowed"
+              title="Your seller application is awaiting admin approval"
+            >
+              Application Pending ⏳
+            </span>
+          ) : (
+            <Link href="/start-selling" className="hover:underline">
+              Start Selling
+            </Link>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
+          <Link href="/blog" className="hover:underline whitespace-nowrap">
+            BLOG
           </Link>
-        ) : sellerStatus === "pending" ? (
-          <span
-            className="text-accent-foreground/80 cursor-not-allowed"
-            title="Your seller application is awaiting admin approval"
-          >
-            Application Pending ⏳
-          </span>
-        ) : (
-          <Link href="/start-selling" className="hover:underline">
-            Start Selling
+          <span className="hidden sm:inline opacity-50">•</span>
+          <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
+            FAQ
           </Link>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
-        <Link href="/blog" className="hover:underline whitespace-nowrap">
-          BLOG
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <Link href="/faq" className="hidden sm:inline hover:underline whitespace-nowrap">
-          FAQ
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
-          CONTACT US
-        </Link>
-        <span className="hidden sm:inline opacity-50">•</span>
-        <div className="hidden sm:flex items-center gap-2">
-          <a href="#" aria-label="Facebook" className="hover:text-primary-foreground">
-            <Facebook size={18} />
-          </a>
-          <a href="#" aria-label="Instagram" className="hover:text-primary-foreground">
-            <Instagram size={18} />
-          </a>
+          <span className="hidden sm:inline opacity-50">•</span>
+          <Link href="/contact" className="hidden sm:inline hover:underline whitespace-nowrap">
+            CONTACT US
+          </Link>
+          <span className="hidden sm:inline opacity-50">•</span>
+          <div className="hidden sm:flex items-center gap-2">
+            {settings?.socialMedia?.facebook && (
+              <a 
+                href={settings.socialMedia.facebook} 
+                aria-label="Facebook" 
+                className="hover:text-primary-foreground"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Facebook size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.instagram && (
+              <a 
+                href={settings.socialMedia.instagram} 
+                aria-label="Instagram" 
+                className="hover:text-primary-foreground"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Instagram size={18} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface NavLinkProps {
   label: string;
@@ -235,6 +258,9 @@ export function Header() {
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { profile } = useUserProfile();
+  const { settings } = useSanitySiteSettings();
+  const { announcementBar } = useSanityAnnouncementBar();
+  const { menu: headerNav, loading: navLoading } = useSanityNavigation('header-main');
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated());
@@ -269,20 +295,49 @@ export function Header() {
   };
 
   return (
-    <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
-      <SellerInfoBar sellerStatus={sellerStatus} />
+    <>
+      {/* Announcement Bar - Real-time from Sanity CMS */}
+      {announcementBar?.enabled && (
+        <div 
+          className="text-center py-2 px-4 text-sm font-medium"
+          style={{
+            backgroundColor: announcementBar.backgroundColor || '#6A994E',
+            color: announcementBar.textColor || '#ffffff'
+          }}
+        >
+          {announcementBar.link ? (
+            <Link href={announcementBar.link} className="hover:underline">
+              {announcementBar.message}
+            </Link>
+          ) : (
+            <span>{announcementBar.message}</span>
+          )}
+        </div>
+      )}
 
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
-        <Link href="/">
-          <Image
-            src="/Logo  v6 - Market.png"
-            alt="MASH Logo"
-            width={150}
-            height={50}
-            className="h-10 w-auto sm:h-12"
-            priority
-          />
-        </Link>
+      <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
+        <SellerInfoBar sellerStatus={sellerStatus} />
+
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
+          <Link href="/">
+            <Image
+              src={settings?.logo || "/Logo  v6 - Market.png"}
+              alt={settings?.companyName || "MASH Logo"}
+              width={150}
+              height={50}
+              className="h-10 w-auto sm:h-12"
+              priority
+            />
+          </Link>
+
+          {/* Search Bar - Hidden on small screens, visible on md+ */}
+          <div className="hidden md:block flex-1 max-w-md mx-4">
+            <SearchAutocomplete 
+              placeholder="Search mushrooms, kits, dried..."
+              showRecent={true}
+              showTrending={true}
+            />
+          </div>
 
         <div className="hidden lg:flex items-center space-x-6">
           <ThemeSwitcher />
@@ -385,25 +440,57 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="bg-card text-foreground">
               <div className="flex flex-col space-y-4 p-4">
+                {/* Mobile Search Bar */}
+                <div className="mb-2">
+                  <SearchAutocomplete 
+                    placeholder="Search products..."
+                    showRecent={true}
+                    showTrending={true}
+                  />
+                </div>
+                
                 <nav className="flex flex-col space-y-2">
-                  <Link
-                    href="/"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/shop"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Products
-                  </Link>
-                  <Link
-                    href="/grower"
-                    className="text-lg font-medium text-muted-foreground hover:text-primary"
-                  >
-                    Growers
-                  </Link>
+                  {/* CMS-driven navigation for mobile */}
+                  {headerNav?.items?.length ? (
+                    headerNav.items.map((item) => (
+                      <Link
+                        key={item._key}
+                        href={item.internalPath || item.externalUrl || '/'}
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                        target={item.openInNewTab ? '_blank' : undefined}
+                        rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                      >
+                        {item.label}
+                      </Link>
+                    ))
+                  ) : (
+                    <>
+                      <Link
+                        href="/"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        href="/shop"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Products
+                      </Link>
+                      <Link
+                        href="/grower"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Growers
+                      </Link>
+                      <Link
+                        href="/stores"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Stores
+                      </Link>
+                    </>
+                  )}
                 </nav>
                 <div className="border-t border-border pt-4 space-y-2">
                   <Link
@@ -464,11 +551,30 @@ export function Header() {
 
       <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
         <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
-          <NavLink label="Home" path="/" />
-          <NavLink label="Products" path="/shop" />
-          <NavLink label="Growers" path="/grower" />
-          {sellerStatus === "approved" && (
-            <NavLink label="Dashboard" path="/seller/dashboard" />
+          {/* Fallback navigation when CMS is loading or unavailable */}
+          {navLoading || !headerNav?.items?.length ? (
+            <>
+              <NavLink label="Home" path="/" />
+              <NavLink label="Products" path="/shop" />
+              <NavLink label="Growers" path="/grower" />
+              <NavLink label="Stores" path="/stores" />
+              {sellerStatus === "approved" && (
+                <NavLink label="Dashboard" path="/seller/dashboard" />
+              )}
+            </>
+          ) : (
+            <>
+              {headerNav.items.map((item) => (
+                <NavLink 
+                  key={item._key} 
+                  label={item.label} 
+                  path={item.internalPath || item.externalUrl || '/'} 
+                />
+              ))}
+              {sellerStatus === "approved" && (
+                <NavLink label="Dashboard" path="/seller/dashboard" />
+              )}
+            </>
           )}
         </div>
       </nav>
@@ -489,5 +595,6 @@ export function Header() {
         </AlertDialogContent>
       </AlertDialog>
     </header>
+    </>
   );
 }

@@ -66,17 +66,15 @@ const MOCK_HERO_SLIDES = [
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class MainApi {
-  // Home page data
+  // Home page data - Returns mock growers only
+  // Featured products are now fetched from Sanity CMS via useSanityFeaturedProducts hook
   static async getHomePageData(): Promise<ApiResponse<HomePageData>> {
     await delay(300);
 
-    // Get featured products (reuse from products API)
-    const { ProductsApi } = await import("./products");
-    const productsResponse = await ProductsApi.getProducts({ limit: 6 });
-
+    // Return only growers data - products are handled by Sanity CMS now
     return {
       data: {
-        featuredProducts: productsResponse.data,
+        featuredProducts: [], // Empty - use useSanityFeaturedProducts hook instead
         topGrowers: MOCK_GROWERS.slice(0, 3),
         heroSlides: MOCK_HERO_SLIDES,
       },
