@@ -15,6 +15,9 @@ export default defineCliConfig({
     projectId,
     dataset,
   },
-  // Deployment config will be set during first deploy
-  // Run: npx sanity deploy
+  // Deployment to ppnamias.sanity.studio
+  // Deployed: December 6, 2025
+  deployment: {
+    appId: 'esr18b2qp5du2mfuufq6n6ci',
+  },
 })

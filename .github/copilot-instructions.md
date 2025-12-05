@@ -1,33 +1,34 @@
 # MASH E-Commerce Platform - AI Coding Guide
 
 **Last Updated:** December 6, 2025  
-**Project Status:** Phase 2.5 Complete | Sanity Migration to Free Project  
-**⚠️ MIGRATION REQUIRED**: Switch from MASH CMS (xyq5fhxs) to PP_Namias Free (gerattrr)
+**Project Status:** Phase 2.5 Complete | Sanity CMS Migrated  
+**✅ MIGRATION COMPLETE**: Now using PP_Namias Free (gerattrr)
 
 ---
 
-## 🚨 URGENT: Sanity CMS Migration
+## ✅ Sanity CMS - PP_Namias Free Project
 
-**Current Issue:** Cannot edit/deploy current Sanity project (xyq5fhxs - Growth Trial)
+**Studio URL:** https://ppnamias.sanity.studio  
+**Dashboard:** https://www.sanity.io/manage/project/gerattrr
 
-**Solution:** Migrate to PP_Namias free project (gerattrr)
+📋 **See:** `.github/SANITY_FREE_MIGRATION_PLAN.md` for complete migration details
 
-📋 **See:** `.github/SANITY_FREE_MIGRATION_PLAN.md` for complete migration guide
+### Project Configuration
 
-### Quick Migration Reference
+| Setting | Value |
+|---------|-------|
+| Project ID | `gerattrr` |
+| Plan | **Free (permanent)** |
+| Studio URL | https://ppnamias.sanity.studio |
+| App ID | `esr18b2qp5du2mfuufq6n6ci` |
+| Dataset | `production` (public) |
 
-| Setting | OLD (Don't Use) | NEW (Use This) |
-|---------|-----------------|----------------|
-| Project ID | `xyq5fhxs` | `gerattrr` |
-| Plan | Growth Trial (issues) | **Free (permanent)** |
-| Studio URL | mash-cms.sanity.studio | ppnamias.sanity.studio |
-| Dashboard | sanity.io/manage/project/xyq5fhxs | **sanity.io/manage/project/gerattrr** |
-
-### Files to Update
-1. `.env.local` - Change `NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr`
-2. `studio/.env.local` - Change `SANITY_STUDIO_PROJECT_ID=gerattrr`
-3. `studio/.env` - Already correct (`gerattrr`)
-4. `src/lib/sanity/client.ts` - Update default fallback
+### CORS Origins Configured
+| Origin | Purpose |
+|--------|---------|
+| `http://localhost:5173` | Vite dev |
+| `http://localhost:3333` | Sanity Studio dev |
+| `https://ppnamias.sanity.studio` | Deployed Studio |
 
 ---
 
@@ -35,7 +36,7 @@
 
 ### Start Development
 ```bash
-npm install && npm run dev    # Frontend: localhost:3001 (Turbopack)
+npm install && npm run dev    # Frontend: localhost:3000 (Turbopack)
 cd studio && npm run dev      # Sanity Studio: localhost:3333
 # Backend runs on localhost:3000 (separate MASH-Backend repo)
 ```

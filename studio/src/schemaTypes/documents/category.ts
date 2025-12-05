@@ -13,6 +13,14 @@ export const category = defineType({
       type: 'string',
       validation: (rule) => rule.required(),
     }),
+    // Legacy field - kept for backwards compatibility with old data
+    defineField({
+      name: 'categoryName',
+      title: 'Category Name (Legacy)',
+      type: 'string',
+      hidden: true, // Hide from UI since we use 'name' now
+      description: 'Legacy field - use "name" instead',
+    }),
     defineField({
       name: 'slug',
       title: 'Slug',
@@ -50,6 +58,14 @@ export const category = defineType({
       type: 'boolean',
       description: 'Show this category on the homepage or featured sections',
       initialValue: false,
+    }),
+    // Legacy field - kept for backwards compatibility with old data
+    defineField({
+      name: 'featuredCategory',
+      title: 'Featured Category (Legacy)',
+      type: 'boolean',
+      hidden: true, // Hide from UI since we use 'featured' now
+      description: 'Legacy field - use "featured" instead',
     }),
     defineField({
       name: 'isActive',
