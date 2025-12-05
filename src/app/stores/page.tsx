@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Phone, Clock, ChevronRight, Navigation, Store as StoreIcon } from 'lucide-react';
-import { fetchStores, TransformedStore } from '@/hooks/useSanityStores';
+import { fetchStores, TransformedStore } from '@/lib/sanity/stores';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
