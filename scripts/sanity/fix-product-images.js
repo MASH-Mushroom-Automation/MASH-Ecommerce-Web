@@ -13,7 +13,7 @@ const client = createClient({
   projectId: process.env.SANITY_STUDIO_PROJECT_ID || 'gerattrr',
   dataset: process.env.SANITY_STUDIO_DATASET || 'production',
   apiVersion: '2024-01-01',
-  token: process.env.SANITY_AUTH_TOKEN || process.env.SANITY_API_WRITE_TOKEN,
+  token: process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_AUTH_TOKEN,
   useCdn: false,
 });
 

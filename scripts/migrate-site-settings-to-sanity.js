@@ -17,7 +17,7 @@ const { createClient } = require('@sanity/client');
 require('dotenv').config({ path: '.env.local' });
 
 const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs',
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2024-11-26',
   token: process.env.SANITY_API_WRITE_TOKEN,
@@ -414,7 +414,7 @@ async function main() {
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('🍄 MASH E-Commerce - Phase 5: Site Settings & Navigation');
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log(`Project ID: ${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs'}`);
+  console.log(`Project ID: ${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr'}`);
   console.log(`Dataset: ${process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'}`);
   console.log(`Token: ${process.env.SANITY_API_WRITE_TOKEN ? '✅ Found' : '❌ Missing'}`);
   

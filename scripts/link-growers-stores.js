@@ -13,7 +13,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs',
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   token: process.env.SANITY_API_WRITE_TOKEN,
   apiVersion: '2024-01-01',

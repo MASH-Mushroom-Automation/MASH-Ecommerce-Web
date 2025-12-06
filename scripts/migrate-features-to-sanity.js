@@ -19,7 +19,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 // Sanity client configuration
 const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'xyq5fhxs',
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2024-11-26',
   token: process.env.SANITY_API_WRITE_TOKEN,
