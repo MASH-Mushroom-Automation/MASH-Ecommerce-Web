@@ -278,35 +278,142 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
       {/* Team Section - Enhanced with proper images */}
       {team && team.length > 0 && (
-        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-background">
+        <section className="py-20 md:py-28 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-background via-muted/20 to-background">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12 md:mb-16">
+            <div className="text-center mb-16">
               <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                 <Users className="w-3 h-3 mr-1" />
                 Our Team
               </Badge>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
                 Meet the Innovators
               </h2>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
+              <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                 M.A.S.H. is the culmination of a thesis project by a passionate
-                team of Computer Science students from the University of Caloocan
-                City.
+                team of <span className="text-primary font-semibold">7 Computer Science students</span> from the 
+                University of Caloocan City.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-              {team.map((member, index) => {
+            {/* Project Manager - Featured Card */}
+            {team.length > 0 && (
+              <div className="mb-12">
+                <div className="max-w-2xl mx-auto">
+                  {(() => {
+                    const leader = team.find(m => m.role === "Project Manager") || team[0];
+                    const LeaderIcon = roleIcons[leader.role] || Target;
+                    return (
+                      <div className="group relative bg-gradient-to-br from-primary/5 via-card to-primary/5 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-primary/20 hover:border-primary/40">
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-primary to-teal-500" />
+                        <div className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
+                          {/* Leader Image */}
+                          <div className="relative flex-shrink-0">
+                            <div className="w-40 h-40 md:w-48 md:h-48 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-primary/30 group-hover:ring-primary/50 transition-all">
+                              {leader.image ? (
+                                <Image
+                                  src={leader.image}
+                                  alt={leader.name}
+                                  fill
+                                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                  sizes="192px"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center">
+                                  <span className="text-white text-5xl font-bold">
+                                    {getInitials(leader.name)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="absolute -bottom-3 -right-3 w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                              <LeaderIcon className="w-7 h-7 text-white" />
+                            </div>
+                          </div>
+                          
+                          {/* Leader Info */}
+                          <div className="text-center md:text-left flex-1">
+                            <Badge className="mb-3 bg-primary/20 text-primary border-primary/30">
+                              <Star className="w-3 h-3 mr-1" />
+                              Team Lead
+                            </Badge>
+                            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                              {leader.name}
+                            </h3>
+                            <p className="text-lg text-primary font-semibold mb-4">
+                              {leader.role}
+                            </p>
+                            {leader.bio ? (
+                              <p className="text-muted-foreground leading-relaxed">
+                                {leader.bio}
+                              </p>
+                            ) : (
+                              <p className="text-muted-foreground leading-relaxed">
+                                Leading the MASH project with expertise in project management, team coordination, and strategic planning.
+                              </p>
+                            )}
+                            
+                            {/* Social Links for Leader */}
+                            {leader.socialLinks && Object.values(leader.socialLinks).some(Boolean) && (
+                              <div className="flex gap-3 mt-5 justify-center md:justify-start">
+                                {leader.socialLinks.linkedin && (
+                                  <a 
+                                    href={leader.socialLinks.linkedin} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                                  >
+                                    <Linkedin className="w-5 h-5 text-primary" />
+                                  </a>
+                                )}
+                                {leader.socialLinks.github && (
+                                  <a 
+                                    href={leader.socialLinks.github} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                                  >
+                                    <Github className="w-5 h-5 text-primary" />
+                                  </a>
+                                )}
+                                {leader.socialLinks.facebook && (
+                                  <a 
+                                    href={leader.socialLinks.facebook} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                                  >
+                                    <Facebook className="w-5 h-5 text-primary" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Other Team Members - Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {team
+                .filter(m => m.role !== "Project Manager")
+                .map((member, index) => {
                 const RoleIcon = roleIcons[member.role] || Code;
-                const gradientClass = gradientColors[index % gradientColors.length];
+                const gradientClass = gradientColors[(index + 1) % gradientColors.length];
                 
                 return (
                   <div
                     key={index}
-                    className="group bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-border hover:border-primary/50 hover:-translate-y-2"
+                    className="group relative bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-border hover:border-primary/40 hover:-translate-y-1"
                   >
+                    {/* Top gradient accent */}
+                    <div className={`h-1.5 bg-gradient-to-r ${gradientClass}`} />
+                    
                     {/* Image Container */}
-                    <div className="relative h-56 overflow-hidden">
+                    <div className="relative h-52 overflow-hidden">
                       {member.image ? (
                         <>
                           <Image
@@ -314,44 +421,49 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                             alt={member.name}
                             fill
                             className="object-cover transition-transform duration-500 group-hover:scale-110"
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                         </>
                       ) : (
                         /* Fallback gradient with initials */
-                        <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
-                          <span className="text-white text-5xl font-bold opacity-90">
+                        <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center relative`}>
+                          <span className="text-white text-6xl font-bold opacity-90 group-hover:scale-110 transition-transform duration-300">
                             {getInitials(member.name)}
                           </span>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         </div>
                       )}
                       
-                      {/* Role badge overlay */}
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <div className="flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
-                          <RoleIcon className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-medium text-foreground truncate">
-                            {member.role}
-                          </span>
-                        </div>
+                      {/* Role icon floating */}
+                      <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <RoleIcon className="w-5 h-5 text-primary" />
                       </div>
                     </div>
                     
                     {/* Content */}
-                    <div className="p-5">
-                      <h3 className="font-bold text-lg text-foreground mb-1 group-hover:text-primary transition-colors">
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {member.role}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-lg text-foreground mb-2 group-hover:text-primary transition-colors">
                         {member.name}
                       </h3>
-                      {member.bio && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                      {member.bio ? (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {member.bio}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          Contributing to MASH with expertise in {member.role.toLowerCase()}.
                         </p>
                       )}
                       
                       {/* Social Links */}
-                      {member.socialLinks && (
-                        <div className="flex gap-2 pt-2 border-t border-border">
+                      {member.socialLinks && Object.values(member.socialLinks).some(Boolean) && (
+                        <div className="flex gap-2 pt-4 mt-4 border-t border-border">
                           {member.socialLinks.linkedin && (
                             <a 
                               href={member.socialLinks.linkedin} 
@@ -497,7 +609,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-6 mt-16 max-w-2xl mx-auto">
               <div className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">8</div>
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2">7</div>
                 <div className="text-sm text-white/70">Team Members</div>
               </div>
               <div className="text-center">
