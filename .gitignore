@@ -42,4 +42,5 @@ next-env.d.ts
 studio/.env
 .env.local
 
-/.github
+# Keep .github for workflows but ignore sensitive files
+# /.github
