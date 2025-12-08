@@ -34,10 +34,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Optionally also ignore ESLint errors
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Redirects for old/deprecated routes
   async redirects() {
     return [
