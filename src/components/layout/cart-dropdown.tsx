@@ -46,17 +46,9 @@ export function CartDropdown() {
     setPrevItemCount(totalItems);
   }, [totalItems, prevItemCount]);
 
-  // Cart items should already have product details from when they were added
-  const cartItemsWithDetails = (items || []).map((cartItem) => {
-    // Assuming cart items already have name, image, etc. from when added
-    return {
-      ...cartItem,
-      name: cartItem.name || "Product",
-      image: cartItem.image || "/placeholder.png",
-      grower: cartItem.grower || "Unknown",
-      unit: cartItem.unit || "unit",
-    };
-  });
+  // Cart items now have full product details from when they were added
+  // No fallbacks needed - CartContext ensures all required fields are present
+  const cartItemsWithDetails = items || [];
 
   return (
     <Sheet>
@@ -140,7 +132,7 @@ export function CartDropdown() {
                     </AlertDialog>
 
                     <div className="flex gap-4">
-                      <Link href={`/product/${item.productId}`} className="flex-shrink-0">
+                      <Link href={`/product/${item.slug}`} className="flex-shrink-0">
                         <Image
                           src={item.image}
                           alt={item.name}
@@ -151,13 +143,13 @@ export function CartDropdown() {
                       </Link>
 
                       <div className="flex-1 min-w-0 flex flex-col">
-                        <Link href={`/product/${item.productId}`}>
+                        <Link href={`/product/${item.slug}`}>
                           <h4 className="font-semibold text-base text-foreground hover:text-primary mb-2 pr-6 leading-snug">
                             {item.name}
                           </h4>
                         </Link>
 
-                        <p className="text-sm text-accent mb-3">Sold by: @{item.grower}</p>
+                        <p className="text-sm text-accent mb-3">Sold by: @{item.grower || "MASH"}</p>
 
                         <div className="flex items-center justify-between mt-auto">
                           <p className="text-lg font-bold text-foreground">

@@ -76,6 +76,27 @@ export interface CartItem {
   productId: string;
   quantity: number;
   price: number;
+  // Product details for display (stored when adding to cart)
+  name: string;
+  image: string;
+  slug: string;
+  grower?: string;
+  unit?: string;
+  stock: number;
+  comparePrice?: number;
+}
+
+// Product data required for adding to cart
+export interface AddToCartProduct {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  slug: string;
+  stock: number;
+  grower?: string;
+  unit?: string;
+  comparePrice?: number;
 }
 
 export interface OrderSummary {
@@ -84,6 +105,7 @@ export interface OrderSummary {
   tax: number;
   shipping: number;
   total: number;
+  itemCount: number;
 }
 
 export interface UserAddress {

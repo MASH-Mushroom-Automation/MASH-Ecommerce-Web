@@ -598,8 +598,11 @@ export default function CategoryPage() {
                           name: product.name,
                           price: product.price,
                           image: product.image || "/placeholder-product.jpg",
-                          quantity: 1,
-                        });
+                          slug: product.slug,
+                          stock: product.stock,
+                          grower: product.grower,
+                          unit: product.unit,
+                        }, 1);
                       }}
                       showQuickView
                     />

@@ -474,11 +474,12 @@ export default function ProductCatalogPage() {
                         id={product.id}
                         slug={product.slug} // Pass slug for SEO-friendly URLs
                         name={product.name}
-                        farm={product.category || "MASH"}
+                        farm={product.grower || product.category || "MASH"}
                         price={product.price}
                         unit={product.unit || "250g"}
                         image={product.image}
                         inStock={product.stock > 0}
+                        stock={product.stock}
                       />
                     ))}
                   </div>
@@ -528,7 +529,16 @@ export default function ProductCatalogPage() {
                                 variant="secondary"
                                 size="sm"
                                 onClick={() =>
-                                  addToCart(product.id, product.price, 1)
+                                  addToCart({
+                                    id: product.id,
+                                    name: product.name,
+                                    price: product.price,
+                                    image: product.image,
+                                    slug: product.slug,
+                                    stock: product.stock,
+                                    grower: product.grower,
+                                    unit: product.unit,
+                                  }, 1)
                                 }
                                 className="w-full sm:w-auto min-h-[36px]"
                               >

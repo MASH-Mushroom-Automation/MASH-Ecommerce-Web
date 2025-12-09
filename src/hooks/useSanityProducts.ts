@@ -370,6 +370,7 @@ export function useSanityProduct(slug: string) {
           },
           
           // E-Commerce Enhancements: Related Products
+          // Note: Null references are filtered in transformSanityProduct
           suggestedProducts[]->{
             _id,
             name,

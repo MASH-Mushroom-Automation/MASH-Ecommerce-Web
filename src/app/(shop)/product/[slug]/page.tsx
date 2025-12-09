@@ -116,20 +116,32 @@ export default function ProductDetailPage({ params }: Props) {
   };
 
   const handleAddToCart = () => {
-    addToCart(product.id, product.price, quantity);
+    // Use the first valid image or placeholder
+    const productImage = product.images?.[0] || product.image || '';
     
-    // Track add to cart event
-    trackAddToCart({
+    const success = addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
-      quantity,
-      category: product.category,
-    });
+      image: productImage,
+      slug: product.slug,
+      stock: product.stock || 100, // Default if not available
+      grower: product.grower,
+      unit: product.unit,
+      comparePrice: product.compareAtPrice,
+    }, quantity);
     
-    toast.success(`${product.name} added to cart!`, {
-      description: `${quantity} ${product.unit || "unit"}(s) added`,
-    });
+    if (success) {
+      // Track add to cart event
+      trackAddToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity,
+        category: product.category,
+      });
+    }
+    // Toast is handled by CartContext, no need to duplicate
   };
 
   const handleShare = async () => {
@@ -857,10 +869,30 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
               <Button 
                 onClick={() => {
-                  // Add all products to cart
-                  addToCart(product.id, product.price, 1);
+                  // Add all products to cart (main product + complementary products)
+                  const mainProductImage = product.images?.[0] || product.image || '';
+                  addToCart({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: mainProductImage,
+                    slug: product.slug,
+                    stock: product.stock || 100,
+                    grower: product.grower,
+                    unit: product.unit,
+                  }, 1);
+                  
                   product.complementaryProducts?.forEach((p) => {
-                    addToCart(p.id, p.price, 1);
+                    addToCart({
+                      id: p.id,
+                      name: p.name,
+                      price: p.price,
+                      image: p.image || '',
+                      slug: p.slug,
+                      stock: p.stock || 100,
+                      grower: p.grower,
+                      unit: p.unit,
+                    }, 1);
                   });
                   toast.success('Bundle added to cart! You saved 10%');
                 }}

@@ -237,26 +237,30 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
         : product.category.slug.current)
     : undefined;
 
-  // Transform suggested products
-  const suggestedProducts: RelatedProduct[] | undefined = (product as any).suggestedProducts?.map((p: any) => ({
-    id: p._id,
-    name: p.name,
-    slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
-    price: p.price || 0,
-    image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
-    isPromo: p.isPromo || false,
-    isFeatured: p.isFeatured || false,
-  }));
+  // Transform suggested products (filter out null references from deleted products)
+  const suggestedProducts: RelatedProduct[] | undefined = (product as any).suggestedProducts
+    ?.filter((p: any) => p !== null && p !== undefined && p._id)
+    ?.map((p: any) => ({
+      id: p._id,
+      name: p.name || 'Unknown Product',
+      slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
+      price: p.price || 0,
+      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+      isPromo: p.isPromo || false,
+      isFeatured: p.isFeatured || false,
+    }));
 
-  // Transform complementary products
-  const complementaryProducts: RelatedProduct[] | undefined = (product as any).complementaryProducts?.map((p: any) => ({
-    id: p._id,
-    name: p.name,
-    slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
-    price: p.price || 0,
-    image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
-    isPromo: p.isPromo || false,
-  }));
+  // Transform complementary products (filter out null references from deleted products)
+  const complementaryProducts: RelatedProduct[] | undefined = (product as any).complementaryProducts
+    ?.filter((p: any) => p !== null && p !== undefined && p._id)
+    ?.map((p: any) => ({
+      id: p._id,
+      name: p.name || 'Unknown Product',
+      slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
+      price: p.price || 0,
+      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+      isPromo: p.isPromo || false,
+    }));
 
   return {
     id: product._id,

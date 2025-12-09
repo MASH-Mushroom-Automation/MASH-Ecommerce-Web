@@ -24,6 +24,7 @@ interface ProductCardProps {
   unit?: string;
   image: string;
   inStock?: boolean;
+  stock?: number; // Actual stock count for cart validation
 }
 
 export function ProductCard({
@@ -35,6 +36,7 @@ export function ProductCard({
   unit,
   image,
   inStock = true,
+  stock = 100, // Default stock if not provided
 }: ProductCardProps) {
   // Use slug for URL if available (Sanity products), otherwise fall back to ID
   const productUrl = slug ? `/product/${slug}` : `/product/${id}`;
@@ -61,19 +63,27 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
 
-    addToCart(id, price, 1);
-
-    // Track add to cart event
-    trackAddToCart({
+    const success = addToCart({
       id,
       name,
       price,
-      quantity: 1,
-    });
+      image,
+      slug: slug || id,
+      stock,
+      grower: farm,
+      unit,
+    }, 1);
 
-    toast.success(`${name} added to cart!`, {
-      description: "View your cart to proceed to checkout",
-    });
+    if (success) {
+      // Track add to cart event
+      trackAddToCart({
+        id,
+        name,
+        price,
+        quantity: 1,
+      });
+    }
+    // Toast is handled by CartContext, no need to duplicate
   };
 
   return (
