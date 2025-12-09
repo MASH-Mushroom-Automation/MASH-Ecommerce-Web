@@ -1,6 +1,6 @@
 /**
  * SanityHeroCarousel Component
- * 
+ *
  * Hero carousel component connected to Sanity CMS.
  * Features:
  * - Real-time updates from Sanity
@@ -61,9 +61,7 @@ export const SanityHeroCarousel: React.FC = () => {
               <p className="text-lg font-medium text-foreground animate-pulse">
                 Loading hero carousel...
               </p>
-              <p className="text-sm text-muted-foreground">
-                Just a moment
-              </p>
+              <p className="text-sm text-muted-foreground">Just a moment</p>
             </div>
           </div>
         </div>
@@ -78,7 +76,9 @@ export const SanityHeroCarousel: React.FC = () => {
         <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error loading hero carousel</p>
-            <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error.message}
+            </p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -100,12 +100,19 @@ export const SanityHeroCarousel: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/shop">
-                <Button size="lg" className="bg-white text-primary-dark hover:bg-gray-100">
+                <Button
+                  size="lg"
+                  className="bg-white text-primary-dark hover:bg-gray-100"
+                >
                   Shop Now
                 </Button>
               </Link>
               <Link href="/about">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white text-white hover:bg-white/10"
+                >
                   Learn More
                 </Button>
               </Link>
@@ -113,9 +120,9 @@ export const SanityHeroCarousel: React.FC = () => {
             <div className="mt-8 p-4 bg-white/10 rounded-lg backdrop-blur-sm">
               <p className="text-sm opacity-80">
                 ℹ️ To customize this hero section, add slides in{" "}
-                <a 
-                  href="https://mash-ecommerce.sanity.studio" 
-                  target="_blank" 
+                <a
+                  href="https://mash-ecommerce.sanity.studio"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-white"
                 >
@@ -132,13 +139,13 @@ export const SanityHeroCarousel: React.FC = () => {
   // Get button variant for shadcn/ui
   const getButtonVariant = (style?: string) => {
     switch (style) {
-      case 'secondary':
-        return 'secondary';
-      case 'ghost':
-        return 'ghost';
-      case 'primary':
+      case "secondary":
+        return "secondary";
+      case "ghost":
+        return "ghost";
+      case "primary":
       default:
-        return 'default';
+        return "default";
     }
   };
 
@@ -146,13 +153,13 @@ export const SanityHeroCarousel: React.FC = () => {
   if (slides.length === 1) {
     const slide = slides[0];
     return (
-      <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
+      <section className="relative h-[400px] sm:h-[450px] md:h-[550px] lg:h-[600px] overflow-hidden">
         {/* Background Image */}
-        {slide.image && slide.image.trim() !== '' ? (
+        {slide.image && slide.image.trim() !== "" ? (
           <>
             <Image
               src={slide.image}
-              alt={slide.title || 'Hero slide'}
+              alt={slide.title || "Hero slide"}
               fill
               className="object-cover object-center"
               priority
@@ -208,7 +215,7 @@ export const SanityHeroCarousel: React.FC = () => {
 
   // Multiple slides - show carousel
   return (
-    <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
+    <section className="relative h-[400px] sm:h-[450px] md:h-[550px] lg:h-[600px] overflow-hidden">
       <Carousel
         opts={{ loop: true }}
         plugins={[plugin.current]}
@@ -222,11 +229,11 @@ export const SanityHeroCarousel: React.FC = () => {
             <CarouselItem key={`slide-${index}`} className="pl-0 basis-full">
               <div className="relative w-full h-full">
                 {/* Background Image or Gradient */}
-                {slide.image && slide.image.trim() !== '' ? (
+                {slide.image && slide.image.trim() !== "" ? (
                   <>
                     <Image
                       src={slide.image}
-                      alt={slide.title || 'Hero slide'}
+                      alt={slide.title || "Hero slide"}
                       fill
                       className="object-cover object-center"
                       priority={index === 0}
@@ -235,14 +242,14 @@ export const SanityHeroCarousel: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 z-10" />
                   </>
                 ) : (
-                  <div 
+                  <div
                     className="absolute inset-0 bg-gradient-to-br"
                     style={{
                       backgroundImage: `linear-gradient(135deg, 
                         rgba(30, 57, 42, 0.95) 0%, 
                         rgba(106, 153, 78, 0.9) 50%, 
                         rgba(167, 201, 87, 0.85) 100%
-                      )`
+                      )`,
                     }}
                   />
                 )}
@@ -290,28 +297,28 @@ export const SanityHeroCarousel: React.FC = () => {
           ))}
         </CarouselContent>
 
+        {/* Navigation Dots (ALWAYS ON TOP, NOT INSIDE SLIDE) */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-black/30 backdrop-blur-sm px-4 py-3 rounded-full">
+          {slides.map((_, dotIndex) => (
+            <button
+              key={`dot-${dotIndex}`}
+              type="button"
+              onClick={() => api?.scrollTo(dotIndex)}
+              className={`h-3 rounded-full transition-all duration-300 ${
+                currentSlide === dotIndex
+                  ? "bg-white w-10 shadow-lg"
+                  : "bg-white/50 w-3 hover:bg-white/80 hover:w-6"
+              }`}
+              aria-label={`Go to slide ${dotIndex + 1}`}
+              aria-pressed={currentSlide === dotIndex}
+            />
+          ))}
+        </div>
+
         {/* Navigation Arrows (desktop only) */}
         <CarouselPrevious className="hidden md:flex left-4 bg-white/80 text-foreground hover:bg-white" />
         <CarouselNext className="hidden md:flex right-4 bg-white/80 text-foreground hover:bg-white" />
       </Carousel>
-
-      {/* Navigation Dots */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-black/30 backdrop-blur-sm px-4 py-3 rounded-full">
-        {slides.map((_, index) => (
-          <button
-            key={`dot-${index}`}
-            type="button"
-            onClick={() => api?.scrollTo(index)}
-            className={`h-3 rounded-full transition-all duration-300 ${
-              currentSlide === index
-                ? "bg-white w-10 shadow-lg"
-                : "bg-white/50 w-3 hover:bg-white/80 hover:w-6"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-            aria-pressed={currentSlide === index}
-          />
-        ))}
-      </div>
     </section>
   );
 };

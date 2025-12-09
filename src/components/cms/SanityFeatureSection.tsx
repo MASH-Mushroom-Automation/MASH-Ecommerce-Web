@@ -1,7 +1,7 @@
 /**
  * Sanity Feature Section Component
  * Phase 4: Renders feature sections from Sanity CMS
- * 
+ *
  * Supports the "Why MASH" section on the homepage with dynamic icons,
  * customizable columns, and background styles.
  */
@@ -74,7 +74,9 @@ const FeatureItem: React.FC<FeatureItemProps> = ({
         <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full mb-4 bg-primary/10 text-primary">
           <IconComponent size={32} className="sm:w-8 sm:h-8" />
         </div>
-        <h3 className="text-xl font-semibold mb-2 text-foreground">{headline}</h3>
+        <h3 className="text-xl font-semibold mb-2 text-foreground">
+          {headline}
+        </h3>
         <p className="text-muted-foreground font-['Roboto'] text-sm">
           {subheadline}
         </p>
@@ -85,7 +87,12 @@ const FeatureItem: React.FC<FeatureItemProps> = ({
   // Wrap in link if provided
   if (link) {
     return (
-      <a href={link} className="block h-full" target="_blank" rel="noopener noreferrer">
+      <a
+        href={link}
+        className="block h-full"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         {content}
       </a>
     );
@@ -109,8 +116,11 @@ const columnStyles: Record<number, string> = {
   4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
 };
 
-export const SanityFeatureSection: React.FC<SanityFeatureSectionProps> = ({ data }) => {
-  const bgClass = backgroundStyles[data.backgroundColor] || backgroundStyles.light;
+export const SanityFeatureSection: React.FC<SanityFeatureSectionProps> = ({
+  data,
+}) => {
+  const bgClass =
+    backgroundStyles[data.backgroundColor] || backgroundStyles.light;
   const gridClass = columnStyles[data.columns] || columnStyles[3];
 
   // Filter active features and sort by display order
@@ -124,7 +134,7 @@ export const SanityFeatureSection: React.FC<SanityFeatureSectionProps> = ({ data
 
   return (
     <section className={`py-12 sm:py-16 lg:py-20 ${bgClass}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         {/* Section Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
