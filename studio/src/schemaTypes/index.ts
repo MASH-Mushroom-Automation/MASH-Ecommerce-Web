@@ -20,6 +20,8 @@ import {navigation} from './documents/navigation' // Phase 5: Navigation Menus
 import {store} from './documents/store' // Phase 6: Store Locations
 import {testimonial} from './documents/testimonial' // Phase 7: Testimonials
 import {banner} from './documents/banner' // Phase 7: Promotional Banners
+import {recipe} from './documents/recipe' // Blog & Recipes: Mushroom Cooking Recipes
+import {growingGuide} from './documents/growingGuide' // Blog & Recipes: Growing Guides
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -54,6 +56,8 @@ export const schemaTypes = [
   store, // Phase 6: Store Locations
   testimonial, // Phase 7: Customer Testimonials
   banner, // Phase 7: Promotional Banners
+  recipe, // Blog & Recipes: Mushroom Cooking Recipes
+  growingGuide, // Blog & Recipes: Mushroom Growing Guides
   category,
   product,
   review,

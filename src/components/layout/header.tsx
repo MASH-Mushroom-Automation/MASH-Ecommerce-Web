@@ -478,6 +478,18 @@ export function Header() {
                         Products
                       </Link>
                       <Link
+                        href="/recipes"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Recipes
+                      </Link>
+                      <Link
+                        href="/guides"
+                        className="text-lg font-medium text-muted-foreground hover:text-primary"
+                      >
+                        Growing Guides
+                      </Link>
+                      <Link
                         href="/grower"
                         className="text-lg font-medium text-muted-foreground hover:text-primary"
                       >
@@ -556,6 +568,8 @@ export function Header() {
             <>
               <NavLink label="Home" path="/" />
               <NavLink label="Products" path="/shop" />
+              <NavLink label="Recipes" path="/recipes" />
+              <NavLink label="Guides" path="/guides" />
               <NavLink label="Growers" path="/grower" />
               <NavLink label="Stores" path="/stores" />
               {sellerStatus === "approved" && (

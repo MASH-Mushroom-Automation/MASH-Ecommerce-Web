@@ -134,6 +134,16 @@ export function Footer() {
                     </Link>
                   </li>
                   <li>
+                    <Link href="/recipes" className="hover:underline">
+                      Recipes
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/guides" className="hover:underline">
+                      Growing Guides
+                    </Link>
+                  </li>
+                  <li>
                     <Link href="/grower" className="hover:underline">
                       Growers
                     </Link>
