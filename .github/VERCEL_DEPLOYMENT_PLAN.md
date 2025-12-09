@@ -1,9 +1,11 @@
 # 🚀 MASH E-Commerce Vercel Deployment Plan
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Created:** December 8, 2025  
+**Updated:** December 10, 2025  
 **Project:** MASH Mushroom E-Commerce Platform  
-**Vercel Project:** https://vercel.com/mash-mushroom-automation/mash-ecommerce-web  
+**Vercel Project:** https://vercel.com/mash-mushroom-automation/mash-ecommerce  
+**Project ID:** `prj_T0c5MwwNkBQ4XaardQs2q5QtNfuX`  
 **Repository:** https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web (Private)
 
 ---
@@ -40,11 +42,11 @@
 │                                                                     │
 │   ┌─────────────────┐     ┌─────────────────────────────────────┐  │
 │   │  Push to main   │────▶│  Production Deployment              │  │
-│   └─────────────────┘     │  https://mash-ecommerce-web.vercel.app│ │
+│   └─────────────────┘     │  https://mash-ecommerce.vercel.app  │  │
 │                           └─────────────────────────────────────┘  │
 │   ┌─────────────────┐     ┌─────────────────────────────────────┐  │
 │   │  Pull Request   │────▶│  Preview Deployment                 │  │
-│   └─────────────────┘     │  https://mash-ecommerce-web-*.vercel.app│
+│   └─────────────────┘     │  https://mash-ecommerce-*.vercel.app│  │
 │                           └─────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
@@ -71,8 +73,8 @@
 
 | Trigger | Environment | URL | Purpose |
 |---------|-------------|-----|---------|
-| Push to `main` | Production | https://mash-ecommerce-web.vercel.app | Live site for customers |
-| Pull Request | Preview | https://mash-ecommerce-web-{hash}.vercel.app | Test changes before merge |
+| Push to `main` | Production | https://mash-ecommerce.vercel.app | Live site for customers |
+| Pull Request | Preview | https://mash-ecommerce-{hash}.vercel.app | Test changes before merge |
 
 ---
 
@@ -127,13 +129,13 @@ Example: team_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ### 1.3 Get VERCEL_PROJECT_ID
 
-1. Go to **Vercel Project** → https://vercel.com/mash-mushroom-automation/mash-ecommerce-web
+1. Go to **Vercel Project** → https://vercel.com/mash-mushroom-automation/mash-ecommerce
 2. Click **Settings** tab
 3. Scroll to **"General"** section
 4. Find **"Project ID"**
 
 ```
-Example: prj_xxxxxxxxxxxxxxxxxxxxxxxx
+Actual Value: prj_T0c5MwwNkBQ4XaardQs2q5QtNfuX
 ```
 
 ### Quick Reference Table
@@ -203,7 +205,7 @@ Your app needs environment variables to connect to external services. Configure 
 
 ### Navigate to Environment Variables
 
-1. Go to **Vercel Project** → https://vercel.com/mash-mushroom-automation/mash-ecommerce-web
+1. Go to **Vercel Project** → https://vercel.com/mash-mushroom-automation/mash-ecommerce
 2. Click **Settings** tab
 3. Left sidebar → **Environment Variables**
 
@@ -408,14 +410,14 @@ jobs:
 **Successful Production Deploy:**
 ```
 ✅ Deploy to Vercel (Production)
-   Deployment URL: https://mash-ecommerce-web.vercel.app
+   Deployment URL: https://mash-ecommerce.vercel.app
    Status: Production
 ```
 
 **Successful Preview Deploy:**
 ```
 ✅ Deploy to Vercel (Preview)
-   Deployment URL: https://mash-ecommerce-web-git-test-vercel-mash.vercel.app
+   Deployment URL: https://mash-ecommerce-git-test-vercel-mash.vercel.app
    Status: Preview
 ```
 
@@ -427,7 +429,7 @@ jobs:
 
 | Setting | Value |
 |---------|-------|
-| **URL** | https://mash-ecommerce-web.vercel.app |
+| **URL** | https://mash-ecommerce.vercel.app |
 | **Branch** | `main` |
 | **Auto Deploy** | Yes, on push to main |
 | **Analytics** | Enabled |
@@ -437,7 +439,7 @@ jobs:
 
 | Setting | Value |
 |---------|-------|
-| **URL** | https://mash-ecommerce-web-{hash}.vercel.app |
+| **URL** | https://mash-ecommerce-{hash}.vercel.app |
 | **Branch** | Any PR branch |
 | **Auto Deploy** | Yes, on PR creation/update |
 | **Analytics** | Disabled |
