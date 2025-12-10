@@ -171,13 +171,19 @@ export const categoryBySlugQuery = `*[_type == "category" && slug.current == $sl
 
 // Fetch hero carousel slides
 export const heroCarouselQuery = `*[_type == "heroCarousel"][0] {
+  title,
   slides[] {
     title,
     subtitle,
+    description,
     buttonText,
     buttonLink,
+    ctaText,
+    ctaLink,
     buttonStyle,
     "image": image.asset->url,
+    backgroundColor,
+    textColor,
     order,
     isActive
   }

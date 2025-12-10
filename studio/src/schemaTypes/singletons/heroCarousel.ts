@@ -6,6 +6,13 @@ export const heroCarousel = defineType({
   type: 'document',
   fields: [
     defineField({
+      name: 'title',
+      title: 'Carousel Title',
+      type: 'string',
+      description: 'Internal title for this carousel (e.g., "Homepage Hero")',
+      initialValue: 'Homepage Hero',
+    }),
+    defineField({
       name: 'slides',
       title: 'Hero Slides',
       type: 'array',
@@ -29,7 +36,14 @@ export const heroCarousel = defineType({
               title: 'Subtitle',
               type: 'text',
               description: 'Supporting text below title (e.g., "Premium quality from local organic farms")',
-              validation: (Rule) => Rule.required().max(200),
+              validation: (Rule) => Rule.max(200),
+              rows: 3,
+            }),
+            defineField({
+              name: 'description',
+              title: 'Description',
+              type: 'text',
+              description: 'Longer description text for the slide',
               rows: 3,
             }),
             defineField({
@@ -37,15 +51,28 @@ export const heroCarousel = defineType({
               title: 'Button Text',
               type: 'string',
               description: 'Call-to-action button text (e.g., "Shop Now")',
-              validation: (Rule) => Rule.required().max(30),
+              validation: (Rule) => Rule.max(30),
             }),
             defineField({
               name: 'buttonLink',
               title: 'Button Link',
               type: 'string',
               description: 'Where the button links (e.g., /shop, /about, /contact)',
-              validation: (Rule) => Rule.required(),
               placeholder: '/shop',
+            }),
+            defineField({
+              name: 'ctaText',
+              title: 'CTA Text (Legacy)',
+              type: 'string',
+              description: 'Alternative call-to-action text',
+              hidden: true,
+            }),
+            defineField({
+              name: 'ctaLink',
+              title: 'CTA Link (Legacy)',
+              type: 'string',
+              description: 'Alternative call-to-action link',
+              hidden: true,
             }),
             defineField({
               name: 'buttonStyle',
@@ -72,11 +99,25 @@ export const heroCarousel = defineType({
               },
             }),
             defineField({
+              name: 'backgroundColor',
+              title: 'Background Color',
+              type: 'string',
+              description: 'Hex color for slide background (e.g., #6A994E)',
+              initialValue: '#6A994E',
+            }),
+            defineField({
+              name: 'textColor',
+              title: 'Text Color',
+              type: 'string',
+              description: 'Hex color for text (e.g., #FFFFFF)',
+              initialValue: '#FFFFFF',
+            }),
+            defineField({
               name: 'order',
               title: 'Order',
               type: 'number',
               description: 'Display order (1, 2, 3...). Lower numbers show first.',
-              validation: (Rule) => Rule.required().min(1).max(5),
+              validation: (Rule) => Rule.min(1).max(10),
               initialValue: 1,
             }),
             defineField({

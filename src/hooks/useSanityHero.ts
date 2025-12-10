@@ -11,10 +11,15 @@ import { sanityClient } from '@/lib/sanity/client';
 export interface SanityHeroSlide {
   title: string;
   subtitle: string;
+  description?: string;
   buttonText: string;
   buttonLink: string;
+  ctaText?: string;
+  ctaLink?: string;
   buttonStyle?: 'primary' | 'secondary' | 'ghost';
   image?: string;
+  backgroundColor?: string;
+  textColor?: string;
   order: number;
   isActive: boolean;
 }
@@ -53,10 +58,15 @@ export function useSanityHero(): UseSanityHeroReturn {
         slides[] {
           title,
           subtitle,
+          description,
           buttonText,
           buttonLink,
+          ctaText,
+          ctaLink,
           buttonStyle,
           "image": image.asset->url,
+          backgroundColor,
+          textColor,
           order,
           isActive
         }
@@ -76,10 +86,14 @@ export function useSanityHero(): UseSanityHeroReturn {
             ...slide,
             // Fill in missing required fields with defaults
             title: slide.title || 'Welcome to MASH',
-            subtitle: slide.subtitle || '',
-            buttonText: slide.buttonText || '',
-            buttonLink: slide.buttonLink || '',
+            subtitle: slide.subtitle || slide.description || '',
+            description: slide.description || '',
+            // Use buttonText/buttonLink or fallback to ctaText/ctaLink for legacy data
+            buttonText: slide.buttonText || slide.ctaText || '',
+            buttonLink: slide.buttonLink || slide.ctaLink || '',
             buttonStyle: slide.buttonStyle || 'primary',
+            backgroundColor: slide.backgroundColor || '#6A994E',
+            textColor: slide.textColor || '#FFFFFF',
             order: slide.order || (index + 1),
             isActive: slide.isActive !== false,
           }))
@@ -106,10 +120,15 @@ export function useSanityHero(): UseSanityHeroReturn {
       slides[] {
         title,
         subtitle,
+        description,
         buttonText,
         buttonLink,
+        ctaText,
+        ctaLink,
         buttonStyle,
         "image": image.asset->url,
+        backgroundColor,
+        textColor,
         order,
         isActive
       }
@@ -127,8 +146,14 @@ export function useSanityHero(): UseSanityHeroReturn {
               .filter(slide => slide.isActive !== false)
               .map((slide, index) => ({
                 ...slide,
-                subtitle: slide.subtitle || '',
+                title: slide.title || 'Welcome to MASH',
+                subtitle: slide.subtitle || slide.description || '',
+                description: slide.description || '',
+                buttonText: slide.buttonText || slide.ctaText || '',
+                buttonLink: slide.buttonLink || slide.ctaLink || '',
                 buttonStyle: slide.buttonStyle || 'primary',
+                backgroundColor: slide.backgroundColor || '#6A994E',
+                textColor: slide.textColor || '#FFFFFF',
                 order: slide.order || (index + 1),
                 isActive: slide.isActive !== false,
               }))
