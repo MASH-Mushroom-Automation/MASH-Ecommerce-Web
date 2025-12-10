@@ -177,7 +177,12 @@ export function QuickViewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" showCloseButton={false}>
+        {/* Visually hidden title for screen reader accessibility */}
+        <DialogTitle className="sr-only">
+          {product ? `Quick view: ${product.name}` : 'Quick view product'}
+        </DialogTitle>
+        
         {/* Close button */}
         <button
           onClick={onClose}
