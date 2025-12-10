@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles } from "lucide-react";
+import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles, Play } from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
@@ -14,8 +14,51 @@ import { useSanityProduct } from "@/hooks/useSanityProducts";
 import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
+import type { MediaItem } from "@/types/sanity";
 
 type Props = { params: Promise<{ slug: string }> };
+
+// Helper to extract YouTube video ID from various URL formats
+function getYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  
+  // Handle youtube.com/watch?v=ID format
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return watchMatch[1];
+  
+  // Handle youtu.be/ID format
+  const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+  if (shortMatch) return shortMatch[1];
+  
+  // Handle youtube.com/shorts/ID format
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^?]+)/);
+  if (shortsMatch) return shortsMatch[1];
+  
+  // Handle youtube.com/embed/ID format
+  const embedMatch = url.match(/youtube\.com\/embed\/([^?]+)/);
+  if (embedMatch) return embedMatch[1];
+  
+  return null;
+}
+
+// Helper to get Vimeo video ID
+function getVimeoVideoId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/vimeo\.com\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+// Media gallery item type for combined images + videos
+interface GalleryItem {
+  type: 'image' | 'video';
+  url: string;
+  thumbnailUrl?: string;
+  videoId?: string;
+  videoSource?: 'youtube' | 'vimeo' | 'file';
+  alt?: string;
+  title?: string;
+  isPrimary?: boolean;
+}
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
@@ -26,7 +69,7 @@ export default function ProductDetailPage({ params }: Props) {
 
   const { product, loading, error } = useSanityProduct(slug);
   const [quantity, setQuantity] = useState(1);
-  const [activeImage, setActiveImage] = useState<string>("");
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
 
@@ -45,17 +88,6 @@ export default function ProductDetailPage({ params }: Props) {
     rating, 
     loading: reviewsLoading 
   } = useSanityReviews(product?.id || '');
-
-  // Set active image when product loads
-  React.useEffect(() => {
-    if (product && !activeImage) {
-      const firstImage = product.images?.[0] ?? product.image;
-      // Only set if we have a valid image URL
-      if (firstImage && firstImage !== '' && firstImage !== 'null') {
-        setActiveImage(firstImage);
-      }
-    }
-  }, [product, activeImage]);
 
   // Track product view when product loads
   React.useEffect(() => {
@@ -86,22 +118,103 @@ export default function ProductDetailPage({ params }: Props) {
 
   const inWishlist = isInWishlist(product.id);
   
-  // Filter out empty/null/invalid images and ensure we have valid URLs
-  const validImages = [
-    ...(product.images && Array.isArray(product.images) 
-      ? product.images.filter(img => img && img !== '' && img !== 'null' && img.startsWith('http')) 
-      : []),
-    product.image
-  ].filter((img, index, self) => 
-    img && img !== '' && img !== 'null' && img.startsWith('http') && self.indexOf(img) === index
-  );
+  // Build combined gallery from images and media
+  const buildGallery = (): GalleryItem[] => {
+    const gallery: GalleryItem[] = [];
+    
+    // Add main image first
+    if (product.image && product.image !== '' && product.image !== 'null' && product.image.startsWith('http')) {
+      gallery.push({
+        type: 'image',
+        url: product.image,
+        alt: product.name,
+        isPrimary: true,
+      });
+    }
+    
+    // Add additional images
+    if (product.images && Array.isArray(product.images)) {
+      product.images
+        .filter(img => img && img !== '' && img !== 'null' && img.startsWith('http') && img !== product.image)
+        .forEach(img => {
+          gallery.push({
+            type: 'image',
+            url: img,
+            alt: product.name,
+          });
+        });
+    }
+    
+    // Add media gallery items (images + videos)
+    if (product.media && Array.isArray(product.media)) {
+      product.media.forEach((mediaItem: MediaItem) => {
+        if (mediaItem.mediaType === 'video') {
+          // Handle video items
+          const videoUrl = mediaItem.videoUrl || mediaItem.video;
+          if (videoUrl) {
+            const youtubeId = getYouTubeVideoId(videoUrl);
+            const vimeoId = getVimeoVideoId(videoUrl);
+            
+            if (youtubeId) {
+              gallery.push({
+                type: 'video',
+                url: videoUrl,
+                videoId: youtubeId,
+                videoSource: 'youtube',
+                thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`,
+                title: mediaItem.title,
+                isPrimary: mediaItem.isPrimary,
+              });
+            } else if (vimeoId) {
+              gallery.push({
+                type: 'video',
+                url: videoUrl,
+                videoId: vimeoId,
+                videoSource: 'vimeo',
+                title: mediaItem.title,
+                isPrimary: mediaItem.isPrimary,
+              });
+            } else if (mediaItem.video) {
+              // Direct video file
+              gallery.push({
+                type: 'video',
+                url: mediaItem.video,
+                videoSource: 'file',
+                title: mediaItem.title,
+                isPrimary: mediaItem.isPrimary,
+              });
+            }
+          }
+        } else if (mediaItem.mediaType === 'image' && mediaItem.image) {
+          // Handle image items (avoid duplicates)
+          if (!gallery.some(item => item.url === mediaItem.image)) {
+            gallery.push({
+              type: 'image',
+              url: mediaItem.image,
+              alt: mediaItem.imageAlt || mediaItem.title || product.name,
+              title: mediaItem.title,
+              isPrimary: mediaItem.isPrimary,
+            });
+          }
+        }
+      });
+    }
+    
+    // Sort: primary items first
+    return gallery.sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return 0;
+    });
+  };
+
+  const galleryItems = buildGallery();
   
-  const allImages = validImages.length > 0 
-    ? validImages 
-    : ['https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image'];
+  // Get current active item
+  const activeItem = galleryItems[activeGalleryIndex] || galleryItems[0];
   
-  // Set activeImage to first valid image if not set
-  const displayImage = activeImage && activeImage !== '' ? activeImage : allImages[0];
+  // Fallback if no gallery items
+  const hasGalleryItems = galleryItems.length > 0;
 
   const toggleWishlist = () => {
     if (!isAuthenticated()) {
@@ -175,19 +288,53 @@ export default function ProductDetailPage({ params }: Props) {
         </Link>
 
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-          {/* Product Images */}
+          {/* Product Images & Videos Gallery */}
           <div className="space-y-4">
-            {/* Main Image */}
+            {/* Main Display Area (Image or Video) */}
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-              {displayImage && displayImage.startsWith('http') ? (
-                <Image
-                  src={displayImage}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
+              {hasGalleryItems && activeItem ? (
+                activeItem.type === 'video' ? (
+                  // Video Display
+                  activeItem.videoSource === 'youtube' && activeItem.videoId ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${activeItem.videoId}?rel=0&modestbranding=1`}
+                      title={activeItem.title || 'Product Video'}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : activeItem.videoSource === 'vimeo' && activeItem.videoId ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${activeItem.videoId}`}
+                      title={activeItem.title || 'Product Video'}
+                      className="absolute inset-0 w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : activeItem.videoSource === 'file' ? (
+                    <video
+                      src={activeItem.url}
+                      controls
+                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                      Video unavailable
+                    </div>
+                  )
+                ) : (
+                  // Image Display
+                  <Image
+                    src={activeItem.url}
+                    alt={activeItem.alt || product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
                   No Image Available
@@ -195,32 +342,50 @@ export default function ProductDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Image Thumbnails */}
-            {allImages.length > 1 && (
+            {/* Gallery Thumbnails (Images + Video Previews) */}
+            {galleryItems.length > 1 && (
               <div className="grid grid-cols-4 gap-4">
-                {allImages.map((img, idx) => (
+                {galleryItems.map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => img && img.startsWith('http') && setActiveImage(img)}
+                    onClick={() => setActiveGalleryIndex(idx)}
                     className={cn(
                       "relative aspect-square bg-muted rounded-lg overflow-hidden border-2 transition-all",
-                      displayImage === img
+                      activeGalleryIndex === idx
                         ? "border-primary"
                         : "border-transparent hover:border-border"
                     )}
                   >
-                    {img && img.startsWith('http') ? (
+                    {item.type === 'video' ? (
+                      // Video Thumbnail
+                      <div className="relative w-full h-full">
+                        {item.thumbnailUrl ? (
+                          <Image
+                            src={item.thumbnailUrl}
+                            alt={item.title || `Video ${idx + 1}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 25vw, 12vw"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-800" />
+                        )}
+                        {/* Play Icon Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                            <Play className="w-5 h-5 text-primary ml-0.5" fill="currentColor" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Image Thumbnail
                       <Image
-                        src={img}
-                        alt={`${product.name} - Image ${idx + 1}`}
+                        src={item.url}
+                        alt={item.alt || `${product.name} - Image ${idx + 1}`}
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 25vw, 12vw"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-muted text-xs text-muted-foreground">
-                        N/A
-                      </div>
                     )}
                   </button>
                 ))}

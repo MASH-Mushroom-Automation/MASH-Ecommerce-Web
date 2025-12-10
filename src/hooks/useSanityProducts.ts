@@ -357,6 +357,19 @@ export function useSanityProduct(slug: string) {
           promoEndDate,
           "mainImage": image.asset->url,
           "images": images[].asset->url,
+          // Media Gallery (images + videos)
+          media[] {
+            _key,
+            mediaType,
+            "image": image.asset->url,
+            "imageAlt": image.alt,
+            "video": video.asset->url,
+            videoUrl,
+            title,
+            caption,
+            isPrimary,
+            sortOrder
+          },
           category->{
             _id,
             name,
@@ -460,6 +473,18 @@ export function useSanityProduct(slug: string) {
         promoEndDate,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
+        media[] {
+          _key,
+          mediaType,
+          "image": image.asset->url,
+          "imageAlt": image.alt,
+          "video": video.asset->url,
+          videoUrl,
+          title,
+          caption,
+          isPrimary,
+          sortOrder
+        },
         category->{ _id, name, "slug": slug.current, description },
         subcategory->{ _id, name, "slug": slug.current },
         suggestedProducts[]->{

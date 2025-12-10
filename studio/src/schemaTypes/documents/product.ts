@@ -25,12 +25,22 @@ export const product = defineType({
     }),
     defineField({
       name: 'image',
-      title: 'Product Image',
+      title: 'Product Image (Main)',
       type: 'image',
       options: {
         hotspot: true,
+        accept: 'image/*', // Accept ALL image types: jpg, jpeg, png, gif, webp, avif, svg, bmp, tiff, ico, etc.
       },
+      fields: [
+        {
+          name: 'alt',
+          type: 'string',
+          title: 'Alt Text',
+          description: 'Describe the image for accessibility and SEO (e.g., "Fresh oyster mushrooms in basket")',
+        },
+      ],
       validation: (rule) => rule.required(),
+      description: 'Main product image - Supports JPG, PNG, GIF, WebP, AVIF, SVG, and more',
     }),
     defineField({
       name: 'category',
@@ -242,10 +252,132 @@ export const product = defineType({
           type: 'image',
           options: {
             hotspot: true,
+            accept: 'image/*', // Accept all image file types (jpg, png, gif, webp, avif, svg, etc.)
+          },
+          fields: [
+            {
+              name: 'alt',
+              type: 'string',
+              title: 'Alt Text',
+              description: 'Describe the image for accessibility and SEO',
+            },
+            {
+              name: 'caption',
+              type: 'string',
+              title: 'Caption',
+              description: 'Optional caption to display with the image',
+            },
+          ],
+        },
+      ],
+      description: 'Upload multiple product images (gallery) - Supports JPG, PNG, GIF, WebP, AVIF, SVG, and more',
+    }),
+    defineField({
+      name: 'media',
+      title: 'Product Media Gallery',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'mediaItem',
+          title: 'Media Item',
+          fields: [
+            {
+              name: 'mediaType',
+              title: 'Media Type',
+              type: 'string',
+              options: {
+                list: [
+                  {title: '🖼️ Image', value: 'image'},
+                  {title: '🎬 Video', value: 'video'},
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'image',
+              validation: (rule) => rule.required(),
+            },
+            {
+              name: 'image',
+              title: 'Image File',
+              type: 'image',
+              options: {
+                hotspot: true,
+                accept: 'image/*', // Accept ALL image types: jpg, jpeg, png, gif, webp, avif, svg, bmp, tiff, ico, etc.
+              },
+              hidden: ({parent}) => parent?.mediaType !== 'image',
+              fields: [
+                {
+                  name: 'alt',
+                  type: 'string',
+                  title: 'Alt Text',
+                  description: 'Describe the image for accessibility and SEO',
+                },
+              ],
+            },
+            {
+              name: 'video',
+              title: 'Video File',
+              type: 'file',
+              options: {
+                accept: 'video/*', // Accept ALL video types: mp4, webm, mov, avi, mkv, etc.
+              },
+              hidden: ({parent}) => parent?.mediaType !== 'video',
+            },
+            {
+              name: 'videoUrl',
+              title: 'External Video URL (YouTube/Vimeo)',
+              type: 'url',
+              description: 'Paste YouTube or Vimeo URL for embedded videos',
+              hidden: ({parent}) => parent?.mediaType !== 'video',
+            },
+            {
+              name: 'title',
+              title: 'Media Title',
+              type: 'string',
+              description: 'Title for this media item (optional)',
+            },
+            {
+              name: 'caption',
+              title: 'Caption',
+              type: 'text',
+              rows: 2,
+              description: 'Description or caption for this media',
+            },
+            {
+              name: 'isPrimary',
+              title: 'Primary Media',
+              type: 'boolean',
+              initialValue: false,
+              description: 'Set as primary gallery item (shown first)',
+            },
+            {
+              name: 'sortOrder',
+              title: 'Sort Order',
+              type: 'number',
+              initialValue: 0,
+              description: 'Order in gallery (lower numbers appear first)',
+            },
+          ],
+          preview: {
+            select: {
+              mediaType: 'mediaType',
+              title: 'title',
+              image: 'image',
+              isPrimary: 'isPrimary',
+            },
+            prepare({mediaType, title, image, isPrimary}) {
+              const icon = mediaType === 'video' ? '🎬' : '🖼️'
+              const primaryBadge = isPrimary ? ' ⭐' : ''
+              return {
+                title: `${icon} ${title || (mediaType === 'video' ? 'Video' : 'Image')}${primaryBadge}`,
+                subtitle: mediaType === 'video' ? 'Video file' : 'Image file',
+                media: image,
+              }
+            },
           },
         },
       ],
-      description: 'Upload multiple product images (gallery)',
+      description: 'Complete media gallery - add images AND videos. Supports: JPG, PNG, GIF, WebP, AVIF, SVG, MP4, WebM, MOV, YouTube, Vimeo',
     }),
     defineField({
       name: 'weight',
