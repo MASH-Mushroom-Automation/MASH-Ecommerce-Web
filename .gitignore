@@ -44,3 +44,4 @@ studio/.env
 
 # Keep .github for workflows but ignore sensitive files
 # /.github
+/.github

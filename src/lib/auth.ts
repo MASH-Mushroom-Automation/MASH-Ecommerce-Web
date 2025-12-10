@@ -1,3 +1,5 @@
+import { signOutFirebase } from "@/lib/firebase";
+
 // Utility to check if user is authenticated (client-side)
 export function isAuthenticated(): boolean {
   if (typeof document === "undefined") return false;
@@ -36,6 +38,11 @@ export function logout() {
     // Proactively clear client-side persisted app state
     localStorage.removeItem("mash-wishlist");
     localStorage.removeItem("cart");
+    
+    // Also sign out from Firebase if user was authenticated via Google
+    signOutFirebase().catch((err) => {
+      console.warn("Firebase sign out failed:", err);
+    });
   } catch {
     // ignore storage errors (e.g., disabled storage)
   }
