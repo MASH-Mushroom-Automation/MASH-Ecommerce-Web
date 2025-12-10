@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
+import { QuickViewModal } from "@/components/product/QuickViewModal";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { SlidersHorizontal, Grid, List, Search, X } from "lucide-react";
+import { SlidersHorizontal, Grid, List, Search, X, LayoutGrid, Rows3 } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
@@ -25,7 +26,7 @@ import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { ProductFilters } from "@/types/sanity";
+import type { ProductFilters, TransformedProduct } from "@/types/sanity";
 
 export default function ProductCatalogPage() {
   const router = useRouter();
@@ -47,10 +48,28 @@ export default function ProductCatalogPage() {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   
+  // Quick view state
+  const [quickViewProduct, setQuickViewProduct] = useState<TransformedProduct | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  
   // Debounce search query to avoid excessive API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const { addToCart } = useCart();
+
+  // Quick view handlers
+  const handleQuickView = useCallback((productId: string, products: TransformedProduct[]) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setQuickViewProduct(product);
+      setIsQuickViewOpen(true);
+    }
+  }, []);
+
+  const closeQuickView = useCallback(() => {
+    setIsQuickViewOpen(false);
+    setQuickViewProduct(null);
+  }, []);
 
   // Update URL when search params change
   useEffect(() => {
@@ -499,26 +518,36 @@ export default function ProductCatalogPage() {
                   setSelectedCategories([]);
                   setPriceRange([0, 12000]);
                   setSort("featured");
+                  setSearchQuery("");
+                  setSelectedTags([]);
                 }}
               />
             ) : (
               <>
+                {/* Results Count */}
+                <div className="mb-4 text-sm text-muted-foreground">
+                  Showing {displayedProducts.length} of {allProducts.length} products
+                </div>
+                
                 {viewMode === "grid" ? (
-                  <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {displayedProducts.map((product) => (
                       <ProductCard
                         key={product.id}
                         id={product.id}
-                        slug={product.slug} // Pass slug for SEO-friendly URLs
+                        slug={product.slug}
                         name={product.name}
                         farm={product.category || "MASH"}
                         price={product.price}
                         comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
                         image={product.image}
+                        images={product.images}
                         inStock={product.stock > 0}
                         stock={product.stock}
                         tags={product.productTags || []}
+                        description={product.description}
+                        onQuickView={(id) => handleQuickView(id, allProducts)}
                       />
                     ))}
                   </div>
@@ -608,6 +637,14 @@ export default function ProductCatalogPage() {
           </main>
         </div>
       </div>
+      
+      {/* Quick View Modal */}
+      <QuickViewModal
+        productId={quickViewProduct?.id || null}
+        productSlug={quickViewProduct?.slug || null}
+        isOpen={isQuickViewOpen}
+        onClose={closeQuickView}
+      />
     </div>
   );
 }
