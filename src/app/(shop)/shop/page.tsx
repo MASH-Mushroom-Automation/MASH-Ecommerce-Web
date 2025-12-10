@@ -475,12 +475,14 @@ export default function ProductCatalogPage() {
                         id={product.id}
                         slug={product.slug} // Pass slug for SEO-friendly URLs
                         name={product.name}
-                        farm={product.grower || product.category || "MASH"}
+                        farm={product.category || "MASH"}
                         price={product.price}
+                        comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
                         image={product.image}
                         inStock={product.stock > 0}
                         stock={product.stock}
+                        tags={product.productTags || []}
                       />
                     ))}
                   </div>
@@ -537,7 +539,7 @@ export default function ProductCatalogPage() {
                                     image: product.image,
                                     slug: product.slug,
                                     stock: product.stock,
-                                    grower: product.grower,
+                                    grower: product.category,
                                     unit: product.unit,
                                   }, 1)
                                 }
