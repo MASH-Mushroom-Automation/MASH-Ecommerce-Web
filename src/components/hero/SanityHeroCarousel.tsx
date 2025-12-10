@@ -142,13 +142,18 @@ export const SanityHeroCarousel: React.FC = () => {
     }
   };
 
+  // Helper function to check if image URL is valid
+  const hasValidImage = (image: string | null | undefined): image is string => {
+    return typeof image === 'string' && image.trim() !== '';
+  };
+
   // Single slide - no carousel
   if (slides.length === 1) {
     const slide = slides[0];
     return (
       <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
         {/* Background Image */}
-        {slide.image && slide.image.trim() !== '' ? (
+        {hasValidImage(slide.image) ? (
           <>
             <Image
               src={slide.image}
@@ -220,9 +225,9 @@ export const SanityHeroCarousel: React.FC = () => {
         <CarouselContent className="h-full -ml-0">
           {slides.map((slide, index) => (
             <CarouselItem key={`slide-${index}`} className="pl-0 basis-full">
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full min-h-[700px] md:min-h-[800px] lg:min-h-screen">
                 {/* Background Image or Gradient */}
-                {slide.image && slide.image.trim() !== '' ? (
+                {hasValidImage(slide.image) ? (
                   <>
                     <Image
                       src={slide.image}

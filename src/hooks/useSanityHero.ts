@@ -92,6 +92,8 @@ export function useSanityHero(): UseSanityHeroReturn {
             buttonText: slide.buttonText || slide.ctaText || '',
             buttonLink: slide.buttonLink || slide.ctaLink || '',
             buttonStyle: slide.buttonStyle || 'primary',
+            // Ensure image is a string or undefined (not null or other types)
+            image: typeof slide.image === 'string' ? slide.image : undefined,
             backgroundColor: slide.backgroundColor || '#6A994E',
             textColor: slide.textColor || '#FFFFFF',
             order: slide.order || (index + 1),
@@ -152,6 +154,8 @@ export function useSanityHero(): UseSanityHeroReturn {
                 buttonText: slide.buttonText || slide.ctaText || '',
                 buttonLink: slide.buttonLink || slide.ctaLink || '',
                 buttonStyle: slide.buttonStyle || 'primary',
+                // Ensure image is a string or undefined (not null or other types)
+                image: typeof slide.image === 'string' ? slide.image : undefined,
                 backgroundColor: slide.backgroundColor || '#6A994E',
                 textColor: slide.textColor || '#FFFFFF',
                 order: slide.order || (index + 1),
