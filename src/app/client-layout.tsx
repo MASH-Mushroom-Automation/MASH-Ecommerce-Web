@@ -13,6 +13,8 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
 import { initGA, logPageView } from "@/lib/analytics";
 import { SanityVisualEditing } from "@/components/sanity/VisualEditing";
+import { SearchDialog } from "@/components/search/SearchDialog";
+import { useSearchShortcut } from "@/hooks/useSearchShortcut";
 
 const AUTH_ROUTES = [
   "/login",
@@ -29,6 +31,7 @@ const SELLER_ROUTES = ["/seller", "/start-selling"];
 
 export function ClientLayout({ children }: { children: React.Node }) {
   const pathname = usePathname();
+  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } = useSearchShortcut();
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isSellerRoute = SELLER_ROUTES.some((route) =>
@@ -58,6 +61,9 @@ export function ClientLayout({ children }: { children: React.Node }) {
         <WishlistProvider>
           {/* Sanity Visual Editing - enables click-to-edit in Presentation tool */}
           <SanityVisualEditing />
+          
+          {/* Global Search Dialog - triggered by Cmd+K / Ctrl+K */}
+          <SearchDialog open={isSearchOpen} onOpenChange={setSearchOpen} />
           
           {isSellerRoute ? (
             // Seller routes get header and handle their own layout with sidebar

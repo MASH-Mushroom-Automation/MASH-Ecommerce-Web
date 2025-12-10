@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
@@ -23,19 +24,54 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
 import type { ProductFilters } from "@/types/sanity";
 
 export default function ProductCatalogPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Initialize state from URL search params
+  const initialSearch = searchParams.get("search") || "";
+  const initialCategory = searchParams.get("category") || "";
+  const initialSort = (searchParams.get("sort") as ProductFilters["sortBy"]) || "featured";
+  
   // Filter states
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    initialCategory ? [initialCategory] : []
+  );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 12000]);
-  const [sort, setSort] = useState<ProductFilters["sortBy"]>("featured");
+  const [sort, setSort] = useState<ProductFilters["sortBy"]>(initialSort);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  
+  // Debounce search query to avoid excessive API calls
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const { addToCart } = useCart();
+
+  // Update URL when search params change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (debouncedSearchQuery) {
+      params.set("search", debouncedSearchQuery);
+    }
+    if (selectedCategories.length > 0) {
+      params.set("category", selectedCategories[0]);
+    }
+    if (sort && sort !== "featured") {
+      params.set("sort", sort);
+    }
+    
+    const queryString = params.toString();
+    const newUrl = queryString ? `/shop?${queryString}` : "/shop";
+    
+    // Update URL without triggering navigation
+    window.history.replaceState(null, "", newUrl);
+  }, [debouncedSearchQuery, selectedCategories, sort]);
 
   // Popular tags for quick filtering
   const popularTags = [
@@ -56,7 +92,7 @@ export default function ProductCatalogPage() {
     maxPrice: priceRange[1],
     sortBy: sort,
     isAvailable: true,
-    search: searchQuery.trim() || undefined,
+    search: debouncedSearchQuery.trim() || undefined,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
   };
 
@@ -227,10 +263,10 @@ export default function ProductCatalogPage() {
                   </button>
                 )}
               </div>
-              {searchQuery && (
+              {debouncedSearchQuery && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Showing results for &ldquo;<span className="font-medium text-foreground">{searchQuery}</span>&rdquo;
-                  {allProducts.length === 0 && " - No products found"}
+                  Showing results for &ldquo;<span className="font-medium text-foreground">{debouncedSearchQuery}</span>&rdquo;
+                  {allProducts.length === 0 && !loading && " - No products found"}
                 </p>
               )}
             </div>

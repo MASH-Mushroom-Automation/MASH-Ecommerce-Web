@@ -72,12 +72,16 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         query += ` && isFeatured == true`;
       }
       
-      // Filter by search term
+      // Filter by search term - searches name, description, SKU, tags, and category name
       if (filters?.search) {
         const searchTerm = filters.search.toLowerCase();
         query += ` && (
           lower(name) match "*${searchTerm}*" ||
-          lower(description) match "*${searchTerm}*"
+          lower(description) match "*${searchTerm}*" ||
+          lower(sku) match "*${searchTerm}*" ||
+          lower(category->name) match "*${searchTerm}*" ||
+          "${searchTerm}" in productTags[] ||
+          count(productTags[@ match "*${searchTerm}*"]) > 0
         )`;
       }
       
