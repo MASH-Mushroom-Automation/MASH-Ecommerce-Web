@@ -1,6 +1,17 @@
 # MASH E-Commerce Platform - AI Agent Guide
 
-> **Last Updated:** December 10, 2025 | **Stack:** Next.js 15 + Sanity CMS + NestJS Backend
+> **Last Updated:** December 11, 2025 | **Stack:** Next.js 15 + Sanity CMS + NestJS Backend + Firebase Auth
+
+## ⚠️ IMPORTANT: Documentation Location
+
+**ALL generated documentation, plans, and guides MUST be placed in the `.github/` folder.**
+
+```
+✅ .github/FEATURE_PLAN.md
+✅ .github/IMPLEMENTATION_GUIDE.md  
+❌ FEATURE_PLAN.md (root - incorrect)
+❌ docs/GUIDE.md (use .github instead)
+```
 
 ## Quick Start
 
@@ -11,12 +22,13 @@ cd studio && npm run dev # Sanity Studio at localhost:3333
 
 ## Architecture Overview
 
-**Three-tier data architecture:**
+**Four-tier data architecture:**
 
 | Data Source                 | Purpose                      | Access Pattern                        |
 | --------------------------- | ---------------------------- | ------------------------------------- |
 | **Sanity CMS** (`gerattrr`) | Products, content, marketing | GROQ via `src/lib/sanity/queries.ts`  |
 | **NestJS Backend**          | Auth, orders, transactions   | REST via `src/lib/api-client.ts`      |
+| **Firebase Auth**           | Google Sign-In (OAuth)       | `src/lib/firebase/` + `src/contexts/AuthContext.tsx` |
 | **Mock Data** (`data/`)     | Dev fallback                 | When `NEXT_PUBLIC_USE_MOCK_DATA=true` |
 
 **Route Groups** (invisible in URLs):
@@ -39,11 +51,15 @@ import { apiRequest } from "@/lib/api-client";
 const orders = await apiRequest<ApiResponse<Order[]>>("/orders");
 ```
 
-### Sanity Image URLs
+### Authentication (Dual System)
 
 ```typescript
-// Always use coalesce for image compatibility
-"mainImage": coalesce(mainImage.asset->url, image.asset->url)
+// Firebase Google Sign-In (redirect flow)
+import { useAuth } from "@/contexts/AuthContext";
+const { signInWithGoogle, signOut, user, isAuthenticated } = useAuth();
+
+// Traditional email/password (NestJS backend)
+import { setAuthToken, logout } from "@/lib/auth";
 ```
 
 ### Route Protection
@@ -55,14 +71,16 @@ Middleware at **root** `middleware.ts` (NOT `src/middleware.ts`):
 
 ## File Locations
 
-| Task           | Location                              |
-| -------------- | ------------------------------------- |
-| Add page       | `src/app/(route-group)/path/page.tsx` |
-| Add API route  | `src/app/api/resource/route.ts`       |
-| Sanity queries | `src/lib/sanity/queries.ts`           |
-| CMS schemas    | `studio/src/schemaTypes/documents/`   |
-| Types          | `src/types/`                          |
-| UI components  | `src/components/ui/` (shadcn/Radix)   |
+| Task                | Location                                    |
+| ------------------- | ------------------------------------------- |
+| Add page            | `src/app/(route-group)/path/page.tsx`       |
+| Add API route       | `src/app/api/resource/route.ts`             |
+| Sanity queries      | `src/lib/sanity/queries.ts`                 |
+| CMS schemas         | `studio/src/schemaTypes/documents/`         |
+| Types               | `src/types/`                                |
+| UI components       | `src/components/ui/` (shadcn/Radix)         |
+| Firebase config     | `src/lib/firebase/`                         |
+| Auth context        | `src/contexts/AuthContext.tsx`              |
 
 ## Critical Conventions
 
@@ -71,17 +89,33 @@ Middleware at **root** `middleware.ts` (NOT `src/middleware.ts`):
 3. **Auth token**: `auth-token` cookie, managed via `src/lib/auth.ts`
 4. **Email endpoints**: Auto-route to local backend when `NEXT_PUBLIC_EMAIL_SERVICE_ENV=local`
 5. **TypeScript errors ignored in build**: `typescript.ignoreBuildErrors: true` in `next.config.ts`
+6. **Documentation goes in `.github/`**: All plans, guides, and generated docs
 
 ## Environment Variables (Required)
 
 ```env
+# Backend & CMS
 NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_USE_MOCK_DATA=false
-SANITY_API_READ_TOKEN=<token>  # For authenticated Sanity requests
+SANITY_API_READ_TOKEN=<token>
+
+# Firebase (Google Sign-In)
+NEXT_PUBLIC_FIREBASE_API_KEY=<key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<project>.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
 ```
 
 ## Key Integrations
+
+### Firebase Google Sign-In
+
+- Config: `src/lib/firebase/config.ts`
+- Auth functions: `src/lib/firebase/auth.ts` (signInWithRedirect)
+- Context: `src/contexts/AuthContext.tsx` (unified auth state)
+- Button: `src/components/auth/google-sign-in-button.tsx`
+- Backend sync: `src/app/api/auth/firebase-sync/route.ts`
+- Setup guide: `.github/FIREBASE_GOOGLE_SIGNIN_SETUP.md`
 
 ### Lalamove Same-Day Delivery
 
@@ -101,11 +135,14 @@ SANITY_API_READ_TOKEN=<token>  # For authenticated Sanity requests
 - **Don't** use lowercase enums for backend (`user` ❌ → `USER` ✅)
 - **Don't** hardcode API URLs - use env vars
 - **Don't** edit Sanity content in code - use Studio UI
+- **Don't** put documentation in root or `docs/` - use `.github/`
 
 ## Extended Documentation
 
 See `.github/` for detailed workflows:
 
+- `FIREBASE_AUTH_IMPLEMENTATION_PLAN.md` - Firebase auth implementation details
+- `FIREBASE_GOOGLE_SIGNIN_SETUP.md` - Firebase Console setup guide
 - `SANITY_SEEDING_PLAN.md` - CMS data seeding
 - `CART_AND_CHECKOUT_COMPLETE_PLAN.md` - E-commerce flows
 - `VERCEL_DEPLOYMENT_PLAN.md` - Deployment guide
@@ -120,9 +157,25 @@ See `.github/` for detailed workflows:
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui (Radix)
 - **Backend**: NestJS + Prisma + PostgreSQL (Railway)
 - **CMS**: Sanity Studio (`/studio` directory)
-- **Auth**: JWT with 6-digit email verification codes
+- **Auth**: Firebase (Google OAuth) + NestJS (email/password with 6-digit codes)
 - **Forms**: React Hook Form + Zod validation
 - **Build**: Turbopack enabled
+
+### Authentication Architecture
+
+**Dual auth system** - both methods store JWT in `auth-token` cookie:
+
+1. **Firebase Google Sign-In** (`signInWithRedirect`)
+   - User clicks Google button → Redirect to Google → Return with Firebase user
+   - Sync to backend via `/api/auth/firebase-sync` → Backend returns JWT
+   
+2. **Email/Password** (NestJS backend)
+   - Register → Email 6-digit code → Verify → JWT returned
+
+```typescript
+// AuthContext provides unified interface
+const { user, isAuthenticated, signInWithGoogle, signOut } = useAuth();
+```
 
 ### API Client (`src/lib/api-client.ts`)
 
@@ -131,40 +184,6 @@ The API client implements **dual-backend routing**:
 - Email-dependent endpoints (`/auth/register`, `/auth/verify-email-code`, etc.) route to local backend when `NEXT_PUBLIC_EMAIL_SERVICE_ENV=local`
 - All other endpoints use `NEXT_PUBLIC_API_URL`
 - Auto-handles JWT tokens from `auth-token` cookie
-
-### Sanity Schema Structure
-
-24 document types in `studio/src/schemaTypes/documents/`:
-
-**E-Commerce**: `product`, `category`, `productVariant`, `productBundle`, `review`, `order`, `coupon`, `promotion`
-
-**Content**: `hero`, `featureSection`, `faqItem`, `post`, `page`, `person`, `recipe`, `growingGuide`, `testimonial`, `store`, `grower`, `banner`
-
-**Product schema** has 25+ fields organized into: Basic Info, Pricing, Inventory, Variants, Smart Recommendations, Freshness, Preparation, Delivery, SEO
-
-### Authentication Flow
-
-```
-Register → Email code sent → User enters 6-digit code → JWT token returned → Stored as auth-token cookie
-```
-
-Auth utilities in `src/lib/auth.ts`:
-
-- `isAuthenticated()` - Check auth status
-- `setAuthToken(token, remember?)` - Store token
-- `logout()` - Clear all auth state
-
-### Lalamove Integration
-
-API routes in `src/app/api/lalamove/`:
-
-- `/quotation` - Get delivery price
-- `/order` - Place delivery order
-- `/orders/[orderId]` - Get/update/cancel
-- `/driver` - Get driver details
-- `/webhook` - Real-time status updates
-
-Service class: `src/lib/lalamove/client.ts` implements HMAC authentication
 
 ### Design System
 
@@ -182,3 +201,4 @@ Use `cn()` from `@/lib/utils` to merge Tailwind classes.
 - Routes: lowercase-hyphen (`order-history/page.tsx`)
 - Types: lowercase-hyphen (`api.ts`)
 - Utilities: lowercase-hyphen (`api-client.ts`)
+- Documentation: UPPERCASE_SNAKE (`IMPLEMENTATION_PLAN.md`)
