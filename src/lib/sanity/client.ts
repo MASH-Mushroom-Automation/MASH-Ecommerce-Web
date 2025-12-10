@@ -3,6 +3,10 @@
  * 
  * This file configures the Sanity client for fetching content from Sanity CMS.
  * Used on both server and client side for content management.
+ * 
+ * Supports:
+ * - Published content (sanityClient)
+ * - Draft content for Visual Editing (previewClient)
  */
 
 import { createClient } from "next-sanity";
@@ -22,7 +26,7 @@ export const useCdn = true;
 const token = process.env.SANITY_API_READ_TOKEN;
 
 /**
- * Create the Sanity client
+ * Create the Sanity client for published content
  * 
  * This client is used throughout the app to fetch content from Sanity.
  * It's configured with the project ID, dataset, and API version.
@@ -41,6 +45,35 @@ export const sanityClient = createClient({
   // Request deduplication (prevent duplicate requests)
   resultSourceMap: false,
 });
+
+/**
+ * Create the Sanity client for draft/preview content
+ * 
+ * Used for Visual Editing in Sanity Presentation tool.
+ * Shows draft content before it's published.
+ */
+export const previewClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false, // Don't use CDN for drafts - need real-time data
+  token, // Required for authenticated draft access
+  perspective: "previewDrafts", // Show draft content
+  stega: {
+    enabled: true, // Enable Stega for click-to-edit in Presentation tool
+    studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || "http://localhost:3333",
+  },
+});
+
+/**
+ * Get the appropriate client based on draft mode
+ * 
+ * @param isDraftMode - Whether to use draft mode
+ * @returns The appropriate Sanity client
+ */
+export function getClient(isDraftMode: boolean = false) {
+  return isDraftMode ? previewClient : sanityClient;
+}
 
 /**
  * Image URL builder

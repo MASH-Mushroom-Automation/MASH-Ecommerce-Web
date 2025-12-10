@@ -36,9 +36,19 @@ const homeLocation = {
 function resolveHref(documentType?: string, slug?: string): string | undefined {
   switch (documentType) {
     case 'post':
-      return slug ? `/posts/${slug}` : undefined
+      return slug ? `/blog/${slug}` : '/blog'
     case 'page':
       return slug ? `/${slug}` : undefined
+    case 'product':
+      return slug ? `/product/${slug}` : '/shop'
+    case 'category':
+      return slug ? `/shop?category=${slug}` : '/shop'
+    case 'heroCarousel':
+      return '/'
+    case 'siteSettings':
+      return '/'
+    case 'featuredProducts':
+      return '/'
     default:
       console.warn('Invalid document type:', documentType)
       return undefined
@@ -70,7 +80,23 @@ export default defineConfig({
         mainDocuments: defineDocuments([
           {
             route: '/',
-            filter: `_type == "siteSettings" && _id == "siteSettingsDoc"`,
+            filter: `_type == "heroCarousel" || _type == "siteSettings" || _type == "featuredProducts"`,
+          },
+          {
+            route: '/shop',
+            filter: `_type == "product" || _type == "category"`,
+          },
+          {
+            route: '/product/:slug',
+            filter: `_type == "product" && slug.current == $slug`,
+          },
+          {
+            route: '/blog',
+            filter: `_type == "post"`,
+          },
+          {
+            route: '/blog/:slug',
+            filter: `_type == "post" && slug.current == $slug`,
           },
           {
             route: '/:slug',
@@ -114,8 +140,58 @@ export default defineConfig({
                   href: resolveHref('post', doc?.slug)!,
                 },
                 {
-                  title: 'Home',
-                  href: '/',
+                  title: 'Blog',
+                  href: '/blog',
+                } satisfies DocumentLocation,
+              ].filter(Boolean) as DocumentLocation[],
+            }),
+          }),
+          // Product locations
+          product: defineLocations({
+            select: {
+              name: 'name',
+              slug: 'slug.current',
+            },
+            resolve: (doc) => ({
+              locations: [
+                {
+                  title: doc?.name || 'Untitled Product',
+                  href: resolveHref('product', doc?.slug)!,
+                },
+                {
+                  title: 'Shop',
+                  href: '/shop',
+                } satisfies DocumentLocation,
+              ].filter(Boolean) as DocumentLocation[],
+            }),
+          }),
+          // Hero Carousel location
+          heroCarousel: defineLocations({
+            locations: [homeLocation],
+            message: 'This document controls the homepage hero section',
+            tone: 'positive',
+          }),
+          // Featured Products location
+          featuredProducts: defineLocations({
+            locations: [homeLocation],
+            message: 'This document controls featured products on the homepage',
+            tone: 'positive',
+          }),
+          // Category locations
+          category: defineLocations({
+            select: {
+              name: 'name',
+              slug: 'slug.current',
+            },
+            resolve: (doc) => ({
+              locations: [
+                {
+                  title: doc?.name || 'Category',
+                  href: `/shop?category=${doc?.slug}`,
+                },
+                {
+                  title: 'Shop',
+                  href: '/shop',
                 } satisfies DocumentLocation,
               ].filter(Boolean) as DocumentLocation[],
             }),

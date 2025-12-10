@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
 import { initGA, logPageView } from "@/lib/analytics";
+import { SanityVisualEditing } from "@/components/sanity/VisualEditing";
 
 const AUTH_ROUTES = [
   "/login",
@@ -55,6 +56,9 @@ export function ClientLayout({ children }: { children: React.Node }) {
     >
       <CartProvider>
         <WishlistProvider>
+          {/* Sanity Visual Editing - enables click-to-edit in Presentation tool */}
+          <SanityVisualEditing />
+          
           {isSellerRoute ? (
             // Seller routes get header and handle their own layout with sidebar
             <div className="min-h-screen flex flex-col">
