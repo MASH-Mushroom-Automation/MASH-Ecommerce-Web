@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { 
   SlidersHorizontal, 
   Grid, 
@@ -399,7 +399,8 @@ export default function CategoryPage() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 p-6 overflow-y-auto">
-                  <h2 className="text-lg font-bold mb-6">Filters</h2>
+                  <SheetTitle className="text-lg font-bold mb-6">Filters</SheetTitle>
+                  <SheetDescription className="sr-only">Filter products by tags, price, and categories</SheetDescription>
                   
                   {/* Mobile Categories */}
                   {otherCategories.length > 0 && (

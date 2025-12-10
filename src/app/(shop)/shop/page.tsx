@@ -14,7 +14,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { SlidersHorizontal, Grid, List, Search, X } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
@@ -250,9 +250,10 @@ export default function ProductCatalogPage() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-full sm:w-80 p-0">
                   <div className="p-6">
-                    <h2 className="text-xl font-bold text-foreground mb-6">
+                    <SheetTitle className="text-xl font-bold text-foreground mb-6">
                       Filters
-                    </h2>
+                    </SheetTitle>
+                    <SheetDescription className="sr-only">Filter products by category, price, and tags</SheetDescription>
                     <div className="space-y-6">
                       {/* Categories */}
                       <div>
