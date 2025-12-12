@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, MapPin, Phone, Mail, Youtube, Instagram, Twitter } from "lucide-react";
+import { Facebook, MapPin, Phone, Mail, Youtube, Instagram, Twitter, Linkedin } from "lucide-react";
+import { TikTokIcon } from "@/components/ui/tiktok-icon";
 import { useSanitySiteSettings, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 export function Footer() {
@@ -20,13 +21,21 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1 flex flex-col items-center text-center">
             {/* MASH Logo - Real-time */}
             <div className="mb-6">
-              <Image
-                src={settings?.logo || "/Logo  v6 - Market.png"}
-                alt={settings?.companyName || "MASH Market"}
-                width={180}
-                height={60}
-                className="h-auto w-auto max-w-[180px]"
-              />
+              {settings?.logo ? (
+                <img
+                  src={settings.logo}
+                  alt={settings?.companyName || "MASH Market"}
+                  className="h-auto w-auto max-w-[180px] max-h-[60px] object-contain"
+                />
+              ) : (
+                <Image
+                  src="/Logo  v6 - Market.png"
+                  alt="MASH Market"
+                  width={180}
+                  height={60}
+                  className="h-auto w-auto max-w-[180px]"
+                />
+              )}
             </div>
 
             {/* Accepted Payments Section */}
@@ -91,10 +100,32 @@ export function Footer() {
                   href={settings.socialMedia.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary"
+                  className="text-foreground hover:text-primary transition-colors"
                   aria-label="YouTube"
                 >
                   <Youtube size={24} />
+                </a>
+              )}
+              {settings?.socialMedia?.linkedin && (
+                <a
+                  href={settings.socialMedia.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin size={24} />
+                </a>
+              )}
+              {settings?.socialMedia?.tiktok && (
+                <a
+                  href={settings.socialMedia.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-primary transition-colors"
+                  aria-label="TikTok"
+                >
+                  <TikTokIcon size={24} />
                 </a>
               )}
               {settings?.contactEmail && (

@@ -17,6 +17,9 @@ import {
   Menu,
   Facebook,
   Instagram,
+  Youtube,
+  Twitter,
+  Linkedin,
   Store,
   Search,
 } from "lucide-react";
@@ -47,6 +50,7 @@ import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { TikTokIcon } from "@/components/ui/tiktok-icon";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import { useSanitySiteSettings, useSanityAnnouncementBar, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
@@ -95,22 +99,66 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({ sellerStatus 
               <a 
                 href={settings.socialMedia.facebook} 
                 aria-label="Facebook" 
-                className="hover:text-primary-foreground"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Facebook size={18} />
               </a>
             )}
+            {settings?.socialMedia?.youtube && (
+              <a 
+                href={settings.socialMedia.youtube} 
+                aria-label="YouTube" 
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Youtube size={18} />
+              </a>
+            )}
             {settings?.socialMedia?.instagram && (
               <a 
                 href={settings.socialMedia.instagram} 
                 aria-label="Instagram" 
-                className="hover:text-primary-foreground"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Instagram size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.twitter && (
+              <a 
+                href={settings.socialMedia.twitter} 
+                aria-label="Twitter" 
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Twitter size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.linkedin && (
+              <a 
+                href={settings.socialMedia.linkedin} 
+                aria-label="LinkedIn" 
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Linkedin size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.tiktok && (
+              <a 
+                href={settings.socialMedia.tiktok} 
+                aria-label="TikTok" 
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <TikTokIcon size={18} />
               </a>
             )}
           </div>
@@ -127,6 +175,7 @@ interface NavLinkProps {
 
 export function SellerHeader() {
   const { profile } = useUserProfile();
+  const { settings } = useSanitySiteSettings();
   const [isMounted, setIsMounted] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
 
@@ -181,14 +230,22 @@ export function SellerHeader() {
       <SellerInfoBar sellerStatus={sellerStatus} />
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-4">
         <Link href="/" className="flex items-center">
-          <Image
-            src="/Logo  v6 - Market.png"
-            alt="MASH Logo"
-            width={150}
-            height={50}
-            className="h-10 w-auto sm:h-12"
-            priority
-          />
+          {settings?.logo ? (
+            <img
+              src={settings.logo}
+              alt={settings?.companyName || "MASH Logo"}
+              className="h-10 w-auto sm:h-12 object-contain"
+            />
+          ) : (
+            <Image
+              src="/Logo  v6 - Market.png"
+              alt="MASH Logo"
+              width={150}
+              height={50}
+              className="h-10 w-auto sm:h-12"
+              priority
+            />
+          )}
         </Link>
         <div className="flex items-center gap-4">
           <NotificationDropdown />
@@ -201,6 +258,7 @@ export function SellerHeader() {
 
 export function SimpleHeader() {
   const { profile } = useUserProfile();
+  const { settings } = useSanitySiteSettings();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -217,14 +275,22 @@ export function SimpleHeader() {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
         <span className="w-9" aria-hidden="true" />
         <Link href="/" className="flex items-center justify-center">
-          <Image
-            src="/Logo  v6 - Market.png"
-            alt="MASH Logo"
-            width={150}
-            height={50}
-            className="h-10 w-auto sm:h-12"
-            priority
-          />
+          {settings?.logo ? (
+            <img
+              src={settings.logo}
+              alt={settings?.companyName || "MASH Logo"}
+              className="h-10 w-auto sm:h-12 object-contain"
+            />
+          ) : (
+            <Image
+              src="/Logo  v6 - Market.png"
+              alt="MASH Logo"
+              width={150}
+              height={50}
+              className="h-10 w-auto sm:h-12"
+              priority
+            />
+          )}
         </Link>
         <ThemeSwitcher />
       </div>
@@ -321,15 +387,23 @@ export function Header() {
         <SellerInfoBar sellerStatus={sellerStatus} />
 
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-12 xl:px-16 py-2">
-          <Link href="/">
-            <Image
-              src={settings?.logo || "/Logo  v6 - Market.png"}
-              alt={settings?.companyName || "MASH Logo"}
-              width={150}
-              height={50}
-              className="h-10 w-auto sm:h-12"
-              priority
-            />
+          <Link href="/" className="flex-shrink-0">
+            {settings?.logo ? (
+              <img
+                src={settings.logo}
+                alt={settings?.companyName || "MASH Logo"}
+                className="h-10 w-auto sm:h-12 object-contain"
+              />
+            ) : (
+              <Image
+                src="/Logo  v6 - Market.png"
+                alt="MASH Logo"
+                width={150}
+                height={50}
+                className="h-10 w-auto sm:h-12"
+                priority
+              />
+            )}
           </Link>
 
           {/* Search Bar - Hidden on small screens, visible on md+ */}
@@ -558,6 +632,68 @@ export function Header() {
                       </Button>
                     </Link>
                   )}
+                </div>
+                
+                {/* Social Media Links - Mobile */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <p className="text-sm text-muted-foreground mb-3">Follow Us</p>
+                  <div className="flex items-center gap-4">
+                    {settings?.socialMedia?.facebook && (
+                      <a
+                        href={settings.socialMedia.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary"
+                        aria-label="Facebook"
+                      >
+                        <Facebook size={24} />
+                      </a>
+                    )}
+                    {settings?.socialMedia?.youtube && (
+                      <a
+                        href={settings.socialMedia.youtube}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary"
+                        aria-label="YouTube"
+                      >
+                        <Youtube size={24} />
+                      </a>
+                    )}
+                    {settings?.socialMedia?.instagram && (
+                      <a
+                        href={settings.socialMedia.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary"
+                        aria-label="Instagram"
+                      >
+                        <Instagram size={24} />
+                      </a>
+                    )}
+                    {settings?.socialMedia?.twitter && (
+                      <a
+                        href={settings.socialMedia.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary"
+                        aria-label="Twitter"
+                      >
+                        <Twitter size={24} />
+                      </a>
+                    )}
+                    {settings?.socialMedia?.tiktok && (
+                      <a
+                        href={settings.socialMedia.tiktok}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary"
+                        aria-label="TikTok"
+                      >
+                        <TikTokIcon size={24} />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </SheetContent>
