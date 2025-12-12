@@ -122,6 +122,15 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
           _id,
           name,
           "slug": slug.current
+        },
+        grower->{
+          _id,
+          name,
+          "slug": slug.current,
+          tagline,
+          location,
+          isVerified,
+          "image": logo.asset->url
         }
       }`;
       

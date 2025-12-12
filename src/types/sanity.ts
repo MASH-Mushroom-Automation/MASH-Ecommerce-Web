@@ -33,6 +33,15 @@ export interface SanityProduct {
   images?: string[]; // Array of URLs
   category?: SanityCategory;
   subcategory?: SanityCategory;
+  grower?: {
+    _id: string;
+    name: string;
+    slug: string;
+    tagline?: string;
+    location?: string;
+    isVerified?: boolean;
+    image?: string;
+  };
 }
 
 /**
@@ -232,6 +241,17 @@ export interface TransformedProduct {
   deliveryWeight?: DeliveryWeight;  // Package weight and dimensions
   nutritionalHighlights?: string[];  // Nutrition badges
   searchKeywords?: string[];  // SEO keywords
+  
+  // Grower Information
+  grower?: {
+    id: string;
+    name: string;
+    slug: string;
+    tagline?: string;
+    location?: string;
+    isVerified?: boolean;
+    image?: string;
+  };
 }
 
 /**
@@ -330,6 +350,17 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     deliveryWeight: (product as any).deliveryWeight || undefined,
     nutritionalHighlights: (product as any).nutritionalHighlights || undefined,
     searchKeywords: (product as any).searchKeywords || undefined,
+    
+    // Grower Information
+    grower: product.grower ? {
+      id: product.grower._id,
+      name: product.grower.name,
+      slug: product.grower.slug,
+      tagline: product.grower.tagline,
+      location: product.grower.location,
+      isVerified: product.grower.isVerified,
+      image: product.grower.image,
+    } : undefined,
   };
 }
 

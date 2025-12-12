@@ -51,6 +51,13 @@ export const product = defineType({
       description: 'Select the most specific category (subcategory if available)',
     }),
     defineField({
+      name: 'grower',
+      title: 'Grower / Farm',
+      type: 'reference',
+      to: [{type: 'grower'}],
+      description: 'The grower or farm that produces this product. This enables bidirectional linking between products and growers.',
+    }),
+    defineField({
       name: 'price',
       title: 'Regular Price',
       type: 'number',

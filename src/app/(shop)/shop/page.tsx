@@ -743,7 +743,7 @@ export default function ProductCatalogPage() {
                         id={product.id}
                         slug={product.slug}
                         name={product.name}
-                        farm={product.category || "MASH"}
+                        farm={product.grower?.name || product.category || "MASH"}
                         price={product.price}
                         comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
@@ -779,7 +779,7 @@ export default function ProductCatalogPage() {
                               {product.name}
                             </h3>
                             <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">
-                              {product.category || "MASH"}
+                              {product.grower?.name || product.category || "MASH"}
                             </p>
                             <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
                               {product.description || "Fresh, locally-sourced mushrooms perfect for any culinary creation."}
