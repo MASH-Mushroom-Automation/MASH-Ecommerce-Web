@@ -297,20 +297,22 @@ export function Header() {
   return (
     <>
       {/* Announcement Bar - Real-time from Sanity CMS */}
-      {announcementBar?.enabled && (
+      {announcementBar?.enabled && announcementBar?.message && (
         <div 
-          className="text-center py-2 px-4 text-sm font-medium"
+          className="text-center py-2 px-4 text-sm font-medium flex items-center justify-center gap-2"
           style={{
             backgroundColor: announcementBar.backgroundColor || '#6A994E',
             color: announcementBar.textColor || '#ffffff'
           }}
         >
-          {announcementBar.link ? (
-            <Link href={announcementBar.link} className="hover:underline">
-              {announcementBar.message}
+          <span>{announcementBar.message}</span>
+          {announcementBar.link && (
+            <Link 
+              href={announcementBar.link} 
+              className="underline font-bold hover:opacity-80"
+            >
+              {announcementBar.linkText || 'Learn More'}
             </Link>
-          ) : (
-            <span>{announcementBar.message}</span>
           )}
         </div>
       )}

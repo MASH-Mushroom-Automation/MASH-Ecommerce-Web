@@ -298,7 +298,7 @@ export function Footer() {
       {/* Copyright Bar - Real-time from Sanity CMS */}
       <div className="border-t border-border pt-3 pb-4 text-center text-xs text-muted-foreground">
         <p>
-          {settings?.footer?.copyrightText || `© ${new Date().getFullYear()} ${settings?.companyName || 'MASH'}. All rights reserved.`}
+          {(settings?.footer?.copyrightText || `© {year} ${settings?.companyName || 'MASH'}. All rights reserved.`).replace('{year}', new Date().getFullYear().toString())}
         </p>
         {settings?.footer?.aboutText && (
           <p className="mt-1">

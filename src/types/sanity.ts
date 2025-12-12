@@ -454,6 +454,7 @@ export interface SanitySiteSettings {
     enabled: boolean;
     message: string;
     link?: string;
+    linkText?: string;
     backgroundColor?: string;
     textColor?: string;
   };
@@ -526,6 +527,7 @@ export interface TransformedSiteSettings {
     enabled: boolean;
     message: string;
     link?: string;
+    linkText?: string;
     backgroundColor?: string;
     textColor?: string;
   };
