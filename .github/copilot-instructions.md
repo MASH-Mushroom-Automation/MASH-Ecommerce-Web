@@ -15,26 +15,28 @@
 
 ### Project Configuration
 
-| Setting | Value |
-|---------|-------|
-| Project ID | `gerattrr` |
-| Plan | **Free (permanent)** |
+| Setting    | Value                          |
+| ---------- | ------------------------------ |
+| Project ID | `gerattrr`                     |
+| Plan       | **Free (permanent)**           |
 | Studio URL | https://ppnamias.sanity.studio |
-| App ID | `esr18b2qp5du2mfuufq6n6ci` |
-| Dataset | `production` (public) |
+| App ID     | `esr18b2qp5du2mfuufq6n6ci`     |
+| Dataset    | `production` (public)          |
 
 ### CORS Origins Configured
-| Origin | Purpose |
-|--------|---------|
-| `http://localhost:5173` | Vite dev |
-| `http://localhost:3333` | Sanity Studio dev |
-| `https://ppnamias.sanity.studio` | Deployed Studio |
+
+| Origin                           | Purpose           |
+| -------------------------------- | ----------------- |
+| `http://localhost:5173`          | Vite dev          |
+| `http://localhost:3333`          | Sanity Studio dev |
+| `https://ppnamias.sanity.studio` | Deployed Studio   |
 
 ---
 
 ## 🚀 Quick Reference (TL;DR)
 
 ### Start Development
+
 ```bash
 npm install && npm run dev    # Frontend: localhost:3000 (Turbopack)
 cd studio && npm run dev      # Sanity Studio: localhost:3333
@@ -42,26 +44,29 @@ cd studio && npm run dev      # Sanity Studio: localhost:3333
 ```
 
 ### Key Architecture Decisions
-| Decision | Pattern | Why |
-|----------|---------|-----|
-| Data source | Sanity CMS for products/content, Backend API for auth/orders | CMS for marketers, API for transactions |
-| API routing | Dual-backend (`api-client.ts`) | Email endpoints use local, others use production |
-| State | React Context (`Cart`, `Wishlist`) + localStorage | Persist cart across sessions |
-| Components | shadcn/ui (Radix) in `src/components/ui/` | 60+ accessible components |
-| Auth | JWT cookies + refresh tokens | Backend handles, frontend stores |
+
+| Decision    | Pattern                                                      | Why                                              |
+| ----------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| Data source | Sanity CMS for products/content, Backend API for auth/orders | CMS for marketers, API for transactions          |
+| API routing | Dual-backend (`api-client.ts`)                               | Email endpoints use local, others use production |
+| State       | React Context (`Cart`, `Wishlist`) + localStorage            | Persist cart across sessions                     |
+| Components  | shadcn/ui (Radix) in `src/components/ui/`                    | 60+ accessible components                        |
+| Auth        | JWT cookies + refresh tokens                                 | Backend handles, frontend stores                 |
 
 ### File Location Cheatsheet
-| Need to... | Look in... |
-|------------|------------|
-| Add UI component | `src/components/ui/` (shadcn) |
-| Add page | `src/app/(route-group)/path/page.tsx` |
-| Add API route | `src/app/api/resource/route.ts` |
-| Fetch from Sanity | `src/lib/sanity/queries.ts` |
-| Fetch from Backend | `src/lib/api/*.ts` |
-| Add hook | `src/hooks/use*.ts` |
-| Edit CMS schema | `studio/src/schemaTypes/documents/` |
+
+| Need to...         | Look in...                            |
+| ------------------ | ------------------------------------- |
+| Add UI component   | `src/components/ui/` (shadcn)         |
+| Add page           | `src/app/(route-group)/path/page.tsx` |
+| Add API route      | `src/app/api/resource/route.ts`       |
+| Fetch from Sanity  | `src/lib/sanity/queries.ts`           |
+| Fetch from Backend | `src/lib/api/*.ts`                    |
+| Add hook           | `src/hooks/use*.ts`                   |
+| Edit CMS schema    | `studio/src/schemaTypes/documents/`   |
 
 ### Environment Variables (Critical)
+
 ```env
 NEXT_PUBLIC_USE_MOCK_DATA=false          # Must be false for real data
 NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
@@ -69,12 +74,13 @@ NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr   # PP_Namias Free Project
 ```
 
 ### CORS Origins (PP_Namias Project)
-| Origin | Purpose |
-|--------|---------|
-| `http://localhost:5173` | Vite dev |
-| `http://localhost:3333` | Sanity Studio dev |
-| `http://localhost:3001` | Next.js dev |
-| `https://ppnamias.sanity.studio` | Deployed Studio |
+
+| Origin                           | Purpose           |
+| -------------------------------- | ----------------- |
+| `http://localhost:5173`          | Vite dev          |
+| `http://localhost:3333`          | Sanity Studio dev |
+| `http://localhost:3001`          | Next.js dev       |
+| `https://ppnamias.sanity.studio` | Deployed Studio   |
 
 ---
 
@@ -135,11 +141,13 @@ Routes use Next.js route groups `(folder)` for logical organization WITHOUT affe
 MASH uses a **dual-backend architecture** with smart routing:
 
 **1. NestJS Backend** (`localhost:3000/api/v1`) - Transactional Data
+
 - Products, orders, users, addresses, payments
 - Handled by `src/lib/api-client.ts` (JWT auth, token refresh, error handling)
 - Toggle with `NEXT_PUBLIC_USE_MOCK_DATA=false` (real) or `true` (mock)
 
 **2. Sanity CMS** (`localhost:3333`, deployed to Sanity Cloud) - Content Data
+
 - Hero sections, features, FAQs, blog posts, team info
 - Accessed via `src/lib/cms/database.ts` (HeroAPI, FeaturesAPI, FAQAPI)
 - Always fetches from Sanity Cloud (no mock toggle)
@@ -180,13 +188,13 @@ npm run lint         # ESLint check
 
 **Current Status**: Migrating from MASH project (quota exceeded) to PP_Namias project (fresh free tier)
 
-| Detail | Old Project (MASH) | New Project (PP_Namias) |
-|--------|-------------------|-------------------------|
-| Project ID | `2grm6gj7` | `gerattrr` ✅ |
-| Status | ❌ Quota Exceeded | ✅ Active |
-| Plan | Free (trial expired) | Free (permanent) |
-| API Quota | 100k/month (exceeded) | 250k/month |
-| Real-Time | Disabled | **STAYS DISABLED** (FREE TIER) |
+| Detail     | Old Project (MASH)    | New Project (PP_Namias)        |
+| ---------- | --------------------- | ------------------------------ |
+| Project ID | `2grm6gj7`            | `gerattrr` ✅                  |
+| Status     | ❌ Quota Exceeded     | ✅ Active                      |
+| Plan       | Free (trial expired)  | Free (permanent)               |
+| API Quota  | 100k/month (exceeded) | 250k/month                     |
+| Real-Time  | Disabled              | **STAYS DISABLED** (FREE TIER) |
 
 **Migration Guide**: See `.github/SANITY_MIGRATION_PLAN.md` for complete step-by-step instructions  
 **Quick Start**: See `SANITY_MIGRATION_QUICKSTART.md` for 40-minute fast track
@@ -194,18 +202,21 @@ npm run lint         # ESLint check
 #### **Architecture Overview**
 
 Sanity Studio is a **separate project** in `/studio` directory with its own:
+
 - `package.json` - Independent dependencies
 - `sanity.config.ts` - Studio configuration
 - `src/schemaTypes/` - 15+ content type definitions
 - Dev server on port 3333 (separate from Next.js on port 3000)
 
-**Critical Workflow**: 
+**Critical Workflow**:
+
 1. **Content Changes**: Edit in Sanity Studio (localhost:3333) → Auto-publishes to Sanity Cloud
 2. **Frontend Fetches**: Next.js fetches from Sanity Cloud via `src/lib/cms/database.ts`
 3. **No Restart Needed**: Frontend sees changes on next page load (5-minute cache TTL)
 4. **⚠️ Real-Time DISABLED**: Manual refresh required (FREE TIER optimization)
 
 **Sanity Project Details** (Post-Migration - ✅ COMPLETE):
+
 - **Current Project ID**: `gerattrr` (PP_Namias) - ✅ All references updated!
 - **OLD Project ID**: `2grm6gj7` (MASH) - ⚠️ Do NOT use (quota exceeded)
 - Dataset: `production`
@@ -228,6 +239,7 @@ npm run dev          # Starts at localhost:3333
 #### **Complete Schema Structure (15+ Content Types)**
 
 **E-Commerce Documents:**
+
 1. **`product`** (25+ fields) - Main product catalog
    - Basic Info: name, slug, description, image, images[], category, SKU
    - Pricing: price, isOnPromo, promoType, promoPercentage, promoPrice, promoEndDate
@@ -247,16 +259,10 @@ npm run dev          # Starts at localhost:3333
 7. **`coupon`** - Discount codes
 8. **`promotion`** - Marketing campaigns
 
-**Content Documents:**
-9. **`hero`** - Homepage hero sections
-10. **`features`** - Feature highlights
-11. **`faq`** - FAQ items
-12. **`post`** - Blog posts
-13. **`page`** - CMS pages
-14. **`author`** - Blog authors
-15. **`teamMember`** - Team profiles
+**Content Documents:** 9. **`hero`** - Homepage hero sections 10. **`features`** - Feature highlights 11. **`faq`** - FAQ items 12. **`post`** - Blog posts 13. **`page`** - CMS pages 14. **`author`** - Blog authors 15. **`teamMember`** - Team profiles
 
 **Singletons:**
+
 - **`settings`** - Global site config
 - **`featuredProducts`** - Homepage products
 - **`navigation`** - Menu structure
@@ -266,6 +272,7 @@ npm run dev          # Starts at localhost:3333
 The product schema is **organized into 9 categories** for complete e-commerce functionality:
 
 **1. Basic Info (7 fields):**
+
 ```typescript
 {
   name: string,              // "Fresh Oyster Mushrooms"
@@ -280,6 +287,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **2. Pricing (7 fields):**
+
 ```typescript
 {
   price: number,            // ₱350
@@ -293,6 +301,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **3. Inventory (6 fields):**
+
 ```typescript
 {
   quantity: number,           // 150 (units in stock)
@@ -305,6 +314,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **4. Variants (4 fields):**
+
 ```typescript
 {
   hasVariants: boolean,     // Does product have size options?
@@ -315,6 +325,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **5. Smart Recommendations (5 fields):**
+
 ```typescript
 {
   suggestedProducts: reference[],      // "You May Also Like" (max 8)
@@ -326,6 +337,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **6. Freshness & Quality (4 fields):**
+
 ```typescript
 {
   freshnessInfo: {
@@ -338,6 +350,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **7. Preparation (4 fields):**
+
 ```typescript
 {
   preparationInfo: {
@@ -350,6 +363,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **8. Same-Day Delivery (Lalamove) (6 fields):**
+
 ```typescript
 {
   deliveryOptions: {
@@ -369,6 +383,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **9. SEO & Discovery (3 fields):**
+
 ```typescript
 {
   searchKeywords: string[],         // ["oyster", "fresh", "mushroom"]
@@ -380,6 +395,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 #### **Critical CMS Operations**
 
 **1. Adding Product Images (Phase 3):**
+
 ```bash
 # In Sanity Studio (localhost:3333)
 1. Click "Products" → Select product
@@ -399,6 +415,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **2. Linking Related Products (Phase 4):**
+
 ```bash
 # In Sanity Studio
 1. Open product → Scroll to "Suggested Products"
@@ -417,6 +434,7 @@ The product schema is **organized into 9 categories** for complete e-commerce fu
 ```
 
 **3. Frontend Integration Pattern:**
+
 ```typescript
 // src/lib/cms/database.ts - Fetching from Sanity
 import { client } from '@/lib/cms/sanity';
@@ -465,11 +483,13 @@ Sanity's **Presentation Tool** allows real-time preview of CMS changes:
 #### **Deployment & Publishing**
 
 **Content Publishing:**
+
 - All changes in Studio are **drafts** until you click "Publish"
 - Published content is **immediately available** via Sanity Cloud CDN
 - Frontend fetches from CDN with 5-minute cache (revalidate: 300)
 
 **Studio Deployment:**
+
 - Studio auto-deploys to Sanity Cloud via GitHub Actions
 - Access deployed Studio: `https://[project-id].sanity.studio`
 - Changes to schema require re-deployment (push to `main` branch)
@@ -477,6 +497,7 @@ Sanity's **Presentation Tool** allows real-time preview of CMS changes:
 #### **Data Migration & Import**
 
 **Bulk Import Pattern** (used in Phase 2):
+
 ```bash
 # See data/cms/ for import scripts
 node data/cms/import-categories.js   # Import 3 categories
@@ -501,15 +522,15 @@ await client.create({ _type: 'product', ...data });
 #### **Common CMS Tasks**
 
 **Update Product Stock:**
+
 ```typescript
 // In Studio → Products → Select product → Change "quantity" field
 // Or via API:
-await client.patch(productId)
-  .set({ quantity: 50 })
-  .commit();
+await client.patch(productId).set({ quantity: 50 }).commit();
 ```
 
 **Add Promotional Pricing:**
+
 ```typescript
 // In Studio:
 1. Toggle "Is On Promo?" = true
@@ -520,6 +541,7 @@ await client.patch(productId)
 ```
 
 **Feature Product on Homepage:**
+
 ```typescript
 // In Studio → Products → Select product
 // Toggle "Is Featured?" = true
@@ -600,21 +622,28 @@ Middleware (`src/middleware.ts`) handles route protection:
 ```typescript
 // middleware.ts - Located at ROOT level (not src/middleware.ts)
 const protectedRoutes = [
-  '/checkout',      // Requires auth
-  '/seller',        // Seller dashboard
-  '/profile/my-information',
-  '/profile/order-history',
-  '/wishlist',
+  "/checkout", // Requires auth
+  "/seller", // Seller dashboard
+  "/profile/my-information",
+  "/profile/order-history",
+  "/wishlist",
 ];
 
 const authRoutes = [
-  '/login', '/signup',  // Redirect to /catalog if authenticated
-  '/forgot-password', '/verify-otp',
+  "/login",
+  "/signup", // Redirect to /catalog if authenticated
+  "/forgot-password",
+  "/verify-otp",
 ];
 
 const publicRoutes = [
-  '/', '/catalog', '/product',  // Always accessible
-  '/about', '/grower', '/contact', '/faq',
+  "/",
+  "/catalog",
+  "/product", // Always accessible
+  "/about",
+  "/grower",
+  "/contact",
+  "/faq",
 ];
 ```
 
@@ -629,9 +658,8 @@ import type { ProductApiResponse, ApiResponse } from "@/types/api";
 
 // Server Component (default)
 async function getProducts() {
-  const response = await apiRequest<ApiResponse<ProductApiResponse[]>>(
-    "/products"
-  );
+  const response =
+    await apiRequest<ApiResponse<ProductApiResponse[]>>("/products");
   return response.data;
 }
 
@@ -742,6 +770,7 @@ Before making significant changes, review these docs:
 ### **📈 Current Project Status (November 26, 2025)**
 
 **✅ Completed (100%):**
+
 - Phase 1: CMS Structure (13 document types + 4 singletons)
 - Phase 2: Data Population (84 items: 3 categories, 15 products, 15 variants, 6 bundles, 45 reviews)
 - Phase 2.5: Enhanced Product Schema (25+ fields with smart recommendations, freshness tracking, Lalamove delivery fields)
@@ -750,15 +779,18 @@ Before making significant changes, review these docs:
 - Lalamove Phases 1-8: Backend API routes, service class, COD support, webhooks, chat relay
 
 **🔄 In Testing Phase:**
+
 - Production Lalamove delivery testing (sandbox complete)
 - Webhook real-time update verification
 - COD payment collection testing
 
 **🔴 CRITICAL - BLOCKING ERROR:**
+
 - **siteSettings Document Missing** - Frontend crashes on Header/Footer components
 - See `.github/SANITY_PRODUCTS_INTEGRATION_PLAN.md` Phase 0 for immediate fix (30 min)
 
 **⏸️ NEXT (Upcoming Sessions):**
+
 - **Sanity Products Integration** (~5.5 hours) - Display products/categories from Sanity CMS
   - Fix siteSettings error (blocking)
   - Create GROQ queries for products/categories
@@ -770,6 +802,7 @@ Before making significant changes, review these docs:
 - **Production Deployment** (~1 hour) - Deploy to Vercel, verify Sanity CDN
 
 **🎯 Immediate Action Items:**
+
 1. Open `.github/MASTER_IMPLEMENTATION_PLAN.md` → Review completed phases
 2. Test Lalamove production delivery with COD (see `RUN_PRODUCTION_TEST_NOW.md`)
 3. Build frontend delivery selection UI for checkout page
@@ -783,6 +816,7 @@ Before making significant changes, review these docs:
 ### **When Asked to Work with Products/CMS:**
 
 **1. First, Check Current Phase:**
+
 ```bash
 # Open MASTER_IMPLEMENTATION_PLAN.md
 # Check progress bars - are we in Phase 3 (Images) or Phase 4 (References)?
@@ -790,12 +824,14 @@ Before making significant changes, review these docs:
 ```
 
 **2. Verify Sanity Studio is Running:**
+
 ```bash
 cd studio
 npm run dev  # Should be at http://localhost:3333
 ```
 
 **3. For Image Upload Tasks (Phase 3):**
+
 - Guide user through Sanity Studio UI (can't automate image selection)
 - Provide checklist format with 15 products
 - Include image requirements table
@@ -804,6 +840,7 @@ npm run dev  # Should be at http://localhost:3333
 - Emphasize alt text for SEO
 
 **4. For Reference Linking Tasks (Phase 4):**
+
 - Provide smart suggestions organized by product category:
   - Fresh → other fresh + kits
   - Dried → other dried + fresh alternatives
@@ -814,18 +851,21 @@ npm run dev  # Should be at http://localhost:3333
 - Show example GROQ query for verification
 
 **5. For Schema Updates:**
+
 - **Never edit** `studio/src/schemaTypes/documents/product.ts` directly without reading full file first
 - Phase 2.5 schema has 25+ fields - verify field doesn't exist before adding
 - Check if field should be in existing category (Basic, Pricing, Inventory, etc.)
 - Update MASTER_IMPLEMENTATION_PLAN.md after schema changes
 
 **6. For Frontend Integration:**
+
 - Use GROQ queries via `src/lib/cms/database.ts`
 - Reference fields with `->` for relationships (e.g., `suggestedProducts[]->`)
 - Always include image URL builder for Sanity images
 - Cache strategy: revalidate every 300 seconds (5 minutes)
 
 **7. Progress Tracking:**
+
 - Update checklists in MASTER_IMPLEMENTATION_PLAN.md as tasks complete
 - Change `[ ]` to `[x]` for completed items
 - Update progress bars: `⬜⬜⬜⬜⬜` → `████████████████████`
@@ -873,6 +913,7 @@ A: 15 products total (6 fresh, 3 dried, 2 specialty, 4 bundles). See checklist i
 **Master Guide**: `.github/LALAMOVE_INTEGRATION_COMPLETE.md` (100+ pages, 8 phases, 16-20 hours)
 
 This is your **single source of truth** for all Lalamove integration work. It includes:
+
 - Complete API documentation (10 endpoints)
 - Phase-by-phase implementation guide
 - Postman collection templates
@@ -885,6 +926,7 @@ This is your **single source of truth** for all Lalamove integration work. It in
 ### **Current Status** (November 26, 2025)
 
 **Infrastructure Complete** ✅:
+
 - ✅ Lalamove API credentials in `.env.local` (sandbox + production)
 - ✅ Product schema has delivery fields (`sameDayDeliveryEligible`, `deliveryWeight`, `packageDimensions`)
 - ✅ Order schema supports Lalamove tracking
@@ -895,6 +937,7 @@ This is your **single source of truth** for all Lalamove integration work. It in
 - ✅ Production testing scripts ready
 
 **In Testing Phase** 🔄:
+
 - 🔄 Production delivery testing with real coordinates
 - 🔄 COD payment collection verification
 - 🔄 Webhook real-time updates
@@ -904,22 +947,23 @@ This is your **single source of truth** for all Lalamove integration work. It in
 
 ### **8 Implementation Phases**
 
-| Phase | Name | Duration | Priority | Status |
-|-------|------|----------|----------|--------|
-| 1 | Quotation System | 3h | 🔴 Critical | ✅ Complete (Backend + API routes) |
-| 2 | Order Placement | 3h | 🔴 Critical | ✅ Complete (w/ COD support) |
-| 3 | Order Tracking | 2h | 🟠 High | 🔄 Backend Complete, Frontend Pending |
-| 4 | Driver Details | 1.5h | 🟠 High | ✅ Complete (API endpoint ready) |
-| 5 | Order Management | 2h | 🟡 Medium | ✅ Complete (Cancel, Update endpoints) |
-| 6 | Webhooks | 3h | 🔴 Critical | ✅ Complete (8 event types handled) |
-| 7 | Priority Delivery | 1.5h | 🟢 Low | ✅ Complete (API endpoint ready) |
-| 8 | Chat Integration | 4h | 🟢 Low | ✅ Complete (SMS relay via Twilio) |
+| Phase | Name              | Duration | Priority    | Status                                 |
+| ----- | ----------------- | -------- | ----------- | -------------------------------------- |
+| 1     | Quotation System  | 3h       | 🔴 Critical | ✅ Complete (Backend + API routes)     |
+| 2     | Order Placement   | 3h       | 🔴 Critical | ✅ Complete (w/ COD support)           |
+| 3     | Order Tracking    | 2h       | 🟠 High     | 🔄 Backend Complete, Frontend Pending  |
+| 4     | Driver Details    | 1.5h     | 🟠 High     | ✅ Complete (API endpoint ready)       |
+| 5     | Order Management  | 2h       | 🟡 Medium   | ✅ Complete (Cancel, Update endpoints) |
+| 6     | Webhooks          | 3h       | 🔴 Critical | ✅ Complete (8 event types handled)    |
+| 7     | Priority Delivery | 1.5h     | 🟢 Low      | ✅ Complete (API endpoint ready)       |
+| 8     | Chat Integration  | 4h       | 🟢 Low      | ✅ Complete (SMS relay via Twilio)     |
 
 ### **Your Test Delivery Details**
 
 You have a **real delivery planned** with actual addresses:
 
 **PICKUP** (Your Store):
+
 ```
 Address: 1019 Quirino Highway, Brgy Sta. Monica, Novaliches, Quezon City
 Contact: Melrhin Bayan (+63 966 169 2000)
@@ -928,6 +972,7 @@ Landmark: In front of BDO
 ```
 
 **DROPOFF** (Customer):
+
 ```
 Address: 936 Llano Road, Caloocan, 1400 Metro Manila
 Coordinates: 14.741238399110145, 121.00588596965112
@@ -938,6 +983,7 @@ Estimated Cost: ₱150-₱200
 ### **Postman Collection Ready**
 
 Complete collection with 10 requests:
+
 1. Get Quotation - Get delivery price
 2. Place Order - Book driver
 3. Get Order Details - Track status
@@ -956,6 +1002,7 @@ Complete collection with 10 requests:
 #### **When Asked to Work with Lalamove:**
 
 **1. First, Check Current Phase:**
+
 ```bash
 # Open LALAMOVE_INTEGRATION_COMPLETE.md
 # Check which phase we're in (1-8)
@@ -963,6 +1010,7 @@ Complete collection with 10 requests:
 ```
 
 **2. Understand the Customer Flow:**
+
 ```
 Browse Products → Add to Cart → Checkout → Select Same-Day Delivery
    ↓
@@ -972,6 +1020,7 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 ```
 
 **3. For Quotation System (Phase 1):**
+
 - Create Lalamove client class with HMAC signature
 - Build `/api/lalamove/quotation` endpoint
 - Add quotation UI to checkout page
@@ -979,6 +1028,7 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 - Implement 5-minute cache to save API calls
 
 **4. For Order Placement (Phase 2):**
+
 - Use quotation ID from Phase 1
 - Create order with full pickup/dropoff details
 - Store Lalamove order ID in database
@@ -986,12 +1036,14 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 - Send confirmation email with tracking link
 
 **5. For Tracking (Phase 3):**
+
 - Build tracking page with Google Maps
 - Show driver location (updates every 30s)
 - Display status timeline (ordered → assigned → pickup → delivery)
 - Add manual refresh button
 
 **6. For Webhooks (Phase 6):**
+
 - Create `/api/webhooks/lalamove` endpoint
 - Verify webhook signature for security
 - Handle 8 event types (driver assigned, status changed, etc.)
@@ -999,6 +1051,7 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 - Send push notifications to customer
 
 **7. For Testing:**
+
 - Use Postman collection with sandbox API first
 - Switch to production when ready for live test
 - Follow production testing checklist (9 steps)
@@ -1006,6 +1059,7 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 - Log all API calls for debugging
 
 **8. For Production Deployment:**
+
 - Update environment variables to production
 - Configure webhook URL in Lalamove dashboard
 - Set up ngrok for local webhook testing
@@ -1019,39 +1073,44 @@ Order Placed → Driver Assigned → Pickup → Real-Time Tracking → Delivered
 
 **For Phase-Specific Tasks:**
 → `.github/LALAMOVE_INTEGRATION_COMPLETE.md` sections:
-  - Phase 1-8 implementation details
-  - API code examples
-  - Frontend component templates
-  - Webhook handler code
+
+- Phase 1-8 implementation details
+- API code examples
+- Frontend component templates
+- Webhook handler code
 
 **For API Testing:**
 → `.github/LALAMOVE_INTEGRATION_COMPLETE.md` "Postman Collection Guide"
-  - Pre-request scripts
-  - Request templates
-  - Test scripts
-  - Production switching guide
+
+- Pre-request scripts
+- Request templates
+- Test scripts
+- Production switching guide
 
 **For Product Schema:**
 → `studio/src/schemaTypes/documents/product.ts` (lines 465-540)
-  - `sameDayDeliveryEligible` (boolean)
-  - `deliveryZones` (array)
-  - `packageWeight` (kg)
-  - `packageDimensions` (L x W x H)
-  - `perishable` (boolean)
+
+- `sameDayDeliveryEligible` (boolean)
+- `deliveryZones` (array)
+- `packageWeight` (kg)
+- `packageDimensions` (L x W x H)
+- `perishable` (boolean)
 
 **For Order Schema:**
 → `studio/src/schemaTypes/documents/order.ts` (line 343)
-  - `shippingMethod: "lalamove"` option
-  - `deliveryStatus` tracking
-  - `trackingNumber` field
+
+- `shippingMethod: "lalamove"` option
+- `deliveryStatus` tracking
+- `trackingNumber` field
 
 **For Production Testing:**
 → `.github/PRODUCTION_TEST_PLAN.md` (complete test plan with actual delivery details)
-  - Step-by-step webhook configuration
-  - Real delivery coordinates (Novaliches → Caloocan)
-  - Timeline breakdown (0-35 minutes)
-  - Emergency contacts and troubleshooting
-  - Post-delivery documentation template
+
+- Step-by-step webhook configuration
+- Real delivery coordinates (Novaliches → Caloocan)
+- Timeline breakdown (0-35 minutes)
+- Emergency contacts and troubleshooting
+- Post-delivery documentation template
 
 ### **Environment Variables**
 
@@ -1066,6 +1125,7 @@ LALAMOVE_MARKET="PH"
 ```
 
 **Production Keys** (when ready):
+
 - Get from: https://www.lalamove.com/ph/business
 - Update `LALAMOVE_HOST` to `https://rest.lalamove.com`
 - Replace test keys with production keys
@@ -1091,24 +1151,28 @@ LALAMOVE_MARKET="PH"
 ### **Success Criteria**
 
 Phase 1-2 Complete (Critical):
+
 - [ ] Can get quotation with real coordinates
 - [ ] Price displayed on checkout page
 - [ ] Can place order and get order ID
 - [ ] Order saved to database with tracking link
 
 Phase 3-4 Complete (High Priority):
+
 - [ ] Tracking page shows real-time driver location
 - [ ] Status timeline updates correctly
 - [ ] Driver details visible (name, phone, vehicle)
 - [ ] Customer can call driver
 
 Phase 5-6 Complete (Medium Priority):
+
 - [ ] Admin can cancel/modify orders
 - [ ] Webhooks received and processed
 - [ ] Database updates on each webhook
 - [ ] Push notifications sent to customer
 
 Phase 7-8 Complete (Optional):
+
 - [ ] Priority delivery option available
 - [ ] Chat interface functional
 - [ ] Customer-driver messaging works
@@ -1167,6 +1231,7 @@ A: Set `LALAMOVE_COD_AMOUNT=500` in environment, then place order. Driver collec
 The following backend components are **already implemented** and ready to use:
 
 **API Routes** (`src/app/api/lalamove/`):
+
 - `/api/lalamove/quotation/route.ts` - Get delivery price quotes
 - `/api/lalamove/order/route.ts` - Place delivery orders with COD support
 - `/api/lalamove/orders/[orderId]/route.ts` - Get/update/cancel orders
@@ -1176,6 +1241,7 @@ The following backend components are **already implemented** and ready to use:
 - `/api/lalamove/priority/route.ts` - Enable express delivery
 
 **Service Class** (`src/lib/lalamove/client.ts` - 366 lines):
+
 - HMAC signature generation for secure API authentication
 - Full TypeScript types for all API requests/responses
 - Methods: `getQuotation()`, `placeOrder()`, `getOrderDetails()`, `cancelOrder()`, `updateOrder()`
@@ -1183,11 +1249,13 @@ The following backend components are **already implemented** and ready to use:
 - Error handling with detailed Lalamove error codes
 
 **Testing Scripts** (`scripts/`):
+
 - `test-lalamove-delivery.js` - Complete test script with COD support
 - See `LALAMOVE_COD_QUICK_COMMANDS.md` for quick copy-paste commands
 - Production test plan: `RUN_PRODUCTION_TEST_NOW.md` (35-minute real delivery)
 
 **Next Steps** (Frontend Integration):
+
 1. Build delivery option selector in checkout page
 2. Display quotation price before order confirmation
 3. Create tracking page with map (driver location updates every 30s)
@@ -1226,6 +1294,7 @@ The following backend components are **already implemented** and ready to use:
 **Architecture**: Separate Sanity Studio project in `/studio` directory with full schema definitions
 
 **Content Types** (15+ schemas in `studio/src/schemaTypes/`):
+
 - **E-Commerce**: `product` (25+ fields), `category`, `productVariant`, `productBundle`, `review`
 - **Orders**: `order`, `coupon`, `promotion`
 - **Homepage**: `hero`, `features`, `faq` (pulled via `HeroAPI`, `FeaturesAPI`, `FAQAPI`)
@@ -1234,6 +1303,7 @@ The following backend components are **already implemented** and ready to use:
 - **Team**: `teamMember` (about page team section)
 
 **Enhanced Product Schema (Phase 2.5)** - 25+ fields across 9 categories:
+
 1. **Basic Info**: name, slug, description, image, images, category, SKU
 2. **Pricing**: price, isOnPromo, promoType, promoPercentage, promoPrice, promoEndDate
 3. **Inventory**: quantity, lowStockThreshold, trackInventory, allowBackorders, stockHistory
@@ -1245,6 +1315,7 @@ The following backend components are **already implemented** and ready to use:
 9. **SEO & Discovery**: productTags, searchKeywords, nutritionalHighlights, isFeatured
 
 **Critical Fields for E-Commerce**:
+
 - `suggestedProducts` - "You May Also Like" (max 8 products)
 - `complementaryProducts` - "Frequently Bought Together" (max 4)
 - `freshnessInfo.shelfLife` - Critical for fresh mushrooms (e.g., "5-7 days refrigerated")
@@ -1252,9 +1323,10 @@ The following backend components are **already implemented** and ready to use:
 - `deliveryWeight.packageWeight` - Used to calculate Lalamove delivery fee (₱150-₱300)
 
 **Fetching Pattern** (`src/lib/cms/database.ts`):
+
 ```typescript
 // Example: Fetch products with suggested products
-import { client } from '@/lib/cms/sanity';
+import { client } from "@/lib/cms/sanity";
 
 const products = await client.fetch(`
   *[_type == "product"] {
@@ -1292,6 +1364,7 @@ const products = await client.fetch(`
 ### Environment Variables Required
 
 **Frontend** (`.env.local` in root):
+
 ```env
 # NestJS Backend
 NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1       # Railway production backend
@@ -1316,6 +1389,7 @@ LALAMOVE_COD_AMOUNT=500  # Optional: Enable Cash on Delivery (driver collects fr
 ```
 
 **Sanity Studio** (`studio/.env.local`):
+
 ```env
 SANITY_STUDIO_PROJECT_ID=gerattrr
 SANITY_STUDIO_DATASET=production
@@ -1328,10 +1402,12 @@ SANITY_API_WRITE_TOKEN=skCVttQRCl0...
 ## Known Limitations & TODOs
 
 **Development Configuration:**
+
 - **TypeScript/ESLint errors ignored during builds** (`typescript.ignoreBuildErrors: true` in `next.config.ts`) - temporary for rapid development
 - **Verify OTP page** uses 4-digit input - needs update to 6-digit for backend compatibility
 
 **Integration Status:**
+
 - ✅ **Sanity CMS**: Migration complete (PP_Namias project - gerattrr), 15+ content types populated
 - ✅ **Lalamove API**: Backend implementation complete (quotation, orders, webhooks, COD support)
 - 🔄 **Lalamove Frontend**: Delivery UI and tracking page pending
@@ -1339,6 +1415,7 @@ SANITY_API_WRITE_TOKEN=skCVttQRCl0...
 - 📝 **WebSocket**: Real-time device updates planned (see `src/lib/websocket/`)
 
 **Partial Implementations:**
+
 - **Seller pages mock data**: refunds, notifications, settings, handover centers, shipping channels
 - **Sanity CMS frontend**: Homepage (hero, features, FAQ) implemented, blog/team pages need component updates
 - ~~**Clerk**~~ - NOT used, removed from architecture (custom JWT auth instead)
@@ -1371,7 +1448,6 @@ MASH uses a **JWT-based authentication system with email verification codes**. T
    ```
 
 2. **Backend Generates Code**
-
    - System generates random 6-digit code (e.g., "123456")
    - Stores code in database with expiration (usually 10 minutes)
    - Sends email to user with verification code
