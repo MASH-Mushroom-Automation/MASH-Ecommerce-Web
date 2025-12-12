@@ -177,7 +177,10 @@ export function QuickViewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" showCloseButton={false}>
+      <DialogContent 
+        className="w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-[850px] lg:max-w-[900px] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" 
+        showCloseButton={false}
+      >
         {/* Visually hidden title for screen reader accessibility */}
         <DialogTitle className="sr-only">
           {product ? `Quick view: ${product.name}` : 'Quick view product'}
@@ -209,11 +212,11 @@ export function QuickViewModal({
             </div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 h-full w-full">
             {/* Image Gallery */}
-            <div className="relative bg-muted aspect-square md:aspect-auto md:h-full overflow-hidden">
+            <div className="relative bg-muted aspect-square md:aspect-auto md:h-full overflow-hidden flex-shrink-0">
               {/* Main Image */}
-              <div className="relative w-full h-full min-h-[300px] md:min-h-[500px]">
+              <div className="relative w-full h-full min-h-[280px] md:min-h-[450px]">
                 {!imageLoaded && (
                   <div className="absolute inset-0 bg-muted animate-pulse" />
                 )}
@@ -291,9 +294,9 @@ export function QuickViewModal({
             </div>
 
             {/* Product Details */}
-            <div className="flex flex-col p-6 md:p-8 overflow-y-auto max-h-[60vh] md:max-h-[90vh]">
-              <DialogHeader className="text-left mb-4">
-                <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+            <div className="flex flex-col p-5 md:p-6 overflow-y-auto max-h-[50vh] md:max-h-[85vh] min-w-0">
+              <DialogHeader className="text-left mb-3">
+                <DialogTitle className="text-xl md:text-2xl font-bold text-foreground leading-tight">
                   {product.name}
                 </DialogTitle>
               </DialogHeader>
