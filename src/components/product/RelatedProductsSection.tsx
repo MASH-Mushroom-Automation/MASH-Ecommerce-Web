@@ -9,6 +9,9 @@ import { ChevronLeft, ChevronRight, ShoppingCart, Plus, Check, Loader2 } from "l
 import { useCart } from "@/contexts/CartContext";
 import { trackAddToCart } from "@/lib/analytics";
 
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
 interface RelatedProduct {
   id: string;
   name: string;
@@ -166,19 +169,18 @@ export function RelatedProductsSection({
                     href={`/product/${product.slug}`}
                     className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted"
                   >
-                    {product.image && product.image.startsWith('http') ? (
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="96px"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                        No Image
-                      </div>
-                    )}
+                    <Image
+                      src={product.image && product.image.startsWith('http') ? product.image : PLACEHOLDER_IMAGE}
+                      alt={product.name}
+                      fill
+                      className={cn(
+                        "group-hover:scale-105 transition-transform duration-300",
+                        product.image && product.image.startsWith('http') 
+                          ? "object-cover" 
+                          : "object-contain p-2"
+                      )}
+                      sizes="96px"
+                    />
                     {product.isPromo && (
                       <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                         SALE
@@ -221,19 +223,18 @@ export function RelatedProductsSection({
                     href={`/product/${product.slug}`}
                     className="block relative aspect-square bg-muted overflow-hidden"
                   >
-                    {product.image && product.image.startsWith('http') ? (
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                        sizes={variant === 'compact' ? "180px" : "220px"}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                        No Image
-                      </div>
-                    )}
+                    <Image
+                      src={product.image && product.image.startsWith('http') ? product.image : PLACEHOLDER_IMAGE}
+                      alt={product.name}
+                      fill
+                      className={cn(
+                        "group-hover:scale-110 transition-transform duration-500",
+                        product.image && product.image.startsWith('http') 
+                          ? "object-cover" 
+                          : "object-contain p-4"
+                      )}
+                      sizes={variant === 'compact' ? "180px" : "220px"}
+                    />
                     
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1">

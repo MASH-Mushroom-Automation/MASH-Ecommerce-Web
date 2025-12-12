@@ -8,6 +8,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
 interface SearchSuggestion {
   _id: string;
   name: string;
@@ -352,19 +355,16 @@ export function SearchAutocomplete({
                   >
                     {/* Product Image */}
                     <div className="w-10 h-10 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                      {product.mainImage ? (
-                        <Image
-                          src={product.mainImage}
-                          alt={product.name}
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                          🍄
-                        </div>
-                      )}
+                      <Image
+                        src={product.mainImage || PLACEHOLDER_IMAGE}
+                        alt={product.name}
+                        width={40}
+                        height={40}
+                        className={cn(
+                          "w-full h-full",
+                          product.mainImage ? "object-cover" : "object-contain p-1"
+                        )}
+                      />
                     </div>
                     {/* Product Info */}
                     <div className="flex-1 text-left">

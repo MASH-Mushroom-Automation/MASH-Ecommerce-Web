@@ -62,6 +62,13 @@ export function ProductCard({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Placeholder image for products without images
+  const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+  
+  // Use placeholder if no image provided or if image failed to load
+  const displayImage = (!image || imageError) ? PLACEHOLDER_IMAGE : image;
 
   // Calculate discount percentage if comparePrice exists
   const discountPercent = comparePrice && comparePrice > price 
@@ -158,22 +165,25 @@ export function ProductCard({
         
         {/* Primary Image */}
         <Image
-          src={image}
+          src={displayImage}
           alt={name}
           fill
           className={cn(
             "object-cover transition-all duration-500",
             imageLoaded ? "opacity-100" : "opacity-0",
             isHovered && secondaryImage ? "opacity-0 scale-105" : "group-hover:scale-110",
-            !inStock && "grayscale-[30%]"
+            !inStock && "grayscale-[30%]",
+            // Apply special styling for placeholder
+            displayImage === PLACEHOLDER_IMAGE && "object-contain p-4"
           )}
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
           priority={false}
         />
         
         {/* Secondary Image (on hover) */}
-        {secondaryImage && (
+        {secondaryImage && !imageError && (
           <Image
             src={secondaryImage}
             alt={`${name} - alternate view`}

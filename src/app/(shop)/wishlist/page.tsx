@@ -157,7 +157,7 @@ export default function WishlistPage() {
                 farm={product.category?.name || "MASH Mushrooms"}
                 price={product.price}
                 unit={`${product.weight}${product.unit}`}
-                image={product.mainImage || "/placeholder-product.jpg"}
+                image={product.mainImage || "/mushroom-placeholder.png"}
                 inStock={product.isAvailable && product.stock > 0}
               />
             ))}

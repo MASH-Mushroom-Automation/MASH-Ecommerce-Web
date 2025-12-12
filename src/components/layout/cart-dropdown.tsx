@@ -13,6 +13,7 @@ import {
 import { ShoppingCart, X, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
+import { cn } from "@/lib/utils";
 // TEMPORARILY DISABLED: Backend API not ready yet
 // import { useProducts } from "@/hooks/useProducts";
 import {
@@ -26,6 +27,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 export function CartDropdown() {
   const cartData = useCart();
@@ -134,11 +138,14 @@ export function CartDropdown() {
                     <div className="flex gap-4">
                       <Link href={`/product/${item.slug}`} className="flex-shrink-0">
                         <Image
-                          src={item.image}
+                          src={item.image || PLACEHOLDER_IMAGE}
                           alt={item.name}
                           width={120}
                           height={120}
-                          className="w-[120px] h-[120px] rounded-lg object-cover"
+                          className={cn(
+                            "w-[120px] h-[120px] rounded-lg",
+                            item.image ? "object-cover" : "object-contain bg-muted p-2"
+                          )}
                         />
                       </Link>
 

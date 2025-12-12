@@ -83,12 +83,16 @@ export function QuickViewModal({
     }
   }, [product, isOpen]);
 
-  // Build images array
-  const images = product
+  // Placeholder image for products without images
+  const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
+  // Build images array - use placeholder if no valid images
+  const validImages = product
     ? [product.image, ...(product.images || [])].filter(
         (img, idx, arr) => img && img.startsWith('http') && arr.indexOf(img) === idx
       )
     : [];
+  const images = validImages.length > 0 ? validImages : [PLACEHOLDER_IMAGE];
 
   const handlePrevImage = useCallback(() => {
     setActiveImageIndex((prev) =>
@@ -226,8 +230,11 @@ export function QuickViewModal({
                     alt={product.name}
                     fill
                     className={cn(
-                      "object-cover transition-opacity duration-300",
-                      imageLoaded ? "opacity-100" : "opacity-0"
+                      "transition-opacity duration-300",
+                      imageLoaded ? "opacity-100" : "opacity-0",
+                      images[activeImageIndex] === PLACEHOLDER_IMAGE 
+                        ? "object-contain p-8" 
+                        : "object-cover"
                     )}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     onLoad={() => setImageLoaded(true)}

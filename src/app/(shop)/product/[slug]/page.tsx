@@ -16,6 +16,9 @@ import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import type { MediaItem } from "@/types/sanity";
 
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
 type Props = { params: Promise<{ slug: string }> };
 
 // Helper to extract YouTube video ID from various URL formats
@@ -336,9 +339,15 @@ export default function ProductDetailPage({ params }: Props) {
                   />
                 )
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                  No Image Available
-                </div>
+                // Placeholder when no images available
+                <Image
+                  src={PLACEHOLDER_IMAGE}
+                  alt={product.name}
+                  fill
+                  className="object-contain p-8"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
               )}
             </div>
 
