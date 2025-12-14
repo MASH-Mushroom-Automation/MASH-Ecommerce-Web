@@ -72,12 +72,16 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         query += ` && isFeatured == true`;
       }
       
-      // Filter by search term
+      // Filter by search term - searches name, description, SKU, tags, and category name
       if (filters?.search) {
         const searchTerm = filters.search.toLowerCase();
         query += ` && (
           lower(name) match "*${searchTerm}*" ||
-          lower(description) match "*${searchTerm}*"
+          lower(description) match "*${searchTerm}*" ||
+          lower(sku) match "*${searchTerm}*" ||
+          lower(category->name) match "*${searchTerm}*" ||
+          "${searchTerm}" in productTags[] ||
+          count(productTags[@ match "*${searchTerm}*"]) > 0
         )`;
       }
       
@@ -357,6 +361,19 @@ export function useSanityProduct(slug: string) {
           promoEndDate,
           "mainImage": image.asset->url,
           "images": images[].asset->url,
+          // Media Gallery (images + videos)
+          media[] {
+            _key,
+            mediaType,
+            "image": image.asset->url,
+            "imageAlt": image.alt,
+            "video": video.asset->url,
+            videoUrl,
+            title,
+            caption,
+            isPrimary,
+            sortOrder
+          },
           category->{
             _id,
             name,
@@ -460,6 +477,18 @@ export function useSanityProduct(slug: string) {
         promoEndDate,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
+        media[] {
+          _key,
+          mediaType,
+          "image": image.asset->url,
+          "imageAlt": image.alt,
+          "video": video.asset->url,
+          videoUrl,
+          title,
+          caption,
+          isPrimary,
+          sortOrder
+        },
         category->{ _id, name, "slug": slug.current, description },
         subcategory->{ _id, name, "slug": slug.current },
         suggestedProducts[]->{

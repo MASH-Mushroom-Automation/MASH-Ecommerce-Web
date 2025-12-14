@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
+import { QuickViewModal } from "@/components/product/QuickViewModal";
 import {
   Select,
   SelectContent,
@@ -14,8 +16,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { SlidersHorizontal, Grid, List, Search, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { SlidersHorizontal, Grid, List, Search, X, LayoutGrid, Rows3 } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
@@ -23,19 +25,72 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
-import type { ProductFilters } from "@/types/sanity";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { ProductFilters, TransformedProduct } from "@/types/sanity";
 
 export default function ProductCatalogPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Initialize state from URL search params
+  const initialSearch = searchParams.get("search") || "";
+  const initialCategory = searchParams.get("category") || "";
+  const initialSort = (searchParams.get("sort") as ProductFilters["sortBy"]) || "featured";
+  
   // Filter states
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    initialCategory ? [initialCategory] : []
+  );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 12000]);
-  const [sort, setSort] = useState<ProductFilters["sortBy"]>("featured");
+  const [sort, setSort] = useState<ProductFilters["sortBy"]>(initialSort);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  
+  // Quick view state
+  const [quickViewProduct, setQuickViewProduct] = useState<TransformedProduct | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  
+  // Debounce search query to avoid excessive API calls
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const { addToCart } = useCart();
+
+  // Quick view handlers
+  const handleQuickView = useCallback((productId: string, products: TransformedProduct[]) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setQuickViewProduct(product);
+      setIsQuickViewOpen(true);
+    }
+  }, []);
+
+  const closeQuickView = useCallback(() => {
+    setIsQuickViewOpen(false);
+    setQuickViewProduct(null);
+  }, []);
+
+  // Update URL when search params change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (debouncedSearchQuery) {
+      params.set("search", debouncedSearchQuery);
+    }
+    if (selectedCategories.length > 0) {
+      params.set("category", selectedCategories[0]);
+    }
+    if (sort && sort !== "featured") {
+      params.set("sort", sort);
+    }
+    
+    const queryString = params.toString();
+    const newUrl = queryString ? `/shop?${queryString}` : "/shop";
+    
+    // Update URL without triggering navigation
+    window.history.replaceState(null, "", newUrl);
+  }, [debouncedSearchQuery, selectedCategories, sort]);
 
   // Popular tags for quick filtering
   const popularTags = [
@@ -56,7 +111,7 @@ export default function ProductCatalogPage() {
     maxPrice: priceRange[1],
     sortBy: sort,
     isAvailable: true,
-    search: searchQuery.trim() || undefined,
+    search: debouncedSearchQuery.trim() || undefined,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
   };
 
@@ -227,10 +282,10 @@ export default function ProductCatalogPage() {
                   </button>
                 )}
               </div>
-              {searchQuery && (
+              {debouncedSearchQuery && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Showing results for &ldquo;<span className="font-medium text-foreground">{searchQuery}</span>&rdquo;
-                  {allProducts.length === 0 && " - No products found"}
+                  Showing results for &ldquo;<span className="font-medium text-foreground">{debouncedSearchQuery}</span>&rdquo;
+                  {allProducts.length === 0 && !loading && " - No products found"}
                 </p>
               )}
             </div>
@@ -250,9 +305,10 @@ export default function ProductCatalogPage() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-full sm:w-80 p-0">
                   <div className="p-6">
-                    <h2 className="text-xl font-bold text-foreground mb-6">
+                    <SheetTitle className="text-xl font-bold text-foreground mb-6">
                       Filters
-                    </h2>
+                    </SheetTitle>
+                    <SheetDescription className="sr-only">Filter products by category, price, and tags</SheetDescription>
                     <div className="space-y-6">
                       {/* Categories */}
                       <div>
@@ -462,24 +518,36 @@ export default function ProductCatalogPage() {
                   setSelectedCategories([]);
                   setPriceRange([0, 12000]);
                   setSort("featured");
+                  setSearchQuery("");
+                  setSelectedTags([]);
                 }}
               />
             ) : (
               <>
+                {/* Results Count */}
+                <div className="mb-4 text-sm text-muted-foreground">
+                  Showing {displayedProducts.length} of {allProducts.length} products
+                </div>
+                
                 {viewMode === "grid" ? (
-                  <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {displayedProducts.map((product) => (
                       <ProductCard
                         key={product.id}
                         id={product.id}
-                        slug={product.slug} // Pass slug for SEO-friendly URLs
+                        slug={product.slug}
                         name={product.name}
-                        farm={product.grower || product.category || "MASH"}
+                        farm={product.category || "MASH"}
                         price={product.price}
+                        comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
                         image={product.image}
+                        images={product.images}
                         inStock={product.stock > 0}
                         stock={product.stock}
+                        tags={product.productTags || []}
+                        description={product.description}
+                        onQuickView={(id) => handleQuickView(id, allProducts)}
                       />
                     ))}
                   </div>
@@ -536,7 +604,7 @@ export default function ProductCatalogPage() {
                                     image: product.image,
                                     slug: product.slug,
                                     stock: product.stock,
-                                    grower: product.grower,
+                                    grower: product.category,
                                     unit: product.unit,
                                   }, 1)
                                 }
@@ -569,6 +637,14 @@ export default function ProductCatalogPage() {
           </main>
         </div>
       </div>
+      
+      {/* Quick View Modal */}
+      <QuickViewModal
+        productId={quickViewProduct?.id || null}
+        productSlug={quickViewProduct?.slug || null}
+        isOpen={isQuickViewOpen}
+        onClose={closeQuickView}
+      />
     </div>
   );
 }

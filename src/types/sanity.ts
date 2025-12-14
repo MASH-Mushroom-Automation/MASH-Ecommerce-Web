@@ -159,6 +159,23 @@ export interface RecipeIdea {
 }
 
 /**
+ * Media Item
+ * Image or video for product media gallery
+ */
+export interface MediaItem {
+  _key: string;
+  mediaType: 'image' | 'video';
+  image?: string;  // URL for image
+  imageAlt?: string;  // Alt text for image
+  video?: string;  // URL for uploaded video file
+  videoUrl?: string;  // YouTube/Vimeo URL
+  title?: string;
+  caption?: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
+/**
  * Delivery Options
  * Same-day delivery configuration for Lalamove integration
  */
@@ -191,6 +208,7 @@ export interface TransformedProduct {
   compareAtPrice?: number;
   image: string; // mainImage URL
   images?: string[];
+  media?: MediaItem[];  // Product media gallery (images + videos)
   category?: string; // category name
   categorySlug?: string;
   stock: number;
@@ -262,6 +280,23 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
       isPromo: p.isPromo || false,
     }));
 
+  // Transform media gallery (images + videos)
+  const mediaItems: MediaItem[] | undefined = (product as any).media
+    ?.filter((m: any) => m !== null && m !== undefined)
+    ?.map((m: any) => ({
+      _key: m._key || '',
+      mediaType: m.mediaType || 'image',
+      image: m.image || undefined,
+      imageAlt: m.imageAlt || m.image?.alt || undefined,
+      video: m.video || undefined,
+      videoUrl: m.videoUrl || undefined,
+      title: m.title || undefined,
+      caption: m.caption || undefined,
+      isPrimary: m.isPrimary || false,
+      sortOrder: m.sortOrder || 0,
+    }))
+    ?.sort((a: MediaItem, b: MediaItem) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
   return {
     id: product._id,
     name: product.name,
@@ -271,6 +306,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     compareAtPrice: product.compareAtPrice,
     image: imageUrl,
     images: imageUrls,
+    media: mediaItems?.length ? mediaItems : undefined,
     category: product.category?.name,
     categorySlug: categorySlug,
     stock: product.stock,

@@ -5,7 +5,10 @@ import { Header } from "@/components/layout/header";
 import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
-import { MobileBottomNav, MobileBottomNavSpacer } from "@/components/layout/mobile-bottom-nav";
+import {
+  MobileBottomNav,
+  MobileBottomNavSpacer,
+} from "@/components/layout/mobile-bottom-nav";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -13,6 +16,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
 import { initGA, logPageView } from "@/lib/analytics";
+import { SanityVisualEditing } from "@/components/sanity/VisualEditing";
+import { SearchDialog } from "@/components/search/SearchDialog";
+import { useSearchShortcut } from "@/hooks/useSearchShortcut";
 
 const AUTH_ROUTES = [
   "/login",
@@ -27,8 +33,10 @@ const AUTH_ROUTES = [
 
 const SELLER_ROUTES = ["/seller", "/start-selling"];
 
-export function ClientLayout({ children }: { children: React.Node }) {
+export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } =
+    useSearchShortcut();
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isSellerRoute = SELLER_ROUTES.some((route) =>

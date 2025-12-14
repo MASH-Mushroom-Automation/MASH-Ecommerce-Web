@@ -142,13 +142,18 @@ export const SanityHeroCarousel: React.FC = () => {
     }
   };
 
+  // Helper function to check if image URL is valid
+  const hasValidImage = (image: string | null | undefined): image is string => {
+    return typeof image === 'string' && image.trim() !== '';
+  };
+
   // Single slide - no carousel
   if (slides.length === 1) {
     const slide = slides[0];
     return (
       <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
         {/* Background Image */}
-        {slide.image && slide.image.trim() !== '' ? (
+        {hasValidImage(slide.image) ? (
           <>
             <Image
               src={slide.image}
@@ -220,9 +225,9 @@ export const SanityHeroCarousel: React.FC = () => {
         <CarouselContent className="h-full -ml-0">
           {slides.map((slide, index) => (
             <CarouselItem key={`slide-${index}`} className="pl-0 basis-full">
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full min-h-[700px] md:min-h-[800px] lg:min-h-screen">
                 {/* Background Image or Gradient */}
-                {slide.image && slide.image.trim() !== '' ? (
+                {hasValidImage(slide.image) ? (
                   <>
                     <Image
                       src={slide.image}
@@ -236,12 +241,13 @@ export const SanityHeroCarousel: React.FC = () => {
                   </>
                 ) : (
                   <div 
-                    className="absolute inset-0 bg-gradient-to-br"
+                    className="absolute inset-0"
                     style={{
+                      backgroundColor: slide.backgroundColor || '#6A994E',
                       backgroundImage: `linear-gradient(135deg, 
-                        rgba(30, 57, 42, 0.95) 0%, 
-                        rgba(106, 153, 78, 0.9) 50%, 
-                        rgba(167, 201, 87, 0.85) 100%
+                        ${slide.backgroundColor || '#1E392A'} 0%, 
+                        ${slide.backgroundColor || '#6A994E'} 50%, 
+                        ${slide.backgroundColor || '#A7C957'}aa 100%
                       )`
                     }}
                   />
@@ -251,11 +257,17 @@ export const SanityHeroCarousel: React.FC = () => {
                 <div className="relative z-20 h-full flex items-center justify-center py-20">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <div className="max-w-4xl mx-auto space-y-8">
-                      <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                      <h1 
+                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight drop-shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700"
+                        style={{ color: slide.textColor || '#FFFFFF' }}
+                      >
                         {slide.title}
                       </h1>
                       {slide.subtitle && (
-                        <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+                        <p 
+                          className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150"
+                          style={{ color: `${slide.textColor || '#FFFFFF'}ee` }}
+                        >
                           {slide.subtitle}
                         </p>
                       )}

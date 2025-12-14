@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   ShoppingCart,
   Heart,
@@ -439,6 +439,8 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="bg-card text-foreground">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">Main navigation menu for mobile devices</SheetDescription>
               <div className="flex flex-col space-y-4 p-4">
                 {/* Mobile Search Bar */}
                 <div className="mb-2">
