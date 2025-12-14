@@ -50,70 +50,19 @@ export async function POST(request: NextRequest) {
     // 3. Return a JWT access token
 
     try {
-      // Step 1: Get CSRF token from backend
-      console.log("🟣 [Firebase Sync API] Fetching CSRF token...");
-      const csrfResponse = await fetch(`${API_URL}/csrf-token`, {
-        method: "GET",
-      });
-
-      if (!csrfResponse.ok) {
-        console.error("❌ [Firebase Sync API] Failed to get CSRF token");
-        throw new Error("Failed to get CSRF token");
-      }
-
-      const csrfData = await csrfResponse.json();
-      const csrfToken = csrfData.data?.csrfToken || csrfData.csrfToken;
-      console.log("🟣 [Firebase Sync API] CSRF token obtained:", !!csrfToken);
-
-      // Extract ALL CSRF cookies from response (both _csrf_secret and XSRF-TOKEN)
-      const setCookieHeaders = csrfResponse.headers.get("set-cookie");
-      console.log("🟣 [Firebase Sync API] CSRF cookie:", setCookieHeaders);
-
-      // Parse cookies to extract just the key=value pairs
-      let cookieString = "";
-      if (setCookieHeaders) {
-        const cookies = setCookieHeaders.split(",").map((cookie) => {
-          // Get just the "name=value" part before the first semicolon
-          return cookie.trim().split(";")[0];
-        });
-        cookieString = cookies.join("; ");
-        console.log(
-          "🟣 [Firebase Sync API] Parsed cookie string:",
-          cookieString
-        );
-      }
-
-      // Step 2: Call Firebase auth endpoint with CSRF token
+      // Call Google login endpoint (CSRF protection disabled for OAuth)
       console.log(
         "🟣 [Firebase Sync API] Calling backend at:",
-        `${API_URL}/auth/firebase`
+        `${API_URL}/auth/google/login`
       );
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken,
-      };
-
-      // Include BOTH CSRF cookies if available
-      if (cookieString) {
-        headers["Cookie"] = cookieString;
-        console.log(
-          "🟣 [Firebase Sync API] Sending Cookie header:",
-          cookieString
-        );
-      }
-
-      const backendResponse = await fetch(`${API_URL}/auth/firebase`, {
+      const backendResponse = await fetch(`${API_URL}/auth/google/login`, {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          idToken,
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          emailVerified: user.emailVerified,
-          provider: "google",
+          idToken, // Send only the Firebase ID token - backend will extract user info from it
         }),
       });
 
@@ -131,10 +80,12 @@ export async function POST(request: NextRequest) {
       if (!backendResponse.ok) {
         console.error("❌ [Firebase Sync API] Backend error:", backendData);
 
-        // Use fallback auth for development when backend has CSRF issues (403) or is unavailable (404)
+        // Use fallback auth for development when backend has issues (401, 403, 404)
         if (
           process.env.NODE_ENV === "development" &&
-          (backendResponse.status === 403 || backendResponse.status === 404)
+          (backendResponse.status === 401 ||
+            backendResponse.status === 403 ||
+            backendResponse.status === 404)
         ) {
           console.warn(
             `⚠️ [Firebase Sync API] Backend returned ${backendResponse.status}. Using fallback authentication for development.`
