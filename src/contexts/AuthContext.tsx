@@ -329,16 +329,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log("🟢 [Auth Context] Calling signInWithGoogle (popup mode)...");
       const user = await signInWithGoogle();
-      
+
       if (user) {
-        console.log("🟢 [Auth Context] User signed in via popup, syncing to backend...");
+        console.log(
+          "🟢 [Auth Context] User signed in via popup, syncing to backend..."
+        );
         toast.loading("Signing you in...", { id: "google-signin" });
-        
+
         try {
           await syncFirebaseUserToBackend(user);
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${user.displayName || user.email}!`);
-          
+
           // Check for redirect URL
           const redirectUrl = sessionStorage.getItem("auth-redirect-url");
           if (redirectUrl) {

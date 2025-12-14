@@ -8,7 +8,9 @@
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,  signInWithPopup,  getRedirectResult,
+  signInWithRedirect,
+  signInWithPopup,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -36,10 +38,7 @@ googleProvider.setCustomParameters({
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
   console.log("🔵 [Firebase Auth] Initiating Google sign-in with POPUP...");
   console.log("🔵 [Firebase Auth] Current URL:", window.location.href);
-  console.log(
-    "🔵 [Firebase Auth] Auth state before:",
-    auth.currentUser
-  );
+  console.log("🔵 [Firebase Auth] Auth state before:", auth.currentUser);
 
   try {
     // Set persistence first
@@ -52,7 +51,7 @@ export async function signInWithGoogle(): Promise<FirebaseUser | null> {
     console.log("🔵 [Firebase Auth] ✅ Sign-in successful:", {
       uid: result.user.uid,
       email: result.user.email,
-      displayName: result.user.displayName
+      displayName: result.user.displayName,
     });
     return result.user;
   } catch (error) {
@@ -77,9 +76,11 @@ export async function getGoogleRedirectResult() {
     "🔵 [Firebase Auth] Auth domain:",
     process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
   );
-  
+
   // Check IndexedDB for pending operations
-  console.log("🔵 [Firebase Auth] Checking for pending auth operations in storage...");
+  console.log(
+    "🔵 [Firebase Auth] Checking for pending auth operations in storage..."
+  );
 
   try {
     const result = await getRedirectResult(auth);

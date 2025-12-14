@@ -39,12 +39,12 @@ const publicRoutes = [
 // All routes are now public - no authentication checks
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Skip middleware for API routes (including webhooks)
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
-  
+
   console.log("🔶 [Middleware] Accessed for path:", pathname);
 
   // Get authentication token from cookies
@@ -72,7 +72,9 @@ export function middleware(request: NextRequest) {
 
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    console.log("🔶 [Middleware] Redirecting to login - protected route without auth");
+    console.log(
+      "🔶 [Middleware] Redirecting to login - protected route without auth"
+    );
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
@@ -80,7 +82,9 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users trying to access auth routes
   if (isAuthRoute && isAuthenticated) {
-    console.log("🔶 [Middleware] Redirecting to catalog - authenticated user on auth route");
+    console.log(
+      "🔶 [Middleware] Redirecting to catalog - authenticated user on auth route"
+    );
     return NextResponse.redirect(new URL("/catalog", request.url));
   }
 
