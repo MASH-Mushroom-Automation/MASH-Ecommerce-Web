@@ -158,9 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
+        // Check both storages for redirect marker
+        const isReturningFromGoogle =
+          sessionStorage.getItem("google_auth_redirect") ||
+          localStorage.getItem("google_auth_redirect");
+
         const result = await getGoogleRedirectResult();
 
         if (result?.user) {
+          sessionStorage.removeItem("google_auth_redirect");
+          localStorage.removeItem("google_auth_redirect");
           toast.loading("Signing you in...", { id: "google-signin" });
 
           try {
@@ -185,42 +192,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast.error("Failed to complete sign-in. Please try again.");
             console.error("❌ [Auth Context] Sync error:", syncError);
           }
-        } else {
-          // Check if there's a currently signed-in Firebase user
-          if (firebaseUser && !user) {
-            try {
-              await syncFirebaseUserToBackend(firebaseUser);
-              toast.success("Signed in successfully!");
-              window.location.href = "/";
-            } catch (syncError) {
-              console.error(
-                "❌ [Auth Context] Failed to sync existing Firebase user:",
-                syncError
-              );
+        } else if (isReturningFromGoogle === "true") {
+          sessionStorage.setItem("awaiting_firebase_auth", "true");
+
+          // Poll for Firebase user for up to 5 seconds
+          let attempts = 0;
+          const maxAttempts = 25;
+
+          const pollForUser = async () => {
+            attempts++;
+            const { getCurrentUser } = await import("@/lib/firebase/auth");
+            const currentUser = getCurrentUser();
+
+            if (currentUser && !user) {
+              sessionStorage.removeItem("awaiting_firebase_auth");
+              sessionStorage.removeItem("google_auth_redirect");
+              localStorage.removeItem("google_auth_redirect");
+
+              try {
+                setLoading(true);
+                await syncFirebaseUserToBackend(currentUser);
+                toast.success(
+                  `Welcome, ${currentUser.displayName || currentUser.email}!`
+                );
+                window.location.href = "/";
+              } catch (error) {
+                console.error("Failed to sync polled user:", error);
+                setLoading(false);
+              }
+            } else if (attempts < maxAttempts) {
+              setTimeout(pollForUser, 200);
+            } else {
+              sessionStorage.removeItem("awaiting_firebase_auth");
+              sessionStorage.removeItem("google_auth_redirect");
+              localStorage.removeItem("google_auth_redirect");
             }
-          }
+          };
+
+          pollForUser();
         }
       } catch (error) {
-        console.error("❌ [Auth Context] Google redirect error:", error);
+        console.error("Google redirect error:", error);
         toast.error("Sign-in failed. Please try again.");
-      } finally {
-        setLoading(false);
+        sessionStorage.removeItem("google_auth_redirect");
+        sessionStorage.removeItem("awaiting_firebase_auth");
       }
     };
 
     handleRedirectResult();
-  }, [syncFirebaseUserToBackend, router, firebaseUser, user]);
+  }, [syncFirebaseUserToBackend, router, user]);
 
   /**
    * Listen to Firebase auth state changes
    */
   useEffect(() => {
     const unsubscribe = onFirebaseAuthStateChanged(async (fbUser) => {
-      console.log(
-        "🔵 [Auth Context] Firebase auth state changed:",
-        fbUser ? fbUser.email : "null"
-      );
       setFirebaseUser(fbUser);
+
+      // Check if we're waiting for auth after redirect
+      const awaitingAuth = sessionStorage.getItem("awaiting_firebase_auth");
+
+      if (fbUser && awaitingAuth === "true") {
+        sessionStorage.removeItem("awaiting_firebase_auth");
+        sessionStorage.removeItem("google_auth_redirect");
+        localStorage.removeItem("google_auth_redirect");
+
+        try {
+          setLoading(true);
+          await syncFirebaseUserToBackend(fbUser);
+          toast.success(`Welcome, ${fbUser.displayName || fbUser.email}!`);
+          window.location.href = "/";
+          return;
+        } catch (error) {
+          console.error("Failed to sync after redirect:", error);
+          toast.error("Failed to complete sign-in. Please try again.");
+          setLoading(false);
+        }
+      }
 
       if (fbUser) {
         // Check if we have user data already
@@ -264,44 +312,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Trigger Google sign-in with redirect
+   * Trigger Google sign-in (popup in dev, redirect in prod)
    */
   const handleSignInWithGoogle = async () => {
-    console.log("🟢 [Auth Context] handleSignInWithGoogle called");
+    const isDevelopment = process.env.NODE_ENV === "development";
+
     try {
       setLoading(true);
 
-      // Store current redirect URL before redirect
+      // Store current redirect URL
       if (typeof window !== "undefined") {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectUrl = searchParams.get("redirect");
-        console.log(
-          "🟢 [Auth Context] Redirect URL from query params:",
-          redirectUrl
-        );
         if (redirectUrl) {
           sessionStorage.setItem("auth-redirect-url", redirectUrl);
-          console.log(
-            "🟢 [Auth Context] Stored redirect URL in session storage"
-          );
         }
       }
 
-      console.log("🟢 [Auth Context] Calling signInWithGoogle (popup mode)...");
-      const user = await signInWithGoogle();
+      const result = await signInWithGoogle();
 
-      if (user) {
-        console.log(
-          "🟢 [Auth Context] User signed in via popup, syncing to backend..."
-        );
+      // In development, popup returns user immediately
+      if (isDevelopment && result) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
-          await syncFirebaseUserToBackend(user);
+          await syncFirebaseUserToBackend(result);
           toast.dismiss("google-signin");
-          toast.success(`Welcome, ${user.displayName || user.email}!`);
+          toast.success(`Welcome, ${result.displayName || result.email}!`);
 
-          // Check for redirect URL
           const redirectUrl = sessionStorage.getItem("auth-redirect-url");
           if (redirectUrl) {
             sessionStorage.removeItem("auth-redirect-url");
@@ -312,10 +350,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (syncError) {
           toast.dismiss("google-signin");
           toast.error("Failed to complete sign-in. Please try again.");
-          console.error("❌ [Auth Context] Sync error:", syncError);
+          console.error("Sync error:", syncError);
           setLoading(false);
         }
       }
+      // In production, redirect flow - control leaves page
     } catch (error) {
       setLoading(false);
       console.error("Sign-in error:", error);
