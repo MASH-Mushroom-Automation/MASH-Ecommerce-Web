@@ -1,15 +1,16 @@
 /**
  * Firebase Auth Sync API Route
- * 
+ *
  * Syncs Firebase authenticated users with NestJS backend.
  * Creates or updates user record and returns JWT token.
- * 
+ *
  * POST /api/auth/firebase-sync
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
 interface FirebaseSyncRequest {
   idToken: string;
@@ -25,10 +26,10 @@ interface FirebaseSyncRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: FirebaseSyncRequest = await request.json();
-    
+
     if (!body.idToken || !body.user) {
       return NextResponse.json(
-        { error: 'Missing required fields: idToken and user' },
+        { error: "Missing required fields: idToken and user" },
         { status: 400 }
       );
     }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!user.email) {
       return NextResponse.json(
-        { error: 'Email is required for authentication' },
+        { error: "Email is required for authentication" },
         { status: 400 }
       );
     }
@@ -47,13 +48,58 @@ export async function POST(request: NextRequest) {
     // 1. Verify the Firebase ID token
     // 2. Create or update the user record
     // 3. Return a JWT access token
-    
+
     try {
+      // Step 1: Get CSRF token from backend
+      console.log("🟣 [Firebase Sync API] Fetching CSRF token...");
+      const csrfResponse = await fetch(`${API_URL}/csrf-token`, {
+        method: "GET",
+      });
+
+      if (!csrfResponse.ok) {
+        console.error("❌ [Firebase Sync API] Failed to get CSRF token");
+        throw new Error("Failed to get CSRF token");
+      }
+
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.data?.csrfToken || csrfData.csrfToken;
+      console.log("🟣 [Firebase Sync API] CSRF token obtained:", !!csrfToken);
+      
+      // Extract ALL CSRF cookies from response (both _csrf_secret and XSRF-TOKEN)
+      const setCookieHeaders = csrfResponse.headers.get('set-cookie');
+      console.log("🟣 [Firebase Sync API] CSRF cookie:", setCookieHeaders);
+      
+      // Parse cookies to extract just the key=value pairs
+      let cookieString = '';
+      if (setCookieHeaders) {
+        const cookies = setCookieHeaders.split(',').map(cookie => {
+          // Get just the "name=value" part before the first semicolon
+          return cookie.trim().split(';')[0];
+        });
+        cookieString = cookies.join('; ');
+        console.log("🟣 [Firebase Sync API] Parsed cookie string:", cookieString);
+      }
+
+      // Step 2: Call Firebase auth endpoint with CSRF token
+      console.log(
+        "🟣 [Firebase Sync API] Calling backend at:",
+        `${API_URL}/auth/firebase`
+      );
+      
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      };
+      
+      // Include BOTH CSRF cookies if available
+      if (cookieString) {
+        headers['Cookie'] = cookieString;
+        console.log("🟣 [Firebase Sync API] Sending Cookie header:", cookieString);
+      }
+      
       const backendResponse = await fetch(`${API_URL}/auth/firebase`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "POST",
+        headers,
         body: JSON.stringify({
           idToken,
           uid: user.uid,
@@ -61,48 +107,56 @@ export async function POST(request: NextRequest) {
           displayName: user.displayName,
           photoURL: user.photoURL,
           emailVerified: user.emailVerified,
-          provider: 'google',
+          provider: "google",
         }),
       });
 
       const backendData = await backendResponse.json();
+      console.log(
+        "🟣 [Firebase Sync API] Backend response status:",
+        backendResponse.status
+      );
+      console.log("🟣 [Firebase Sync API] Backend response data:", {
+        hasAccessToken: !!backendData.accessToken,
+        hasRefreshToken: !!backendData.refreshToken,
+        hasUser: !!backendData.user,
+      });
 
       if (!backendResponse.ok) {
-        // Backend may not have the /auth/firebase endpoint yet
-        // Fall back to creating a mock response for development
-        if (backendResponse.status === 404) {
-          console.warn('Backend /auth/firebase endpoint not found. Using fallback mode.');
+        console.error("❌ [Firebase Sync API] Backend error:", backendData);
+        
+        // Use fallback auth for development when backend has CSRF issues (403) or is unavailable (404)
+        if (process.env.NODE_ENV === "development" && (backendResponse.status === 403 || backendResponse.status === 404)) {
+          console.warn(`⚠️ [Firebase Sync API] Backend returned ${backendResponse.status}. Using fallback authentication for development.`);
           return handleFallbackAuth(user);
         }
         
         return NextResponse.json(
-          { error: backendData.message || 'Backend authentication failed' },
+          { error: backendData.message || "Backend authentication failed" },
           { status: backendResponse.status }
         );
       }
 
       // Return the backend response (should contain accessToken, refreshToken, user)
       return NextResponse.json(backendData);
-      
     } catch (backendError) {
-      console.error('Backend connection error:', backendError);
-      
+      console.error("Backend connection error:", backendError);
+
       // If backend is unavailable, use fallback for development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Backend unavailable. Using fallback authentication.');
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Backend unavailable. Using fallback authentication.");
         return handleFallbackAuth(user);
       }
-      
+
       return NextResponse.json(
-        { error: 'Unable to connect to authentication service' },
+        { error: "Unable to connect to authentication service" },
         { status: 503 }
       );
     }
-
   } catch (error) {
-    console.error('Firebase sync error:', error);
+    console.error("Firebase sync error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -112,15 +166,15 @@ export async function POST(request: NextRequest) {
  * Fallback authentication for development when backend is unavailable
  * Creates a mock JWT response
  */
-function handleFallbackAuth(user: FirebaseSyncRequest['user']) {
+function handleFallbackAuth(user: FirebaseSyncRequest["user"]) {
   // Generate a mock JWT for development purposes only
   // In production, this should NEVER be used - the backend should verify the token
   const mockUser = {
     id: user.uid,
     email: user.email,
-    firstName: user.displayName?.split(' ')[0] || 'User',
-    lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-    role: 'USER',
+    firstName: user.displayName?.split(" ")[0] || "User",
+    lastName: user.displayName?.split(" ").slice(1).join(" ") || "",
+    role: "USER",
     emailVerified: user.emailVerified,
     profileImageUrl: user.photoURL,
   };
@@ -129,16 +183,16 @@ function handleFallbackAuth(user: FirebaseSyncRequest['user']) {
   const payload = {
     sub: user.uid,
     email: user.email,
-    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+    exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
   };
-  const mockToken = `mock.${Buffer.from(JSON.stringify(payload)).toString('base64')}.token`;
+  const mockToken = `mock.${Buffer.from(JSON.stringify(payload)).toString("base64")}.token`;
 
-  console.warn('⚠️ Using mock authentication token - FOR DEVELOPMENT ONLY');
+  console.warn("⚠️ Using mock authentication token - FOR DEVELOPMENT ONLY");
 
   return NextResponse.json({
     accessToken: mockToken,
     refreshToken: null,
     user: mockUser,
-    message: 'Development mode: Mock authentication used',
+    message: "Development mode: Mock authentication used",
   });
 }

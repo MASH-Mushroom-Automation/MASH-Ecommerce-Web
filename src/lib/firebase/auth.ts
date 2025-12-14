@@ -1,46 +1,112 @@
 /**
  * Firebase Authentication Service
- * 
+ *
  * Provides Google Sign-In with redirect method.
  * Handles auth state changes and token management.
  */
 
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithRedirect,
-  getRedirectResult,
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,  signInWithPopup,  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  type User as FirebaseUser
-} from 'firebase/auth';
-import { firebaseApp } from './config';
+  setPersistence,
+  browserLocalPersistence,
+  type User as FirebaseUser,
+} from "firebase/auth";
+import { firebaseApp } from "./config";
 
 // Initialize Firebase Auth
 const auth = getAuth(firebaseApp);
 
 // Configure Google Provider
 const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
+googleProvider.addScope("email");
+googleProvider.addScope("profile");
 
 // Set custom parameters for better UX
 googleProvider.setCustomParameters({
-  prompt: 'select_account', // Always show account selector
+  prompt: "select_account", // Always show account selector
 });
 
 /**
- * Sign in with Google using redirect method
+ * Sign in with Google using POPUP method (more reliable for development)
  */
-export async function signInWithGoogle(): Promise<void> {
-  await signInWithRedirect(auth, googleProvider);
+export async function signInWithGoogle(): Promise<FirebaseUser | null> {
+  console.log("🔵 [Firebase Auth] Initiating Google sign-in with POPUP...");
+  console.log("🔵 [Firebase Auth] Current URL:", window.location.href);
+  console.log(
+    "🔵 [Firebase Auth] Auth state before:",
+    auth.currentUser
+  );
+
+  try {
+    // Set persistence first
+    console.log("🔵 [Firebase Auth] Setting persistence to LOCAL...");
+    await setPersistence(auth, browserLocalPersistence);
+    console.log("🔵 [Firebase Auth] Persistence set successfully");
+
+    console.log("🔵 [Firebase Auth] Opening sign-in popup...");
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("🔵 [Firebase Auth] ✅ Sign-in successful:", {
+      uid: result.user.uid,
+      email: result.user.email,
+      displayName: result.user.displayName
+    });
+    return result.user;
+  } catch (error) {
+    console.error("❌ [Firebase Auth] Error:", error);
+    throw error;
+  }
 }
 
 /**
  * Get redirect result after Google sign-in
  */
 export async function getGoogleRedirectResult() {
-  return getRedirectResult(auth);
+  console.log("🔵 [Firebase Auth] Checking for redirect result...");
+  console.log("🔵 [Firebase Auth] Current URL:", window.location.href);
+  console.log("🔵 [Firebase Auth] URL search params:", window.location.search);
+  console.log("🔵 [Firebase Auth] URL hash:", window.location.hash);
+  console.log(
+    "🔵 [Firebase Auth] Current user before redirect check:",
+    auth.currentUser
+  );
+  console.log(
+    "🔵 [Firebase Auth] Auth domain:",
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  );
+  
+  // Check IndexedDB for pending operations
+  console.log("🔵 [Firebase Auth] Checking for pending auth operations in storage...");
+
+  try {
+    const result = await getRedirectResult(auth);
+    console.log("🔵 [Firebase Auth] getRedirectResult returned:", result);
+
+    if (result) {
+      console.log("🔵 [Firebase Auth] ✅ Redirect result received:", {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        providerData: result.user.providerData,
+      });
+    } else {
+      console.log("🔵 [Firebase Auth] No redirect result (normal page load)");
+      // Check if user is already signed in
+      if (auth.currentUser) {
+        console.log(
+          "🔵 [Firebase Auth] But user is already signed in:",
+          auth.currentUser.email
+        );
+      }
+    }
+    return result;
+  } catch (error) {
+    console.error("❌ [Firebase Auth] Error getting redirect result:", error);
+    throw error;
+  }
 }
 
 /**

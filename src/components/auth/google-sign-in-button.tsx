@@ -2,20 +2,20 @@
 
 /**
  * Google Sign-In Button Component
- * 
+ *
  * Reusable button for Google authentication.
  * Uses Firebase signInWithRedirect for full-page redirect flow.
  */
 
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface GoogleSignInButtonProps {
   className?: string;
-  variant?: 'default' | 'outline';
-  size?: 'default' | 'sm' | 'lg';
+  variant?: "default" | "outline";
+  size?: "default" | "sm" | "lg";
   fullWidth?: boolean;
   disabled?: boolean;
   /** Text to display on the button */
@@ -24,21 +24,32 @@ interface GoogleSignInButtonProps {
 
 export function GoogleSignInButton({
   className,
-  variant = 'outline',
-  size = 'default',
+  variant = "outline",
+  size = "default",
   fullWidth = false,
   disabled = false,
-  text = 'Continue with Google',
+  text = "Continue with Google",
 }: GoogleSignInButtonProps) {
   const { signInWithGoogle, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Debug: Log when component mounts
+  useEffect(() => {
+    console.log("🔵 [GoogleSignInButton] Component mounted");
+    console.log("🔵 [GoogleSignInButton] Auth loading state:", loading);
+    console.log("🔵 [GoogleSignInButton] Firebase config check:", {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.slice(0, 10) + "...",
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    });
+  }, [loading]);
 
   const handleClick = async () => {
     try {
       setIsLoading(true);
       await signInWithGoogle();
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      console.error("Google sign-in error:", error);
       setIsLoading(false);
     }
   };
@@ -53,9 +64,10 @@ export function GoogleSignInButton({
       onClick={handleClick}
       disabled={isDisabled}
       className={cn(
-        'relative flex items-center justify-center gap-3',
-        fullWidth && 'w-full',
-        variant === 'outline' && 'border-gray-300 hover:bg-gray-50 hover:border-gray-400',
+        "relative flex items-center justify-center gap-3",
+        fullWidth && "w-full",
+        variant === "outline" &&
+          "border-gray-300 hover:bg-gray-50 hover:border-gray-400",
         className
       )}
     >
@@ -106,7 +118,7 @@ function GoogleIcon({ className }: { className?: string }) {
 function LoadingSpinner({ className }: { className?: string }) {
   return (
     <svg
-      className={cn('animate-spin', className)}
+      className={cn("animate-spin", className)}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
