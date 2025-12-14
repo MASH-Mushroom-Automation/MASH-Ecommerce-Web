@@ -67,16 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
-      console.log(
-        "🟢 [Auth Context] Starting backend sync for user:",
-        fbUser.email
-      );
       try {
-        console.log("🟢 [Auth Context] Getting Firebase ID token...");
         const idToken = await fbUser.getIdToken();
-        console.log(
-          "🟢 [Auth Context] Got ID token, calling /api/auth/firebase-sync..."
-        );
 
         // Call our Next.js API route which will sync with NestJS backend
         const response = await fetch("/api/auth/firebase-sync", {
@@ -139,21 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailVerified: fbUser.emailVerified,
         };
 
-        console.log("🟢 [Auth Context] Setting user state:", authUser);
         setUser(authUser);
 
         // Store in localStorage for persistence
         try {
           localStorage.setItem("user", JSON.stringify(authUser));
-          console.log("🟢 [Auth Context] User stored in localStorage");
         } catch {
-          // Ignore storage errors
-          console.error(
-            "❌ [Auth Context] Failed to store user in localStorage"
-          );
+          console.error("Failed to store user in localStorage");
         }
 
-        console.log("✅ [Auth Context] Backend sync completed successfully!");
         return authUser;
       } catch (error) {
         console.error(
@@ -171,24 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   useEffect(() => {
     const handleRedirectResult = async () => {
-      console.log("🟡 [Auth Context] Handling redirect result...");
-      console.log("🟡 [Auth Context] Current URL:", window.location.href);
-      console.log("🟡 [Auth Context] Document referrer:", document.referrer);
-
       try {
         const result = await getGoogleRedirectResult();
-        console.log("🟡 [Auth Context] Full redirect result:", result);
 
         if (result?.user) {
-          // User just signed in via redirect
-          console.log(
-            "🟡 [Auth Context] User found in redirect result, syncing..."
-          );
-          console.log("🟡 [Auth Context] User details:", {
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-          });
           toast.loading("Signing you in...", { id: "google-signin" });
 
           try {
@@ -198,20 +170,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               `Welcome, ${result.user.displayName || result.user.email}!`
             );
 
-            // Check for redirect URL in sessionStorage (set before redirect)
+            // Check for redirect URL in sessionStorage
             const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-            console.log(
-              "🟡 [Auth Context] Redirect URL from session:",
-              redirectUrl
-            );
 
-            // Use window.location for full page reload to ensure middleware sees the new cookie
+            // Use window.location for full page reload
             if (redirectUrl) {
               sessionStorage.removeItem("auth-redirect-url");
-              console.log("🟡 [Auth Context] Full redirect to:", redirectUrl);
               window.location.href = redirectUrl;
             } else {
-              console.log("🟡 [Auth Context] Full redirect to home page");
               window.location.href = "/";
             }
           } catch (syncError) {
@@ -220,14 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("❌ [Auth Context] Sync error:", syncError);
           }
         } else {
-          console.log("🟡 [Auth Context] No user in redirect result");
-
-          // IMPORTANT: Check if there's a currently signed-in Firebase user
-          // This can happen if the redirect state was lost but auth persisted
+          // Check if there's a currently signed-in Firebase user
           if (firebaseUser && !user) {
-            console.log(
-              "⚠️ [Auth Context] Firebase user exists but no app user - attempting sync..."
-            );
             try {
               await syncFirebaseUserToBackend(firebaseUser);
               toast.success("Signed in successfully!");

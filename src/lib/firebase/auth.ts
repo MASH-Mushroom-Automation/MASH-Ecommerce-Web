@@ -36,26 +36,12 @@ googleProvider.setCustomParameters({
  * Sign in with Google using POPUP method (more reliable for development)
  */
 export async function signInWithGoogle(): Promise<FirebaseUser | null> {
-  console.log("🔵 [Firebase Auth] Initiating Google sign-in with POPUP...");
-  console.log("🔵 [Firebase Auth] Current URL:", window.location.href);
-  console.log("🔵 [Firebase Auth] Auth state before:", auth.currentUser);
-
   try {
-    // Set persistence first
-    console.log("🔵 [Firebase Auth] Setting persistence to LOCAL...");
     await setPersistence(auth, browserLocalPersistence);
-    console.log("🔵 [Firebase Auth] Persistence set successfully");
-
-    console.log("🔵 [Firebase Auth] Opening sign-in popup...");
     const result = await signInWithPopup(auth, googleProvider);
-    console.log("🔵 [Firebase Auth] ✅ Sign-in successful:", {
-      uid: result.user.uid,
-      email: result.user.email,
-      displayName: result.user.displayName,
-    });
     return result.user;
   } catch (error) {
-    console.error("❌ [Firebase Auth] Error:", error);
+    console.error("Firebase Auth Error:", error);
     throw error;
   }
 }

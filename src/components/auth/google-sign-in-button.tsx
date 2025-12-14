@@ -33,17 +33,6 @@ export function GoogleSignInButton({
   const { signInWithGoogle, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Debug: Log when component mounts
-  useEffect(() => {
-    console.log("🔵 [GoogleSignInButton] Component mounted");
-    console.log("🔵 [GoogleSignInButton] Auth loading state:", loading);
-    console.log("🔵 [GoogleSignInButton] Firebase config check:", {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.slice(0, 10) + "...",
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
-  }, [loading]);
-
   const handleClick = async () => {
     try {
       setIsLoading(true);

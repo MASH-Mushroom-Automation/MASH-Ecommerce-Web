@@ -50,32 +50,17 @@ export async function POST(request: NextRequest) {
     // 3. Return a JWT access token
 
     try {
-      // Call Google login endpoint (CSRF protection disabled for OAuth)
-      console.log(
-        "🟣 [Firebase Sync API] Calling backend at:",
-        `${API_URL}/auth/google/login`
-      );
-
       const backendResponse = await fetch(`${API_URL}/auth/google/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          idToken, // Send only the Firebase ID token - backend will extract user info from it
+          idToken,
         }),
       });
 
       const backendData = await backendResponse.json();
-      console.log(
-        "🟣 [Firebase Sync API] Backend response status:",
-        backendResponse.status
-      );
-      console.log("🟣 [Firebase Sync API] Backend response data:", {
-        hasAccessToken: !!backendData.accessToken,
-        hasRefreshToken: !!backendData.refreshToken,
-        hasUser: !!backendData.user,
-      });
 
       if (!backendResponse.ok) {
         console.error("❌ [Firebase Sync API] Backend error:", backendData);
