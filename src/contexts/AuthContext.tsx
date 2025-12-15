@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             idToken,
             user: {

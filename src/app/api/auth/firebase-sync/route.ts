@@ -50,11 +50,12 @@ export async function POST(request: NextRequest) {
     // 3. Return a JWT access token
 
     try {
-      const backendResponse = await fetch(`${API_URL}/auth/google/login`, {
+      const backendResponse = await fetch(`${API_URL}/auth/firebase-sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           idToken,
         }),

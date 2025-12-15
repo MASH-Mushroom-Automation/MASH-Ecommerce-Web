@@ -95,6 +95,7 @@ export async function apiRequest<T>(
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: "include",
   });
 
   const data = await response.json();
