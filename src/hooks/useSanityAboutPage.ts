@@ -249,6 +249,25 @@ const TEAM_MEMBERS_QUERY = `*[_type == "person" && showOnAboutPage == true && is
   isFeatured
 }`
 
+// Auto-fetch mentor if not linked in aboutPage
+const MENTOR_QUERY = `*[_type == "person" && personType == "mentor" && showOnAboutPage == true && isActive == true][0] {
+  _id,
+  firstName,
+  lastName,
+  role,
+  personType,
+  shortBio,
+  bio,
+  email,
+  phone,
+  website,
+  specializations,
+  socialLinks,
+  picture,
+  displayOrder,
+  isFeatured
+}`
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TRANSFORM FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -279,7 +298,7 @@ function transformTeamMember(member: any): TeamMember | null {
   }
 }
 
-function transformAboutPage(data: any, teamMembers: any[]): AboutPageContent {
+function transformAboutPage(data: any, teamMembers: any[], autoFetchedMentor: any): AboutPageContent {
   // Transform challenges
   const challenges: Challenge[] = (data?.challenges || []).map((c: any) => ({
     _key: c._key,
@@ -297,8 +316,9 @@ function transformAboutPage(data: any, teamMembers: any[]): AboutPageContent {
     image: s.image,
   }))
 
-  // Transform mentor
-  const mentor = transformTeamMember(data?.mentor)
+  // Transform mentor - use linked mentor from aboutPage, or auto-fetched mentor
+  const mentorData = data?.mentor || autoFetchedMentor
+  const mentor = transformTeamMember(mentorData)
 
   // Use provided team members or auto-fetched ones
   const useAutoFetch = data?.autoFetchTeam !== false
@@ -364,13 +384,14 @@ export function useSanityAboutPage() {
     setError(null)
 
     try {
-      // Fetch About page singleton and auto-fetch team members in parallel
-      const [aboutData, teamMembers] = await Promise.all([
+      // Fetch About page singleton, team members, and mentor in parallel
+      const [aboutData, teamMembers, autoFetchedMentor] = await Promise.all([
         sanityClient.fetch(ABOUT_PAGE_QUERY),
         sanityClient.fetch(TEAM_MEMBERS_QUERY),
+        sanityClient.fetch(MENTOR_QUERY),
       ])
 
-      const transformedContent = transformAboutPage(aboutData, teamMembers)
+      const transformedContent = transformAboutPage(aboutData, teamMembers, autoFetchedMentor)
       setContent(transformedContent)
     } catch (err) {
       console.error('[useSanityAboutPage] Error fetching About page:', err)
