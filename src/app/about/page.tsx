@@ -38,13 +38,13 @@ function portableTextToStrings(blocks: any[] | undefined): string[] {
 
 // Default team data (used as fallback if Sanity has no team members)
 const DEFAULT_TEAM = [
-  { name: "Kevin A. Llanes", role: "Project Manager" },
-  { name: "Irheil Mae S. Antang", role: "Software Engineer" },
-  { name: "Ma. Catherine H. Bae", role: "Front-end Developer" },
-  { name: "Jin Harold A. Failana", role: "Hardware Programmer" },
-  { name: "Jhon Keneth Ryan B. Namias", role: "Back-end Developer" },
-  { name: "Emannuel L. Pabua", role: "Database Administrator" },
-  { name: "Ronan Renz T. Valencia", role: "Full Stack Developer" },
+  { name: "Kevin A. Llanes", role: "Project Manager", bio: "Leading the MASH project with expertise in project management and team coordination." },
+  { name: "Irheil Mae S. Antang", role: "Software Engineer", bio: "Developing robust software solutions for the MASH mushroom automation system." },
+  { name: "Ma. Catherine H. Bae", role: "Front-end Developer", bio: "Crafting beautiful and responsive user interfaces for the MASH e-commerce platform." },
+  { name: "Jin Harold A. Failana", role: "Hardware Programmer", bio: "Programming IoT devices and sensors for mushroom cultivation automation." },
+  { name: "Jhon Keneth Ryan B. Namias", role: "Back-end Developer", bio: "Building scalable APIs and server infrastructure for the MASH platform." },
+  { name: "Emannuel L. Pabua", role: "Database Administrator", bio: "Managing and optimizing databases for efficient data storage and retrieval." },
+  { name: "Ronan Renz T. Valencia", role: "Full Stack Developer", bio: "Developing end-to-end solutions across the entire MASH technology stack." },
 ];
 
 // Default challenges (common issues in mushroom farming)

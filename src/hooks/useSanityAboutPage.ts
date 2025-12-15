@@ -245,6 +245,7 @@ const TEAM_MEMBERS_QUERY = `*[_type == "person" && showOnAboutPage == true && is
   specializations,
   socialLinks,
   picture,
+  "pictureUrl": picture.asset->url,
   displayOrder,
   isFeatured
 }`
@@ -264,6 +265,7 @@ const MENTOR_QUERY = `*[_type == "person" && personType == "mentor" && showOnAbo
   specializations,
   socialLinks,
   picture,
+  "pictureUrl": picture.asset->url,
   displayOrder,
   isFeatured
 }`
@@ -274,6 +276,11 @@ const MENTOR_QUERY = `*[_type == "person" && personType == "mentor" && showOnAbo
 
 function transformTeamMember(member: any): TeamMember | null {
   if (!member) return null
+
+  // Use directly resolved pictureUrl from GROQ, or fallback to urlFor builder
+  const pictureUrl = member.pictureUrl 
+    || (member.picture ? urlFor(member.picture)?.width(400).height(400).fit('crop').url() : null)
+    || '/placeholder-avatar.jpg'
 
   return {
     _id: member._id,
@@ -290,7 +297,7 @@ function transformTeamMember(member: any): TeamMember | null {
     specializations: member.specializations || [],
     socialLinks: member.socialLinks,
     picture: {
-      url: member.picture ? urlFor(member.picture)?.width(400).height(400).fit('crop').url() || '/placeholder-avatar.jpg' : '/placeholder-avatar.jpg',
+      url: pictureUrl,
       alt: member.picture?.alt || `${member.firstName} ${member.lastName}`,
     },
     displayOrder: member.displayOrder || 50,
