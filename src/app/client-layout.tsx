@@ -5,9 +5,13 @@ import { Header } from "@/components/layout/header";
 import { SimpleHeader } from "@/components/layout/simple-header";
 import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
-import { MobileBottomNav, MobileBottomNavSpacer } from "@/components/layout/mobile-bottom-nav";
+import {
+  MobileBottomNav,
+  MobileBottomNavSpacer,
+} from "@/components/layout/mobile-bottom-nav";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { usePathname } from "next/navigation";
@@ -29,9 +33,10 @@ const AUTH_ROUTES = [
 
 const SELLER_ROUTES = ["/seller", "/start-selling"];
 
-export function ClientLayout({ children }: { children: React.Node }) {
+export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } = useSearchShortcut();
+  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } =
+    useSearchShortcut();
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isSellerRoute = SELLER_ROUTES.some((route) =>
@@ -57,36 +62,32 @@ export function ClientLayout({ children }: { children: React.Node }) {
       enableSystem
       disableTransitionOnChange
     >
-      <CartProvider>
-        <WishlistProvider>
-          {/* Sanity Visual Editing - enables click-to-edit in Presentation tool */}
-          <SanityVisualEditing />
-          
-          {/* Global Search Dialog - triggered by Cmd+K / Ctrl+K */}
-          <SearchDialog open={isSearchOpen} onOpenChange={setSearchOpen} />
-          
-          {isSellerRoute ? (
-            // Seller routes get header and handle their own layout with sidebar
-            <div className="min-h-screen flex flex-col">
-              <SellerHeader />
-              {children}
-              <Toaster position="bottom-center" richColors closeButton />
-            </div>
-          ) : (
-            // Regular routes get full layout with header, footer, and nav
-            <div className="min-h-screen flex flex-col">
-              {isAuthRoute ? <SimpleHeader /> : <Header />}
-              <main className="flex-1">
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            {isSellerRoute ? (
+              // Seller routes get header and handle their own layout with sidebar
+              <div className="min-h-screen flex flex-col">
+                <SellerHeader />
                 {children}
-                <MobileBottomNavSpacer />
-              </main>
-              <Footer />
-              <MobileBottomNav />
-              <Toaster position="bottom-center" richColors closeButton />
-            </div>
-          )}
-        </WishlistProvider>
-      </CartProvider>
+                <Toaster position="bottom-center" richColors closeButton />
+              </div>
+            ) : (
+              // Regular routes get full layout with header, footer, and nav
+              <div className="min-h-screen flex flex-col">
+                {isAuthRoute ? <SimpleHeader /> : <Header />}
+                <main className="flex-1">
+                  {children}
+                  <MobileBottomNavSpacer />
+                </main>
+                <Footer />
+                <MobileBottomNav />
+                <Toaster position="bottom-center" richColors closeButton />
+              </div>
+            )}
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
