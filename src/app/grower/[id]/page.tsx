@@ -4,12 +4,13 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight, Globe, Facebook, Instagram } from "lucide-react";
 import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { GoogleMap } from "@/components/maps/GoogleMap";
+import { TikTokIcon } from "@/components/ui/tiktok-icon";
 
 export default function GrowerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -233,6 +234,59 @@ export default function GrowerDetailPage() {
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">{grower.productCount}</div>
                     <div className="text-xs text-muted-foreground">Products Available</div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Social Media Links */}
+              {grower.socialLinks && (grower.socialLinks.facebook || grower.socialLinks.instagram || grower.socialLinks.tiktok || grower.socialLinks.website) && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h4 className="text-sm font-medium text-foreground mb-3 text-center">Follow Us</h4>
+                  <div className="flex justify-center gap-3">
+                    {grower.socialLinks.facebook && (
+                      <a
+                        href={grower.socialLinks.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        title="Facebook"
+                      >
+                        <Facebook className="w-5 h-5" />
+                      </a>
+                    )}
+                    {grower.socialLinks.instagram && (
+                      <a
+                        href={grower.socialLinks.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        title="Instagram"
+                      >
+                        <Instagram className="w-5 h-5" />
+                      </a>
+                    )}
+                    {grower.socialLinks.tiktok && (
+                      <a
+                        href={grower.socialLinks.tiktok}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        title="TikTok"
+                      >
+                        <TikTokIcon size={20} />
+                      </a>
+                    )}
+                    {grower.socialLinks.website && (
+                      <a
+                        href={grower.socialLinks.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        title="Website"
+                      >
+                        <Globe className="w-5 h-5" />
+                      </a>
+                    )}
                   </div>
                 </div>
               )}

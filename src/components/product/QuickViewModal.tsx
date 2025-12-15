@@ -83,12 +83,16 @@ export function QuickViewModal({
     }
   }, [product, isOpen]);
 
-  // Build images array
-  const images = product
+  // Placeholder image for products without images
+  const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
+  // Build images array - use placeholder if no valid images
+  const validImages = product
     ? [product.image, ...(product.images || [])].filter(
         (img, idx, arr) => img && img.startsWith('http') && arr.indexOf(img) === idx
       )
     : [];
+  const images = validImages.length > 0 ? validImages : [PLACEHOLDER_IMAGE];
 
   const handlePrevImage = useCallback(() => {
     setActiveImageIndex((prev) =>
@@ -177,7 +181,10 @@ export function QuickViewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" showCloseButton={false}>
+      <DialogContent 
+        className="w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-[850px] lg:max-w-[900px] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" 
+        showCloseButton={false}
+      >
         {/* Visually hidden title for screen reader accessibility */}
         <DialogTitle className="sr-only">
           {product ? `Quick view: ${product.name}` : 'Quick view product'}
@@ -209,11 +216,11 @@ export function QuickViewModal({
             </div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 h-full w-full">
             {/* Image Gallery */}
-            <div className="relative bg-muted aspect-square md:aspect-auto md:h-full overflow-hidden">
+            <div className="relative bg-muted aspect-square md:aspect-auto md:h-full overflow-hidden flex-shrink-0">
               {/* Main Image */}
-              <div className="relative w-full h-full min-h-[300px] md:min-h-[500px]">
+              <div className="relative w-full h-full min-h-[280px] md:min-h-[450px]">
                 {!imageLoaded && (
                   <div className="absolute inset-0 bg-muted animate-pulse" />
                 )}
@@ -223,8 +230,11 @@ export function QuickViewModal({
                     alt={product.name}
                     fill
                     className={cn(
-                      "object-cover transition-opacity duration-300",
-                      imageLoaded ? "opacity-100" : "opacity-0"
+                      "transition-opacity duration-300",
+                      imageLoaded ? "opacity-100" : "opacity-0",
+                      images[activeImageIndex] === PLACEHOLDER_IMAGE 
+                        ? "object-contain p-8" 
+                        : "object-cover"
                     )}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     onLoad={() => setImageLoaded(true)}
@@ -291,9 +301,9 @@ export function QuickViewModal({
             </div>
 
             {/* Product Details */}
-            <div className="flex flex-col p-6 md:p-8 overflow-y-auto max-h-[60vh] md:max-h-[90vh]">
-              <DialogHeader className="text-left mb-4">
-                <DialogTitle className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+            <div className="flex flex-col p-5 md:p-6 overflow-y-auto max-h-[50vh] md:max-h-[85vh] min-w-0">
+              <DialogHeader className="text-left mb-3">
+                <DialogTitle className="text-xl md:text-2xl font-bold text-foreground leading-tight">
                   {product.name}
                 </DialogTitle>
               </DialogHeader>

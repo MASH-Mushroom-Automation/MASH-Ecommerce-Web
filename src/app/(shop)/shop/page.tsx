@@ -92,6 +92,23 @@ export default function ProductCatalogPage() {
     window.history.replaceState(null, "", newUrl);
   }, [debouncedSearchQuery, selectedCategories, sort]);
 
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setPriceRange([0, 12000]);
+    setSearchQuery("");
+    setSort("featured");
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = 
+    selectedCategories.length > 0 || 
+    selectedTags.length > 0 || 
+    priceRange[0] > 0 || 
+    priceRange[1] < 12000 ||
+    searchQuery.trim() !== "";
+
   // Popular tags for quick filtering
   const popularTags = [
     { label: "Fresh", value: "fresh" },
@@ -160,88 +177,163 @@ export default function ProductCatalogPage() {
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
-            <div className="bg-card rounded-lg shadow-sm p-6 space-y-6">
+            <div className="bg-card rounded-lg shadow-sm p-5 space-y-5 sticky top-4">
+              {/* Filter Header with Clear Button */}
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <h2 className="font-bold text-foreground text-lg">Filters</h2>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              {/* Categories Filter */}
               <div>
-                <h3 className="font-bold text-foreground mb-4 text-base">
+                <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
                   Categories
+                  {selectedCategories.length > 0 && (
+                    <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                      {selectedCategories.length}
+                    </span>
+                  )}
                 </h3>
-                <div className="space-y-3">
-                  {categories.map((category) => (
-                    <div key={category.slug} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`category-${category.slug}`}
-                        checked={selectedCategories.includes(category.slug)}
-                        onCheckedChange={() => toggleCategory(category.slug)}
-                      />
-                      <Label
-                        htmlFor={`category-${category.slug}`}
-                        className="text-sm text-muted-foreground cursor-pointer font-normal"
-                      >
-                        {category.name}
-                      </Label>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  {/* All Categories Option */}
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="category-all"
+                      checked={selectedCategories.length === 0}
+                      onCheckedChange={() => setSelectedCategories([])}
+                    />
+                    <Label
+                      htmlFor="category-all"
+                      className={cn(
+                        "text-sm cursor-pointer font-normal flex items-center justify-between w-full",
+                        selectedCategories.length === 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                      )}
+                    >
+                      All Products
+                      <span className="text-xs text-muted-foreground">({allProducts.length})</span>
+                    </Label>
+                  </div>
+                  {categories.map((category) => {
+                    const categoryProductCount = allProducts.filter(p => p.category === category.name).length;
+                    return (
+                      <div key={category.slug} className="flex items-center space-x-3">
+                        <Checkbox
+                          id={`category-${category.slug}`}
+                          checked={selectedCategories.includes(category.slug)}
+                          onCheckedChange={() => toggleCategory(category.slug)}
+                        />
+                        <Label
+                          htmlFor={`category-${category.slug}`}
+                          className={cn(
+                            "text-sm cursor-pointer font-normal flex items-center justify-between w-full",
+                            selectedCategories.includes(category.slug) ? "text-foreground font-medium" : "text-muted-foreground"
+                          )}
+                        >
+                          {category.name}
+                          <span className="text-xs text-muted-foreground">({categoryProductCount})</span>
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* Separator */}
+              <div className="border-t border-border" />
 
-
+              {/* Price Range Filter */}
               <div>
-                <h3 className="font-bold text-foreground mb-4 text-base">
-                  Price
+                <h3 className="font-semibold text-foreground mb-3 text-sm">
+                  Price Range
+                  {(priceRange[0] > 0 || priceRange[1] < 12000) && (
+                    <span className="ml-2 text-xs text-primary font-normal">
+                      (₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()})
+                    </span>
+                  )}
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="number"
-                      placeholder="From"
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                      value={priceRange[0]}
-                      onChange={(e) =>
-                        setPriceRange([Number(e.target.value), priceRange[1]])
-                      }
-                    />
-                    <span className="text-muted-foreground">-</span>
-                    <input
-                      type="number"
-                      placeholder="To"
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                      value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], Number(e.target.value)])
-                      }
-                    />
-                  </div>
                   <Slider
                     min={0}
                     max={12000}
-                    step={10}
+                    step={50}
                     value={priceRange}
                     onValueChange={setPriceRange}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>₱{priceRange[0]}</span>
-                    <span>₱{priceRange[1]}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        value={priceRange[0] || ""}
+                        min={0}
+                        max={priceRange[1]}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(Number(e.target.value) || 0, priceRange[1]));
+                          setPriceRange([val, priceRange[1]]);
+                        }}
+                      />
+                    </div>
+                    <span className="text-muted-foreground text-sm">to</span>
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        value={priceRange[1] || ""}
+                        min={priceRange[0]}
+                        max={12000}
+                        onChange={(e) => {
+                          const val = Math.max(priceRange[0], Math.min(Number(e.target.value) || 12000, 12000));
+                          setPriceRange([priceRange[0], val]);
+                        }}
+                      />
+                    </div>
                   </div>
+                  {(priceRange[0] > 0 || priceRange[1] < 12000) && (
+                    <button
+                      onClick={() => setPriceRange([0, 12000])}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Reset price
+                    </button>
+                  )}
                 </div>
               </div>
 
+              {/* Separator */}
+              <div className="border-t border-border" />
+
               {/* Product Tags Filter */}
               <div>
-                <h3 className="font-bold text-foreground mb-4 text-base">
-                  Filter by Tags
+                <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
+                  Quick Tags
+                  {selectedTags.length > 0 && (
+                    <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                      {selectedTags.length}
+                    </span>
+                  )}
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {popularTags.map((tag) => (
                     <button
                       key={tag.value}
                       onClick={() => toggleTag(tag.value)}
                       className={cn(
-                        "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                        "px-3 py-1.5 text-xs rounded-full border transition-all duration-200",
                         selectedTags.includes(tag.value)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:border-primary/30"
                       )}
                     >
                       {tag.label}
@@ -288,6 +380,62 @@ export default function ProductCatalogPage() {
                   {allProducts.length === 0 && !loading && " - No products found"}
                 </p>
               )}
+              
+              {/* Active Filter Chips */}
+              {hasActiveFilters && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Active filters:</span>
+                  
+                  {/* Category chips */}
+                  {selectedCategories.map((catSlug) => {
+                    const category = categories.find(c => c.slug === catSlug);
+                    return (
+                      <button
+                        key={catSlug}
+                        onClick={() => toggleCategory(catSlug)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full hover:bg-primary/20 transition-colors group"
+                      >
+                        {category?.name || catSlug}
+                        <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Tag chips */}
+                  {selectedTags.map((tag) => {
+                    const tagLabel = popularTags.find(t => t.value === tag)?.label || tag;
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-600 text-xs rounded-full hover:bg-blue-500/20 transition-colors group"
+                      >
+                        {tagLabel}
+                        <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Price range chip */}
+                  {(priceRange[0] > 0 || priceRange[1] < 12000) && (
+                    <button
+                      onClick={() => setPriceRange([0, 12000])}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 text-amber-600 text-xs rounded-full hover:bg-amber-500/20 transition-colors group"
+                    >
+                      ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
+                      <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                    </button>
+                  )}
+                  
+                  {/* Clear all button */}
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-xs text-muted-foreground hover:text-destructive underline ml-1"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Header with Sort and Mobile Filter */}
@@ -303,19 +451,51 @@ export default function ProductCatalogPage() {
                     Filters
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-full sm:w-80 p-0">
-                  <div className="p-6">
-                    <SheetTitle className="text-xl font-bold text-foreground mb-6">
-                      Filters
-                    </SheetTitle>
+                <SheetContent side="left" className="w-full sm:w-80 p-0 overflow-y-auto">
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-5">
+                      <SheetTitle className="text-lg font-bold text-foreground">
+                        Filters
+                      </SheetTitle>
+                      {hasActiveFilters && (
+                        <button
+                          onClick={clearAllFilters}
+                          className="text-xs text-primary hover:text-primary/80 font-medium"
+                        >
+                          Clear All
+                        </button>
+                      )}
+                    </div>
                     <SheetDescription className="sr-only">Filter products by category, price, and tags</SheetDescription>
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                       {/* Categories */}
                       <div>
-                        <h3 className="font-bold text-foreground mb-4 text-base">
+                        <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
                           Categories
+                          {selectedCategories.length > 0 && (
+                            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                              {selectedCategories.length}
+                            </span>
+                          )}
                         </h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
+                          {/* All Categories Option */}
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id="mobile-category-all"
+                              checked={selectedCategories.length === 0}
+                              onCheckedChange={() => setSelectedCategories([])}
+                            />
+                            <Label
+                              htmlFor="mobile-category-all"
+                              className={cn(
+                                "text-sm cursor-pointer font-normal",
+                                selectedCategories.length === 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                              )}
+                            >
+                              All Products
+                            </Label>
+                          </div>
                           {categories.map((category) => (
                             <div
                               key={category.slug}
@@ -328,7 +508,10 @@ export default function ProductCatalogPage() {
                               />
                               <Label
                                 htmlFor={`mobile-category-${category.slug}`}
-                                className="text-sm text-muted-foreground cursor-pointer font-normal"
+                                className={cn(
+                                  "text-sm cursor-pointer font-normal",
+                                  selectedCategories.includes(category.slug) ? "text-foreground font-medium" : "text-muted-foreground"
+                                )}
                               >
                                 {category.name}
                               </Label>
@@ -337,70 +520,87 @@ export default function ProductCatalogPage() {
                         </div>
                       </div>
 
-
+                      {/* Separator */}
+                      <div className="border-t border-border" />
 
                       {/* Price Range */}
                       <div>
-                        <h3 className="font-bold text-foreground mb-4 text-base">
-                          Price
+                        <h3 className="font-semibold text-foreground mb-3 text-sm">
+                          Price Range
                         </h3>
                         <div className="space-y-4">
-                          <div className="flex items-center gap-4">
-                            <input
-                              type="number"
-                              placeholder="From"
-                              className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                              value={priceRange[0]}
-                              onChange={(e) =>
-                                setPriceRange([
-                                  Number(e.target.value),
-                                  priceRange[1],
-                                ])
-                              }
-                            />
-                            <span className="text-muted-foreground">-</span>
-                            <input
-                              type="number"
-                              placeholder="To"
-                              className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                              value={priceRange[1]}
-                              onChange={(e) =>
-                                setPriceRange([
-                                  priceRange[0],
-                                  Number(e.target.value),
-                                ])
-                              }
-                            />
-                          </div>
                           <Slider
                             min={0}
                             max={12000}
-                            step={10}
+                            step={50}
                             value={priceRange}
                             onValueChange={setPriceRange}
                             className="w-full"
                           />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>₱{priceRange[0]}</span>
-                            <span>₱{priceRange[1]}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
+                              <input
+                                type="number"
+                                placeholder="Min"
+                                className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background"
+                                value={priceRange[0] || ""}
+                                min={0}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(Number(e.target.value) || 0, priceRange[1]));
+                                  setPriceRange([val, priceRange[1]]);
+                                }}
+                              />
+                            </div>
+                            <span className="text-muted-foreground text-sm">to</span>
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
+                              <input
+                                type="number"
+                                placeholder="Max"
+                                className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background"
+                                value={priceRange[1] || ""}
+                                max={12000}
+                                onChange={(e) => {
+                                  const val = Math.max(priceRange[0], Math.min(Number(e.target.value) || 12000, 12000));
+                                  setPriceRange([priceRange[0], val]);
+                                }}
+                              />
+                            </div>
                           </div>
+                          {(priceRange[0] > 0 || priceRange[1] < 12000) && (
+                            <button
+                              onClick={() => setPriceRange([0, 12000])}
+                              className="text-xs text-muted-foreground hover:text-foreground underline"
+                            >
+                              Reset price
+                            </button>
+                          )}
                         </div>
                       </div>
 
+                      {/* Separator */}
+                      <div className="border-t border-border" />
+
                       {/* Product Tags Filter (Mobile) */}
                       <div>
-                        <h3 className="font-bold text-foreground mb-4 text-base">
-                          Filter by Tags
+                        <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
+                          Quick Tags
+                          {selectedTags.length > 0 && (
+                            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                              {selectedTags.length}
+                            </span>
+                          )}
                         </h3>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {popularTags.map((tag) => (
                             <button
                               key={tag.value}
                               onClick={() => toggleTag(tag.value)}
                               className={cn(
-                                "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                                "px-3 py-1.5 text-xs rounded-full border transition-all duration-200",
                                 selectedTags.includes(tag.value)
-                                  ? "bg-primary text-primary-foreground border-primary"
+                                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
                                   : "bg-background text-muted-foreground border-border hover:bg-muted/50"
                               )}
                             >
@@ -418,7 +618,7 @@ export default function ProductCatalogPage() {
                         )}
                       </div>
 
-                      <Button className="w-full bg-primary hover:bg-primary/90">
+                      <Button className="w-full bg-primary hover:bg-primary/90 mt-4">
                         Apply Filters
                       </Button>
                     </div>
@@ -429,17 +629,15 @@ export default function ProductCatalogPage() {
               {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
                 <Select value={sort} onValueChange={(value) => setSort(value as ProductFilters["sortBy"])}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-background border-border text-foreground hover:bg-muted/30">
+                  <SelectTrigger className="w-full sm:w-[200px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="featured">Featured</SelectItem>
-                    <SelectItem value="price-asc">
-                      Price: Low to High
-                    </SelectItem>
-                    <SelectItem value="price-desc">
-                      Price: High to Low
-                    </SelectItem>
+                    <SelectItem value="featured">⭐ Featured First</SelectItem>
+                    <SelectItem value="newest">🆕 Newest Arrivals</SelectItem>
+                    <SelectItem value="price-asc">💰 Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">💎 Price: High to Low</SelectItem>
+                    <SelectItem value="name">🔤 Name: A to Z</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
@@ -525,8 +723,16 @@ export default function ProductCatalogPage() {
             ) : (
               <>
                 {/* Results Count */}
-                <div className="mb-4 text-sm text-muted-foreground">
-                  Showing {displayedProducts.length} of {allProducts.length} products
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{allProducts.length}</span> products
+                    {hasActiveFilters && <span className="ml-1">(filtered)</span>}
+                  </p>
+                  {hasMoreProducts && (
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      Scroll down to load more
+                    </p>
+                  )}
                 </div>
                 
                 {viewMode === "grid" ? (
@@ -537,7 +743,7 @@ export default function ProductCatalogPage() {
                         id={product.id}
                         slug={product.slug}
                         name={product.name}
-                        farm={product.category || "MASH"}
+                        farm={product.grower?.name || product.category || "MASH"}
                         price={product.price}
                         comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
@@ -573,7 +779,7 @@ export default function ProductCatalogPage() {
                               {product.name}
                             </h3>
                             <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">
-                              {product.category || "MASH"}
+                              {product.grower?.name || product.category || "MASH"}
                             </p>
                             <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
                               {product.description || "Fresh, locally-sourced mushrooms perfect for any culinary creation."}

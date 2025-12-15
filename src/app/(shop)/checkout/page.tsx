@@ -12,6 +12,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect } from "react";
 import { ProductApiResponse, UserProfile } from "@/types/api";
 import { isAuthenticated } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 const step1Schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -617,11 +621,14 @@ export default function CheckoutPage() {
                           className="flex items-start gap-3"
                         >
                           <Image
-                            src={product.image}
+                            src={product.image || PLACEHOLDER_IMAGE}
                             alt={product.name}
                             width={56}
                             height={56}
-                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-md object-cover flex-shrink-0"
+                            className={cn(
+                              "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
+                              product.image ? "object-cover" : "object-contain bg-muted p-1"
+                            )}
                           />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">

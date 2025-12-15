@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles, Play } from "lucide-react";
+import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles, Play, Store, BadgeCheck, ExternalLink } from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
@@ -15,6 +15,9 @@ import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import type { MediaItem } from "@/types/sanity";
+
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -336,9 +339,15 @@ export default function ProductDetailPage({ params }: Props) {
                   />
                 )
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                  No Image Available
-                </div>
+                // Placeholder when no images available
+                <Image
+                  src={PLACEHOLDER_IMAGE}
+                  alt={product.name}
+                  fill
+                  className="object-contain p-8"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
               )}
             </div>
 
@@ -890,6 +899,69 @@ export default function ProductDetailPage({ params }: Props) {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          
+          {/* Grower / Farm Information Card */}
+          {product.grower && (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-6 border border-amber-100 dark:border-amber-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                  <Store className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">From the Grower</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Grower Profile */}
+                <Link 
+                  href={`/grower/${product.grower.slug}`}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 transition-colors group"
+                >
+                  {product.grower.image ? (
+                    <Image
+                      src={product.grower.image}
+                      alt={product.grower.name}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center">
+                      <Store className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground truncate">{product.grower.name}</span>
+                      {product.grower.isVerified && (
+                        <BadgeCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    {product.grower.tagline && (
+                      <p className="text-sm text-muted-foreground truncate">{product.grower.tagline}</p>
+                    )}
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+                </Link>
+                
+                {/* Location */}
+                {product.grower.location && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4 text-amber-600" />
+                    <span>{product.grower.location}</span>
+                  </div>
+                )}
+                
+                {/* Visit Profile Link */}
+                <Link 
+                  href={`/grower/${product.grower.slug}`}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                >
+                  View all products from this grower
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
             </div>
           )}
