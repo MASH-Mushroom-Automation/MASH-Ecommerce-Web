@@ -33,39 +33,25 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 import { useSellerDashboard } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerDashboard() {
-  // Use both hooks - admin dashboard for the new API data, seller dashboard for existing tables
   const {
-    data: adminData,
-    isLoading: adminLoading,
-    isError: adminError,
-    refetch: adminRefetch,
-  } = useAdminDashboard();
-
-  const {
+    stats,
     salesData,
     productPerformance,
     recentOrders,
-    loading: sellerLoading,
-    error: sellerError,
-    refetch: sellerRefetch,
+    loading,
+    error,
+    refetch,
   } = useSellerDashboard();
 
-  const loading = adminLoading || sellerLoading;
-  const error = adminError || sellerError;
-
   // Calculate pending orders count
-  const pendingOrdersCount = adminData?.alert.pendingOrders || 0;
-
-  const handleRefresh = () => {
-    adminRefetch();
-    sellerRefetch?.();
-  };
+  const pendingOrdersCount = recentOrders.filter(
+    (order) => order.status === "PENDING"
+  ).length;
 
   if (loading) {
     return (
@@ -81,9 +67,7 @@ export default function SellerDashboard() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">
-          Error: {sellerError || "Failed to load dashboard"}
-        </p>
+        <p className="text-destructive mb-4">Error: {error}</p>
         <Button onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
@@ -100,7 +84,7 @@ export default function SellerDashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRefresh}
+            onClick={() => refetch?.()}
             className="flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -110,7 +94,7 @@ export default function SellerDashboard() {
       </div>
 
       {/* Pending Orders Alert */}
-      {pendingOrdersCount > 0 ? (
+      {pendingOrdersCount > 0 && (
         <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-900">
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
@@ -135,95 +119,40 @@ export default function SellerDashboard() {
             </Link>
           </CardContent>
         </Card>
-      ) : (
-        adminData && (
-          <Card className="mb-6 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900">
-            <CardContent className="flex items-center gap-4 pt-6">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <AlertCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-900 dark:text-green-100">
-                  {adminData.alert.message}
-                </h3>
-              </div>
-            </CardContent>
-          </Card>
-        )
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           title="Total Sales"
-          value={
-            adminData
-              ? `${adminData.metrics.totalSales.currency} ${adminData.metrics.totalSales.value.toLocaleString()}`
-              : "₱0"
-          }
-          change={
-            adminData?.metrics.totalSales.change !== undefined
-              ? adminData.metrics.totalSales.change >= 0
-                ? `+${adminData.metrics.totalSales.change}%`
-                : `${adminData.metrics.totalSales.change}%`
-              : "+0%"
-          }
-          trend={adminData?.metrics.totalSales.change >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.totalSales.changeLabel || "vs. last month"
-          }
+          value={`₱${stats?.totalSales.toLocaleString() || "0"}`}
+          change={`+${stats?.salesGrowth || 0}%`}
+          trend="up"
+          description="vs. last month"
           icon={<DollarSign className="h-5 w-5" />}
         />
         <StatsCard
           title="Orders"
-          value={adminData?.metrics.orders.value.toString() || "0"}
-          change={
-            adminData?.metrics.orders.change !== undefined
-              ? adminData.metrics.orders.change >= 0
-                ? `+${adminData.metrics.orders.change}%`
-                : `${adminData.metrics.orders.change}%`
-              : "+0%"
-          }
-          trend={adminData?.metrics.orders.change >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.orders.changeLabel || "vs. last month"
-          }
+          value={stats?.totalOrders.toString() || "0"}
+          change={`+${stats?.orderGrowth || 0}%`}
+          trend="up"
+          description="vs. last month"
           icon={<ShoppingBag className="h-5 w-5" />}
         />
         <StatsCard
           title="Products"
-          value={adminData?.metrics.products.value.toString() || "0"}
-          change={
-            adminData?.metrics.products.change !== undefined
-              ? adminData.metrics.products.change >= 0
-                ? `+${adminData.metrics.products.change}`
-                : `${adminData.metrics.products.change}`
-              : "+0"
-          }
-          trend={adminData?.metrics.products.change >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.products.changeLabel || "new this month"
-          }
+          value={stats?.totalProducts.toString() || "0"}
+          change="+4"
+          trend="up"
+          description="new this month"
           icon={<Package className="h-5 w-5" />}
         />
         <StatsCard
           title="Revenue"
-          value={
-            adminData
-              ? `${adminData.metrics.revenue.currency} ${adminData.metrics.revenue.value.toLocaleString()}`
-              : "₱0"
-          }
-          change={
-            adminData?.metrics.revenue.change !== undefined
-              ? adminData.metrics.revenue.change >= 0
-                ? `+${adminData.metrics.revenue.change}%`
-                : `${adminData.metrics.revenue.change}%`
-              : "+0%"
-          }
-          trend={adminData?.metrics.revenue.change >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.revenue.changeLabel || "vs. last month"
-          }
+          value={`₱${stats?.totalRevenue.toLocaleString() || "0"}`}
+          change={`+${stats?.revenueGrowth || 0}%`}
+          trend="up"
+          description="vs. last month"
           icon={<Users className="h-5 w-5" />}
         />
       </div>
@@ -231,32 +160,21 @@ export default function SellerDashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ChartBarDefault
-          data={
-            adminData?.charts.weeklySales.map((item) => ({
-              month: item.day,
-              desktop: item.sales,
-            })) ||
-            salesData.map((item) => ({
-              month: item.name,
-              desktop: item.sales,
-            }))
-          }
+          data={salesData.map((item) => ({
+            month: item.name,
+            desktop: item.sales,
+          }))}
         />
 
         <LineChartDefault
-          data={
-            adminData?.charts.revenueTrend.map((item) => ({
-              month: item.month,
-              desktop: item.revenue,
-            })) || [
-              { month: "May", desktop: 24000 },
-              { month: "Jun", desktop: 26500 },
-              { month: "Jul", desktop: 32000 },
-              { month: "Aug", desktop: 28000 },
-              { month: "Sep", desktop: 35000 },
-              { month: "Oct", desktop: 42390 },
-            ]
-          }
+          data={[
+            { month: "May", desktop: 24000 },
+            { month: "Jun", desktop: 26500 },
+            { month: "Jul", desktop: 32000 },
+            { month: "Aug", desktop: 28000 },
+            { month: "Sep", desktop: 35000 },
+            { month: "Oct", desktop: 42390 },
+          ]}
         />
       </div>
 
@@ -375,6 +293,21 @@ export default function SellerDashboard() {
           </Link>
         </CardFooter>
       </Card>
+
+      {/* API Integration Comment */}
+      {/* 
+        API Integration Points:
+        1. Fetch dashboard statistics:
+           - GET /api/seller/dashboard/stats
+        2. Fetch sales data for charts:
+           - GET /api/seller/dashboard/sales
+        3. Fetch revenue trend data:
+           - GET /api/seller/dashboard/revenue
+        4. Fetch top performing products:
+           - GET /api/seller/dashboard/top-products
+        5. Fetch recent orders:
+           - GET /api/seller/dashboard/recent-orders
+      */}
     </div>
   );
 }

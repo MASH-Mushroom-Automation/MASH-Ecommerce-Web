@@ -92,11 +92,18 @@ export async function apiRequest<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
+  // Only use credentials mode if no token in header (avoids CORS issues)
+  const fetchOptions: RequestInit = {
     ...options,
     headers,
-    credentials: "include",
-  });
+  };
+
+  // Include credentials only if we're not using a token (for cookie-based auth endpoints)
+  if (!headers["Authorization"]) {
+    fetchOptions.credentials = "include";
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   const data = await response.json();
 
