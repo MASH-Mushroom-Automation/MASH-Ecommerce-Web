@@ -7,7 +7,7 @@ import type { ApiResponse } from "@/types/api";
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("authToken")?.value || cookieStore.get("auth-token")?.value;
+    const token = cookieStore.get("auth-token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("authToken")?.value || cookieStore.get("auth-token")?.value;
+    const token = cookieStore.get("auth-token")?.value;
 
     if (!token) {
       return NextResponse.json(

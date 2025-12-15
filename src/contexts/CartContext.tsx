@@ -178,7 +178,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value: CartContextType = {
     items,
     summary: calculateSummary(items),
-    loading: false,
+    loading: !isLoaded,
     error: null,
     addToCart,
     removeFromCart,
