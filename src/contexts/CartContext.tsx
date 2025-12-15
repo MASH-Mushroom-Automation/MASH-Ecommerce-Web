@@ -1,8 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { CartItem, OrderSummary, AddToCartProduct } from "@/types/api";
 import { toast } from "sonner";
+import { useAuth } from "./AuthContext";
+import { FirebaseCartService } from "@/lib/firebase/cart";
 
 interface CartContextType {
   items: CartItem[];
@@ -22,6 +31,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const lastSyncRef = useRef<number>(0);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -48,13 +61,83 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("mash-cart", JSON.stringify({ 
-        version: 2,
-        items,
-        updatedAt: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        "mash-cart",
+        JSON.stringify({
+          version: 2,
+          items,
+          updatedAt: new Date().toISOString(),
+        })
+      );
     }
   }, [items, isLoaded]);
+
+  // Firebase sync: Subscribe to cart changes when user logs in
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      // Unsubscribe if user logs out
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      return;
+    }
+
+    // Merge local cart with Firebase cart on login
+    const initializeFirebaseCart = async () => {
+      setIsSyncing(true);
+      try {
+        const mergedItems = await FirebaseCartService.mergeWithLocalCart(
+          user.id,
+          items
+        );
+        setItems(mergedItems);
+        lastSyncRef.current = Date.now();
+      } catch (error) {
+        console.error("Failed to merge carts:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    initializeFirebaseCart();
+
+    // Subscribe to real-time updates
+    unsubscribeRef.current = FirebaseCartService.subscribeToCart(
+      user.id,
+      (firebaseItems) => {
+        // Only update if this isn't from our own write
+        const timeSinceLastSync = Date.now() - lastSyncRef.current;
+        if (timeSinceLastSync > 1000) {
+          setItems(firebaseItems);
+        }
+      },
+      (error) => {
+        console.error("Firebase cart subscription error:", error);
+      }
+    );
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [isAuthenticated, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync to Firebase whenever cart changes (debounced)
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || !isLoaded || isSyncing) return;
+
+    const timeout = setTimeout(() => {
+      lastSyncRef.current = Date.now();
+      FirebaseCartService.saveCart(user.id, items).catch((error) => {
+        console.error("Failed to sync cart to Firebase:", error);
+      });
+    }, 500); // Debounce by 500ms
+
+    return () => clearTimeout(timeout);
+  }, [items, isAuthenticated, user?.id, isLoaded, isSyncing]);
 
   const calculateSummary = (cartItems: CartItem[]): OrderSummary => {
     const subtotal = cartItems.reduce(
@@ -161,10 +244,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
     toast.info("Cart cleared");
-  };
+
+    // Also clear Firebase cart if authenticated
+    if (isAuthenticated && user?.id) {
+      FirebaseCartService.clearCart(user.id).catch((error) => {
+        console.error("Failed to clear Firebase cart:", error);
+      });
+    }
+  }, [isAuthenticated, user?.id]);
 
   const isInCart = (productId: string): boolean => {
     return items.some((item) => item.productId === productId);
