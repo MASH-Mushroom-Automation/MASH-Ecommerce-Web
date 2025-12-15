@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "cdn.sanity.io",
-        pathname: '/images/**',
+        pathname: "/images/**",
       },
       {
         protocol: "https",
@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "maps.googleapis.com",
-        pathname: '/maps/api/staticmap**',
+        pathname: "/maps/api/staticmap**",
       },
       {
         protocol: "https",
@@ -37,8 +37,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i3.ytimg.com",
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
     ],
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
@@ -50,13 +54,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/sell-with-us',
-        destination: '/start-selling',
+        source: "/sell-with-us",
+        destination: "/start-selling",
         permanent: true, // 301 redirect for SEO
       },
       {
-        source: '/catalog',
-        destination: '/shop',
+        source: "/catalog",
+        destination: "/shop",
         permanent: true, // 301 redirect for SEO (catalog → shop)
       },
     ];
