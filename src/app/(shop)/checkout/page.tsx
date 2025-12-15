@@ -142,17 +142,39 @@ export default function CheckoutPage() {
     if (!step1Data) return;
 
     setSubmitting(true);
+    setError(null);
+    
     try {
-      // TODO: Implement actual order submission to backend
-      console.log("Order submitted:", {
-        ...step1Data,
-        ...data,
-        items,
-        summary,
-      });
+      // Import OrdersApi dynamically
+      const { OrdersApi } = await import("@/lib/api/orders");
+      
+      // Prepare order data for backend
+      const orderData = {
+        customerInfo: {
+          name: step1Data.name,
+          email: step1Data.email,
+          phone: step1Data.phone,
+        },
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        pickupLocation: step1Data.pickupLocation,
+        paymentMethod: data.paymentMethod as "cod" | "gcash" | "card",
+        total: summary.total,
+      };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log("Submitting order to backend:", orderData);
+
+      // Submit order to backend API
+      const response = await OrdersApi.createOrder(orderData);
+      
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create order");
+      }
+
+      console.log("Order created successfully:", response.data);
 
       // Clear cart after successful order
       clearCart();
@@ -451,13 +473,12 @@ export default function CheckoutPage() {
                         name="paymentMethod"
                         render={({ field }) => (
                           <FormItem className="mt-6 space-y-4">
-                            {/* Cash on Pickup */}
+                            {/* Cash on Pickup - AVAILABLE */}
                             <label
                               className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-
-                                field.value === "CASH_ON_DELIVERY"
+                                field.value === "cod"
                                   ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
+                                  : "border-border hover:border-primary/50"
                               }`}
                             >
                               <input
@@ -467,94 +488,67 @@ export default function CheckoutPage() {
                                 onChange={() => field.onChange("cod")}
                                 className="sr-only"
                               />
-                              <div className="flex items-center gap-3">
-                                <div className="font-medium text-foreground">
-                                  Cash on Pickup
-                                </div>
-                              </div>
-                            </label>
-
-                            {/* Gcash */}
-                            <label
-                              className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "GCASH"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                value="gcash"
-                                checked={field.value === "gcash"}
-                                onChange={() => field.onChange("gcash")}
-                                className="sr-only"
-                              />
-                              <div className="flex items-center gap-3">
-                                <div className="font-medium text-foreground">
-                                  Gcash
-                                </div>
-                              </div>
-                            </label>
-
-                            {/* Credit/Debit Card */}
-                            <label
-                              className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "CREDIT_CARD"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                value="card"
-                                checked={field.value === "card"}
-                                onChange={() => field.onChange("card")}
-                                className="sr-only"
-                              />
-                              <div className="font-medium text-foreground mb-4">
-                                Credit/Debit Cards and E-wallets
-                              </div>
-
-                              {field.value === "card" && (
-                                <div className="space-y-3 mt-4">
-                                  <div>
-                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                      Card Number
-                                    </label>
-                                    <input
-                                      type="text"
-                                      placeholder="1234 5678 9012 3456"
-                                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                    field.value === "cod" ? "border-primary" : "border-muted-foreground"
+                                  }`}>
+                                    {field.value === "cod" && (
+                                      <div className="w-2 h-2 rounded-full bg-primary" />
+                                    )}
                                   </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                        MM/YY
-                                      </label>
-                                      <input
-                                        type="text"
-                                        placeholder="12/25"
-                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                        CVC/CVV
-                                      </label>
-                                      <input
-                                        type="text"
-                                        placeholder="123"
-                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
+                                  <div className="font-medium text-foreground">
+                                    Cash on Pickup
                                   </div>
                                 </div>
-                              )}
+                                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                                  Available
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-2 ml-7">
+                                Pay when you pick up your order at the selected location
+                              </p>
                             </label>
+
+                            {/* GCash - COMING SOON (Disabled) */}
+                            <div
+                              className="block border-2 rounded-lg p-4 cursor-not-allowed transition-colors border-border bg-muted/30 opacity-60"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/50" />
+                                  <div className="font-medium text-muted-foreground">
+                                    GCash
+                                  </div>
+                                </div>
+                                <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
+                                  Coming Soon
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground/70 mt-2 ml-7">
+                                Pay using your GCash e-wallet
+                              </p>
+                            </div>
+
+                            {/* Credit/Debit Card - COMING SOON (Disabled) */}
+                            <div
+                              className="block border-2 rounded-lg p-4 cursor-not-allowed transition-colors border-border bg-muted/30 opacity-60"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/50" />
+                                  <div className="font-medium text-muted-foreground">
+                                    Credit/Debit Cards
+                                  </div>
+                                </div>
+                                <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
+                                  Coming Soon
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground/70 mt-2 ml-7">
+                                Pay using Visa, Mastercard, or other cards
+                              </p>
+                            </div>
                           </FormItem>
                         )}
                       />
