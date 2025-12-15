@@ -30,14 +30,28 @@ import {
   ArrowRight,
   ArrowUpRight,
   ArrowDownRight,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useSellerDashboard } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerDashboard() {
-  const { stats, salesData, productPerformance, recentOrders, loading, error } =
-    useSellerDashboard();
+  const {
+    stats,
+    salesData,
+    productPerformance,
+    recentOrders,
+    loading,
+    error,
+    refetch,
+  } = useSellerDashboard();
+
+  // Calculate pending orders count
+  const pendingOrdersCount = recentOrders.filter(
+    (order) => order.status === "PENDING"
+  ).length;
 
   if (loading) {
     return (
@@ -63,10 +77,49 @@ export default function SellerDashboard() {
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <div className="text-sm text-muted-foreground">
-          Last updated: {new Date().toLocaleString()}
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">
+            Last updated: {new Date().toLocaleString()}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch?.()}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
         </div>
       </div>
+
+      {/* Pending Orders Alert */}
+      {pendingOrdersCount > 0 && (
+        <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-900">
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+              <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                Pending Orders Require Attention
+              </h3>
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                You have {pendingOrdersCount} pending{" "}
+                {pendingOrdersCount === 1 ? "order" : "orders"} awaiting
+                confirmation. Review and process them to keep your customers
+                satisfied.
+              </p>
+            </div>
+            <Link href="/seller/orders?status=PENDING">
+              <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+                View Orders
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -106,19 +159,23 @@ export default function SellerDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ChartBarDefault data={salesData.map(item => ({
-          month: item.name,
-          desktop: item.sales
-        }))} />
+        <ChartBarDefault
+          data={salesData.map((item) => ({
+            month: item.name,
+            desktop: item.sales,
+          }))}
+        />
 
-        <LineChartDefault data={[
-          { month: "May", desktop: 24000 },
-          { month: "Jun", desktop: 26500 },
-          { month: "Jul", desktop: 32000 },
-          { month: "Aug", desktop: 28000 },
-          { month: "Sep", desktop: 35000 },
-          { month: "Oct", desktop: 42390 },
-        ]} />
+        <LineChartDefault
+          data={[
+            { month: "May", desktop: 24000 },
+            { month: "Jun", desktop: 26500 },
+            { month: "Jul", desktop: 32000 },
+            { month: "Aug", desktop: 28000 },
+            { month: "Sep", desktop: 35000 },
+            { month: "Oct", desktop: 42390 },
+          ]}
+        />
       </div>
 
       {/* Product Performance */}
@@ -134,9 +191,15 @@ export default function SellerDashboard() {
             <TableHeader className="bg-muted/50">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-foreground">Product Name</TableHead>
-                <TableHead className="text-right text-foreground">Units Sold</TableHead>
-                <TableHead className="text-right text-foreground">Stock</TableHead>
-                <TableHead className="text-right text-foreground">Revenue</TableHead>
+                <TableHead className="text-right text-foreground">
+                  Units Sold
+                </TableHead>
+                <TableHead className="text-right text-foreground">
+                  Stock
+                </TableHead>
+                <TableHead className="text-right text-foreground">
+                  Revenue
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -196,8 +259,12 @@ export default function SellerDashboard() {
                 <TableHead className="text-foreground">Order ID</TableHead>
                 <TableHead className="text-foreground">Date</TableHead>
                 <TableHead className="text-foreground">Customer</TableHead>
-                <TableHead className="text-right text-foreground">Items</TableHead>
-                <TableHead className="text-right text-foreground">Total</TableHead>
+                <TableHead className="text-right text-foreground">
+                  Items
+                </TableHead>
+                <TableHead className="text-right text-foreground">
+                  Total
+                </TableHead>
                 <TableHead className="text-foreground">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -211,9 +278,7 @@ export default function SellerDashboard() {
                   <TableCell className="text-right">
                     ₱{order.total.toFixed(2)}
                   </TableCell>
-                  <TableCell>
-                    {getStatusBadge(order.status)}
-                  </TableCell>
+                  <TableCell>{getStatusBadge(order.status)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -282,7 +347,9 @@ function StatsCard({
           )}
           <p
             className={`text-sm ${
-              trend === "up" ? "text-green-600 dark:text-green-500" : "text-destructive"
+              trend === "up"
+                ? "text-green-600 dark:text-green-500"
+                : "text-destructive"
             }`}
           >
             {change}
