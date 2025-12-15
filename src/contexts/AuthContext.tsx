@@ -34,6 +34,7 @@ export interface AuthUser {
   lastName?: string;
   displayName?: string;
   photoURL?: string;
+  avatar?: string; // Alias for photoURL, used by profile components
   provider: "firebase" | "email";
   emailVerified: boolean;
 }
@@ -119,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Build auth user object
+        const imageUrl =
+          data.user?.imageUrl || data.user?.profileImageUrl || fbUser.photoURL;
         const authUser: AuthUser = {
           id: data.user?.id || fbUser.uid,
           email: fbUser.email || "",
@@ -127,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data.user?.lastName ||
             fbUser.displayName?.split(" ").slice(1).join(" "),
           displayName: fbUser.displayName || undefined,
-          photoURL: fbUser.photoURL || undefined,
+          photoURL: imageUrl || undefined,
+          avatar: imageUrl || undefined,
           provider: "firebase",
           emailVerified: fbUser.emailVerified,
         };
