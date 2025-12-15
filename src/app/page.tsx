@@ -10,7 +10,6 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SanityHeroCarousel } from "@/components/hero/SanityHeroCarousel";
 import { SanityFeatureSection } from "@/components/cms/SanityFeatureSection"; // Phase 4: Use Sanity
 import { TestimonialsSection } from "@/components/cms/TestimonialsSection"; // Phase 7: Customer Testimonials
-import { BannerSection } from "@/components/cms/BannerSection"; // Phase 7: Promotional Banners
 import { useSanityFeatures } from "@/hooks/useSanityFeatures"; // Phase 4: Sanity hook
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
@@ -413,11 +412,9 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <main>
         <HeroSection />
-        <BannerSection position="homepage-top" /> {/* Promotional banner after hero */}
         <FeaturedProductsSection />
         <FeaturedCategoriesSection />
         <WhyMASHSection />
-        <BannerSection position="homepage-middle" /> {/* Mid-page promotional banner */}
         <FeaturedGrowersSection />
         <TestimonialsSection />
       </main>
