@@ -15,12 +15,14 @@ import { cn } from "@/lib/utils";
 import { MapPin, Truck, Package } from "lucide-react";
 import {
   AddressPicker,
+  AddressSelector,
   LalamoveQuote,
   MASH_PICKUP_LOCATION,
   PICKUP_LOCATIONS,
   type SelectedAddress,
   type LalamoveQuoteResult,
 } from "@/components/checkout";
+import { useFirebaseAddresses } from "@/hooks/useFirebaseAddresses";
 import {
   FirebaseOrdersService,
   type CreateOrderData,
@@ -58,6 +60,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, summary, clearCart } = useCart();
   const { user, isAuthenticated: userIsAuthenticated } = useAuth();
+  const { addresses: savedAddresses, defaultAddress, loading: addressesLoading } = useFirebaseAddresses();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +71,8 @@ export default function CheckoutPage() {
   const [lalamoveQuote, setLalamoveQuote] = useState<LalamoveQuoteResult | null>(null);
   const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
   const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
+  const [useNewAddress, setUseNewAddress] = useState(false);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -84,6 +89,8 @@ export default function CheckoutPage() {
     defaultValues: { paymentMethod: "cod" },
   });
 
+  const watchDeliveryMethod = step1Form.watch("deliveryMethod");
+
   useEffect(() => {
     if (userIsAuthenticated && user) {
       step2Form.reset({
@@ -94,15 +101,49 @@ export default function CheckoutPage() {
     }
   }, [userIsAuthenticated, user, step2Form]);
 
-  const watchDeliveryMethod = step1Form.watch("deliveryMethod");
+  // Auto-select default address when Lalamove is selected and user has saved addresses
+  useEffect(() => {
+    if (
+      watchDeliveryMethod === "lalamove" &&
+      defaultAddress &&
+      !selectedSavedAddressId &&
+      !useNewAddress &&
+      !addressesLoading
+    ) {
+      handleSavedAddressSelect(defaultAddress.id);
+    }
+  }, [watchDeliveryMethod, defaultAddress, selectedSavedAddressId, useNewAddress, addressesLoading, handleSavedAddressSelect]);
 
   const getSelectedPickupLocation = useCallback((locationId?: string) => {
     if (!locationId) return undefined;
     return PICKUP_LOCATIONS.find((loc) => loc.id === locationId);
   }, []);
 
+  const handleSavedAddressSelect = useCallback((addressId: string) => {
+    setSelectedSavedAddressId(addressId);
+    setUseNewAddress(false);
+    // Find the saved address and convert to SelectedAddress format
+    const savedAddress = savedAddresses.find((a) => a.id === addressId);
+    if (savedAddress) {
+      setDeliveryAddress({
+        lat: savedAddress.lat,
+        lng: savedAddress.lng,
+        formattedAddress: savedAddress.formattedAddress,
+      });
+    }
+  }, [savedAddresses]);
+
   const handleAddressSelect = useCallback((address: SelectedAddress) => {
     setDeliveryAddress(address);
+    setSelectedSavedAddressId(null);
+    setUseNewAddress(true);
+  }, []);
+
+  const handleAddNewAddressClick = useCallback(() => {
+    setSelectedSavedAddressId(null);
+    setUseNewAddress(true);
+    setDeliveryAddress(null);
+    setLalamoveQuote(null);
   }, []);
 
   const handleQuoteReceived = useCallback((quote: LalamoveQuoteResult | null) => {
@@ -386,10 +427,62 @@ export default function CheckoutPage() {
 
                               {field.value === "lalamove" && (
                                 <div className="mt-4 pt-4 border-t space-y-4">
-                                  <AddressPicker
-                                    onAddressSelect={handleAddressSelect}
-                                    placeholder="Enter your delivery address in Metro Manila..."
-                                  />
+                                  {/* Saved Addresses Section */}
+                                  {userIsAuthenticated && savedAddresses.length > 0 && !useNewAddress && (
+                                    <div className="space-y-3">
+                                      <h4 className="text-sm font-medium text-muted-foreground">
+                                        Select a saved address:
+                                      </h4>
+                                      <AddressSelector
+                                        onSelect={handleSavedAddressSelect}
+                                        selectedId={selectedSavedAddressId || undefined}
+                                        showAddNew={false}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAddNewAddressClick}
+                                        className="w-full"
+                                      >
+                                        <MapPin className="h-4 w-4 mr-2" />
+                                        Use a different address
+                                      </Button>
+                                    </div>
+                                  )}
+
+                                  {/* New Address Input */}
+                                  {(useNewAddress || savedAddresses.length === 0 || !userIsAuthenticated) && (
+                                    <div className="space-y-3">
+                                      {savedAddresses.length > 0 && userIsAuthenticated && (
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-sm font-medium text-muted-foreground">
+                                            Enter a new address:
+                                          </h4>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              setUseNewAddress(false);
+                                              setDeliveryAddress(null);
+                                              setLalamoveQuote(null);
+                                              // Re-select default if available
+                                              if (defaultAddress) {
+                                                handleSavedAddressSelect(defaultAddress.id);
+                                              }
+                                            }}
+                                          >
+                                            Use saved address
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <AddressPicker
+                                        onAddressSelect={handleAddressSelect}
+                                        placeholder="Enter your delivery address in Metro Manila..."
+                                      />
+                                    </div>
+                                  )}
                                   
                                   {deliveryAddress && (
                                     <LalamoveQuote

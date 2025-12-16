@@ -30,3 +30,12 @@ export {
   type DeliveryAddress,
   type CreateOrderData,
 } from "./orders";
+
+// Address Service (Phase 10)
+export {
+  FirebaseAddressService,
+  type FirestoreAddress,
+  type AddressInput,
+  type AddressCoordinates,
+  type DeliveryAddressData,
+} from "./addresses";

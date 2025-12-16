@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 5.0 (Firebase-Powered, Full Buyer-to-Seller Flow)  
+**Version:** 6.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Profile Address Integration)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 9 Complete ✅ | All Core Phases Done 🎉  
+**Status:** Phase 9 Complete ✅ | Phase 10 In Progress 🔄  
 **Platform:** Next.js 15/16 + Firebase Firestore (No Backend Dependency)
 
 ---
@@ -12,12 +12,13 @@
 1. [Executive Summary](#executive-summary)
 2. [Phase Status Dashboard](#phase-status-dashboard)
 3. [Complete Buyer Flow](#complete-buyer-flow)
-4. [System Architecture](#system-architecture)
-5. [Implementation Phases](#implementation-phases)
-6. [File Reference](#file-reference)
-7. [Testing Checklist](#testing-checklist)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Quick Start](#quick-start)
+4. [User Profile & Address System](#user-profile--address-system)
+5. [System Architecture](#system-architecture)
+6. [Implementation Phases](#implementation-phases)
+7. [File Reference](#file-reference)
+8. [Testing Checklist](#testing-checklist)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Quick Start](#quick-start)
 
 ---
 
@@ -47,7 +48,8 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **Auto Lalamove** | Admin approve | Automatically schedules Lalamove delivery |
 | **Buyer Order History** | `/profile/order-history` | Real-time order tracking |
 | **Delivery Tracking** | `/profile/orders/[id]/track` | Live driver location, status |
-| **Profile Address** | `/profile/my-information` | Google Maps "Pick from Map" |
+| **Profile Address** | `/profile/my-information` | Google Maps "Pick from Map" + Firebase storage |
+| **Saved Addresses** | Profile/Checkout | Multiple addresses, select at checkout |
 | **Notifications** | Header bell icon | Real-time Firebase notifications |
 | **Order Alerts** | Auto-triggered | Notifications on order status changes |
 
@@ -108,12 +110,13 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 5 | Firebase Integration | ✅ Complete | 100% | Cart/Orders services |
 | 6 | Order Submission | ✅ Complete | 100% | Order creation, success modal |
 | 7 | Admin Order Management | ✅ Complete | 100% | Dashboard, approve/reject |
-| **8** | **Delivery Tracking** | **✅ Complete** | **100%** | **Lalamove tracking, driver info** |
-| **9** | **Notifications System** | **✅ Complete** | **100%** | **Real-time Firebase notifications** |
+| 8 | Delivery Tracking | ✅ Complete | 100% | Lalamove tracking, driver info |
+| 9 | Notifications System | ✅ Complete | 100% | Real-time Firebase notifications |
+| **10** | **User Profile & Addresses** | **🔄 In Progress** | **60%** | **Firebase address storage, checkout integration** |
 
 ### Progress Bar
 ```
-[████████████████████████████████████████████████████] 100% Complete (9/9 Phases) 🎉
+[████████████████████████████████████████████░░░░░░░░] 90% Complete (9/10 Phases)
 ```
 
 ---
@@ -241,6 +244,250 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 
 ---
 
+## User Profile & Address System
+
+### 🏠 Address Management Overview
+
+The address system allows users to:
+1. **Save multiple delivery addresses** in their profile (stored in Firebase)
+2. **Pick addresses from Google Maps** using the visual map picker
+3. **Auto-fill addresses at checkout** from saved addresses
+4. **Get accurate Lalamove delivery quotes** based on GPS coordinates
+
+### Address Flow Diagram
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          USER ADDRESS MANAGEMENT FLOW                            │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    📍 STEP 1: PROFILE ADDRESS SETUP (/profile/my-information)
+    ──────────────────────────────────────────────────────────
+    1. User visits profile page
+    2. Clicks "Pick from Map" button
+    3. Google Maps opens with search + click-to-select
+    4. User searches address or clicks map location
+    5. AddressPicker:
+       - Geocodes coordinates → address components
+       - Returns: { address, lat, lng, city, state, zipCode }
+    6. Address auto-fills form fields (street, city, etc.)
+    7. User saves → Address stored in Firebase
+    
+    📦 STEP 2: FIREBASE ADDRESS STORAGE
+    ───────────────────────────────────
+    Firebase Collection: users/{userId}/addresses/{addressId}
+    
+    {
+      id: "addr_001",
+      label: "Home",                    // User-friendly name
+      isDefault: true,                  // Primary address
+      street: "123 Rizal Ave",
+      addressLine2: "Unit 5A",
+      city: "Quezon City",
+      stateProvince: "Metro Manila",
+      zipPostal: "1100",
+      landmark: "Near SM North EDSA",
+      coordinates: {
+        lat: 14.6507,
+        lng: 121.0322
+      },
+      formattedAddress: "123 Rizal Ave, Quezon City, Metro Manila",
+      createdAt: Timestamp,
+      updatedAt: Timestamp
+    }
+    
+    🛒 STEP 3: CHECKOUT ADDRESS SELECTION
+    ─────────────────────────────────────
+    At Checkout Step 1 (Delivery Method):
+    
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 🚚 Select Delivery Method                                   │
+    ├─────────────────────────────────────────────────────────────┤
+    │                                                             │
+    │  ○ Self-Pickup                                              │
+    │    • MASH Main Store - Caloocan City                        │
+    │                                                             │
+    │  ● Lalamove Delivery                                        │
+    │                                                             │
+    │    ┌─────────────────────────────────────────────────────┐  │
+    │    │ 📍 Select Delivery Address                          │  │
+    │    ├─────────────────────────────────────────────────────┤  │
+    │    │                                                     │  │
+    │    │  ● Home (Default)                                   │  │
+    │    │    123 Rizal Ave, Quezon City, Metro Manila         │  │
+    │    │    Near SM North EDSA                               │  │
+    │    │                                                     │  │
+    │    │  ○ Office                                           │  │
+    │    │    BGC Corporate Center, Taguig City                │  │
+    │    │                                                     │  │
+    │    │  ○ + Add New Address                                │  │
+    │    │    [Opens Map Picker]                               │  │
+    │    │                                                     │  │
+    │    └─────────────────────────────────────────────────────┘  │
+    │                                                             │
+    │    💰 Delivery Fee: ₱185 (via Lalamove)                    │
+    │    ⏱️ Estimated: 45-60 minutes                             │
+    │                                                             │
+    └─────────────────────────────────────────────────────────────┘
+    
+    🗺️ STEP 4: LALAMOVE QUOTE CALCULATION
+    ─────────────────────────────────────
+    Using saved coordinates for accurate pricing:
+    
+    Pickup:  MASH Main Store (14.6760, 120.9779)
+    Dropoff: User Address (14.6507, 121.0322)
+    
+    → Lalamove API calculates:
+       - Distance: 8.5 km
+       - Vehicle: Motorcycle
+       - Fee: ₱185
+       - ETA: 45 minutes
+```
+
+### Firebase User Profile Schema
+```typescript
+// Collection: users/{userId}
+interface FirestoreUserProfile {
+  id: string;                    // Firebase Auth UID
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  avatar?: string;
+  
+  // Default/Primary Address (for quick access)
+  defaultAddress?: {
+    id: string;
+    street: string;
+    city: string;
+    stateProvince: string;
+    zipPostal: string;
+    landmark?: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+    formattedAddress: string;
+  };
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// Sub-collection: users/{userId}/addresses/{addressId}
+interface FirestoreAddress {
+  id: string;
+  label: string;                 // "Home", "Office", "Mom's House"
+  isDefault: boolean;
+  street: string;
+  addressLine2?: string;
+  city: string;
+  stateProvince: string;
+  zipPostal: string;
+  landmark?: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  formattedAddress: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### Google Maps API Integration
+
+#### Required APIs (Enable in Google Cloud Console)
+| API | Purpose | Required For |
+|-----|---------|--------------|
+| **Maps JavaScript API** | Display interactive map | AddressPicker, TrackingMap |
+| **Places API** | Address autocomplete search | AddressPicker search box |
+| **Geocoding API** | Convert coordinates ↔ address | "Pick from Map" feature |
+
+#### AddressPicker Component Usage
+```tsx
+// In Profile Page
+<AddressPicker
+  onAddressSelect={(address) => {
+    // address contains:
+    // - lat, lng (coordinates)
+    // - formattedAddress (full string)
+    // - components (street, city, state, zipCode)
+    saveToFirebase(address);
+  }}
+  defaultValue={existingAddress}
+  placeholder="Search for your address..."
+/>
+
+// In Checkout Page (with saved addresses)
+<AddressSelector
+  savedAddresses={userAddresses}      // From Firebase
+  onSelect={(address) => {
+    setDeliveryAddress(address);
+    fetchLalamoveQuote(address.coordinates);
+  }}
+  onAddNew={() => setShowMapPicker(true)}
+/>
+```
+
+### Checkout Integration with Saved Addresses
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CHECKOUT WITH FIREBASE ADDRESSES                              │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    User arrives at /checkout with items in cart
+                           │
+                           ▼
+    ┌─────────────────────────────────────────┐
+    │         Is User Authenticated?           │
+    └─────────────────────────────────────────┘
+                           │
+           ┌───────────────┴───────────────┐
+           ▼                               ▼
+    ┌─────────────┐                 ┌─────────────┐
+    │   YES ✓    │                 │    NO ✗     │
+    │  (Logged in)│                 │  (Guest)    │
+    └─────────────┘                 └─────────────┘
+           │                               │
+           ▼                               │
+    ┌─────────────────────┐                │
+    │ Fetch saved         │                │
+    │ addresses from      │                │
+    │ Firebase            │                │
+    └─────────────────────┘                │
+           │                               │
+           ▼                               │
+    ┌─────────────────────┐                │
+    │ Show address        │                │
+    │ dropdown with       │                │
+    │ saved addresses     │                │
+    └─────────────────────┘                │
+           │                               │
+           ├───────────────────────────────┤
+           ▼                               ▼
+    ┌─────────────────────────────────────────┐
+    │     Show "Add New Address" Option        │
+    │     (Opens Google Maps Picker)           │
+    └─────────────────────────────────────────┘
+                           │
+                           ▼
+    ┌─────────────────────────────────────────┐
+    │  User selects or adds address            │
+    │  → Coordinates sent to Lalamove API      │
+    │  → Quote returned: ₱185, 45 mins         │
+    └─────────────────────────────────────────┘
+                           │
+                           ▼
+    ┌─────────────────────────────────────────┐
+    │  Continue to Step 2: Contact Info        │
+    │  (Pre-filled from Firebase profile)      │
+    └─────────────────────────────────────────┘
+```
+
+---
+
 ## System Architecture
 
 ### Data Flow Diagram
@@ -352,7 +599,41 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 ```
 firestore/
 │
-├── carts/{userId}
+├── users/{userId}                              ← User Profile
+│   ├── id: string                              // Firebase Auth UID
+│   ├── email: string
+│   ├── displayName?: string
+│   ├── firstName?: string
+│   ├── lastName?: string
+│   ├── phone?: string
+│   ├── avatar?: string
+│   ├── defaultAddress?: {                      // Quick access to primary address
+│   │   ├── id: string
+│   │   ├── street: string
+│   │   ├── city: string
+│   │   ├── stateProvince: string
+│   │   ├── coordinates: { lat, lng }
+│   │   └── formattedAddress: string
+│   │   }
+│   ├── createdAt: Timestamp
+│   └── updatedAt: Timestamp
+│
+├── users/{userId}/addresses/{addressId}        ← Saved Addresses (Sub-collection)
+│   ├── id: string
+│   ├── label: string                           // "Home", "Office", etc.
+│   ├── isDefault: boolean
+│   ├── street: string
+│   ├── addressLine2?: string
+│   ├── city: string
+│   ├── stateProvince: string
+│   ├── zipPostal: string
+│   ├── landmark?: string
+│   ├── coordinates: { lat: number, lng: number }
+│   ├── formattedAddress: string
+│   ├── createdAt: Timestamp
+│   └── updatedAt: Timestamp
+│
+├── carts/{userId}                              ← Shopping Cart
 │   ├── items: CartItem[]
 │   │   ├── productId: string
 │   │   ├── name: string
@@ -364,38 +645,53 @@ firestore/
 │   │   └── grower?: string
 │   └── updatedAt: Timestamp
 │
-└── orders/{orderId}
+├── orders/{orderId}                            ← Orders
+│   ├── id: string
+│   ├── orderNumber: "MASH-YYYYMMDD-XXX"
+│   ├── userId: string
+│   ├── userEmail: string
+│   ├── userName: string
+│   ├── userPhone: string
+│   ├── items: OrderItem[]
+│   │   ├── productId: string
+│   │   ├── name: string
+│   │   ├── price: number
+│   │   ├── quantity: number
+│   │   └── image: string
+│   ├── subtotal: number
+│   ├── tax: number
+│   ├── deliveryFee: number
+│   ├── total: number
+│   ├── deliveryMethod: "pickup" | "lalamove"
+│   ├── pickupLocation?: { id, name, address }
+│   ├── deliveryAddress?: {                     // From user's saved address
+│   │   ├── address: string
+│   │   ├── lat: number
+│   │   ├── lng: number
+│   │   ├── landmark?: string
+│   │   └── addressId?: string                  // Reference to saved address
+│   │   }
+│   ├── lalamoveQuotationId?: string
+│   ├── lalamoveOrderId?: string
+│   ├── lalamoveTracking?: {...}
+│   ├── paymentMethod: "cod" | "gcash" | "card"
+│   ├── paymentStatus: "pending" | "paid" | "failed"
+│   ├── status: OrderStatus
+│   ├── statusHistory: StatusEntry[]
+│   ├── createdAt: Timestamp
+│   ├── updatedAt: Timestamp
+│   └── approvedBy?: string
+│
+└── notifications/{notificationId}              ← Notifications
     ├── id: string
-    ├── orderNumber: "MASH-YYYYMMDD-XXX"
     ├── userId: string
-    ├── userEmail: string
-    ├── userName: string
-    ├── userPhone: string
-    ├── items: OrderItem[]
-    │   ├── productId: string
-    │   ├── name: string
-    │   ├── price: number
-    │   ├── quantity: number
-    │   └── image: string
-    ├── subtotal: number
-    ├── tax: number
-    ├── deliveryFee: number
-    ├── total: number
-    ├── deliveryMethod: "pickup" | "lalamove"
-    ├── pickupLocation?: { id, name, address }
-    ├── deliveryAddress?: { address, lat, lng }
-    ├── lalamoveQuotationId?: string
-    ├── paymentMethod: "cod" | "gcash" | "card"
-    ├── paymentStatus: "pending" | "paid" | "failed"
-    ├── status: OrderStatus
-    ├── statusHistory: StatusEntry[]
-    │   ├── status: OrderStatus
-    │   ├── timestamp: Timestamp
-    │   ├── updatedBy?: string
-    │   └── note?: string
+    ├── type: NotificationType
+    ├── title: string
+    ├── message: string
+    ├── read: boolean
+    ├── data?: { orderId?, orderNumber?, status?, link? }
     ├── createdAt: Timestamp
-    ├── updatedAt: Timestamp
-    └── approvedBy?: string
+    └── readAt?: Timestamp
 ```
 
 ---
@@ -622,6 +918,102 @@ type NotificationType =
 
 ---
 
+### 🔄 Phase 10: User Profile & Firebase Address Storage (IN PROGRESS)
+**Goal:** Store user addresses in Firebase and integrate with checkout for Lalamove delivery
+
+#### 10.1 Firebase Address Service ⏳
+- [ ] Create `src/lib/firebase/addresses.ts` service
+- [ ] `FirebaseAddressService` class with CRUD operations
+- [ ] Add address with Google Maps coordinates
+- [ ] Update address
+- [ ] Delete address
+- [ ] Set default address
+- [ ] Get all addresses for user
+
+#### 10.2 User Profile Firebase Integration ⏳
+- [ ] Create `src/lib/firebase/profile.ts` service
+- [ ] Save/update user profile to Firebase
+- [ ] Store default address reference
+- [ ] Sync profile on login
+
+#### 10.3 Profile Page Updates ✅ (Partial)
+- [x] "Pick from Map" button opens Google Maps picker
+- [x] AddressPicker component integration
+- [x] Address auto-fill from map selection
+- [ ] Save address to Firebase (not just local state)
+- [ ] Display multiple saved addresses
+- [ ] Set address as default
+
+#### 10.4 Checkout Integration ⏳
+- [ ] Fetch saved addresses at checkout
+- [ ] Address selector dropdown in Step 1
+- [ ] "Add New Address" option opens map picker
+- [ ] Save new addresses to Firebase for future use
+- [ ] Auto-select default address
+- [ ] Use coordinates for Lalamove quote
+
+#### 10.5 Lalamove Quote with Saved Address ⏳
+- [ ] Use exact coordinates from saved address
+- [ ] Calculate accurate delivery fee
+- [ ] Show ETA based on distance
+
+**Files to create/update:**
+```
+src/lib/firebase/addresses.ts                      ← NEW: Firebase address service
+src/lib/firebase/profile.ts                        ← NEW: Firebase profile service  
+src/hooks/useFirebaseAddresses.ts                  ← NEW: Address management hook
+src/hooks/useFirebaseProfile.ts                    ← NEW: Profile management hook
+src/components/checkout/AddressSelector.tsx        ← NEW: Saved address dropdown
+src/app/(user)/profile/my-information/page.tsx     ← UPDATE: Firebase integration
+src/app/(shop)/checkout/page.tsx                   ← UPDATE: Address selection
+```
+
+#### Phase 10 Implementation Steps
+
+**Step 1: Create Firebase Address Service**
+```typescript
+// src/lib/firebase/addresses.ts
+export class FirebaseAddressService {
+  static async addAddress(userId: string, address: AddressInput): Promise<string>;
+  static async updateAddress(userId: string, addressId: string, data: Partial<AddressInput>): Promise<void>;
+  static async deleteAddress(userId: string, addressId: string): Promise<void>;
+  static async setDefaultAddress(userId: string, addressId: string): Promise<void>;
+  static async getAddresses(userId: string): Promise<FirestoreAddress[]>;
+  static async getDefaultAddress(userId: string): Promise<FirestoreAddress | null>;
+  static subscribeToAddresses(userId: string, callback: (addresses: FirestoreAddress[]) => void): Unsubscribe;
+}
+```
+
+**Step 2: Create useFirebaseAddresses Hook**
+```typescript
+// src/hooks/useFirebaseAddresses.ts
+export function useFirebaseAddresses() {
+  const { user } = useAuth();
+  const [addresses, setAddresses] = useState<FirestoreAddress[]>([]);
+  const [defaultAddress, setDefaultAddress] = useState<FirestoreAddress | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Subscribe to address changes
+  // Add, update, delete operations
+  // Return addresses + operations
+}
+```
+
+**Step 3: Update Profile Page**
+- Save address to Firebase when user saves profile
+- Display list of saved addresses
+- Allow setting default address
+- Allow deleting addresses
+
+**Step 4: Update Checkout Page**
+- Show address selector dropdown when Lalamove selected
+- List saved addresses with radio selection
+- Auto-select default address
+- "Add New Address" opens map picker
+- Use selected address coordinates for Lalamove quote
+
+---
+
 ## File Reference
 
 ### Firebase Services
@@ -632,6 +1024,8 @@ type NotificationType =
 | `src/lib/firebase/cart.ts` | Cart CRUD, real-time sync | ✅ |
 | `src/lib/firebase/orders.ts` | Order CRUD, status management | ✅ |
 | `src/lib/firebase/notifications.ts` | Notifications CRUD, real-time | ✅ |
+| `src/lib/firebase/addresses.ts` | User addresses CRUD | ⏳ Phase 10 |
+| `src/lib/firebase/profile.ts` | User profile management | ⏳ Phase 10 |
 | `src/lib/firebase/index.ts` | Barrel exports | ✅ |
 
 ### Hooks
@@ -639,6 +1033,8 @@ type NotificationType =
 |------|---------|--------|
 | `src/hooks/useFirebaseOrders.ts` | Admin/user order hooks | ✅ |
 | `src/hooks/useFirebaseNotifications.ts` | Real-time notifications | ✅ |
+| `src/hooks/useFirebaseAddresses.ts` | User address management | ⏳ Phase 10 |
+| `src/hooks/useFirebaseProfile.ts` | User profile management | ⏳ Phase 10 |
 | `src/hooks/useSanityProducts.ts` | Product data hooks | ✅ |
 | `src/hooks/useUser.ts` | User profile hook | ✅ |
 
@@ -646,6 +1042,7 @@ type NotificationType =
 | File | Purpose | Status |
 |------|---------|--------|
 | `src/components/checkout/AddressPicker.tsx` | Google Maps address picker (updated to use new API) | ✅ |
+| `src/components/checkout/AddressSelector.tsx` | Saved addresses dropdown | ⏳ Phase 10 |
 | `src/components/checkout/LalamoveQuote.tsx` | Delivery quote display | ✅ |
 | `src/components/checkout/index.ts` | Exports | ✅ |
 
@@ -657,6 +1054,7 @@ type NotificationType =
 | Firebase offline error | Normal behavior - Firebase has offline persistence, data syncs when online | Dec 16, 2025 |
 | Firebase setDoc undefined field | Fixed `orders.ts` to exclude `undefined` optional fields (pickupLocation, deliveryAddress, lalamoveQuotationId, notes) | Dec 16, 2025 |
 | Wrong field name `customerId` | Fixed to use `userId` in order status notification | Dec 16, 2025 |
+| Phone validation too loose | Updated checkout to validate Philippine phone format (09XX or +63) | Dec 16, 2025 |
 
 ### Pages
 | URL | File | Status |
@@ -664,7 +1062,7 @@ type NotificationType =
 | `/checkout` | `src/app/(shop)/checkout/page.tsx` | ✅ |
 | `/orders/firebase` | `src/app/(seller)/orders/firebase/page.tsx` | ✅ |
 | `/profile/order-history` | `src/app/(user)/profile/order-history/page.tsx` | ✅ |
-| `/profile/my-information` | `src/app/(user)/profile/my-information/page.tsx` | ✅ |
+| `/profile/my-information` | `src/app/(user)/profile/my-information/page.tsx` | ✅ (UI) ⏳ (Firebase) |
 
 ---
 
@@ -684,6 +1082,7 @@ type NotificationType =
 - [x] Step 1: Address picker with Google Maps
 - [x] Step 1: Lalamove quote displays correctly
 - [x] Step 2: Contact form validation
+- [x] Step 2: Phone number validation (Philippine format)
 - [x] Step 2: Pre-fills from user profile
 - [x] Step 3: Select payment method
 - [x] Step 3: Order summary is accurate
@@ -725,6 +1124,16 @@ type NotificationType =
 - [x] Unread count badge
 - [x] Notification list/dropdown
 - [x] Mark as read works
+
+### 📋 User Profile & Addresses (Phase 10) - IN PROGRESS
+- [ ] Save address to Firebase from profile page
+- [ ] Display saved addresses list
+- [ ] Set default address
+- [ ] Delete saved address
+- [ ] Show saved addresses at checkout
+- [ ] Select from saved addresses for delivery
+- [ ] Add new address at checkout
+- [ ] Lalamove quote uses saved address coordinates
 
 ---
 
@@ -937,7 +1346,19 @@ LALAMOVE_HOST=https://rest.sandbox.lalamove.com
 
 ---
 
-## Next Steps (Phase 10+)
+## Next Steps (Current: Phase 10)
+
+### 🔄 Phase 10: User Profile & Addresses (CURRENT PRIORITY)
+Complete the Firebase address storage system to enable:
+1. **Save addresses from Profile** - Store addresses in `users/{userId}/addresses`
+2. **Select addresses at Checkout** - Dropdown of saved addresses
+3. **Accurate Lalamove Quotes** - Use GPS coordinates for pricing
+
+**Immediate Tasks:**
+- [ ] Create `src/lib/firebase/addresses.ts` service
+- [ ] Create `useFirebaseAddresses` hook
+- [ ] Update profile page to save to Firebase
+- [ ] Update checkout to show saved addresses
 
 ### 🔐 Pre-Deployment Checklist
 - [ ] Enable Geocoding API in Google Cloud Console (fixes map address error)
@@ -945,17 +1366,17 @@ LALAMOVE_HOST=https://rest.sandbox.lalamove.com
 - [ ] Set up Firebase Authentication rules
 - [ ] Test with production Lalamove keys (switch from sandbox)
 
-### 📧 Phase 10: Email Notifications (Optional)
+### 📧 Phase 11: Email Notifications (Future)
 1. **Order Confirmation Emails** - Send via SendGrid/Resend
 2. **Status Update Emails** - When order shipped/delivered
 3. **Marketing Emails** - Promotions, abandoned cart
 
-### 💳 Phase 11: Payment Integration (Future)
+### 💳 Phase 12: Payment Integration (Future)
 1. **GCash Integration** - Via PayMongo/GCash API
 2. **Credit Card** - Via PayMongo/Stripe
 3. **Payment Status Updates** - Real-time webhook handling
 
-### 📱 Phase 12: Mobile Optimization (Future)
+### 📱 Phase 13: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
@@ -966,7 +1387,7 @@ LALAMOVE_HOST=https://rest.sandbox.lalamove.com
 
 | Service | Purpose | Status | Console Link |
 |---------|---------|--------|--------------|
-| **Firebase** | Auth, Cart, Orders, Notifications | ✅ Configured | [Firebase Console](https://console.firebase.google.com/) |
+| **Firebase** | Auth, Cart, Orders, Notifications, Addresses | ✅ Configured | [Firebase Console](https://console.firebase.google.com/) |
 | **Google Maps** | Address picker, delivery tracking | ⚠️ Enable Geocoding API | [Google Cloud Console](https://console.cloud.google.com/apis/library) |
 | **Lalamove** | Delivery quotes, order creation | ✅ Sandbox configured | [Lalamove Business](https://www.lalamove.com/ph/business) |
 | **Sanity CMS** | Products, content | ✅ Configured | [Sanity Manage](https://sanity.io/manage) |
@@ -974,6 +1395,7 @@ LALAMOVE_HOST=https://rest.sandbox.lalamove.com
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 5.0  
+**Version:** 6.0  
 **Build Status:** ✅ Passing  
+**Current Focus:** Phase 10 - User Profile & Addresses  
 **Deployment:** Ready for Vercel

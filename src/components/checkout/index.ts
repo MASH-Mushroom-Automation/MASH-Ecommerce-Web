@@ -3,6 +3,7 @@
  */
 
 export { AddressPicker, type SelectedAddress } from "./AddressPicker";
+export { AddressSelector, type AddressSelectorProps } from "./AddressSelector";
 export {
   LalamoveQuote,
   MASH_PICKUP_LOCATION,
