@@ -841,34 +841,6 @@ export class FirebaseOrdersService {
   }
 
   /**
-   * Update payment status
-   */
-  static async updatePaymentStatus(
-    orderId: string,
-    paymentStatus: "pending" | "paid" | "failed" | "refunded"
-  ): Promise<void> {
-    try {
-      const orderRef = doc(db, this.COLLECTION, orderId);
-      await setDoc(
-        orderRef,
-        {
-          paymentStatus,
-          updatedAt: Timestamp.now(),
-        },
-        { merge: true }
-      );
-
-      console.log("[FirebaseOrdersService] Payment status updated:", {
-        orderId,
-        paymentStatus,
-      });
-    } catch (error) {
-      console.error("[FirebaseOrdersService] Error updating payment status:", error);
-      throw error;
-    }
-  }
-
-  /**
    * Cancel order (customer or admin)
    */
   static async cancelOrder(
@@ -923,4 +895,79 @@ export class FirebaseOrdersService {
       throw error;
     }
   }
+
+  /**
+   * Update order payment status
+   * Called by payment webhooks to update payment state
+   */
+  static async updatePaymentStatus(
+    orderId: string,
+    paymentData: {
+      status: "pending" | "paid" | "failed" | "processing" | "refunded";
+      paymentId?: string;
+      paymentIntentId?: string;
+      sourceId?: string;
+      paidAt?: string;
+      failedAt?: string;
+    }
+  ): Promise<void> {
+    try {
+      const orderRef = doc(db, this.COLLECTION, orderId);
+      const orderSnap = await getDoc(orderRef);
+
+      if (!orderSnap.exists()) {
+        console.error("[FirebaseOrdersService] Order not found for payment update:", orderId);
+        return;
+      }
+
+      const updateData: Record<string, unknown> = {
+        paymentStatus: paymentData.status,
+        updatedAt: Timestamp.now(),
+      };
+
+      // Add payment IDs if provided
+      if (paymentData.paymentId) {
+        updateData["payment.paymentId"] = paymentData.paymentId;
+      }
+      if (paymentData.paymentIntentId) {
+        updateData["payment.paymentIntentId"] = paymentData.paymentIntentId;
+      }
+      if (paymentData.sourceId) {
+        updateData["payment.sourceId"] = paymentData.sourceId;
+      }
+      if (paymentData.paidAt) {
+        updateData["payment.paidAt"] = paymentData.paidAt;
+      }
+      if (paymentData.failedAt) {
+        updateData["payment.failedAt"] = paymentData.failedAt;
+      }
+
+      await setDoc(orderRef, updateData, { merge: true });
+
+      console.log(
+        `[FirebaseOrdersService] Payment status updated for order ${orderId}: ${paymentData.status}`
+      );
+    } catch (error) {
+      console.error("[FirebaseOrdersService] Error updating payment status:", error);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Standalone function to update order payment status
+ * For use in webhook handlers
+ */
+export async function updateOrderPaymentStatus(
+  orderId: string,
+  paymentData: {
+    status: "pending" | "paid" | "failed" | "processing" | "refunded";
+    paymentId?: string;
+    paymentIntentId?: string;
+    sourceId?: string;
+    paidAt?: string;
+    failedAt?: string;
+  }
+): Promise<void> {
+  return FirebaseOrdersService.updatePaymentStatus(orderId, paymentData);
 }

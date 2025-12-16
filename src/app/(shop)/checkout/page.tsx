@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { MapPin, Truck, Package } from "lucide-react";
+import { MapPin, Truck, Package, CreditCard, Wallet, Banknote } from "lucide-react";
 import {
   AddressPicker,
   LalamoveQuote,
@@ -56,6 +56,9 @@ type Step1FormValues = z.infer<typeof step1Schema>;
 type Step2FormValues = z.infer<typeof step2Schema>;
 type Step3FormValues = z.infer<typeof step3Schema>;
 
+// Payment configuration - check if PayMongo is available
+const PAYMONGO_ENABLED = !!process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY;
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, summary, clearCart } = useCart();
@@ -73,6 +76,7 @@ export default function CheckoutPage() {
   const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -181,6 +185,47 @@ export default function CheckoutPage() {
     setCurrentStep(3);
   };
 
+  /**
+   * Process payment via PayMongo
+   */
+  const processPayment = async (
+    paymentMethod: "gcash" | "card",
+    orderId: string,
+    orderNumber: string,
+    amount: number
+  ): Promise<{ success: boolean; checkoutUrl?: string; error?: string }> => {
+    try {
+      const response = await fetch("/api/payment/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethod,
+          amount,
+          orderId,
+          orderNumber,
+          customerEmail: step2Data?.email,
+          customerName: step2Data?.name,
+          customerPhone: step2Data?.phone,
+          description: `MASH Order ${orderNumber}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return { success: false, error: data.error || "Payment failed" };
+      }
+
+      return {
+        success: true,
+        checkoutUrl: data.checkoutUrl,
+      };
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      return { success: false, error: "Payment service unavailable" };
+    }
+  };
+
   const onStep3Submit = async (data: Step3FormValues) => {
     if (!step1Data || !step2Data) return;
     if (!userIsAuthenticated || !user?.id) {
@@ -229,13 +274,53 @@ export default function CheckoutPage() {
         paymentMethod: data.paymentMethod,
       };
 
+      // Create the order first
       const newOrderId = await FirebaseOrdersService.createOrder(orderData);
       setOrderId(newOrderId);
+      const orderNumber = newOrderId.slice(-8).toUpperCase();
 
-      // Send order confirmation email (non-blocking)
+      // Handle online payments (GCash, Card)
+      if (data.paymentMethod === "gcash" || data.paymentMethod === "card") {
+        setPaymentProcessing(true);
+
+        const paymentResult = await processPayment(
+          data.paymentMethod,
+          newOrderId,
+          orderNumber,
+          totalWithDelivery
+        );
+
+        if (!paymentResult.success) {
+          setError(paymentResult.error || "Payment failed. Please try again.");
+          setPaymentProcessing(false);
+          return;
+        }
+
+        // For GCash/GrabPay, redirect to payment page
+        if (paymentResult.checkoutUrl) {
+          // Save pending order info for when user returns
+          sessionStorage.setItem("pendingOrder", JSON.stringify({
+            orderId: newOrderId,
+            orderNumber,
+            customerEmail: step2Data.email,
+            customerName: step2Data.name,
+          }));
+
+          // Clear cart before redirect
+          clearCart();
+
+          // Redirect to payment provider
+          window.location.href = paymentResult.checkoutUrl;
+          return;
+        }
+
+        setPaymentProcessing(false);
+      }
+
+      // For COD orders or after successful payment, send confirmation email
       sendOrderConfirmationEmail(step2Data.email, {
         customerName: step2Data.name,
-        orderNumber: newOrderId.slice(-8).toUpperCase(),
+        orderNumber: orderNumber,
         orderId: newOrderId,
         items: items.map((item) => ({
           name: item.name,
@@ -266,6 +351,7 @@ export default function CheckoutPage() {
       );
     } finally {
       setSubmitting(false);
+      setPaymentProcessing(false);
     }
   };
 
@@ -763,6 +849,7 @@ export default function CheckoutPage() {
                                 />
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
+                                    <Banknote className="h-5 w-5 text-primary" />
                                     <div className={cn(
                                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
                                       field.value === "cod" ? "border-primary" : "border-muted-foreground"
@@ -787,35 +874,113 @@ export default function CheckoutPage() {
                                 </p>
                               </label>
 
-                              <div className="block border-2 rounded-lg p-4 cursor-not-allowed transition-colors border-border bg-muted/30 opacity-60">
+                              {/* GCash Payment Option */}
+                              <label
+                                className={cn(
+                                  "block border-2 rounded-lg p-4 transition-colors",
+                                  PAYMONGO_ENABLED
+                                    ? field.value === "gcash"
+                                      ? "border-primary bg-primary/5 cursor-pointer"
+                                      : "border-border hover:border-primary/50 cursor-pointer"
+                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  value="gcash"
+                                  checked={field.value === "gcash"}
+                                  onChange={() => PAYMONGO_ENABLED && field.onChange("gcash")}
+                                  disabled={!PAYMONGO_ENABLED}
+                                  className="sr-only"
+                                />
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/50" />
-                                    <div className="font-medium text-muted-foreground">GCash</div>
+                                    <Wallet className="h-5 w-5 text-blue-500" />
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      field.value === "gcash" ? "border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {field.value === "gcash" && (
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                    <div className={cn(
+                                      "font-medium",
+                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
+                                    )}>
+                                      GCash
+                                    </div>
                                   </div>
-                                  <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
-                                    Coming Soon
+                                  <span className={cn(
+                                    "text-xs font-medium px-2 py-1 rounded",
+                                    PAYMONGO_ENABLED
+                                      ? "text-green-600 bg-green-50"
+                                      : "text-amber-600 bg-amber-50"
+                                  )}>
+                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
                                   </span>
                                 </div>
-                                <p className="text-sm text-muted-foreground/70 mt-2 ml-7">
-                                  Pay using your GCash e-wallet
+                                <p className={cn(
+                                  "text-sm mt-2 ml-7",
+                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
+                                )}>
+                                  Pay instantly using your GCash e-wallet
                                 </p>
-                              </div>
+                              </label>
 
-                              <div className="block border-2 rounded-lg p-4 cursor-not-allowed transition-colors border-border bg-muted/30 opacity-60">
+                              {/* Credit/Debit Card Payment Option */}
+                              <label
+                                className={cn(
+                                  "block border-2 rounded-lg p-4 transition-colors",
+                                  PAYMONGO_ENABLED
+                                    ? field.value === "card"
+                                      ? "border-primary bg-primary/5 cursor-pointer"
+                                      : "border-border hover:border-primary/50 cursor-pointer"
+                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  value="card"
+                                  checked={field.value === "card"}
+                                  onChange={() => PAYMONGO_ENABLED && field.onChange("card")}
+                                  disabled={!PAYMONGO_ENABLED}
+                                  className="sr-only"
+                                />
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/50" />
-                                    <div className="font-medium text-muted-foreground">Credit/Debit Cards</div>
+                                    <CreditCard className="h-5 w-5 text-purple-500" />
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      field.value === "card" ? "border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {field.value === "card" && (
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                    <div className={cn(
+                                      "font-medium",
+                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
+                                    )}>
+                                      Credit/Debit Card
+                                    </div>
                                   </div>
-                                  <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
-                                    Coming Soon
+                                  <span className={cn(
+                                    "text-xs font-medium px-2 py-1 rounded",
+                                    PAYMONGO_ENABLED
+                                      ? "text-green-600 bg-green-50"
+                                      : "text-amber-600 bg-amber-50"
+                                  )}>
+                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
                                   </span>
                                 </div>
-                                <p className="text-sm text-muted-foreground/70 mt-2 ml-7">
-                                  Pay using Visa, Mastercard, or other cards
+                                <p className={cn(
+                                  "text-sm mt-2 ml-7",
+                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
+                                )}>
+                                  Pay securely with Visa, Mastercard, or other cards
                                 </p>
-                              </div>
+                              </label>
                             </FormItem>
                           )}
                         />
@@ -873,17 +1038,30 @@ export default function CheckoutPage() {
                         variant="outline"
                         className="w-full sm:w-auto px-8 py-3 border-border"
                         onClick={handleBack}
-                        disabled={submitting}
+                        disabled={submitting || paymentProcessing}
                       >
                         Back
                       </Button>
                       <Button
                         type="submit"
                         className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-                        disabled={submitting || items.length === 0}
+                        disabled={submitting || paymentProcessing || items.length === 0}
                         onClick={step3Form.handleSubmit(onStep3Submit)}
                       >
-                        {submitting ? "Processing..." : "Place Order"}
+                        {paymentProcessing ? (
+                          <>
+                            <LoadingSpinner className="mr-2 h-4 w-4" />
+                            Processing Payment...
+                          </>
+                        ) : submitting ? (
+                          "Creating Order..."
+                        ) : step3Form.watch("paymentMethod") === "gcash" ? (
+                          "Pay with GCash"
+                        ) : step3Form.watch("paymentMethod") === "card" ? (
+                          "Pay with Card"
+                        ) : (
+                          "Place Order"
+                        )}
                       </Button>
                     </div>
                   </>

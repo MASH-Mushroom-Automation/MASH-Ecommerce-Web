@@ -1,9 +1,9 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 8.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Email Notifications)  
+**Version:** 10.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment Integration)  
 **Last Updated:** December 2025  
-**Status:** ALL PHASES COMPLETE ✅ 🎉  
-**Platform:** Next.js 15/16 + Firebase Firestore + Resend Email
+**Status:** Phase 12 Complete ✅  
+**Platform:** Next.js 15/16 + Firebase Firestore + Resend Email + PayMongo
 
 ---
 
@@ -54,6 +54,9 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **Notifications** | Header bell icon | Real-time Firebase notifications |
 | **Order Alerts** | Auto-triggered | Notifications on order status changes |
 | **📧 Email Notifications** | Automatic | Professional order emails via Resend |
+| **💳 Payment (GCash)** | Checkout Step 3 | PayMongo GCash e-wallet integration |
+| **💳 Payment (Cards)** | Checkout Step 3 | PayMongo Credit/Debit card integration |
+| **Payment Status** | Webhooks | Real-time payment status updates |
 
 ### Order Status Flow
 ```
@@ -115,11 +118,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 8 | Delivery Tracking | ✅ Complete | 100% | Lalamove tracking, driver info |
 | 9 | Notifications System | ✅ Complete | 100% | Real-time Firebase notifications |
 | 10 | User Profile & Addresses | ✅ Complete | 100% | Firebase address storage, checkout integration |
-| **11** | **Email Notifications** | **✅ Complete** | **100%** | **Order emails via Resend** |
+| 11 | Email Notifications | ✅ Complete | 100% | Order emails via Resend |
+| **12** | **Payment Integration** | **✅ Complete** | **100%** | **GCash, Cards via PayMongo** |
 
 ### Progress Bar
 ```
-[████████████████████████████████████████████████████] 100% Complete (11/11 Phases) 🎉
+[████████████████████████████████████████████████████] 100% Complete (12/12 Phases)
 ```
 
 ---
@@ -1644,10 +1648,69 @@ EMAIL_FROM_NAME=MASH Fresh Mushrooms
 - [ ] Verify all environment variables in Vercel
 - [ ] Set up Resend domain verification for production emails
 
-### 💳 Phase 12: Payment Integration (Future)
-1. **GCash Integration** - Via PayMongo/GCash API
-2. **Credit Card** - Via PayMongo/Stripe
-3. **Payment Status Updates** - Real-time webhook handling
+### 💳 Phase 12: Payment Integration ✅ COMPLETE
+**Implementation:** PayMongo API for Philippine e-wallet and card payments
+
+#### Files Created
+```
+src/lib/payment/
+├── paymongo.ts          # PayMongo service (GCash, GrabPay, Cards)
+└── index.ts             # Module exports
+
+src/app/api/payment/
+├── create-intent/route.ts   # Create payment intents/sources
+├── status/route.ts          # Check payment status
+└── webhook/route.ts         # PayMongo webhook handler
+
+src/app/(shop)/checkout/
+├── payment-success/page.tsx # Payment success page
+└── payment-failed/page.tsx  # Payment failed page
+```
+
+#### Payment Methods Supported
+| Method | Type | Status | Description |
+|--------|------|--------|-------------|
+| **COD** | Cash | ✅ Available | Cash on Pickup/Delivery |
+| **GCash** | E-wallet | ✅ Available | PayMongo Source API |
+| **Card** | Credit/Debit | ✅ Available | PayMongo Payment Intent API |
+
+#### Environment Variables Required
+```env
+# PayMongo API Keys
+PAYMONGO_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
+PAYMONGO_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
+```
+
+#### Payment Flow
+```
+1. User selects payment method at checkout
+   └── COD: Order created with status=pending_approval
+   └── GCash/Card: Create PayMongo source/intent
+
+2. For GCash:
+   └── PayMongo returns checkout_url
+   └── User redirected to GCash authorization
+   └── User authorizes payment in GCash app
+   └── Redirected to /checkout/payment-success
+
+3. For Card:
+   └── PayMongo returns payment_intent
+   └── Card details collected via PayMongo.js
+   └── 3D Secure handled automatically
+   └── Redirected to success/failure page
+
+4. Webhook receives payment status
+   └── source.chargeable → Create payment
+   └── payment.paid → Update order to paid
+   └── payment.failed → Update order to failed
+```
+
+#### Checkout Page Updates
+- Added payment method selection UI with icons
+- Button text changes based on payment method
+- Processing spinner during payment
+- Session storage for pending order info
 
 ### 📱 Phase 13: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
@@ -1669,12 +1732,13 @@ EMAIL_FROM_NAME=MASH Fresh Mushrooms
 | **Google Maps** | Address picker, delivery tracking | ⚠️ Enable Geocoding API | [Google Cloud Console](https://console.cloud.google.com/apis/library) |
 | **Lalamove** | Delivery quotes, order creation | ✅ Sandbox configured | [Lalamove Business](https://www.lalamove.com/ph/business) |
 | **Sanity CMS** | Products, content | ✅ Configured | [Sanity Manage](https://sanity.io/manage) |
-| **Resend** | Email notifications | ⏳ Phase 11 | [Resend Dashboard](https://resend.com/dashboard) |
+| **Resend** | Email notifications | ✅ Configured | [Resend Dashboard](https://resend.com/dashboard) |
+| **PayMongo** | Payment processing (GCash, Cards) | ✅ Configured | [PayMongo Dashboard](https://dashboard.paymongo.com/) |
 
 ---
 
-**Last Updated:** December 16, 2025  
-**Version:** 8.0  
+**Last Updated:** December 2025  
+**Version:** 10.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** Phase 11 - Email Notifications  
+**Current Focus:** All 12 Phases Complete 🎉  
 **Deployment:** Ready for Vercel
