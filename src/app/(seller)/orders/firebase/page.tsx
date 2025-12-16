@@ -24,6 +24,8 @@ import {
   X,
   AlertCircle,
   MapPin,
+  ExternalLink,
+  Navigation,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirebaseOrders } from "@/hooks/useFirebaseOrders";
-import { type FirestoreOrder, type OrderStatus } from "@/lib/firebase/orders";
+import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -171,13 +173,70 @@ export default function FirebaseOrdersPage() {
     }
 
     setProcessingAction(order.id);
-    const success = await approveOrder(order.id, user.id);
-    setProcessingAction(null);
+    
+    try {
+      // First approve the order
+      const success = await approveOrder(order.id, user.id);
+      
+      if (!success) {
+        toast.error("Failed to approve order");
+        setProcessingAction(null);
+        return;
+      }
 
-    if (success) {
       toast.success(`Order ${order.orderNumber} approved!`);
-    } else {
-      toast.error("Failed to approve order");
+
+      // If this is a Lalamove delivery order, schedule the delivery
+      if (order.deliveryMethod === "lalamove" && order.deliveryAddress) {
+        toast.loading("Scheduling Lalamove delivery...", { id: "lalamove-schedule" });
+
+        try {
+          const response = await fetch("/api/orders/schedule-delivery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              quotationId: order.lalamoveQuotationId,
+              customer: {
+                name: order.userName,
+                phone: order.userPhone,
+              },
+              deliveryAddress: {
+                lat: order.deliveryAddress.lat,
+                lng: order.deliveryAddress.lng,
+                address: order.deliveryAddress.address,
+              },
+              items: order.items,
+              total: order.total,
+              paymentMethod: order.paymentMethod,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            // Save Lalamove order ID to Firebase
+            await FirebaseOrdersService.setLalamoveOrderId(
+              order.id,
+              data.data.lalamoveOrderId,
+              data.data.shareLink
+            );
+            
+            toast.success("Lalamove delivery scheduled!", { id: "lalamove-schedule" });
+          } else {
+            toast.error(`Delivery scheduling failed: ${data.message}`, { id: "lalamove-schedule" });
+          }
+        } catch (deliveryError) {
+          console.error("Lalamove scheduling error:", deliveryError);
+          toast.error("Failed to schedule Lalamove delivery. You can retry manually.", { id: "lalamove-schedule" });
+        }
+      }
+    } catch (error) {
+      console.error("Approve error:", error);
+      toast.error("An error occurred while approving the order");
+    } finally {
+      setProcessingAction(null);
     }
   };
 
@@ -709,6 +768,48 @@ function OrderDetailDialog({
               )}
             </div>
           </div>
+
+          {/* Lalamove Tracking Info */}
+          {order.lalamoveOrderId && (
+            <div>
+              <h4 className="font-semibold mb-2">Delivery Tracking</h4>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">Lalamove Order</span>
+                  </div>
+                  <Badge variant="outline" className="text-green-700 border-green-300">
+                    {order.lalamoveTracking?.status || "ASSIGNING_DRIVER"}
+                  </Badge>
+                </div>
+                
+                {order.lalamoveTracking?.driverName && (
+                  <div className="text-sm">
+                    <p><span className="text-muted-foreground">Driver:</span> {order.lalamoveTracking.driverName}</p>
+                    {order.lalamoveTracking.driverPlateNumber && (
+                      <p><span className="text-muted-foreground">Plate:</span> {order.lalamoveTracking.driverPlateNumber}</p>
+                    )}
+                    {order.lalamoveTracking.driverPhone && (
+                      <p><span className="text-muted-foreground">Phone:</span> {order.lalamoveTracking.driverPhone}</p>
+                    )}
+                  </div>
+                )}
+
+                {order.lalamoveTracking?.shareLink && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                    onClick={() => window.open(order.lalamoveTracking?.shareLink, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Track on Lalamove
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Order Items */}
           <div>

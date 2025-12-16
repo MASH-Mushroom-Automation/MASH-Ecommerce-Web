@@ -108,6 +108,25 @@ export interface FirestoreOrder {
   lalamoveQuotationId?: string;
   lalamoveOrderId?: string;
 
+  // Lalamove Tracking (Phase 8)
+  lalamoveTracking?: {
+    status: string;
+    shareLink?: string;
+    driverId?: string;
+    driverName?: string;
+    driverPhone?: string;
+    driverPlateNumber?: string;
+    driverPhoto?: string;
+    driverLocation?: {
+      lat: number;
+      lng: number;
+      updatedAt: Timestamp;
+    };
+    pickupEta?: string;
+    deliveryEta?: string;
+    lastUpdated?: Timestamp;
+  };
+
   // Payment
   paymentMethod: "cod" | "gcash" | "card";
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
@@ -597,7 +616,8 @@ export class FirebaseOrdersService {
    */
   static async setLalamoveOrderId(
     orderId: string,
-    lalamoveOrderId: string
+    lalamoveOrderId: string,
+    shareLink?: string
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
@@ -605,6 +625,11 @@ export class FirebaseOrdersService {
         orderRef,
         {
           lalamoveOrderId,
+          lalamoveTracking: {
+            status: "ASSIGNING_DRIVER",
+            shareLink,
+            lastUpdated: Timestamp.now(),
+          },
           updatedAt: Timestamp.now(),
         },
         { merge: true }
@@ -616,6 +641,74 @@ export class FirebaseOrdersService {
       });
     } catch (error) {
       console.error("[FirebaseOrdersService] Error setting Lalamove order ID:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update Lalamove tracking info
+   */
+  static async updateLalamoveTracking(
+    orderId: string,
+    tracking: {
+      status?: string;
+      driverId?: string;
+      driverName?: string;
+      driverPhone?: string;
+      driverPlateNumber?: string;
+      driverPhoto?: string;
+      driverLocation?: { lat: number; lng: number };
+      pickupEta?: string;
+      deliveryEta?: string;
+    }
+  ): Promise<void> {
+    try {
+      const orderRef = doc(db, this.COLLECTION, orderId);
+      const updateData: Record<string, unknown> = {
+        updatedAt: Timestamp.now(),
+      };
+
+      // Build tracking update
+      const trackingUpdate: Record<string, unknown> = {
+        lastUpdated: Timestamp.now(),
+      };
+
+      if (tracking.status) trackingUpdate.status = tracking.status;
+      if (tracking.driverId) trackingUpdate.driverId = tracking.driverId;
+      if (tracking.driverName) trackingUpdate.driverName = tracking.driverName;
+      if (tracking.driverPhone) trackingUpdate.driverPhone = tracking.driverPhone;
+      if (tracking.driverPlateNumber) trackingUpdate.driverPlateNumber = tracking.driverPlateNumber;
+      if (tracking.driverPhoto) trackingUpdate.driverPhoto = tracking.driverPhoto;
+      if (tracking.pickupEta) trackingUpdate.pickupEta = tracking.pickupEta;
+      if (tracking.deliveryEta) trackingUpdate.deliveryEta = tracking.deliveryEta;
+      if (tracking.driverLocation) {
+        trackingUpdate.driverLocation = {
+          lat: tracking.driverLocation.lat,
+          lng: tracking.driverLocation.lng,
+          updatedAt: Timestamp.now(),
+        };
+      }
+
+      // Merge with existing tracking
+      const orderSnap = await getDoc(orderRef);
+      if (orderSnap.exists()) {
+        const existingOrder = orderSnap.data() as FirestoreOrder;
+        updateData.lalamoveTracking = {
+          ...existingOrder.lalamoveTracking,
+          ...trackingUpdate,
+        };
+      } else {
+        updateData.lalamoveTracking = trackingUpdate;
+      }
+
+      await setDoc(orderRef, updateData, { merge: true });
+
+      console.log("[FirebaseOrdersService] Lalamove tracking updated:", {
+        orderId,
+        status: tracking.status,
+      });
+    } catch (error) {
+      console.error("[FirebaseOrdersService] Error updating Lalamove tracking:", error);
       throw error;
     }
   }
