@@ -80,7 +80,7 @@ export default function SellerSettings() {
   const [seoData, setSeoData] = useState<SEOFormData>({
     metaTitle: "",
     metaDescription: "",
-    metaKeywords: "",
+    metaKeywords: [],
   });
   const [showPreview, setShowPreview] = useState(false);
   const [storeProfile, setStoreProfile] = useState<Partial<SellerProfile>>({});

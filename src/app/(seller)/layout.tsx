@@ -59,7 +59,7 @@ export default function SellerLayout({
         className="flex w-full"
         style={{ minHeight: "calc(100vh - var(--seller-header-height, 88px))" }}
       >
-        <SellerSidebar className="md:top-[calc(var(--seller-header-height,88px)+3px)] md:h-[calc(100vh-var(--seller-header-height,88px)-2px)] md:p-0" />
+        <SellerSidebar className="md:top-[calc(var(--seller-header-height,88px)+3px)] md:h-[calc(100vh-var(--seller-header-height,88px)-2px)] md:p-0" data-tour="sidebar-nav" />
         <SidebarInset
           className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none"
           style={{ minHeight: "calc(100vh - var(--seller-header-height, 88px))" }}

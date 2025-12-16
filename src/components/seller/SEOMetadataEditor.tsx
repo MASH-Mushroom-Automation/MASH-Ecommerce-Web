@@ -23,18 +23,18 @@ interface SEOMetadataEditorProps {
 export function SEOMetadataEditor({ seo, onChange, storeName }: SEOMetadataEditorProps) {
   const [keywordInput, setKeywordInput] = React.useState('');
 
-  const keywords = seo.metaKeywords ? seo.metaKeywords.split(',').map(k => k.trim()).filter(Boolean) : [];
+  const keywords = seo.metaKeywords || [];
 
   const addKeyword = () => {
     if (!keywordInput.trim()) return;
     const newKeywords = [...keywords, keywordInput.trim()];
-    onChange({ ...seo, metaKeywords: newKeywords.join(', ') });
+    onChange({ ...seo, metaKeywords: newKeywords });
     setKeywordInput('');
   };
 
   const removeKeyword = (index: number) => {
     const newKeywords = keywords.filter((_, i) => i !== index);
-    onChange({ ...seo, metaKeywords: newKeywords.join(', ') });
+    onChange({ ...seo, metaKeywords: newKeywords });
   };
 
   return (

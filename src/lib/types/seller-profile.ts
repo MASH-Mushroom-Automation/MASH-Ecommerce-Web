@@ -224,7 +224,7 @@ export interface SocialMediaFormData {
 export interface SEOFormData {
   metaTitle: string;
   metaDescription: string;
-  metaKeywords: string;
+  metaKeywords: string[];
   ogTitle?: string;
   ogDescription?: string;
   twitterTitle?: string;

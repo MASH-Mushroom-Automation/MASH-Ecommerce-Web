@@ -11,6 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TutorialManager } from "@/components/seller/TutorialManager";
+import { HelpMenu } from "@/components/seller/HelpMenu";
 import {
   Table,
   TableBody,
@@ -60,7 +62,10 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div>
+    <div data-tour="dashboard">
+      <TutorialManager userId="seller-123" />
+      <HelpMenu userId="seller-123" variant="fixed" />
+      
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <div className="text-sm text-muted-foreground">
@@ -69,7 +74,7 @@ export default function SellerDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" data-tour="stats-cards" data-tooltip="stats-cards">
         <StatsCard
           title="Total Sales"
           value={`₱${stats?.totalSales.toLocaleString() || "0"}`}
@@ -106,10 +111,12 @@ export default function SellerDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ChartBarDefault data={salesData.map(item => ({
-          month: item.name,
-          desktop: item.sales
-        }))} />
+        <div data-tour="sales-chart" data-tooltip="sales-chart">
+          <ChartBarDefault data={salesData.map(item => ({
+            month: item.name,
+            desktop: item.sales
+          }))} />
+        </div>
 
         <LineChartDefault data={[
           { month: "May", desktop: 24000 },
@@ -182,7 +189,7 @@ export default function SellerDashboard() {
       </Card>
 
       {/* Recent Orders */}
-      <Card>
+      <Card data-tour="recent-orders">
         <CardHeader>
           <CardTitle className="text-lg">Recent Orders</CardTitle>
           <CardDescription>
