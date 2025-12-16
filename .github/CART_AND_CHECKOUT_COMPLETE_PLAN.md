@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 12.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment & Gmail SMTP)  
+**Version:** 13.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 13 Complete ✅ (Gmail SMTP + End-to-End Verified)  
+**Status:** Phase 14 Complete ✅ (Wishlist & Auth Improvements)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove
 
 ---
@@ -58,6 +58,8 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **💳 Payment (GCash)** | Checkout Step 3 | PayMongo GCash e-wallet integration |
 | **💳 Payment (Cards)** | Checkout Step 3 | PayMongo Credit/Debit card integration |
 | **Payment Status** | Webhooks | Real-time payment status updates |
+| **❤️ Wishlist** | `/wishlist` | localStorage persistence, Add All to Cart |
+| **🔐 Auth & Sign-Out** | All pages | Complete data clearing on logout |
 
 ### Order Status Flow
 ```
@@ -121,12 +123,13 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 10 | User Profile & Addresses | ✅ Complete | 100% | Firebase address storage, checkout integration |
 | 11 | Email Notifications | ✅ Complete | 100% | Order emails via Gmail SMTP (Nodemailer) |
 | 12 | Payment Integration | ✅ Complete | 100% | GCash, Cards via PayMongo |
-| **13** | **Gmail SMTP & E2E Test** | **✅ Complete** | **100%** | **Gmail SMTP verified, client-safe imports** |
+| 13 | Gmail SMTP & E2E Test | ✅ Complete | 100% | Gmail SMTP verified, client-safe imports |
+| **14** | **Wishlist & Auth Fixes** | **✅ Complete** | **100%** | **Wishlist localStorage, sign-out cleanup** |
 
 ### Progress Bar
 
 ```
-[█████████████████████████████████████████████████████] 100% Complete (13/13 Phases)
+[██████████████████████████████████████████████████████████] 100% Complete (14/14 Phases)
 ```
 
 ---
@@ -1810,7 +1813,47 @@ Run email test: `node scripts/test-gmail-email.js`
 | `order_shipped` | Lalamove pickup | OrderShippedEmail |
 | `order_delivered` | Delivery complete | OrderDeliveredEmail |
 
-### 📱 Phase 14: Mobile Optimization (Future)
+### 📱 Phase 14: Wishlist & Auth Improvements ✅
+
+#### 14.1 Wishlist Functionality Fixed
+- **Guest Wishlist**: Removed authentication requirement - works for all users
+- **localStorage Persistence**: Items saved to `mash-wishlist` key
+- **Toast Notifications**: Feedback on add/remove actions
+- **Cross-Tab Sync**: Storage event listener for multi-tab updates
+
+**Files Modified:**
+```
+src/components/product/ProductCard.tsx    # Removed auth check, added toast
+src/contexts/WishlistContext.tsx          # Added useCallback, storage listener
+src/app/(shop)/wishlist/page.tsx          # Enhanced UI, Add All to Cart
+```
+
+#### 14.2 Sign-Out Data Clearing
+- **Complete localStorage Clear**: user, refreshToken, mash-wishlist, mash-cart, cart
+- **Session Storage Clear**: pendingVerificationEmail, resetPasswordEmail, google_auth_redirect
+- **React State Clear**: profile, wishlistIds, cart items, isLoggedIn
+- **Firebase Sign-Out**: Automatic sign-out from Firebase Auth
+
+**Files Modified:**
+```
+src/lib/auth.ts                           # Comprehensive logout() function
+src/hooks/useUser.ts                      # Added clearProfile() function
+src/components/layout/header.tsx          # Call clearProfile on logout
+src/app/(user)/profile/layout.tsx         # Added context clearing on logout
+```
+
+#### 14.3 Profile Image Persistence Fix
+- **Auth State Listener**: useUserProfile listens for storage changes
+- **Visibility Change**: Re-check auth on tab focus
+- **Immediate Clear**: clearProfile() clears in-memory state immediately
+
+#### 14.4 Wishlist Page Improvements
+- **Add All to Cart**: Bulk add all in-stock items to cart
+- **Quick Remove Button**: Hover to show remove on each card
+- **Responsive Grid**: 2-col mobile, 3-col tablet, 4-col desktop
+- **Enhanced Header**: Heart icon, item count, action buttons
+
+### 📱 Phase 15: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
@@ -1836,7 +1879,7 @@ Run email test: `node scripts/test-gmail-email.js`
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 12.0  
+**Version:** 13.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** All 13 Phases Complete (Including Gmail SMTP Migration) 🎉  
+**Current Focus:** All 14 Phases Complete (Including Wishlist & Auth Fixes) 🎉  
 **Deployment:** Ready for Vercel
