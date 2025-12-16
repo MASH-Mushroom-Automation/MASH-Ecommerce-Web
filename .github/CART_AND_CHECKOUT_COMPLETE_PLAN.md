@@ -1,9 +1,9 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 11.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment & Gmail SMTP)  
+**Version:** 12.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment & Gmail SMTP)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 12 Complete ✅ + Gmail SMTP Migration ✅  
-**Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo
+**Status:** Phase 13 Complete ✅ (Gmail SMTP + End-to-End Verified)  
+**Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove
 
 ---
 
@@ -120,11 +120,13 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 9 | Notifications System | ✅ Complete | 100% | Real-time Firebase notifications |
 | 10 | User Profile & Addresses | ✅ Complete | 100% | Firebase address storage, checkout integration |
 | 11 | Email Notifications | ✅ Complete | 100% | Order emails via Gmail SMTP (Nodemailer) |
-| **12** | **Payment Integration** | **✅ Complete** | **100%** | **GCash, Cards via PayMongo** |
+| 12 | Payment Integration | ✅ Complete | 100% | GCash, Cards via PayMongo |
+| **13** | **Gmail SMTP & E2E Test** | **✅ Complete** | **100%** | **Gmail SMTP verified, client-safe imports** |
 
 ### Progress Bar
+
 ```
-[████████████████████████████████████████████████████] 100% Complete (12/12 Phases)
+[█████████████████████████████████████████████████████] 100% Complete (13/13 Phases)
 ```
 
 ---
@@ -1458,6 +1460,19 @@ cd studio && npm run dev
 3. **Admin approval:** Visit `/orders/firebase`, approve the order
 4. **Check history:** Visit `/profile/order-history` to see status update
 
+### Testing Email System
+```bash
+# Test Gmail SMTP connection and send test email
+node scripts/test-gmail-email.js
+```
+
+Expected output:
+```
+✅ SMTP connection verified!
+✅ Email sent successfully!
+🎉 Gmail SMTP is configured correctly!
+```
+
 ### Environment Variables
 ```env
 # Firebase (Required)
@@ -1475,6 +1490,18 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<maps-api-key>
 LALAMOVE_API_KEY=<api-key>
 LALAMOVE_SECRET=<secret>
 LALAMOVE_HOST=https://rest.sandbox.lalamove.com
+
+# Gmail SMTP (Required for email notifications)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password      # App-specific password from Google
+EMAIL_FROM=Your Name <your-email@gmail.com>
+
+# PayMongo (Required for payments)
+NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY=pk_test_xxx
+PAYMONGO_SECRET_KEY=sk_test_xxx
 ```
 
 ---
@@ -1723,12 +1750,72 @@ PAYMONGO_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
 - Processing spinner during payment
 - Session storage for pending order info
 
-### 📱 Phase 13: Mobile Optimization (Future)
+### ✅ Phase 13: Gmail SMTP & End-to-End Testing (COMPLETE)
+
+**Goal:** Migrate from Resend to Gmail SMTP and ensure full buyer flow works.
+
+#### 13.1 Gmail SMTP Migration ✅
+**Files Created:**
+- `src/lib/email/gmail-smtp.ts` - Nodemailer Gmail SMTP client
+- `src/lib/email/client.ts` - Client-safe API wrapper (no Node.js deps)
+
+**Files Updated:**
+- `src/lib/email/send-email.ts` - Uses Gmail SMTP via Nodemailer
+- `src/lib/email/index.ts` - Updated exports for Gmail
+
+**Key Changes:**
+```typescript
+// Server-side (API routes only) - imports nodemailer
+import { sendEmail } from "@/lib/email";
+
+// Client-side (checkout, seller dashboard) - uses fetch API
+import { sendOrderConfirmationEmailViaAPI } from "@/lib/email/client";
+```
+
+#### 13.2 Client Components Fixed ✅
+- `checkout/page.tsx` → `sendOrderConfirmationEmailViaAPI`
+- `checkout/payment-success/page.tsx` → `sendOrderConfirmationEmailViaAPI`
+- `(seller)/orders/firebase/page.tsx` → All `*ViaAPI` functions
+
+**Why This Matters:**
+Nodemailer requires Node.js-only modules (`child_process`, `net`, etc.) which crash Next.js client components. The `client.ts` wrapper calls the API route via `fetch()`, keeping everything browser-safe.
+
+#### 13.3 Environment Configuration ✅
+
+```env
+# Gmail SMTP Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=MASH.Mushroom.Automation@gmail.com
+EMAIL_PASSWORD=rtaeavlpvqaovgix
+EMAIL_FROM=MASH Mushroom Automation <MASH.Mushroom.Automation@gmail.com>
+```
+
+#### 13.4 Test Script ✅
+Run email test: `node scripts/test-gmail-email.js`
+
+```
+✅ SMTP connection verified!
+✅ Email sent successfully!
+🎉 Gmail SMTP is configured correctly!
+```
+
+#### 13.5 Email Types Supported ✅
+| Email Type | Trigger | Template |
+|------------|---------|----------|
+| `order_confirmation` | Order placed | OrderConfirmationEmail |
+| `order_approved` | Admin approves | OrderApprovedEmail |
+| `order_rejected` | Admin rejects | OrderRejectedEmail |
+| `order_shipped` | Lalamove pickup | OrderShippedEmail |
+| `order_delivered` | Delivery complete | OrderDeliveredEmail |
+
+### 📱 Phase 14: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
 
-### 🏪 Phase 14: Multi-Seller Support (Future)
+### 🏪 Phase 15: Multi-Seller Support (Future)
 1. **Seller Onboarding** - Registration flow
 2. **Per-Seller Orders** - Route orders to correct seller
 3. **Seller Dashboard** - Individual seller analytics
@@ -1749,7 +1836,7 @@ PAYMONGO_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 11.0  
+**Version:** 12.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** All 12 Phases Complete + Gmail SMTP Migration 🎉  
+**Current Focus:** All 13 Phases Complete (Including Gmail SMTP Migration) 🎉  
 **Deployment:** Ready for Vercel

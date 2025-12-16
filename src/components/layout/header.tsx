@@ -323,7 +323,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
-  const { profile } = useUserProfile();
+  const { profile, clearProfile } = useUserProfile();
   const { settings } = useSanitySiteSettings();
   const { announcementBar } = useSanityAnnouncementBar();
   const { menu: headerNav, loading: navLoading } = useSanityNavigation('header-main');
@@ -353,7 +353,9 @@ export function Header() {
     try {
       clearWishlist();
       clearCart();
+      clearProfile();
     } catch {}
+    setIsLoggedIn(false);
     router.push("/");
     router.refresh();
     toast.success("Signed out");
