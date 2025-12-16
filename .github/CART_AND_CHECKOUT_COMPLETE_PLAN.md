@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 15.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
+**Version:** 17.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP, Wishlist & Profile Auto-fill)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 16 Complete ✅ (Cart Page & Checkout Flow Verification)  
+**Status:** Phase 17 Complete ✅ (Profile Phone Auto-fill & Order Verification)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove
 
 ---
@@ -61,6 +61,7 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **❤️ Wishlist** | `/wishlist` | localStorage persistence, Add All to Cart |
 | **🔐 Auth & Sign-Out** | All pages | Complete data clearing on logout |
 | **🛒 Cart Page** | `/cart` | Full cart management, order summary |
+| **📱 Profile Auto-fill** | `/checkout` | Phone number auto-fills from profile |
 
 ### Order Status Flow
 ```
@@ -128,11 +129,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **14** | **Wishlist & Auth Fixes** | **✅ Complete** | **100%** | **Wishlist localStorage, sign-out cleanup** |
 | **15** | **Wishlist Type Fix** | **✅ Complete** | **100%** | **TransformedProduct type compatibility** |
 | **16** | **Cart Page & Flow** | **✅ Complete** | **100%** | **Dedicated cart page, public access** |
+| **17** | **Profile Auto-fill & Orders** | **✅ Complete** | **100%** | **Phone auto-fill, order history redirect fix** |
 
 ### Progress Bar
 
 ```
-[██████████████████████████████████████████████████████████] 100% Complete (16/16 Phases)
+[██████████████████████████████████████████████████████████] 100% Complete (17/17 Phases)
 ```
 
 ---
@@ -1973,12 +1975,83 @@ src/app/(shop)/cart/page.tsx        # New cart page with full features
 middleware.ts                        # Added /cart to publicRoutes
 ```
 
-### 📱 Phase 17: Mobile Optimization (Future)
+---
+
+## 📱 Phase 17: Profile Auto-fill & Order Verification ✅
+
+### 17.1 Phone Number Auto-fill
+Added phone field to `AuthUser` type for checkout auto-fill:
+
+```typescript
+// src/contexts/AuthContext.tsx
+export interface AuthUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  phone?: string; // NEW: Phone number for checkout auto-fill
+  photoURL?: string;
+  avatar?: string;
+  provider: "firebase" | "email";
+  emailVerified: boolean;
+}
+```
+
+### 17.2 Checkout Pre-fill Enhancement
+Step 2 (Contact Information) now auto-fills phone from user profile:
+
+```typescript
+// src/app/(shop)/checkout/page.tsx
+import { useUserProfile } from "@/hooks/useUser";
+
+// In component:
+const { profile } = useUserProfile();
+
+// Pre-fill form with profile phone
+useEffect(() => {
+  if (userIsAuthenticated && user) {
+    const phoneNumber = profile?.phone || user.phone || "";
+    step2Form.reset({
+      name: user.displayName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
+      email: user.email || "",
+      phone: phoneNumber,
+    });
+  }
+}, [userIsAuthenticated, user, profile, step2Form]);
+```
+
+### 17.3 Order History Redirect Fix
+Fixed "View Orders" button to redirect to correct page:
+
+```typescript
+// Before: router.push("/profile/orders")     ❌ 404
+// After:  router.push("/profile/order-history") ✅ Works
+```
+
+### 17.4 Order Placement Verification
+Verified Firebase order creation flow:
+
+1. **Order Data** - Full order object saved to Firestore
+2. **Order Number** - Generated: `MASH-YYYYMMDD-XXX`
+3. **Status** - Initial: `pending_approval`
+4. **Notification** - Sent via `FirebaseNotificationsService`
+5. **Email** - Sent via Gmail SMTP (Nodemailer)
+
+**Files Modified:**
+```
+src/contexts/AuthContext.tsx                    # Added phone to AuthUser
+src/app/(shop)/checkout/page.tsx               # Profile auto-fill + order history fix
+```
+
+---
+
+## 🚀 Phase 18: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
 
-### 🏪 Phase 18: Multi-Seller Support (Future)
+### 🏪 Phase 19: Multi-Seller Support (Future)
 1. **Seller Onboarding** - Registration flow
 2. **Per-Seller Orders** - Route orders to correct seller
 3. **Seller Dashboard** - Individual seller analytics
@@ -1999,7 +2072,7 @@ middleware.ts                        # Added /cart to publicRoutes
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 15.0  
+**Version:** 17.0  
 **Build Status:** ✅ Passing  
 **Current Focus:** All 16 Phases Complete (Cart Page & Checkout Flow) 🎉  
 **Deployment:** Ready for Vercel

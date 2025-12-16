@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem } from "@/components/ui/form";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUser";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, summary, clearCart } = useCart();
   const { user, isAuthenticated: userIsAuthenticated } = useAuth();
+  const { profile } = useUserProfile(); // Get full profile for phone number
   const { addresses: savedAddresses, defaultAddress, loading: addressesLoading } = useFirebaseAddresses();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,15 +97,19 @@ export default function CheckoutPage() {
 
   const watchDeliveryMethod = step1Form.watch("deliveryMethod");
 
+  // Pre-fill contact information from user profile
   useEffect(() => {
     if (userIsAuthenticated && user) {
+      // Get phone from profile (if available) or user object
+      const phoneNumber = profile?.phone || user.phone || "";
+      
       step2Form.reset({
         name: user.displayName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
         email: user.email || "",
-        phone: "",
+        phone: phoneNumber,
       });
     }
-  }, [userIsAuthenticated, user, step2Form]);
+  }, [userIsAuthenticated, user, profile, step2Form]);
 
   const getSelectedPickupLocation = useCallback((locationId?: string) => {
     if (!locationId) return undefined;
@@ -1186,7 +1192,7 @@ export default function CheckoutPage() {
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
                   setShowSuccessModal(false);
-                  router.push("/profile/orders");
+                  router.push("/profile/order-history");
                 }}
               >
                 View Orders

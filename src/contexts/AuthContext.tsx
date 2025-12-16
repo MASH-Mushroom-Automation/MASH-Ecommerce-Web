@@ -33,6 +33,7 @@ export interface AuthUser {
   firstName?: string;
   lastName?: string;
   displayName?: string;
+  phone?: string; // Phone number for checkout auto-fill
   photoURL?: string;
   avatar?: string; // Alias for photoURL, used by profile components
   provider: "firebase" | "email";
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data.user?.lastName ||
             fbUser.displayName?.split(" ").slice(1).join(" "),
           displayName: fbUser.displayName || undefined,
+          phone: data.user?.phone || undefined,
           photoURL: imageUrl || undefined,
           avatar: imageUrl || undefined,
           provider: "firebase",
