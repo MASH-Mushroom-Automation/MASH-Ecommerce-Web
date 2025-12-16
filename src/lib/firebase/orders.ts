@@ -21,6 +21,11 @@ import {
   limit,
 } from "firebase/firestore";
 import { firebaseApp } from "./config";
+import {
+  FirebaseNotificationsService,
+  NotificationTemplates,
+  NotificationType,
+} from "./notifications";
 
 // Initialize Firestore
 const db = getFirestore(firebaseApp);
@@ -240,6 +245,22 @@ export class FirebaseOrdersService {
         orderNumber,
         total: data.total,
       });
+
+      // Send notification to buyer
+      try {
+        const template = NotificationTemplates.orderPlaced(orderNumber);
+        await FirebaseNotificationsService.createOrderNotification(
+          data.userId,
+          orderId,
+          orderNumber,
+          "order_placed",
+          template.title,
+          template.message
+        );
+      } catch (notifError) {
+        // Don't fail order creation if notification fails
+        console.error("[FirebaseOrdersService] Notification error:", notifError);
+      }
 
       return orderId;
     } catch (error) {
@@ -575,6 +596,7 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
+      let orderData: FirestoreOrder | null = null;
 
       await runTransaction(db, async (transaction) => {
         const orderSnap = await transaction.get(orderRef);
@@ -583,6 +605,7 @@ export class FirebaseOrdersService {
         }
 
         const order = orderSnap.data() as FirestoreOrder;
+        orderData = order;
 
         const newHistory: StatusHistoryEntry[] = [
           ...order.statusHistory,
@@ -605,9 +628,80 @@ export class FirebaseOrdersService {
         orderId,
         newStatus,
       });
+
+      // Send notification to customer about status change
+      if (orderData) {
+        await this.sendOrderStatusNotification(
+          orderData.customerId,
+          orderId,
+          orderData.orderNumber,
+          newStatus,
+          note
+        );
+      }
     } catch (error) {
       console.error("[FirebaseOrdersService] Error updating order status:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Send notification for order status change
+   */
+  private static async sendOrderStatusNotification(
+    userId: string,
+    orderId: string,
+    orderNumber: string,
+    status: OrderStatus,
+    note?: string
+  ): Promise<void> {
+    try {
+      let notificationType: NotificationType;
+      let template: { title: string; message: string };
+
+      switch (status) {
+        case "approved":
+          notificationType = "order_approved";
+          template = NotificationTemplates.orderApproved(orderNumber);
+          break;
+        case "rejected":
+          notificationType = "order_rejected";
+          template = NotificationTemplates.orderRejected(orderNumber, note);
+          break;
+        case "processing":
+          notificationType = "order_processing";
+          template = NotificationTemplates.orderProcessing(orderNumber);
+          break;
+        case "shipped":
+          notificationType = "order_shipped";
+          template = NotificationTemplates.orderShipped(orderNumber);
+          break;
+        case "delivered":
+          notificationType = "order_delivered";
+          template = NotificationTemplates.orderDelivered(orderNumber);
+          break;
+        case "completed":
+          notificationType = "order_completed";
+          template = NotificationTemplates.orderCompleted(orderNumber);
+          break;
+        default:
+          // Don't send notification for pending_approval, ready_for_pickup, cancelled
+          return;
+      }
+
+      await FirebaseNotificationsService.createOrderNotification(
+        userId,
+        orderId,
+        orderNumber,
+        notificationType,
+        template.title,
+        template.message
+      );
+
+      console.log("[FirebaseOrdersService] Notification sent for status:", status);
+    } catch (error) {
+      // Don't throw - notification failure shouldn't break order update
+      console.error("[FirebaseOrdersService] Error sending notification:", error);
     }
   }
 
@@ -691,8 +785,10 @@ export class FirebaseOrdersService {
 
       // Merge with existing tracking
       const orderSnap = await getDoc(orderRef);
+      let existingOrder: FirestoreOrder | null = null;
+      
       if (orderSnap.exists()) {
-        const existingOrder = orderSnap.data() as FirestoreOrder;
+        existingOrder = orderSnap.data() as FirestoreOrder;
         updateData.lalamoveTracking = {
           ...existingOrder.lalamoveTracking,
           ...trackingUpdate,
@@ -707,6 +803,26 @@ export class FirebaseOrdersService {
         orderId,
         status: tracking.status,
       });
+
+      // Send notification when driver is assigned
+      if (tracking.driverName && existingOrder) {
+        try {
+          const template = NotificationTemplates.driverAssigned(
+            existingOrder.orderNumber,
+            tracking.driverName
+          );
+          await FirebaseNotificationsService.createOrderNotification(
+            existingOrder.userId,
+            orderId,
+            existingOrder.orderNumber,
+            "driver_assigned",
+            template.title,
+            template.message
+          );
+        } catch (notifError) {
+          console.error("[FirebaseOrdersService] Driver notification error:", notifError);
+        }
+      }
     } catch (error) {
       console.error("[FirebaseOrdersService] Error updating Lalamove tracking:", error);
       throw error;

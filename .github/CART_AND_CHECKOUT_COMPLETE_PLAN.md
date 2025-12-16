@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 4.0 (Firebase-Powered with Delivery Tracking)  
-**Last Updated:** December 17, 2025  
-**Status:** Phase 8 Complete ✅ | Phase 9 Next 🔄  
+**Version:** 4.1 (Firebase-Powered with Notifications)  
+**Last Updated:** December 18, 2025  
+**Status:** Phase 9 Complete ✅ | All Core Phases Done 🎉  
 **Platform:** Next.js 15 + Firebase Firestore (No Backend Dependency)
 
 ---
@@ -39,6 +39,8 @@ A complete end-to-end buyer-to-seller flow using **Firebase Firestore** for cart
 | **Buyer Order History** | `/profile/order-history` | Real-time order tracking |
 | **Delivery Tracking** | `/profile/orders/[id]/track` | Live driver location, status |
 | **Profile Address** | `/profile/my-information` | Google Maps "Pick from Map" |
+| **Notifications** | Header bell icon | Real-time Firebase notifications |
+| **Order Alerts** | Auto-triggered | Notifications on order status changes |
 
 ### Order Status Flow
 ```
@@ -98,11 +100,11 @@ A complete end-to-end buyer-to-seller flow using **Firebase Firestore** for cart
 | 6 | Order Submission | ✅ Complete | 100% | Order creation, success modal |
 | 7 | Admin Order Management | ✅ Complete | 100% | Dashboard, approve/reject |
 | **8** | **Delivery Tracking** | **✅ Complete** | **100%** | **Lalamove tracking, driver info** |
-| 9 | Notifications System | 📋 Planned | 0% | Real-time alerts, email |
+| **9** | **Notifications System** | **✅ Complete** | **100%** | **Real-time Firebase notifications** |
 
 ### Progress Bar
 ```
-[████████████████████████████████████████████████░░░] 89% Complete (8/9 Phases)
+[████████████████████████████████████████████████████] 100% Complete (9/9 Phases) 🎉
 ```
 
 ---
@@ -418,30 +420,72 @@ interface FirestoreOrder {
 }
 ```
 
-### 📋 Phase 9: Notifications System (PLANNED)
+### ✅ Phase 9: Notifications System (COMPLETE)
 **Goal:** Real-time notifications for order updates
 
-#### 9.1 In-App Notifications
-- [ ] Notification bell in header
-- [ ] Notification dropdown/drawer
-- [ ] Unread count badge
-- [ ] Mark as read functionality
+#### 9.1 In-App Notifications ✅
+- [x] Notification bell in header (NotificationDropdown)
+- [x] Notification dropdown with list
+- [x] Unread count badge
+- [x] Mark as read functionality
+- [x] Delete notification
 
-#### 9.2 Firebase Notifications
-- [ ] `/notifications/{userId}/` collection
-- [ ] Create on order status change
-- [ ] Real-time subscription
+#### 9.2 Firebase Notifications ✅
+- [x] `notifications` collection in Firestore
+- [x] Create on order status change (approved, rejected, shipped, delivered)
+- [x] Create on order placement (order_placed)
+- [x] Create on driver assigned
+- [x] Real-time subscription with `onSnapshot`
 
-#### 9.3 Email Notifications (Optional)
-- [ ] Order confirmation email
-- [ ] Status update emails
-- [ ] Email templates
+#### 9.3 Notification Types ✅
+- [x] order_placed - When buyer places order
+- [x] order_approved - When admin approves order
+- [x] order_rejected - When admin rejects order
+- [x] order_processing - When order is being prepared
+- [x] order_shipped - When order is shipped/out for delivery
+- [x] order_delivered - When order is delivered
+- [x] order_completed - When order is marked complete
+- [x] driver_assigned - When Lalamove driver is assigned
 
-**Files to create:**
+**Files created/updated:**
 ```
-src/components/header/NotificationBell.tsx         ← UI component
-src/lib/firebase/notifications.ts                  ← Firebase service
-src/hooks/useNotifications.ts                      ← React hook
+src/lib/firebase/notifications.ts                  ← NEW: Firebase notifications service
+src/hooks/useFirebaseNotifications.ts              ← NEW: Real-time notifications hook
+src/components/layout/notification-dropdown.tsx    ← Updated to use Firebase
+src/lib/firebase/orders.ts                         ← Added notification triggers
+```
+
+### Firebase Notification Schema
+```typescript
+interface FirestoreNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read: boolean;
+  data?: {
+    orderId?: string;
+    orderNumber?: string;
+    status?: string;
+    link?: string;
+  };
+  createdAt: Timestamp;
+  readAt?: Timestamp;
+}
+
+type NotificationType =
+  | "order_placed"
+  | "order_approved"
+  | "order_rejected"
+  | "order_processing"
+  | "order_shipped"
+  | "order_delivered"
+  | "order_completed"
+  | "driver_assigned"
+  | "delivery_update"
+  | "promo"
+  | "system";
 ```
 
 ---
@@ -455,12 +499,14 @@ src/hooks/useNotifications.ts                      ← React hook
 | `src/lib/firebase/auth.ts` | Google sign-in, auth functions | ✅ |
 | `src/lib/firebase/cart.ts` | Cart CRUD, real-time sync | ✅ |
 | `src/lib/firebase/orders.ts` | Order CRUD, status management | ✅ |
+| `src/lib/firebase/notifications.ts` | Notifications CRUD, real-time | ✅ |
 | `src/lib/firebase/index.ts` | Barrel exports | ✅ |
 
 ### Hooks
 | File | Purpose | Status |
 |------|---------|--------|
 | `src/hooks/useFirebaseOrders.ts` | Admin/user order hooks | ✅ |
+| `src/hooks/useFirebaseNotifications.ts` | Real-time notifications | ✅ |
 | `src/hooks/useSanityProducts.ts` | Product data hooks | ✅ |
 | `src/hooks/useUser.ts` | User profile hook | ✅ |
 
