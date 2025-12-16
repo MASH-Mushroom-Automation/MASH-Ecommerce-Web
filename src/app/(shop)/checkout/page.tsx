@@ -36,7 +36,14 @@ const step1Schema = z.object({
 const step2Schema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number is required"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(
+      /^(\+63|0)?[0-9]{10,11}$/,
+      "Please enter a valid Philippine phone number (e.g., 09171234567 or +639171234567)"
+    )
+    .transform((val) => val.replace(/[\s\-()]/g, "")), // Remove spaces, dashes, parentheses
 });
 
 const step3Schema = z.object({
@@ -469,9 +476,20 @@ export default function CheckoutPage() {
                                 <input
                                   {...field}
                                   type="tel"
-                                  placeholder="(+63) 956 955 2808"
+                                  inputMode="numeric"
+                                  pattern="[0-9+]*"
+                                  maxLength={15}
+                                  placeholder="09171234567"
+                                  onChange={(e) => {
+                                    // Only allow numbers, +, and common phone formatting characters
+                                    const cleaned = e.target.value.replace(/[^0-9+\-\s()]/g, "");
+                                    field.onChange(cleaned);
+                                  }}
                                   className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
                                 />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Format: 09XX XXX XXXX or +63 9XX XXX XXXX
+                                </p>
                                 {fieldState.error && (
                                   <p className="text-sm text-destructive mt-1">
                                     {fieldState.error.message}
