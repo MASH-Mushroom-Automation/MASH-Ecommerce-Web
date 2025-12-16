@@ -109,15 +109,7 @@ const loginSchema = z.object({
         message: "Enter a valid email or phone number",
       }
     ),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .refine(
-      (val) => validatePassword(val).length === 0,
-      (val) => ({
-        message: `Password must contain ${validatePassword(val).join(", ")}`,
-      })
-    ),
+  password: z.string().min(1, "Password is required"),
   rememberMe: z.boolean().default(false),
 });
 
@@ -357,76 +349,6 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                {/* Password Requirements Indicator */}
-                {password && (
-                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
-                      Password Requirements:
-                    </p>
-                    <div className="space-y-1">
-                      <div
-                        className={`flex items-center gap-2 text-xs ${
-                          getPasswordRequirements(password).minLength
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {getPasswordRequirements(password).minLength ? (
-                          <Check className="h-3 w-3 flex-shrink-0" />
-                        ) : (
-                          <XIcon className="h-3 w-3 flex-shrink-0" />
-                        )}
-                        <span>At least 8 characters</span>
-                      </div>
-
-                      <div
-                        className={`flex items-center gap-2 text-xs ${
-                          getPasswordRequirements(password).hasUppercase
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {getPasswordRequirements(password).hasUppercase ? (
-                          <Check className="h-3 w-3 flex-shrink-0" />
-                        ) : (
-                          <XIcon className="h-3 w-3 flex-shrink-0" />
-                        )}
-                        <span>Contains uppercase letter (A-Z)</span>
-                      </div>
-
-                      <div
-                        className={`flex items-center gap-2 text-xs ${
-                          getPasswordRequirements(password).hasNumber
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {getPasswordRequirements(password).hasNumber ? (
-                          <Check className="h-3 w-3 flex-shrink-0" />
-                        ) : (
-                          <XIcon className="h-3 w-3 flex-shrink-0" />
-                        )}
-                        <span>Contains a number (0-9)</span>
-                      </div>
-
-                      <div
-                        className={`flex items-center gap-2 text-xs ${
-                          getPasswordRequirements(password).hasSpecialChar
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {getPasswordRequirements(password).hasSpecialChar ? (
-                          <Check className="h-3 w-3 flex-shrink-0" />
-                        ) : (
-                          <XIcon className="h-3 w-3 flex-shrink-0" />
-                        )}
-                        <span>Contains special character (!@#$%^&* etc.)</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Error Message */}
                 {errors.password && (
                   <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
@@ -486,9 +408,9 @@ export default function LoginPage() {
               </div>
 
               {/* Google Sign In */}
-              <GoogleSignInButton 
-                fullWidth 
-                size="lg" 
+              <GoogleSignInButton
+                fullWidth
+                size="lg"
                 text="Sign in with Google"
               />
             </form>
