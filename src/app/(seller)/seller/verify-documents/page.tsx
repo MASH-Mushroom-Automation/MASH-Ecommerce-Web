@@ -6,8 +6,8 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -39,9 +39,38 @@ const OPTIONAL_DOCUMENTS: DocumentType[] = [
 
 export default function DocumentVerificationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resubmitId = searchParams.get('resubmit');
   const [documents, setDocuments] = useState<Record<DocumentType, UploadedDocument[]>>({} as Record<DocumentType, UploadedDocument[]>);
   const [previewDocument, setPreviewDocument] = useState<UploadedDocument | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResubmission, setIsResubmission] = useState(false);
+  const [previousSubmission, setPreviousSubmission] = useState<any>(null);
+
+  // Load previous submission data if resubmitting
+  useEffect(() => {
+    if (resubmitId) {
+      loadPreviousSubmission(resubmitId);
+    }
+  }, [resubmitId]);
+
+  const loadPreviousSubmission = async (submissionId: string) => {
+    try {
+      const response = await fetch('/api/seller/verification/status');
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setIsResubmission(true);
+        setPreviousSubmission(data.data);
+        // Show info about rejected documents
+        toast.info('Resubmission Mode', {
+          description: 'Please upload corrected documents based on the feedback.',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading previous submission:', error);
+    }
+  };
 
   const { uploadDocument } = useDocumentUpload({
     onSuccess: (url, documentId) => {
@@ -82,30 +111,38 @@ export default function DocumentVerificationPage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Submit verification request to backend
+      // Prepare submission data
+      const submissionData = {
+        documents: Object.entries(documents).flatMap(([type, docs]) =>
+          docs.map((doc) => ({
+            documentId: doc.id,
+            documentType: type,
+            filename: doc.file.name,
+          }))
+        ),
+        isResubmission,
+        previousSubmissionId: resubmitId,
+      };
+
       const response = await fetch('/api/seller/documents/submit-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          documents: Object.entries(documents).flatMap(([type, docs]) =>
-            docs.map((doc) => ({
-              documentId: doc.id,
-              documentType: type,
-              filename: doc.file.name,
-            }))
-          ),
-        }),
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {
         throw new Error('Failed to submit verification');
       }
 
-      toast.success("Verification documents submitted successfully!");
+      toast.success(
+        isResubmission 
+          ? "Documents resubmitted successfully!" 
+          : "Verification documents submitted successfully!"
+      );
       
-      // Redirect to success page or dashboard
+      // Redirect to success page
       router.push("/seller/verification-pending");
     } catch (error) {
       console.error("Submission error:", error);
@@ -129,18 +166,39 @@ export default function DocumentVerificationPage() {
             Back
           </Button>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Document Verification
+            {isResubmission ? 'Resubmit Verification Documents' : 'Document Verification'}
           </h1>
           <p className="text-muted-foreground">
-            Upload your business documents to verify your seller account. This helps us ensure a safe and trusted marketplace.
+            {isResubmission 
+              ? 'Upload corrected documents based on the feedback from our review team.'
+              : 'Upload your business documents to verify your seller account. This helps us ensure a safe and trusted marketplace.'
+            }
           </p>
         </div>
+
+        {/* Resubmission Alert */}
+        {isResubmission && previousSubmission?.currentFeedback && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription>
+              <strong className="text-red-900">Previous Review Feedback:</strong>
+              <p className="text-red-800 mt-1">{previousSubmission.currentFeedback.message}</p>
+              {previousSubmission.currentFeedback.requiredActions.length > 0 && (
+                <ul className="list-disc list-inside mt-2 text-red-800 text-sm">
+                  {previousSubmission.currentFeedback.requiredActions.map((action: string, idx: number) => (
+                    <li key={idx}>{action}</li>
+                  ))}
+                </ul>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Info Alert */}
         <Alert className="mb-6">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Review Process:</strong> Our team will review your documents within 2-3 business days. 
+            <strong>Review Process:</strong> Our team will review your documents within {isResubmission ? '1-2' : '2-3'} business days. 
             You'll receive an email notification once your account is verified.
           </AlertDescription>
         </Alert>
