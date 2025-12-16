@@ -55,11 +55,13 @@ export default function VerificationStatusPage() {
 
   if (loading) {
     return (
-      <div className="container max-w-4xl py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">Loading verification status...</p>
+      <div className="min-h-screen bg-muted py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground">Loading verification status...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -68,41 +70,44 @@ export default function VerificationStatusPage() {
 
   if (!submission) {
     return (
-      <div className="container max-w-4xl py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">No Verification Found</h1>
-          <p className="text-muted-foreground">
-            You haven't submitted a verification application yet.
-          </p>
-          <Button onClick={() => router.push('/seller/verify-documents')}>
-            Start Verification
-          </Button>
+      <div className="min-h-screen bg-muted py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold">No Verification Found</h1>
+            <p className="text-muted-foreground">
+              You haven't submitted a verification application yet.
+            </p>
+            <Button onClick={() => router.push('/seller/verify-documents')}>
+              Start Verification
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </div>
+    <div className="min-h-screen bg-muted py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
 
-        <div>
-          <h1 className="text-3xl font-bold">Verification Status</h1>
-          <p className="text-muted-foreground mt-2">
-            Track your seller account verification progress
-          </p>
-        </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Verification Status</h1>
+            <p className="text-muted-foreground mt-2">
+              Track your seller account verification progress
+            </p>
+          </div>
 
         {/* Status Display */}
         <VerificationStatus
@@ -123,6 +128,7 @@ export default function VerificationStatusPage() {
             <ReviewHistory history={submission.reviewHistory} />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </div>
   );

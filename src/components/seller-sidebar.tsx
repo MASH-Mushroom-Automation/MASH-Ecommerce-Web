@@ -12,6 +12,7 @@ import {
   Store,
   RotateCcw,
   Settings,
+  ShieldCheck,
   LogOut,
   ChevronsUpDown,
   User,
@@ -94,6 +95,11 @@ const sidebarLinks = [
     href: "/seller/refund",
     icon: RotateCcw,
     label: "Refund",
+  },
+  {
+    href: "/seller/verification-status",
+    icon: ShieldCheck,
+    label: "Verification Status",
   },
   {
     href: "/seller/settings",

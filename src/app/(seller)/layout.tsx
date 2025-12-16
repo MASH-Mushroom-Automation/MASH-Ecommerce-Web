@@ -27,6 +27,8 @@ function getPageTitle(pathname: string): string {
     'address': 'Address Management',
     'handover': 'Handover Center',
     'refund': 'Refunds',
+    'verification-status': 'Verification Status',
+    'verify-documents': 'Verify Documents',
     'settings': 'Settings',
   };
   
