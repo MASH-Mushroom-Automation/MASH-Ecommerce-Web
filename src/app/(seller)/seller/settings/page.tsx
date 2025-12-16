@@ -43,9 +43,17 @@ import {
   Lock,
   Upload,
   Save,
+  Store,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { BusinessHoursEditor } from "@/components/seller/BusinessHoursEditor";
+import { SocialMediaEditor } from "@/components/seller/SocialMediaEditor";
+import { SEOMetadataEditor } from "@/components/seller/SEOMetadataEditor";
+import { ProfilePreview } from "@/components/seller/ProfilePreview";
+import { ImageUploadWithCrop } from "@/components/seller/ImageUploadWithCrop";
+import { DEFAULT_BUSINESS_HOURS, IMAGE_UPLOAD_CONFIGS } from "@/lib/types/seller-profile";
+import type { BusinessHours, SocialMediaFormData, SEOFormData, SellerProfile } from "@/lib/types/seller-profile";
 
 export default function SellerSettings() {
   const [sellerData, setSellerData] = useState({
@@ -65,6 +73,17 @@ export default function SellerSettings() {
     notifyMessages: true,
     notifyUpdates: false,
   });
+
+  // Store Setup state
+  const [businessHours, setBusinessHours] = useState<BusinessHours[]>(DEFAULT_BUSINESS_HOURS);
+  const [socialMedia, setSocialMedia] = useState<SocialMediaFormData>({});
+  const [seoData, setSeoData] = useState<SEOFormData>({
+    metaTitle: "",
+    metaDescription: "",
+    metaKeywords: "",
+  });
+  const [showPreview, setShowPreview] = useState(false);
+  const [storeProfile, setStoreProfile] = useState<Partial<SellerProfile>>({});
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -378,6 +397,7 @@ export default function SellerSettings() {
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="store-setup">Store Setup</TabsTrigger>
           <TabsTrigger value="payment">Payment</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
@@ -595,6 +615,128 @@ export default function SellerSettings() {
               </CardFooter>
             </Card>
           </form>
+        </TabsContent>
+
+        {/* Store Setup - Advanced Configuration */}
+        <TabsContent value="store-setup">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="h-5 w-5" />
+                  Advanced Store Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure business hours, social media, SEO settings, and preview your public profile
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Business Hours */}
+            <BusinessHoursEditor 
+              hours={businessHours}
+              onChange={setBusinessHours}
+            />
+
+            {/* Social Media Links */}
+            <SocialMediaEditor
+              socialMedia={socialMedia}
+              onChange={setSocialMedia}
+            />
+
+            {/* SEO Settings */}
+            <SEOMetadataEditor
+              seo={seoData}
+              onChange={setSeoData}
+              storeName={sellerData.name}
+            />
+
+            {/* Profile Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Public Profile Preview</CardTitle>
+                <CardDescription>
+                  See how your store will appear to customers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfilePreview
+                  profile={{
+                    ...storeProfile,
+                    storeName: sellerData.name,
+                    description: sellerData.description,
+                    contactEmail: sellerData.email,
+                    contactPhone: sellerData.phone,
+                    businessHours,
+                    socialMedia,
+                    seo: seoData,
+                    images: {
+                      logo: sellerData.logo ? { url: sellerData.logo, alt: 'Store logo', width: 500, height: 500 } : undefined,
+                      banner: sellerData.banner ? { url: sellerData.banner, alt: 'Store banner', width: 1200, height: 300 } : undefined,
+                    },
+                    address: {
+                      street: '',
+                      barangay: '',
+                      city: sellerData.location.split(',')[0] || '',
+                      province: sellerData.location.split(',')[1]?.trim() || '',
+                      zipCode: '',
+                      country: 'Philippines',
+                    },
+                    isVerified: true,
+                    stats: {
+                      totalProducts: 12,
+                      totalOrders: 256,
+                      averageRating: 4.8,
+                      totalReviews: 89,
+                      responseTime: '< 1 hour',
+                      joinedDate: new Date(),
+                    },
+                  }}
+                  isVisible={showPreview}
+                  onToggle={() => setShowPreview(!showPreview)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Save Button */}
+            <Card>
+              <CardFooter className="flex justify-between pt-6">
+                <p className="text-sm text-muted-foreground">
+                  Changes will be visible to customers immediately after saving
+                </p>
+                <Button
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      const res = await fetch('/api/seller/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          businessHours,
+                          socialMedia,
+                          seo: seoData,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success('Store setup saved successfully!');
+                      } else {
+                        toast.error('Failed to save store setup');
+                      }
+                    } catch (error) {
+                      toast.error('Failed to save store setup');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? 'Saving...' : 'Save Store Setup'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Payment Settings */}
