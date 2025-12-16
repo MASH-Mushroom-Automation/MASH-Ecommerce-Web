@@ -35,6 +35,7 @@ const publicRoutes = [
   "/shipping-info",
   "/returns-policy",
   "/wishlist",  // Wishlist works for guests using localStorage
+  "/cart",      // Cart works for guests using localStorage
 ];
 
 // All routes are now public - no authentication checks

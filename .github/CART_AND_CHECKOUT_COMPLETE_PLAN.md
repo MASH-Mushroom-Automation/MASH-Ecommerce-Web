@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 14.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
+**Version:** 15.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 15 Complete ✅ (Wishlist Type Compatibility Fix)  
+**Status:** Phase 16 Complete ✅ (Cart Page & Checkout Flow Verification)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove
 
 ---
@@ -60,6 +60,7 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **Payment Status** | Webhooks | Real-time payment status updates |
 | **❤️ Wishlist** | `/wishlist` | localStorage persistence, Add All to Cart |
 | **🔐 Auth & Sign-Out** | All pages | Complete data clearing on logout |
+| **🛒 Cart Page** | `/cart` | Full cart management, order summary |
 
 ### Order Status Flow
 ```
@@ -126,11 +127,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 13 | Gmail SMTP & E2E Test | ✅ Complete | 100% | Gmail SMTP verified, client-safe imports |
 | **14** | **Wishlist & Auth Fixes** | **✅ Complete** | **100%** | **Wishlist localStorage, sign-out cleanup** |
 | **15** | **Wishlist Type Fix** | **✅ Complete** | **100%** | **TransformedProduct type compatibility** |
+| **16** | **Cart Page & Flow** | **✅ Complete** | **100%** | **Dedicated cart page, public access** |
 
 ### Progress Bar
 
 ```
-[██████████████████████████████████████████████████████████] 100% Complete (15/15 Phases)
+[██████████████████████████████████████████████████████████] 100% Complete (16/16 Phases)
 ```
 
 ---
@@ -1929,12 +1931,54 @@ middleware.ts                        # Removed /wishlist from protectedRoutes
                                      # Added /wishlist to publicRoutes
 ```
 
-### 📱 Phase 16: Mobile Optimization (Future)
+### 🛒 Phase 16: Cart Page & Checkout Flow ✅
+
+#### 16.1 Cart Page Created
+A dedicated `/cart` page was missing, causing 404 errors. Now fully implemented with:
+
+- **Full cart item management** - View, update quantities, remove items
+- **Order summary card** - Subtotal, tax, shipping, total calculation
+- **Responsive design** - 2-column layout on desktop, single column on mobile
+- **Empty state** - Friendly message with "Start Shopping" button
+- **Clear cart dialog** - Confirmation before clearing all items
+
+**File Created:** `src/app/(shop)/cart/page.tsx`
+
+#### 16.2 Public Route Configuration
+Cart page now accessible without login (items stored in localStorage):
+
+```typescript
+// middleware.ts - Added /cart to publicRoutes
+const publicRoutes = [
+  // ... other routes
+  "/wishlist",  // Wishlist works for guests
+  "/cart",      // Cart works for guests
+];
+```
+
+#### 16.3 Checkout Flow Verified
+The complete checkout flow is working:
+
+1. **Cart Management** → `/cart` (view, edit, remove items)
+2. **Step 1: Delivery** → `/checkout` (pickup or Lalamove delivery)
+3. **Step 2: Contact** → Contact info form (pre-filled if logged in)
+4. **Step 3: Payment** → COD, GCash, or Card via PayMongo
+5. **Order Creation** → Firebase Firestore order document
+6. **Email Confirmation** → Gmail SMTP via Nodemailer
+7. **Admin Dashboard** → `/orders/firebase` for approval
+
+**Files Modified:**
+```
+src/app/(shop)/cart/page.tsx        # New cart page with full features
+middleware.ts                        # Added /cart to publicRoutes
+```
+
+### 📱 Phase 17: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
 
-### 🏪 Phase 17: Multi-Seller Support (Future)
+### 🏪 Phase 18: Multi-Seller Support (Future)
 1. **Seller Onboarding** - Registration flow
 2. **Per-Seller Orders** - Route orders to correct seller
 3. **Seller Dashboard** - Individual seller analytics
@@ -1955,7 +1999,7 @@ middleware.ts                        # Removed /wishlist from protectedRoutes
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 14.0  
+**Version:** 15.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** All 15 Phases Complete (Including Wishlist Type Fix) 🎉  
+**Current Focus:** All 16 Phases Complete (Cart Page & Checkout Flow) 🎉  
 **Deployment:** Ready for Vercel
