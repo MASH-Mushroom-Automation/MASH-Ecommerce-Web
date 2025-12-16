@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { User, MapPin, Check, Loader2, Camera } from "lucide-react";
+import { User, MapPin, Check, Loader2, Camera, Map, Star, Trash2, Plus } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUser";
+import { useFirebaseAddresses, type FirestoreAddress, type AddressInput } from "@/hooks/useFirebaseAddresses";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import Image from "next/image";
+import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserInfoForm {
   firstName: string;
@@ -28,6 +31,8 @@ interface AddressForm {
   stateProvince: string;
   zipPostal: string;
   landmark: string;
+  lat?: number;
+  lng?: number;
 }
 
 // Hardcoded fallback data
@@ -43,15 +48,31 @@ const FALLBACK_DATA = {
     city: "Caloocan City",
     stateProvince: "Metro Manila",
     zipPostal: "1420",
-    landmark: "in front of 7/11 Llano"
+    landmark: "in front of 7/11 Llano",
+    lat: 14.7566,
+    lng: 120.9822
   }
 };
 
 export default function MyInformationPage() {
   const { profile, updateProfile, uploadAvatar } = useUserProfile();
+  const { isAuthenticated } = useAuth();
+  const {
+    addresses: savedAddresses,
+    defaultAddress,
+    loading: addressesLoading,
+    addAddress,
+    deleteAddress,
+    setAsDefault,
+    mutating: addressMutating,
+  } = useFirebaseAddresses();
+  
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [addressLabel, setAddressLabel] = useState("Home");
 
   // Original values to track changes
   const [originalUserInfo, setOriginalUserInfo] = useState<UserInfoForm>({
@@ -97,6 +118,8 @@ export default function MyInformationPage() {
       stateProvince: FALLBACK_DATA.address.stateProvince,
       zipPostal: FALLBACK_DATA.address.zipPostal,
       landmark: FALLBACK_DATA.address.landmark,
+      lat: FALLBACK_DATA.address.lat,
+      lng: FALLBACK_DATA.address.lng,
     };
 
     setOriginalUserInfo(initialUserInfo);
@@ -172,6 +195,76 @@ export default function MyInformationPage() {
     setAddress(originalAddress);
     setSaveError(null);
     toast("Changes discarded.");
+  };
+
+  /**
+   * Handle address selected from Google Maps picker
+   * Saves the address to Firebase for authenticated users
+   */
+  const handleAddressSelect = async (selectedAddress: SelectedAddress) => {
+    // Update local form state
+    setAddress({
+      street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
+      addressLine2: '',
+      city: selectedAddress.components.city || '',
+      stateProvince: selectedAddress.components.state || '',
+      zipPostal: selectedAddress.components.zipCode || '',
+      landmark: address.landmark, // Keep existing landmark
+      lat: selectedAddress.lat,
+      lng: selectedAddress.lng,
+    });
+    
+    // Save to Firebase if authenticated
+    if (isAuthenticated) {
+      const addressData: AddressInput = {
+        label: addressLabel || "Home",
+        isDefault: savedAddresses.length === 0, // First address is default
+        street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
+        city: selectedAddress.components.city || '',
+        stateProvince: selectedAddress.components.state || '',
+        zipPostal: selectedAddress.components.zipCode || '',
+        landmark: address.landmark,
+        coordinates: {
+          lat: selectedAddress.lat,
+          lng: selectedAddress.lng,
+        },
+        formattedAddress: selectedAddress.formattedAddress,
+      };
+      
+      const newAddressId = await addAddress(addressData);
+      if (newAddressId) {
+        toast.success("Address saved to your profile!");
+      } else {
+        toast.error("Failed to save address. Please try again.");
+      }
+    }
+    
+    setShowMapPicker(false);
+    setAddressLabel("Home"); // Reset label for next time
+  };
+
+  /**
+   * Handle deleting a saved address
+   */
+  const handleDeleteAddress = async (addressId: string) => {
+    const success = await deleteAddress(addressId);
+    if (success) {
+      toast.success("Address deleted");
+    } else {
+      toast.error("Failed to delete address");
+    }
+  };
+
+  /**
+   * Handle setting an address as default
+   */
+  const handleSetDefaultAddress = async (addressId: string) => {
+    const success = await setAsDefault(addressId);
+    if (success) {
+      toast.success("Default address updated");
+    } else {
+      toast.error("Failed to update default address");
+    }
   };
 
   // Don't show loading or error states - always show the form with fallback data
@@ -392,15 +485,120 @@ export default function MyInformationPage() {
 
           {/* My Address Section */}
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <MapPin className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">My Address</h2>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold text-foreground">My Addresses</h2>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMapPicker(true)}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Address
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              We&apos;ll ship your orders to this address.
+              Manage your delivery addresses. These will be available at checkout.
             </p>
 
+            {/* Saved Addresses List (Firebase) */}
+            {isAuthenticated && (
+              <div className="mb-6">
+                {addressesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="ml-2 text-muted-foreground">Loading saved addresses...</span>
+                  </div>
+                ) : savedAddresses.length > 0 ? (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground">Saved Addresses</h3>
+                    {savedAddresses.map((savedAddr) => (
+                      <div
+                        key={savedAddr.id}
+                        className={`p-4 rounded-lg border ${
+                          savedAddr.isDefault 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border bg-card'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-foreground">
+                                {savedAddr.label}
+                              </span>
+                              {savedAddr.isDefault && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground">
+                                  <Star className="h-3 w-3" />
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {savedAddr.formattedAddress}
+                            </p>
+                            {savedAddr.landmark && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Landmark: {savedAddr.landmark}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!savedAddr.isDefault && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSetDefaultAddress(savedAddr.id)}
+                                disabled={addressMutating}
+                                className="text-primary hover:text-primary/80"
+                              >
+                                Set Default
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAddress(savedAddr.id)}
+                              disabled={addressMutating}
+                              className="text-destructive hover:text-destructive/80"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
+                    <MapPin className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-3">No saved addresses yet</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowMapPicker(true)}
+                      className="gap-2"
+                    >
+                      <Map className="h-4 w-4" />
+                      Add Your First Address
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Manual Address Form (for non-authenticated or editing) */}
             <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {isAuthenticated ? 'Quick Add (Manual Entry)' : 'Enter Address'}
+              </h3>
               <div>
                 <Label
                   htmlFor="street"
@@ -568,6 +766,60 @@ export default function MyInformationPage() {
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Great!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Map Picker Dialog */}
+      <Dialog open={showMapPicker} onOpenChange={setShowMapPicker}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="flex items-center gap-2">
+            <Map className="h-5 w-5 text-primary" />
+            Add New Address
+          </DialogTitle>
+          <div className="py-4 space-y-4">
+            {isAuthenticated && (
+              <div>
+                <Label htmlFor="addressLabel" className="text-sm font-medium text-gray-700">
+                  Address Label
+                </Label>
+                <Input
+                  id="addressLabel"
+                  value={addressLabel}
+                  onChange={(e) => setAddressLabel(e.target.value)}
+                  placeholder="e.g., Home, Office, Mom's House"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Give this address a name to easily identify it later
+                </p>
+              </div>
+            )}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Select Location
+              </Label>
+              <p className="text-sm text-muted-foreground mb-4">
+                Search for an address or click on the map to set your delivery location.
+              </p>
+              <AddressPicker
+                onAddressSelect={handleAddressSelect}
+                defaultValue={address.street ? `${address.street}, ${address.city}, ${address.stateProvince}` : ''}
+                placeholder="Search for your address..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowMapPicker(false);
+                setAddressLabel("Home");
+              }}
+            >
+              Cancel
             </Button>
           </div>
         </DialogContent>

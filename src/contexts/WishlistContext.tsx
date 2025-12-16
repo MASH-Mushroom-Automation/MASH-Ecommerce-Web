@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 interface WishlistContextType {
   wishlistIds: string[];
@@ -39,24 +39,48 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     }
   }, [wishlistIds, isLoaded]);
 
-  const addToWishlist = (productId: string) => {
+  // Listen for storage changes (e.g., logout clears localStorage from another context)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "mash-wishlist") {
+        if (e.newValue === null) {
+          // Wishlist was cleared (logout)
+          setWishlistIds([]);
+        } else {
+          // Wishlist was updated from another tab
+          try {
+            setWishlistIds(JSON.parse(e.newValue));
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const addToWishlist = useCallback((productId: string) => {
     setWishlistIds((prev) => {
       if (prev.includes(productId)) return prev;
       return [...prev, productId];
     });
-  };
+  }, []);
 
-  const removeFromWishlist = (productId: string) => {
+  const removeFromWishlist = useCallback((productId: string) => {
     setWishlistIds((prev) => prev.filter((id) => id !== productId));
-  };
+  }, []);
 
-  const isInWishlist = (productId: string) => {
+  const isInWishlist = useCallback((productId: string) => {
     return wishlistIds.includes(productId);
-  };
+  }, [wishlistIds]);
 
-  const clearWishlist = () => {
+  const clearWishlist = useCallback(() => {
     setWishlistIds([]);
-  };
+    // Also clear from localStorage immediately
+    localStorage.removeItem("mash-wishlist");
+  }, []);
 
   const value: WishlistContextType = {
     wishlistIds,

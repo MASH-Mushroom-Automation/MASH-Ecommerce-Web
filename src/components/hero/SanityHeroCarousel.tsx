@@ -33,9 +33,9 @@ export const SanityHeroCarousel: React.FC = () => {
   const [api, setApi] = React.useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = React.useState(0);
 
-  // Auto-play plugin
+  // Auto-play plugin - rotate every 3 seconds
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
+    Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })
   );
 
   React.useEffect(() => {
@@ -211,7 +211,7 @@ export const SanityHeroCarousel: React.FC = () => {
     );
   }
 
-  // Multiple slides - show carousel
+  // Multiple slides - show carousel with auto-rotation
   return (
     <section className="relative min-h-[700px] md:min-h-[800px] lg:min-h-screen overflow-hidden">
       <Carousel
@@ -219,8 +219,6 @@ export const SanityHeroCarousel: React.FC = () => {
         plugins={[plugin.current]}
         setApi={setApi}
         className="w-full h-full"
-        onMouseEnter={plugin.current.stop}
-        onMouseLeave={plugin.current.reset}
       >
         <CarouselContent className="h-full -ml-0">
           {slides.map((slide, index) => (

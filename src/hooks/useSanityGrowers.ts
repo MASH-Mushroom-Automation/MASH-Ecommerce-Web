@@ -42,6 +42,14 @@ export interface SanityGrower {
   totalReviews?: number;
   joinedDate?: string;
   
+  // Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+  };
+  
   // Linked stores (from availableAtStores field)
   availableAtStores?: Array<{
     _id: string;
@@ -93,6 +101,14 @@ export interface TransformedGrower {
   totalReviews?: number;
   productCount?: number;
   joinedDate?: string;
+  
+  // Social Media Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+  };
   
   // Linked stores where grower's products are available
   availableAtStores?: Array<{
@@ -163,6 +179,13 @@ function transformGrower(grower: SanityGrower & { productCount?: number }): Tran
         ? `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr'}/${process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'}/${store.image.asset._ref.replace('image-', '').replace('-jpg', '.jpg').replace('-png', '.png').replace('-webp', '.webp')}`
         : undefined,
     })),
+    // Social Media Links
+    socialLinks: grower.socialLinks ? {
+      facebook: grower.socialLinks.facebook,
+      instagram: grower.socialLinks.instagram,
+      tiktok: grower.socialLinks.tiktok,
+      website: grower.socialLinks.website,
+    } : undefined,
     createdAt: grower._createdAt,
     updatedAt: grower._updatedAt,
   };
@@ -246,6 +269,7 @@ export function useSanityGrowers(filters?: GrowerFilters) {
         rating,
         totalReviews,
         joinedDate,
+        socialLinks,
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
         // Fetch linked stores from both fields (suppliesTo is canonical, availableAtStores is legacy)
         "availableAtStores": coalesce(suppliesTo, availableAtStores)[]-> {
@@ -381,6 +405,7 @@ export function useSanityGrower(slug: string) {
         rating,
         totalReviews,
         joinedDate,
+        socialLinks,
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))]),
         // Fetch linked stores from both fields (suppliesTo is canonical, availableAtStores is legacy)
         "availableAtStores": coalesce(suppliesTo, availableAtStores)[]-> {

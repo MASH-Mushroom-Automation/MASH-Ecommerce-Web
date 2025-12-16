@@ -13,6 +13,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
 interface SearchResult {
   _id: string;
   name: string;
@@ -300,19 +303,16 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     )}
                   >
                     <div className="w-10 h-10 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                      {product.mainImage ? (
-                        <Image
-                          src={product.mainImage}
-                          alt={product.name}
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">
-                          🍄
-                        </div>
-                      )}
+                      <Image
+                        src={product.mainImage || PLACEHOLDER_IMAGE}
+                        alt={product.name}
+                        width={40}
+                        height={40}
+                        className={cn(
+                          "w-full h-full",
+                          product.mainImage ? "object-cover" : "object-contain p-1"
+                        )}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{product.name}</div>

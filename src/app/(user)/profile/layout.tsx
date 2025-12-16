@@ -17,6 +17,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { useCart } from "@/contexts/CartContext";
+import { useUserProfile } from "@/hooks/useUser";
 
 export default function ProfileLayout({
   children,
@@ -25,6 +28,9 @@ export default function ProfileLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { clearWishlist } = useWishlist();
+  const { clearCart } = useCart();
+  const { clearProfile } = useUserProfile();
 
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
@@ -33,7 +39,16 @@ export default function ProfileLayout({
   };
 
   const handleLogoutConfirm = () => {
+    // Clear localStorage and cookies
     logout();
+    
+    // Clear in-memory state
+    try {
+      clearWishlist();
+      clearCart();
+      clearProfile();
+    } catch {}
+    
     toast.success("Signed out");
     router.push("/");
     router.refresh();

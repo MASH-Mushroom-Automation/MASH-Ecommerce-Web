@@ -11,7 +11,7 @@ const API_BASE_URL =
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("authToken")?.value;
+    const token = cookieStore.get("auth-token")?.value;
 
     if (!token) {
       return NextResponse.json(

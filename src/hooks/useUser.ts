@@ -22,6 +22,13 @@ export function useUserProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Clear profile state - can be called externally
+  const clearProfile = useCallback(() => {
+    setProfile(null);
+    setLoading(false);
+    setError(null);
+  }, []);
+
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -105,6 +112,42 @@ export function useUserProfile() {
     fetchProfile();
   }, [fetchProfile]);
 
+  // Listen for storage changes (e.g., logout clears localStorage)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // If user data was removed (logged out), clear profile
+      if (e.key === "user" && e.newValue === null) {
+        clearProfile();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [clearProfile]);
+
+  // Also check auth cookie periodically to detect logout
+  useEffect(() => {
+    const checkAuth = () => {
+      const hasAuthCookie = document.cookie.includes("auth-token=");
+      const hasStoredUser = !!localStorage.getItem("user");
+      
+      // If no auth cookie and no stored user, clear profile
+      if (!hasAuthCookie && !hasStoredUser && profile) {
+        clearProfile();
+      }
+    };
+
+    // Check on visibility change (when user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkAuth();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [profile, clearProfile]);
+
   return {
     profile,
     loading,
@@ -112,6 +155,7 @@ export function useUserProfile() {
     refetch: fetchProfile,
     updateProfile,
     uploadAvatar,
+    clearProfile,
   };
 }
 

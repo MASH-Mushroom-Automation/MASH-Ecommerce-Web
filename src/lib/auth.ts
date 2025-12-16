@@ -64,6 +64,11 @@ export function logout() {
     // Proactively clear client-side persisted app state
     localStorage.removeItem("mash-wishlist");
     localStorage.removeItem("cart");
+    localStorage.removeItem("mash-cart"); // Current cart key
+    
+    // Clear Google auth redirect markers
+    localStorage.removeItem("google_auth_redirect");
+    sessionStorage.removeItem("google_auth_redirect");
 
     // Also sign out from Firebase if user was authenticated via Google
     console.log("🔴 [Auth] Signing out from Firebase");

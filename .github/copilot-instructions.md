@@ -1,6 +1,6 @@
 # MASH E-Commerce Platform - AI Agent Guide
 
-> **Last Updated:** December 11, 2025 | **Stack:** Next.js 15 + Sanity CMS + NestJS Backend + Firebase Auth
+> **Last Updated:** December 16, 2025 | **Stack:** Next.js 15 + Sanity CMS + NestJS Backend + Firebase Auth
 
 ## ⚠️ IMPORTANT: Documentation Location
 
@@ -13,12 +13,30 @@
 ❌ docs/GUIDE.md (use .github instead)
 ```
 
-## Quick Start
+## 🚀 Local Development Setup (Backend + Frontend)
 
+**Run both services in separate terminals:**
+
+### Terminal 1: Backend (Port 4000)
 ```bash
-npm run dev              # Frontend at localhost:3000 (Turbopack)
-cd studio && npm run dev # Sanity Studio at localhost:3333
+cd MASH-Backend
+# Create .env from .env.example (set PORT=4000)
+npm install --legacy-peer-deps  # REQUIRED for Windows
+npx prisma generate             # REQUIRED before first run
+npm run start:dev               # http://localhost:4000
 ```
+
+### Terminal 2: Frontend (Port 3000)
+```bash
+cd MASH-Ecommerce-Web
+npm install
+npm run dev                     # http://localhost:3000
+```
+
+### Connection Verification
+- Backend health: http://localhost:4000/api/v1/health
+- Frontend: http://localhost:3000
+- Checkout: http://localhost:3000/checkout (requires cart items)
 
 ## Architecture Overview
 
@@ -27,7 +45,7 @@ cd studio && npm run dev # Sanity Studio at localhost:3333
 | Data Source                 | Purpose                      | Access Pattern                        |
 | --------------------------- | ---------------------------- | ------------------------------------- |
 | **Sanity CMS** (`gerattrr`) | Products, content, marketing | GROQ via `src/lib/sanity/queries.ts`  |
-| **NestJS Backend**          | Auth, orders, transactions   | REST via `src/lib/api-client.ts`      |
+| **NestJS Backend**          | Auth, orders, transactions   | REST via `src/lib/api/*.ts`           |
 | **Firebase Auth**           | Google Sign-In (OAuth)       | `src/lib/firebase/` + `src/contexts/AuthContext.tsx` |
 | **Mock Data** (`data/`)     | Dev fallback                 | When `NEXT_PUBLIC_USE_MOCK_DATA=true` |
 
@@ -94,8 +112,12 @@ Middleware at **root** `middleware.ts` (NOT `src/middleware.ts`):
 ## Environment Variables (Required)
 
 ```env
-# Backend & CMS
-NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+# Backend Connection (IMPORTANT: Backend runs on port 4000 to avoid Next.js conflict)
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+NEXT_PUBLIC_API_ENDPOINT=http://localhost:4000
+NEXT_PUBLIC_API_TIMEOUT=30000
+
+# Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_USE_MOCK_DATA=false
 SANITY_API_READ_TOKEN=<token>
@@ -104,7 +126,24 @@ SANITY_API_READ_TOKEN=<token>
 NEXT_PUBLIC_FIREBASE_API_KEY=<key>
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<project>.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
+
+# Email routing (use "local" when running backend locally)
+NEXT_PUBLIC_EMAIL_SERVICE_ENV=local
 ```
+
+## Checkout Flow Integration
+
+**Cart → Checkout → Order flow:**
+
+1. **Cart Context** (`src/contexts/CartContext.tsx`) - Local storage persistence
+2. **Checkout Page** (`src/app/(shop)/checkout/page.tsx`) - 2-step form
+3. **Orders API** (`src/lib/api/orders.ts`) - Backend integration with mock fallback
+4. **User Profile** (`src/lib/api/user.ts`) - Auto-fills checkout form
+
+**Payment Methods:**
+- ✅ Cash on Pickup (COD) - Available
+- ⏳ GCash - Coming Soon (visible but disabled)
+- ⏳ Credit/Debit Cards - Coming Soon (visible but disabled)
 
 ## Key Integrations
 
