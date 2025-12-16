@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -42,6 +42,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerDashboard() {
+  // Pull-to-refresh state
+  const [pullStartY, setPullStartY] = useState(0);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Use both hooks - admin dashboard for the new API data, seller dashboard for existing tables
   const {
     data: adminData,
@@ -94,6 +101,53 @@ export default function SellerDashboard() {
     sellerRefetch?.();
   };
 
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only trigger if scrolled to top
+    if (containerRef.current && containerRef.current.scrollTop === 0) {
+      setPullStartY(e.touches[0].clientY);
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || pullStartY === 0) return;
+
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - pullStartY;
+
+    // Only pull down, max 150px
+    if (distance > 0 && distance <= 150) {
+      setPullDistance(distance);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance > 80 && !isRefreshing) {
+      setIsRefreshing(true);
+      await Promise.all([
+        adminRefetch(),
+        productsRefetch(),
+        ordersRefetch(),
+        sellerRefetch?.(),
+      ]);
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+
+    setPullDistance(0);
+    setPullStartY(0);
+    setIsPulling(false);
+  };
+
+  // Reset pull state when loading changes
+  useEffect(() => {
+    if (!loading) {
+      setIsRefreshing(false);
+    }
+  }, [loading]);
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -110,8 +164,50 @@ export default function SellerDashboard() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div
+      ref={containerRef}
+      className="relative overflow-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(isPulling || isRefreshing) && (
+        <div
+          className="fixed top-0 left-0 right-0 flex items-center justify-center transition-all duration-200 z-50 bg-background/80 backdrop-blur-sm"
+          style={{
+            height: `${Math.min(pullDistance, 80)}px`,
+            opacity: pullDistance > 40 ? 1 : pullDistance / 40,
+          }}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <RefreshCw
+              className={`h-5 w-5 text-primary ${
+                isRefreshing || pullDistance > 80 ? "animate-spin" : ""
+              }`}
+              style={{
+                transform: isRefreshing
+                  ? "rotate(0deg)"
+                  : `rotate(${pullDistance * 3}deg)`,
+              }}
+            />
+            <span className="text-xs text-muted-foreground">
+              {isRefreshing
+                ? "Refreshing..."
+                : pullDistance > 80
+                  ? "Release to refresh"
+                  : "Pull to refresh"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
+        style={{
+          marginTop: isPulling ? `${Math.min(pullDistance, 80)}px` : "0",
+        }}
+      >
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <div className="flex items-center gap-3">
           <div className="text-sm text-muted-foreground">
