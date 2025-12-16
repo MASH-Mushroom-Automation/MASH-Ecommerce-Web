@@ -26,6 +26,7 @@ import {
   FirebaseOrdersService,
   type CreateOrderData,
 } from "@/lib/firebase/orders";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -230,6 +231,30 @@ export default function CheckoutPage() {
 
       const newOrderId = await FirebaseOrdersService.createOrder(orderData);
       setOrderId(newOrderId);
+
+      // Send order confirmation email (non-blocking)
+      sendOrderConfirmationEmail(step2Data.email, {
+        customerName: step2Data.name,
+        orderNumber: newOrderId.slice(-8).toUpperCase(),
+        orderId: newOrderId,
+        items: items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          image: item.image,
+        })),
+        subtotal: summary.subtotal,
+        deliveryFee: deliveryFee,
+        total: totalWithDelivery,
+        deliveryMethod: step1Data.deliveryMethod,
+        deliveryAddress: deliveryAddress?.formattedAddress,
+        pickupLocation: selectedPickupLocation?.name,
+        paymentMethod: data.paymentMethod,
+      }).catch((err) => {
+        console.error("Failed to send confirmation email:", err);
+        // Don't fail the order if email fails
+      });
+
       clearCart();
       setShowSuccessModal(true);
     } catch (err) {

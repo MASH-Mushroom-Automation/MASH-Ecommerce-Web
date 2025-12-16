@@ -1,9 +1,9 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 7.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Profile Address Integration)  
-**Last Updated:** December 16, 2025  
-**Status:** Phase 10 Complete ✅ | All Core Phases Done 🎉  
-**Platform:** Next.js 15/16 + Firebase Firestore (No Backend Dependency)
+**Version:** 8.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Email Notifications)  
+**Last Updated:** December 2025  
+**Status:** ALL PHASES COMPLETE ✅ 🎉  
+**Platform:** Next.js 15/16 + Firebase Firestore + Resend Email
 
 ---
 
@@ -33,6 +33,7 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 - **Orders**: Stored in `orders/{orderId}` - includes status workflow
 - **Notifications**: Stored in `notifications/{notificationId}` - real-time alerts
 - **Authentication**: Firebase Auth + Google Sign-In
+- **Emails**: Resend API for transactional order emails
 
 ### ✅ What's Working NOW
 
@@ -52,6 +53,7 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **Saved Addresses** | Profile/Checkout | Multiple addresses, select at checkout |
 | **Notifications** | Header bell icon | Real-time Firebase notifications |
 | **Order Alerts** | Auto-triggered | Notifications on order status changes |
+| **📧 Email Notifications** | Automatic | Professional order emails via Resend |
 
 ### Order Status Flow
 ```
@@ -112,11 +114,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 7 | Admin Order Management | ✅ Complete | 100% | Dashboard, approve/reject |
 | 8 | Delivery Tracking | ✅ Complete | 100% | Lalamove tracking, driver info |
 | 9 | Notifications System | ✅ Complete | 100% | Real-time Firebase notifications |
-| **10** | **User Profile & Addresses** | **✅ Complete** | **100%** | **Firebase address storage, checkout integration** |
+| 10 | User Profile & Addresses | ✅ Complete | 100% | Firebase address storage, checkout integration |
+| **11** | **Email Notifications** | **✅ Complete** | **100%** | **Order emails via Resend** |
 
 ### Progress Bar
 ```
-[████████████████████████████████████████████████████] 100% Complete (10/10 Phases)
+[████████████████████████████████████████████████████] 100% Complete (11/11 Phases) 🎉
 ```
 
 ---
@@ -1012,6 +1015,102 @@ export function useFirebaseAddresses() {
 
 ---
 
+### ✅ Phase 11: Email Notifications via Resend (COMPLETE)
+**Goal:** Send professional email notifications for all order status changes
+
+#### 11.1 Email Service Setup ✅
+- [x] Install `resend` and `@react-email/components` packages
+- [x] Create `src/lib/email/resend.ts` client configuration
+- [x] Environment variable handling for API key
+- [x] Test mode using `onboarding@resend.dev` domain
+
+#### 11.2 Email Templates ✅
+- [x] Create `src/lib/email/templates/email-layout.tsx` - Base layout
+- [x] Create `src/lib/email/templates/order-items.tsx` - Order items component
+- [x] Create `src/lib/email/templates/order-confirmation.tsx` - Order placed
+- [x] Create `src/lib/email/templates/order-approved.tsx` - Order approved
+- [x] Create `src/lib/email/templates/order-rejected.tsx` - Order rejected
+- [x] Create `src/lib/email/templates/order-shipped.tsx` - Out for delivery
+- [x] Create `src/lib/email/templates/order-delivered.tsx` - Delivered
+
+#### 11.3 Email Sending Service ✅
+- [x] Create `src/lib/email/send-email.ts` high-level sending functions
+- [x] Type-safe payload interface
+- [x] Error handling with graceful fallback
+- [x] Non-blocking async email sending
+
+#### 11.4 API Route ✅
+- [x] Create `src/app/api/email/send/route.ts` endpoint
+- [x] POST handler for sending emails
+- [x] GET handler for health check
+- [x] Input validation
+
+#### 11.5 Integration Points ✅
+- [x] Checkout page: Send confirmation email on order placement
+- [x] Admin dashboard: Send approval email on approve
+- [x] Admin dashboard: Send rejection email on reject
+- [x] Admin dashboard: Send shipped email on status update
+- [x] Admin dashboard: Send delivered email on completion
+
+**Files Created/Updated:**
+```
+src/lib/email/resend.ts                            ✅ CREATED: Resend client config
+src/lib/email/send-email.ts                        ✅ CREATED: Email sending functions
+src/lib/email/index.ts                             ✅ CREATED: Email module exports
+src/lib/email/templates/email-layout.tsx           ✅ CREATED: Base email layout
+src/lib/email/templates/order-items.tsx            ✅ CREATED: Order items component
+src/lib/email/templates/order-confirmation.tsx     ✅ CREATED: Order placed email
+src/lib/email/templates/order-approved.tsx         ✅ CREATED: Order approved email
+src/lib/email/templates/order-rejected.tsx         ✅ CREATED: Order rejected email
+src/lib/email/templates/order-shipped.tsx          ✅ CREATED: Out for delivery email
+src/lib/email/templates/order-delivered.tsx        ✅ CREATED: Delivery complete email
+src/lib/email/templates/index.ts                   ✅ CREATED: Template exports
+src/app/api/email/send/route.ts                    ✅ CREATED: Email API endpoint
+src/app/(shop)/checkout/page.tsx                   ✅ UPDATED: Send confirmation email
+src/app/(seller)/orders/firebase/page.tsx          ✅ UPDATED: Send status emails
+```
+
+#### Environment Variables Required
+```env
+# Resend Email Service
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx    # Get from resend.com dashboard
+
+# Optional: Custom from address (requires verified domain)
+EMAIL_FROM_ADDRESS=orders@mash.ph
+EMAIL_REPLY_TO=support@mash.ph
+```
+
+#### Email Types and Triggers
+
+| Email Type | Trigger | Template |
+|------------|---------|----------|
+| Order Confirmation | Customer places order | `order-confirmation.tsx` |
+| Order Approved | Admin approves order | `order-approved.tsx` |
+| Order Rejected | Admin rejects order | `order-rejected.tsx` |
+| Order Shipped | Order marked as shipped | `order-shipped.tsx` |
+| Order Delivered | Order marked as delivered/completed | `order-delivered.tsx` |
+
+#### Usage Example
+
+```typescript
+import { sendOrderConfirmationEmail } from "@/lib/email";
+
+// Send order confirmation (non-blocking)
+sendOrderConfirmationEmail(customerEmail, {
+  customerName: "Juan Dela Cruz",
+  orderNumber: "ORD-ABC123",
+  orderId: "firebase-order-id",
+  items: [{ name: "Blue Oyster", quantity: 2, price: 450, image: "..." }],
+  subtotal: 450,
+  deliveryFee: 185,
+  total: 635,
+  deliveryMethod: "lalamove",
+  deliveryAddress: "123 Main St, Manila",
+}).catch(console.error);
+```
+
+---
+
 ## File Reference
 
 ### Firebase Services
@@ -1024,6 +1123,22 @@ export function useFirebaseAddresses() {
 | `src/lib/firebase/notifications.ts` | Notifications CRUD, real-time | ✅ |
 | `src/lib/firebase/addresses.ts` | User addresses CRUD | ✅ Phase 10 |
 | `src/lib/firebase/index.ts` | Barrel exports | ✅ |
+
+### Email Service (Phase 11)
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/lib/email/resend.ts` | Resend client configuration | ✅ |
+| `src/lib/email/send-email.ts` | High-level email sending functions | ✅ |
+| `src/lib/email/index.ts` | Email module exports | ✅ |
+| `src/lib/email/templates/email-layout.tsx` | Base email layout with header/footer | ✅ |
+| `src/lib/email/templates/order-items.tsx` | Reusable order items component | ✅ |
+| `src/lib/email/templates/order-confirmation.tsx` | Order placed email | ✅ |
+| `src/lib/email/templates/order-approved.tsx` | Order approved email | ✅ |
+| `src/lib/email/templates/order-rejected.tsx` | Order rejected email | ✅ |
+| `src/lib/email/templates/order-shipped.tsx` | Out for delivery email | ✅ |
+| `src/lib/email/templates/order-delivered.tsx` | Delivery complete email | ✅ |
+| `src/lib/email/templates/index.ts` | Template exports | ✅ |
+| `src/app/api/email/send/route.ts` | Email API endpoint | ✅ |
 
 ### Hooks
 | File | Purpose | Status |
@@ -1138,6 +1253,19 @@ export function useFirebaseAddresses() {
 - [x] "Use saved address" returns to saved list
 - [x] Auto-select default address at checkout
 - [x] Lalamove quote uses saved address coordinates
+
+### ✅ Email Notifications (Phase 11)
+- [x] Email service configured with Resend
+- [x] Order confirmation email sent on checkout
+- [x] Order approved email sent on admin approval
+- [x] Order rejected email sent on admin rejection
+- [x] Order shipped email sent on status update
+- [x] Order delivered email sent on completion
+- [x] Emails include order details (items, prices, totals)
+- [x] Emails include delivery/pickup information
+- [x] Email failures don't block order flow
+- [x] API endpoint `/api/email/send` works
+- [x] Health check `/api/email/send` (GET) returns status
 
 ---
 
@@ -1350,11 +1478,11 @@ LALAMOVE_HOST=https://rest.sandbox.lalamove.com
 
 ---
 
-## 🎉 All Core Phases Complete!
+## 🎉 Core Phases Complete! Now Adding Email Notifications
 
-The complete buyer-to-seller flow is now fully implemented with Firebase:
+The complete buyer-to-seller flow is fully implemented with Firebase. Now adding email notifications for a complete professional experience.
 
-### ✅ What's Working
+### ✅ What's Working (Phases 1-10)
 1. **Add to Cart** - Products added with full details, synced to Firebase
 2. **Cart Management** - Real-time cart dropdown with quantity controls
 3. **3-Step Checkout** - Delivery → Contact → Payment flow
@@ -1365,7 +1493,144 @@ The complete buyer-to-seller flow is now fully implemented with Firebase:
 8. **Order Creation** - Orders saved to Firebase with full details
 9. **Admin Dashboard** - Approve/reject orders, status management
 10. **Delivery Tracking** - Live Lalamove tracking with driver info
-11. **Notifications** - Real-time order status alerts
+11. **In-App Notifications** - Real-time order status alerts
+
+---
+
+## 🔄 Phase 11: Email Notifications (IN PROGRESS)
+
+### Goal
+Send professional email notifications to customers for order updates using **Resend** (modern email API, free tier: 3,000 emails/month).
+
+### Email Types to Implement
+
+| Email Type | Trigger | Priority |
+|------------|---------|----------|
+| **Order Confirmation** | Order placed successfully | ✅ High |
+| **Order Approved** | Admin approves order | ✅ High |
+| **Order Rejected** | Admin rejects order | ✅ High |
+| **Order Shipped** | Order dispatched for delivery | ✅ High |
+| **Order Delivered** | Order delivered successfully | ✅ High |
+| **Driver Assigned** | Lalamove driver assigned | 🔶 Medium |
+| **Abandoned Cart** | Cart inactive for 24h | ⏳ Future |
+| **Welcome Email** | New user registration | ⏳ Future |
+
+### Implementation Plan
+
+#### 11.1 Email Service Setup
+- [ ] Install Resend SDK (`npm install resend`)
+- [ ] Create `src/lib/email/resend.ts` - Email client configuration
+- [ ] Create `src/lib/email/templates/` - Email template components
+- [ ] Add `RESEND_API_KEY` to environment variables
+
+#### 11.2 Email Templates (React Email)
+- [ ] `order-confirmation.tsx` - Order placed with items summary
+- [ ] `order-approved.tsx` - Order approved, preparing for delivery
+- [ ] `order-rejected.tsx` - Order rejected with reason
+- [ ] `order-shipped.tsx` - Out for delivery with tracking info
+- [ ] `order-delivered.tsx` - Delivery complete, thank you message
+
+#### 11.3 API Route for Sending Emails
+- [ ] Create `src/app/api/email/send/route.ts`
+- [ ] Validate request payload
+- [ ] Send appropriate email based on type
+- [ ] Return success/error response
+
+#### 11.4 Integration with Order Flow
+- [ ] Trigger email on order creation (checkout page)
+- [ ] Trigger email on order status change (admin dashboard)
+- [ ] Trigger email on Lalamove driver assignment
+
+### Email Template Design
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        ORDER CONFIRMATION EMAIL                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  🍄 MASH - Fresh Mushrooms Delivered                                            │
+│                                                                                  │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  Hi [Customer Name],                                                             │
+│                                                                                  │
+│  Thank you for your order! 🎉                                                    │
+│                                                                                  │
+│  ORDER #MASH-20251216-001                                                        │
+│  Placed on: December 16, 2025 at 2:30 PM                                        │
+│                                                                                  │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  📦 ORDER ITEMS                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │ [IMG] King Oyster Mushroom 500g              x2         ₱590.00          │  │
+│  │ [IMG] Blue Oyster Mushroom 250g              x1         ₱195.00          │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                  │
+│  Subtotal:                                               ₱785.00                │
+│  Delivery Fee (Lalamove):                                ₱185.00                │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│  TOTAL:                                                  ₱970.00                │
+│                                                                                  │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  🚚 DELIVERY DETAILS                                                             │
+│  Method: Same-Day Delivery (Lalamove)                                           │
+│  Address: 123 Rizal Ave, Quezon City, Metro Manila                              │
+│                                                                                  │
+│  💳 PAYMENT                                                                      │
+│  Method: Cash on Delivery (COD)                                                 │
+│                                                                                  │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  ⏳ WHAT'S NEXT?                                                                 │
+│  Your order is being reviewed by our team. You'll receive another email         │
+│  once it's approved and ready for delivery.                                     │
+│                                                                                  │
+│  [Track Your Order] button                                                      │
+│                                                                                  │
+│  ──────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  Questions? Reply to this email or contact us at support@mash.ph                │
+│                                                                                  │
+│  © 2025 MASH - Fresh Mushrooms Delivered                                        │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Files to Create
+
+```
+src/lib/email/
+├── resend.ts                      ← Email client config
+├── index.ts                       ← Barrel exports
+└── templates/
+    ├── order-confirmation.tsx     ← Order placed email
+    ├── order-approved.tsx         ← Order approved email
+    ├── order-rejected.tsx         ← Order rejected email
+    ├── order-shipped.tsx          ← Out for delivery email
+    ├── order-delivered.tsx        ← Delivery complete email
+    └── components/
+        ├── email-header.tsx       ← MASH logo header
+        ├── email-footer.tsx       ← Footer with contact
+        ├── order-items.tsx        ← Items table component
+        └── email-button.tsx       ← CTA button component
+
+src/app/api/email/
+└── send/
+    └── route.ts                   ← Email sending endpoint
+```
+
+### Environment Variables Required
+
+```env
+# Resend Email API (https://resend.com)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+
+# Email sender configuration
+EMAIL_FROM_ADDRESS=orders@mash.ph
+EMAIL_FROM_NAME=MASH Fresh Mushrooms
+```
 
 ---
 
@@ -1377,11 +1642,7 @@ The complete buyer-to-seller flow is now fully implemented with Firebase:
 - [ ] Set up Firebase Authentication rules
 - [ ] Test with production Lalamove keys (switch from sandbox)
 - [ ] Verify all environment variables in Vercel
-
-### 📧 Phase 11: Email Notifications (Future)
-1. **Order Confirmation Emails** - Send via SendGrid/Resend
-2. **Status Update Emails** - When order shipped/delivered
-3. **Marketing Emails** - Promotions, abandoned cart
+- [ ] Set up Resend domain verification for production emails
 
 ### 💳 Phase 12: Payment Integration (Future)
 1. **GCash Integration** - Via PayMongo/GCash API
@@ -1408,11 +1669,12 @@ The complete buyer-to-seller flow is now fully implemented with Firebase:
 | **Google Maps** | Address picker, delivery tracking | ⚠️ Enable Geocoding API | [Google Cloud Console](https://console.cloud.google.com/apis/library) |
 | **Lalamove** | Delivery quotes, order creation | ✅ Sandbox configured | [Lalamove Business](https://www.lalamove.com/ph/business) |
 | **Sanity CMS** | Products, content | ✅ Configured | [Sanity Manage](https://sanity.io/manage) |
+| **Resend** | Email notifications | ⏳ Phase 11 | [Resend Dashboard](https://resend.com/dashboard) |
 
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 7.0  
+**Version:** 8.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** ✅ All Core Phases Complete (Phases 1-10)  
+**Current Focus:** Phase 11 - Email Notifications  
 **Deployment:** Ready for Vercel

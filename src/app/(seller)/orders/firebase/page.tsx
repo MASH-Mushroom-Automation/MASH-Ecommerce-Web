@@ -53,6 +53,12 @@ import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
+import {
+  sendOrderApprovedEmail,
+  sendOrderRejectedEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+} from "@/lib/email";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -186,6 +192,28 @@ export default function FirebaseOrdersPage() {
 
       toast.success(`Order ${order.orderNumber} approved!`);
 
+      // Send approval email notification (non-blocking)
+      sendOrderApprovedEmail(order.userEmail, {
+        customerName: order.userName,
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        items: order.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          image: item.image,
+        })),
+        subtotal: order.subtotal,
+        deliveryFee: order.deliveryFee,
+        total: order.total,
+        deliveryMethod: order.deliveryMethod,
+        deliveryAddress: order.deliveryAddress?.address,
+        pickupLocation: order.pickupLocation?.name,
+        estimatedDelivery: "Within 24 hours",
+      }).catch((err) => {
+        console.error("Failed to send approval email:", err);
+      });
+
       // If this is a Lalamove delivery order, schedule the delivery
       if (order.deliveryMethod === "lalamove" && order.deliveryAddress) {
         toast.loading("Scheduling Lalamove delivery...", { id: "lalamove-schedule" });
@@ -255,6 +283,27 @@ export default function FirebaseOrdersPage() {
 
     if (success) {
       toast.success(`Order ${selectedOrder.orderNumber} rejected`);
+
+      // Send rejection email notification (non-blocking)
+      sendOrderRejectedEmail(selectedOrder.userEmail, {
+        customerName: selectedOrder.userName,
+        orderNumber: selectedOrder.orderNumber,
+        orderId: selectedOrder.id,
+        items: selectedOrder.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          image: item.image,
+        })),
+        subtotal: selectedOrder.subtotal,
+        deliveryFee: selectedOrder.deliveryFee,
+        total: selectedOrder.total,
+        deliveryMethod: selectedOrder.deliveryMethod,
+        rejectionReason: rejectReason,
+      }).catch((err) => {
+        console.error("Failed to send rejection email:", err);
+      });
+
       setShowRejectDialog(false);
       setRejectReason("");
       setSelectedOrder(null);
@@ -273,6 +322,46 @@ export default function FirebaseOrdersPage() {
 
     if (success) {
       toast.success(`Order status updated to ${STATUS_CONFIG[newStatus].label}`);
+
+      // Send email notifications based on status change
+      if (newStatus === "shipped") {
+        sendOrderShippedEmail(order.userEmail, {
+          customerName: order.userName,
+          orderNumber: order.orderNumber,
+          orderId: order.id,
+          items: order.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee,
+          total: order.total,
+          deliveryAddress: order.deliveryAddress?.address || "",
+          trackingUrl: order.lalamoveTracking?.shareLink,
+        }).catch((err) => {
+          console.error("Failed to send shipped email:", err);
+        });
+      } else if (newStatus === "delivered" || newStatus === "completed") {
+        sendOrderDeliveredEmail(order.userEmail, {
+          customerName: order.userName,
+          orderNumber: order.orderNumber,
+          orderId: order.id,
+          items: order.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee,
+          total: order.total,
+          deliveryMethod: order.deliveryMethod,
+        }).catch((err) => {
+          console.error("Failed to send delivered email:", err);
+        });
+      }
     } else {
       toast.error("Failed to update order status");
     }
