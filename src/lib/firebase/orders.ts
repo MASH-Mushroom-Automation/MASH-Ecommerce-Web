@@ -433,6 +433,31 @@ export class FirebaseOrdersService {
   }
 
   /**
+   * Subscribe to all orders (for admin/seller dashboard)
+   */
+  static subscribeToAllOrders(
+    onUpdate: (orders: FirestoreOrder[]) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const ordersRef = collection(db, this.COLLECTION);
+    const q = query(ordersRef, orderBy("createdAt", "desc"));
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const orders = snapshot.docs.map((doc) => doc.data() as FirestoreOrder);
+        onUpdate(orders);
+      },
+      (error) => {
+        console.error("[FirebaseOrdersService] Snapshot error:", error);
+        if (onError) {
+          onError(error);
+        }
+      }
+    );
+  }
+
+  /**
    * Approve order (admin/seller)
    */
   static async approveOrder(orderId: string, adminId: string): Promise<void> {

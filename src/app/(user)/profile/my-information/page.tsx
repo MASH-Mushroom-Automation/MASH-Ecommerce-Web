@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { User, MapPin, Check, Loader2, Camera } from "lucide-react";
+import { User, MapPin, Check, Loader2, Camera, Map } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import Image from "next/image";
+import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
 
 interface UserInfoForm {
   firstName: string;
@@ -28,6 +29,8 @@ interface AddressForm {
   stateProvince: string;
   zipPostal: string;
   landmark: string;
+  lat?: number;
+  lng?: number;
 }
 
 // Hardcoded fallback data
@@ -43,7 +46,9 @@ const FALLBACK_DATA = {
     city: "Caloocan City",
     stateProvince: "Metro Manila",
     zipPostal: "1420",
-    landmark: "in front of 7/11 Llano"
+    landmark: "in front of 7/11 Llano",
+    lat: 14.7566,
+    lng: 120.9822
   }
 };
 
@@ -52,6 +57,7 @@ export default function MyInformationPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   // Original values to track changes
   const [originalUserInfo, setOriginalUserInfo] = useState<UserInfoForm>({
@@ -97,6 +103,8 @@ export default function MyInformationPage() {
       stateProvince: FALLBACK_DATA.address.stateProvince,
       zipPostal: FALLBACK_DATA.address.zipPostal,
       landmark: FALLBACK_DATA.address.landmark,
+      lat: FALLBACK_DATA.address.lat,
+      lng: FALLBACK_DATA.address.lng,
     };
 
     setOriginalUserInfo(initialUserInfo);
@@ -172,6 +180,24 @@ export default function MyInformationPage() {
     setAddress(originalAddress);
     setSaveError(null);
     toast("Changes discarded.");
+  };
+
+  /**
+   * Handle address selected from Google Maps picker
+   */
+  const handleAddressSelect = (selectedAddress: SelectedAddress) => {
+    setAddress({
+      street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
+      addressLine2: '',
+      city: selectedAddress.components.city || '',
+      stateProvince: selectedAddress.components.state || '',
+      zipPostal: selectedAddress.components.zipCode || '',
+      landmark: address.landmark, // Keep existing landmark
+      lat: selectedAddress.lat,
+      lng: selectedAddress.lng,
+    });
+    setShowMapPicker(false);
+    toast.success("Address updated from map");
   };
 
   // Don't show loading or error states - always show the form with fallback data
@@ -392,9 +418,21 @@ export default function MyInformationPage() {
 
           {/* My Address Section */}
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <MapPin className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">My Address</h2>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold text-foreground">My Address</h2>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMapPicker(true)}
+                className="gap-2"
+              >
+                <Map className="h-4 w-4" />
+                Pick from Map
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               We&apos;ll ship your orders to this address.
@@ -568,6 +606,35 @@ export default function MyInformationPage() {
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Great!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Map Picker Dialog */}
+      <Dialog open={showMapPicker} onOpenChange={setShowMapPicker}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="flex items-center gap-2">
+            <Map className="h-5 w-5 text-primary" />
+            Select Address from Map
+          </DialogTitle>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Search for an address or click on the map to set your delivery location.
+            </p>
+            <AddressPicker
+              onAddressSelect={handleAddressSelect}
+              defaultValue={address.street ? `${address.street}, ${address.city}, ${address.stateProvince}` : ''}
+              placeholder="Search for your address..."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowMapPicker(false)}
+            >
+              Cancel
             </Button>
           </div>
         </DialogContent>
