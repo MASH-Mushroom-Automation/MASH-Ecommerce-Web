@@ -607,18 +607,23 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
-      let orderUserId: string | undefined;
-      let orderNumber: string | undefined;
+      
+      // First, get order info before transaction
+      const orderSnap = await getDoc(orderRef);
+      if (!orderSnap.exists()) {
+        throw new Error("Order not found");
+      }
+      const orderData = orderSnap.data() as FirestoreOrder;
+      const orderUserId = orderData.userId;
+      const orderNumber = orderData.orderNumber;
 
       await runTransaction(db, async (transaction) => {
-        const orderSnap = await transaction.get(orderRef);
-        if (!orderSnap.exists()) {
+        const orderSnapInTx = await transaction.get(orderRef);
+        if (!orderSnapInTx.exists()) {
           throw new Error("Order not found");
         }
 
-        const order = orderSnap.data() as FirestoreOrder;
-        orderUserId = order.userId;
-        orderNumber = order.orderNumber;
+        const order = orderSnapInTx.data() as FirestoreOrder;
 
         const newHistory: StatusHistoryEntry[] = [
           ...order.statusHistory,

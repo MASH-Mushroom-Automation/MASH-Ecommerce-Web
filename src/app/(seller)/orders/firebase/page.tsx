@@ -54,11 +54,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
 import {
-  sendOrderApprovedEmail,
-  sendOrderRejectedEmail,
-  sendOrderShippedEmail,
-  sendOrderDeliveredEmail,
-} from "@/lib/email";
+  sendOrderApprovedEmailViaAPI,
+  sendOrderRejectedEmailViaAPI,
+  sendOrderShippedEmailViaAPI,
+  sendOrderDeliveredEmailViaAPI,
+} from "@/lib/email/client";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -193,7 +193,7 @@ export default function FirebaseOrdersPage() {
       toast.success(`Order ${order.orderNumber} approved!`);
 
       // Send approval email notification (non-blocking)
-      sendOrderApprovedEmail(order.userEmail, {
+      sendOrderApprovedEmailViaAPI(order.userEmail, {
         customerName: order.userName,
         orderNumber: order.orderNumber,
         orderId: order.id,
@@ -285,7 +285,7 @@ export default function FirebaseOrdersPage() {
       toast.success(`Order ${selectedOrder.orderNumber} rejected`);
 
       // Send rejection email notification (non-blocking)
-      sendOrderRejectedEmail(selectedOrder.userEmail, {
+      sendOrderRejectedEmailViaAPI(selectedOrder.userEmail, {
         customerName: selectedOrder.userName,
         orderNumber: selectedOrder.orderNumber,
         orderId: selectedOrder.id,
@@ -325,7 +325,7 @@ export default function FirebaseOrdersPage() {
 
       // Send email notifications based on status change
       if (newStatus === "shipped") {
-        sendOrderShippedEmail(order.userEmail, {
+        sendOrderShippedEmailViaAPI(order.userEmail, {
           customerName: order.userName,
           orderNumber: order.orderNumber,
           orderId: order.id,
@@ -344,7 +344,7 @@ export default function FirebaseOrdersPage() {
           console.error("Failed to send shipped email:", err);
         });
       } else if (newStatus === "delivered" || newStatus === "completed") {
-        sendOrderDeliveredEmail(order.userEmail, {
+        sendOrderDeliveredEmailViaAPI(order.userEmail, {
           customerName: order.userName,
           orderNumber: order.orderNumber,
           orderId: order.id,

@@ -2,16 +2,18 @@
  * Email Sending Service
  *
  * High-level service for sending order notification emails.
- * Handles template rendering and error logging.
+ * Uses Gmail SMTP via Nodemailer (not Resend).
+ * Handles template rendering with React Email and error logging.
  */
 
-import resend, {
-  EmailType,
-  getFromAddress,
-  isEmailConfigured,
-  SendEmailPayload,
-  SendEmailResult,
-} from "./resend";
+import { render } from "@react-email/components";
+import {
+  isGmailConfigured,
+  sendRawEmail,
+  type EmailType,
+  type SendEmailPayload,
+  type SendEmailResult,
+} from "./gmail-smtp";
 import {
   OrderConfirmationEmail,
   OrderApprovedEmail,
@@ -20,6 +22,10 @@ import {
   OrderDeliveredEmail,
 } from "./templates";
 
+// Re-export for backward compatibility
+export { isGmailConfigured as isEmailConfigured };
+export type { EmailType, SendEmailPayload, SendEmailResult };
+
 /**
  * Send an email based on type
  */
@@ -27,8 +33,8 @@ export async function sendEmail(
   payload: SendEmailPayload
 ): Promise<SendEmailResult> {
   // Check if email service is configured
-  if (!isEmailConfigured() || !resend) {
-    console.warn("Email service not configured, skipping email send");
+  if (!isGmailConfigured()) {
+    console.warn("Gmail SMTP not configured, skipping email send");
     return {
       success: false,
       error: "Email service not configured",
@@ -37,7 +43,6 @@ export async function sendEmail(
 
   try {
     const { to, type, data } = payload;
-    const from = getFromAddress();
 
     let subject: string;
     let reactElement: React.ReactElement;
@@ -135,27 +140,21 @@ export async function sendEmail(
         };
     }
 
-    // Send email via Resend
-    const result = await resend.emails.send({
-      from,
+    // Render React Email template to HTML
+    const html = await render(reactElement);
+
+    // Send email via Gmail SMTP
+    const result = await sendRawEmail({
       to,
       subject,
-      react: reactElement,
+      html,
     });
 
-    if (result.error) {
-      console.error("Resend error:", result.error);
-      return {
-        success: false,
-        error: result.error.message,
-      };
+    if (result.success) {
+      console.log(`✅ Email sent successfully: ${type} to ${to}`, result.messageId);
     }
 
-    console.log(`✅ Email sent successfully: ${type} to ${to}`, result.data?.id);
-    return {
-      success: true,
-      messageId: result.data?.id,
-    };
+    return result;
   } catch (error) {
     console.error("Email send error:", error);
     return {
@@ -214,10 +213,3 @@ export async function sendOrderDeliveredEmail(
 ): Promise<SendEmailResult> {
   return sendEmail({ to, type: "order_delivered", data });
 }
-
-export {
-  type EmailType,
-  type SendEmailPayload,
-  type SendEmailResult,
-  isEmailConfigured,
-};

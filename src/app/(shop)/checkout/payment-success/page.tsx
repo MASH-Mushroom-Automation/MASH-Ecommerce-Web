@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Package, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmailViaAPI } from "@/lib/email/client";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
@@ -34,7 +34,7 @@ function PaymentSuccessContent() {
           // Send confirmation email
           if (!emailSent && pendingOrder.customerEmail) {
             try {
-              await sendOrderConfirmationEmail(pendingOrder.customerEmail, {
+              await sendOrderConfirmationEmailViaAPI(pendingOrder.customerEmail, {
                 customerName: pendingOrder.customerName || "Valued Customer",
                 orderNumber: pendingOrder.orderNumber,
                 orderId: orderId,

@@ -90,13 +90,41 @@ export async function POST(request: NextRequest) {
 
 // Health check for email service
 export async function GET() {
-  const { isEmailConfigured } = await import("@/lib/email");
+  try {
+    const { isEmailConfigured, verifyConnection, GMAIL_CONFIG } = await import("@/lib/email");
 
-  return NextResponse.json({
-    configured: isEmailConfigured(),
-    service: "Resend",
-    message: isEmailConfigured()
-      ? "Email service is configured and ready"
-      : "Email service not configured. Set RESEND_API_KEY in environment variables.",
-  });
+    // Optionally verify SMTP connection
+    let connectionVerified = false;
+    let verificationError: string | undefined;
+    
+    if (isEmailConfigured()) {
+      try {
+        connectionVerified = await verifyConnection();
+      } catch (err) {
+        verificationError = err instanceof Error ? err.message : "Unknown verification error";
+      }
+    }
+
+    return NextResponse.json({
+      configured: isEmailConfigured(),
+      service: "Gmail SMTP",
+      host: GMAIL_CONFIG.host,
+      port: GMAIL_CONFIG.port,
+      connectionVerified,
+      verificationError,
+      message: isEmailConfigured()
+        ? connectionVerified
+          ? "Gmail SMTP is configured and connection verified"
+          : `Gmail SMTP is configured but connection not verified${verificationError ? `: ${verificationError}` : ""}`
+        : "Gmail SMTP not configured. Set EMAIL_USER and EMAIL_PASSWORD in environment variables.",
+    });
+  } catch (error) {
+    console.error("Email health check error:", error);
+    return NextResponse.json({
+      configured: false,
+      service: "Gmail SMTP",
+      error: error instanceof Error ? error.message : "Unknown error",
+      message: "Error checking email configuration",
+    });
+  }
 }

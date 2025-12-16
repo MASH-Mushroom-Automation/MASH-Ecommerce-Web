@@ -26,7 +26,7 @@ import {
   FirebaseOrdersService,
   type CreateOrderData,
 } from "@/lib/firebase/orders";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmailViaAPI } from "@/lib/email/client";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -318,7 +318,7 @@ export default function CheckoutPage() {
       }
 
       // For COD orders or after successful payment, send confirmation email
-      sendOrderConfirmationEmail(step2Data.email, {
+      sendOrderConfirmationEmailViaAPI(step2Data.email, {
         customerName: step2Data.name,
         orderNumber: orderNumber,
         orderId: newOrderId,
