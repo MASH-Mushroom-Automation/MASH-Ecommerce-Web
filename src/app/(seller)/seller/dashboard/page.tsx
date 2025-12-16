@@ -34,6 +34,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAdminDashboard } from "@/hooks/useAdminDashboard";
+import { useTopPerformingProducts } from "@/hooks/useTopPerformingProducts";
+import { useRecentOrders } from "@/hooks/useRecentOrders";
 import { useSellerDashboard } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getStatusBadge } from "@/lib/status-utils";
@@ -47,6 +49,27 @@ export default function SellerDashboard() {
     refetch: adminRefetch,
   } = useAdminDashboard();
 
+  // Fetch top performing products from the API
+  const {
+    data: topProducts,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: productsRefetch,
+  } = useTopPerformingProducts({ limit: 10, orderBy: "revenue" });
+
+  // Fetch recent orders from the API
+  const {
+    data: recentOrdersData,
+    isLoading: ordersLoading,
+    isError: ordersError,
+    refetch: ordersRefetch,
+  } = useRecentOrders({
+    page: 1,
+    limit: 5,
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  });
+
   const {
     salesData,
     productPerformance,
@@ -56,14 +79,17 @@ export default function SellerDashboard() {
     refetch: sellerRefetch,
   } = useSellerDashboard();
 
-  const loading = adminLoading || sellerLoading;
-  const error = adminError || sellerError;
+  const loading =
+    adminLoading || sellerLoading || productsLoading || ordersLoading;
+  const error = adminError || sellerError || productsError || ordersError;
 
   // Calculate pending orders count
   const pendingOrdersCount = adminData?.alert.pendingOrders || 0;
 
   const handleRefresh = () => {
     adminRefetch();
+    productsRefetch();
+    ordersRefetch();
     sellerRefetch?.();
   };
 
@@ -168,7 +194,9 @@ export default function SellerDashboard() {
                 : `${adminData.metrics.totalSales.change}%`
               : "+0%"
           }
-          trend={adminData?.metrics.totalSales.change >= 0 ? "up" : "down"}
+          trend={
+            (adminData?.metrics.totalSales.change ?? 0) >= 0 ? "up" : "down"
+          }
           description={
             adminData?.metrics.totalSales.changeLabel || "vs. last month"
           }
@@ -184,7 +212,7 @@ export default function SellerDashboard() {
                 : `${adminData.metrics.orders.change}%`
               : "+0%"
           }
-          trend={adminData?.metrics.orders.change >= 0 ? "up" : "down"}
+          trend={(adminData?.metrics.orders.change ?? 0) >= 0 ? "up" : "down"}
           description={
             adminData?.metrics.orders.changeLabel || "vs. last month"
           }
@@ -200,7 +228,7 @@ export default function SellerDashboard() {
                 : `${adminData.metrics.products.change}`
               : "+0"
           }
-          trend={adminData?.metrics.products.change >= 0 ? "up" : "down"}
+          trend={(adminData?.metrics.products.change ?? 0) >= 0 ? "up" : "down"}
           description={
             adminData?.metrics.products.changeLabel || "new this month"
           }
@@ -220,7 +248,7 @@ export default function SellerDashboard() {
                 : `${adminData.metrics.revenue.change}%`
               : "+0%"
           }
-          trend={adminData?.metrics.revenue.change >= 0 ? "up" : "down"}
+          trend={(adminData?.metrics.revenue.change ?? 0) >= 0 ? "up" : "down"}
           description={
             adminData?.metrics.revenue.changeLabel || "vs. last month"
           }
@@ -269,52 +297,75 @@ export default function SellerDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-foreground">Product Name</TableHead>
-                <TableHead className="text-right text-foreground">
-                  Units Sold
-                </TableHead>
-                <TableHead className="text-right text-foreground">
-                  Stock
-                </TableHead>
-                <TableHead className="text-right text-foreground">
-                  Revenue
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productPerformance.map((product) => (
-                <TableRow key={product.name} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right">{product.sales}</TableCell>
-                  <TableCell className="text-right">
-                    {product.stock === 0 ? (
-                      <Badge
-                        variant="destructive"
-                        className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
-                      >
-                        Out of Stock
-                      </Badge>
-                    ) : product.stock < 20 ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 hover:bg-yellow-100/10 border-yellow-300"
-                      >
-                        Low: {product.stock}
-                      </Badge>
-                    ) : (
-                      product.stock
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ₱{product.revenue.toLocaleString()}
-                  </TableCell>
+          {productsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner size="md" />
+            </div>
+          ) : productsError ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Failed to load products</p>
+            </div>
+          ) : !topProducts || topProducts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No products found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-foreground">
+                    Product Name
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Units Sold
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Stock
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Revenue
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {topProducts.map((product) => (
+                  <TableRow
+                    key={product.productId}
+                    className="hover:bg-muted/50"
+                  >
+                    <TableCell className="font-medium">
+                      {product.productName}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {product.unitsSold}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {product.stock === 0 ? (
+                        <Badge
+                          variant="destructive"
+                          className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
+                        >
+                          Out of Stock
+                        </Badge>
+                      ) : product.stock < 20 ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 hover:bg-yellow-100/10 border-yellow-300"
+                        >
+                          Low: {product.stock}
+                        </Badge>
+                      ) : (
+                        product.stock
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ₱{product.revenue.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
         <CardFooter>
           <Link
@@ -335,36 +386,62 @@ export default function SellerDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-foreground">Order ID</TableHead>
-                <TableHead className="text-foreground">Date</TableHead>
-                <TableHead className="text-foreground">Customer</TableHead>
-                <TableHead className="text-right text-foreground">
-                  Items
-                </TableHead>
-                <TableHead className="text-right text-foreground">
-                  Total
-                </TableHead>
-                <TableHead className="text-foreground">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentOrders.map((order) => (
-                <TableRow key={order.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.date}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell className="text-right">{order.items}</TableCell>
-                  <TableCell className="text-right">
-                    ₱{order.total.toFixed(2)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+          {ordersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner size="md" />
+            </div>
+          ) : ordersError ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Failed to load orders</p>
+            </div>
+          ) : !recentOrdersData || recentOrdersData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No orders found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-foreground">Order ID</TableHead>
+                  <TableHead className="text-foreground">Date</TableHead>
+                  <TableHead className="text-foreground">Customer</TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Items
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Total
+                  </TableHead>
+                  <TableHead className="text-foreground">Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {recentOrdersData.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      {order.orderNumber || order.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {order.user
+                        ? `${order.user.firstName || ""} ${order.user.lastName || ""}`.trim() ||
+                          order.user.email
+                        : "Unknown"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {order.items?.length || 0}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {order.currency || "₱"}
+                      {order.totalAmount.toFixed(2)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
         <CardFooter>
           <Link
