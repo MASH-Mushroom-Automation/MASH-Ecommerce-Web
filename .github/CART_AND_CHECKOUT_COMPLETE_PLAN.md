@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 13.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
+**Version:** 14.0 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP & Wishlist)  
 **Last Updated:** December 16, 2025  
-**Status:** Phase 14 Complete ✅ (Wishlist & Auth Improvements)  
+**Status:** Phase 15 Complete ✅ (Wishlist Type Compatibility Fix)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove
 
 ---
@@ -125,11 +125,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | 12 | Payment Integration | ✅ Complete | 100% | GCash, Cards via PayMongo |
 | 13 | Gmail SMTP & E2E Test | ✅ Complete | 100% | Gmail SMTP verified, client-safe imports |
 | **14** | **Wishlist & Auth Fixes** | **✅ Complete** | **100%** | **Wishlist localStorage, sign-out cleanup** |
+| **15** | **Wishlist Type Fix** | **✅ Complete** | **100%** | **TransformedProduct type compatibility** |
 
 ### Progress Bar
 
 ```
-[██████████████████████████████████████████████████████████] 100% Complete (14/14 Phases)
+[██████████████████████████████████████████████████████████] 100% Complete (15/15 Phases)
 ```
 
 ---
@@ -1853,12 +1854,87 @@ src/app/(user)/profile/layout.tsx         # Added context clearing on logout
 - **Responsive Grid**: 2-col mobile, 3-col tablet, 4-col desktop
 - **Enhanced Header**: Heart icon, item count, action buttons
 
-### 📱 Phase 15: Mobile Optimization (Future)
+### 📱 Phase 15: Wishlist Type Compatibility Fix ✅
+
+#### 15.1 Root Cause Analysis
+The wishlist page was displaying "0 items saved" even when products were added because of a **type mismatch**:
+
+- **ProductCard** saves IDs to wishlist using `product.id` (from `TransformedProduct`)
+- **Wishlist page** was filtering by `product._id` (from `SanityProduct` type)
+- **useSanityProducts** hook returns `TransformedProduct[]` not `SanityProduct[]`
+
+#### 15.2 The Bug
+```typescript
+// ❌ WRONG - SanityProduct uses _id
+const filtered = products.filter((product) =>
+  wishlistIds.includes(product._id)
+);
+
+// ❌ WRONG - Accessing SanityProduct properties
+<ProductCard
+  id={product._id}                    // Should be product.id
+  slug={product.slug?.current}        // Should be product.slug
+  farm={product.category?.name}       // Should be product.category
+  image={product.mainImage}           // Should be product.image
+/>
+```
+
+#### 15.3 The Fix
+**File:** `src/app/(shop)/wishlist/page.tsx`
+
+```typescript
+// ✅ CORRECT - TransformedProduct uses id
+import type { TransformedProduct } from "@/types/sanity";
+
+const [wishlistItems, setWishlistItems] = useState<TransformedProduct[]>([]);
+
+// Filter by 'id' not '_id'
+const filtered = products.filter((product) =>
+  wishlistIds.includes(product.id)
+);
+
+// Use TransformedProduct properties
+<ProductCard
+  id={product.id}                     // ✅ Correct
+  slug={product.slug}                 // ✅ Correct (already string)
+  farm={product.category}             // ✅ Correct (already string)
+  image={product.image}               // ✅ Correct (already URL string)
+/>
+```
+
+#### 15.4 Type Reference
+
+| Property | SanityProduct | TransformedProduct |
+|----------|---------------|-------------------|
+| ID | `_id` | `id` |
+| Slug | `slug.current` or `slug` | `slug` (always string) |
+| Category | `category?.name` | `category` (already string) |
+| Image | `mainImage` | `image` |
+| Tags | `tags` | `productTags` |
+| Description | `shortDescription` | `description` |
+
+#### 15.5 Verification Steps
+1. Open any product page (e.g., `/product/oyster-mushroom`)
+2. Click the heart icon ❤️ to add to wishlist
+3. Toast notification shows "Added to wishlist!"
+4. Navigate to `/wishlist`
+5. Product should appear in the grid ✅
+6. "Add All to Cart" and "Quick Remove" buttons work
+
+**Files Modified:**
+```
+src/app/(shop)/wishlist/page.tsx    # Changed SanityProduct → TransformedProduct
+                                     # Fixed property access (_id → id, etc.)
+middleware.ts                        # Removed /wishlist from protectedRoutes
+                                     # Added /wishlist to publicRoutes
+```
+
+### 📱 Phase 16: Mobile Optimization (Future)
 1. **PWA Support** - Offline capability
 2. **Push Notifications** - Firebase Cloud Messaging
 3. **Mobile-first checkout** - Improved UX on phones
 
-### 🏪 Phase 15: Multi-Seller Support (Future)
+### 🏪 Phase 17: Multi-Seller Support (Future)
 1. **Seller Onboarding** - Registration flow
 2. **Per-Seller Orders** - Route orders to correct seller
 3. **Seller Dashboard** - Individual seller analytics
@@ -1879,7 +1955,7 @@ src/app/(user)/profile/layout.tsx         # Added context clearing on logout
 ---
 
 **Last Updated:** December 16, 2025  
-**Version:** 13.0  
+**Version:** 14.0  
 **Build Status:** ✅ Passing  
-**Current Focus:** All 14 Phases Complete (Including Wishlist & Auth Fixes) 🎉  
+**Current Focus:** All 15 Phases Complete (Including Wishlist Type Fix) 🎉  
 **Deployment:** Ready for Vercel

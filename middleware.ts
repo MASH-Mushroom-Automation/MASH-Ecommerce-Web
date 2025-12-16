@@ -7,7 +7,7 @@ const protectedRoutes = [
   "/seller",
   "/profile/my-information",
   "/profile/order-history",
-  "/wishlist",
+  // "/wishlist" removed - wishlist works for guests using localStorage
 ];
 
 // Define auth routes that authenticated users shouldn't access
@@ -34,6 +34,7 @@ const publicRoutes = [
   "/terms",
   "/shipping-info",
   "/returns-policy",
+  "/wishlist",  // Wishlist works for guests using localStorage
 ];
 
 // All routes are now public - no authentication checks

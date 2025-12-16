@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
-import type { SanityProduct } from "@/types/sanity";
+import type { TransformedProduct } from "@/types/sanity";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,7 @@ import {
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
-  const [wishlistItems, setWishlistItems] = useState<SanityProduct[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<TransformedProduct[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isAddingAll, setIsAddingAll] = useState(false);
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function WishlistPage() {
     setIsClient(true);
   }, []);
 
-  // Filter products by wishlist IDs
+  // Filter products by wishlist IDs - use 'id' not '_id' for TransformedProduct
   useEffect(() => {
     if (!isClient || !products) return;
 
@@ -50,10 +50,11 @@ export default function WishlistPage() {
       return;
     }
 
-    // Filter Sanity products by wishlist IDs
+    // Filter products by wishlist IDs (TransformedProduct uses 'id', not '_id')
     const filtered = products.filter((product) =>
-      wishlistIds.includes(product._id)
+      wishlistIds.includes(product.id)
     );
+    console.log('🛒 Wishlist filter:', { wishlistIds, filtered: filtered.length, total: products.length });
     setWishlistItems(filtered);
   }, [wishlistIds, products, isClient]);
 
@@ -64,7 +65,7 @@ export default function WishlistPage() {
     }
   }, [error]);
 
-  // Add all items to cart
+  // Add all items to cart - use TransformedProduct properties
   const handleAddAllToCart = useCallback(async () => {
     if (wishlistItems.length === 0) return;
     
@@ -75,13 +76,13 @@ export default function WishlistPage() {
     for (const product of wishlistItems) {
       if (product.isAvailable && product.stock > 0) {
         const success = addToCart({
-          id: product._id,
+          id: product.id,
           name: product.name,
           price: product.price,
-          image: product.mainImage || "/mushroom-placeholder.png",
-          slug: product.slug?.current || product._id,
+          image: product.image || "/mushroom-placeholder.png",
+          slug: product.slug || product.id,
           stock: product.stock,
-          grower: product.category?.name,
+          grower: product.category,
           unit: product.unit ? `${product.weight}${product.unit}` : undefined,
         }, 1);
         
@@ -219,23 +220,21 @@ export default function WishlistPage() {
             {/* Product Grid - Improved responsiveness */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {wishlistItems.map((product) => (
-                <div key={product._id} className="relative group/wishlist">
+                <div key={product.id} className="relative group/wishlist">
                   <ProductCard
-                    id={product._id}
-                    slug={product.slug?.current}
+                    id={product.id}
+                    slug={product.slug}
                     name={product.name}
-                    farm={product.category?.name || "MASH Mushrooms"}
+                    farm={product.category || product.grower?.name || "MASH Mushrooms"}
                     price={product.price}
                     comparePrice={product.compareAtPrice}
                     unit={product.unit ? `${product.weight}${product.unit}` : undefined}
-                    image={product.mainImage || "/mushroom-placeholder.png"}
+                    image={product.image || "/mushroom-placeholder.png"}
                     images={product.images}
                     inStock={product.isAvailable && product.stock > 0}
                     stock={product.stock}
-                    rating={product.rating}
-                    reviewCount={product.reviewCount}
-                    tags={product.tags || []}
-                    description={product.shortDescription}
+                    tags={product.productTags || []}
+                    description={product.description}
                   />
                   
                   {/* Quick Remove Button - Shows on hover */}
@@ -245,7 +244,7 @@ export default function WishlistPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleQuickRemove(product._id, product.name);
+                      handleQuickRemove(product.id, product.name);
                     }}
                     className="absolute top-2 left-2 z-10 opacity-0 group-hover/wishlist:opacity-100 transition-opacity duration-200 bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground shadow-sm"
                     aria-label={`Remove ${product.name} from wishlist`}
