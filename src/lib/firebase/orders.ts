@@ -206,6 +206,7 @@ export class FirebaseOrdersService {
       const orderId = `${data.userId}-${Date.now()}`;
       const orderRef = doc(ordersRef, orderId);
 
+      // Build base order object
       const order: FirestoreOrder = {
         id: orderId,
         orderNumber,
@@ -219,9 +220,6 @@ export class FirebaseOrdersService {
         deliveryFee: data.deliveryFee,
         total: data.total,
         deliveryMethod: data.deliveryMethod,
-        pickupLocation: data.pickupLocation,
-        deliveryAddress: data.deliveryAddress,
-        lalamoveQuotationId: data.lalamoveQuotationId,
         paymentMethod: data.paymentMethod,
         paymentStatus: "pending",
         status: "pending_approval",
@@ -233,10 +231,23 @@ export class FirebaseOrdersService {
             note: "Order placed, awaiting seller approval",
           },
         ],
-        notes: data.notes,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
+
+      // Only add optional fields if they have values (Firebase doesn't accept undefined)
+      if (data.pickupLocation) {
+        order.pickupLocation = data.pickupLocation;
+      }
+      if (data.deliveryAddress) {
+        order.deliveryAddress = data.deliveryAddress;
+      }
+      if (data.lalamoveQuotationId) {
+        order.lalamoveQuotationId = data.lalamoveQuotationId;
+      }
+      if (data.notes) {
+        order.notes = data.notes;
+      }
 
       await setDoc(orderRef, order);
 
@@ -632,7 +643,7 @@ export class FirebaseOrdersService {
       // Send notification to customer about status change
       if (orderData) {
         await this.sendOrderStatusNotification(
-          orderData.customerId,
+          orderData.userId,
           orderId,
           orderData.orderNumber,
           newStatus,
