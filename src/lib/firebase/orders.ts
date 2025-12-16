@@ -607,7 +607,8 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
-      let orderData: FirestoreOrder | null = null;
+      let orderUserId: string | undefined;
+      let orderNumber: string | undefined;
 
       await runTransaction(db, async (transaction) => {
         const orderSnap = await transaction.get(orderRef);
@@ -616,7 +617,8 @@ export class FirebaseOrdersService {
         }
 
         const order = orderSnap.data() as FirestoreOrder;
-        orderData = order;
+        orderUserId = order.userId;
+        orderNumber = order.orderNumber;
 
         const newHistory: StatusHistoryEntry[] = [
           ...order.statusHistory,
@@ -641,11 +643,11 @@ export class FirebaseOrdersService {
       });
 
       // Send notification to customer about status change
-      if (orderData) {
+      if (orderUserId && orderNumber) {
         await this.sendOrderStatusNotification(
-          orderData.userId,
+          orderUserId,
           orderId,
-          orderData.orderNumber,
+          orderNumber,
           newStatus,
           note
         );

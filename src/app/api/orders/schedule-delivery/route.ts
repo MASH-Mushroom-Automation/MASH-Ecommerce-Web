@@ -156,13 +156,13 @@ export async function POST(request: NextRequest) {
     const orderRequest: LalamoveOrderRequest = {
       quotationId: finalQuotationId,
       sender: {
-        stopId: quotation.stops[0].stopId,
+        stopId: quotation.stops[0].stopId || '',
         name: MASH_PICKUP_LOCATION.name,
         phone: MASH_PICKUP_LOCATION.phone,
       },
       recipients: [
         {
-          stopId: quotation.stops[1].stopId,
+          stopId: quotation.stops[1].stopId || '',
           name: customer.name,
           phone: formattedPhone,
           remarks: `Order #${orderNumber}\n${itemsDescription}\nKeep refrigerated\nHandle with care`,

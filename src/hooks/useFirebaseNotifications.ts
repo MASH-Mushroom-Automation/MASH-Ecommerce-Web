@@ -67,7 +67,7 @@ export function useFirebaseNotifications(
 
   // Fetch notifications (one-time)
   const fetchNotifications = useCallback(async () => {
-    if (!user?.uid) {
+    if (!user?.id) {
       setNotifications([]);
       setLoading(false);
       return;
@@ -77,7 +77,7 @@ export function useFirebaseNotifications(
       setLoading(true);
       setError(null);
       const data = await FirebaseNotificationsService.getUserNotifications(
-        user.uid,
+        user.id,
         maxResults
       );
       setNotifications(data);
@@ -87,12 +87,12 @@ export function useFirebaseNotifications(
     } finally {
       setLoading(false);
     }
-  }, [user?.uid, maxResults]);
+  }, [user?.id, maxResults]);
 
   // Real-time subscription
   useEffect(() => {
-    if (!user?.uid || !realtime) {
-      if (autoFetch && user?.uid) {
+    if (!user?.id || !realtime) {
+      if (autoFetch && user?.id) {
         fetchNotifications();
       } else {
         setLoading(false);
@@ -103,7 +103,7 @@ export function useFirebaseNotifications(
     setLoading(true);
 
     const unsubscribe = FirebaseNotificationsService.subscribeToNotifications(
-      user.uid,
+      user.id,
       (data) => {
         setNotifications(data);
         setLoading(false);
@@ -115,7 +115,7 @@ export function useFirebaseNotifications(
     return () => {
       unsubscribe();
     };
-  }, [user?.uid, realtime, maxResults, autoFetch, fetchNotifications]);
+  }, [user?.id, realtime, maxResults, autoFetch, fetchNotifications]);
 
   // Mark single notification as read
   const markAsRead = useCallback(
@@ -143,10 +143,10 @@ export function useFirebaseNotifications(
 
   // Mark all as read
   const markAllAsRead = useCallback(async (): Promise<boolean> => {
-    if (!user?.uid) return false;
+    if (!user?.id) return false;
 
     try {
-      await FirebaseNotificationsService.markAllAsRead(user.uid);
+      await FirebaseNotificationsService.markAllAsRead(user.id);
       
       // Optimistic update if not using realtime
       if (!realtime) {
@@ -160,7 +160,7 @@ export function useFirebaseNotifications(
       console.error("Error marking all as read:", err);
       return false;
     }
-  }, [user?.uid, realtime]);
+  }, [user?.id, realtime]);
 
   // Delete notification
   const deleteNotification = useCallback(
@@ -186,10 +186,10 @@ export function useFirebaseNotifications(
 
   // Clear all notifications
   const clearAll = useCallback(async (): Promise<boolean> => {
-    if (!user?.uid) return false;
+    if (!user?.id) return false;
 
     try {
-      await FirebaseNotificationsService.deleteAllNotifications(user.uid);
+      await FirebaseNotificationsService.deleteAllNotifications(user.id);
       
       // Optimistic update if not using realtime
       if (!realtime) {
@@ -201,7 +201,7 @@ export function useFirebaseNotifications(
       console.error("Error clearing notifications:", err);
       return false;
     }
-  }, [user?.uid, realtime]);
+  }, [user?.id, realtime]);
 
   // Refresh
   const refresh = useCallback(async () => {
@@ -225,8 +225,10 @@ export function useFirebaseNotifications(
 /**
  * Format notification time for display
  */
-export function formatNotificationTime(timestamp: { toDate?: () => Date } | Date): string {
-  const date = timestamp && typeof timestamp === 'object' && 'toDate' in timestamp 
+export function formatNotificationTime(timestamp: { toDate?: () => Date } | Date | null | undefined): string {
+  if (!timestamp) return "Unknown time";
+  
+  const date = typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function'
     ? timestamp.toDate() 
     : new Date(timestamp as Date);
   

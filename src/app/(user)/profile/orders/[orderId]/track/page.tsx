@@ -39,16 +39,21 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+// Alias for formatPrice
+const formatPrice = formatCurrency;
+
 // Map Firebase order status to display info
 const getOrderStatusInfo = (status: FirestoreOrder['status']) => {
-  const statusMap = {
+  const statusMap: Record<string, { label: string; color: string; icon: typeof Package }> = {
     pending_approval: { label: 'Pending Approval', color: 'bg-yellow-100 text-yellow-800', icon: Timer },
     approved: { label: 'Approved', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
     processing: { label: 'Processing', color: 'bg-purple-100 text-purple-800', icon: Package },
+    ready_for_pickup: { label: 'Ready for Pickup', color: 'bg-teal-100 text-teal-800', icon: Package },
     shipped: { label: 'Out for Delivery', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
     delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800', icon: CheckCircle },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
     cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: AlertCircle },
+    rejected: { label: 'Rejected', color: 'bg-red-100 text-red-800', icon: AlertCircle },
     refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-800', icon: AlertCircle },
   };
   return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800', icon: Package };
@@ -82,13 +87,13 @@ export default function FirebaseOrderTrackingPage() {
 
   // Fetch order from Firebase
   const fetchOrder = useCallback(async (showRefreshing = false) => {
-    if (!orderId || !user?.uid) return;
+    if (!orderId || !user?.id) return;
     
     if (showRefreshing) setRefreshing(true);
     setError(null);
 
     try {
-      const orderData = await FirebaseOrdersService.getOrderById(orderId);
+      const orderData = await FirebaseOrdersService.getOrder(orderId);
       
       if (!orderData) {
         setError('Order not found');
@@ -96,7 +101,7 @@ export default function FirebaseOrderTrackingPage() {
       }
 
       // Verify the order belongs to the user
-      if (orderData.userId !== user.uid) {
+      if (orderData.userId !== user.id) {
         setError('Order not found');
         return;
       }
@@ -118,7 +123,7 @@ export default function FirebaseOrderTrackingPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [orderId, user?.uid]);
+  }, [orderId, user?.id]);
 
   // Fetch latest Lalamove tracking data
   const fetchLalamoveUpdates = async (lalamoveOrderId: string, firebaseOrderId: string) => {
@@ -130,10 +135,19 @@ export default function FirebaseOrderTrackingPage() {
       if (orderData.success) {
         const lalamoveOrder = orderData.data;
         
-        // Prepare tracking update
-        const trackingUpdate: Partial<FirestoreOrder['lalamoveTracking']> = {
+        // Prepare tracking update with explicit type
+        const trackingUpdate: {
+          status?: string;
+          driverId?: string;
+          driverName?: string;
+          driverPhone?: string;
+          driverPlateNumber?: string;
+          driverPhoto?: string;
+          driverLocation?: { lat: number; lng: number; updatedAt?: string };
+          pickupEta?: string;
+          deliveryEta?: string;
+        } = {
           status: lalamoveOrder.status,
-          lastUpdated: new Date().toISOString(),
         };
 
         // If driver assigned, fetch driver details
@@ -180,10 +194,10 @@ export default function FirebaseOrderTrackingPage() {
 
   // Initial load
   useEffect(() => {
-    if (orderId && user?.uid) {
+    if (orderId && user?.id) {
       fetchOrder();
     }
-  }, [orderId, user?.uid, fetchOrder]);
+  }, [orderId, user?.id, fetchOrder]);
 
   // Auto-refresh every 30 seconds for active deliveries
   useEffect(() => {
@@ -366,7 +380,7 @@ export default function FirebaseOrderTrackingPage() {
             <CardContent>
               {/* Status Timeline */}
               {lalamoveStatus && (
-                <StatusTimeline status={lalamoveStatus} />
+                <StatusTimeline currentStatus={lalamoveStatus as 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED'} />
               )}
 
               {/* ETAs */}
@@ -533,7 +547,7 @@ export default function FirebaseOrderTrackingPage() {
         <CardContent>
           <div className="space-y-4">
             {order.items.map((item, index) => (
-              <div key={item.id || index} className="flex items-center space-x-4">
+              <div key={item.productId || index} className="flex items-center space-x-4">
                 {item.image && (
                   <img
                     src={item.image}
