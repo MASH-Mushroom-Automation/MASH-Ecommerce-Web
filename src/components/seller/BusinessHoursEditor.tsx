@@ -123,7 +123,7 @@ export function BusinessHoursEditor({ hours, onChange }: BusinessHoursEditorProp
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
                     {timeOptions.map((time) => (
                       <SelectItem key={`open-${time}`} value={time}>
                         {formatTime(time)}
@@ -144,7 +144,7 @@ export function BusinessHoursEditor({ hours, onChange }: BusinessHoursEditorProp
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
                     {timeOptions.map((time) => (
                       <SelectItem key={`close-${time}`} value={time}>
                         {formatTime(time)}

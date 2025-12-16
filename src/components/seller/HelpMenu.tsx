@@ -112,12 +112,12 @@ export function HelpMenu({ userId, variant = 'fixed' }: HelpMenuProps) {
       </DropdownMenu>
 
       {/* Tutorial Manager */}
-      {showTutorials && (
-        <TutorialManager 
-          userId={userId} 
-          autoStart={false}
-        />
-      )}
+      <TutorialManager 
+        userId={userId} 
+        autoStart={false}
+        initialOpen={showTutorials}
+        onClose={() => setShowTutorials(false)}
+      />
     </>
   );
 }

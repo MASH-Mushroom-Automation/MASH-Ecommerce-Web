@@ -41,10 +41,12 @@ import {
 interface TutorialManagerProps {
   userId: string;
   autoStart?: boolean;
+  initialOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function TutorialManager({ userId, autoStart = true }: TutorialManagerProps) {
-  const [showLibrary, setShowLibrary] = useState(false);
+export function TutorialManager({ userId, autoStart = true, initialOpen = false, onClose }: TutorialManagerProps) {
+  const [showLibrary, setShowLibrary] = useState(initialOpen);
   const [currentSequence, setCurrentSequence] = useState<TutorialSequence | null>(null);
   const [progress, setProgress] = useState(OnboardingService.getProgress(userId));
   const [preferences, setPreferences] = useState(OnboardingService.getPreferences(userId));
@@ -55,6 +57,11 @@ export function TutorialManager({ userId, autoStart = true }: TutorialManagerPro
       setCurrentSequence(GETTING_STARTED_TUTORIAL);
     }
   }, [userId, autoStart]);
+
+  useEffect(() => {
+    // Update showLibrary when initialOpen changes
+    setShowLibrary(initialOpen);
+  }, [initialOpen]);
 
   const handleStartTutorial = (sequence: TutorialSequence) => {
     setCurrentSequence(sequence);
@@ -109,7 +116,10 @@ export function TutorialManager({ userId, autoStart = true }: TutorialManagerPro
       )}
 
       {/* Tutorial Library Dialog */}
-      <Dialog open={showLibrary} onOpenChange={setShowLibrary}>
+      <Dialog open={showLibrary} onOpenChange={(open) => {
+        setShowLibrary(open);
+        if (!open && onClose) onClose();
+      }}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -203,7 +213,10 @@ export function TutorialManager({ userId, autoStart = true }: TutorialManagerPro
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLibrary(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowLibrary(false);
+              if (onClose) onClose();
+            }}>
               Close
             </Button>
           </DialogFooter>
