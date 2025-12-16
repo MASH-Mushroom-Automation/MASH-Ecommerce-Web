@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { MapPin, Truck, Package } from "lucide-react";
 import {
   AddressPicker,
-  AddressSelector,
   LalamoveQuote,
   MASH_PICKUP_LOCATION,
   PICKUP_LOCATIONS,
@@ -101,19 +100,6 @@ export default function CheckoutPage() {
     }
   }, [userIsAuthenticated, user, step2Form]);
 
-  // Auto-select default address when Lalamove is selected and user has saved addresses
-  useEffect(() => {
-    if (
-      watchDeliveryMethod === "lalamove" &&
-      defaultAddress &&
-      !selectedSavedAddressId &&
-      !useNewAddress &&
-      !addressesLoading
-    ) {
-      handleSavedAddressSelect(defaultAddress.id);
-    }
-  }, [watchDeliveryMethod, defaultAddress, selectedSavedAddressId, useNewAddress, addressesLoading, handleSavedAddressSelect]);
-
   const getSelectedPickupLocation = useCallback((locationId?: string) => {
     if (!locationId) return undefined;
     return PICKUP_LOCATIONS.find((loc) => loc.id === locationId);
@@ -126,12 +112,31 @@ export default function CheckoutPage() {
     const savedAddress = savedAddresses.find((a) => a.id === addressId);
     if (savedAddress) {
       setDeliveryAddress({
-        lat: savedAddress.lat,
-        lng: savedAddress.lng,
+        lat: savedAddress.coordinates.lat,
+        lng: savedAddress.coordinates.lng,
         formattedAddress: savedAddress.formattedAddress,
+        components: {
+          street: savedAddress.street,
+          city: savedAddress.city,
+          state: savedAddress.stateProvince,
+          zipCode: savedAddress.zipPostal,
+        },
       });
     }
   }, [savedAddresses]);
+
+  // Auto-select default address when Lalamove is selected and user has saved addresses
+  useEffect(() => {
+    if (
+      watchDeliveryMethod === "lalamove" &&
+      defaultAddress &&
+      !selectedSavedAddressId &&
+      !useNewAddress &&
+      !addressesLoading
+    ) {
+      handleSavedAddressSelect(defaultAddress.id);
+    }
+  }, [watchDeliveryMethod, defaultAddress, selectedSavedAddressId, useNewAddress, addressesLoading, handleSavedAddressSelect]);
 
   const handleAddressSelect = useCallback((address: SelectedAddress) => {
     setDeliveryAddress(address);
@@ -433,11 +438,40 @@ export default function CheckoutPage() {
                                       <h4 className="text-sm font-medium text-muted-foreground">
                                         Select a saved address:
                                       </h4>
-                                      <AddressSelector
-                                        onSelect={handleSavedAddressSelect}
-                                        selectedId={selectedSavedAddressId || undefined}
-                                        showAddNew={false}
-                                      />
+                                      <div className="space-y-2">
+                                        {savedAddresses.map((addr) => (
+                                          <label
+                                            key={addr.id}
+                                            className={cn(
+                                              "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                                              selectedSavedAddressId === addr.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-border hover:border-primary/50"
+                                            )}
+                                          >
+                                            <input
+                                              type="radio"
+                                              name="savedAddress"
+                                              checked={selectedSavedAddressId === addr.id}
+                                              onChange={() => handleSavedAddressSelect(addr.id)}
+                                              className="mt-1"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium">{addr.label}</span>
+                                                {addr.isDefault && (
+                                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                    Default
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-sm text-muted-foreground truncate">
+                                                {addr.formattedAddress}
+                                              </p>
+                                            </div>
+                                          </label>
+                                        ))}
+                                      </div>
                                       <Button
                                         type="button"
                                         variant="outline"
