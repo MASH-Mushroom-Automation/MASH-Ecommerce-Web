@@ -1,9 +1,9 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 4.1 (Firebase-Powered with Notifications)  
-**Last Updated:** December 18, 2025  
+**Version:** 4.2 (Firebase-Powered with Notifications + Google Maps Fix)  
+**Last Updated:** December 16, 2025  
 **Status:** Phase 9 Complete ✅ | All Core Phases Done 🎉  
-**Platform:** Next.js 15 + Firebase Firestore (No Backend Dependency)
+**Platform:** Next.js 15/16 + Firebase Firestore (No Backend Dependency)
 
 ---
 
@@ -513,9 +513,14 @@ type NotificationType =
 ### Checkout Components
 | File | Purpose | Status |
 |------|---------|--------|
-| `src/components/checkout/AddressPicker.tsx` | Google Maps address picker | ✅ |
+| `src/components/checkout/AddressPicker.tsx` | Google Maps address picker (updated to use new API) | ✅ |
 | `src/components/checkout/LalamoveQuote.tsx` | Delivery quote display | ✅ |
 | `src/components/checkout/index.ts` | Exports | ✅ |
+
+### Known Issues Fixed
+| Issue | Fix | Date |
+|-------|-----|------|
+| Google Maps Loader deprecated | Updated `AddressPicker.tsx` to use direct script loading instead of deprecated `@googlemaps/js-api-loader` Loader class | Dec 16, 2025 |
 
 ### Pages
 | URL | File | Status |

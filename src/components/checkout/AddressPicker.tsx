@@ -5,10 +5,11 @@
  *
  * Google Maps-based address picker with autocomplete and map selection.
  * Allows users to search for addresses or click on the map to set delivery location.
+ * 
+ * Updated to use the new Google Maps API functional approach (setOptions/importLibrary)
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MapPin, Loader2, LocateFixed } from "lucide-react";
@@ -35,6 +36,53 @@ interface AddressPickerProps {
 
 // Metro Manila default center
 const METRO_MANILA_CENTER = { lat: 14.5995, lng: 120.9842 };
+
+// Google Maps script loading state
+let googleMapsPromise: Promise<void> | null = null;
+
+/**
+ * Load Google Maps script dynamically
+ * Uses a singleton pattern to prevent multiple script loads
+ */
+async function loadGoogleMapsScript(apiKey: string): Promise<void> {
+  // Return existing promise if script is already loading
+  if (googleMapsPromise) {
+    return googleMapsPromise;
+  }
+
+  // Check if already loaded
+  if (window.google?.maps) {
+    return Promise.resolve();
+  }
+
+  googleMapsPromise = new Promise((resolve, reject) => {
+    // Check if script tag already exists
+    const existingScript = document.querySelector(
+      'script[src*="maps.googleapis.com"]'
+    );
+    if (existingScript) {
+      // Wait for it to load
+      existingScript.addEventListener("load", () => resolve());
+      existingScript.addEventListener("error", () =>
+        reject(new Error("Failed to load Google Maps"))
+      );
+      return;
+    }
+
+    // Create and append script
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
+
+    document.head.appendChild(script);
+  });
+
+  return googleMapsPromise;
+}
 
 export function AddressPicker({
   onAddressSelect,
@@ -110,7 +158,7 @@ export function AddressPicker({
   );
 
   /**
-   * Initialize Google Maps
+   * Initialize Google Maps using the new functional API
    */
   useEffect(() => {
     const initMap = async () => {
@@ -123,13 +171,17 @@ export function AddressPicker({
       }
 
       try {
-        const loader = new Loader({
-          apiKey,
-          version: "weekly",
-          libraries: ["places"],
-        });
+        // Load Google Maps script dynamically if not already loaded
+        if (!window.google?.maps) {
+          await loadGoogleMapsScript(apiKey);
+        }
 
-        const google = await loader.load();
+        // Wait for google.maps to be available
+        const google = window.google;
+        if (!google?.maps) {
+          throw new Error("Google Maps failed to load");
+        }
+
         geocoderRef.current = new google.maps.Geocoder();
 
         // Initialize map centered on Metro Manila
