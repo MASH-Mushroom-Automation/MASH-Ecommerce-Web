@@ -19,6 +19,7 @@ import { initGA, logPageView } from "@/lib/analytics";
 import { SanityVisualEditing } from "@/components/sanity/VisualEditing";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { useSearchShortcut } from "@/hooks/useSearchShortcut";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const AUTH_ROUTES = [
   "/login",
@@ -62,32 +63,34 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            {isSellerRoute ? (
-              // Seller routes get header and handle their own layout with sidebar
-              <div className="min-h-screen flex flex-col">
-                <SellerHeader />
-                {children}
-                <Toaster position="bottom-center" richColors closeButton />
-              </div>
-            ) : (
-              // Regular routes get full layout with header, footer, and nav
-              <div className="min-h-screen flex flex-col">
-                {isAuthRoute ? <SimpleHeader /> : <Header />}
-                <main className="flex-1">
+      <QueryProvider>
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              {isSellerRoute ? (
+                // Seller routes get header and handle their own layout with sidebar
+                <div className="min-h-screen flex flex-col">
+                  <SellerHeader />
                   {children}
-                  <MobileBottomNavSpacer />
-                </main>
-                <Footer />
-                <MobileBottomNav />
-                <Toaster position="bottom-center" richColors closeButton />
-              </div>
-            )}
-          </WishlistProvider>
-        </CartProvider>
-      </AuthProvider>
+                  <Toaster position="bottom-center" richColors closeButton />
+                </div>
+              ) : (
+                // Regular routes get full layout with header, footer, and nav
+                <div className="min-h-screen flex flex-col">
+                  {isAuthRoute ? <SimpleHeader /> : <Header />}
+                  <main className="flex-1">
+                    {children}
+                    <MobileBottomNavSpacer />
+                  </main>
+                  <Footer />
+                  <MobileBottomNav />
+                  <Toaster position="bottom-center" richColors closeButton />
+                </div>
+              )}
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
+      </QueryProvider>
     </ThemeProvider>
   );
 }

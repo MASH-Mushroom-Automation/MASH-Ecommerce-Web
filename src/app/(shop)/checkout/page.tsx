@@ -8,677 +8,1153 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem } from "@/components/ui/form";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUser";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useState, useEffect } from "react";
-import { ProductApiResponse, UserProfile } from "@/types/api";
-import { isAuthenticated } from "@/lib/auth";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { MapPin, Truck, Package, CreditCard, Wallet, Banknote } from "lucide-react";
+import {
+  AddressPicker,
+  LalamoveQuote,
+  MASH_PICKUP_LOCATION,
+  PICKUP_LOCATIONS,
+  type SelectedAddress,
+  type LalamoveQuoteResult,
+} from "@/components/checkout";
+import { useFirebaseAddresses } from "@/hooks/useFirebaseAddresses";
+import {
+  FirebaseOrdersService,
+  type CreateOrderData,
+} from "@/lib/firebase/orders";
+import { sendOrderConfirmationEmailViaAPI } from "@/lib/email/client";
 
-// Placeholder image for products without images
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 const step1Schema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number is required"),
-  pickupLocation: z.enum(["main", "bgc"]),
+  deliveryMethod: z.enum(["pickup", "lalamove"]),
+  pickupLocation: z.string().optional(),
 });
 
 const step2Schema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .regex(
+      /^(\+63|0)?[0-9]{10,11}$/,
+      "Please enter a valid Philippine phone number (e.g., 09171234567 or +639171234567)"
+    )
+    .transform((val) => val.replace(/[\s\-()]/g, "")), // Remove spaces, dashes, parentheses
+});
+
+const step3Schema = z.object({
   paymentMethod: z.enum(["cod", "gcash", "card"]),
-  // Card fields (optional, only if card is selected)
-  cardNumber: z.string().optional(),
-  cardExpiry: z.string().optional(),
-  cardCvc: z.string().optional(),
 });
 
 type Step1FormValues = z.infer<typeof step1Schema>;
 type Step2FormValues = z.infer<typeof step2Schema>;
+type Step3FormValues = z.infer<typeof step3Schema>;
+
+// Payment configuration - check if PayMongo is available
+const PAYMONGO_ENABLED = !!process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY;
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, summary, clearCart } = useCart();
-  const userIsAuthenticated = isAuthenticated();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [cartProducts, setCartProducts] = useState<ProductApiResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated: userIsAuthenticated } = useAuth();
+  const { profile } = useUserProfile(); // Get full profile for phone number
+  const { addresses: savedAddresses, defaultAddress, loading: addressesLoading } = useFirebaseAddresses();
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // Fetch user profile directly using UserApi
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!userIsAuthenticated) {
-        setProfileLoading(false);
-        return;
-      }
-
-      try {
-        const { UserApi } = await import("@/lib/api/user");
-        const response = await UserApi.getProfile();
-
-        console.log("Profile fetched:", response);
-
-        if (response.success && response.data) {
-          setProfile(response.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [userIsAuthenticated]);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState<SelectedAddress | null>(null);
+  const [lalamoveQuote, setLalamoveQuote] = useState<LalamoveQuoteResult | null>(null);
+  const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
+  const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
+  const [useNewAddress, setUseNewAddress] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      pickupLocation: "main",
-    },
+    defaultValues: { deliveryMethod: "pickup", pickupLocation: "main" },
   });
-
-  // Auto-fill form when user profile loads (if authenticated)
-  useEffect(() => {
-    // Wait for profile to finish loading
-    if (profileLoading) {
-      console.log("Profile still loading...");
-      return;
-    }
-
-    if (profile && userIsAuthenticated) {
-      const fullName = `${profile.firstName || ""} ${
-        profile.lastName || ""
-      }`.trim();
-
-      console.log("✅ Auto-filling checkout form:", {
-        fullName,
-        email: profile.email,
-        phone: profile.phone,
-      });
-
-      // Use reset to update all values at once
-      step1Form.reset({
-        name: fullName || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        pickupLocation: "main",
-      });
-    } else {
-      console.log("❌ Cannot auto-fill:", {
-        isAuthenticated: userIsAuthenticated,
-        hasProfile: !!profile,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, userIsAuthenticated, profileLoading]);
 
   const step2Form = useForm<Step2FormValues>({
     resolver: zodResolver(step2Schema),
-    defaultValues: {
-      paymentMethod: "cod",
-      cardNumber: "",
-      cardExpiry: "",
-      cardCvc: "",
-    },
+    defaultValues: { name: "", email: "", phone: "" },
   });
 
-  // Handle Step 1 submission (go to Step 2)
+  const step3Form = useForm<Step3FormValues>({
+    resolver: zodResolver(step3Schema),
+    defaultValues: { paymentMethod: "cod" },
+  });
+
+  const watchDeliveryMethod = step1Form.watch("deliveryMethod");
+
+  // Pre-fill contact information from user profile
+  useEffect(() => {
+    if (userIsAuthenticated && user) {
+      // Get phone from profile (if available) or user object
+      const phoneNumber = profile?.phone || user.phone || "";
+      
+      step2Form.reset({
+        name: user.displayName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
+        email: user.email || "",
+        phone: phoneNumber,
+      });
+    }
+  }, [userIsAuthenticated, user, profile, step2Form]);
+
+  const getSelectedPickupLocation = useCallback((locationId?: string) => {
+    if (!locationId) return undefined;
+    return PICKUP_LOCATIONS.find((loc) => loc.id === locationId);
+  }, []);
+
+  const handleSavedAddressSelect = useCallback((addressId: string) => {
+    setSelectedSavedAddressId(addressId);
+    setUseNewAddress(false);
+    // Find the saved address and convert to SelectedAddress format
+    const savedAddress = savedAddresses.find((a) => a.id === addressId);
+    if (savedAddress) {
+      setDeliveryAddress({
+        lat: savedAddress.coordinates.lat,
+        lng: savedAddress.coordinates.lng,
+        formattedAddress: savedAddress.formattedAddress,
+        components: {
+          street: savedAddress.street,
+          city: savedAddress.city,
+          state: savedAddress.stateProvince,
+          zipCode: savedAddress.zipPostal,
+        },
+      });
+    }
+  }, [savedAddresses]);
+
+  // Auto-select default address when Lalamove is selected and user has saved addresses
+  useEffect(() => {
+    if (
+      watchDeliveryMethod === "lalamove" &&
+      defaultAddress &&
+      !selectedSavedAddressId &&
+      !useNewAddress &&
+      !addressesLoading
+    ) {
+      handleSavedAddressSelect(defaultAddress.id);
+    }
+  }, [watchDeliveryMethod, defaultAddress, selectedSavedAddressId, useNewAddress, addressesLoading, handleSavedAddressSelect]);
+
+  const handleAddressSelect = useCallback((address: SelectedAddress) => {
+    setDeliveryAddress(address);
+    setSelectedSavedAddressId(null);
+    setUseNewAddress(true);
+  }, []);
+
+  const handleAddNewAddressClick = useCallback(() => {
+    setSelectedSavedAddressId(null);
+    setUseNewAddress(true);
+    setDeliveryAddress(null);
+    setLalamoveQuote(null);
+  }, []);
+
+  const handleQuoteReceived = useCallback((quote: LalamoveQuoteResult | null) => {
+    setLalamoveQuote(quote);
+  }, []);
+
+  const deliveryFee = watchDeliveryMethod === "lalamove" ? (lalamoveQuote?.price || 0) : 0;
+  const totalWithDelivery = summary.total + deliveryFee;
+
   const onStep1Submit = (data: Step1FormValues) => {
+    if (data.deliveryMethod === "lalamove") {
+      if (!deliveryAddress) {
+        setError("Please enter a delivery address");
+        return;
+      }
+      if (!lalamoveQuote) {
+        setError("Please wait for delivery quote");
+        return;
+      }
+    }
     setStep1Data(data);
+    setError(null);
     setCurrentStep(2);
   };
 
-  // Handle Step 2 submission (complete order)
-  const onStep2Submit = async (data: Step2FormValues) => {
-    if (!step1Data) return;
+  const onStep2Submit = (data: Step2FormValues) => {
+    setStep2Data(data);
+    setError(null);
+    setCurrentStep(3);
+  };
 
-    setSubmitting(true);
+  /**
+   * Process payment via PayMongo
+   */
+  const processPayment = async (
+    paymentMethod: "gcash" | "card",
+    orderId: string,
+    orderNumber: string,
+    amount: number
+  ): Promise<{ success: boolean; checkoutUrl?: string; error?: string }> => {
     try {
-      // TODO: Implement actual order submission to backend
-      console.log("Order submitted:", {
-        ...step1Data,
-        ...data,
-        items,
-        summary,
+      const response = await fetch("/api/payment/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethod,
+          amount,
+          orderId,
+          orderNumber,
+          customerEmail: step2Data?.email,
+          customerName: step2Data?.name,
+          customerPhone: step2Data?.phone,
+          description: `MASH Order ${orderNumber}`,
+        }),
       });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const data = await response.json();
 
-      // Clear cart after successful order
+      if (!response.ok || !data.success) {
+        return { success: false, error: data.error || "Payment failed" };
+      }
+
+      return {
+        success: true,
+        checkoutUrl: data.checkoutUrl,
+      };
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      return { success: false, error: "Payment service unavailable" };
+    }
+  };
+
+  const onStep3Submit = async (data: Step3FormValues) => {
+    if (!step1Data || !step2Data) return;
+    if (!userIsAuthenticated || !user?.id) {
+      setError("Please log in to place an order");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const selectedPickupLocation = step1Data.deliveryMethod === "pickup"
+        ? PICKUP_LOCATIONS.find(loc => loc.id === step1Data.pickupLocation)
+        : undefined;
+
+      const orderData: CreateOrderData = {
+        userId: user.id,
+        userEmail: step2Data.email,
+        userName: step2Data.name,
+        userPhone: step2Data.phone,
+        items: items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          grower: item.grower,
+          unit: item.unit,
+        })),
+        subtotal: summary.subtotal,
+        tax: summary.tax,
+        deliveryFee: deliveryFee,
+        total: totalWithDelivery,
+        deliveryMethod: step1Data.deliveryMethod,
+        pickupLocation: selectedPickupLocation,
+        deliveryAddress: step1Data.deliveryMethod === "lalamove" && deliveryAddress
+          ? {
+              address: deliveryAddress.formattedAddress,
+              lat: deliveryAddress.lat,
+              lng: deliveryAddress.lng,
+              name: step2Data.name,
+              phone: step2Data.phone,
+            }
+          : undefined,
+        lalamoveQuotationId: lalamoveQuote?.quotationId,
+        paymentMethod: data.paymentMethod,
+      };
+
+      // Create the order first
+      const newOrderId = await FirebaseOrdersService.createOrder(orderData);
+      setOrderId(newOrderId);
+      const orderNumber = newOrderId.slice(-8).toUpperCase();
+
+      // Handle online payments (GCash, Card)
+      if (data.paymentMethod === "gcash" || data.paymentMethod === "card") {
+        setPaymentProcessing(true);
+
+        const paymentResult = await processPayment(
+          data.paymentMethod,
+          newOrderId,
+          orderNumber,
+          totalWithDelivery
+        );
+
+        if (!paymentResult.success) {
+          setError(paymentResult.error || "Payment failed. Please try again.");
+          setPaymentProcessing(false);
+          return;
+        }
+
+        // For GCash/GrabPay, redirect to payment page
+        if (paymentResult.checkoutUrl) {
+          // Save pending order info for when user returns
+          sessionStorage.setItem("pendingOrder", JSON.stringify({
+            orderId: newOrderId,
+            orderNumber,
+            customerEmail: step2Data.email,
+            customerName: step2Data.name,
+          }));
+
+          // Clear cart before redirect
+          clearCart();
+
+          // Redirect to payment provider
+          window.location.href = paymentResult.checkoutUrl;
+          return;
+        }
+
+        setPaymentProcessing(false);
+      }
+
+      // For COD orders or after successful payment, send confirmation email
+      sendOrderConfirmationEmailViaAPI(step2Data.email, {
+        customerName: step2Data.name,
+        orderNumber: orderNumber,
+        orderId: newOrderId,
+        items: items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          image: item.image,
+        })),
+        subtotal: summary.subtotal,
+        deliveryFee: deliveryFee,
+        total: totalWithDelivery,
+        deliveryMethod: step1Data.deliveryMethod,
+        deliveryAddress: deliveryAddress?.formattedAddress,
+        pickupLocation: selectedPickupLocation?.name,
+        paymentMethod: data.paymentMethod,
+      }).catch((err) => {
+        console.error("Failed to send confirmation email:", err);
+        // Don't fail the order if email fails
+      });
+
       clearCart();
-
-      // Show success modal
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Order submission failed:", err);
-      setError("Failed to submit order. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit order. Please try again."
+      );
     } finally {
       setSubmitting(false);
+      setPaymentProcessing(false);
     }
   };
 
-  // Handle back navigation
   const handleBack = () => {
-    if (currentStep === 2) {
+    if (currentStep === 3) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
       setCurrentStep(1);
     } else {
-      router.back(); // Goes back to previous page (catalog or cart)
+      router.back();
     }
   };
 
-  // Fetch product details for cart items
-  useEffect(() => {
-    const fetchCartProducts = async () => {
-      if (items.length === 0) {
-        setCartProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { ProductsApi } = await import("@/lib/api/products");
-        const productPromises = items.map((item) =>
-          ProductsApi.getProductById(item.productId)
-        );
-        const responses = await Promise.all(productPromises);
-        const products = responses
-          .filter((response) => response.success && response.data)
-          .map((response) => response.data!);
-
-        setCartProducts(products);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load cart items"
-        );
-        setCartProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCartProducts();
-  }, [items]);
+  const isCartEmpty = items.length === 0;
 
   return (
     <>
       <div className="min-h-screen bg-background px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
-            {currentStep === 1 ? "Checkout" : "Payment Method"}
-          </h1>
-          <div className="lg:flex lg:gap-8 xl:gap-12">
-            {/* Left: Form */}
-            <div className="lg:w-3/5 w-full space-y-6 sm:space-y-8 mb-8 lg:mb-0">
-              {currentStep === 1 ? (
-                <>
-                  {/* Step 1: Contact & Pickup Information */}
-                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                    <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                      Pickup Information
-                    </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                      Your order will be ready for pickup at your selected
-                      location.
-                    </p>
-                  </section>
-
-                  {/* Contact Information Form */}
-                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base sm:text-lg font-medium text-foreground">
-                        Contact Information
-                      </h3>
-                      {userIsAuthenticated && profile && (
-                        <span className="text-xs sm:text-sm text-green-600 font-medium">
-                          ✓ Auto-filled from profile
-                        </span>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              {currentStep === 1 && "Delivery Method"}
+              {currentStep === 2 && "Contact Information"}
+              {currentStep === 3 && "Payment & Review"}
+            </h1>
+            <div className="flex items-center gap-2">
+              {[1, 2, 3].map((step) => (
+                <div key={step} className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                      currentStep >= step
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {step}
+                  </div>
+                  {step < 3 && (
+                    <div
+                      className={cn(
+                        "w-12 h-1 rounded",
+                        currentStep > step ? "bg-primary" : "bg-muted"
                       )}
-                    </div>
-                    <Form {...step1Form}>
-                      <div className="space-y-4">
-                        <FormField
-                          control={step1Form.control}
-                          name="name"
-                          render={({ field, fieldState }) => (
-                            <FormItem>
-                              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                Full Name{" "}
-                                <span className="text-destructive">*</span>
-                              </label>
-                              <input
-                                {...field}
-                                type="text"
-                                placeholder="Juan Dela Cruz"
-                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                              />
-                              {fieldState.error && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {fieldState.error.message}
-                                </p>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="phone"
-                          render={({ field, fieldState }) => (
-                            <FormItem>
-                              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                Phone Number{" "}
-                                <span className="text-destructive">*</span>
-                              </label>
-                              <input
-                                {...field}
-                                type="tel"
-                                placeholder="(+63) 956 955 2808"
-                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                              />
-                              {fieldState.error && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {fieldState.error.message}
-                                </p>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="email"
-                          render={({ field, fieldState }) => (
-                            <FormItem>
-                              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                Email Address{" "}
-                                <span className="text-destructive">*</span>
-                              </label>
-                              <input
-                                {...field}
-                                type="email"
-                                placeholder="juan.delacruz@example.com"
-                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                              />
-                              {fieldState.error && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {fieldState.error.message}
-                                </p>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </Form>
-                  </section>
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
 
-                  {/* Pickup Location Choice */}
-                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                      Choose Pickup Location
-                    </h3>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                      Select a convenient pickup location for your order.
-                    </p>
-                    <div className="mt-4 space-y-4">
-                      <Form {...step1Form}>
+          {error && (
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
+
+          {isCartEmpty && (
+            <div className="text-center py-12">
+              <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
+              <p className="text-muted-foreground mb-4">
+                Add some products to your cart before checking out.
+              </p>
+              <Button onClick={() => router.push("/shop")}>
+                Continue Shopping
+              </Button>
+            </div>
+          )}
+
+          {!isCartEmpty && (
+            <div className="lg:flex lg:gap-8 xl:gap-12">
+              <div className="lg:w-3/5 w-full space-y-6 sm:space-y-8 mb-8 lg:mb-0">
+                
+                {currentStep === 1 && (
+                  <>
+                    <Form {...step1Form}>
+                      <FormField
+                        control={step1Form.control}
+                        name="deliveryMethod"
+                        render={({ field }) => (
+                          <FormItem className="space-y-4">
+                            <div
+                              className={cn(
+                                "bg-card p-4 sm:p-6 rounded-lg shadow-sm border-2 cursor-pointer transition-all",
+                                field.value === "pickup"
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : "border-transparent hover:border-primary/30"
+                              )}
+                              onClick={() => field.onChange("pickup")}
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className="p-3 bg-primary/10 rounded-full">
+                                  <MapPin className="h-6 w-6 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-lg">Pickup (Free)</h3>
+                                    <div
+                                      className={cn(
+                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                                        field.value === "pickup"
+                                          ? "border-primary"
+                                          : "border-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value === "pickup" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Pick up your order at one of our locations
+                                  </p>
+                                </div>
+                              </div>
+
+                              {field.value === "pickup" && (
+                                <div className="mt-4 pt-4 border-t space-y-3">
+                                  <FormField
+                                    control={step1Form.control}
+                                    name="pickupLocation"
+                                    render={({ field: pickupField }) => (
+                                      <FormItem>
+                                        {PICKUP_LOCATIONS.map((location) => (
+                                          <label
+                                            key={location.id}
+                                            className={cn(
+                                              "block p-4 rounded-lg border cursor-pointer transition-colors",
+                                              pickupField.value === location.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-border hover:border-primary/50"
+                                            )}
+                                          >
+                                            <input
+                                              type="radio"
+                                              value={location.id}
+                                              checked={pickupField.value === location.id}
+                                              onChange={() => pickupField.onChange(location.id)}
+                                              className="sr-only"
+                                            />
+                                            <div className="font-medium">{location.name}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                              {location.address}
+                                            </div>
+                                          </label>
+                                        ))}
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div
+                              className={cn(
+                                "bg-card p-4 sm:p-6 rounded-lg shadow-sm border-2 cursor-pointer transition-all",
+                                field.value === "lalamove"
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : "border-transparent hover:border-primary/30"
+                              )}
+                              onClick={() => field.onChange("lalamove")}
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className="p-3 bg-green-100 rounded-full">
+                                  <Truck className="h-6 w-6 text-green-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-lg">Same-Day Delivery</h3>
+                                    <div
+                                      className={cn(
+                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                                        field.value === "lalamove"
+                                          ? "border-primary"
+                                          : "border-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value === "lalamove" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Get it delivered via Lalamove (Metro Manila only)
+                                  </p>
+                                </div>
+                              </div>
+
+                              {field.value === "lalamove" && (
+                                <div className="mt-4 pt-4 border-t space-y-4">
+                                  {/* Saved Addresses Section */}
+                                  {userIsAuthenticated && savedAddresses.length > 0 && !useNewAddress && (
+                                    <div className="space-y-3">
+                                      <h4 className="text-sm font-medium text-muted-foreground">
+                                        Select a saved address:
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {savedAddresses.map((addr) => (
+                                          <label
+                                            key={addr.id}
+                                            className={cn(
+                                              "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                                              selectedSavedAddressId === addr.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-border hover:border-primary/50"
+                                            )}
+                                          >
+                                            <input
+                                              type="radio"
+                                              name="savedAddress"
+                                              checked={selectedSavedAddressId === addr.id}
+                                              onChange={() => handleSavedAddressSelect(addr.id)}
+                                              className="mt-1"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium">{addr.label}</span>
+                                                {addr.isDefault && (
+                                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                    Default
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-sm text-muted-foreground truncate">
+                                                {addr.formattedAddress}
+                                              </p>
+                                            </div>
+                                          </label>
+                                        ))}
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAddNewAddressClick}
+                                        className="w-full"
+                                      >
+                                        <MapPin className="h-4 w-4 mr-2" />
+                                        Use a different address
+                                      </Button>
+                                    </div>
+                                  )}
+
+                                  {/* New Address Input */}
+                                  {(useNewAddress || savedAddresses.length === 0 || !userIsAuthenticated) && (
+                                    <div className="space-y-3">
+                                      {savedAddresses.length > 0 && userIsAuthenticated && (
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-sm font-medium text-muted-foreground">
+                                            Enter a new address:
+                                          </h4>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              setUseNewAddress(false);
+                                              setDeliveryAddress(null);
+                                              setLalamoveQuote(null);
+                                              // Re-select default if available
+                                              if (defaultAddress) {
+                                                handleSavedAddressSelect(defaultAddress.id);
+                                              }
+                                            }}
+                                          >
+                                            Use saved address
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <AddressPicker
+                                        onAddressSelect={handleAddressSelect}
+                                        placeholder="Enter your delivery address in Metro Manila..."
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  {deliveryAddress && (
+                                    <LalamoveQuote
+                                      pickupAddress={MASH_PICKUP_LOCATION}
+                                      deliveryAddress={{
+                                        ...deliveryAddress,
+                                        lat: deliveryAddress.lat,
+                                        lng: deliveryAddress.lng,
+                                        address: deliveryAddress.formattedAddress,
+                                      }}
+                                      onQuoteReceived={handleQuoteReceived}
+                                    />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </Form>
+
+                    <div className="flex justify-between items-center pt-4">
+                      <Button variant="outline" onClick={handleBack}>
+                        Back to Cart
+                      </Button>
+                      <Button
+                        onClick={step1Form.handleSubmit(onStep1Submit)}
+                        disabled={
+                          watchDeliveryMethod === "lalamove" &&
+                          (!deliveryAddress || !lalamoveQuote)
+                        }
+                      >
+                        Continue to Contact Info
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {currentStep === 2 && (
+                  <>
+                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+                          Contact Information
+                        </h2>
+                        {userIsAuthenticated && user && (
+                          <span className="text-xs sm:text-sm text-green-600 font-medium">
+                            Auto-filled from profile
+                          </span>
+                        )}
+                      </div>
+                      <Form {...step2Form}>
+                        <div className="space-y-4">
+                          <FormField
+                            control={step2Form.control}
+                            name="name"
+                            render={({ field, fieldState }) => (
+                              <FormItem>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                  Full Name <span className="text-destructive">*</span>
+                                </label>
+                                <input
+                                  {...field}
+                                  type="text"
+                                  placeholder="Juan Dela Cruz"
+                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
+                                />
+                                {fieldState.error && (
+                                  <p className="text-sm text-destructive mt-1">
+                                    {fieldState.error.message}
+                                  </p>
+                                )}
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={step2Form.control}
+                            name="phone"
+                            render={({ field, fieldState }) => (
+                              <FormItem>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                  Phone Number <span className="text-destructive">*</span>
+                                </label>
+                                <input
+                                  {...field}
+                                  type="tel"
+                                  inputMode="numeric"
+                                  pattern="[0-9+]*"
+                                  maxLength={15}
+                                  placeholder="09171234567"
+                                  onChange={(e) => {
+                                    // Only allow numbers, +, and common phone formatting characters
+                                    const cleaned = e.target.value.replace(/[^0-9+\-\s()]/g, "");
+                                    field.onChange(cleaned);
+                                  }}
+                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Format: 09XX XXX XXXX or +63 9XX XXX XXXX
+                                </p>
+                                {fieldState.error && (
+                                  <p className="text-sm text-destructive mt-1">
+                                    {fieldState.error.message}
+                                  </p>
+                                )}
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={step2Form.control}
+                            name="email"
+                            render={({ field, fieldState }) => (
+                              <FormItem>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                  Email Address <span className="text-destructive">*</span>
+                                </label>
+                                <input
+                                  {...field}
+                                  type="email"
+                                  placeholder="juan.delacruz@example.com"
+                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
+                                />
+                                {fieldState.error && (
+                                  <p className="text-sm text-destructive mt-1">
+                                    {fieldState.error.message}
+                                  </p>
+                                )}
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </Form>
+                    </section>
+
+                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                      <h3 className="text-base font-medium text-foreground mb-3">
+                        Delivery Method Selected
+                      </h3>
+                      <div className="p-4 bg-muted/30 rounded-lg">
+                        {step1Data?.deliveryMethod === "pickup" ? (
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <p className="font-medium">
+                                Pickup at {getSelectedPickupLocation(step1Data?.pickupLocation)?.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {getSelectedPickupLocation(step1Data?.pickupLocation)?.address}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-3">
+                            <Truck className="h-5 w-5 text-green-600 mt-0.5" />
+                            <div>
+                              <p className="font-medium">Same-Day Delivery via Lalamove</p>
+                              <p className="text-sm text-muted-foreground">{deliveryAddress?.formattedAddress}</p>
+                              {lalamoveQuote && (
+                                <p className="text-sm font-medium text-green-600 mt-1">
+                                  Delivery Fee: PHP {lalamoveQuote.price.toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto px-8 py-3 border-border"
+                        onClick={handleBack}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
+                        onClick={step2Form.handleSubmit(onStep2Submit)}
+                      >
+                        Continue to Payment
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {currentStep === 3 && (
+                  <>
+                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                      <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                        Payment Method
+                      </h2>
+                      <p className="text-sm sm:text-base text-muted-foreground">
+                        Select how you would like to pay for your order.
+                      </p>
+
+                      <Form {...step3Form}>
                         <FormField
-                          control={step1Form.control}
-                          name="pickupLocation"
+                          control={step3Form.control}
+                          name="paymentMethod"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="mt-6 space-y-4">
                               <label
-                                className={`block border-2 rounded-lg p-4 sm:p-5 cursor-pointer transition-colors ${
-                                  field.value === "main"
+                                className={cn(
+                                  "block border-2 rounded-lg p-4 cursor-pointer transition-colors",
+                                  field.value === "cod"
                                     ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-border/80"
-                                }`}
+                                    : "border-border hover:border-primary/50"
+                                )}
                               >
                                 <input
                                   type="radio"
-                                  value="main"
-                                  checked={field.value === "main"}
-                                  onChange={() => field.onChange("main")}
+                                  value="cod"
+                                  checked={field.value === "cod"}
+                                  onChange={() => field.onChange("cod")}
                                   className="sr-only"
                                 />
-                                <div className="flex justify-between items-start mb-3">
-                                  <h4 className="font-semibold text-foreground text-sm sm:text-base">
-                                    MASH Main Pickup Center
-                                  </h4>
-                                </div>
-                                <div className="text-muted-foreground space-y-1 text-sm sm:text-base">
-                                  <p className="font-medium">
-                                    Contact: (+63) 956 955 2808
-                                  </p>
-                                  <p>
-                                    Brgy 176-D, Bagong Silang, Caloocan City
-                                    METRO MANILA 1428
-                                  </p>
-                                  <div className="mt-2">
-                                    <p className="font-medium text-muted-foreground">
-                                      Operating Hours
-                                    </p>
-                                    <p>Monday - Saturday: 9:00 AM - 6:00 PM</p>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Banknote className="h-5 w-5 text-primary" />
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      field.value === "cod" ? "border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {field.value === "cod" && (
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                    <div className="font-medium text-foreground">
+                                      {step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery"}
+                                    </div>
                                   </div>
+                                  <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                                    Available
+                                  </span>
                                 </div>
+                                <p className="text-sm text-muted-foreground mt-2 ml-7">
+                                  {step1Data?.deliveryMethod === "pickup" 
+                                    ? "Pay when you pick up your order at the selected location"
+                                    : "Pay the rider when your order is delivered"
+                                  }
+                                </p>
                               </label>
+
+                              {/* GCash Payment Option */}
                               <label
-                                className={`mt-4 block border-2 rounded-lg p-4 sm:p-5 cursor-pointer transition-colors ${
-                                  field.value === "bgc"
-                                    ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-border/80"
-                                }`}
+                                className={cn(
+                                  "block border-2 rounded-lg p-4 transition-colors",
+                                  PAYMONGO_ENABLED
+                                    ? field.value === "gcash"
+                                      ? "border-primary bg-primary/5 cursor-pointer"
+                                      : "border-border hover:border-primary/50 cursor-pointer"
+                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                                )}
                               >
                                 <input
                                   type="radio"
-                                  value="bgc"
-                                  checked={field.value === "bgc"}
-                                  onChange={() => field.onChange("bgc")}
+                                  value="gcash"
+                                  checked={field.value === "gcash"}
+                                  onChange={() => PAYMONGO_ENABLED && field.onChange("gcash")}
+                                  disabled={!PAYMONGO_ENABLED}
                                   className="sr-only"
                                 />
-                                <div className="flex justify-between items-start mb-3">
-                                  <h4 className="font-semibold text-foreground text-sm sm:text-base">
-                                    MASH BGC Pickup Point
-                                  </h4>
-                                </div>
-                                <div className="text-muted-foreground space-y-1 text-sm sm:text-base">
-                                  <p className="font-medium">
-                                    Contact: (+63) 917 123 4567
-                                  </p>
-                                  <p>
-                                    5th Avenue, Bonifacio Global City, Taguig
-                                    METRO MANILA 1634
-                                  </p>
-                                  <div className="mt-2">
-                                    <p className="font-medium text-muted-foreground">
-                                      Operating Hours
-                                    </p>
-                                    <p>Monday - Sunday: 10:00 AM - 8:00 PM</p>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Wallet className="h-5 w-5 text-blue-500" />
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      field.value === "gcash" ? "border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {field.value === "gcash" && (
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                    <div className={cn(
+                                      "font-medium",
+                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
+                                    )}>
+                                      GCash
+                                    </div>
                                   </div>
+                                  <span className={cn(
+                                    "text-xs font-medium px-2 py-1 rounded",
+                                    PAYMONGO_ENABLED
+                                      ? "text-green-600 bg-green-50"
+                                      : "text-amber-600 bg-amber-50"
+                                  )}>
+                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
+                                  </span>
                                 </div>
+                                <p className={cn(
+                                  "text-sm mt-2 ml-7",
+                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
+                                )}>
+                                  Pay instantly using your GCash e-wallet
+                                </p>
+                              </label>
+
+                              {/* Credit/Debit Card Payment Option */}
+                              <label
+                                className={cn(
+                                  "block border-2 rounded-lg p-4 transition-colors",
+                                  PAYMONGO_ENABLED
+                                    ? field.value === "card"
+                                      ? "border-primary bg-primary/5 cursor-pointer"
+                                      : "border-border hover:border-primary/50 cursor-pointer"
+                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  value="card"
+                                  checked={field.value === "card"}
+                                  onChange={() => PAYMONGO_ENABLED && field.onChange("card")}
+                                  disabled={!PAYMONGO_ENABLED}
+                                  className="sr-only"
+                                />
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <CreditCard className="h-5 w-5 text-purple-500" />
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      field.value === "card" ? "border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {field.value === "card" && (
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                      )}
+                                    </div>
+                                    <div className={cn(
+                                      "font-medium",
+                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
+                                    )}>
+                                      Credit/Debit Card
+                                    </div>
+                                  </div>
+                                  <span className={cn(
+                                    "text-xs font-medium px-2 py-1 rounded",
+                                    PAYMONGO_ENABLED
+                                      ? "text-green-600 bg-green-50"
+                                      : "text-amber-600 bg-amber-50"
+                                  )}>
+                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
+                                  </span>
+                                </div>
+                                <p className={cn(
+                                  "text-sm mt-2 ml-7",
+                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
+                                )}>
+                                  Pay securely with Visa, Mastercard, or other cards
+                                </p>
                               </label>
                             </FormItem>
                           )}
                         />
                       </Form>
-                    </div>
-                  </section>
+                    </section>
 
-                  {/* Step 1 Nav buttons */}
-                  <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full sm:w-auto px-8 py-3 border-border"
-                      onClick={handleBack}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-                      disabled={cartProducts.length === 0}
-                      onClick={step1Form.handleSubmit(onStep1Submit)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Step 2: Payment Method */}
-                  <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                    <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                      Payment Method
-                    </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground">
-                      Select how you would like to pay for your order.
-                    </p>
+                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
+                      <h3 className="text-base font-medium text-foreground mb-4">
+                        Order Review
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">Contact</p>
+                            <p className="text-sm text-muted-foreground">{step2Data?.name}</p>
+                            <p className="text-sm text-muted-foreground">{step2Data?.email}</p>
+                            <p className="text-sm text-muted-foreground">{step2Data?.phone}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentStep(2)}
+                          >
+                            Edit
+                          </Button>
+                        </div>
 
-                    <Form {...step2Form}>
-                      <FormField
-                        control={step2Form.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                          <FormItem className="mt-6 space-y-4">
-                            {/* Cash on Pickup */}
-                            <label
-                              className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              {step1Data?.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {step1Data?.deliveryMethod === "pickup"
+                                ? getSelectedPickupLocation(step1Data?.pickupLocation)?.address
+                                : deliveryAddress?.formattedAddress
+                              }
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentStep(1)}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    </section>
 
-                                field.value === "CASH_ON_DELIVERY"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                value="cod"
-                                checked={field.value === "cod"}
-                                onChange={() => field.onChange("cod")}
-                                className="sr-only"
-                              />
-                              <div className="flex items-center gap-3">
-                                <div className="font-medium text-foreground">
-                                  Cash on Pickup
-                                </div>
-                              </div>
-                            </label>
-
-                            {/* Gcash */}
-                            <label
-                              className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "GCASH"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                value="gcash"
-                                checked={field.value === "gcash"}
-                                onChange={() => field.onChange("gcash")}
-                                className="sr-only"
-                              />
-                              <div className="flex items-center gap-3">
-                                <div className="font-medium text-foreground">
-                                  Gcash
-                                </div>
-                              </div>
-                            </label>
-
-                            {/* Credit/Debit Card */}
-                            <label
-                              className={`block border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                                field.value === "CREDIT_CARD"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-border/80"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                value="card"
-                                checked={field.value === "card"}
-                                onChange={() => field.onChange("card")}
-                                className="sr-only"
-                              />
-                              <div className="font-medium text-foreground mb-4">
-                                Credit/Debit Cards and E-wallets
-                              </div>
-
-                              {field.value === "card" && (
-                                <div className="space-y-3 mt-4">
-                                  <div>
-                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                      Card Number
-                                    </label>
-                                    <input
-                                      type="text"
-                                      placeholder="1234 5678 9012 3456"
-                                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                        MM/YY
-                                      </label>
-                                      <input
-                                        type="text"
-                                        placeholder="12/25"
-                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                        CVC/CVV
-                                      </label>
-                                      <input
-                                        type="text"
-                                        placeholder="123"
-                                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </label>
-                          </FormItem>
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto px-8 py-3 border-border"
+                        onClick={handleBack}
+                        disabled={submitting || paymentProcessing}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
+                        disabled={submitting || paymentProcessing || items.length === 0}
+                        onClick={step3Form.handleSubmit(onStep3Submit)}
+                      >
+                        {paymentProcessing ? (
+                          <>
+                            <LoadingSpinner className="mr-2 h-4 w-4" />
+                            Processing Payment...
+                          </>
+                        ) : submitting ? (
+                          "Creating Order..."
+                        ) : step3Form.watch("paymentMethod") === "gcash" ? (
+                          "Pay with GCash"
+                        ) : step3Form.watch("paymentMethod") === "card" ? (
+                          "Pay with Card"
+                        ) : (
+                          "Place Order"
                         )}
-                      />
-                    </Form>
-                  </section>
-
-                  {/* Step 2 Nav buttons */}
-                  <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full sm:w-auto px-8 py-3 border-border"
-                      onClick={handleBack}
-                      disabled={submitting}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-                      disabled={submitting || cartProducts.length === 0}
-                      onClick={step2Form.handleSubmit(onStep2Submit)}
-                    >
-                      {submitting ? "Processing..." : "Complete Purchase"}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Right: Summary */}
-            <div className="lg:w-2/5 w-full">
-              <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
-                <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
-                  Summary
-                </h2>
-                <div className="mt-4 space-y-4">
-                  {loading ? (
-                    <div className="text-center py-8">
-                      <LoadingSpinner className="mx-auto mb-4" />
-                      <p className="text-muted-foreground">Loading cart items...</p>
-                    </div>
-                  ) : error ? (
-                    <div className="text-center py-8">
-                      <p className="text-destructive mb-4">Error: {error}</p>
-                      <Button onClick={() => window.location.reload()}>
-                        Try Again
                       </Button>
                     </div>
-                  ) : cartProducts.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Your cart is empty</p>
-                    </div>
-                  ) : (
-                    cartProducts.map((product) => {
-                      const cartItem = items.find(
-                        (item) => item.productId === product.id
-                      );
-                      if (!cartItem) return null;
+                  </>
+                )}
+              </div>
 
-                      return (
-                        <div
-                          key={product.id}
-                          className="flex items-start gap-3"
-                        >
+              <div className="lg:w-2/5 w-full">
+                <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
+                  <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
+                    Summary
+                  </h2>
+                  <div className="mt-4 space-y-4">
+                    {loading ? (
+                      <div className="text-center py-8">
+                        <LoadingSpinner className="mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading cart items...</p>
+                      </div>
+                    ) : items.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Your cart is empty</p>
+                      </div>
+                    ) : (
+                      items.map((item) => (
+                        <div key={item.productId} className="flex items-start gap-3">
                           <Image
-                            src={product.image || PLACEHOLDER_IMAGE}
-                            alt={product.name}
+                            src={item.image || PLACEHOLDER_IMAGE}
+                            alt={item.name}
                             width={56}
                             height={56}
                             className={cn(
                               "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
-                              product.image ? "object-cover" : "object-contain bg-muted p-1"
+                              item.image ? "object-cover" : "object-contain bg-muted p-1"
                             )}
                           />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
-                              {product.name}
+                              {item.name}
                             </p>
                             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                              Quantity: {cartItem.quantity}
+                              Quantity: {item.quantity}
                             </p>
                           </div>
                           <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
-                            ₱{(product.price * cartItem.quantity).toFixed(2)}
+                            PHP {(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
+                      ))
+                    )}
+                  </div>
 
-                <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
-                  <div className="flex justify-between">
-                    <p>
-                      Subtotal (
-                      {summary.items.reduce(
-                        (sum, item) => sum + item.quantity,
-                        0
-                      )}
-                      )
-                    </p>
-                    <p className="font-medium">
-                      ₱{summary.subtotal.toFixed(2)}
-                    </p>
+                  <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
+                    <div className="flex justify-between">
+                      <p>
+                        Subtotal ({items.reduce((sum, item) => sum + item.quantity, 0)})
+                      </p>
+                      <p className="font-medium">PHP {summary.subtotal.toFixed(2)}</p>
+                    </div>
+                    <div className="flex justify-between">
+                      <p>Tax</p>
+                      <p className="font-medium">PHP {summary.tax.toFixed(2)}</p>
+                    </div>
+                    {deliveryFee > 0 && (
+                      <div className="flex justify-between">
+                        <p>Delivery (Lalamove)</p>
+                        <p className="font-medium">PHP {deliveryFee.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {watchDeliveryMethod === "pickup" && (
+                      <div className="flex justify-between">
+                        <p>Pickup</p>
+                        <p className="font-medium text-green-600">Free</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <p>Tax</p>
-                    <p className="font-medium">₱{summary.tax.toFixed(2)}</p>
+                  <div className="mt-4 border-t border-border pt-4 flex justify-between items-center font-bold text-foreground text-base sm:text-lg">
+                    <p>Total</p>
+                    <p>PHP {totalWithDelivery.toFixed(2)}</p>
                   </div>
-                </div>
-                <div className="mt-4 border-t border-border pt-4 flex justify-between items-center font-bold text-foreground text-base sm:text-lg">
-                  <p>Total Fee</p>
-                  <p>₱{summary.total.toFixed(2)}</p>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
@@ -716,7 +1192,7 @@ export default function CheckoutPage() {
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => {
                   setShowSuccessModal(false);
-                  router.push("/profile/orders");
+                  router.push("/profile/order-history");
                 }}
               >
                 View Orders

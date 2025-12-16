@@ -9,9 +9,9 @@ import { ShoppingCart, Heart, Star, Eye, Plus, Check, Loader2 } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
-import { isAuthenticated } from "@/lib/auth";
 import { getGrowerUrl } from "@/lib/grower-utils";
 import { trackAddToCart } from "@/lib/analytics";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   id: string;
@@ -88,14 +88,20 @@ export function ProductCard({
   const toggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated()) {
-      window.location.href = "/login";
-      return;
-    }
+    
+    // Allow wishlist for all users (stored in localStorage)
     if (inWishlist) {
       removeFromWishlist(id);
+      toast.success(`Removed from wishlist`, {
+        description: name,
+        duration: 2000,
+      });
     } else {
       addToWishlist(id);
+      toast.success(`Added to wishlist!`, {
+        description: name,
+        duration: 2000,
+      });
     }
   };
 

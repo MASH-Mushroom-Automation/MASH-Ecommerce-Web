@@ -268,7 +268,7 @@ Add the following variables for **Production**, **Preview**, and **Development**
 
 | Variable | Value | Environments |
 |----------|-------|--------------|
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `AIzaSyDYw7TkeGXq6UJgms9AF06eRCYd3C-fqe8` | All |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | `AIzaSyBPCdIpPgisXoODUKrn5CWfKQ6xle9d4no` | All |
 
 ### Quick Add Script (Copy-Paste Friendly)
 

@@ -25,9 +25,7 @@ export const MAPS_CONFIG = {
 };
 
 // Check if Google Maps is properly configured
-// For now, we'll use the iframe approach, so this returns false to use the embedded map
 export const isMapsConfigured = () => {
-  // Set to true if you want to use the full Google Maps API
-  // Set to false to use the embedded iframe (current default)
-  return false; // !!MAPS_CONFIG.apiKey && MAPS_CONFIG.apiKey !== "";
+  // Returns true if the API key is set
+  return !!MAPS_CONFIG.apiKey && MAPS_CONFIG.apiKey !== "";
 };

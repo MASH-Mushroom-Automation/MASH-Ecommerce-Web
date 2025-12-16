@@ -1,12 +1,12 @@
 // Admin API Types for MASH E-commerce Platform
 // These types are shared between the main platform and admin dashboard
 
-export type AdminPermission = 
-  | 'manage_sellers'
-  | 'manage_products'
-  | 'manage_orders'
-  | 'manage_users'
-  | 'view_analytics';
+export type AdminPermission =
+  | "manage_sellers"
+  | "manage_products"
+  | "manage_orders"
+  | "manage_users"
+  | "view_analytics";
 
 export interface AdminAuthResponse {
   token: string;
@@ -48,7 +48,7 @@ export interface SellerApplication {
   bankDetails: SellerBankDetails;
   contactPerson: SellerContactPerson;
   submittedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
@@ -80,7 +80,7 @@ export interface AdminActivity {
   id: string;
   adminId: string;
   action: string;
-  targetType: 'seller' | 'product' | 'order' | 'user';
+  targetType: "seller" | "product" | "order" | "user";
   targetId: string;
   changes: Record<string, any>;
   timestamp: string;
@@ -90,17 +90,17 @@ export interface AdminActivity {
 
 // WebSocket Event Types
 export type AdminWebSocketEvent =
-  | 'seller_application_submitted'
-  | 'order_disputed'
-  | 'product_reported'
-  | 'high_risk_transaction'
-  | 'system_alert';
+  | "seller_application_submitted"
+  | "order_disputed"
+  | "product_reported"
+  | "high_risk_transaction"
+  | "system_alert";
 
 export interface AdminWebSocketPayload {
   event: AdminWebSocketEvent;
   data: any;
   timestamp: string;
-  severity: 'info' | 'warning' | 'critical';
+  severity: "info" | "warning" | "critical";
 }
 
 // Analytics Types
@@ -117,12 +117,63 @@ export interface PlatformAnalytics {
 
 // Health Check Types
 export interface AdminHealthCheck {
-  status: 'ok' | 'degraded' | 'down';
+  status: "ok" | "degraded" | "down";
   services: {
-    database: 'ok' | 'error';
-    cache: 'ok' | 'error';
-    websocket: 'ok' | 'error';
+    database: "ok" | "error";
+    cache: "ok" | "error";
+    websocket: "ok" | "error";
   };
   version: string;
   timestamp: string;
+}
+
+// Admin Dashboard Types
+export interface AdminDashboardAlert {
+  pendingOrders: number;
+  message: string;
+}
+
+export interface AdminMetric {
+  value: number;
+  currency?: string;
+  change: number;
+  changeLabel: string;
+}
+
+export interface AdminDashboardMetrics {
+  totalSales: AdminMetric;
+  orders: AdminMetric;
+  products: AdminMetric;
+  revenue: AdminMetric;
+}
+
+export interface WeeklySalesData {
+  date: string;
+  day: string;
+  sales: number;
+}
+
+export interface RevenueTrendData {
+  month: string;
+  revenue: number;
+}
+
+export interface AdminDashboardCharts {
+  weeklySales: WeeklySalesData[];
+  revenueTrend: RevenueTrendData[];
+}
+
+export interface AdminDashboardData {
+  alert: AdminDashboardAlert;
+  metrics: AdminDashboardMetrics;
+  charts: AdminDashboardCharts;
+}
+
+export interface AdminDashboardResponse {
+  success: boolean;
+  statusCode: number;
+  data: AdminDashboardData;
+  timestamp: string;
+  path: string;
+  correlationId: string;
 }
