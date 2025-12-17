@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 19.0 (Firebase-Powered, Full Auth + Buyer-to-Seller Flow with Payment, Gmail SMTP, Wishlist & Google Maps)  
+**Version:** 20.0 (Firebase-Powered User Profile + Complete Auth Flow)  
 **Last Updated:** December 17, 2025  
-**Status:** Phase 19 Complete ✅ (Firebase Email/Password + Email Link Authentication)  
+**Status:** Phase 20 Complete ✅ (Firebase User Profile Service + Complete Auth Integration)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Firebase Auth + Gmail SMTP + PayMongo + Lalamove + Google Maps
 
 ---
@@ -13,33 +13,41 @@
 2. [Phase Status Dashboard](#phase-status-dashboard)
 3. [Complete Buyer Flow](#complete-buyer-flow)
 4. [User Profile & Address System](#user-profile--address-system)
-5. [System Architecture](#system-architecture)
-6. [Implementation Phases](#implementation-phases)
-7. [File Reference](#file-reference)
-8. [Testing Checklist](#testing-checklist)
-9. [Troubleshooting Guide](#troubleshooting-guide)
-10. [Quick Start](#quick-start)
+5. [Authentication Flow](#authentication-flow)
+6. [System Architecture](#system-architecture)
+7. [Implementation Phases](#implementation-phases)
+8. [File Reference](#file-reference)
+9. [Testing Checklist](#testing-checklist)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Quick Start](#quick-start)
 
 ---
 
 ## Executive Summary
 
 ### Goal
-A complete end-to-end buyer-to-seller flow using **Firebase Firestore** for cart and order persistence, with real-time order management, approval workflow, and **Lalamove delivery tracking**.
+A complete end-to-end buyer-to-seller flow using **Firebase Firestore** for cart, orders, and user profile persistence, with real-time order management, approval workflow, and **Lalamove delivery tracking**.
 
 ### 🔥 Why Firebase-Only (No Backend Dependency)
 The NestJS backend is incomplete, so this system uses **Firebase Firestore** as the primary data store:
 
+- **User Profiles**: Stored in `users/{userId}` - name, phone, preferences
+- **Addresses**: Stored in `users/{userId}/addresses/{addressId}` - delivery addresses
 - **Cart**: Stored in `carts/{userId}` - syncs across devices
 - **Orders**: Stored in `orders/{orderId}` - includes status workflow
 - **Notifications**: Stored in `notifications/{notificationId}` - real-time alerts
 - **Authentication**: Firebase Auth (Email/Password + Email Link + Google OAuth)
-- **Emails**: Gmail SMTP via Nodemailer for transactional order emails (replaced Resend)
+- **Emails**: Gmail SMTP via Nodemailer for transactional order emails
 
 ### ✅ What's Working NOW
 
 | Feature | URL | Description |
 |---------|-----|-------------|
+| **🔐 Google Sign-In** | `/login` | One-click Google OAuth authentication |
+| **📧 Email/Password** | `/login`, `/signup` | Traditional auth with email verification |
+| **🔗 Email Link (Passwordless)** | `/login` | Magic link sign-in via email |
+| **👤 User Profile** | `/profile/my-information` | Firebase-stored profile with name, phone |
+| **🏠 Saved Addresses** | Profile/Checkout | Multiple addresses with Google Maps picker |
 | **Add to Cart** | `/shop`, `/product/[slug]` | Full product data synced to Firebase |
 | **Cart Dropdown** | Header component | Real-time cart with images, quantities |
 | **3-Step Checkout** | `/checkout` | Delivery → Contact → Payment |
@@ -50,18 +58,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **Auto Lalamove** | Admin approve | Automatically schedules Lalamove delivery |
 | **Buyer Order History** | `/profile/order-history` | Real-time order tracking |
 | **Delivery Tracking** | `/profile/orders/[id]/track` | Live driver location, status |
-| **Profile Address** | `/profile/my-information` | Google Maps "Pick from Map" + Firebase storage |
-| **Saved Addresses** | Profile/Checkout | Multiple addresses, select at checkout |
 | **Notifications** | Header bell icon | Real-time Firebase notifications |
-| **Order Alerts** | Auto-triggered | Notifications on order status changes |
 | **📧 Email Notifications** | Automatic | Professional order emails via Gmail SMTP |
 | **💳 Payment (GCash)** | Checkout Step 3 | PayMongo GCash e-wallet integration |
 | **💳 Payment (Cards)** | Checkout Step 3 | PayMongo Credit/Debit card integration |
-| **Payment Status** | Webhooks | Real-time payment status updates |
 | **❤️ Wishlist** | `/wishlist` | localStorage persistence, Add All to Cart |
-| **🔐 Auth & Sign-Out** | All pages | Complete data clearing on logout |
 | **🛒 Cart Page** | `/cart` | Full cart management, order summary |
-| **📱 Profile Auto-fill** | `/checkout` | Phone number auto-fills from profile |
 
 ### Order Status Flow
 ```
@@ -132,11 +134,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **17** | **Profile Auto-fill & Orders** | **✅ Complete** | **100%** | **Phone auto-fill, order history redirect fix** |
 | **18** | **Order Placement Verification** | **✅ Complete** | **100%** | **Full checkout flow verified, Firebase integration tested** |
 | **19** | **Firebase Email/Password Auth** | **✅ Complete** | **100%** | **Email/Password + Email Link (Passwordless) sign-in** |
+| **20** | **Firebase User Profile Service** | **✅ Complete** | **100%** | **Firestore user profiles, name collection for email link users** |
 
 ### Progress Bar
 
 ```
-[████████████████████████████████████████████████████████████] 100% Complete (19/19 Phases)
+[████████████████████████████████████████████████████████████] 100% Complete (20/20 Phases)
 ```
 
 ---
@@ -266,6 +269,34 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 
 ## User Profile & Address System
 
+### 👤 User Profile Overview (Phase 20)
+
+User profiles are stored in **Firebase Firestore** at `users/{userId}`:
+
+```typescript
+// Collection: users/{userId}
+interface FirestoreUserProfile {
+  uid: string;                   // Firebase Auth UID
+  email: string;
+  displayName: string;           // Full name
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  photoURL: string;              // Profile photo URL
+  providerId: string;            // 'google.com', 'password', 'email-link'
+  emailVerified: boolean;
+  onboardingCompleted: boolean;
+  preferences: Record<string, unknown>;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+**Key Files:**
+- `src/lib/firebase/users.ts` - FirebaseUserService (CRUD operations)
+- `src/contexts/AuthContext.tsx` - Syncs auth to Firestore profile
+- `src/app/(user)/profile/my-information/page.tsx` - Profile management UI
+
 ### 🏠 Address Management Overview
 
 The address system allows users to:
@@ -363,36 +394,32 @@ The address system allows users to:
        - ETA: 45 minutes
 ```
 
-### Firebase User Profile Schema
+### Firebase User Profile Schema (Updated in Phase 20)
 ```typescript
 // Collection: users/{userId}
 interface FirestoreUserProfile {
-  id: string;                    // Firebase Auth UID
+  uid: string;                   // Firebase Auth UID
   email: string;
-  displayName?: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  avatar?: string;
-  
-  // Default/Primary Address (for quick access)
-  defaultAddress?: {
-    id: string;
-    street: string;
-    city: string;
-    stateProvince: string;
-    zipPostal: string;
-    landmark?: string;
-    coordinates: {
-      lat: number;
-      lng: number;
-    };
-    formattedAddress: string;
-  };
-  
+  displayName: string;           // Full name (firstName + lastName)
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;           // Contact number
+  photoURL: string;              // Profile picture URL
+  providerId: string;            // 'google.com', 'password', 'email-link'
+  emailVerified: boolean;
+  onboardingCompleted: boolean;
+  preferences: Record<string, unknown>;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// Service: FirebaseUserService (src/lib/firebase/users.ts)
+// - createOrUpdateProfile(uid, data)  // Create or update profile
+// - getProfile(uid)                    // Get profile by UID
+// - updateProfile(uid, data)           // Partial update
+// - updateDisplayName(uid, name)       // Update display name
+// - deleteProfile(uid)                 // Delete profile
+// - profileExists(uid)                 // Check if exists
 
 // Sub-collection: users/{userId}/addresses/{addressId}
 interface FirestoreAddress {
@@ -504,6 +531,139 @@ interface FirestoreAddress {
     │  Continue to Step 2: Contact Info        │
     │  (Pre-filled from Firebase profile)      │
     └─────────────────────────────────────────┘
+```
+
+---
+
+## Authentication Flow
+
+### Complete Auth System Overview
+
+MASH supports three authentication methods, all powered by Firebase:
+
+| Method | Description | Best For |
+|--------|-------------|----------|
+| **Email/Password** | Traditional signup with email verification | Users who prefer passwords |
+| **Email Link** | Passwordless magic link sign-in | Mobile users, quick access |
+| **Google OAuth** | One-click Google sign-in | Users with Google accounts |
+
+### Authentication Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         COMPLETE AUTHENTICATION FLOW                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║                           SIGN UP OPTIONS                                 ║
+    ╠══════════════════════════════════════════════════════════════════════════╣
+    ║                                                                          ║
+    ║  OPTION A: Email/Password                                                ║
+    ║  ──────────────────────                                                  ║
+    ║  1. User fills signup form (name, email, password)                       ║
+    ║  2. Firebase Auth creates account                                        ║
+    ║  3. Firebase sends verification email                                    ║
+    ║  4. AuthContext syncs profile to Firestore users/{uid}                   ║
+    ║  5. User verifies email → can sign in                                    ║
+    ║                                                                          ║
+    ║  OPTION B: Email Link (Passwordless)                                     ║
+    ║  ─────────────────────────────────────                                   ║
+    ║  1. User enters email only                                               ║
+    ║  2. Firebase sends magic link                                            ║
+    ║  3. User clicks link → /login/email-link                                 ║
+    ║  4. If new user: Name collection prompt                                  ║
+    ║  5. Profile synced to Firestore users/{uid}                              ║
+    ║                                                                          ║
+    ║  OPTION C: Google OAuth                                                  ║
+    ║  ──────────────────────                                                  ║
+    ║  1. User clicks "Sign in with Google"                                    ║
+    ║  2. Popup/redirect to Google                                             ║
+    ║  3. Firebase creates account from Google profile                         ║
+    ║  4. Profile synced to Firestore (name, photo from Google)                ║
+    ║                                                                          ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║                           PROFILE STORAGE                                 ║
+    ╠══════════════════════════════════════════════════════════════════════════╣
+    ║                                                                          ║
+    ║  All auth methods sync to:  Firestore users/{uid}                        ║
+    ║                                                                          ║
+    ║  ┌─────────────────────────────────────────────────────────────────┐     ║
+    ║  │  {                                                              │     ║
+    ║  │    uid: "abc123",                                               │     ║
+    ║  │    email: "user@example.com",                                   │     ║
+    ║  │    displayName: "John Doe",                                     │     ║
+    ║  │    firstName: "John",                                           │     ║
+    ║  │    lastName: "Doe",                                             │     ║
+    ║  │    phoneNumber: "+63 912 345 6789",                             │     ║
+    ║  │    photoURL: "https://...",                                     │     ║
+    ║  │    providerId: "google.com" | "password" | "email-link",        │     ║
+    ║  │    emailVerified: true,                                         │     ║
+    ║  │    createdAt: Timestamp,                                        │     ║
+    ║  │    updatedAt: Timestamp                                         │     ║
+    ║  │  }                                                              │     ║
+    ║  └─────────────────────────────────────────────────────────────────┘     ║
+    ║                                                                          ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║                           PASSWORD RESET                                  ║
+    ╠══════════════════════════════════════════════════════════════════════════╣
+    ║                                                                          ║
+    ║  1. User clicks "Forgot Password" on login page                          ║
+    ║  2. Enter email address                                                  ║
+    ║  3. Firebase sends reset email                                           ║
+    ║  4. User clicks link → sets new password                                 ║
+    ║  5. User can sign in with new password                                   ║
+    ║                                                                          ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+```
+
+### Key Auth Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/firebase/auth.ts` | Firebase auth functions (signIn, signUp, reset) |
+| `src/lib/firebase/users.ts` | User profile CRUD (Firestore) |
+| `src/contexts/AuthContext.tsx` | Unified auth state + profile sync |
+| `src/app/(auth)/login/page.tsx` | Login page (Email/Password + Email Link) |
+| `src/app/(auth)/login/email-link/page.tsx` | Email link callback handler |
+| `src/app/(auth)/signup/page.tsx` | Registration page |
+| `src/app/(auth)/forgot-password/page.tsx` | Password reset page |
+
+### AuthContext API
+
+```typescript
+const {
+  // State
+  user,                      // AuthUser with Firestore profile data
+  firebaseUser,              // Raw Firebase user
+  loading,                   // Auth loading state
+  isAuthenticated,           // boolean
+  
+  // Google OAuth
+  signInWithGoogle,          // () => Promise<void>
+  
+  // Email/Password
+  signUpWithEmail,           // (email, password, displayName?) => Promise<void>
+  signInWithEmailPassword,   // (email, password) => Promise<void>
+  resetPassword,             // (email) => Promise<void>
+  resendVerificationEmail,   // () => Promise<void>
+  
+  // Email Link (Passwordless)
+  sendEmailSignInLink,       // (email) => Promise<void>
+  completeEmailLinkSignIn,   // (email, url) => Promise<void>
+  checkForEmailLink,         // () => boolean
+  getStoredEmail,            // () => string | null
+  
+  // Profile Management (NEW in Phase 20)
+  updateUserProfile,         // (data) => Promise<void>
+  refreshProfile,            // () => Promise<void>
+  
+  // Common
+  signOut,                   // () => Promise<void>
+} = useAuth();
 ```
 
 ---
@@ -2579,4 +2739,324 @@ const {
 5. **Google OAuth** - One-click sign-in
 6. **Session Management** - Firebase handles persistence
 7. **Security** - Firebase security rules protect data
+
+---
+
+## 👤 Phase 20: Firebase User Profile Service ✅
+
+### 20.1 Problem Solved
+
+Email Link (passwordless) sign-in users weren't getting their name stored properly because:
+
+1. **Firebase Limitation**: Email link authentication doesn't collect a display name
+2. **No Profile Storage**: There was no Firebase service for storing user profiles
+3. **Backend Dependency**: Profile data was trying to fetch from incomplete NestJS backend
+4. **Offline Errors**: "Failed to get document because the client is offline" errors
+
+### 20.2 Solution: Firebase User Profile Service
+
+Created a dedicated Firestore service for user profiles:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    FIREBASE USER PROFILE ARCHITECTURE                            │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    📁 FIRESTORE COLLECTION STRUCTURE
+    ─────────────────────────────────
+    users/
+    └── {userId}/
+        ├── uid: string              # Firebase Auth UID
+        ├── email: string            # User email
+        ├── displayName: string      # Full name
+        ├── firstName: string        # First name
+        ├── lastName: string         # Last name
+        ├── phoneNumber: string      # Contact number
+        ├── photoURL: string         # Profile photo
+        ├── providerId: string       # Auth provider (google, password, email-link)
+        ├── emailVerified: boolean   # Email verified status
+        ├── onboardingCompleted: boolean
+        ├── preferences: object      # User preferences
+        ├── createdAt: timestamp     # Profile created
+        └── updatedAt: timestamp     # Last updated
+```
+
+### 20.3 Files Created/Modified
+
+**New File:**
+```
+src/lib/firebase/users.ts              # Complete user profile service
+```
+
+**Modified Files:**
+```
+src/lib/firebase/index.ts              # Export user service
+src/contexts/AuthContext.tsx           # Use Firestore as primary profile store
+src/app/(auth)/login/email-link/page.tsx   # Add name collection for new users
+src/app/(user)/profile/my-information/page.tsx  # Use Firebase profile
+```
+
+### 20.4 FirebaseUserService API
+
+The new service (`src/lib/firebase/users.ts`) provides:
+
+```typescript
+// Profile Management
+FirebaseUserService.createOrUpdateProfile(uid, data)  // Create/update profile
+FirebaseUserService.getProfile(uid)                    // Get profile by UID
+FirebaseUserService.updateProfile(uid, data)           // Partial update
+FirebaseUserService.updateDisplayName(uid, name)       // Update display name only
+FirebaseUserService.deleteProfile(uid)                 // Delete profile
+FirebaseUserService.profileExists(uid)                 // Check if exists
+
+// Profile Fields:
+interface FirestoreUserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  photoURL: string;
+  providerId: string;
+  emailVerified: boolean;
+  onboardingCompleted: boolean;
+  preferences: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### 20.5 AuthContext Integration
+
+The `AuthContext` now syncs all auth methods to Firestore:
+
+```typescript
+const {
+  // ... existing auth methods ...
+  
+  // NEW: Profile Management
+  updateUserProfile,       // (data: Partial<Profile>) => Promise<void>
+  refreshProfile,          // () => Promise<void>
+  
+  // User object now includes Firestore profile data
+  user: {
+    uid, email, displayName,
+    firstName, lastName, phoneNumber,
+    photoURL, emailVerified,
+    onboardingCompleted, preferences
+  }
+} = useAuth();
+```
+
+**Auth Flow with Profile Sync:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    AUTH FLOW WITH FIRESTORE PROFILE SYNC                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    1. USER SIGNS IN (any method)
+    ─────────────────────────────
+    → Firebase Auth authenticates user
+    → AuthContext detects auth state change
+    → Calls syncToFirestoreProfile(firebaseUser)
+    
+    2. PROFILE SYNC
+    ────────────────
+    → Checks if profile exists in Firestore
+    → If NEW user: Creates profile with Firebase data
+    → If EXISTING: Updates profile with latest Firebase data
+    → Preserves custom fields (phone, preferences)
+    
+    3. SET USER STATE
+    ─────────────────
+    → Reads profile from Firestore
+    → Converts to AuthUser format
+    → Sets user state with complete data
+    → UI updates with user info
+    
+    4. PROFILE UPDATES
+    ──────────────────
+    → User edits profile on /profile/my-information
+    → Calls updateUserProfile({firstName, lastName, phone})
+    → Updates Firestore directly (no backend)
+    → Also updates Firebase Auth displayName
+    → Refreshes AuthContext state
+```
+
+### 20.6 Email Link User Name Collection
+
+Since email link doesn't collect a name, we now prompt new users:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    EMAIL LINK NAME COLLECTION FLOW                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    1. User signs in via email link
+    2. /login/email-link page processes sign-in
+    3. Check: Does user have displayName?
+    
+    YES → Redirect to home/original page
+    
+    NO → Show name collection form:
+        ┌─────────────────────────────┐
+        │  Welcome! What's your name? │
+        │  ┌─────────┐ ┌─────────┐   │
+        │  │ First   │ │ Last    │   │
+        │  └─────────┘ └─────────┘   │
+        │  [Continue] [Skip for now] │
+        └─────────────────────────────┘
+    
+    4. User enters name → updateUserProfile() called
+    5. Profile updated in Firestore + Firebase Auth
+    6. User redirected to destination
+```
+
+### 20.7 Profile Page Integration
+
+The `/profile/my-information` page now:
+
+- **Reads from AuthContext** (Firestore profile, not backend API)
+- **Updates via updateUserProfile()** (writes to Firestore)
+- **No backend dependency** (works offline with Firestore cache)
+- **Real-time sync** across all tabs/devices
+
+### 20.8 Complete Authentication Flow
+
+With Phase 20, the complete auth system is:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    COMPLETE MASH AUTHENTICATION FLOW                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    ╔═══════════════════╗
+    ║   REGISTRATION    ║
+    ╚═══════════════════╝
+    
+    Option A: Email/Password
+    ─────────────────────────
+    1. User fills signup form (email, password, name)
+    2. Firebase creates account
+    3. Firebase sends verification email
+    4. Profile synced to Firestore users/{uid}
+    5. User can sign in after verifying email
+    
+    Option B: Email Link (Passwordless)
+    ────────────────────────────────────
+    1. User enters email only
+    2. Firebase sends magic link
+    3. User clicks link → signed in
+    4. If new user: Name collection prompt
+    5. Profile synced to Firestore users/{uid}
+    
+    Option C: Google OAuth
+    ──────────────────────
+    1. User clicks "Sign in with Google"
+    2. Google authentication popup/redirect
+    3. Firebase creates account from Google
+    4. Profile synced to Firestore users/{uid}
+    5. User immediately has full profile (name, photo)
+    
+    ╔═══════════════════╗
+    ║   SIGN-IN         ║
+    ╚═══════════════════╝
+    
+    • Email/Password: Enter credentials → verify → signed in
+    • Email Link: Enter email → check inbox → click link → signed in
+    • Google: Click button → select account → signed in
+    
+    All methods → Profile synced from Firestore → AuthContext updated
+    
+    ╔═══════════════════╗
+    ║   PASSWORD RESET  ║
+    ╚═══════════════════╝
+    
+    1. User clicks "Forgot Password" on login page
+    2. Enter email address
+    3. Firebase sends reset email
+    4. User clicks link → sets new password
+    5. User can sign in with new password
+    
+    ╔═══════════════════╗
+    ║   PROFILE MGMT    ║
+    ╚═══════════════════╝
+    
+    1. User visits /profile/my-information
+    2. Form pre-fills from AuthContext (Firestore data)
+    3. User edits name, phone, etc.
+    4. Saves → updateUserProfile() → Firestore updated
+    5. AuthContext refreshes → UI updates everywhere
+    
+    ╔═══════════════════╗
+    ║   SIGN-OUT        ║
+    ╚═══════════════════╝
+    
+    1. User clicks sign out
+    2. Firebase Auth signs out
+    3. Cart cleared (localStorage + Firebase)
+    4. Wishlist preserved (localStorage)
+    5. AuthContext cleared → user = null
+    6. Redirect to home page
+```
+
+### 20.9 Data Flow Diagram
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                         USER DATA ARCHITECTURE                                  │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────┐
+    │  Firebase Auth   │  ← Authentication provider
+    │  (mash-ddf8d)    │
+    └────────┬─────────┘
+             │
+             │ uid, email, displayName (limited)
+             ▼
+    ┌──────────────────┐
+    │   AuthContext    │  ← Unified auth state
+    │  (React Context) │
+    └────────┬─────────┘
+             │
+             │ syncToFirestoreProfile()
+             ▼
+    ┌──────────────────┐
+    │    Firestore     │  ← Primary profile storage
+    │  users/{userId}  │
+    │                  │
+    │  - displayName   │
+    │  - firstName     │
+    │  - lastName      │
+    │  - phoneNumber   │
+    │  - photoURL      │
+    │  - preferences   │
+    │  - onboarding    │
+    └────────┬─────────┘
+             │
+             │ getProfile() → profileToAuthUser()
+             ▼
+    ┌──────────────────┐
+    │    AuthUser      │  ← Rich user object
+    │   (Application)  │
+    │                  │
+    │  Used by:        │
+    │  - Header        │
+    │  - Profile page  │
+    │  - Checkout      │
+    │  - Orders        │
+    └──────────────────┘
+```
+
+### 20.10 Benefits of Phase 20
+
+1. **Complete Profile Storage** - All user data in Firestore, not just Firebase Auth
+2. **Email Link Name Fix** - New users prompted for their name
+3. **No Backend Dependency** - Profile management without NestJS
+4. **Offline Support** - Firestore caching handles offline scenarios
+5. **Real-time Sync** - Profile updates reflect across tabs/devices
+6. **Rich User Data** - Phone, preferences, onboarding status stored
+7. **Single Source of Truth** - Firestore `users/{uid}` is the profile authority
 8. **Real-time Sync** - Cart/orders sync when user signs in

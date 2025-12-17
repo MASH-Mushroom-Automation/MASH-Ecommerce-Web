@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { User, MapPin, Check, Loader2, Camera, Map, Star, Trash2, Plus } from "lucide-react";
-import { useUserProfile } from "@/hooks/useUser";
-import { useFirebaseAddresses, type FirestoreAddress, type AddressInput } from "@/hooks/useFirebaseAddresses";
+import { useFirebaseAddresses, type AddressInput } from "@/hooks/useFirebaseAddresses";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -35,12 +34,12 @@ interface AddressForm {
   lng?: number;
 }
 
-// Hardcoded fallback data
+// Hardcoded fallback data for development/demo
 const FALLBACK_DATA = {
-  firstName: "PP",
-  lastName: "Namias",
-  email: "mash.mushroom.automation@gmail.com",
-  username: "PP-Namias",
+  firstName: "Guest",
+  lastName: "User",
+  email: "",
+  username: "guest-user",
   avatar: "/profile_placeholder.png",
   address: {
     street: "Llano Rd",
@@ -55,8 +54,8 @@ const FALLBACK_DATA = {
 };
 
 export default function MyInformationPage() {
-  const { profile, updateProfile, uploadAvatar } = useUserProfile();
-  const { isAuthenticated } = useAuth();
+  // Use AuthContext for profile - Firebase is primary source
+  const { user, isAuthenticated, updateUserProfile } = useAuth();
   const {
     addresses: savedAddresses,
     defaultAddress,
@@ -99,19 +98,29 @@ export default function MyInformationPage() {
   // Address state
   const [address, setAddress] = useState<AddressForm>(originalAddress);
 
-  // Initialize from API data when profile loads, with fallback to hardcoded data
+  // Initialize from AuthContext user (Firebase profile)
   useEffect(() => {
     const initialUserInfo: UserInfoForm = {
-      firstName: profile?.firstName || FALLBACK_DATA.firstName,
-      lastName: profile?.lastName || FALLBACK_DATA.lastName,
-      email: profile?.email || FALLBACK_DATA.email,
-      phone: profile?.phone || "",
+      firstName: user?.firstName || FALLBACK_DATA.firstName,
+      lastName: user?.lastName || FALLBACK_DATA.lastName,
+      email: user?.email || FALLBACK_DATA.email,
+      phone: user?.phone || "",
       newPassword: "",
       confirmPassword: "",
     };
 
-    // Use fallback address data (backend doesn't support address yet)
-    const initialAddress: AddressForm = {
+    // Use default address from Firebase if available, otherwise fallback
+    const defaultAddr = defaultAddress;
+    const initialAddress: AddressForm = defaultAddr ? {
+      street: defaultAddr.street || "",
+      addressLine2: "",
+      city: defaultAddr.city || "",
+      stateProvince: defaultAddr.stateProvince || "",
+      zipPostal: defaultAddr.zipPostal || "",
+      landmark: defaultAddr.landmark || "",
+      lat: defaultAddr.coordinates?.lat,
+      lng: defaultAddr.coordinates?.lng,
+    } : {
       street: FALLBACK_DATA.address.street,
       addressLine2: FALLBACK_DATA.address.addressLine2,
       city: FALLBACK_DATA.address.city,
@@ -126,7 +135,7 @@ export default function MyInformationPage() {
     setUserInfo(initialUserInfo);
     setOriginalAddress(initialAddress);
     setAddress(initialAddress);
-  }, [profile]);
+  }, [user, defaultAddress]);
 
   // Check if there are any changes
   const hasChanges =
@@ -147,18 +156,13 @@ export default function MyInformationPage() {
     setIsSaving(true);
 
     try {
-      // Prepare update data
-      const updateData: Partial<typeof profile> = {
+      // Update profile in Firebase using AuthContext
+      await updateUserProfile({
         firstName: userInfo.firstName,
         lastName: userInfo.lastName,
-        email: userInfo.email,
+        displayName: `${userInfo.firstName} ${userInfo.lastName}`.trim(),
         phone: userInfo.phone,
-      };
-
-      // TODO: Add password update when backend supports it
-      // TODO: Add address update when backend supports it
-
-      await updateProfile(updateData);
+      });
 
       // Update original values to new values
       setOriginalUserInfo({
@@ -176,7 +180,6 @@ export default function MyInformationPage() {
       }));
 
       setShowSuccessModal(true);
-      toast.success("Your profile has been updated.");
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : "Failed to save changes"
@@ -322,7 +325,7 @@ export default function MyInformationPage() {
               <div className="flex flex-col items-center justify-center w-full py-6">
                 <div className="w-20 h-20 rounded-full overflow-hidden bg-muted/30 relative">
                   <Image
-                    src={profile?.avatar || FALLBACK_DATA.avatar}
+                    src={user?.photoURL || FALLBACK_DATA.avatar}
                     alt="Profile picture"
                     fill
                     className="object-cover"
@@ -342,12 +345,8 @@ export default function MyInformationPage() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        try {
-                          await uploadAvatar(file);
-                          toast.success("Profile picture updated!");
-                        } catch (error) {
-                          toast.error("Failed to update profile picture");
-                        }
+                        // TODO: Implement avatar upload to Firebase Storage
+                        toast.info("Avatar upload coming soon!");
                       }
                     }}
                   />

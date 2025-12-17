@@ -5,6 +5,8 @@
  * 
  * This page handles the redirect from Firebase email link authentication.
  * When a user clicks the sign-in link in their email, they land here.
+ * 
+ * For new users (no displayName), redirects to profile page to complete setup.
  */
 
 import React, { useEffect, useState } from "react";
@@ -12,20 +14,37 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Loader2, Mail, CheckCircle, AlertCircle, User } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EmailLinkSignInPage() {
   const router = useRouter();
-  const { checkForEmailLink, completeEmailLinkSignIn, getStoredEmail, isAuthenticated } = useAuth();
+  const { 
+    checkForEmailLink, 
+    completeEmailLinkSignIn, 
+    getStoredEmail, 
+    isAuthenticated,
+    user,
+    updateUserProfile 
+  } = useAuth();
   
-  const [status, setStatus] = useState<"checking" | "need-email" | "signing-in" | "success" | "error">("checking");
+  const [status, setStatus] = useState<"checking" | "need-email" | "signing-in" | "need-name" | "success" | "error">("checking");
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
     // If already authenticated, redirect to home
-    if (isAuthenticated) {
+    if (isAuthenticated && status !== "need-name") {
+      // Check if user needs to complete their profile (no displayName)
+      if (user && !user.displayName && !user.firstName) {
+        setStatus("need-name");
+        return;
+      }
+      
       const redirectUrl = sessionStorage.getItem("auth-redirect-url") || "/";
       sessionStorage.removeItem("auth-redirect-url");
       router.replace(redirectUrl);
@@ -48,14 +67,8 @@ export default function EmailLinkSignInPage() {
         try {
           setStatus("signing-in");
           await completeEmailLinkSignIn(storedEmail, window.location.href);
+          // Success will be handled by the useEffect above
           setStatus("success");
-          
-          // Redirect after success
-          setTimeout(() => {
-            const redirectUrl = sessionStorage.getItem("auth-redirect-url") || "/";
-            sessionStorage.removeItem("auth-redirect-url");
-            router.replace(redirectUrl);
-          }, 1500);
         } catch (error) {
           console.error("Email link sign-in failed:", error);
           setStatus("error");
@@ -67,8 +80,10 @@ export default function EmailLinkSignInPage() {
       }
     };
 
-    handleEmailLink();
-  }, [checkForEmailLink, getStoredEmail, completeEmailLinkSignIn, isAuthenticated, router]);
+    if (status === "checking") {
+      handleEmailLink();
+    }
+  }, [checkForEmailLink, getStoredEmail, completeEmailLinkSignIn, isAuthenticated, router, status, user]);
 
   const handleManualSignIn = async () => {
     if (!email || !email.includes("@")) {
@@ -80,18 +95,45 @@ export default function EmailLinkSignInPage() {
       setStatus("signing-in");
       await completeEmailLinkSignIn(email, window.location.href);
       setStatus("success");
-      
-      // Redirect after success
-      setTimeout(() => {
-        const redirectUrl = sessionStorage.getItem("auth-redirect-url") || "/";
-        sessionStorage.removeItem("auth-redirect-url");
-        router.replace(redirectUrl);
-      }, 1500);
     } catch (error) {
       console.error("Email link sign-in failed:", error);
       setStatus("error");
       setErrorMessage("Sign-in failed. Make sure you're using the same email that requested the link.");
     }
+  };
+
+  const handleSaveName = async () => {
+    if (!firstName.trim()) {
+      toast.error("Please enter your first name");
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await updateUserProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        displayName: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      });
+      
+      toast.success(`Welcome, ${firstName}!`);
+      
+      // Redirect after success
+      const redirectUrl = sessionStorage.getItem("auth-redirect-url") || "/";
+      sessionStorage.removeItem("auth-redirect-url");
+      router.replace(redirectUrl);
+    } catch (error) {
+      console.error("Failed to save name:", error);
+      toast.error("Failed to save your name. Please try again.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleSkipName = () => {
+    const redirectUrl = sessionStorage.getItem("auth-redirect-url") || "/";
+    sessionStorage.removeItem("auth-redirect-url");
+    router.replace(redirectUrl);
   };
 
   return (
@@ -162,6 +204,68 @@ export default function EmailLinkSignInPage() {
                   onClick={() => router.push("/login")}
                 >
                   Back to Login
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Need Name Input (for new users) */}
+          {status === "need-name" && (
+            <>
+              <div className="bg-primary/10 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                <User className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Welcome! What&apos;s your name?
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Let us know what to call you.
+              </p>
+              <div className="space-y-4 text-left">
+                <div>
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="Enter your first name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full mt-1"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name (optional)</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Enter your last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={handleSaveName}
+                  disabled={isSavingName || !firstName.trim()}
+                >
+                  {isSavingName ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Continue"
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleSkipName}
+                >
+                  Skip for now
                 </Button>
               </div>
             </>

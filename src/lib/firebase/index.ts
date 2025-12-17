@@ -52,3 +52,10 @@ export {
   type AddressCoordinates,
   type DeliveryAddressData,
 } from "./addresses";
+
+// User Profile Service (Phase 20)
+export {
+  FirebaseUserService,
+  type FirestoreUserProfile,
+  type UserProfileInput,
+} from "./users";
