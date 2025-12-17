@@ -550,8 +550,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: unknown) {
       console.error("Sign-up error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      toast.error("Sign-up failed", { description: errorMessage });
+      // Re-throw with handled flag so pages can detect it but won't show duplicate errors
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean }).handled = true;
+      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      throw handledError;
     } finally {
       setLoading(false);
     }
@@ -624,8 +628,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.dismiss("email-signin");
       console.error("Sign-in error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      toast.error("Sign-in failed", { description: errorMessage });
+      // Re-throw with handled flag so pages can detect it but won't show duplicate errors
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean }).handled = true;
+      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      throw handledError;
     } finally {
       setLoading(false);
     }
@@ -642,9 +650,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error: unknown) {
       console.error("Password reset error:", error);
+      const errorCode = (error as { code?: string })?.code;
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      
+      // For security, don't reveal if email doesn't exist
+      if (errorCode === "auth/user-not-found") {
+        // Show success even if user not found (security best practice)
+        toast.success("Password reset email sent", {
+          description: "If this email is registered, you'll receive instructions.",
+        });
+        // Still throw so the page can update state
+        const handledError = new Error(errorMessage);
+        (handledError as Error & { handled: boolean; code: string }).handled = true;
+        (handledError as Error & { code: string }).code = errorCode || "unknown";
+        throw handledError;
+      }
+      
+      toast.error("Password reset failed", { description: errorMessage });
+      // Re-throw with handled flag and original code
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean; code: string }).handled = true;
+      (handledError as Error & { code: string }).code = errorCode || "unknown";
+      throw handledError;
     }
   };
 
@@ -660,8 +687,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: unknown) {
       console.error("Resend verification error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      toast.error("Verification email failed", { description: errorMessage });
+      // Re-throw with handled flag
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean }).handled = true;
+      throw handledError;
     }
   };
 
@@ -681,8 +711,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: unknown) {
       console.error("Send sign-in link error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      toast.error("Failed to send sign-in link", { description: errorMessage });
+      // Re-throw with handled flag
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean }).handled = true;
+      throw handledError;
     }
   };
 
@@ -723,8 +756,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.dismiss("email-link-signin");
       console.error("Email link sign-in error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
-      toast.error(errorMessage);
-      throw error;
+      toast.error("Email link sign-in failed", { description: errorMessage });
+      // Re-throw with handled flag
+      const handledError = new Error(errorMessage);
+      (handledError as Error & { handled: boolean }).handled = true;
+      throw handledError;
     } finally {
       setLoading(false);
     }
@@ -857,29 +893,66 @@ function getFirebaseErrorMessage(error: unknown): string {
   if (error && typeof error === "object" && "code" in error) {
     const code = (error as { code: string }).code;
     switch (code) {
+      // Sign-up errors
       case "auth/email-already-in-use":
-        return "This email is already registered. Try signing in instead.";
-      case "auth/invalid-email":
-        return "Please enter a valid email address.";
+        return "This email is already registered. Try signing in instead, or use Google/Email Link sign-in.";
       case "auth/weak-password":
         return "Password should be at least 6 characters.";
+      case "auth/operation-not-allowed":
+        return "This sign-in method is not enabled. Please contact support.";
+      
+      // Sign-in errors
       case "auth/user-not-found":
-        return "No account found with this email. Try signing up or use Google sign-in.";
+        return "No account found with this email. Please sign up first.";
       case "auth/wrong-password":
         return "Incorrect password. Try again or use 'Forgot Password'.";
       case "auth/invalid-credential":
-        return "Invalid email or password. If you signed up with Google or Email Link, use those methods instead.";
-      case "auth/too-many-requests":
-        return "Too many failed attempts. Please try again later.";
+        return "Invalid email or password. If you signed up with Google or Email Link, please use that method instead.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
       case "auth/user-disabled":
-        return "This account has been disabled. Contact support.";
+        return "This account has been disabled. Please contact support.";
+      
+      // Rate limiting
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please wait a few minutes before trying again.";
+      
+      // Network errors
       case "auth/network-request-failed":
-        return "Network error. Please check your connection.";
+        return "Network error. Please check your internet connection and try again.";
+      case "auth/internal-error":
+        return "An internal error occurred. Please try again later.";
+      
+      // Email link errors
       case "auth/expired-action-code":
-        return "This link has expired. Please request a new one.";
+        return "This link has expired. Please request a new sign-in link.";
       case "auth/invalid-action-code":
-        return "Invalid link. Please request a new sign-in link.";
+        return "This link is invalid or has already been used. Please request a new one.";
+      case "auth/missing-email":
+        return "Please enter your email address to continue.";
+      
+      // Account linking errors
+      case "auth/account-exists-with-different-credential":
+        return "An account already exists with this email using a different sign-in method. Try signing in with Google or Email Link.";
+      case "auth/credential-already-in-use":
+        return "This credential is already associated with another account.";
+      
+      // Session errors
+      case "auth/requires-recent-login":
+        return "Please sign in again to complete this action.";
+      case "auth/user-token-expired":
+        return "Your session has expired. Please sign in again.";
+      
+      // Popup/redirect errors
+      case "auth/popup-blocked":
+        return "Sign-in popup was blocked. Please allow popups for this site.";
+      case "auth/popup-closed-by-user":
+        return "Sign-in was cancelled. Please try again.";
+      case "auth/cancelled-popup-request":
+        return "Sign-in was cancelled. Please try again.";
+      
       default:
+        console.warn("Unhandled Firebase error code:", code);
         return "An error occurred. Please try again.";
     }
   }

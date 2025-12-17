@@ -1,8 +1,8 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 20.0 (Firebase-Powered User Profile + Complete Auth Flow)  
+**Version:** 20.1 (Firebase Auth Error Handling Improvements)  
 **Last Updated:** December 17, 2025  
-**Status:** Phase 20 Complete ✅ (Firebase User Profile Service + Complete Auth Integration)  
+**Status:** Phase 20 Complete ✅ (Firebase User Profile Service + Complete Auth Integration + Error Handling)  
 **Platform:** Next.js 15/16 + Firebase Firestore + Firebase Auth + Gmail SMTP + PayMongo + Lalamove + Google Maps
 
 ---
@@ -664,6 +664,54 @@ const {
   // Common
   signOut,                   // () => Promise<void>
 } = useAuth();
+```
+
+### Error Handling
+
+**AuthContext handles all Firebase errors centrally** with user-friendly toast messages. Pages should catch errors but NOT show additional toasts (the AuthContext already shows them).
+
+#### Firebase Error Codes → User Messages
+
+| Error Code | User Message |
+|------------|--------------|
+| `auth/email-already-in-use` | "This email is already registered. Try signing in instead, or use Google/Email Link sign-in." |
+| `auth/weak-password` | "Password should be at least 6 characters." |
+| `auth/user-not-found` | "No account found with this email. Please sign up first." |
+| `auth/wrong-password` | "Incorrect password. Try again or use 'Forgot Password'." |
+| `auth/invalid-credential` | "Invalid email or password. If you signed up with Google or Email Link, please use that method instead." |
+| `auth/invalid-email` | "Please enter a valid email address." |
+| `auth/user-disabled` | "This account has been disabled. Please contact support." |
+| `auth/too-many-requests` | "Too many failed attempts. Please wait a few minutes before trying again." |
+| `auth/network-request-failed` | "Network error. Please check your internet connection and try again." |
+| `auth/expired-action-code` | "This link has expired. Please request a new sign-in link." |
+| `auth/invalid-action-code` | "This link is invalid or has already been used. Please request a new one." |
+| `auth/account-exists-with-different-credential` | "An account already exists with this email using a different sign-in method. Try signing in with Google or Email Link." |
+| `auth/requires-recent-login` | "Please sign in again to complete this action." |
+| `auth/popup-blocked` | "Sign-in popup was blocked. Please allow popups for this site." |
+
+#### Error Handling Pattern in Pages
+
+```typescript
+// ✅ CORRECT - Let AuthContext handle errors
+const onSubmit = async (data: FormData) => {
+  try {
+    await signInWithEmailPassword(data.email, data.password);
+    // Success redirect handled by AuthContext
+  } catch (error) {
+    // Error already handled by AuthContext with toast
+    console.error("Login error (handled):", error);
+  }
+};
+
+// ❌ WRONG - Don't show duplicate toasts
+const onSubmit = async (data: FormData) => {
+  try {
+    await signInWithEmailPassword(data.email, data.password);
+  } catch (error) {
+    // DON'T DO THIS - AuthContext already showed a toast
+    toast.error("Login failed"); // This causes duplicate messages!
+  }
+};
 ```
 
 ---

@@ -43,32 +43,20 @@ export default function ForgotPasswordPage() {
       // Send password reset email via Firebase
       await resetPassword(values.email);
 
-      // Show success state
+      // Show success state (toast already shown by AuthContext)
       setSentToEmail(values.email);
       setEmailSent(true);
-
-      toast.success("Password reset email sent!", {
-        description: "Check your inbox for the reset link.",
-      });
     } catch (err: unknown) {
-      console.error("Forgot password error:", err);
+      // Error already handled by AuthContext with toast
+      console.error("Forgot password error (handled):", err);
       
-      // Handle specific Firebase errors
+      // For security, still show success for user-not-found
+      // This prevents email enumeration attacks
       const errorCode = (err as { code?: string })?.code;
-      let errorMessage = "Unable to send reset email. Please try again.";
-      
       if (errorCode === "auth/user-not-found") {
-        // Don't reveal if email exists for security
-        errorMessage = "If this email is registered, you'll receive a reset link.";
         setSentToEmail(values.email);
         setEmailSent(true);
-      } else if (errorCode === "auth/invalid-email") {
-        errorMessage = "Please enter a valid email address.";
-      } else if (errorCode === "auth/too-many-requests") {
-        errorMessage = "Too many requests. Please try again later.";
       }
-      
-      toast.error("Request failed", { description: errorMessage });
     }
   };
 

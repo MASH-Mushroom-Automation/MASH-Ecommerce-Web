@@ -178,9 +178,11 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await signInWithEmailPassword(data.email, data.password);
+      // Success redirect handled by AuthContext
     } catch (error) {
-      // Error is handled in AuthContext
-      console.error("Login error:", error);
+      // Error already handled by AuthContext with toast
+      // Just log for debugging
+      console.error("Login error (handled):", error);
     }
   };
 

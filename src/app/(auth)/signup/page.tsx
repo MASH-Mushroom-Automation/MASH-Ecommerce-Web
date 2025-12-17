@@ -89,25 +89,12 @@ export default function SignupPage() {
       setRegisteredEmail(data.email);
       setRegistrationSuccess(true);
       
-      toast.success("Account created!", {
-        description: "Please check your email to verify your account.",
-      });
+      // Note: Toast is already shown by AuthContext on success
     } catch (err: unknown) {
-      console.error("Registration error:", err);
-      
-      // Handle specific Firebase errors
-      const errorCode = (err as { code?: string })?.code;
-      let errorMessage = "Unable to create account. Please try again.";
-      
-      if (errorCode === "auth/email-already-in-use") {
-        errorMessage = "This email is already registered. Try signing in instead.";
-      } else if (errorCode === "auth/invalid-email") {
-        errorMessage = "Please enter a valid email address.";
-      } else if (errorCode === "auth/weak-password") {
-        errorMessage = "Password is too weak. Please use a stronger password.";
-      }
-      
-      toast.error("Registration failed", { description: errorMessage });
+      // Error already handled by AuthContext with toast
+      // Just log for debugging, don't show another toast
+      console.error("Registration error (handled):", err);
+      // Error toast already shown by AuthContext
     }
   };
 
