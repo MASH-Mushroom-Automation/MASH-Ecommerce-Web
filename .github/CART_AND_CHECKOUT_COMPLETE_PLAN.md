@@ -1,9 +1,9 @@
 # 🛒 MASH E-Commerce: Complete Cart & Checkout System
 
-**Version:** 18.2 (Firebase-Powered, Full Buyer-to-Seller Flow with Payment, Gmail SMTP, Wishlist & Google Maps)  
-**Last Updated:** December 16, 2025  
-**Status:** Phase 18 Complete ✅ (All Integrations Verified + Google Maps Updated)  
-**Platform:** Next.js 15/16 + Firebase Firestore + Gmail SMTP + PayMongo + Lalamove + Google Maps
+**Version:** 19.0 (Firebase-Powered, Full Auth + Buyer-to-Seller Flow with Payment, Gmail SMTP, Wishlist & Google Maps)  
+**Last Updated:** December 17, 2025  
+**Status:** Phase 19 Complete ✅ (Firebase Email/Password + Email Link Authentication)  
+**Platform:** Next.js 15/16 + Firebase Firestore + Firebase Auth + Gmail SMTP + PayMongo + Lalamove + Google Maps
 
 ---
 
@@ -33,7 +33,7 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 - **Cart**: Stored in `carts/{userId}` - syncs across devices
 - **Orders**: Stored in `orders/{orderId}` - includes status workflow
 - **Notifications**: Stored in `notifications/{notificationId}` - real-time alerts
-- **Authentication**: Firebase Auth + Google Sign-In
+- **Authentication**: Firebase Auth (Email/Password + Email Link + Google OAuth)
 - **Emails**: Gmail SMTP via Nodemailer for transactional order emails (replaced Resend)
 
 ### ✅ What's Working NOW
@@ -131,11 +131,12 @@ The NestJS backend is incomplete, so this system uses **Firebase Firestore** as 
 | **16** | **Cart Page & Flow** | **✅ Complete** | **100%** | **Dedicated cart page, public access** |
 | **17** | **Profile Auto-fill & Orders** | **✅ Complete** | **100%** | **Phone auto-fill, order history redirect fix** |
 | **18** | **Order Placement Verification** | **✅ Complete** | **100%** | **Full checkout flow verified, Firebase integration tested** |
+| **19** | **Firebase Email/Password Auth** | **✅ Complete** | **100%** | **Email/Password + Email Link (Passwordless) sign-in** |
 
 ### Progress Bar
 
 ```
-[██████████████████████████████████████████████████████████] 100% Complete (18/18 Phases)
+[████████████████████████████████████████████████████████████] 100% Complete (19/19 Phases)
 ```
 
 ---
@@ -1324,7 +1325,7 @@ GEOCODER_GEOCODE: REQUEST_DENIED: The webpage is not allowed to use the geocoder
 
 **Environment Variable:**
 ```env
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBPCdIpPgisXoODUKrn5CWfKQ6xle9d4no
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyCyQdnT0W3TI04xJ5tBjQ-LJF7CSOtxy5U
 ```
 
 #### Error: "Google Maps Loader deprecated"
@@ -2298,14 +2299,15 @@ src/hooks/useFirebaseOrders.ts                # Orders hook
 
 ---
 
-## 🔍 Final Verification Summary (v18.2)
+## 🔍 Final Verification Summary (v19.0)
 
 ### ✅ Configuration Verified
 
 | Component | File | Status |
 |-----------|------|--------|
 | **Firebase Config** | `.env.local` | ✅ All 6 keys configured (mash-ddf8d) |
-| **Google Maps API** | `.env.local` | ✅ `AIzaSyBPCdIpPgisXoODUKrn5CWfKQ6xle9d4no` |
+| **Firebase Auth** | Firebase Console | ✅ Email/Password + Email Link enabled |
+| **Google Maps API** | `.env.local` | ✅ `AIzaSyCyQdnT0W3TI04xJ5tBjQ-LJF7CSOtxy5U` (Restricted) |
 | **Maps Config** | `src/lib/maps-config.ts` | ✅ `isMapsConfigured()` returns true |
 | **Gmail SMTP** | `.env.local` | ✅ App password configured |
 | **PayMongo** | `.env.local` | ✅ Public & Secret keys set |
@@ -2324,6 +2326,17 @@ src/hooks/useFirebaseOrders.ts                # Orders hook
 8. Email Confirmation → Gmail SMTP sends order confirmation
 ```
 
+### ✅ Authentication Flow Verified
+
+```
+1. Email/Password Sign-Up → Firebase createUserWithEmailAndPassword()
+2. Email Verification → Firebase sendEmailVerification()
+3. Email/Password Sign-In → Firebase signInWithEmailAndPassword()
+4. Email Link (Passwordless) → Firebase sendSignInLinkToEmail()
+5. Password Reset → Firebase sendPasswordResetEmail()
+6. Google OAuth → Firebase signInWithPopup/signInWithRedirect()
+```
+
 ### ✅ Google Maps Integration Points
 
 | Component | File | Purpose |
@@ -2331,15 +2344,239 @@ src/hooks/useFirebaseOrders.ts                # Orders hook
 | **AddressPicker** | `src/components/checkout/AddressPicker.tsx` | Checkout address selection |
 | **TrackingMap** | `src/components/delivery/TrackingMap.tsx` | Lalamove driver tracking |
 | **GoogleMap** | `src/components/maps/GoogleMap.tsx` | General map component |
-| **Profile Address** | `src/app/(user)/profile/my-information/page.tsx` | User saved addresses |
+| **Profile Address** | `src/app/(user)/profile/my-information/page.tsx` | User saved addresses with Firebase |
 | **Store Pages** | `src/app/stores/[slug]/page.tsx` | Store location maps |
+
+### ✅ Profile Address Management
+
+The `/profile/my-information` page includes:
+- ✅ **Add Address** button opens Google Maps picker
+- ✅ Saved addresses stored in Firebase (`addresses/{userId}/addresses`)
+- ✅ Set default address for auto-fill at checkout
+- ✅ Delete addresses
+- ✅ Addresses sync with checkout page via `useFirebaseAddresses` hook
 
 ### ✅ Files Verified
 
 - `src/app/(shop)/checkout/page.tsx` - Complete 3-step checkout
+- `src/app/(user)/profile/my-information/page.tsx` - Address management with Google Maps
 - `src/lib/firebase/orders.ts` - Order creation working
+- `src/lib/firebase/addresses.ts` - Address CRUD operations
 - `src/lib/firebase/config.ts` - Firebase initialized
 - `src/lib/firebase/cart.ts` - Cart sync working
+- `src/lib/firebase/auth.ts` - Complete auth module (Email/Password, Email Link, Google)
 - `src/components/checkout/AddressPicker.tsx` - Google Maps integration
 - `src/contexts/CartContext.tsx` - Cart + Firebase sync
+- `src/contexts/AuthContext.tsx` - Unified auth state management
+- `src/hooks/useFirebaseAddresses.ts` - Address hook for profile & checkout
 - `middleware.ts` - Route protection correct
+
+---
+
+## 🔐 Phase 19: Firebase Email/Password Authentication ✅
+
+### 19.1 Authentication Methods Implemented
+
+Firebase Authentication now supports three sign-in methods for buyers:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    FIREBASE AUTHENTICATION METHODS                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    🔐 METHOD 1: EMAIL/PASSWORD (Traditional)
+    ───────────────────────────────────────────
+    - User signs up with email + password (min 6 chars)
+    - Firebase sends email verification automatically
+    - User clicks verification link → email verified
+    - User can now sign in with email/password
+    
+    ✉️ METHOD 2: EMAIL LINK (Passwordless)
+    ───────────────────────────────────────
+    - User enters email only (no password needed!)
+    - Firebase sends magic link to email
+    - User clicks link → automatically signed in
+    - Email is also verified in the process
+    - Great for mobile users (no password to remember)
+    
+    🔷 METHOD 3: GOOGLE OAUTH
+    ─────────────────────────
+    - User clicks "Sign in with Google"
+    - Popup (dev) or redirect (prod) to Google
+    - User selects Google account
+    - Automatically signed in, email verified
+```
+
+### 19.2 Files Created/Modified
+
+**New Files:**
+```
+src/app/(auth)/login/email-link/page.tsx  # Email link callback handler
+```
+
+**Modified Files:**
+```
+src/lib/firebase/auth.ts                   # Complete auth module
+src/lib/firebase/index.ts                  # Export all auth functions
+src/contexts/AuthContext.tsx               # Unified auth state
+src/app/(auth)/login/page.tsx              # Email/Password + Email Link toggle
+src/app/(auth)/signup/page.tsx             # Firebase registration
+src/app/(auth)/forgot-password/page.tsx    # Firebase password reset
+```
+
+### 19.3 Firebase Auth Module
+
+The auth module (`src/lib/firebase/auth.ts`) provides:
+
+```typescript
+// Email/Password
+createUserWithEmail(email, password, displayName?)  // Sign up
+signInWithEmail(email, password)                     // Sign in
+sendPasswordReset(email)                             // Forgot password
+resendEmailVerification()                            // Resend verification
+
+// Email Link (Passwordless)
+sendSignInLink(email)                                // Send magic link
+isEmailSignInLink(url)                               // Check if URL is sign-in link
+completeSignInWithEmailLink(email, url)              // Complete sign-in
+getStoredEmailForSignIn()                            // Get stored email
+
+// Google OAuth
+signInWithGoogle()                                   // Google sign-in
+getGoogleRedirectResult()                            // Handle redirect
+
+// Common
+signOutFirebase()                                    // Sign out
+getCurrentUser()                                     // Get current user
+getFirebaseIdToken()                                 // Get ID token
+onFirebaseAuthStateChanged(callback)                 // Auth state listener
+updateUserProfile(displayName?, photoURL?)           // Update profile
+```
+
+### 19.4 Login Page Features
+
+The login page (`/login`) now includes:
+
+- **Toggle between Password and Email Link modes**
+- **Email validation** with real-time feedback
+- **Password requirements** indicator
+- **Remember Me** checkbox
+- **Forgot Password** link → Firebase password reset
+- **Google Sign-In** button
+- **Contextual messages** (redirect reasons, verification status)
+
+### 19.5 Signup Page Features
+
+The signup page (`/signup`) now includes:
+
+- **Firebase registration** (no backend dependency)
+- **Automatic email verification** sent on signup
+- **Password strength indicator**
+- **Show/hide password** toggles
+- **Success state** with verification instructions
+- **Google Sign-Up** option
+
+### 19.6 Email Link Sign-In Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    EMAIL LINK (PASSWORDLESS) SIGN-IN FLOW                        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+    1. USER REQUESTS LINK
+    ─────────────────────
+    → User visits /login
+    → Clicks "Email Link" tab
+    → Enters email address
+    → Clicks "Send Sign-In Link"
+    → Email stored in localStorage
+    → Firebase sends email with magic link
+    
+    2. USER RECEIVES EMAIL
+    ──────────────────────
+    → User opens email from Firebase
+    → Clicks the sign-in link
+    → Redirected to /login/email-link
+    
+    3. AUTOMATIC SIGN-IN
+    ────────────────────
+    → Page checks if URL is sign-in link
+    → Retrieves stored email from localStorage
+    → Calls completeSignInWithEmailLink()
+    → User automatically signed in
+    → Redirected to home or original destination
+    
+    4. FALLBACK (if email not stored)
+    ──────────────────────────────────
+    → Page prompts user to enter email
+    → User enters same email that requested link
+    → Sign-in completes
+```
+
+### 19.7 Firebase Console Setup Required
+
+To enable Email/Password and Email Link authentication:
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project (`mash-ddf8d`)
+3. Navigate to **Authentication** → **Sign-in method**
+4. Enable **Email/Password**
+5. Enable **Email link (passwordless sign-in)**
+6. Add your domain to **Authorized domains** (for production)
+
+### 19.8 Environment Variables
+
+No additional environment variables needed. Firebase Auth uses the same config:
+
+```env
+# Firebase Configuration (already set)
+NEXT_PUBLIC_FIREBASE_API_KEY="..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="mash-ddf8d.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="mash-ddf8d"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="mash-ddf8d.appspot.com"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+NEXT_PUBLIC_FIREBASE_APP_ID="..."
+```
+
+### 19.9 AuthContext Integration
+
+The `AuthContext` provides unified auth state:
+
+```typescript
+const {
+  // State
+  user,                    // AuthUser | null
+  firebaseUser,            // FirebaseUser | null
+  loading,                 // boolean
+  isAuthenticated,         // boolean
+  
+  // Google OAuth
+  signInWithGoogle,        // () => Promise<void>
+  
+  // Email/Password
+  signUpWithEmail,         // (email, password, displayName?) => Promise<void>
+  signInWithEmailPassword, // (email, password) => Promise<void>
+  resetPassword,           // (email) => Promise<void>
+  resendVerificationEmail, // () => Promise<void>
+  
+  // Email Link
+  sendEmailSignInLink,     // (email) => Promise<void>
+  completeEmailLinkSignIn, // (email, url) => Promise<void>
+  checkForEmailLink,       // () => boolean
+  getStoredEmail,          // () => string | null
+  
+  // Common
+  signOut,                 // () => Promise<void>
+} = useAuth();
+```
+
+### 19.10 Benefits of Firebase-Only Auth
+
+1. **No Backend Dependency** - Works without NestJS backend
+2. **Email Verification** - Built-in verification flow
+3. **Password Reset** - Firebase handles reset emails
+4. **Passwordless Option** - Email link for better UX
+5. **Google OAuth** - One-click sign-in
+6. **Session Management** - Firebase handles persistence
+7. **Security** - Firebase security rules protect data
+8. **Real-time Sync** - Cart/orders sync when user signs in

@@ -7,12 +7,25 @@
 export { firebaseApp } from "./config";
 export {
   auth,
+  // Google OAuth
   signInWithGoogle,
   getGoogleRedirectResult,
+  // Email/Password
+  createUserWithEmail,
+  signInWithEmail,
+  sendPasswordReset,
+  resendEmailVerification,
+  // Email Link (Passwordless)
+  sendSignInLink,
+  isEmailSignInLink,
+  completeSignInWithEmailLink,
+  getStoredEmailForSignIn,
+  // Common
   signOutFirebase,
   getCurrentUser,
   getFirebaseIdToken,
   onFirebaseAuthStateChanged,
+  updateUserProfile,
   type FirebaseUser,
 } from "./auth";
 

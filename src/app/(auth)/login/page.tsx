@@ -1,6 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+/**
+ * Login Page - Firebase Authentication
+ * 
+ * Supports multiple sign-in methods:
+ * - Email/Password (Traditional)
+ * - Email Link (Passwordless)
+ * - Google OAuth
+ */
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,125 +25,136 @@ import {
   X as XIcon,
   Eye,
   EyeOff,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { setAuthToken } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
-import { humanizeError } from "@/lib/error-messages";
-
-// Load environment variables (default to production backend)
-const API_ENDPOINT =
-  process.env.NEXT_PUBLIC_API_ENDPOINT ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3000";
-
-const isPhone = (val: string) => {
-  // Philippine phone validation: 09XXXXXXXXX or +639XXXXXXXXX
-  return /^(09|\+639)\d{9}$/.test(val);
-};
-
-const validatePassword = (val: string) => {
-  const errors: string[] = [];
-
-  // Check minimum length
-  if (val.length < 8) {
-    errors.push("at least 8 characters");
-  }
-
-  // Check for uppercase letter
-  if (!/[A-Z]/.test(val)) {
-    errors.push("an uppercase letter");
-  }
-
-  // Check for number
-  if (!/\d/.test(val)) {
-    errors.push("a number");
-  }
-
-  // Check for special character
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)) {
-    errors.push("a special character");
-  }
-
-  return errors;
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 const getPasswordRequirements = (password: string) => {
   return {
-    minLength: password.length >= 8,
+    minLength: password.length >= 6,
     hasUppercase: /[A-Z]/.test(password),
     hasNumber: /\d/.test(password),
     hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
   };
 };
 
-const getIdentifierStatus = (identifier: string) => {
-  if (!identifier) {
+const getEmailStatus = (email: string) => {
+  if (!email) {
     return {
       isValid: false,
-      type: null,
-      message: "Enter email or phone number",
+      message: "Enter email address",
     };
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phoneRegex = /^\+?\d{10,15}$/;
 
-  if (emailRegex.test(identifier)) {
-    return { isValid: true, type: "email", message: "Valid email" };
-  }
-
-  if (phoneRegex.test(identifier)) {
-    return { isValid: true, type: "phone", message: "Valid phone number" };
+  if (emailRegex.test(email)) {
+    return { isValid: true, message: "Valid email" };
   }
 
   return {
     isValid: false,
-    type: null,
-    message: "Must be a valid email (user@example.com) or phone (+1234567890)",
+    message: "Please enter a valid email address",
   };
 };
 
 const loginSchema = z.object({
-  identifier: z
-    .string()
-    .min(1, "Email or phone is required")
-    .refine(
-      (val) => z.string().email().safeParse(val).success || isPhone(val),
-      {
-        message: "Enter a valid email or phone number",
-      }
-    ),
-  password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().default(false),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean(),
 });
 
-type LoginForm = { identifier: string; password: string; rememberMe?: boolean };
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
+  const verifyParam = searchParams.get("verify");
+  const verifiedParam = searchParams.get("verified");
+
+  const {
+    signInWithEmailPassword,
+    sendEmailSignInLink,
+    resendVerificationEmail,
+    checkForEmailLink,
+    completeEmailLinkSignIn,
+    getStoredEmail,
+    loading: authLoading,
+  } = useAuth();
+
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
+  const [isEmailLinkMode, setIsEmailLinkMode] = useState(false);
+  const [emailLinkSent, setEmailLinkSent] = useState(false);
+  const [sendingEmailLink, setSendingEmailLink] = useState(false);
 
   const {
     register,
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
+    setValue,
+  } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: "", password: "", rememberMe: false },
+    defaultValues: { email: "", password: "", rememberMe: false },
   });
+
+  // Check for email link on mount
+  useEffect(() => {
+    const handleEmailLink = async () => {
+      if (checkForEmailLink()) {
+        const storedEmail = getStoredEmail();
+        if (storedEmail) {
+          try {
+            await completeEmailLinkSignIn(storedEmail, window.location.href);
+          } catch (error) {
+            console.error("Email link sign-in failed:", error);
+            // Clear URL params
+            window.history.replaceState({}, "", "/login");
+          }
+        } else {
+          // Ask user for email
+          const userEmail = window.prompt(
+            "Please enter your email to complete sign-in:"
+          );
+          if (userEmail) {
+            try {
+              await completeEmailLinkSignIn(userEmail, window.location.href);
+            } catch (error) {
+              console.error("Email link sign-in failed:", error);
+            }
+          }
+          window.history.replaceState({}, "", "/login");
+        }
+      }
+    };
+
+    handleEmailLink();
+  }, [checkForEmailLink, getStoredEmail, completeEmailLinkSignIn]);
+
+  // Store redirect URL
+  useEffect(() => {
+    if (redirectUrl && typeof window !== "undefined") {
+      sessionStorage.setItem("auth-redirect-url", redirectUrl);
+    }
+  }, [redirectUrl]);
 
   // Get contextual message based on redirect URL
   const getContextualMessage = () => {
+    if (verifyParam === "true") {
+      return "Please verify your email before signing in. Check your inbox.";
+    }
+    if (verifiedParam === "true") {
+      return "Email verified! You can now sign in.";
+    }
     if (!redirectUrl) return null;
 
     if (redirectUrl.includes("/checkout")) {
@@ -155,62 +175,29 @@ export default function LoginPage() {
     return "Please sign in to continue";
   };
 
-  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
-    // Attempt API login if available; otherwise gracefully fall back to mock login
+  const onSubmit = async (data: LoginForm) => {
     try {
-      const res = await fetch(`${API_ENDPOINT}/api/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: data.identifier,
-          password: data.password,
-        }),
-      });
-
-      // Parse backend response which contains `data.accessToken`, `data.refreshToken` and `data.user`
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const serverMessage = json && (json.message || json.data?.message);
-        const errorMessage = humanizeError(
-          serverMessage || "Invalid credentials"
-        );
-        toast.error(errorMessage);
-        return;
-      }
-
-      const accessToken = json?.data?.accessToken || json?.accessToken;
-      const refreshToken = json?.data?.refreshToken || json?.refreshToken;
-      const user = json?.data?.user || json?.user || null;
-
-      if (!accessToken) {
-        toast.error(
-          "Login successful, but we couldn't complete the process. Please try again."
-        );
-        return;
-      }
-
-      // Persist tokens and user info
-      setAuthToken(accessToken, !!data.rememberMe);
-      try {
-        if (typeof window !== "undefined") {
-          if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-          if (user) {
-            localStorage.setItem("user", JSON.stringify(user));
-            sessionStorage.setItem("user", JSON.stringify(user));
-          }
-        }
-      } catch {
-        // ignore storage errors
-      }
-
-      toast.success(`Welcome back, ${user?.firstName || data.identifier}!`);
-      // Redirect to the original page or home
-      router.push(redirectUrl || "/");
-      router.refresh();
+      await signInWithEmailPassword(data.email, data.password);
     } catch (error) {
-      // Network error or endpoint not available
-      const errorMessage = humanizeError(error);
-      toast.error(errorMessage);
+      // Error is handled in AuthContext
+      console.error("Login error:", error);
+    }
+  };
+
+  const handleSendEmailLink = async () => {
+    const emailValue = email.trim();
+    if (!emailValue || !getEmailStatus(emailValue).isValid) {
+      return;
+    }
+
+    try {
+      setSendingEmailLink(true);
+      await sendEmailSignInLink(emailValue);
+      setEmailLinkSent(true);
+    } catch (error) {
+      console.error("Send email link error:", error);
+    } finally {
+      setSendingEmailLink(false);
     }
   };
 
@@ -255,165 +242,406 @@ export default function LoginPage() {
           <div className="pt-2">
             {/* Contextual Message Alert */}
             {contextualMessage && (
-              <Alert className="mb-4 sm:mb-6 bg-primary/10 border-primary/30">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-primary font-medium text-xs sm:text-sm">
+              <Alert
+                className={`mb-4 sm:mb-6 ${
+                  verifyParam === "true"
+                    ? "bg-yellow-500/10 border-yellow-500/30"
+                    : verifiedParam === "true"
+                    ? "bg-green-500/10 border-green-500/30"
+                    : "bg-primary/10 border-primary/30"
+                }`}
+              >
+                <AlertCircle
+                  className={`h-4 w-4 ${
+                    verifyParam === "true"
+                      ? "text-yellow-600"
+                      : verifiedParam === "true"
+                      ? "text-green-600"
+                      : "text-primary"
+                  }`}
+                />
+                <AlertDescription
+                  className={`font-medium text-xs sm:text-sm ${
+                    verifyParam === "true"
+                      ? "text-yellow-600"
+                      : verifiedParam === "true"
+                      ? "text-green-600"
+                      : "text-primary"
+                  }`}
+                >
                   {contextualMessage}
+                  {verifyParam === "true" && (
+                    <button
+                      onClick={() => resendVerificationEmail()}
+                      className="ml-2 underline hover:no-underline"
+                    >
+                      Resend email
+                    </button>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
-            {/* Form */}
-            <form
-              onSubmit={handleSubmit((data) =>
-                onSubmit(data as unknown as LoginForm)
-              )}
-              className="space-y-3 sm:space-y-4 md:space-y-5"
-            >
-              {/* Email or Phone Input */}
-              <div>
-                <label
-                  htmlFor="identifier"
-                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                >
-                  Email or Phone Number
-                </label>
-                <Input
-                  id="identifier"
-                  type="text"
-                  {...register("identifier")}
-                  onInput={(e) => setIdentifier(e.currentTarget.value)}
-                  className="w-full"
-                  placeholder="Enter your email or phone"
-                  icon={<Mail className="h-5 w-5" />}
-                />
 
-                {/* Identifier Validation Indicator */}
-                {identifier && (
-                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                    <div
-                      className={`flex items-center gap-2 text-xs ${
-                        getIdentifierStatus(identifier).isValid
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {getIdentifierStatus(identifier).isValid ? (
-                        <Check className="h-3 w-3 flex-shrink-0" />
-                      ) : (
-                        <XIcon className="h-3 w-3 flex-shrink-0" />
-                      )}
-                      <span>{getIdentifierStatus(identifier).message}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {errors.identifier && (
-                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                    {String(errors.identifier.message)}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Input */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    {...register("password")}
-                    onInput={(e) => setPassword(e.currentTarget.value)}
-                    className="w-full pr-10"
-                    placeholder="Enter your password"
-                    icon={<Lock className="h-5 w-5" />}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Error Message */}
-                {errors.password && (
-                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                    {String(errors.password.message)}
-                  </p>
-                )}
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Controller
-                    name="rememberMe"
-                    control={control}
-                    render={({ field }) => (
-                      <Checkbox
-                        id="remember"
-                        checked={field.value}
-                        onCheckedChange={(checked) => field.onChange(!!checked)}
-                      />
-                    )}
-                  />
-                  <label
-                    htmlFor="remember"
-                    className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
-                  >
-                    Remember Me
-                  </label>
-                </div>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs sm:text-sm text-primary hover:underline"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-
-              {/* Sign In Button */}
+            {/* Toggle between Password and Email Link */}
+            <div className="flex items-center justify-center gap-2 mb-4">
               <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="w-full font-semibold"
-                disabled={isSubmitting}
+                type="button"
+                variant={!isEmailLinkMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsEmailLinkMode(false)}
+                className="text-xs"
               >
-                {isSubmitting ? "Signing In..." : "Sign In"}
+                <Lock className="w-3 h-3 mr-1" />
+                Password
               </Button>
+              <Button
+                type="button"
+                variant={isEmailLinkMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsEmailLinkMode(true)}
+                className="text-xs"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                Email Link
+              </Button>
+            </div>
 
-              {/* Divider */}
-              <div className="relative my-3 sm:my-4 md:my-5">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-card text-muted-foreground">or</span>
-                </div>
+            {isEmailLinkMode ? (
+              /* Email Link (Passwordless) Mode */
+              <div className="space-y-4">
+                {emailLinkSent ? (
+                  <div className="text-center py-8">
+                    <div className="bg-green-500/10 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                      <Mail className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Check your email
+                    </h3>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      We sent a sign-in link to <strong>{email}</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Click the link in the email to sign in. No password
+                      needed!
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => {
+                        setEmailLinkSent(false);
+                        setEmail("");
+                      }}
+                    >
+                      Use a different email
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label
+                        htmlFor="email-link"
+                        className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                      >
+                        Email Address
+                      </label>
+                      <Input
+                        id="email-link"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full"
+                        placeholder="Enter your email"
+                        icon={<Mail className="h-5 w-5" />}
+                      />
+                      {email && (
+                        <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                          <div
+                            className={`flex items-center gap-2 text-xs ${
+                              getEmailStatus(email).isValid
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {getEmailStatus(email).isValid ? (
+                              <Check className="h-3 w-3 flex-shrink-0" />
+                            ) : (
+                              <XIcon className="h-3 w-3 flex-shrink-0" />
+                            )}
+                            <span>{getEmailStatus(email).message}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="lg"
+                      className="w-full font-semibold"
+                      onClick={handleSendEmailLink}
+                      disabled={
+                        sendingEmailLink ||
+                        !email ||
+                        !getEmailStatus(email).isValid
+                      }
+                    >
+                      {sendingEmailLink ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4 mr-2" />
+                          Send Sign-In Link
+                        </>
+                      )}
+                    </Button>
+
+                    <p className="text-xs text-center text-muted-foreground">
+                      We&apos;ll send you a magic link to sign in without a
+                      password
+                    </p>
+                  </>
+                )}
               </div>
+            ) : (
+              /* Password Mode (Traditional) */
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-3 sm:space-y-4 md:space-y-5"
+              >
+                {/* Email Input */}
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                  >
+                    Email Address
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    {...register("email")}
+                    onInput={(e) => {
+                      setEmail(e.currentTarget.value);
+                      setValue("email", e.currentTarget.value);
+                    }}
+                    className="w-full"
+                    placeholder="Enter your email"
+                    icon={<Mail className="h-5 w-5" />}
+                  />
 
-              {/* Google Sign In */}
-              <GoogleSignInButton
-                fullWidth
-                size="lg"
-                text="Sign in with Google"
-              />
-            </form>
+                  {/* Email Validation Indicator */}
+                  {email && (
+                    <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                      <div
+                        className={`flex items-center gap-2 text-xs ${
+                          getEmailStatus(email).isValid
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {getEmailStatus(email).isValid ? (
+                          <Check className="h-3 w-3 flex-shrink-0" />
+                        ) : (
+                          <XIcon className="h-3 w-3 flex-shrink-0" />
+                        )}
+                        <span>{getEmailStatus(email).message}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {errors.email && (
+                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                      {String(errors.email.message)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      {...register("password")}
+                      onInput={(e) => setPassword(e.currentTarget.value)}
+                      className="w-full pr-10"
+                      placeholder="Enter your password"
+                      icon={<Lock className="h-5 w-5" />}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Password Requirements Indicator */}
+                  {password && (
+                    <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
+                        Password Requirements:
+                      </p>
+                      <div className="space-y-1">
+                        <div
+                          className={`flex items-center gap-2 text-xs ${
+                            getPasswordRequirements(password).minLength
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {getPasswordRequirements(password).minLength ? (
+                            <Check className="h-3 w-3 flex-shrink-0" />
+                          ) : (
+                            <XIcon className="h-3 w-3 flex-shrink-0" />
+                          )}
+                          <span>At least 6 characters</span>
+                        </div>
+
+                        <div
+                          className={`flex items-center gap-2 text-xs ${
+                            getPasswordRequirements(password).hasUppercase
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {getPasswordRequirements(password).hasUppercase ? (
+                            <Check className="h-3 w-3 flex-shrink-0" />
+                          ) : (
+                            <XIcon className="h-3 w-3 flex-shrink-0" />
+                          )}
+                          <span>Contains uppercase letter (A-Z)</span>
+                        </div>
+
+                        <div
+                          className={`flex items-center gap-2 text-xs ${
+                            getPasswordRequirements(password).hasNumber
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {getPasswordRequirements(password).hasNumber ? (
+                            <Check className="h-3 w-3 flex-shrink-0" />
+                          ) : (
+                            <XIcon className="h-3 w-3 flex-shrink-0" />
+                          )}
+                          <span>Contains a number (0-9)</span>
+                        </div>
+
+                        <div
+                          className={`flex items-center gap-2 text-xs ${
+                            getPasswordRequirements(password).hasSpecialChar
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {getPasswordRequirements(password).hasSpecialChar ? (
+                            <Check className="h-3 w-3 flex-shrink-0" />
+                          ) : (
+                            <XIcon className="h-3 w-3 flex-shrink-0" />
+                          )}
+                          <span>
+                            Contains special character (!@#$%^&* etc.)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {errors.password && (
+                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                      {String(errors.password.message)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Controller
+                      name="rememberMe"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="remember"
+                          checked={field.value}
+                          onCheckedChange={(checked) =>
+                            field.onChange(!!checked)
+                          }
+                        />
+                      )}
+                    />
+                    <label
+                      htmlFor="remember"
+                      className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
+                    >
+                      Remember Me
+                    </label>
+                  </div>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs sm:text-sm text-primary hover:underline"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+
+                {/* Sign In Button */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full font-semibold"
+                  disabled={isSubmitting || authLoading}
+                >
+                  {isSubmitting || authLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+              </form>
+            )}
+
+            {/* Divider */}
+            <div className="relative my-3 sm:my-4 md:my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-card text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <GoogleSignInButton
+              fullWidth
+              size="lg"
+              text="Sign in with Google"
+            />
           </div>
         </div>
       </div>

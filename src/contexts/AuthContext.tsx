@@ -3,8 +3,12 @@
 /**
  * Authentication Context
  *
- * Provides unified auth state for both Firebase and traditional auth.
- * Handles Google sign-in redirect flow and backend sync.
+ * Provides unified auth state for all Firebase authentication methods:
+ * - Google Sign-In (OAuth)
+ * - Email/Password (Traditional)
+ * - Email Link (Passwordless)
+ *
+ * Handles auth state changes and optional backend sync.
  */
 
 import React, {
@@ -20,11 +24,19 @@ import {
   getGoogleRedirectResult,
   signOutFirebase,
   onFirebaseAuthStateChanged,
+  createUserWithEmail,
+  signInWithEmail,
+  sendPasswordReset,
+  resendEmailVerification,
+  sendSignInLink,
+  isEmailSignInLink,
+  completeSignInWithEmailLink,
+  getStoredEmailForSignIn,
   type FirebaseUser,
 } from "@/lib/firebase";
 import { setAuthToken, logout as clearAuthTokens } from "@/lib/auth";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 // User type that works for both Firebase and traditional auth
 export interface AuthUser {
@@ -36,7 +48,7 @@ export interface AuthUser {
   phone?: string; // Phone number for checkout auto-fill
   photoURL?: string;
   avatar?: string; // Alias for photoURL, used by profile components
-  provider: "firebase" | "email";
+  provider: "firebase" | "email" | "google" | "email-link";
   emailVerified: boolean;
 }
 
@@ -47,8 +59,22 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
 
-  // Actions
+  // Google OAuth
   signInWithGoogle: () => Promise<void>;
+
+  // Email/Password
+  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  signInWithEmailPassword: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
+
+  // Email Link (Passwordless)
+  sendEmailSignInLink: (email: string) => Promise<void>;
+  completeEmailLinkSignIn: (email: string, url: string) => Promise<void>;
+  checkForEmailLink: () => boolean;
+  getStoredEmail: () => string | null;
+
+  // Common
   signOut: () => Promise<void>;
   syncFirebaseUserToBackend: (
     firebaseUser: FirebaseUser
@@ -369,6 +395,249 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // ============================================================================
+  // EMAIL/PASSWORD AUTHENTICATION HANDLERS
+  // ============================================================================
+
+  /**
+   * Sign up with email and password
+   */
+  const handleSignUpWithEmail = async (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => {
+    try {
+      setLoading(true);
+      const fbUser = await createUserWithEmail(email, password, displayName);
+
+      // Build auth user (email not verified yet)
+      const authUser: AuthUser = {
+        id: fbUser.uid,
+        email: fbUser.email || email,
+        firstName: displayName?.split(" ")[0],
+        lastName: displayName?.split(" ").slice(1).join(" "),
+        displayName: fbUser.displayName || displayName,
+        provider: "email",
+        emailVerified: false,
+      };
+
+      setUser(authUser);
+      setFirebaseUser(fbUser);
+
+      // Store in localStorage
+      try {
+        localStorage.setItem("user", JSON.stringify(authUser));
+      } catch {
+        // Ignore storage errors
+      }
+
+      toast.success("Account created!", {
+        description: "Please check your email to verify your account.",
+      });
+
+      // Redirect to verification page or show verification prompt
+      router.push("/login?verify=true");
+    } catch (error: unknown) {
+      console.error("Sign-up error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Sign in with email and password
+   */
+  const handleSignInWithEmailPassword = async (
+    email: string,
+    password: string
+  ) => {
+    try {
+      setLoading(true);
+      toast.loading("Signing you in...", { id: "email-signin" });
+
+      const fbUser = await signInWithEmail(email, password);
+
+      // Check if email is verified
+      if (!fbUser.emailVerified) {
+        toast.dismiss("email-signin");
+        toast.warning("Please verify your email", {
+          description: "Check your inbox for the verification link.",
+          action: {
+            label: "Resend",
+            onClick: () => handleResendVerificationEmail(),
+          },
+        });
+        setFirebaseUser(fbUser);
+        setLoading(false);
+        return;
+      }
+
+      // Sync to backend (optional, for backend integration)
+      try {
+        await syncFirebaseUserToBackend(fbUser);
+      } catch {
+        // Backend sync failed, but user is still authenticated via Firebase
+        console.warn("Backend sync failed, using Firebase auth only");
+
+        const authUser: AuthUser = {
+          id: fbUser.uid,
+          email: fbUser.email || email,
+          firstName: fbUser.displayName?.split(" ")[0],
+          lastName: fbUser.displayName?.split(" ").slice(1).join(" "),
+          displayName: fbUser.displayName || undefined,
+          provider: "email",
+          emailVerified: fbUser.emailVerified,
+        };
+
+        setUser(authUser);
+        localStorage.setItem("user", JSON.stringify(authUser));
+      }
+
+      toast.dismiss("email-signin");
+      toast.success(`Welcome back, ${fbUser.displayName || email}!`);
+
+      // Redirect
+      const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+      if (redirectUrl) {
+        sessionStorage.removeItem("auth-redirect-url");
+        window.location.href = redirectUrl;
+      } else {
+        window.location.href = "/";
+      }
+    } catch (error: unknown) {
+      toast.dismiss("email-signin");
+      console.error("Sign-in error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Send password reset email
+   */
+  const handleResetPassword = async (email: string) => {
+    try {
+      await sendPasswordReset(email);
+      toast.success("Password reset email sent", {
+        description: "Check your inbox for instructions.",
+      });
+    } catch (error: unknown) {
+      console.error("Password reset error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  /**
+   * Resend email verification
+   */
+  const handleResendVerificationEmail = async () => {
+    try {
+      await resendEmailVerification();
+      toast.success("Verification email sent", {
+        description: "Check your inbox for the verification link.",
+      });
+    } catch (error: unknown) {
+      console.error("Resend verification error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  // ============================================================================
+  // EMAIL LINK (PASSWORDLESS) AUTHENTICATION HANDLERS
+  // ============================================================================
+
+  /**
+   * Send email sign-in link
+   */
+  const handleSendEmailSignInLink = async (email: string) => {
+    try {
+      await sendSignInLink(email);
+      toast.success("Sign-in link sent!", {
+        description: `Check ${email} for the sign-in link.`,
+      });
+    } catch (error: unknown) {
+      console.error("Send sign-in link error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  /**
+   * Complete email link sign-in
+   */
+  const handleCompleteEmailLinkSignIn = async (email: string, url: string) => {
+    try {
+      setLoading(true);
+      toast.loading("Completing sign-in...", { id: "email-link-signin" });
+
+      const fbUser = await completeSignInWithEmailLink(email, url);
+
+      // Sync to backend (optional)
+      try {
+        await syncFirebaseUserToBackend(fbUser);
+      } catch {
+        // Backend sync failed, use Firebase auth only
+        const authUser: AuthUser = {
+          id: fbUser.uid,
+          email: fbUser.email || email,
+          displayName: fbUser.displayName || undefined,
+          provider: "email-link",
+          emailVerified: true, // Email link verifies the email
+        };
+
+        setUser(authUser);
+        localStorage.setItem("user", JSON.stringify(authUser));
+      }
+
+      toast.dismiss("email-link-signin");
+      toast.success(`Welcome, ${fbUser.displayName || email}!`);
+
+      // Redirect
+      const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+      if (redirectUrl) {
+        sessionStorage.removeItem("auth-redirect-url");
+        window.location.href = redirectUrl;
+      } else {
+        window.location.href = "/";
+      }
+    } catch (error: unknown) {
+      toast.dismiss("email-link-signin");
+      console.error("Email link sign-in error:", error);
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Check if current URL is an email sign-in link
+   */
+  const handleCheckForEmailLink = (): boolean => {
+    if (typeof window === "undefined") return false;
+    return isEmailSignInLink(window.location.href);
+  };
+
+  /**
+   * Get stored email for completing email link sign-in
+   */
+  const handleGetStoredEmail = (): string | null => {
+    return getStoredEmailForSignIn();
+  };
+
   /**
    * Sign out from all auth providers
    */
@@ -398,12 +667,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     firebaseUser,
     loading,
     isAuthenticated: !!user || !!firebaseUser,
+    // Google OAuth
     signInWithGoogle: handleSignInWithGoogle,
+    // Email/Password
+    signUpWithEmail: handleSignUpWithEmail,
+    signInWithEmailPassword: handleSignInWithEmailPassword,
+    resetPassword: handleResetPassword,
+    resendVerificationEmail: handleResendVerificationEmail,
+    // Email Link (Passwordless)
+    sendEmailSignInLink: handleSendEmailSignInLink,
+    completeEmailLinkSignIn: handleCompleteEmailLinkSignIn,
+    checkForEmailLink: handleCheckForEmailLink,
+    getStoredEmail: handleGetStoredEmail,
+    // Common
     signOut: handleSignOut,
     syncFirebaseUserToBackend,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/**
+ * Get human-readable error message from Firebase error
+ */
+function getFirebaseErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code: string }).code;
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "This email is already registered. Try signing in instead.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/weak-password":
+        return "Password should be at least 6 characters.";
+      case "auth/user-not-found":
+        return "No account found with this email. Try signing up instead.";
+      case "auth/wrong-password":
+        return "Incorrect password. Please try again.";
+      case "auth/invalid-credential":
+        return "Invalid email or password. Please check your credentials.";
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please try again later.";
+      case "auth/user-disabled":
+        return "This account has been disabled. Contact support.";
+      case "auth/network-request-failed":
+        return "Network error. Please check your connection.";
+      case "auth/expired-action-code":
+        return "This link has expired. Please request a new one.";
+      case "auth/invalid-action-code":
+        return "Invalid link. Please request a new sign-in link.";
+      default:
+        return "An error occurred. Please try again.";
+    }
+  }
+  return "An error occurred. Please try again.";
 }
 
 /**

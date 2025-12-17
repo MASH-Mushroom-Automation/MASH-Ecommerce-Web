@@ -1,26 +1,33 @@
 "use client";
 
-import React from "react";
+/**
+ * Signup Page - Firebase Authentication
+ * 
+ * Creates new user accounts with Firebase Auth.
+ * Sends email verification automatically.
+ */
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { User } from "lucide-react";
+import { User, Eye, EyeOff, Check, X as XIcon, Mail, Loader2 } from "lucide-react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api-client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const signupSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     email: z.string().email("Enter a valid email"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(8, "Confirm your password"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Confirm your password"),
     terms: z.boolean().refine((v) => v === true, {
       message: "You must agree to Terms & Conditions",
     }),
@@ -35,32 +42,25 @@ const signupSchema = z
 
 type SignupForm = z.infer<typeof signupSchema>;
 
-// API Response Type
-interface RegisterResponse {
-  success: boolean;
-  statusCode: number;
-  data: {
-    success: boolean;
-    message: string;
-    user: {
-      id: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      emailVerified: boolean;
-    };
-    verification: {
-      sent: boolean;
-      method: string;
-      expiresIn: string;
-      email: string;
-    };
-    nextStep: string;
+// Password requirements checker
+const getPasswordRequirements = (password: string) => {
+  return {
+    minLength: password.length >= 6,
+    hasUppercase: /[A-Z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
   };
-}
+};
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signUpWithEmail } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -81,34 +81,82 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
-      // Call backend API
-      const response = await apiRequest<RegisterResponse>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          firstName: data.firstName,
-          lastName: data.lastName,
-        }),
-      });
+      // Create user with Firebase Auth
+      const displayName = `${data.firstName} ${data.lastName}`;
+      await signUpWithEmail(data.email, data.password, displayName);
 
-      // Store email for verification page
-      sessionStorage.setItem("pendingVerificationEmail", data.email);
+      // Show success state
+      setRegisteredEmail(data.email);
+      setRegistrationSuccess(true);
       
-      // Show success message
-      toast.success("Registration successful!", {
-        description: response.data.message || "Check your email for a verification code.",
+      toast.success("Account created!", {
+        description: "Please check your email to verify your account.",
       });
-
-      // Redirect to verification page
-      router.push("/verify-otp");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Registration error:", err);
-      toast.error("Registration failed", {
-        description: err instanceof Error ? err.message : "Unable to create account. Please try again.",
-      });
+      
+      // Handle specific Firebase errors
+      const errorCode = (err as { code?: string })?.code;
+      let errorMessage = "Unable to create account. Please try again.";
+      
+      if (errorCode === "auth/email-already-in-use") {
+        errorMessage = "This email is already registered. Try signing in instead.";
+      } else if (errorCode === "auth/invalid-email") {
+        errorMessage = "Please enter a valid email address.";
+      } else if (errorCode === "auth/weak-password") {
+        errorMessage = "Password is too weak. Please use a stronger password.";
+      }
+      
+      toast.error("Registration failed", { description: errorMessage });
     }
   };
+
+  const passwordReqs = getPasswordRequirements(password);
+
+  // Success state - show verification message
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full">
+          <div className="bg-card rounded-lg shadow-md p-8 text-center">
+            <div className="bg-green-500/10 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+              <Mail className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              Verify your email
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              We&apos;ve sent a verification email to:
+              <br />
+              <strong className="text-foreground">{registeredEmail}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Click the link in the email to verify your account, then you can sign in.
+            </p>
+            <div className="space-y-3">
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={() => router.push("/login?verify=true")}
+              >
+                Go to Sign In
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setRegistrationSuccess(false);
+                  setRegisteredEmail("");
+                }}
+              >
+                Use a different email
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -209,13 +257,42 @@ export default function SignupPage() {
               >
                 Password
               </label>
-              <Input
-                id="password"
-                type="password"
-                {...register("password")}
-                className="w-full"
-                placeholder="Create a password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  onInput={(e) => setPassword(e.currentTarget.value)}
+                  className="w-full pr-10"
+                  placeholder="Create a password (min 6 characters)"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              
+              {/* Password Requirements */}
+              {password && (
+                <div className="mt-2 p-2 bg-muted/50 rounded-md border border-border space-y-1">
+                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.minLength ? "text-green-600" : "text-muted-foreground"}`}>
+                    {passwordReqs.minLength ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                    <span>At least 6 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.hasUppercase ? "text-green-600" : "text-muted-foreground"}`}>
+                    {passwordReqs.hasUppercase ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                    <span>One uppercase letter (recommended)</span>
+                  </div>
+                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.hasNumber ? "text-green-600" : "text-muted-foreground"}`}>
+                    {passwordReqs.hasNumber ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                    <span>One number (recommended)</span>
+                  </div>
+                </div>
+              )}
+              
               {errors.password && (
                 <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
@@ -231,13 +308,22 @@ export default function SignupPage() {
               >
                 Confirm Password
               </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                {...register("confirmPassword")}
-                className="w-full"
-                placeholder="Confirm your password"
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  {...register("confirmPassword")}
+                  className="w-full pr-10"
+                  placeholder="Confirm your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-destructive">
                   {errors.confirmPassword.message}

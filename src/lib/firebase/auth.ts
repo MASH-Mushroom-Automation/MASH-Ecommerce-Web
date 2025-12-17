@@ -1,8 +1,12 @@
 /**
  * Firebase Authentication Service
  *
- * Provides Google Sign-In with redirect method.
- * Handles auth state changes and token management.
+ * Provides multiple authentication methods:
+ * - Google Sign-In (OAuth)
+ * - Email/Password (Traditional)
+ * - Email Link (Passwordless)
+ *
+ * For buyers/users only - Firebase Auth handles all user authentication.
  */
 
 import {
@@ -15,7 +19,16 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  sendPasswordResetEmail,
+  updateProfile,
   type User as FirebaseUser,
+  type ActionCodeSettings,
 } from "firebase/auth";
 import { firebaseApp } from "./config";
 
@@ -31,6 +44,182 @@ googleProvider.addScope("profile");
 googleProvider.setCustomParameters({
   prompt: "select_account", // Always show account selector
 });
+
+// ============================================================================
+// EMAIL/PASSWORD AUTHENTICATION
+// ============================================================================
+
+/**
+ * Create a new user with email and password
+ * @param email - User's email address
+ * @param password - User's password (min 6 characters for Firebase)
+ * @param displayName - Optional display name
+ * @returns Firebase user object
+ */
+export async function createUserWithEmail(
+  email: string,
+  password: string,
+  displayName?: string
+): Promise<FirebaseUser> {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Update display name if provided
+    if (displayName) {
+      await updateProfile(user, { displayName });
+    }
+
+    // Send email verification
+    await sendEmailVerification(user, {
+      url: `${getBaseUrl()}/login?verified=true`,
+      handleCodeInApp: false,
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Firebase create user error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Sign in with email and password
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Firebase user object
+ */
+export async function signInWithEmail(
+  email: string,
+  password: string
+): Promise<FirebaseUser> {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    console.error("Firebase sign-in error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Send password reset email
+ * @param email - User's email address
+ */
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email, {
+      url: `${getBaseUrl()}/login`,
+      handleCodeInApp: false,
+    });
+  } catch (error) {
+    console.error("Firebase password reset error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Resend email verification to current user
+ */
+export async function resendEmailVerification(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("No user signed in");
+  }
+
+  try {
+    await sendEmailVerification(user, {
+      url: `${getBaseUrl()}/login?verified=true`,
+      handleCodeInApp: false,
+    });
+  } catch (error) {
+    console.error("Firebase resend verification error:", error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// EMAIL LINK (PASSWORDLESS) AUTHENTICATION
+// ============================================================================
+
+/**
+ * Action code settings for email link authentication
+ */
+function getEmailLinkSettings(): ActionCodeSettings {
+  return {
+    url: `${getBaseUrl()}/login/email-link`, // Redirect URL after clicking link
+    handleCodeInApp: true, // Must be true for email link sign-in
+    // iOS and Android settings (optional, for mobile deep linking)
+    // iOS: { bundleId: 'com.mash.app' },
+    // android: { packageName: 'com.mash.app', installApp: true, minimumVersion: '12' },
+    dynamicLinkDomain: undefined, // Use Firebase default
+  };
+}
+
+/**
+ * Send sign-in link to email (passwordless authentication)
+ * @param email - User's email address
+ */
+export async function sendSignInLink(email: string): Promise<void> {
+  try {
+    const actionCodeSettings = getEmailLinkSettings();
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    
+    // Store email locally to complete sign-in after user clicks link
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("emailForSignIn", email);
+    }
+  } catch (error) {
+    console.error("Firebase send sign-in link error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Check if the current URL is a sign-in link
+ * @param url - Current URL (window.location.href)
+ * @returns boolean
+ */
+export function isEmailSignInLink(url: string): boolean {
+  return isSignInWithEmailLink(auth, url);
+}
+
+/**
+ * Complete sign-in with email link
+ * @param email - User's email address
+ * @param url - The full URL from the email link
+ * @returns Firebase user object
+ */
+export async function completeSignInWithEmailLink(
+  email: string,
+  url: string
+): Promise<FirebaseUser> {
+  try {
+    const result = await signInWithEmailLink(auth, email, url);
+    
+    // Clear the email from storage
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("emailForSignIn");
+    }
+    
+    return result.user;
+  } catch (error) {
+    console.error("Firebase email link sign-in error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get stored email for sign-in link completion
+ */
+export function getStoredEmailForSignIn(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("emailForSignIn");
+}
+
+// ============================================================================
+// GOOGLE OAUTH AUTHENTICATION
+// ============================================================================
 
 /**
  * Sign in with Google
@@ -86,6 +275,21 @@ export async function getGoogleRedirectResult() {
   }
 }
 
+// ============================================================================
+// COMMON UTILITIES
+// ============================================================================
+
+/**
+ * Get base URL for action code settings
+ */
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  // Fallback for server-side
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
 /**
  * Sign out from Firebase
  */
@@ -116,6 +320,25 @@ export function onFirebaseAuthStateChanged(
   callback: (user: FirebaseUser | null) => void
 ): () => void {
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Update user profile
+ */
+export async function updateUserProfile(
+  displayName?: string,
+  photoURL?: string
+): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("No user signed in");
+  }
+
+  const updates: { displayName?: string; photoURL?: string } = {};
+  if (displayName !== undefined) updates.displayName = displayName;
+  if (photoURL !== undefined) updates.photoURL = photoURL;
+
+  await updateProfile(user, updates);
 }
 
 export { auth, type FirebaseUser };
