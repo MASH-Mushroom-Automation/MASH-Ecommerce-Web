@@ -1,11 +1,11 @@
 // API Client Configuration
 // Centralized API client for making requests to the backend with dual-environment support
 
-// Backend URLs
+// Backend URLs - Default to port 30000 for local development
 const PRODUCTION_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 const LOCAL_API_URL =
-  process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:3000/api/v1";
+  process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:30000/api/v1";
 const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || "local";
 const ENABLE_API_LOGGING =
   process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true";
@@ -21,6 +21,22 @@ const EMAIL_ENDPOINTS = [
   "/auth/verify-reset-code",
   "/auth/reset-password",
   "/auth/resend-password-reset-code",
+];
+
+// Public endpoints that don't require credentials (no cookies needed)
+// These endpoints are before user is authenticated
+const PUBLIC_ENDPOINTS = [
+  "/auth/register",
+  "/auth/login",
+  "/auth/verify-email-code",
+  "/auth/resend-verification",
+  "/auth/resend-verification-code",
+  "/auth/forgot-password",
+  "/auth/verify-reset-code",
+  "/auth/reset-password",
+  "/auth/resend-password-reset-code",
+  "/auth/google/login",
+  "/health",
 ];
 
 /**
@@ -92,14 +108,20 @@ export async function apiRequest<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Only use credentials mode if no token in header (avoids CORS issues)
+  // Check if this is a public endpoint (no credentials needed)
+  const isPublicEndpoint = PUBLIC_ENDPOINTS.some((publicEndpoint) =>
+    endpoint.includes(publicEndpoint)
+  );
+
+  // Build fetch options
   const fetchOptions: RequestInit = {
     ...options,
     headers,
   };
 
-  // Include credentials only if we're not using a token (for cookie-based auth endpoints)
-  if (!headers["Authorization"]) {
+  // Only include credentials for authenticated endpoints (not public ones)
+  // This prevents CORS preflight issues on registration/login
+  if (!isPublicEndpoint && !headers["Authorization"]) {
     fetchOptions.credentials = "include";
   }
 
