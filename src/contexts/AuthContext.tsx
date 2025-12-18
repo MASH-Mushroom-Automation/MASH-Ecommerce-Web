@@ -9,6 +9,8 @@
  * - Email Link (Passwordless)
  *
  * Handles auth state changes and optional backend sync.
+ * 
+ * Phase 5: Added token refresh management and logout everywhere
  */
 
 import React, {
@@ -36,7 +38,8 @@ import {
   type FirebaseUser,
   type FirestoreUserProfile,
 } from "@/lib/firebase";
-import { setAuthToken, logout as clearAuthTokens } from "@/lib/auth";
+import { setAuthToken, logout as clearAuthTokens, logoutEverywhere } from "@/lib/auth";
+import { startTokenRefreshCheck, stopTokenRefreshCheck, getTokenInfo } from "@/lib/token-refresh";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -87,6 +90,10 @@ interface AuthContextType {
   syncFirebaseUserToBackend: (
     firebaseUser: FirebaseUser
   ) => Promise<AuthUser | null>;
+
+  // Phase 5: Session Management
+  signOutEverywhere: () => Promise<void>;
+  getSessionInfo: () => { hasToken: boolean; expiresIn: string | null };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -96,6 +103,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  /**
+   * Phase 5: Start token refresh check when user is authenticated
+   */
+  useEffect(() => {
+    if (user) {
+      console.log("🔵 [Auth] Starting token refresh monitoring...");
+      startTokenRefreshCheck();
+    } else {
+      stopTokenRefreshCheck();
+    }
+
+    return () => {
+      stopTokenRefreshCheck();
+    };
+  }, [user]);
 
   /**
    * Convert Firestore profile to AuthUser
@@ -786,6 +809,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const handleSignOut = async () => {
     try {
+      // Stop token refresh monitoring
+      stopTokenRefreshCheck();
+
       // Sign out from Firebase
       await signOutFirebase();
 
@@ -803,6 +829,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Sign-out error:", error);
       toast.error("Failed to sign out. Please try again.");
     }
+  };
+
+  /**
+   * Phase 5: Sign out from all devices/sessions
+   */
+  const handleSignOutEverywhere = async () => {
+    try {
+      // Stop token refresh monitoring
+      stopTokenRefreshCheck();
+
+      toast.loading("Signing out from all devices...", { id: "logout-everywhere" });
+
+      // Call backend to invalidate all sessions
+      const success = await logoutEverywhere();
+
+      // Sign out from Firebase
+      await signOutFirebase();
+
+      // Clear user state
+      setUser(null);
+      setFirebaseUser(null);
+
+      toast.dismiss("logout-everywhere");
+      
+      if (success) {
+        toast.success("Signed out from all devices");
+      } else {
+        toast.success("Signed out locally", {
+          description: "Could not reach server to sign out other devices",
+        });
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Sign-out everywhere error:", error);
+      toast.dismiss("logout-everywhere");
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
+
+  /**
+   * Phase 5: Get current session info
+   */
+  const handleGetSessionInfo = (): { hasToken: boolean; expiresIn: string | null } => {
+    const info = getTokenInfo();
+    return {
+      hasToken: info.hasToken,
+      expiresIn: info.expiresIn,
+    };
   };
 
   // ============================================================================
@@ -881,6 +957,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Common
     signOut: handleSignOut,
     syncFirebaseUserToBackend,
+    // Phase 5: Session Management
+    signOutEverywhere: handleSignOutEverywhere,
+    getSessionInfo: handleGetSessionInfo,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
