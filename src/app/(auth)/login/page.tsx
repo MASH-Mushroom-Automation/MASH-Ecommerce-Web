@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Login Page - Firebase Authentication
+ * Login Page - Backend & Firebase Authentication
  * 
  * Supports multiple sign-in methods:
- * - Email/Password (Traditional)
- * - Email Link (Passwordless)
- * - Google OAuth
+ * - Email/Password (via NestJS Backend)
+ * - Email Link (Passwordless via Firebase)
+ * - Google OAuth (via Firebase)
  */
 
 import React, { useState, useEffect } from "react";
@@ -34,6 +34,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthApi } from "@/lib/api/auth";
+import { toast } from "sonner";
 
 const getPasswordRequirements = (password: string) => {
   return {
@@ -177,12 +179,81 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      await signInWithEmailPassword(data.email, data.password);
-      // Success redirect handled by AuthContext
+      // Use backend API for email/password login
+      const response = await AuthApi.login({
+        email: data.email,
+        password: data.password,
+      });
+
+      // Handle both response formats (nested data or direct)
+      const user = response.data?.user || response.user;
+      
+      // Check if email is verified
+      if (user && !user.emailVerified) {
+        // Store email for verification page
+        sessionStorage.setItem("pendingVerificationEmail", data.email);
+        
+        toast.warning("Email not verified", {
+          description: "Please verify your email to continue.",
+          action: {
+            label: "Verify Now",
+            onClick: () => router.push("/verify-otp"),
+          },
+        });
+        return;
+      }
+
+      toast.success(`Welcome back, ${user?.firstName || user?.email}!`);
+
+      // Redirect to stored URL or home
+      const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+      if (redirectUrl) {
+        sessionStorage.removeItem("auth-redirect-url");
+        router.push(redirectUrl);
+      } else {
+        router.push("/");
+      }
+      router.refresh();
     } catch (error) {
-      // Error already handled by AuthContext with toast
-      // Just log for debugging
-      console.error("Login error (handled):", error);
+      console.error("Login error:", error);
+      
+      // Extract error message
+      let errorMessage = "Login failed. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        const errorObj = error as { message?: string; error?: string };
+        errorMessage = errorObj.message || errorObj.error || errorMessage;
+      }
+      
+      // Check for specific errors
+      if (errorMessage.toLowerCase().includes("not verified") ||
+          errorMessage.toLowerCase().includes("email verification")) {
+        sessionStorage.setItem("pendingVerificationEmail", data.email);
+        toast.error("Email not verified", {
+          description: "Please verify your email first.",
+          action: {
+            label: "Verify",
+            onClick: () => router.push("/verify-otp"),
+          },
+        });
+      } else if (errorMessage.toLowerCase().includes("invalid") ||
+                 errorMessage.toLowerCase().includes("incorrect") ||
+                 errorMessage.toLowerCase().includes("wrong")) {
+        toast.error("Invalid credentials", {
+          description: "Please check your email and password.",
+        });
+      } else if (errorMessage.toLowerCase().includes("not found") ||
+                 errorMessage.toLowerCase().includes("no user")) {
+        toast.error("Account not found", {
+          description: "No account found with this email. Please sign up.",
+        });
+      } else {
+        toast.error("Login failed", {
+          description: errorMessage,
+        });
+      }
     }
   };
 
