@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
+import { getProfileAvatar, getUserInitials as getAvatarInitials } from "@/lib/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,12 +110,14 @@ function SellerNavUser() {
   const { clearCart } = useCart()
   const { profile } = useUserProfile()
 
-  // Get user initials from first and last name
+  // Get user initials from profile using utility function
   const getUserInitials = () => {
-    if (!profile?.firstName && !profile?.lastName) return "U"
-    const firstInitial = profile?.firstName?.[0] || ""
-    const lastInitial = profile?.lastName?.[0] || ""
-    return (firstInitial + lastInitial).toUpperCase() || "U"
+    return getAvatarInitials(profile)
+  }
+
+  // Get avatar URL using utility function (supports DiceBear)
+  const getAvatarUrl = () => {
+    return getProfileAvatar(profile)
   }
 
   // Get display name
@@ -158,9 +161,7 @@ function SellerNavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                {profile?.avatar ? (
-                  <AvatarImage src={profile.avatar} alt={getDisplayName()} />
-                ) : null}
+                <AvatarImage src={getAvatarUrl()} alt={getDisplayName()} />
                 <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
                   {getUserInitials()}
                 </AvatarFallback>
@@ -181,9 +182,7 @@ function SellerNavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  {profile?.avatar ? (
-                    <AvatarImage src={profile.avatar} alt={getDisplayName()} />
-                  ) : null}
+                  <AvatarImage src={getAvatarUrl()} alt={getDisplayName()} />
                   <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
                     {getUserInitials()}
                   </AvatarFallback>

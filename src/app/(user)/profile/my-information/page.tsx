@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
 import { useAuth } from "@/contexts/AuthContext";
+import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
 
 interface UserInfoForm {
   firstName: string;
@@ -325,10 +326,11 @@ export default function MyInformationPage() {
               <div className="flex flex-col items-center justify-center w-full py-6">
                 <div className="w-20 h-20 rounded-full overflow-hidden bg-muted/30 relative">
                   <Image
-                    src={user?.photoURL || FALLBACK_DATA.avatar}
+                    src={getProfileAvatar(user)}
                     alt="Profile picture"
                     fill
                     className="object-cover"
+                    unoptimized={isDiceBearAvatar(getProfileAvatar(user))}
                   />
                   <label
                     htmlFor="avatar-upload"

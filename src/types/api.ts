@@ -373,10 +373,15 @@ export interface UserProfile {
   role: UserRole; // User role: USER, ADMIN, SUPER_ADMIN, GROWER, BUYER
   isActive: boolean; // Account status
   twoFactorEnabled: boolean; // 2FA status
+  emailVerified?: boolean; // Email verification status
   
-  // Additional fields (not in backend, may need to be added)
+  // Profile image (DiceBear URL from backend)
+  // Format: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username|email}
+  imageUrl?: string;
+  
+  // Additional fields (for legacy compatibility)
   phone?: string;
-  avatar?: string;
+  avatar?: string; // @deprecated Use imageUrl instead
   
   // Frontend computed/compatibility fields
   sellerStatus: SellerStatus; // Computed from role: role === 'GROWER' ? 'approved' : 'none' or 'pending'

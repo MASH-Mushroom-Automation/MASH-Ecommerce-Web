@@ -198,27 +198,27 @@ export async function apiRequest<T>(
 export const api = {
   // Authentication
   login: (email: string, password: string) =>
-    apiRequest("/api/v1/auth/login", {
+    apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
   logout: () =>
-    apiRequest("/api/v1/auth/logout", {
+    apiRequest("/auth/logout", {
       method: "POST",
     }),
 
   refreshToken: (refreshToken: string) =>
-    apiRequest("/api/v1/auth/refresh", {
+    apiRequest("/auth/refresh", {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
     }),
 
   // User
-  getProfile: () => apiRequest("/api/v1/users/profile", { method: "GET" }),
+  getProfile: () => apiRequest("/users/profile", { method: "GET" }),
 
   updateProfile: (data: Record<string, unknown>) =>
-    apiRequest("/api/v1/users/profile", {
+    apiRequest("/users/profile", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -231,11 +231,11 @@ export const api = {
           Object.entries(params).map(([k, v]) => [k, String(v)])
         ).toString()
       : "";
-    return apiRequest(`/api/v1/products${queryString}`, { method: "GET" });
+    return apiRequest(`/products${queryString}`, { method: "GET" });
   },
 
   getProduct: (id: string) =>
-    apiRequest(`/api/v1/products/${id}`, { method: "GET" }),
+    apiRequest(`/products/${id}`, { method: "GET" }),
 
   // Add more API methods as needed
 };
