@@ -1,149 +1,20 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
-import Link from "next/link";
-import Image from "next/image";
-// Assuming these are imported components from a UI library like shadcn/ui
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, Upload, X, Plus, Info, CheckCircle, AlertTriangle, ListChecks, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import React from "react";
+import { AddProductForm } from "@/components/seller/product-form";
 
-// Define a type for validation errors
-interface ValidationErrors {
-    [key: string]: string;
+/**
+ * Add New Product Page
+ * Uses comprehensive product form with rich text, image upload, variants, and SEO
+ */
+export default function AddNewProductPage() {
+  return (
+    <div className="container max-w-7xl mx-auto py-8">
+      <AddProductForm />
+    </div>
+  );
 }
 
-// Function to generate a simple slug from a string (Fallback if not provided)
-const generateSlug = (name: string) => {
-    return name.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-};
-
-// Component Start
-export default function AddNewProduct() {
-  
-  // --- STATE MANAGEMENT ---
-  const [productImages, setProductImages] = useState<string[]>([]);
-  const [productName, setProductName] = useState("");
-  const [productDescription, setProductDescription] = useState("");
-  const [productCategory, setProductCategory] = useState("SELECT_CATEGORY"); // Default category
-  const [productPrice, setProductPrice] = useState("0"); // Initialize at "0"
-  const [productStock, setProductStock] = useState("0"); // Initialize at "0"
-  const [productWeight, setProductWeight] = useState("0"); // Initialize at "0"
-  const [productUnit, setProductUnit] = useState("kg"); 
-
-  const [productSlug, setProductSlug] = useState("");
-  const [productSku, setProductSku] = useState("");
-  const [productCategoryId, setProductCategoryId] = useState("category-id-123"); 
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [productStatus, setProductStatus] = useState("SELECT_STATUS"); // Default status
-
-  const [metadataOrganic, setMetadataOrganic] = useState(false);
-  const [metadataLocalFarm, setMetadataLocalFarm] = useState(false);
-  const [metadataFreshness, setMetadataFreshness] = useState(""); // Default empty
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isReviewing, setIsReviewing] = useState(false); // New state for review step
-  
-  // Validation and Toast State
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastType, setToastType] = useState<'success' | 'error' | null>(null);
-  const [activeTab, setActiveTab] = useState("basic"); // Tracks active tab for error focus
-
-  // Helper value for clean category name in review/submission
-  const categoryDisplayName = useMemo(() => 
-    productCategory === "SELECT_CATEGORY" ? "N/A" : 
-    productCategory.replace(/-/g, ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '), 
-    [productCategory]
-  );
-
-  // --- HELPER FUNCTIONS ---
-
-  const showToast = (message: string, isError: boolean = false) => {
-    setToastMessage(message);
-    setToastType(isError ? 'error' : 'success');
-    setTimeout(() => {
-      setToastMessage(null);
-      setToastType(null);
-    }, 4000);
-  };
-
-  const isValidPrice = (value: string) => {
-    if (!value) return false;
-    const priceNumber = Number(value);
-    return (
-      Number.isFinite(priceNumber) &&
-      priceNumber > 0 &&
-      /^\d+(?:\.\d{1,2})?$/.test(value)
-    );
-  };
-
-  const isValidQuantity = (value: string) => {
-    if (!value) return false;
-    const quantityNumber = Number(value);
-    return Number.isInteger(quantityNumber) && quantityNumber > 0;
-  };
-
-  // Handle image upload (mock implementation)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const newImages = Array.from(files).map((file) =>
-        URL.createObjectURL(file)
-      );
-      setProductImages([...productImages, ...newImages]);
-      // Clear image error if successfully uploaded
-      setValidationErrors(prev => {
-        const { images, ...rest } = prev;
-        return rest;
-      });
-    }
-  };
-
-  const removeImage = (index: number) => {
-    const newImages = [...productImages];
-    URL.revokeObjectURL(newImages[index]);
-    newImages.splice(index, 1);
-    setProductImages(newImages);
-  };
-
-  // Function to restrict the 'e', '+', and '-' characters in number inputs
-  const restrictExponential = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (['e', 'E', '+', '-'].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const validationErrors: string[] = [];
-
-    if (!isValidPrice(productPrice)) {
-      validationErrors.push(
-        "Please enter a valid price (e.g., 150 or 150.50)."
-      );
     }
 
     if (!isValidQuantity(productStock)) {
