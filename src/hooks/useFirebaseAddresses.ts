@@ -118,7 +118,9 @@ export function useFirebaseAddresses(): UseFirebaseAddressesReturn {
   const addAddress = useCallback(
     async (address: AddressInput): Promise<string | null> => {
       if (!user?.id) {
-        setError("Must be logged in to add address");
+        const errorMsg = "Must be logged in to add address";
+        setError(errorMsg);
+        console.error("[useFirebaseAddresses]", errorMsg, { user });
         return null;
       }
 
@@ -126,12 +128,22 @@ export function useFirebaseAddresses(): UseFirebaseAddressesReturn {
       setError(null);
 
       try {
+        console.log("[useFirebaseAddresses] Adding address for user:", user.id);
+        console.log("[useFirebaseAddresses] Address data:", address);
+        
         const addressId = await FirebaseAddressService.addAddress(user.id, address);
+        
+        console.log("[useFirebaseAddresses] Successfully added address:", addressId);
         return addressId;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to add address";
         setError(message);
         console.error("[useFirebaseAddresses] Add error:", err);
+        console.error("[useFirebaseAddresses] Error details:", {
+          userId: user.id,
+          addressData: address,
+          error: err,
+        });
         return null;
       } finally {
         setMutating(false);

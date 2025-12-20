@@ -219,32 +219,41 @@ export default function MyInformationPage() {
     });
     
     // Save to Firebase if authenticated
-    if (isAuthenticated) {
-      const addressData: AddressInput = {
-        label: addressLabel || "Home",
-        isDefault: savedAddresses.length === 0, // First address is default
-        street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
-        city: selectedAddress.components.city || '',
-        stateProvince: selectedAddress.components.state || '',
-        zipPostal: selectedAddress.components.zipCode || '',
-        landmark: address.landmark,
-        coordinates: {
-          lat: selectedAddress.lat,
-          lng: selectedAddress.lng,
-        },
-        formattedAddress: selectedAddress.formattedAddress,
-      };
-      
-      const newAddressId = await addAddress(addressData);
-      if (newAddressId) {
-        toast.success("Address saved to your profile!");
-      } else {
-        toast.error("Failed to save address. Please try again.");
+    if (isAuthenticated && user?.id) {
+      try {
+        const addressData: AddressInput = {
+          label: addressLabel || "Home",
+          isDefault: savedAddresses.length === 0, // First address is default
+          street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
+          city: selectedAddress.components.city || '',
+          stateProvince: selectedAddress.components.state || '',
+          zipPostal: selectedAddress.components.zipCode || '',
+          landmark: address.landmark || '',
+          coordinates: {
+            lat: selectedAddress.lat,
+            lng: selectedAddress.lng,
+          },
+          formattedAddress: selectedAddress.formattedAddress,
+        };
+        
+        console.log('[Profile] Saving address to Firebase:', addressData);
+        const newAddressId = await addAddress(addressData);
+        
+        if (newAddressId) {
+          toast.success("Address saved to your profile!");
+          setShowMapPicker(false);
+          setAddressLabel("Home"); // Reset label for next time
+        } else {
+          toast.error("Failed to save address. Please check your permissions and try again.");
+        }
+      } catch (error) {
+        console.error('[Profile] Error saving address:', error);
+        toast.error(error instanceof Error ? error.message : "Failed to save address. Please try again.");
       }
+    } else {
+      toast.error("You must be logged in to save addresses");
+      setShowMapPicker(false);
     }
-    
-    setShowMapPicker(false);
-    setAddressLabel("Home"); // Reset label for next time
   };
 
   /**
