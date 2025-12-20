@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
-import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle, Shield, Key, CheckCircle2, Info } from "lucide-react";
 import { useFirebaseAddresses, type AddressInput, type FirestoreAddress } from "@/hooks/useFirebaseAddresses";
 import { toast } from "sonner";
 import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
@@ -13,7 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
-import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { 
+  getAuth, 
+  updatePassword, 
+  reauthenticateWithCredential, 
+  EmailAuthProvider,
+  linkWithCredential,
+  fetchSignInMethodsForEmail,
+} from "firebase/auth";
 
 export default function MyInformationPage() {
   const { user, isAuthenticated } = useAuth();
@@ -26,6 +35,10 @@ export default function MyInformationPage() {
     updateAddress,
     mutating: addressMutating,
   } = useFirebaseAddresses();
+  
+  // Auth provider detection
+  const [authProvider, setAuthProvider] = useState<'google' | 'email' | 'unknown'>('unknown');
+  const [hasPassword, setHasPassword] = useState(false);
   
   // Address states
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -49,12 +62,78 @@ export default function MyInformationPage() {
 
   // Password change states
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showLinkPasswordDialog, setShowLinkPasswordDialog] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [linkPasswordForm, setLinkPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  /**
+   * Detect authentication provider on mount
+   */
+  useEffect(() => {
+    const detectAuthProvider = async () => {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        setAuthProvider('unknown');
+        return;
+      }
+
+      try {
+        // Check which provider the user signed in with
+        const providerData = currentUser.providerData;
+        
+        if (providerData.length === 0) {
+          setAuthProvider('unknown');
+          return;
+        }
+
+        // Check for Google provider
+        const hasGoogleProvider = providerData.some(
+          (provider) => provider.providerId === 'google.com'
+        );
+
+        // Check for email/password provider
+        const hasEmailProvider = providerData.some(
+          (provider) => provider.providerId === 'password'
+        );
+
+        if (hasGoogleProvider && !hasEmailProvider) {
+          setAuthProvider('google');
+          setHasPassword(false);
+        } else if (hasEmailProvider) {
+          setAuthProvider('email');
+          setHasPassword(true);
+        } else if (hasGoogleProvider && hasEmailProvider) {
+          // User has both Google and email/password linked
+          setAuthProvider('google');
+          setHasPassword(true);
+        } else {
+          setAuthProvider('unknown');
+        }
+
+        console.log('[Profile] Auth provider:', { 
+          detected: hasGoogleProvider ? 'google' : 'email',
+          hasPassword: hasEmailProvider,
+          providerData 
+        });
+      } catch (error) {
+        console.error('[Profile] Error detecting auth provider:', error);
+      }
+    };
+
+    if (isAuthenticated) {
+      detectAuthProvider();
+    }
+  }, [isAuthenticated, user]);
 
   /**
    * Handle address selected from Google Maps picker
@@ -175,7 +254,7 @@ export default function MyInformationPage() {
   };
 
   /**
-   * Handle password change
+   * Handle password change for email/password users
    */
   const handleChangePassword = async () => {
     // Validation
@@ -239,6 +318,71 @@ export default function MyInformationPage() {
     }
   };
 
+  /**
+   * Handle linking password to Google Auth account
+   */
+  const handleLinkPassword = async () => {
+    // Validation
+    if (!linkPasswordForm.newPassword || !linkPasswordForm.confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (linkPasswordForm.newPassword !== linkPasswordForm.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (linkPasswordForm.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      if (!currentUser || !currentUser.email) {
+        toast.error("No user is currently signed in");
+        return;
+      }
+
+      // Create email/password credential
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        linkPasswordForm.newPassword
+      );
+
+      // Link the credential to the current user
+      await linkWithCredential(currentUser, credential);
+
+      // Update state
+      setHasPassword(true);
+      setAuthProvider('google'); // Still Google, but now with password
+
+      toast.success("Password added successfully! You can now sign in with email/password.");
+      setShowLinkPasswordDialog(false);
+      setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      console.error('[Profile] Link password error:', error);
+      
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error("This email already has a password. Try signing in with email/password instead.");
+      } else if (error.code === 'auth/provider-already-linked') {
+        toast.error("A password is already linked to this account");
+        setHasPassword(true);
+      } else if (error.code === 'auth/weak-password') {
+        toast.error("Password is too weak. Please use a stronger password.");
+      } else {
+        toast.error(error.message || "Failed to link password");
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
@@ -278,6 +422,33 @@ export default function MyInformationPage() {
 
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
+              {/* Auth Provider Badge */}
+              <div className="flex items-center gap-2">
+                {authProvider === 'google' && (
+                  <Badge className="bg-blue-500 text-white flex items-center gap-1">
+                    <svg className="h-3 w-3" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Google Account
+                  </Badge>
+                )}
+                {authProvider === 'email' && (
+                  <Badge className="bg-green-500 text-white flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email/Password
+                  </Badge>
+                )}
+                {hasPassword && authProvider === 'google' && (
+                  <Badge className="bg-purple-500 text-white flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Password Linked
+                  </Badge>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Name */}
                 <div>
@@ -300,16 +471,65 @@ export default function MyInformationPage() {
                 </div>
               </div>
 
-              {/* Change Password Button */}
-              <div className="flex items-center gap-3 pt-2">
-                <Button
-                  onClick={() => setShowPasswordDialog(true)}
-                  variant="outline"
-                  className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
-                >
-                  <Lock className="h-4 w-4 mr-2" />
-                  Change Password
-                </Button>
+              {/* Password Management Section */}
+              <div className="pt-2 border-t border-gray-100">
+                {authProvider === 'email' ? (
+                  // Email/Password users - show change password
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => setShowPasswordDialog(true)}
+                      variant="outline"
+                      className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Change Password
+                    </Button>
+                  </div>
+                ) : authProvider === 'google' && !hasPassword ? (
+                  // Google users without password - show link password option
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-900">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium mb-1">Enhance Your Account Security</p>
+                          <p className="text-sm text-blue-800">
+                            Add a password to your Google account so you can also sign in with email/password
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => setShowLinkPasswordDialog(true)}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white ml-4"
+                        >
+                          <Key className="h-4 w-4 mr-2" />
+                          Add Password
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                ) : authProvider === 'google' && hasPassword ? (
+                  // Google users with linked password - show both options
+                  <div className="space-y-3">
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-900">
+                        <p className="text-sm">
+                          Your account is secured with both Google Sign-In and email/password authentication.
+                          You can sign in using either method.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                    <Button
+                      onClick={() => setShowPasswordDialog(true)}
+                      variant="outline"
+                      className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Change Password
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -421,7 +641,7 @@ export default function MyInformationPage() {
                       onClick={() => handleEditAddress(addr)}
                       disabled={addressMutating}
                       className="text-blue-600 hover:bg-blue-50"
-                      title="Edit address"
+                      title="Edit address location and instructions"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -432,7 +652,7 @@ export default function MyInformationPage() {
                         onClick={() => handleSetDefaultClick(addr.id)}
                         disabled={addressMutating}
                         className="text-[#1E392A] hover:bg-[#1E392A]/10"
-                        title="Set as default"
+                        title="Set as default delivery address"
                       >
                         <Star className="h-4 w-4" />
                       </Button>
@@ -443,7 +663,7 @@ export default function MyInformationPage() {
                       onClick={() => handleDeleteAddressClick(addr.id)}
                       disabled={addressMutating}
                       className="text-red-600 hover:bg-red-50"
-                      title="Delete address"
+                      title="Delete this address"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -466,7 +686,7 @@ export default function MyInformationPage() {
               </h4>
               <p className="text-sm text-blue-800">
                 Add landmarks like "in front of 7/11" or "beside the church" to help Lalamove riders 
-                deliver your mushrooms quickly and accurately.
+                deliver your mushrooms quickly and accurately. Click "Edit" to update the map location and instructions.
               </p>
             </div>
           </div>
@@ -485,22 +705,26 @@ export default function MyInformationPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingAddress ? "Edit Address" : "Add New Address"}
+              {editingAddress ? `Edit Address: ${editingAddress.label}` : "Add New Address"}
             </DialogTitle>
             <DialogDescription>
-              Search for your address or click on the map to select your location
+              {editingAddress 
+                ? "Update the location on the map and edit delivery instructions"
+                : "Search for your address or click on the map to select your location"
+              }
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mb-4">
             <div>
-              <Label htmlFor="address-label">Address Label</Label>
+              <Label htmlFor="address-label">Address Label *</Label>
               <Input
                 id="address-label"
                 placeholder="e.g., Home, Office, Mom's House"
                 value={addressLabel}
                 onChange={(e) => setAddressLabel(e.target.value)}
                 className="mt-1"
+                required
               />
             </div>
 
@@ -514,11 +738,24 @@ export default function MyInformationPage() {
                 value={landmark}
                 onChange={(e) => setLandmark(e.target.value)}
                 className="mt-1"
+                required
               />
               <p className="text-xs text-gray-500 mt-1">
                 Help Lalamove riders find your location easily
               </p>
             </div>
+
+            {editingAddress && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <Info className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-900">
+                  <p className="text-sm">
+                    The map will show your current saved location. You can search for a new address 
+                    or drag the marker to update the exact location.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <div className="h-[500px]">
@@ -561,13 +798,13 @@ export default function MyInformationPage() {
               onClick={confirmDialog.action === "delete" ? handleConfirmDelete : handleConfirmSetDefault}
               className={confirmDialog.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-[#1E392A] hover:bg-[#2d5a42]"}
             >
-              {confirmDialog.action === "delete" ? "Delete" : "Set as Default"}
+              {confirmDialog.action === "delete" ? "Delete Address" : "Set as Default"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Change Password Dialog */}
+      {/* Change Password Dialog (for email/password users) */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => {
         setShowPasswordDialog(open);
         if (!open) {
@@ -587,7 +824,7 @@ export default function MyInformationPage() {
 
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="current-password">Current Password</Label>
+              <Label htmlFor="current-password">Current Password *</Label>
               <Input
                 id="current-password"
                 type="password"
@@ -595,11 +832,12 @@ export default function MyInformationPage() {
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                 placeholder="Enter current password"
                 className="mt-1"
+                required
               />
             </div>
 
             <div>
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password">New Password *</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -607,11 +845,12 @@ export default function MyInformationPage() {
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                 placeholder="Enter new password (min 6 characters)"
                 className="mt-1"
+                required
               />
             </div>
 
             <div>
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Label htmlFor="confirm-password">Confirm New Password *</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -619,12 +858,23 @@ export default function MyInformationPage() {
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                 placeholder="Re-enter new password"
                 className="mt-1"
+                required
               />
             </div>
 
             {passwordForm.newPassword && passwordForm.confirmPassword && 
              passwordForm.newPassword !== passwordForm.confirmPassword && (
-              <p className="text-sm text-red-600">Passwords do not match</p>
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Passwords do not match</AlertDescription>
+              </Alert>
+            )}
+
+            {passwordForm.newPassword && passwordForm.newPassword.length > 0 && passwordForm.newPassword.length < 6 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Password must be at least 6 characters</AlertDescription>
+              </Alert>
             )}
           </div>
 
@@ -651,6 +901,111 @@ export default function MyInformationPage() {
                 </>
               ) : (
                 "Update Password"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link Password Dialog (for Google users without password) */}
+      <Dialog open={showLinkPasswordDialog} onOpenChange={(open) => {
+        setShowLinkPasswordDialog(open);
+        if (!open) {
+          setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-blue-600" />
+              Add Password to Your Account
+            </DialogTitle>
+            <DialogDescription>
+              Create a password so you can also sign in with email/password in addition to Google
+            </DialogDescription>
+          </DialogHeader>
+
+          <Alert className="bg-blue-50 border-blue-200">
+            <Shield className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900">
+              <p className="text-sm font-medium mb-1">Why add a password?</p>
+              <ul className="text-sm space-y-1 list-disc list-inside text-blue-800">
+                <li>Sign in with email/password when Google is unavailable</li>
+                <li>Access your account from any device</li>
+                <li>Enhanced account security with multiple login methods</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="link-new-password">New Password *</Label>
+              <Input
+                id="link-new-password"
+                type="password"
+                value={linkPasswordForm.newPassword}
+                onChange={(e) => setLinkPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="Enter password (min 6 characters)"
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="link-confirm-password">Confirm Password *</Label>
+              <Input
+                id="link-confirm-password"
+                type="password"
+                value={linkPasswordForm.confirmPassword}
+                onChange={(e) => setLinkPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Re-enter password"
+                className="mt-1"
+                required
+              />
+            </div>
+
+            {linkPasswordForm.newPassword && linkPasswordForm.confirmPassword && 
+             linkPasswordForm.newPassword !== linkPasswordForm.confirmPassword && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Passwords do not match</AlertDescription>
+              </Alert>
+            )}
+
+            {linkPasswordForm.newPassword && linkPasswordForm.newPassword.length > 0 && linkPasswordForm.newPassword.length < 6 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Password must be at least 6 characters</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowLinkPasswordDialog(false);
+                setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
+              }}
+              disabled={passwordLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLinkPassword}
+              disabled={passwordLoading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding Password...
+                </>
+              ) : (
+                <>
+                  <Key className="h-4 w-4 mr-2" />
+                  Add Password
+                </>
               )}
             </Button>
           </DialogFooter>
