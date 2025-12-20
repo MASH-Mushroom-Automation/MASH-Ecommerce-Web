@@ -1,839 +1,661 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { User, MapPin, Check, Loader2, Camera, Map, Star, Trash2, Plus } from "lucide-react";
-import { useFirebaseAddresses, type AddressInput } from "@/hooks/useFirebaseAddresses";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle } from "lucide-react";
+import { useFirebaseAddresses, type AddressInput, type FirestoreAddress } from "@/hooks/useFirebaseAddresses";
 import { toast } from "sonner";
-import Image from "next/image";
 import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
 import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Image from "next/image";
 import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
-
-interface UserInfoForm {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-interface AddressForm {
-  street: string;
-  addressLine2: string;
-  city: string;
-  stateProvince: string;
-  zipPostal: string;
-  landmark: string;
-  lat?: number;
-  lng?: number;
-}
-
-// Hardcoded fallback data for development/demo
-const FALLBACK_DATA = {
-  firstName: "Guest",
-  lastName: "User",
-  email: "",
-  username: "guest-user",
-  avatar: "/profile_placeholder.png",
-  address: {
-    street: "Llano Rd",
-    addressLine2: "Deparo",
-    city: "Caloocan City",
-    stateProvince: "Metro Manila",
-    zipPostal: "1420",
-    landmark: "in front of 7/11 Llano",
-    lat: 14.7566,
-    lng: 120.9822
-  }
-};
+import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 
 export default function MyInformationPage() {
-  // Use AuthContext for profile - Firebase is primary source
-  const { user, isAuthenticated, updateUserProfile } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const {
     addresses: savedAddresses,
-    defaultAddress,
     loading: addressesLoading,
     addAddress,
     deleteAddress,
     setAsDefault,
+    updateAddress,
     mutating: addressMutating,
   } = useFirebaseAddresses();
   
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  // Address states
   const [showMapPicker, setShowMapPicker] = useState(false);
-  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressLabel, setAddressLabel] = useState("Home");
+  const [landmark, setLandmark] = useState("");
+  const [editingAddress, setEditingAddress] = useState<FirestoreAddress | null>(null);
+  
+  // Confirmation dialogs
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    addressId?: string;
+    action: "delete" | "setDefault" | null;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    action: null,
+  });
 
-  // Original values to track changes
-  const [originalUserInfo, setOriginalUserInfo] = useState<UserInfoForm>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
+  // Password change states
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-
-  const [originalAddress, setOriginalAddress] = useState<AddressForm>({
-    street: "",
-    addressLine2: "",
-    city: "",
-    stateProvince: "",
-    zipPostal: "",
-    landmark: "",
-  });
-
-  // User info state
-  const [userInfo, setUserInfo] = useState<UserInfoForm>(originalUserInfo);
-
-  // Address state
-  const [address, setAddress] = useState<AddressForm>(originalAddress);
-
-  // Initialize from AuthContext user (Firebase profile)
-  useEffect(() => {
-    const initialUserInfo: UserInfoForm = {
-      firstName: user?.firstName || FALLBACK_DATA.firstName,
-      lastName: user?.lastName || FALLBACK_DATA.lastName,
-      email: user?.email || FALLBACK_DATA.email,
-      phone: user?.phone || "",
-      newPassword: "",
-      confirmPassword: "",
-    };
-
-    // Use default address from Firebase if available, otherwise fallback
-    const defaultAddr = defaultAddress;
-    const initialAddress: AddressForm = defaultAddr ? {
-      street: defaultAddr.street || "",
-      addressLine2: "",
-      city: defaultAddr.city || "",
-      stateProvince: defaultAddr.stateProvince || "",
-      zipPostal: defaultAddr.zipPostal || "",
-      landmark: defaultAddr.landmark || "",
-      lat: defaultAddr.coordinates?.lat,
-      lng: defaultAddr.coordinates?.lng,
-    } : {
-      street: FALLBACK_DATA.address.street,
-      addressLine2: FALLBACK_DATA.address.addressLine2,
-      city: FALLBACK_DATA.address.city,
-      stateProvince: FALLBACK_DATA.address.stateProvince,
-      zipPostal: FALLBACK_DATA.address.zipPostal,
-      landmark: FALLBACK_DATA.address.landmark,
-      lat: FALLBACK_DATA.address.lat,
-      lng: FALLBACK_DATA.address.lng,
-    };
-
-    setOriginalUserInfo(initialUserInfo);
-    setUserInfo(initialUserInfo);
-    setOriginalAddress(initialAddress);
-    setAddress(initialAddress);
-  }, [user, defaultAddress]);
-
-  // Check if there are any changes
-  const hasChanges =
-    JSON.stringify(userInfo) !== JSON.stringify(originalUserInfo) ||
-    JSON.stringify(address) !== JSON.stringify(originalAddress);
-
-  const handleSave = async () => {
-    setSaveError(null);
-
-    // Validate password match
-    if (userInfo.newPassword || userInfo.confirmPassword) {
-      if (userInfo.newPassword !== userInfo.confirmPassword) {
-        setSaveError("Passwords do not match");
-        return;
-      }
-    }
-
-    setIsSaving(true);
-
-    try {
-      // Update profile in Firebase using AuthContext
-      await updateUserProfile({
-        firstName: userInfo.firstName,
-        lastName: userInfo.lastName,
-        displayName: `${userInfo.firstName} ${userInfo.lastName}`.trim(),
-        phone: userInfo.phone,
-      });
-
-      // Update original values to new values
-      setOriginalUserInfo({
-        ...userInfo,
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setOriginalAddress(address);
-
-      // Clear password fields
-      setUserInfo((prev) => ({
-        ...prev,
-        newPassword: "",
-        confirmPassword: "",
-      }));
-
-      setShowSuccessModal(true);
-    } catch (err) {
-      setSaveError(
-        err instanceof Error ? err.message : "Failed to save changes"
-      );
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save changes"
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDiscard = () => {
-    // Reset to original values
-    setUserInfo(originalUserInfo);
-    setAddress(originalAddress);
-    setSaveError(null);
-    toast("Changes discarded.");
-  };
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   /**
    * Handle address selected from Google Maps picker
-   * Saves the address to Firebase for authenticated users
    */
   const handleAddressSelect = async (selectedAddress: SelectedAddress) => {
-    // Update local form state
-    setAddress({
-      street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
-      addressLine2: '',
-      city: selectedAddress.components.city || '',
-      stateProvince: selectedAddress.components.state || '',
-      zipPostal: selectedAddress.components.zipCode || '',
-      landmark: address.landmark, // Keep existing landmark
-      lat: selectedAddress.lat,
-      lng: selectedAddress.lng,
-    });
-    
-    // Save to Firebase if authenticated
-    if (isAuthenticated && user?.id) {
-      try {
-        const addressData: AddressInput = {
-          label: addressLabel || "Home",
-          isDefault: savedAddresses.length === 0, // First address is default
-          street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
-          city: selectedAddress.components.city || '',
-          stateProvince: selectedAddress.components.state || '',
-          zipPostal: selectedAddress.components.zipCode || '',
-          landmark: address.landmark || '',
-          coordinates: {
-            lat: selectedAddress.lat,
-            lng: selectedAddress.lng,
-          },
-          formattedAddress: selectedAddress.formattedAddress,
-        };
-        
-        console.log('[Profile] Saving address to Firebase:', addressData);
+    if (!isAuthenticated || !user?.id) {
+      toast.error("Please sign in to save addresses");
+      return;
+    }
+
+    try {
+      const addressData: AddressInput = {
+        label: addressLabel || "Home",
+        street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
+        addressLine2: '',
+        city: selectedAddress.components.city || '',
+        stateProvince: selectedAddress.components.state || '',
+        zipPostal: selectedAddress.components.zipCode || '',
+        landmark: landmark || '',
+        coordinates: {
+          lat: selectedAddress.lat,
+          lng: selectedAddress.lng,
+        },
+        formattedAddress: selectedAddress.formattedAddress,
+        isDefault: savedAddresses.length === 0,
+      };
+
+      if (editingAddress) {
+        // Update existing address
+        const success = await updateAddress(editingAddress.id, addressData);
+        if (success) {
+          toast.success("Address updated successfully!");
+          setShowMapPicker(false);
+          setEditingAddress(null);
+          setAddressLabel("Home");
+          setLandmark("");
+        } else {
+          toast.error("Failed to update address");
+        }
+      } else {
+        // Add new address
         const newAddressId = await addAddress(addressData);
-        
         if (newAddressId) {
           toast.success("Address saved to your profile!");
           setShowMapPicker(false);
-          setAddressLabel("Home"); // Reset label for next time
+          setAddressLabel("Home");
+          setLandmark("");
         } else {
-          toast.error("Failed to save address. Please check your permissions and try again.");
+          toast.error("Failed to save address");
         }
-      } catch (error) {
-        console.error('[Profile] Error saving address:', error);
-        toast.error(error instanceof Error ? error.message : "Failed to save address. Please try again.");
       }
-    } else {
-      toast.error("You must be logged in to save addresses");
-      setShowMapPicker(false);
+    } catch (error) {
+      console.error('[Profile] Error saving address:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to save address");
     }
   };
 
   /**
-   * Handle deleting a saved address
+   * Open edit dialog for an address
    */
-  const handleDeleteAddress = async (addressId: string) => {
-    const success = await deleteAddress(addressId);
-    if (success) {
-      toast.success("Address deleted");
-    } else {
-      toast.error("Failed to delete address");
-    }
+  const handleEditAddress = (address: FirestoreAddress) => {
+    setEditingAddress(address);
+    setAddressLabel(address.label);
+    setLandmark(address.landmark || "");
+    setShowMapPicker(true);
   };
 
   /**
-   * Handle setting an address as default
+   * Handle delete address with confirmation
    */
-  const handleSetDefaultAddress = async (addressId: string) => {
-    const success = await setAsDefault(addressId);
-    if (success) {
-      toast.success("Default address updated");
-    } else {
-      toast.error("Failed to update default address");
-    }
+  const handleDeleteAddressClick = (addressId: string) => {
+    const address = savedAddresses.find(a => a.id === addressId);
+    setConfirmDialog({
+      open: true,
+      title: "Delete Address",
+      description: `Are you sure you want to delete "${address?.label}"? This action cannot be undone.`,
+      addressId,
+      action: "delete",
+    });
   };
 
-  // Don't show loading or error states - always show the form with fallback data
-  // if (loading) {
-  //   return (
-  //     <Card className="bg-white">
-  //       <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
-  //         <div className="flex flex-col items-center gap-3">
-  //           <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
-  //           <p className="text-gray-600">Loading your information...</p>
-  //         </div>
-  //       </CardContent>
-  //     </Card>
-  //   );
-  // }
+  const handleConfirmDelete = async () => {
+    if (confirmDialog.addressId) {
+      const success = await deleteAddress(confirmDialog.addressId);
+      if (success) {
+        toast.success("Address deleted successfully");
+      } else {
+        toast.error("Failed to delete address");
+      }
+    }
+    setConfirmDialog({ open: false, title: "", description: "", action: null });
+  };
 
-  // Don't block the UI on error - fallback data will be shown instead
-  // if (error && !profile) {
-  //   return (
-  //     <Card className="bg-white">
-  //       <CardContent className="p-6 sm:p-8">
-  //         <Alert variant="destructive">
-  //           <AlertDescription>Failed to load profile: {error}</AlertDescription>
-  //         </Alert>
-  //       </CardContent>
-  //     </Card>
-  //   );
-  // }
+  /**
+   * Handle set default with confirmation
+   */
+  const handleSetDefaultClick = (addressId: string) => {
+    const address = savedAddresses.find(a => a.id === addressId);
+    setConfirmDialog({
+      open: true,
+      title: "Change Default Address",
+      description: `Set "${address?.label}" as your default delivery address?`,
+      addressId,
+      action: "setDefault",
+    });
+  };
+
+  const handleConfirmSetDefault = async () => {
+    if (confirmDialog.addressId) {
+      const success = await setAsDefault(confirmDialog.addressId);
+      if (success) {
+        toast.success("Default address updated");
+      } else {
+        toast.error("Failed to update default address");
+      }
+    }
+    setConfirmDialog({ open: false, title: "", description: "", action: null });
+  };
+
+  /**
+   * Handle password change
+   */
+  const handleChangePassword = async () => {
+    // Validation
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (passwordForm.newPassword === passwordForm.currentPassword) {
+      toast.error("New password must be different from current password");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      if (!currentUser || !currentUser.email) {
+        toast.error("No user is currently signed in");
+        return;
+      }
+
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        passwordForm.currentPassword
+      );
+
+      await reauthenticateWithCredential(currentUser, credential);
+
+      // Update password
+      await updatePassword(currentUser, passwordForm.newPassword);
+
+      toast.success("Password updated successfully!");
+      setShowPasswordDialog(false);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      console.error('[Profile] Password change error:', error);
+      
+      if (error.code === 'auth/wrong-password') {
+        toast.error("Current password is incorrect");
+      } else if (error.code === 'auth/requires-recent-login') {
+        toast.error("Please sign out and sign in again before changing password");
+      } else {
+        toast.error(error.message || "Failed to change password");
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   return (
-    <>
-      <Card className="bg-card">
-        <CardContent className="p-6 sm:p-8 space-y-8">
-          {saveError && (
-            <Alert variant="destructive">
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-[#1E392A]">My Profile</h1>
+        <p className="text-gray-600 mt-1">
+          Manage your account information and delivery addresses
+        </p>
+      </div>
 
-          {/* Account Information Section */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">
-                    Account Information
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    You can change your information here seamlessly
-                  </p>
-                </div>
+      {/* User Profile Card */}
+      <Card className="bg-white shadow-sm">
+        <CardHeader className="border-b border-gray-100">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <User className="h-5 w-5 text-[#1E392A]" />
+            Account Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex items-start gap-6">
+            {/* Profile Picture */}
+            <div className="relative">
+              <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
+                <Image
+                  src={getProfileAvatar(user)}
+                  alt={`${user?.firstName || 'User'} ${user?.lastName || ''}`}
+                  width={96}
+                  height={96}
+                  className="object-cover"
+                  unoptimized={isDiceBearAvatar(getProfileAvatar(user))}
+                />
               </div>
-              
-              <div className="flex flex-col items-center justify-center w-full py-6">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-muted/30 relative">
-                  <Image
-                    src={getProfileAvatar(user)}
-                    alt="Profile picture"
-                    fill
-                    className="object-cover"
-                    unoptimized={isDiceBearAvatar(getProfileAvatar(user))}
-                  />
-                  <label
-                    htmlFor="avatar-upload"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer group"
-                  >
-                    <Camera className="w-6 h-6 text-white" />
-                    <span className="sr-only">Change profile picture</span>
-                  </label>
-                  <input
-                    type="file"
-                    id="avatar-upload"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        // TODO: Implement avatar upload to Firebase Storage
-                        toast.info("Avatar upload coming soon!");
-                      }
-                    }}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1.5">
-                  <Camera className="w-4 h-4" />
-                  Click photo to update profile picture
-                </p>
-              </div>
+              <button className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg">
+                <Camera className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Profile Info */}
+            <div className="flex-1 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Name */}
                 <div>
-                  <Label
-                    htmlFor="firstName"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    First Name
-                  </Label>
-                  <Input
-                    id="firstName"
-                    value={userInfo.firstName}
-                    onChange={(e) =>
-                      setUserInfo({
-                        ...userInfo,
-                        firstName: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                  />
+                  <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                  <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-900">
+                      {user?.firstName || 'N/A'} {user?.lastName || ''}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Email */}
                 <div>
-                  <Label
-                    htmlFor="lastName"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    Last Name
-                  </Label>
-                  <Input
-                    id="lastName"
-                    value={userInfo.lastName}
-                    onChange={(e) =>
-                      setUserInfo({
-                        ...userInfo,
-                        lastName: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                  />
+                  <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                  <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-900">{user?.email || 'N/A'}</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-medium text-gray-700"
+              {/* Change Password Button */}
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  onClick={() => setShowPasswordDialog(true)}
+                  variant="outline"
+                  className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
                 >
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={userInfo.email}
-                  onChange={(e) =>
-                    setUserInfo({ ...userInfo, email: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="phone"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Phone
-                </Label>
-                <Input
-                  id="phone"
-                  value={userInfo.phone}
-                  onChange={(e) =>
-                    setUserInfo({ ...userInfo, phone: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label
-                    htmlFor="newPassword"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    New Password
-                  </Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={userInfo.newPassword}
-                    onChange={(e) =>
-                      setUserInfo({
-                        ...userInfo,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    Confirm New Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={userInfo.confirmPassword}
-                    onChange={(e) =>
-                      setUserInfo({
-                        ...userInfo,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                    placeholder="Confirm password"
-                  />
-                </div>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Change Password
+                </Button>
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* My Address Section */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold text-foreground">My Addresses</h2>
+      {/* Addresses Card */}
+      <Card className="bg-white shadow-sm">
+        <CardHeader className="border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-[#1E392A]" />
+              <CardTitle className="text-lg">Delivery Addresses</CardTitle>
+            </div>
+            <Button
+              onClick={() => {
+                setEditingAddress(null);
+                setAddressLabel("Home");
+                setLandmark("");
+                setShowMapPicker(true);
+              }}
+              className="bg-[#1E392A] hover:bg-[#2d5a42] text-white"
+              disabled={addressMutating}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Address
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          {addressesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
+                <p className="text-gray-600">Loading addresses...</p>
               </div>
+            </div>
+          ) : savedAddresses.length === 0 ? (
+            <div className="text-center py-12">
+              <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No saved addresses yet</p>
               <Button
-                type="button"
+                onClick={() => {
+                  setEditingAddress(null);
+                  setAddressLabel("Home");
+                  setLandmark("");
+                  setShowMapPicker(true);
+                }}
                 variant="outline"
-                size="sm"
-                onClick={() => setShowMapPicker(true)}
-                className="gap-2"
+                className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
               >
-                <Plus className="h-4 w-4" />
-                Add Address
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Address
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Manage your delivery addresses. These will be available at checkout.
-            </p>
+          ) : (
+            <div className="space-y-3">
+              {savedAddresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`relative p-4 rounded-lg border-2 transition-all ${
+                    addr.isDefault
+                      ? "border-[#1E392A] bg-[#1E392A]/5"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  {/* Default badge */}
+                  {addr.isDefault && (
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#1E392A] text-white text-xs font-medium">
+                        <Star className="h-3 w-3 fill-white" />
+                        Default
+                      </span>
+                    </div>
+                  )}
 
-            {/* Saved Addresses List (Firebase) */}
-            {isAuthenticated && (
-              <div className="mb-6">
-                {addressesLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="ml-2 text-muted-foreground">Loading saved addresses...</span>
-                  </div>
-                ) : savedAddresses.length > 0 ? (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-muted-foreground">Saved Addresses</h3>
-                    {savedAddresses.map((savedAddr) => (
-                      <div
-                        key={savedAddr.id}
-                        className={`p-4 rounded-lg border ${
-                          savedAddr.isDefault 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border bg-card'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-foreground">
-                                {savedAddr.label}
-                              </span>
-                              {savedAddr.isDefault && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                                  <Star className="h-3 w-3" />
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {savedAddr.formattedAddress}
-                            </p>
-                            {savedAddr.landmark && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Landmark: {savedAddr.landmark}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {!savedAddr.isDefault && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleSetDefaultAddress(savedAddr.id)}
-                                disabled={addressMutating}
-                                className="text-primary hover:text-primary/80"
-                              >
-                                Set Default
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteAddress(savedAddr.id)}
-                              disabled={addressMutating}
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                  <div className="pr-32">
+                    {/* Label */}
+                    <h3 className="font-semibold text-[#1E392A] mb-2 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {addr.label}
+                    </h3>
+
+                    {/* Address */}
+                    <p className="text-gray-700 mb-1">{addr.formattedAddress}</p>
+                    
+                    {/* Landmark */}
+                    {addr.landmark && (
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+                        <p className="text-sm font-medium text-amber-900">
+                          📍 Delivery Instructions:
+                        </p>
+                        <p className="text-sm text-amber-800">{addr.landmark}</p>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Coordinates */}
+                    <p className="text-xs text-gray-500 mt-2">
+                      Coordinates: {addr.coordinates.lat.toFixed(6)}, {addr.coordinates.lng.toFixed(6)}
+                    </p>
                   </div>
-                ) : (
-                  <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed border-border">
-                    <MapPin className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground mb-3">No saved addresses yet</p>
+
+                  {/* Actions */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
                     <Button
-                      type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setShowMapPicker(true)}
-                      className="gap-2"
+                      onClick={() => handleEditAddress(addr)}
+                      disabled={addressMutating}
+                      className="text-blue-600 hover:bg-blue-50"
+                      title="Edit address"
                     >
-                      <Map className="h-4 w-4" />
-                      Add Your First Address
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {!addr.isDefault && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSetDefaultClick(addr.id)}
+                        disabled={addressMutating}
+                        className="text-[#1E392A] hover:bg-[#1E392A]/10"
+                        title="Set as default"
+                      >
+                        <Star className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteAddressClick(addr.id)}
+                      disabled={addressMutating}
+                      className="text-red-600 hover:bg-red-50"
+                      title="Delete address"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Manual Address Form (for non-authenticated or editing) */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                {isAuthenticated ? 'Quick Add (Manual Entry)' : 'Enter Address'}
-              </h3>
-              <div>
-                <Label
-                  htmlFor="street"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Street Address
-                </Label>
-                <Input
-                  id="street"
-                  value={address.street}
-                  onChange={(e) =>
-                    setAddress({ ...address, street: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="addressLine2"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Address Line 2
-                </Label>
-                <Input
-                  id="addressLine2"
-                  value={address.addressLine2}
-                  onChange={(e) =>
-                    setAddress({
-                      ...address,
-                      addressLine2: e.target.value,
-                    })
-                  }
-                  className="mt-1"
-                  placeholder="Apartment, suite, etc. (optional)"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="city"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  City
-                </Label>
-                <Input
-                  id="city"
-                  value={address.city}
-                  onChange={(e) =>
-                    setAddress({ ...address, city: e.target.value })
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="stateProvince"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  State/Province/Region
-                </Label>
-                <Input
-                  id="stateProvince"
-                  value={address.stateProvince}
-                  onChange={(e) =>
-                    setAddress({
-                      ...address,
-                      stateProvince: e.target.value,
-                    })
-                  }
-                  className="mt-1"
-                  placeholder="Enter state or province"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="zipPostal"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  ZIP/Postal Code
-                </Label>
-                <Input
-                  id="zipPostal"
-                  value={address.zipPostal}
-                  onChange={(e) =>
-                    setAddress({
-                      ...address,
-                      zipPostal: e.target.value,
-                    })
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="landmark"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Landmark
-                </Label>
-                <Input
-                  id="landmark"
-                  value={address.landmark}
-                  onChange={(e) =>
-                    setAddress({ ...address, landmark: e.target.value })
-                  }
-                  className="mt-1"
-                  placeholder="Enter nearby landmark (optional)"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons - Only show when there are changes */}
-          {hasChanges && (
-            <div className="flex items-center justify-between bg-primary px-6 py-4 rounded-lg -mx-8 -mb-8 mt-8">
-              <p className="text-primary-foreground text-sm">You have unsaved changes.</p>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleDiscard}
-                  disabled={isSaving}
-                  className="bg-card text-primary hover:bg-muted/30"
-                >
-                  Discard
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-              </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center text-center p-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Check className="h-8 w-8 text-green-600" />
+      {/* Info Card */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-900 mb-1">
+                Delivery Instructions Help Riders Find You
+              </h4>
+              <p className="text-sm text-blue-800">
+                Add landmarks like "in front of 7/11" or "beside the church" to help Lalamove riders 
+                deliver your mushrooms quickly and accurately.
+              </p>
             </div>
-            <DialogTitle className="text-2xl font-bold text-foreground mb-2">
-              Successful
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Address Picker Dialog */}
+      <Dialog open={showMapPicker} onOpenChange={(open) => {
+        setShowMapPicker(open);
+        if (!open) {
+          setEditingAddress(null);
+          setAddressLabel("Home");
+          setLandmark("");
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingAddress ? "Edit Address" : "Add New Address"}
             </DialogTitle>
-            <p className="text-muted-foreground mb-6">
-              Changes in the account details has been updated
-            </p>
-            <Button
-              onClick={() => setShowSuccessModal(false)}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Great!
-            </Button>
+            <DialogDescription>
+              Search for your address or click on the map to select your location
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mb-4">
+            <div>
+              <Label htmlFor="address-label">Address Label</Label>
+              <Input
+                id="address-label"
+                placeholder="e.g., Home, Office, Mom's House"
+                value={addressLabel}
+                onChange={(e) => setAddressLabel(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="landmark">
+                Delivery Instructions (Landmark) *
+              </Label>
+              <Input
+                id="landmark"
+                placeholder="e.g., in front of 7/11, beside the church, blue gate"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Help Lalamove riders find your location easily
+              </p>
+            </div>
+          </div>
+
+          <div className="h-[500px]">
+            <AddressPicker
+              onAddressSelect={handleAddressSelect}
+              defaultLocation={editingAddress ? {
+                lat: editingAddress.coordinates.lat,
+                lng: editingAddress.coordinates.lng,
+              } : {
+                lat: 14.7566,
+                lng: 120.9822,
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Map Picker Dialog */}
-      <Dialog open={showMapPicker} onOpenChange={setShowMapPicker}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="flex items-center gap-2">
-            <Map className="h-5 w-5 text-primary" />
-            Add New Address
-          </DialogTitle>
-          <div className="py-4 space-y-4">
-            {isAuthenticated && (
-              <div>
-                <Label htmlFor="addressLabel" className="text-sm font-medium text-gray-700">
-                  Address Label
-                </Label>
-                <Input
-                  id="addressLabel"
-                  value={addressLabel}
-                  onChange={(e) => setAddressLabel(e.target.value)}
-                  placeholder="e.g., Home, Office, Mom's House"
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Give this address a name to easily identify it later
-                </p>
-              </div>
-            )}
-            <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                Select Location
-              </Label>
-              <p className="text-sm text-muted-foreground mb-4">
-                Search for an address or click on the map to set your delivery location.
-              </p>
-              <AddressPicker
-                onAddressSelect={handleAddressSelect}
-                defaultValue={address.street ? `${address.street}, ${address.city}, ${address.stateProvince}` : ''}
-                placeholder="Search for your address..."
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => {
+        if (!open) setConfirmDialog({ open: false, title: "", description: "", action: null });
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              {confirmDialog.title}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
             <Button
-              type="button"
               variant="outline"
-              onClick={() => {
-                setShowMapPicker(false);
-                setAddressLabel("Home");
-              }}
+              onClick={() => setConfirmDialog({ open: false, title: "", description: "", action: null })}
             >
               Cancel
             </Button>
-          </div>
+            <Button
+              onClick={confirmDialog.action === "delete" ? handleConfirmDelete : handleConfirmSetDefault}
+              className={confirmDialog.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-[#1E392A] hover:bg-[#2d5a42]"}
+            >
+              {confirmDialog.action === "delete" ? "Delete" : "Set as Default"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => {
+        setShowPasswordDialog(open);
+        if (!open) {
+          setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-[#1E392A]" />
+              Change Password
+            </DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new one
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="Enter current password"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="Enter new password (min 6 characters)"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Re-enter new password"
+                className="mt-1"
+              />
+            </div>
+
+            {passwordForm.newPassword && passwordForm.confirmPassword && 
+             passwordForm.newPassword !== passwordForm.confirmPassword && (
+              <p className="text-sm text-red-600">Passwords do not match</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPasswordDialog(false);
+                setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+              }}
+              disabled={passwordLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={passwordLoading}
+              className="bg-[#1E392A] hover:bg-[#2d5a42]"
+            >
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
