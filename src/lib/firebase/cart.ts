@@ -122,12 +122,13 @@ export class FirebaseCartService {
   static async clearCart(userId: string): Promise<void> {
     try {
       const cartRef = doc(db, this.COLLECTION, userId);
-      await setDoc(cartRef, {
-        userId,
+      const cartData: FirestoreCart = {
+        userId: userId,
         items: [],
         updatedAt: Timestamp.now(),
         version: Date.now(),
-      });
+      };
+      await setDoc(cartRef, cartData);
       console.log("[FirebaseCartService] Cart cleared for user:", userId);
     } catch (error) {
       console.error("[FirebaseCartService] Error clearing cart:", error);

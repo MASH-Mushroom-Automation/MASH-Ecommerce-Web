@@ -1154,8 +1154,8 @@ export default function CheckoutPage() {
       </div>
 
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl border border-border/20">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
                 className="w-8 h-8 text-green-600"
