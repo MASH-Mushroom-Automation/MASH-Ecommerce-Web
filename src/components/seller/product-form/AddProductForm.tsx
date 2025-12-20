@@ -31,7 +31,7 @@ import { ImageUploader, UploadedImage } from "./ImageUploader";
 import { VariantManager, ProductVariant } from "./VariantManager";
 import { CategorySelector } from "./CategorySelector";
 import { SeoFields } from "./SeoFields";
-import { createProduct, ProductFormData } from "@/lib/sanity/products";
+import { ProductFormData } from "@/lib/sanity/products";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -170,6 +170,65 @@ export function AddProductForm() {
     setIsSubmitting(true);
 
     try {
+      // Step 1: Upload images that haven't been uploaded yet
+      const imagesToUpload = images.filter(
+        (img) => img.file && !img.sanityAssetId
+      );
+      const uploadedImages = [...images];
+
+      if (imagesToUpload.length > 0) {
+        toast.loading("Uploading images...", { id: "upload-images" });
+
+        for (const image of imagesToUpload) {
+          if (image.file) {
+            try {
+              const formData = new FormData();
+              formData.append("file", image.file);
+              formData.append("alt", image.alt || "");
+
+              const uploadResponse = await fetch(
+                "/api/seller/products/upload-image",
+                {
+                  method: "POST",
+                  body: formData,
+                }
+              );
+
+              if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json();
+                throw new Error(
+                  errorData.error?.message || "Failed to upload image"
+                );
+              }
+
+              const uploadData = await uploadResponse.json();
+
+              // Update the image with the asset ID
+              const imageIndex = uploadedImages.findIndex(
+                (img) => img.id === image.id
+              );
+              if (imageIndex !== -1) {
+                uploadedImages[imageIndex] = {
+                  ...uploadedImages[imageIndex],
+                  sanityAssetId: uploadData.data.assetId,
+                  url: uploadData.data.url,
+                };
+              }
+            } catch (error) {
+              console.error("Error uploading image:", error);
+              throw new Error(
+                `Failed to upload image ${image.file.name}: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`
+              );
+            }
+          }
+        }
+
+        toast.dismiss("upload-images");
+      }
+
+      // Step 2: Prepare product data with uploaded images
       const productData: ProductFormData = {
         name: data.name,
         description: data.description,
@@ -180,7 +239,7 @@ export function AddProductForm() {
         trackInventory: data.trackInventory,
         hasVariants: data.hasVariants,
         variants: data.hasVariants ? variants : undefined,
-        images,
+        images: uploadedImages,
         sku: data.sku,
         weight: data.weight,
         seo: {
@@ -190,8 +249,25 @@ export function AddProductForm() {
         isAvailable: data.isAvailable,
       };
 
-      const result = await createProduct(productData);
+      // Step 3: Create product via API route
+      toast.loading("Creating product...", { id: "create-product" });
 
+      const response = await fetch("/api/seller/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to create product");
+      }
+
+      const result = await response.json();
+
+      toast.dismiss("create-product");
       toast.success("Product created successfully!", {
         description: `${data.name} has been added to your store.`,
       });
@@ -204,6 +280,8 @@ export function AddProductForm() {
       router.push(`/seller/products`);
     } catch (error) {
       console.error("Error creating product:", error);
+      toast.dismiss("upload-images");
+      toast.dismiss("create-product");
       toast.error("Failed to create product", {
         description:
           error instanceof Error ? error.message : "Please try again",

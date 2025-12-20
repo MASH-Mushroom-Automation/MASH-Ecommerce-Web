@@ -4,8 +4,25 @@
  */
 
 import { sanityClient, projectId, dataset } from "./client";
+import { createClient } from "next-sanity";
 import type { UploadedImage } from "@/components/seller/product-form/ImageUploader";
 import type { ProductVariant } from "@/components/seller/product-form/VariantManager";
+
+// Create a write-enabled client for mutations (server-side only)
+const getWriteClient = () => {
+  const writeToken =
+    process.env.SANITY_API_WRITE_TOKEN ||
+    process.env.SANITY_AUTH_TOKEN ||
+    process.env.SANITY_API_READ_TOKEN; // Fallback to read token if write not available
+
+  return createClient({
+    projectId,
+    dataset,
+    apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2024-11-26",
+    useCdn: false, // Don't use CDN for write operations
+    token: writeToken,
+  });
+};
 
 // Types for Sanity operations
 interface SanityAsset {
@@ -44,13 +61,36 @@ export interface ProductFormData {
 }
 
 /**
- * Upload image file to Sanity Assets API
+ * Upload image file to Sanity Assets API (Server-side)
+ * Uses server-side token for security
  */
-export async function uploadImageToSanity(file: File): Promise<SanityAsset> {
+export async function uploadImageToSanity(
+  file: File | Buffer,
+  filename?: string,
+  contentType?: string
+): Promise<SanityAsset> {
   try {
+    // Get write token (server-side only)
+    const writeToken =
+      process.env.SANITY_API_WRITE_TOKEN ||
+      process.env.SANITY_AUTH_TOKEN ||
+      process.env.NEXT_PUBLIC_SANITY_API_TOKEN; // Fallback for client-side (not recommended)
+
+    if (!writeToken) {
+      throw new Error("Sanity write token not configured");
+    }
+
     // Create form data with the image
     const formData = new FormData();
-    formData.append("file", file);
+    
+    // Handle both File and Buffer
+    if (file instanceof File) {
+      formData.append("file", file);
+    } else {
+      // Buffer from server-side
+      const blob = new Blob([file], { type: contentType || "image/jpeg" });
+      formData.append("file", blob, filename || "image.jpg");
+    }
 
     // Upload to Sanity Assets API
     const uploadUrl = `https://${projectId}.api.sanity.io/v2021-03-25/assets/images/${dataset}`;
@@ -58,12 +98,14 @@ export async function uploadImageToSanity(file: File): Promise<SanityAsset> {
     const response = await fetch(uploadUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SANITY_API_TOKEN || ""}`,
+        Authorization: `Bearer ${writeToken}`,
       },
       body: formData,
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Sanity upload error:", errorText);
       throw new Error(`Upload failed: ${response.statusText}`);
     }
 
@@ -81,12 +123,15 @@ export async function uploadImageToSanity(file: File): Promise<SanityAsset> {
 
 /**
  * Upload multiple images and return Sanity asset references
+ * 
+ * Note: Images should already have sanityAssetId set if uploaded via API route.
+ * This function is primarily used server-side after images are uploaded.
  */
 export async function uploadProductImages(
   images: UploadedImage[]
 ): Promise<SanityImageAsset[]> {
   const uploadPromises = images.map(async (image) => {
-    // Skip if already uploaded
+    // Use existing asset ID if available (from client-side upload)
     if (image.sanityAssetId) {
       return {
         _type: "image" as const,
@@ -98,7 +143,8 @@ export async function uploadProductImages(
       };
     }
 
-    // Upload new image
+    // Upload new image if file is available (server-side direct upload)
+    // Note: This path is mainly for server-side scripts, not the web form
     if (image.file) {
       const asset = await uploadImageToSanity(image.file);
       return {
@@ -111,7 +157,10 @@ export async function uploadProductImages(
       };
     }
 
-    throw new Error("Image has no file or asset ID");
+    // If neither asset ID nor file is available, this is an error
+    throw new Error(
+      `Image "${image.id}" has no file or asset ID. Images must be uploaded first.`
+    );
   });
 
   return Promise.all(uploadPromises);
@@ -190,7 +239,8 @@ async function createProductVariant(
     isAvailable: variant.isAvailable,
   };
 
-  const result = await sanityClient.create(variantDoc);
+  const writeClient = getWriteClient();
+  const result = await writeClient.create(variantDoc);
   return result._id;
 }
 
@@ -198,7 +248,8 @@ async function createProductVariant(
  * Create a new product in Sanity CMS
  */
 export async function createProduct(
-  data: ProductFormData
+  data: ProductFormData,
+  sellerId?: string
 ): Promise<{ _id: string; slug: string }> {
   try {
     // Upload images
@@ -235,6 +286,10 @@ export async function createProduct(
       sku: data.sku || `PROD-${Date.now()}`,
       weight: data.weight,
       isAvailable: data.isAvailable !== false,
+      // Store seller/user ID for filtering
+      ...(sellerId && {
+        sellerId: sellerId,
+      }),
       ...(data.seo && {
         seo: {
           _type: "object",
@@ -244,8 +299,9 @@ export async function createProduct(
       }),
     };
 
-    // Create the product
-    const product = await sanityClient.create(productDoc);
+    // Create the product using write client
+    const writeClient = getWriteClient();
+    const product = await writeClient.create(productDoc);
 
     // Create variants if enabled
     if (data.hasVariants && data.variants && data.variants.length > 0) {
@@ -256,7 +312,7 @@ export async function createProduct(
       );
 
       // Update product with variant references
-      await sanityClient
+      await writeClient
         .patch(product._id)
         .set({
           variants: variantIds.map((id) => ({
@@ -356,4 +412,145 @@ export async function fetchCategories() {
       }
     }
   `);
+}
+
+/**
+ * Fetch seller products from Sanity
+ * Transforms Sanity products to match SellerProduct interface
+ * Filters by sellerId if provided
+ */
+export async function fetchSellerProducts(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sellerId?: string;
+}): Promise<{
+  products: Array<{
+    id: string;
+    name: string;
+    image: string;
+    price: number;
+    stock: number;
+    category: string;
+    status: "Active" | "Inactive" | "Out of Stock";
+    description?: string;
+    weight?: string;
+    isActive?: boolean;
+    isDeleted?: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}> {
+  const page = params?.page || 1;
+  const limit = params?.limit || 10;
+  const search = params?.search || "";
+
+  // Build GROQ query
+  let query = `*[_type == "product" && !(_id in path("drafts.**"))`;
+  
+  // Filter by seller ID if provided
+  if (params?.sellerId) {
+    query += ` && sellerId == $sellerId`;
+  }
+  
+  // Add search filter if provided
+  if (search) {
+    query += ` && (name match $search || description match $search || sku match $search)`;
+  }
+  
+  query += `] {
+    _id,
+    _createdAt,
+    _updatedAt,
+    name,
+    description,
+    price,
+    "stock": coalesce(inventory.quantityInStock, quantity, 0),
+    sku,
+    weight,
+    isAvailable,
+    "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+    "images": images[].asset->url,
+    category->{
+      _id,
+      name,
+      "slug": slug.current
+    }
+  } | order(_createdAt desc)`;
+
+  // Prepare query parameters
+  const queryParams: Record<string, any> = {};
+  if (params?.sellerId) {
+    queryParams.sellerId = params.sellerId;
+  }
+  if (search) {
+    queryParams.search = `*${search}*`;
+  }
+
+  // Fetch all matching products
+  const allProducts = await sanityClient.fetch<Array<{
+    _id: string;
+    _createdAt: string;
+    _updatedAt: string;
+    name: string;
+    description?: string;
+    price: number;
+    stock: number;
+    sku?: string;
+    weight?: number;
+    isAvailable?: boolean;
+    mainImage?: string;
+    images?: string[];
+    category?: {
+      _id: string;
+      name: string;
+      slug: string;
+    } | null;
+  }>>(query, queryParams);
+
+  // Transform to SellerProduct format
+  const transformedProducts = allProducts.map((product) => {
+    // Determine status based on availability and stock
+    let status: "Active" | "Inactive" | "Out of Stock" = "Inactive";
+    if (product.isAvailable) {
+      status = product.stock > 0 ? "Active" : "Out of Stock";
+    }
+
+    return {
+      id: product._id,
+      name: product.name,
+      image: product.mainImage || product.images?.[0] || "/placeholder-product.jpg",
+      price: product.price,
+      stock: product.stock || 0,
+      category: product.category?.name || "Uncategorized",
+      status,
+      description: product.description,
+      weight: product.weight ? `${product.weight}g` : undefined,
+      isActive: product.isAvailable,
+      isDeleted: false,
+      createdAt: product._createdAt,
+      updatedAt: product._updatedAt,
+    };
+  });
+
+  // Apply pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedProducts = transformedProducts.slice(startIndex, endIndex);
+
+  return {
+    products: paginatedProducts,
+    pagination: {
+      page,
+      limit,
+      total: transformedProducts.length,
+      totalPages: Math.ceil(transformedProducts.length / limit),
+    },
+  };
 }
