@@ -216,7 +216,7 @@ function transformSiteSettings(settings: SanitySiteSettings): TransformedSiteSet
     companyName: settings.companyName,
     tagline: settings.tagline,
     description: settings.description,
-    logo: settings.logo || '/images/logo.png', // Default logo
+    logo: settings.logo || '/logo.png', // Default logo from public folder
     favicon: settings.favicon || '/favicon.ico',
     contactEmail: settings.contactEmail,
     contactPhone: settings.contactPhone,
