@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle, Shield, Key, CheckCircle2, Info } from "lucide-react";
+import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle, Shield, Key, CheckCircle2, Info, Phone } from "lucide-react";
 import { useFirebaseAddresses, type AddressInput, type FirestoreAddress } from "@/hooks/useFirebaseAddresses";
 import { toast } from "sonner";
 import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
@@ -21,11 +21,11 @@ import {
   reauthenticateWithCredential, 
   EmailAuthProvider,
   linkWithCredential,
-  fetchSignInMethodsForEmail,
 } from "firebase/auth";
+import { FirebaseUserService } from "@/lib/firebase";
 
 export default function MyInformationPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserProfile } = useAuth();
   const {
     addresses: savedAddresses,
     loading: addressesLoading,
@@ -39,6 +39,11 @@ export default function MyInformationPage() {
   // Auth provider detection
   const [authProvider, setAuthProvider] = useState<'google' | 'email' | 'unknown'>('unknown');
   const [hasPassword, setHasPassword] = useState(false);
+  
+  // Phone number state
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
   
   // Address states
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -75,6 +80,15 @@ export default function MyInformationPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   /**
+   * Initialize phone number from user profile
+   */
+  useEffect(() => {
+    if (user?.phone) {
+      setPhoneNumber(user.phone);
+    }
+  }, [user?.phone]);
+
+  /**
    * Detect authentication provider on mount
    */
   useEffect(() => {
@@ -88,7 +102,6 @@ export default function MyInformationPage() {
       }
 
       try {
-        // Check which provider the user signed in with
         const providerData = currentUser.providerData;
         
         if (providerData.length === 0) {
@@ -96,12 +109,10 @@ export default function MyInformationPage() {
           return;
         }
 
-        // Check for Google provider
         const hasGoogleProvider = providerData.some(
           (provider) => provider.providerId === 'google.com'
         );
 
-        // Check for email/password provider
         const hasEmailProvider = providerData.some(
           (provider) => provider.providerId === 'password'
         );
@@ -113,7 +124,6 @@ export default function MyInformationPage() {
           setAuthProvider('email');
           setHasPassword(true);
         } else if (hasGoogleProvider && hasEmailProvider) {
-          // User has both Google and email/password linked
           setAuthProvider('google');
           setHasPassword(true);
         } else {
@@ -134,6 +144,79 @@ export default function MyInformationPage() {
       detectAuthProvider();
     }
   }, [isAuthenticated, user]);
+
+  /**
+   * Handle phone number change - only allow numbers
+   */
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow numbers
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    
+    // Limit to 11 digits (Philippine format: 09XXXXXXXXX)
+    if (value.length <= 11) {
+      setPhoneNumber(value);
+    }
+  };
+
+  /**
+   * Validate Philippine phone number format
+   */
+  const validatePhilippinePhone = (phone: string): boolean => {
+    // Must be exactly 11 digits and start with 09
+    if (phone.length !== 11) {
+      return false;
+    }
+    
+    if (!phone.startsWith('09')) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  /**
+   * Handle phone number update
+   */
+  const handleSavePhone = async () => {
+    if (!user?.id) {
+      toast.error("No user signed in");
+      return;
+    }
+
+    // Trim whitespace
+    const cleanPhone = phoneNumber.trim();
+
+    // Validate Philippine phone number format
+    if (!cleanPhone) {
+      toast.error("Phone number is required");
+      return;
+    }
+
+    if (!validatePhilippinePhone(cleanPhone)) {
+      toast.error("Please enter a valid Philippine phone number (e.g., 09171234567)");
+      return;
+    }
+
+    setPhoneLoading(true);
+
+    try {
+      // Update Firestore profile
+      await FirebaseUserService.updateProfile(user.id, {
+        phone: cleanPhone,
+      });
+
+      // Update local auth context
+      await updateUserProfile({ phone: cleanPhone });
+
+      toast.success("Phone number updated successfully!");
+      setIsEditingPhone(false);
+    } catch (error) {
+      console.error('[Profile] Error updating phone:', error);
+      toast.error("Failed to update phone number");
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
 
   /**
    * Handle address selected from Google Maps picker
@@ -162,7 +245,6 @@ export default function MyInformationPage() {
       };
 
       if (editingAddress) {
-        // Update existing address
         const success = await updateAddress(editingAddress.id, addressData);
         if (success) {
           toast.success("Address updated successfully!");
@@ -174,7 +256,6 @@ export default function MyInformationPage() {
           toast.error("Failed to update address");
         }
       } else {
-        // Add new address
         const newAddressId = await addAddress(addressData);
         if (newAddressId) {
           toast.success("Address saved to your profile!");
@@ -257,7 +338,6 @@ export default function MyInformationPage() {
    * Handle password change for email/password users
    */
   const handleChangePassword = async () => {
-    // Validation
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       toast.error("Please fill in all password fields");
       return;
@@ -284,20 +364,17 @@ export default function MyInformationPage() {
       const auth = getAuth();
       const currentUser = auth.currentUser;
 
-      if (!currentUser || !currentUser.email) {
+      if (!currentUser?.email) {
         toast.error("No user is currently signed in");
         return;
       }
 
-      // Re-authenticate user
       const credential = EmailAuthProvider.credential(
         currentUser.email,
         passwordForm.currentPassword
       );
 
       await reauthenticateWithCredential(currentUser, credential);
-
-      // Update password
       await updatePassword(currentUser, passwordForm.newPassword);
 
       toast.success("Password updated successfully!");
@@ -322,7 +399,6 @@ export default function MyInformationPage() {
    * Handle linking password to Google Auth account
    */
   const handleLinkPassword = async () => {
-    // Validation
     if (!linkPasswordForm.newPassword || !linkPasswordForm.confirmPassword) {
       toast.error("Please fill in all fields");
       return;
@@ -344,23 +420,20 @@ export default function MyInformationPage() {
       const auth = getAuth();
       const currentUser = auth.currentUser;
 
-      if (!currentUser || !currentUser.email) {
+      if (!currentUser?.email) {
         toast.error("No user is currently signed in");
         return;
       }
 
-      // Create email/password credential
       const credential = EmailAuthProvider.credential(
         currentUser.email,
         linkPasswordForm.newPassword
       );
 
-      // Link the credential to the current user
       await linkWithCredential(currentUser, credential);
 
-      // Update state
       setHasPassword(true);
-      setAuthProvider('google'); // Still Google, but now with password
+      setAuthProvider('google');
 
       toast.success("Password added successfully! You can now sign in with email/password.");
       setShowLinkPasswordDialog(false);
@@ -381,6 +454,75 @@ export default function MyInformationPage() {
     } finally {
       setPasswordLoading(false);
     }
+  };
+
+  const renderPasswordSection = () => {
+    if (authProvider === 'email') {
+      return (
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowPasswordDialog(true)}
+            variant="outline"
+            className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
+          >
+            <Lock className="h-4 w-4 mr-2" />
+            Change Password
+          </Button>
+        </div>
+      );
+    }
+
+    if (authProvider === 'google' && !hasPassword) {
+      return (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium mb-1">Enhance Your Account Security</p>
+                <p className="text-sm text-blue-800">
+                  Add a password to your Google account so you can also sign in with email/password
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowLinkPasswordDialog(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white ml-4 flex-shrink-0"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Add Password
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (authProvider === 'google' && hasPassword) {
+      return (
+        <div className="space-y-3">
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-900">
+              <p className="text-sm">
+                Your account is secured with both Google Sign-In and email/password authentication.
+                You can sign in using either method.
+              </p>
+            </AlertDescription>
+          </Alert>
+          <Button
+            onClick={() => setShowPasswordDialog(true)}
+            variant="outline"
+            className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
+          >
+            <Lock className="h-4 w-4 mr-2" />
+            Change Password
+          </Button>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -404,7 +546,7 @@ export default function MyInformationPage() {
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
             {/* Profile Picture */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
                 <Image
                   src={getProfileAvatar(user)}
@@ -423,7 +565,7 @@ export default function MyInformationPage() {
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
               {/* Auth Provider Badge */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {authProvider === 'google' && (
                   <Badge className="bg-blue-500 text-white flex items-center gap-1">
                     <svg className="h-3 w-3" viewBox="0 0 24 24">
@@ -454,7 +596,7 @@ export default function MyInformationPage() {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Full Name</Label>
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <User className="h-4 w-4 text-gray-500" />
+                    <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-900">
                       {user?.firstName || 'N/A'} {user?.lastName || ''}
                     </span>
@@ -465,71 +607,109 @@ export default function MyInformationPage() {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Email Address</Label>
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <span className="text-gray-900">{user?.email || 'N/A'}</span>
+                    <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-gray-900 truncate">{user?.email || 'N/A'}</span>
                   </div>
+                </div>
+
+                {/* Phone Number */}
+                <div className="md:col-span-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Phone Number 
+                    <span className="text-red-500 ml-1">*</span>
+                    <span className="text-xs text-gray-500 ml-2">(Required for delivery)</span>
+                  </Label>
+                  {isEditingPhone ? (
+                    <div className="mt-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex items-center gap-2 p-2 bg-white rounded-lg border-2 border-[#1E392A]">
+                          <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <Input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={handlePhoneChange}
+                            placeholder="09171234567"
+                            className="border-0 p-0 h-auto focus-visible:ring-0"
+                            maxLength={11}
+                          />
+                        </div>
+                        <Button
+                          onClick={handleSavePhone}
+                          disabled={phoneLoading}
+                          size="sm"
+                          className="bg-[#1E392A] hover:bg-[#2d5a42]"
+                        >
+                          {phoneLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setIsEditingPhone(false);
+                            setPhoneNumber(user?.phone || "");
+                          }}
+                          disabled={phoneLoading}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                      
+                      {/* Real-time validation feedback */}
+                      {phoneNumber && (
+                        <div className="text-xs">
+                          {phoneNumber.length === 11 && phoneNumber.startsWith('09') ? (
+                            <p className="text-green-600 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Valid Philippine phone number
+                            </p>
+                          ) : (
+                            <div className="space-y-1">
+                              <p className="text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Must be 11 digits starting with 09
+                              </p>
+                              <p className="text-gray-500">
+                                Format: 09XXXXXXXXX ({phoneNumber.length}/11 digits)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-gray-900">
+                          {phoneNumber || 'No phone number set'}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={() => setIsEditingPhone(true)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#1E392A] hover:bg-[#1E392A]/10"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  {!phoneNumber && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Phone number is required for Lalamove delivery coordination
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Password Management Section */}
               <div className="pt-2 border-t border-gray-100">
-                {authProvider === 'email' ? (
-                  // Email/Password users - show change password
-                  <div className="flex items-center gap-3">
-                    <Button
-                      onClick={() => setShowPasswordDialog(true)}
-                      variant="outline"
-                      className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Change Password
-                    </Button>
-                  </div>
-                ) : authProvider === 'google' && !hasPassword ? (
-                  // Google users without password - show link password option
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-900">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium mb-1">Enhance Your Account Security</p>
-                          <p className="text-sm text-blue-800">
-                            Add a password to your Google account so you can also sign in with email/password
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => setShowLinkPasswordDialog(true)}
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white ml-4"
-                        >
-                          <Key className="h-4 w-4 mr-2" />
-                          Add Password
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                ) : authProvider === 'google' && hasPassword ? (
-                  // Google users with linked password - show both options
-                  <div className="space-y-3">
-                    <Alert className="bg-green-50 border-green-200">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-900">
-                        <p className="text-sm">
-                          Your account is secured with both Google Sign-In and email/password authentication.
-                          You can sign in using either method.
-                        </p>
-                      </AlertDescription>
-                    </Alert>
-                    <Button
-                      onClick={() => setShowPasswordDialog(true)}
-                      variant="outline"
-                      className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Change Password
-                    </Button>
-                  </div>
-                ) : null}
+                {renderPasswordSection()}
               </div>
             </div>
           </div>
@@ -679,7 +859,7 @@ export default function MyInformationPage() {
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <div className="flex gap-3">
-            <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-medium text-blue-900 mb-1">
                 Delivery Instructions Help Riders Find You
@@ -709,7 +889,7 @@ export default function MyInformationPage() {
             </DialogTitle>
             <DialogDescription>
               {editingAddress 
-                ? "Update the location on the map and edit delivery instructions"
+                ? "Update the address details and use the map to select the exact location"
                 : "Search for your address or click on the map to select your location"
               }
             </DialogDescription>
@@ -750,8 +930,8 @@ export default function MyInformationPage() {
                 <Info className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-900">
                   <p className="text-sm">
-                    The map will show your current saved location. You can search for a new address 
-                    or drag the marker to update the exact location.
+                    Current location: {editingAddress.formattedAddress}. 
+                    You can search for a new address or drag the marker to update the exact location.
                   </p>
                 </AlertDescription>
               </Alert>
@@ -761,13 +941,7 @@ export default function MyInformationPage() {
           <div className="h-[500px]">
             <AddressPicker
               onAddressSelect={handleAddressSelect}
-              defaultLocation={editingAddress ? {
-                lat: editingAddress.coordinates.lat,
-                lng: editingAddress.coordinates.lng,
-              } : {
-                lat: 14.7566,
-                lng: 120.9822,
-              }}
+              defaultValue={editingAddress?.formattedAddress}
             />
           </div>
         </DialogContent>
@@ -804,7 +978,7 @@ export default function MyInformationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Password Dialog (for email/password users) */}
+      {/* Change Password Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => {
         setShowPasswordDialog(open);
         if (!open) {
@@ -907,7 +1081,7 @@ export default function MyInformationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Link Password Dialog (for Google users without password) */}
+      {/* Link Password Dialog */}
       <Dialog open={showLinkPasswordDialog} onOpenChange={(open) => {
         setShowLinkPasswordDialog(open);
         if (!open) {
