@@ -26,13 +26,14 @@ export function getDiceBearAvatar(seed: string, style: string = DICEBEAR_STYLE):
 
 /**
  * User object type for avatar generation
+ * Matches AuthUser from AuthContext with all avatar-related fields
  */
 export interface AvatarUser {
-  photoURL?: string | null;
-  imageUrl?: string | null;
-  avatar?: string | null;
+  photoURL?: string | null;      // Google/Firebase profile photo
+  imageUrl?: string | null;       // DiceBear URL from backend (e.g., https://api.dicebear.com/9.x/bottts-neutral/svg?seed=username)
+  avatar?: string | null;         // Alias/computed avatar field
   displayName?: string | null;
-  username?: string | null;
+  username?: string | null;       // Backend username - primary seed for DiceBear
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;

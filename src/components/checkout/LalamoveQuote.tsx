@@ -7,7 +7,7 @@
  * Shows price, distance, and estimated delivery time.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Loader2, Truck, Clock, MapPin, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,13 +38,14 @@ interface LalamoveQuoteProps {
   className?: string;
 }
 
-// MASH pickup location (Caloocan City)
+// MASH pickup location (Phone Craft Cellphone Repair - Caloocan City)
+// CORRECTED COORDINATES - Metro Manila service area
 export const MASH_PICKUP_LOCATION = {
-  lat: 14.7566,
-  lng: 121.0447,
-  address: "266 Quirino Highway, Brgy 176-D, Bagong Silang, Caloocan City",
-  name: "MASH Mushroom Farm",
-  phone: "+639171234567", // Update with actual phone
+  lat: 14.6549,
+  lng: 121.0420,
+  address: "Phone Craft Cellphone Repair, Caloocan City, Metro Manila",
+  name: "MASH Mushroom Farm (Phone Craft)",
+  phone: "+639497536575",
 };
 
 /**
@@ -68,83 +69,213 @@ export function LalamoveQuote({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quote, setQuote] = useState<LalamoveQuoteResult | null>(null);
+  
+  // Prevent duplicate requests
+  const isFetchingRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track the last fetched coordinates to avoid duplicate requests
+  const lastFetchedRef = useRef<string>("");
 
   const fetchQuote = useCallback(async () => {
-    // Validate coordinates
-    if (
-      !deliveryAddress.lat ||
-      !deliveryAddress.lng ||
-      !pickupAddress.lat ||
-      !pickupAddress.lng
-    ) {
+    // Prevent duplicate simultaneous requests
+    if (isFetchingRef.current) {
+      console.log("[LalamoveQuote] Already fetching, skipping...");
       return;
     }
 
+    // Validate delivery address coordinates
+    if (!deliveryAddress.lat || !deliveryAddress.lng) {
+      setError("Please select your delivery address on the map above by clicking on the map or searching for your location");
+      onQuoteReceived(null);
+      return;
+    }
+
+    // Validate pickup address coordinates
+    if (!pickupAddress.lat || !pickupAddress.lng) {
+      setError("Pickup location is not configured. Please contact support.");
+      onQuoteReceived(null);
+      return;
+    }
+
+    // Create a unique key for this combination of coordinates
+    const coordsKey = `${pickupAddress.lat},${pickupAddress.lng}|${deliveryAddress.lat},${deliveryAddress.lng}`;
+    
+    // Skip if we already fetched for these exact coordinates
+    if (lastFetchedRef.current === coordsKey) {
+      console.log("[LalamoveQuote] Already have quote for these coordinates, skipping...");
+      return;
+    }
+
+    // Validate coordinates are within valid ranges
+    if (
+      deliveryAddress.lat < -90 || deliveryAddress.lat > 90 ||
+      deliveryAddress.lng < -180 || deliveryAddress.lng > 180
+    ) {
+      setError("Invalid delivery location coordinates. Please select a valid location on the map.");
+      onQuoteReceived(null);
+      return;
+    }
+
+    // Validate delivery address is not empty
+    if (!deliveryAddress.address || deliveryAddress.address.trim() === "") {
+      setError("Delivery address is incomplete. Please ensure you've selected a complete address.");
+      onQuoteReceived(null);
+      return;
+    }
+
+    // Mark as fetching and save coordinates
+    isFetchingRef.current = true;
+    lastFetchedRef.current = coordsKey;
     setLoading(true);
     setError(null);
+
+    console.log("[LalamoveQuote] Fetching quote for:", {
+      pickup: `${pickupAddress.lat}, ${pickupAddress.lng}`,
+      delivery: `${deliveryAddress.lat}, ${deliveryAddress.lng}`
+    });
 
     try {
       const response = await fetch("/api/lalamove/quotation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          pickupLat: pickupAddress.lat,
+          pickupLng: pickupAddress.lng,
+          pickupAddress: pickupAddress.address,
+          dropoffLat: deliveryAddress.lat,
+          dropoffLng: deliveryAddress.lng,
+          dropoffAddress: deliveryAddress.address,
           serviceType: "MOTORCYCLE", // Best for small mushroom deliveries
-          language: "en_PH",
-          stops: [
-            {
-              coordinates: {
-                lat: pickupAddress.lat.toString(),
-                lng: pickupAddress.lng.toString(),
-              },
-              address: pickupAddress.address,
-            },
-            {
-              coordinates: {
-                lat: deliveryAddress.lat.toString(),
-                lng: deliveryAddress.lng.toString(),
-              },
-              address: deliveryAddress.address,
-            },
-          ],
-          item: {
-            weight: "LESS_THAN_3_KG",
-            categories: ["FOOD_DELIVERY"],
-            handlingInstructions: ["KEEP_UPRIGHT"],
-          },
         }),
       });
+
+      // Handle network errors
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle specific HTTP error codes
+        if (response.status === 422) {
+          // Validation error from Lalamove
+          const validationErrors = errorData.errors || [];
+          const errorMessages = validationErrors.map((e: { message?: string }) => e.message).filter(Boolean);
+          
+          if (errorMessages.length > 0) {
+            setError(`Invalid request: ${errorMessages.join(", ")}`);
+          } else {
+            setError("The delivery location or pickup point is invalid. Please select a different address within Metro Manila.");
+          }
+        } else if (response.status === 400) {
+          setError("Invalid delivery request. Please check your delivery address and try again.");
+        } else if (response.status === 401 || response.status === 403) {
+          setError("Lalamove service authentication failed. Please contact support.");
+        } else if (response.status === 404) {
+          setError("Delivery service not available. Please try again later.");
+        } else if (response.status === 429) {
+          setError("Too many requests. Please wait a moment and try again.");
+          // Reset the last fetched so user can retry
+          lastFetchedRef.current = "";
+        } else if (response.status >= 500) {
+          setError("Lalamove service is temporarily unavailable. Please try again in a few minutes.");
+        } else {
+          setError(`Unable to get delivery quote (Error ${response.status}). Please try again.`);
+        }
+        onQuoteReceived(null);
+        return;
+      }
 
       const data = await response.json();
 
       if (data.success && data.data) {
+        // Validate quote data
+        if (!data.data.quotationId) {
+          setError("Invalid quote received. Please try again.");
+          onQuoteReceived(null);
+          return;
+        }
+
+        const totalPrice = parseFloat(data.data.priceBreakdown?.total || "0");
+        
+        // Validate price is reasonable
+        if (totalPrice <= 0) {
+          setError("Unable to calculate delivery fee. Please try a different address.");
+          onQuoteReceived(null);
+          return;
+        }
+
+        if (totalPrice > 1000) {
+          setError("Delivery fee seems unusually high. The delivery address may be too far. Please contact support for assistance.");
+          onQuoteReceived(null);
+          return;
+        }
+
         const quoteData: LalamoveQuoteResult = {
           quotationId: data.data.quotationId,
-          price: parseFloat(data.data.priceBreakdown?.total || "0"),
+          price: totalPrice,
           distance: `${data.data.distance?.value || "?"} ${data.data.distance?.unit || "km"}`,
           estimatedTime: "30-45 mins", // Lalamove doesn't provide ETA in quote
           expiresAt: data.data.expiresAt,
         };
 
+        console.log("[LalamoveQuote] Quote received:", quoteData);
         setQuote(quoteData);
         onQuoteReceived(quoteData);
       } else {
+        // Handle API response errors
         const errorMessage = data.message || data.error || "Failed to get delivery quote";
-        setError(errorMessage);
+        
+        // Provide more specific error messages
+        if (errorMessage.toLowerCase().includes("outside service area")) {
+          setError("Sorry, we currently only deliver within Metro Manila. Please enter an address in Metro Manila.");
+        } else if (errorMessage.toLowerCase().includes("invalid coordinates")) {
+          setError("The selected location is invalid. Please choose a different address on the map.");
+        } else if (errorMessage.toLowerCase().includes("distance")) {
+          setError("The delivery distance is too far. Please select a location within Metro Manila.");
+        } else {
+          setError(errorMessage);
+        }
         onQuoteReceived(null);
       }
     } catch (err) {
       console.error("Lalamove quote error:", err);
-      setError("Unable to get delivery quote. Please try again.");
+      
+      // Handle different types of errors
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("Network error. Please check your internet connection and try again.");
+      } else if (err instanceof SyntaxError) {
+        setError("Invalid response from delivery service. Please try again.");
+      } else {
+        setError("Unable to get delivery quote. Please try again or contact support if the problem persists.");
+      }
       onQuoteReceived(null);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [pickupAddress, deliveryAddress, onQuoteReceived]);
+  }, [pickupAddress.lat, pickupAddress.lng, pickupAddress.address, deliveryAddress.lat, deliveryAddress.lng, deliveryAddress.address, onQuoteReceived]);
 
-  // Fetch quote when addresses change
+  // Fetch quote when addresses change with debouncing
   useEffect(() => {
-    fetchQuote();
-  }, [fetchQuote]);
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Only fetch if we have valid coordinates
+    if (deliveryAddress.lat && deliveryAddress.lng && pickupAddress.lat && pickupAddress.lng) {
+      // Debounce the API call by 500ms to prevent rapid-fire requests
+      debounceTimerRef.current = setTimeout(() => {
+        fetchQuote();
+      }, 500);
+    }
+
+    // Cleanup timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [deliveryAddress.lat, deliveryAddress.lng, pickupAddress.lat, pickupAddress.lng, fetchQuote]);
 
   if (loading) {
     return (
@@ -264,12 +395,7 @@ export interface DeliveryMethod {
 export const PICKUP_LOCATIONS = [
   {
     id: "main",
-    name: "MASH Main Hub - Caloocan City",
-    address: "266 Quirino Highway, Brgy 176-D, Bagong Silang, Caloocan City",
-  },
-  {
-    id: "bgc",
-    name: "MASH BGC Pickup Point",
-    address: "5th Avenue, Bonifacio Global City, Taguig City",
+    name: "MASH Main Hub - Phone Craft, Caloocan",
+    address: "Phone Craft Cellphone Repair, Caloocan City, Metro Manila",
   },
 ];

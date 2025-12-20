@@ -50,8 +50,10 @@ export interface AuthUser {
   firstName?: string;
   lastName?: string;
   displayName?: string;
+  username?: string; // Username from backend (used for DiceBear avatar seed)
   phone?: string; // Phone number for checkout auto-fill
   photoURL?: string;
+  imageUrl?: string; // DiceBear avatar URL from backend (e.g., https://api.dicebear.com/9.x/bottts-neutral/svg?seed=username)
   avatar?: string; // Alias for photoURL, used by profile components
   provider: "firebase" | "email" | "google" | "email-link";
   emailVerified: boolean;
@@ -275,8 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Build auth user object
-        const imageUrl =
-          data.user?.imageUrl || data.user?.profileImageUrl || fbUser.photoURL;
+        // imageUrl from backend is the DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
+        const backendImageUrl = data.user?.imageUrl || data.user?.profileImageUrl;
         const authUser: AuthUser = {
           id: data.user?.id || fbUser.uid,
           email: fbUser.email || "",
@@ -285,9 +287,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data.user?.lastName ||
             fbUser.displayName?.split(" ").slice(1).join(" "),
           displayName: fbUser.displayName || undefined,
+          username: data.user?.username || undefined, // Username from backend for DiceBear seed
           phone: data.user?.phone || undefined,
-          photoURL: imageUrl || undefined,
-          avatar: imageUrl || undefined,
+          photoURL: fbUser.photoURL || undefined, // Firebase photo (Google profile pic)
+          imageUrl: backendImageUrl || undefined, // DiceBear URL from backend
+          avatar: backendImageUrl || fbUser.photoURL || undefined, // Prefer backend DiceBear, fallback to Firebase photo
           provider: "firebase",
           emailVerified: fbUser.emailVerified,
         };

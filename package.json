@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
+    "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
