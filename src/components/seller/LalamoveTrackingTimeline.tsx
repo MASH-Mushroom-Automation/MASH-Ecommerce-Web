@@ -54,8 +54,8 @@ interface LalamoveDriver {
 interface LalamoveTracking {
   orderId: string;
   quotationId: string;
-  status: LalamoveStatus;
-  shareLink: string;
+  status: string; // Changed from LalamoveStatus to string for Firebase compatibility
+  shareLink?: string; // Made optional
   driver?: LalamoveDriver;
   eta?: {
     minutes: number;
@@ -168,8 +168,8 @@ export default function LalamoveTrackingTimeline({
 }: LalamoveTrackingTimelineProps) {
   const [refreshing, setRefreshing] = useState(false);
 
-  const currentStatus = tracking.status;
-  const currentConfig = STATUS_CONFIG[currentStatus];
+  const currentStatus = tracking.status as LalamoveStatus;
+  const currentConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.CREATED; // Fallback to CREATED
   const StatusIcon = currentConfig.icon;
 
   // Get current status index for progress
