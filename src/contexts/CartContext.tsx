@@ -196,22 +196,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      // Add new item with full product details
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          slug: product.slug,
-          stock: product.stock,
-          grower: product.grower,
-          unit: product.unit,
-          comparePrice: product.comparePrice,
-          quantity,
-        },
-      ];
+      // Add new item with full product details (sanitize optional fields)
+      const newItem: CartItem = {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        slug: product.slug,
+        stock: product.stock,
+        quantity,
+      };
+
+      // Only include optional fields if they have values
+      if (product.grower !== undefined && product.grower !== null) {
+        newItem.grower = product.grower;
+      }
+      if (product.unit !== undefined && product.unit !== null) {
+        newItem.unit = product.unit;
+      }
+      if (product.comparePrice !== undefined && product.comparePrice !== null) {
+        newItem.comparePrice = product.comparePrice;
+      }
+
+      return [...prev, newItem];
     });
 
     toast.success(`${product.name} added to cart!`, {
