@@ -115,21 +115,33 @@ export interface FirestoreOrder {
 
   // Lalamove Tracking (Phase 8)
   lalamoveTracking?: {
+    orderId: string; // Lalamove order ID
+    quotationId: string; // Lalamove quotation ID
     status: string;
     shareLink?: string;
-    driverId?: string;
-    driverName?: string;
-    driverPhone?: string;
-    driverPlateNumber?: string;
-    driverPhoto?: string;
-    driverLocation?: {
-      lat: number;
-      lng: number;
-      updatedAt: Timestamp;
+    driver?: {
+      id: string;
+      name: string;
+      phone: string;
+      plateNumber: string;
+      photo?: string;
+      coordinates?: {
+        lat: number;
+        lng: number;
+        updatedAt: Date;
+      };
     };
-    pickupEta?: string;
-    deliveryEta?: string;
-    lastUpdated?: Timestamp;
+    eta?: {
+      minutes: number;
+      distance: number; // in km
+    };
+    timeline?: Array<{
+      status: string;
+      timestamp: Date;
+      note?: string;
+    }>;
+    createdAt: Date;
+    lastUpdated: Date;
   };
 
   // Payment
@@ -694,6 +706,35 @@ export class FirebaseOrdersService {
   }
 
   /**
+   * Listen to realtime order updates
+   * Returns unsubscribe function to stop listening
+   */
+  static listenToOrder(
+    orderId: string,
+    callback: (order: FirestoreOrder | null) => void
+  ): () => void {
+    const orderRef = doc(db, this.COLLECTION, orderId);
+    
+    const unsubscribe = onSnapshot(
+      orderRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const order = { ...snapshot.data(), id: snapshot.id } as FirestoreOrder;
+          callback(order);
+        } else {
+          callback(null);
+        }
+      },
+      (error) => {
+        console.error("[FirebaseOrdersService] Realtime listener error:", error);
+        callback(null);
+      }
+    );
+
+    return unsubscribe;
+  }
+
+  /**
    * Send notification for order status change
    */
   private static async sendOrderStatusNotification(
@@ -794,14 +835,23 @@ export class FirebaseOrdersService {
     orderId: string,
     tracking: {
       status?: string;
-      driverId?: string;
-      driverName?: string;
-      driverPhone?: string;
-      driverPlateNumber?: string;
-      driverPhoto?: string;
-      driverLocation?: { lat: number; lng: number };
-      pickupEta?: string;
-      deliveryEta?: string;
+      driver?: {
+        id: string;
+        name: string;
+        phone: string;
+        plateNumber: string;
+        photo?: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+          updatedAt: Date;
+        };
+      };
+      eta?: {
+        minutes: number;
+        distance: number;
+      };
+      lastUpdated?: Date;
     }
   ): Promise<void> {
     try {
@@ -810,54 +860,40 @@ export class FirebaseOrdersService {
         updatedAt: Timestamp.now(),
       };
 
-      // Build tracking update
-      const trackingUpdate: Record<string, unknown> = {
-        lastUpdated: Timestamp.now(),
-      };
-
-      if (tracking.status) trackingUpdate.status = tracking.status;
-      if (tracking.driverId) trackingUpdate.driverId = tracking.driverId;
-      if (tracking.driverName) trackingUpdate.driverName = tracking.driverName;
-      if (tracking.driverPhone) trackingUpdate.driverPhone = tracking.driverPhone;
-      if (tracking.driverPlateNumber) trackingUpdate.driverPlateNumber = tracking.driverPlateNumber;
-      if (tracking.driverPhoto) trackingUpdate.driverPhoto = tracking.driverPhoto;
-      if (tracking.pickupEta) trackingUpdate.pickupEta = tracking.pickupEta;
-      if (tracking.deliveryEta) trackingUpdate.deliveryEta = tracking.deliveryEta;
-      if (tracking.driverLocation) {
-        trackingUpdate.driverLocation = {
-          lat: tracking.driverLocation.lat,
-          lng: tracking.driverLocation.lng,
-          updatedAt: Timestamp.now(),
-        };
-      }
-
-      // Merge with existing tracking
+      // Get existing order for merging
       const orderSnap = await getDoc(orderRef);
       let existingOrder: FirestoreOrder | null = null;
       
       if (orderSnap.exists()) {
         existingOrder = orderSnap.data() as FirestoreOrder;
-        updateData.lalamoveTracking = {
-          ...existingOrder.lalamoveTracking,
-          ...trackingUpdate,
-        };
-      } else {
-        updateData.lalamoveTracking = trackingUpdate;
       }
+
+      // Build tracking update - preserve orderId and quotationId
+      const trackingUpdate: any = {
+        ...existingOrder?.lalamoveTracking,
+        lastUpdated: new Date(),
+      };
+
+      if (tracking.status) trackingUpdate.status = tracking.status;
+      if (tracking.driver) trackingUpdate.driver = tracking.driver;
+      if (tracking.eta) trackingUpdate.eta = tracking.eta;
+
+      updateData.lalamoveTracking = trackingUpdate;
 
       await setDoc(orderRef, updateData, { merge: true });
 
       console.log("[FirebaseOrdersService] Lalamove tracking updated:", {
         orderId,
         status: tracking.status,
+        hasDriver: !!tracking.driver,
       });
 
       // Send notification when driver is assigned
-      if (tracking.driverName && existingOrder) {
+      if (tracking.driver && existingOrder) {
         try {
           const template = NotificationTemplates.driverAssigned(
             existingOrder.orderNumber,
-            tracking.driverName
+            tracking.driver.name
           );
           await FirebaseNotificationsService.createOrderNotification(
             existingOrder.userId,

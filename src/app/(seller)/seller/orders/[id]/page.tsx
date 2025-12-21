@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
   AlertCircle,
   ArrowLeft,
@@ -119,6 +120,7 @@ export default function SellerOrderDetailPage() {
   const [actioning, setActioning] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("sedan");
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [realtimeOrder, setRealtimeOrder] = useState(order);
   const riderMarkerRef = useRef<any>(null); // Store rider marker reference
 
   // Load Google Maps Script
@@ -152,9 +154,53 @@ export default function SellerOrderDetailPage() {
     document.head.appendChild(script);
   }, []);
 
+  // Firebase Realtime Listener - Phase 3
+  useEffect(() => {
+    if (!orderId) return;
+
+    console.log("[Realtime] Setting up Firebase listener for order:", orderId);
+
+    const unsubscribe = FirebaseOrdersService.listenToOrder(orderId, (updatedOrder) => {
+      if (updatedOrder) {
+        console.log("[Realtime] Order updated:", {
+          status: updatedOrder.status,
+          lalamoveStatus: updatedOrder.lalamoveTracking?.status,
+          riderCoords: updatedOrder.lalamoveTracking?.driver?.coordinates,
+        });
+        setRealtimeOrder(updatedOrder);
+      }
+    });
+
+    return () => {
+      console.log("[Realtime] Cleaning up listener");
+      unsubscribe();
+    };
+  }, [orderId]);
+
+  // Polling Fallback - Phase 3
+  useEffect(() => {
+    if (!realtimeOrder?.lalamoveTracking?.orderId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log("[Polling] Checking Lalamove status...");
+        const response = await fetch(`/api/lalamove/order-details?orderId=${realtimeOrder.lalamoveTracking!.orderId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[Polling] Lalamove status:", data.status);
+        }
+      } catch (error) {
+        console.error("[Polling] Failed to fetch Lalamove status:", error);
+      }
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [realtimeOrder?.lalamoveTracking?.orderId]);
+
   // Initialize map when order and script are loaded
   useEffect(() => {
-    if (!mapLoaded || !order || order.deliveryMethod !== "lalamove") return;
+    const currentOrder = realtimeOrder || order;
+    if (!mapLoaded || !currentOrder || currentOrder.deliveryMethod !== "lalamove") return;
 
     const initMap = () => {
       const mapElement = document.getElementById("order-map");
@@ -162,7 +208,7 @@ export default function SellerOrderDetailPage() {
 
       const google = (window as any).google;
       const pickup = MASH_PICKUP_LOCATION;
-      const dropoff = order.deliveryAddress;
+      const dropoff = currentOrder.deliveryAddress;
 
       if (!dropoff?.lat || !dropoff?.lng) return;
 
@@ -245,24 +291,25 @@ export default function SellerOrderDetailPage() {
     };
 
     initMap();
-  }, [mapLoaded, order]);
+  }, [mapLoaded, order, realtimeOrder]);
 
   // Update rider marker when tracking data changes
   useEffect(() => {
-    if (!mapLoaded || !order?.lalamoveTracking?.driver?.coordinates) return;
+    const currentOrder = realtimeOrder || order;
+    if (!mapLoaded || !currentOrder?.lalamoveTracking?.driver?.coordinates) return;
 
     const google = (window as any).google;
     const map = (window as any).lalamoveOrderMap;
     if (!google || !map) return;
 
-    const riderCoords = order.lalamoveTracking.driver.coordinates;
+    const riderCoords = currentOrder.lalamoveTracking.driver.coordinates;
 
     // Create or update rider marker
     if (!riderMarkerRef.current) {
       riderMarkerRef.current = new google.maps.Marker({
         position: { lat: riderCoords.lat, lng: riderCoords.lng },
         map: map,
-        title: `Rider: ${order.lalamoveTracking.driver.name}`,
+        title: `Rider: ${currentOrder.lalamoveTracking.driver.name}`,
         label: {
           text: "R",
           color: "white",
@@ -287,10 +334,10 @@ export default function SellerOrderDetailPage() {
     }
 
     // Auto-center map on rider (optional - can be toggled)
-    if (order.lalamoveTracking.status === "ON_GOING" || order.lalamoveTracking.status === "PICKED_UP") {
+    if (currentOrder.lalamoveTracking.status === "ON_GOING" || currentOrder.lalamoveTracking.status === "PICKED_UP") {
       map.panTo({ lat: riderCoords.lat, lng: riderCoords.lng });
     }
-  }, [mapLoaded, order?.lalamoveTracking?.driver?.coordinates]);
+  }, [mapLoaded, order?.lalamoveTracking?.driver?.coordinates, realtimeOrder?.lalamoveTracking?.driver?.coordinates]);
 
   const handleApproveOrder = async () => {
     if (!order) return;
@@ -342,6 +389,68 @@ export default function SellerOrderDetailPage() {
       console.error(error);
     } finally {
       setActioning(false);
+    }
+  };
+
+  // Manual refresh Lalamove tracking - Phase 3
+  const handleRefreshTracking = async () => {
+    const currentOrder = realtimeOrder || order;
+    if (!currentOrder?.lalamoveTracking?.orderId) {
+      toast.error("No Lalamove delivery found");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/lalamove/order-details?orderId=${currentOrder.lalamoveTracking.orderId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch Lalamove details");
+      }
+
+      const result = await response.json();
+      const data = result.data;
+      console.log("[Manual Refresh] Latest Lalamove data:", data);
+
+      // Fetch driver details if driver is assigned
+      let driverInfo = undefined;
+      if (data.driverId) {
+        try {
+          const driverResponse = await fetch(
+            `/api/lalamove/driver-details?orderId=${currentOrder.lalamoveTracking.orderId}&driverId=${data.driverId}`
+          );
+          if (driverResponse.ok) {
+            const driverResult = await driverResponse.json();
+            driverInfo = driverResult.data;
+          }
+        } catch (error) {
+          console.warn("[Manual Refresh] Could not fetch driver details:", error);
+        }
+      }
+
+      // Update Firebase with latest tracking data
+      await FirebaseOrdersService.updateLalamoveTracking(currentOrder.id, {
+        status: data.status,
+        driver: driverInfo ? {
+          id: driverInfo.driverId || data.driverId,
+          name: driverInfo.name || "Unknown",
+          phone: driverInfo.phone || "",
+          plateNumber: driverInfo.plateNumber || "",
+          photo: driverInfo.photo || undefined,
+          coordinates: driverInfo.coordinates ? {
+            lat: parseFloat(driverInfo.coordinates.lat),
+            lng: parseFloat(driverInfo.coordinates.lng),
+            updatedAt: new Date(driverInfo.coordinates.updatedAt),
+          } : undefined,
+        } : undefined,
+        lastUpdated: new Date(),
+      });
+
+      toast.success("Tracking updated successfully");
+    } catch (error) {
+      console.error("[Manual Refresh] Error:", error);
+      throw error; // Re-throw to be caught by component
     }
   };
 
@@ -618,29 +727,120 @@ export default function SellerOrderDetailPage() {
           {order.deliveryMethod === "lalamove" && order.lalamoveTracking && (
             <LalamoveTrackingTimeline
               tracking={order.lalamoveTracking}
-              onRefresh={async () => {
-                // TODO: Implement refresh from Lalamove API
-                console.log("Refresh tracking data");
-              }}
+              onRefresh={handleRefreshTracking}
             />
           )}
 
-          {/* Pickup Information */}
-          {order.deliveryMethod === "pickup" && order.pickupLocation && (
+          {/* Pickup Information - Phase 4 */}
+          {order.deliveryMethod === "pickup" && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Pickup Details
+                  <MapPin className="h-5 w-5 text-green-600" />
+                  Customer Pickup Instructions
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                {/* Pickup Location */}
+                {order.pickupLocation && (
+                  <div className="p-4 rounded-lg bg-green-50 border-2 border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-green-600">
+                        <MapPin className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-green-900 mb-1">
+                          {order.pickupLocation.name || "MASH Farm"}
+                        </h4>
+                        <p className="text-sm text-green-800">
+                          {order.pickupLocation.address}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pickup Instructions */}
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Location</p>
-                    <p className="font-medium">{order.pickupLocation.address}</p>
+                  <h4 className="font-semibold text-foreground flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    Instructions for Customer
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Customer will visit the farm/store to collect their order</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>No delivery fee applies for pickup orders</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Direct transaction reduces scam risk</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Customer can inspect products before payment</p>
+                    </div>
                   </div>
                 </div>
+
+                {/* Customer Contact */}
+                <Separator />
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground flex items-center gap-2">
+                    <User className="h-4 w-4 text-purple-600" />
+                    Customer Contact
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                      <span className="text-sm text-muted-foreground">Name</span>
+                      <span className="font-medium">{order.userName}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                      <span className="text-sm text-muted-foreground">Phone</span>
+                      <a 
+                        href={`tel:${order.userPhone}`} 
+                        className="font-medium text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3" />
+                        {order.userPhone}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pickup Status Info */}
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-900">
+                      <p className="font-medium mb-1">When Order is Ready</p>
+                      <p className="text-xs">
+                        Mark as "Ready for Pickup" to notify the customer. They will receive 
+                        a notification to collect their order at the pickup location above.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Validation Warning */}
+                {order.lalamoveTracking && (
+                  <div className="p-4 rounded-lg bg-yellow-50 border-2 border-yellow-300">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-700 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-yellow-900">
+                        <p className="font-semibold mb-1">⚠️ Data Inconsistency Detected</p>
+                        <p className="text-xs">
+                          This pickup order has Lalamove tracking data. This should not happen. 
+                          Pickup orders should not create Lalamove deliveries. Please contact 
+                          technical support if this persists.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
