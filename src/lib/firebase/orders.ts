@@ -513,6 +513,12 @@ export class FirebaseOrdersService {
    */
   static async approveOrder(orderId: string, adminId: string): Promise<void> {
     try {
+      // Validate inputs
+      if (!adminId || adminId === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid adminId, using default");
+        adminId = "system";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
 
       await runTransaction(db, async (transaction) => {
@@ -527,7 +533,7 @@ export class FirebaseOrdersService {
         }
 
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
+          ...(order.statusHistory || []),
           {
             status: "approved",
             timestamp: Timestamp.now(),
@@ -536,13 +542,16 @@ export class FirebaseOrdersService {
           },
         ];
 
-        transaction.update(orderRef, {
+        // Only include defined fields
+        const updateData: any = {
           status: "approved",
           statusHistory: newHistory,
           approvedBy: adminId,
           approvedAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order approved:", orderId);
@@ -561,6 +570,15 @@ export class FirebaseOrdersService {
     reason: string
   ): Promise<void> {
     try {
+      // Validate inputs
+      if (!adminId || adminId === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid adminId, using default");
+        adminId = "system";
+      }
+      if (!reason || reason === 'undefined') {
+        reason = "Order rejected by seller";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
 
       await runTransaction(db, async (transaction) => {
@@ -572,7 +590,7 @@ export class FirebaseOrdersService {
         const order = orderSnap.data() as FirestoreOrder;
 
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
+          ...(order.statusHistory || []),
           {
             status: "rejected",
             timestamp: Timestamp.now(),
@@ -581,12 +599,15 @@ export class FirebaseOrdersService {
           },
         ];
 
-        transaction.update(orderRef, {
+        // Only include defined fields
+        const updateData: any = {
           status: "rejected",
           statusHistory: newHistory,
           rejectionReason: reason,
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order rejected:", orderId);
@@ -606,6 +627,12 @@ export class FirebaseOrdersService {
     note?: string
   ): Promise<void> {
     try {
+      // Validate inputs
+      if (!updatedBy || updatedBy === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid updatedBy, using default");
+        updatedBy = "system";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
       
       // First, get order info before transaction
@@ -626,20 +653,23 @@ export class FirebaseOrdersService {
         const order = orderSnapInTx.data() as FirestoreOrder;
 
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
+          ...(order.statusHistory || []),
           {
             status: newStatus,
             timestamp: Timestamp.now(),
-            updatedBy,
-            note,
+            updatedBy: updatedBy || "system",
+            note: note || undefined,
           },
         ];
 
-        transaction.update(orderRef, {
+        // Build update data with only defined fields
+        const updateData: any = {
           status: newStatus,
           statusHistory: newHistory,
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order status updated:", {
