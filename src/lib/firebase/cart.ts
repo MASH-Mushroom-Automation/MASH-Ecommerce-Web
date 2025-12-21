@@ -72,12 +72,38 @@ export class FirebaseCartService {
     }
 
     try {
+      // Sanitize items to remove undefined fields
+      const sanitizedItems = (items || []).map(item => {
+        const sanitized: any = {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name,
+          image: item.image,
+          slug: item.slug,
+          stock: item.stock
+        };
+
+        // Only include optional fields if they have values
+        if (item.grower !== undefined && item.grower !== null) {
+          sanitized.grower = item.grower;
+        }
+        if (item.unit !== undefined && item.unit !== null) {
+          sanitized.unit = item.unit;
+        }
+        if (item.comparePrice !== undefined && item.comparePrice !== null) {
+          sanitized.comparePrice = item.comparePrice;
+        }
+
+        return sanitized;
+      });
+
       const cartRef = doc(db, this.COLLECTION, userId);
       await setDoc(
         cartRef,
         {
           userId,
-          items: items || [],
+          items: sanitizedItems,
           updatedAt: Timestamp.now(),
           version: Date.now(),
         },
