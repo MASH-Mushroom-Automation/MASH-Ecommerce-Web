@@ -129,9 +129,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !user?.id || !isLoaded || isSyncing) return;
 
+    // Additional validation to prevent undefined userId
+    const userId = user.id;
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn("[CartContext] Skipping sync - invalid userId:", userId);
+      return;
+    }
+
     const timeout = setTimeout(() => {
       lastSyncRef.current = Date.now();
-      FirebaseCartService.saveCart(user.id, items).catch((error) => {
+      FirebaseCartService.saveCart(userId, items).catch((error) => {
         console.error("Failed to sync cart to Firebase:", error);
       });
     }, 500); // Debounce by 500ms

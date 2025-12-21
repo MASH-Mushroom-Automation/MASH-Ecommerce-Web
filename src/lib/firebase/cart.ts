@@ -65,13 +65,19 @@ export class FirebaseCartService {
    * Save cart to Firestore
    */
   static async saveCart(userId: string, items: CartItem[]): Promise<void> {
+    // Validate userId is not undefined
+    if (!userId || userId === 'undefined') {
+      console.error("[FirebaseCartService] Invalid userId:", userId);
+      return; // Don't attempt to save with invalid userId
+    }
+
     try {
       const cartRef = doc(db, this.COLLECTION, userId);
       await setDoc(
         cartRef,
         {
           userId,
-          items,
+          items: items || [],
           updatedAt: Timestamp.now(),
           version: Date.now(),
         },
