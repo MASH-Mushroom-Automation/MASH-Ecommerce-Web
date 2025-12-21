@@ -384,6 +384,9 @@ function OrderDetailDialog({
     return (
       <Dialog open onOpenChange={onClose}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Loading Order Details</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -396,6 +399,9 @@ function OrderDetailDialog({
     return (
       <Dialog open onOpenChange={onClose}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Error</DialogTitle>
+          </DialogHeader>
           <div className="text-center py-8">
             <p className="text-destructive">Failed to load order details</p>
             <Button variant="outline" onClick={onClose} className="mt-4">
