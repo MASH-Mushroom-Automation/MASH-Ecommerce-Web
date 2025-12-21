@@ -37,9 +37,10 @@ import { useFirebaseOrder } from "@/hooks/useFirebaseOrders";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LALAMOVE_VEHICLES, calculateEstimate } from "@/lib/lalamove/vehicle-types";
 import { useAuth } from "@/contexts/AuthContext";
+import LalamoveTrackingTimeline from "@/components/seller/LalamoveTrackingTimeline";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -118,6 +119,7 @@ export default function SellerOrderDetailPage() {
   const [actioning, setActioning] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("sedan");
   const [mapLoaded, setMapLoaded] = useState(false);
+  const riderMarkerRef = useRef<any>(null); // Store rider marker reference
 
   // Load Google Maps Script
   useEffect(() => {
@@ -237,10 +239,58 @@ export default function SellerOrderDetailPage() {
           }
         }
       );
+
+      // Store map reference for rider marker updates
+      (window as any).lalamoveOrderMap = map;
     };
 
     initMap();
   }, [mapLoaded, order]);
+
+  // Update rider marker when tracking data changes
+  useEffect(() => {
+    if (!mapLoaded || !order?.lalamoveTracking?.driver?.coordinates) return;
+
+    const google = (window as any).google;
+    const map = (window as any).lalamoveOrderMap;
+    if (!google || !map) return;
+
+    const riderCoords = order.lalamoveTracking.driver.coordinates;
+
+    // Create or update rider marker
+    if (!riderMarkerRef.current) {
+      riderMarkerRef.current = new google.maps.Marker({
+        position: { lat: riderCoords.lat, lng: riderCoords.lng },
+        map: map,
+        title: `Rider: ${order.lalamoveTracking.driver.name}`,
+        label: {
+          text: "R",
+          color: "white",
+          fontWeight: "bold",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#f97316", // Orange
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 3,
+          scale: 12,
+        },
+        animation: google.maps.Animation.DROP,
+      });
+    } else {
+      // Smoothly animate marker to new position
+      riderMarkerRef.current.setPosition({
+        lat: riderCoords.lat,
+        lng: riderCoords.lng,
+      });
+    }
+
+    // Auto-center map on rider (optional - can be toggled)
+    if (order.lalamoveTracking.status === "ON_GOING" || order.lalamoveTracking.status === "PICKED_UP") {
+      map.panTo({ lat: riderCoords.lat, lng: riderCoords.lng });
+    }
+  }, [mapLoaded, order?.lalamoveTracking?.driver?.coordinates]);
 
   const handleApproveOrder = async () => {
     if (!order) return;
@@ -562,6 +612,17 @@ export default function SellerOrderDetailPage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Lalamove Real-Time Tracking Timeline */}
+          {order.deliveryMethod === "lalamove" && order.lalamoveTracking && (
+            <LalamoveTrackingTimeline
+              tracking={order.lalamoveTracking}
+              onRefresh={async () => {
+                // TODO: Implement refresh from Lalamove API
+                console.log("Refresh tracking data");
+              }}
+            />
           )}
 
           {/* Pickup Information */}
