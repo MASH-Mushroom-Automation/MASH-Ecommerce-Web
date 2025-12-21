@@ -802,18 +802,34 @@ export default function ProductCatalogPage() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() =>
-                                  addToCart({
+                                onClick={() => {
+                                  // Build cart item - only include fields that have values
+                                  const cartProduct: any = {
                                     id: product.id,
                                     name: product.name,
                                     price: product.price,
                                     image: product.image,
                                     slug: product.slug,
                                     stock: product.stock,
-                                    grower: product.category,
-                                    unit: product.unit,
-                                  }, 1)
-                                }
+                                  };
+                                  
+                                  // Only add optional fields if they exist
+                                  if (product.grower?.name) {
+                                    cartProduct.grower = product.grower.name;
+                                  } else if (product.category) {
+                                    cartProduct.grower = product.category;
+                                  }
+                                  
+                                  if (product.unit) {
+                                    cartProduct.unit = product.unit;
+                                  }
+                                  
+                                  if (product.comparePrice && product.comparePrice > 0) {
+                                    cartProduct.comparePrice = product.comparePrice;
+                                  }
+                                  
+                                  addToCart(cartProduct, 1);
+                                }}
                                 className="w-full sm:w-auto min-h-[36px]"
                               >
                                 Add to Cart
