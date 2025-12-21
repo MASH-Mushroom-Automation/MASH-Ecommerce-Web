@@ -1,0 +1,175 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Check if user is admin/seller (from Firestore users collection)
+    function isAdmin() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SELLER', 'GROWER'];
+    }
+    
+    // Check if user is seller or admin
+    function isSeller() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['SELLER', 'ADMIN'];
+    }
+    
+    
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    match /users/{userId} {
+      // Anyone can read user profiles (needed for display names)
+      allow read: if true;
+      
+      // Users can create their own profile
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Users can update their own profile
+      allow update: if isOwner(userId);
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // ORDERS COLLECTION
+    // ========================================
+    match /orders/{orderId} {
+      // Users can read their own orders
+      // Sellers/Admins can read all orders
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Users can create their own orders
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own orders (for cancellation)
+      // Sellers/Admins can update any order (for status changes, approval)
+      allow update: if isSignedIn() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+      
+      // Allow sellers to list all orders
+      allow list: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // CARTS COLLECTION
+    // ========================================
+    match /carts/{userId} {
+      // Users can only access their own cart
+      allow read, write: if isOwner(userId);
+    }
+    
+    
+    // ========================================
+    // WISHLISTS COLLECTION
+    // ========================================
+    match /wishlists/{userId} {
+      // Users can only access their own wishlist
+      allow read, write: if isOwner(userId);
+    }
+    
+    
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      // Admins can read all notifications
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Only system (via admin SDK) can create notifications
+      // But we'll allow admins to create notifications for testing
+      allow create: if isAdmin();
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own notifications
+      // Admins can delete any notification
+      allow delete: if isSignedIn() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
+    
+    // ========================================
+    // PRODUCTS COLLECTION (if using Firestore)
+    // ========================================
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+      
+      // Only sellers/admins can create/update products
+      allow create, update: if isAdmin();
+      
+      // Only admins can delete products
+      allow delete: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // REVIEWS COLLECTION
+    // ========================================
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+      
+      // Authenticated users can create reviews
+      allow create: if isSignedIn();
+      
+      // Users can update/delete their own reviews
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    
+    // ========================================
+    // GROWERS/STORES COLLECTION
+    // ========================================
+    match /growers/{growerId} {
+      // Anyone can read grower info
+      allow read: if true;
+      
+      // Only admins can create/update/delete growers
+      allow write: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // ANALYTICS COLLECTION (Admin Only)
+    // ========================================
+    match /analytics/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // DEFAULT: DENY ALL
+    // ========================================
+    // Any collection not explicitly defined above is denied
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

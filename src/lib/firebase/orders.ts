@@ -664,14 +664,21 @@ export class FirebaseOrdersService {
 
         const order = orderSnapInTx.data() as FirestoreOrder;
 
+        // Build status history entry without undefined fields
+        const historyEntry: StatusHistoryEntry = {
+          status: newStatus,
+          timestamp: Timestamp.now(),
+          updatedBy: updatedBy || "system",
+        };
+        
+        // Only add note if it's defined
+        if (note) {
+          historyEntry.note = note;
+        }
+
         const newHistory: StatusHistoryEntry[] = [
           ...(order.statusHistory || []),
-          {
-            status: newStatus,
-            timestamp: Timestamp.now(),
-            updatedBy: updatedBy || "system",
-            note: note || undefined,
-          },
+          historyEntry,
         ];
 
         // Build update data with only defined fields
@@ -804,15 +811,23 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
+      
+      // Build lalamove tracking object without undefined fields
+      const lalamoveTracking: any = {
+        status: "ASSIGNING_DRIVER",
+        lastUpdated: Timestamp.now(),
+      };
+      
+      // Only add shareLink if defined
+      if (shareLink) {
+        lalamoveTracking.shareLink = shareLink;
+      }
+      
       await setDoc(
         orderRef,
         {
           lalamoveOrderId,
-          lalamoveTracking: {
-            status: "ASSIGNING_DRIVER",
-            shareLink,
-            lastUpdated: Timestamp.now(),
-          },
+          lalamoveTracking,
           updatedAt: Timestamp.now(),
         },
         { merge: true }
