@@ -378,6 +378,72 @@ export default function SellerOrderDetailPage() {
     if (!order) return;
     setActioning(true);
     try {
+      // Phase 5: Auto-create Lalamove delivery when marking as "processing"
+      if (newStatus === "processing" && order.deliveryMethod === "lalamove") {
+        // Check if Lalamove order already exists
+        if (order.lalamoveOrderId) {
+          toast.info("Lalamove delivery already created");
+        } else if (!order.lalamoveQuotationId) {
+          toast.error("No delivery quotation found. Please create a quote first.");
+          setActioning(false);
+          return;
+        } else {
+          // Create Lalamove delivery order
+          toast.loading("Creating Lalamove delivery...", { id: "lalamove-create" });
+          
+          try {
+            const response = await fetch("/api/lalamove/create-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: order.id,
+                quotationId: order.lalamoveQuotationId,
+                sender: {
+                  name: "MASH Farm",
+                  phone: "+639497536575", // MASH contact number
+                },
+                recipient: {
+                  name: order.deliveryAddress?.name || order.userName,
+                  phone: order.deliveryAddress?.phone || order.userPhone,
+                  notes: order.notes || "Please handle with care - fresh mushrooms",
+                },
+              }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.message || "Failed to create delivery");
+            }
+
+            toast.success("Lalamove delivery created successfully!", { 
+              id: "lalamove-create",
+              duration: 5000 
+            });
+
+            console.log("[Lalamove] Order created:", result.data);
+          } catch (lalamoveError: any) {
+            toast.error(`Lalamove error: ${lalamoveError.message}`, { 
+              id: "lalamove-create",
+              duration: 7000 
+            });
+            console.error("[Lalamove] Creation failed:", lalamoveError);
+            
+            // Ask if seller wants to continue without Lalamove
+            const continueAnyway = confirm(
+              "Lalamove delivery creation failed. Do you want to mark as processing anyway?\n\n" +
+              "You can manually create the delivery later."
+            );
+            
+            if (!continueAnyway) {
+              setActioning(false);
+              return;
+            }
+          }
+        }
+      }
+
+      // Update order status
       await FirebaseOrdersService.updateOrderStatus(
         order.id,
         newStatus as any,
