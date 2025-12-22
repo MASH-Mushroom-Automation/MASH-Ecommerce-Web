@@ -38,12 +38,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from localStorage on mount
   useEffect(() => {
+    console.log("[CartContext] Loading cart from localStorage...");
     const savedCart = localStorage.getItem("mash-cart");
+    console.log("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
+        console.log("[CartContext] Parsed cart:", parsedCart);
         // Check version for migration
         if (parsedCart.version === 2 && Array.isArray(parsedCart.items)) {
+          console.log("[CartContext] Loading", parsedCart.items.length, "items");
           setItems(parsedCart.items);
         } else {
           // Old cart format - clear it
@@ -56,11 +60,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
+    console.log("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isLoaded) {
+      console.log("[CartContext] Saving to localStorage, items:", items.length);
       localStorage.setItem(
         "mash-cart",
         JSON.stringify({
@@ -69,6 +75,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           updatedAt: new Date().toISOString(),
         })
       );
+      console.log("[CartContext] Saved to localStorage");
     }
   }, [items, isLoaded]);
 
@@ -167,6 +174,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
+    console.log("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
+    
     // Validate stock
     if (product.stock < quantity) {
       toast.error("Not enough stock available", {
@@ -176,9 +185,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     setItems((prev) => {
+      console.log("[CartContext] setItems called, prev items:", prev.length);
       const existingItem = prev.find((item) => item.productId === product.id);
 
       if (existingItem) {
+        console.log("[CartContext] Item already in cart, updating quantity");
         // Check if combined quantity exceeds stock
         const newQuantity = existingItem.quantity + quantity;
         if (newQuantity > product.stock) {
@@ -189,11 +200,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Update existing item quantity
-        return prev.map((item) =>
+        const updated = prev.map((item) =>
           item.productId === product.id
             ? { ...item, quantity: newQuantity }
             : item
         );
+        console.log("[CartContext] Updated cart:", updated.length);
+        return updated;
       }
 
       // Add new item with full product details (sanitize optional fields)
@@ -218,7 +231,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         newItem.comparePrice = product.comparePrice;
       }
 
-      return [...prev, newItem];
+      console.log("[CartContext] Adding new item:", newItem);
+      const newCart = [...prev, newItem];
+      console.log("[CartContext] New cart size:", newCart.length);
+      return newCart;
     });
 
     toast.success(`${product.name} added to cart!`, {
