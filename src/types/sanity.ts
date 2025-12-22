@@ -262,7 +262,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
   // Handle image URL - Sanity returns full CDN URLs with image.asset->url
   const imageUrl = product.mainImage && product.mainImage !== 'null' 
     ? product.mainImage 
-    : 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image';
+    : '/mushroom-placeholder.png';
   
   const imageUrls = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images.filter(img => img && img !== 'null')
@@ -283,7 +283,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
       name: p.name || 'Unknown Product',
       slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
       price: p.price || 0,
-      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+      image: p.image || '/mushroom-placeholder.png',
       isPromo: p.isPromo || false,
       isFeatured: p.isFeatured || false,
     }));
@@ -296,7 +296,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
       name: p.name || 'Unknown Product',
       slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
       price: p.price || 0,
-      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+      image: p.image || '/mushroom-placeholder.png',
       isPromo: p.isPromo || false,
     }));
 
