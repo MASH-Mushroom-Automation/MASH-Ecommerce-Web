@@ -20,13 +20,8 @@ service cloud.firestore {
     // Check if user is admin/seller (from Firestore users collection)
     function isAdmin() {
       return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SELLER', 'GROWER'];
-    }
-    
-    // Check if user is seller or admin
-    function isSeller() {
-      return isSignedIn() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['SELLER', 'ADMIN'];
     }
     
     
