@@ -50,7 +50,7 @@ const step2Schema = z.object({
 });
 
 const step3Schema = z.object({
-  paymentMethod: z.enum(["cod", "gcash", "card"]),
+  paymentMethod: z.enum(["cod"]), // Only COD payment allowed
 });
 
 type Step1FormValues = z.infer<typeof step1Schema>;
@@ -373,6 +373,19 @@ export default function CheckoutPage() {
 
   const isCartEmpty = items.length === 0;
 
+  // Group items by vendor/grower
+  const itemsByVendor = items.reduce((acc, item) => {
+    const vendor = item.grower || "MASH";
+    if (!acc[vendor]) {
+      acc[vendor] = [];
+    }
+    acc[vendor].push(item);
+    return acc;
+  }, {} as Record<string, typeof items>);
+
+  const vendorNames = Object.keys(itemsByVendor);
+  const hasMultipleVendors = vendorNames.length > 1;
+
   return (
     <>
       <div className="min-h-screen bg-background px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
@@ -412,6 +425,28 @@ export default function CheckoutPage() {
           {error && (
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
               <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
+
+          {hasMultipleVendors && (
+            <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Package className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                    Multiple Vendors in Cart
+                  </h3>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Your cart contains products from {vendorNames.length} different vendors: <strong>{vendorNames.join(", ")}</strong>.
+                    {watchDeliveryMethod === "pickup" && (
+                      <> Each vendor has a different pickup location. You'll need to pick up from each location separately.</>
+                    )}
+                    {watchDeliveryMethod === "lalamove" && (
+                      <> We recommend checking out separately for each vendor to ensure accurate delivery.</>
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -829,7 +864,7 @@ export default function CheckoutPage() {
                         Payment Method
                       </h2>
                       <p className="text-sm sm:text-base text-muted-foreground">
-                        Select how you would like to pay for your order.
+                        Cash payment only - Pay when you receive your order.
                       </p>
 
                       <Form {...step3Form}>
@@ -841,35 +876,28 @@ export default function CheckoutPage() {
                               <label
                                 className={cn(
                                   "block border-2 rounded-lg p-4 cursor-pointer transition-colors",
-                                  field.value === "cod"
-                                    ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-primary/50"
+                                  "border-primary bg-primary/5"
                                 )}
                               >
                                 <input
                                   type="radio"
                                   value="cod"
-                                  checked={field.value === "cod"}
+                                  checked={true}
                                   onChange={() => field.onChange("cod")}
                                   className="sr-only"
                                 />
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <Banknote className="h-5 w-5 text-primary" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "cod" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "cod" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
+                                    <div className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center">
+                                      <div className="w-2 h-2 rounded-full bg-primary" />
                                     </div>
                                     <div className="font-medium text-foreground">
                                       {step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery"}
                                     </div>
                                   </div>
                                   <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                                    Available
+                                    Default Payment
                                   </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-2 ml-7">
@@ -877,114 +905,6 @@ export default function CheckoutPage() {
                                     ? "Pay when you pick up your order at the selected location"
                                     : "Pay the rider when your order is delivered"
                                   }
-                                </p>
-                              </label>
-
-                              {/* GCash Payment Option */}
-                              <label
-                                className={cn(
-                                  "block border-2 rounded-lg p-4 transition-colors",
-                                  PAYMONGO_ENABLED
-                                    ? field.value === "gcash"
-                                      ? "border-primary bg-primary/5 cursor-pointer"
-                                      : "border-border hover:border-primary/50 cursor-pointer"
-                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
-                                )}
-                              >
-                                <input
-                                  type="radio"
-                                  value="gcash"
-                                  checked={field.value === "gcash"}
-                                  onChange={() => PAYMONGO_ENABLED && field.onChange("gcash")}
-                                  disabled={!PAYMONGO_ENABLED}
-                                  className="sr-only"
-                                />
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Wallet className="h-5 w-5 text-blue-500" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "gcash" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "gcash" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                    <div className={cn(
-                                      "font-medium",
-                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
-                                    )}>
-                                      GCash
-                                    </div>
-                                  </div>
-                                  <span className={cn(
-                                    "text-xs font-medium px-2 py-1 rounded",
-                                    PAYMONGO_ENABLED
-                                      ? "text-green-600 bg-green-50"
-                                      : "text-amber-600 bg-amber-50"
-                                  )}>
-                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
-                                  </span>
-                                </div>
-                                <p className={cn(
-                                  "text-sm mt-2 ml-7",
-                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
-                                )}>
-                                  Pay instantly using your GCash e-wallet
-                                </p>
-                              </label>
-
-                              {/* Credit/Debit Card Payment Option */}
-                              <label
-                                className={cn(
-                                  "block border-2 rounded-lg p-4 transition-colors",
-                                  PAYMONGO_ENABLED
-                                    ? field.value === "card"
-                                      ? "border-primary bg-primary/5 cursor-pointer"
-                                      : "border-border hover:border-primary/50 cursor-pointer"
-                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
-                                )}
-                              >
-                                <input
-                                  type="radio"
-                                  value="card"
-                                  checked={field.value === "card"}
-                                  onChange={() => PAYMONGO_ENABLED && field.onChange("card")}
-                                  disabled={!PAYMONGO_ENABLED}
-                                  className="sr-only"
-                                />
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <CreditCard className="h-5 w-5 text-purple-500" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "card" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "card" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                    <div className={cn(
-                                      "font-medium",
-                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
-                                    )}>
-                                      Credit/Debit Card
-                                    </div>
-                                  </div>
-                                  <span className={cn(
-                                    "text-xs font-medium px-2 py-1 rounded",
-                                    PAYMONGO_ENABLED
-                                      ? "text-green-600 bg-green-50"
-                                      : "text-amber-600 bg-amber-50"
-                                  )}>
-                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
-                                  </span>
-                                </div>
-                                <p className={cn(
-                                  "text-sm mt-2 ml-7",
-                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
-                                )}>
-                                  Pay securely with Visa, Mastercard, or other cards
                                 </p>
                               </label>
                             </FormItem>
@@ -1054,19 +974,10 @@ export default function CheckoutPage() {
                         disabled={submitting || paymentProcessing || items.length === 0}
                         onClick={step3Form.handleSubmit(onStep3Submit)}
                       >
-                        {paymentProcessing ? (
-                          <>
-                            <LoadingSpinner className="mr-2 h-4 w-4" />
-                            Processing Payment...
-                          </>
-                        ) : submitting ? (
+                        {submitting ? (
                           "Creating Order..."
-                        ) : step3Form.watch("paymentMethod") === "gcash" ? (
-                          "Pay with GCash"
-                        ) : step3Form.watch("paymentMethod") === "card" ? (
-                          "Pay with Card"
                         ) : (
-                          "Place Order"
+                          "Place Order (Cash Payment)"
                         )}
                       </Button>
                     </div>
@@ -1090,31 +1001,45 @@ export default function CheckoutPage() {
                         <p className="text-muted-foreground">Your cart is empty</p>
                       </div>
                     ) : (
-                      items.map((item) => (
-                        <div key={item.productId} className="flex items-start gap-3">
-                          <Image
-                            src={item.image || PLACEHOLDER_IMAGE}
-                            alt={item.name}
-                            width={56}
-                            height={56}
-                            className={cn(
-                              "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
-                              item.image ? "object-cover" : "object-contain bg-muted p-1"
+                      <>
+                        {Object.entries(itemsByVendor).map(([vendor, vendorItems]) => (
+                          <div key={vendor} className="space-y-3">
+                            {hasMultipleVendors && (
+                              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                                <Package className="h-4 w-4 text-primary" />
+                                <p className="font-medium text-sm text-primary">
+                                  From: {vendor}
+                                </p>
+                              </div>
                             )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
-                              {item.name}
-                            </p>
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                              Quantity: {item.quantity}
-                            </p>
+                            {vendorItems.map((item) => (
+                              <div key={item.productId} className="flex items-start gap-3">
+                                <Image
+                                  src={item.image || PLACEHOLDER_IMAGE}
+                                  alt={item.name}
+                                  width={56}
+                                  height={56}
+                                  className={cn(
+                                    "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
+                                    item.image ? "object-cover" : "object-contain bg-muted p-1"
+                                  )}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                    Quantity: {item.quantity}
+                                  </p>
+                                </div>
+                                <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
+                                  PHP {(item.price * item.quantity).toFixed(2)}
+                                </p>
+                              </div>
+                            ))}
                           </div>
-                          <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
-                            PHP {(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))
+                        ))}
+                      </>
                     )}
                   </div>
 
@@ -1124,10 +1049,6 @@ export default function CheckoutPage() {
                         Subtotal ({items.reduce((sum, item) => sum + item.quantity, 0)})
                       </p>
                       <p className="font-medium">PHP {summary.subtotal.toFixed(2)}</p>
-                    </div>
-                    <div className="flex justify-between">
-                      <p>Tax</p>
-                      <p className="font-medium">PHP {summary.tax.toFixed(2)}</p>
                     </div>
                     {deliveryFee > 0 && (
                       <div className="flex justify-between">

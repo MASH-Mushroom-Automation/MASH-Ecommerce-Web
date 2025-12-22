@@ -265,24 +265,11 @@ export default function CartPage() {
                     <span className="font-medium">₱{summary.subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax (12%)</span>
-                    <span className="font-medium">₱{summary.tax.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="font-medium">
-                      {summary.shipping === 0 ? (
-                        <span className="text-green-600">Free</span>
-                      ) : (
-                        `₱${summary.shipping.toLocaleString()}`
-                      )}
+                    <span className="text-muted-foreground">Delivery Fee</span>
+                    <span className="font-medium text-muted-foreground">
+                      Calculated at checkout
                     </span>
                   </div>
-                  {summary.shipping === 0 && summary.subtotal >= 500 && (
-                    <p className="text-xs text-green-600">
-                      🎉 Free shipping on orders over ₱500!
-                    </p>
-                  )}
                 </div>
 
                 <Separator />

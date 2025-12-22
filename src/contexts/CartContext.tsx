@@ -158,8 +158,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const tax = subtotal * 0.12; // 12% tax
-    const shipping = subtotal > 500 ? 0 : 50; // Free shipping over ₱500
+    const tax = 0; // No tax - direct to grower
+    const shipping = 0; // Shipping calculated at checkout based on delivery method
     const total = subtotal + tax + shipping;
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
