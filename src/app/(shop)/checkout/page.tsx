@@ -79,6 +79,7 @@ export default function CheckoutPage() {
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -386,6 +387,22 @@ export default function CheckoutPage() {
   const vendorNames = Object.keys(itemsByVendor);
   const hasMultipleVendors = vendorNames.length > 1;
 
+  // Auto-select first vendor if none selected
+  useEffect(() => {
+    if (hasMultipleVendors && !selectedVendor && vendorNames.length > 0) {
+      setSelectedVendor(vendorNames[0]);
+    } else if (!hasMultipleVendors && vendorNames.length === 1) {
+      setSelectedVendor(vendorNames[0]);
+    }
+  }, [hasMultipleVendors, selectedVendor, vendorNames]);
+
+  // Get items for currently selected vendor
+  const currentVendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
+  const currentVendorSubtotal = currentVendorItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
   return (
     <>
       <div className="min-h-screen bg-background px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
@@ -429,22 +446,75 @@ export default function CheckoutPage() {
           )}
 
           {hasMultipleVendors && (
-            <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Package className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                    Multiple Vendors in Cart
+            <div className="mb-6 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                  <Package className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
+                    Multiple Vendors Detected ({vendorNames.length} stores)
                   </h3>
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    Your cart contains products from {vendorNames.length} different vendors: <strong>{vendorNames.join(", ")}</strong>.
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+                    Your cart contains products from <strong>{vendorNames.length} different vendors</strong>. 
                     {watchDeliveryMethod === "pickup" && (
-                      <> Each vendor has a different pickup location. You'll need to pick up from each location separately.</>
+                      <> Each vendor has a different pickup location - you'll need to pick up from each location separately.</>
                     )}
                     {watchDeliveryMethod === "lalamove" && (
                       <> We recommend checking out separately for each vendor to ensure accurate delivery.</>
                     )}
                   </p>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-3">
+                      Select vendor to checkout:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {vendorNames.map((vendor) => {
+                        const vendorItemCount = itemsByVendor[vendor].length;
+                        const vendorTotal = itemsByVendor[vendor].reduce(
+                          (sum, item) => sum + item.price * item.quantity,
+                          0
+                        );
+                        return (
+                          <button
+                            key={vendor}
+                            onClick={() => setSelectedVendor(vendor)}
+                            className={cn(
+                              "text-left p-3 rounded-lg border-2 transition-all",
+                              selectedVendor === vendor
+                                ? "border-primary bg-primary/5 shadow-md"
+                                : "border-gray-200 dark:border-gray-700 hover:border-primary/50"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                  selectedVendor === vendor ? "border-primary" : "border-gray-300"
+                                )}>
+                                  {selectedVendor === vendor && (
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                  )}
+                                </div>
+                                <span className="font-medium text-foreground">{vendor}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {vendorItemCount} item{vendorItemCount !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 ml-6">
+                              Total: ₱{vendorTotal.toFixed(2)}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 flex items-start gap-2">
+                      <span className="font-bold">💡</span>
+                      <span>You can checkout other vendors after completing this order.</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -940,12 +1010,31 @@ export default function CheckoutPage() {
                             <p className="text-sm font-medium">
                               {step1Data?.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mb-2">
                               {step1Data?.deliveryMethod === "pickup"
                                 ? getSelectedPickupLocation(step1Data?.pickupLocation)?.address
                                 : deliveryAddress?.formattedAddress
                               }
                             </p>
+                            {step1Data?.deliveryMethod === "pickup" && hasMultipleVendors && selectedVendor && (
+                              <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                                <p className="text-xs text-amber-800 dark:text-amber-200">
+                                  <strong>📍 Vendor:</strong> {selectedVendor} - Default MASH pickup location shown. Please coordinate with vendor for exact address.
+                                </p>
+                              </div>
+                            )}
+                            {step1Data?.deliveryMethod === "pickup" && getSelectedPickupLocation(step1Data?.pickupLocation) && (
+                              <div className="mt-3">
+                                <iframe
+                                  width="100%"
+                                  height="180"
+                                  frameBorder="0"
+                                  style={{ border: 0, borderRadius: "8px" }}
+                                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(getSelectedPickupLocation(step1Data?.pickupLocation)?.address || "MASH Philippines")}&zoom=15`}
+                                  allowFullScreen
+                                ></iframe>
+                              </div>
+                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -989,6 +1078,11 @@ export default function CheckoutPage() {
                 <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
                   <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
                     Summary
+                    {hasMultipleVendors && selectedVendor && (
+                      <span className="block text-sm font-normal text-muted-foreground mt-1">
+                        Checking out: {selectedVendor}
+                      </span>
+                    )}
                   </h2>
                   <div className="mt-4 space-y-4">
                     {loading ? (
@@ -996,47 +1090,35 @@ export default function CheckoutPage() {
                         <LoadingSpinner className="mx-auto mb-4" />
                         <p className="text-muted-foreground">Loading cart items...</p>
                       </div>
-                    ) : items.length === 0 ? (
+                    ) : currentVendorItems.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">Your cart is empty</p>
+                        <p className="text-muted-foreground">No items for this vendor</p>
                       </div>
                     ) : (
                       <>
-                        {Object.entries(itemsByVendor).map(([vendor, vendorItems]) => (
-                          <div key={vendor} className="space-y-3">
-                            {hasMultipleVendors && (
-                              <div className="flex items-center gap-2 pb-2 border-b border-border">
-                                <Package className="h-4 w-4 text-primary" />
-                                <p className="font-medium text-sm text-primary">
-                                  From: {vendor}
-                                </p>
-                              </div>
-                            )}
-                            {vendorItems.map((item) => (
-                              <div key={item.productId} className="flex items-start gap-3">
-                                <Image
-                                  src={item.image || PLACEHOLDER_IMAGE}
-                                  alt={item.name}
-                                  width={56}
-                                  height={56}
-                                  className={cn(
-                                    "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
-                                    item.image ? "object-cover" : "object-contain bg-muted p-1"
-                                  )}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
-                                    {item.name}
-                                  </p>
-                                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                                    Quantity: {item.quantity}
-                                  </p>
-                                </div>
-                                <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
-                                  PHP {(item.price * item.quantity).toFixed(2)}
-                                </p>
-                              </div>
-                            ))}
+                        {currentVendorItems.map((item) => (
+                          <div key={item.productId} className="flex items-start gap-3">
+                            <Image
+                              src={item.image || PLACEHOLDER_IMAGE}
+                              alt={item.name}
+                              width={56}
+                              height={56}
+                              className={cn(
+                                "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
+                                item.image ? "object-cover" : "object-contain bg-muted p-1"
+                              )}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
+                                {item.name}
+                              </p>
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                Quantity: {item.quantity}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
+                              PHP {(item.price * item.quantity).toFixed(2)}
+                            </p>
                           </div>
                         ))}
                       </>
@@ -1046,9 +1128,9 @@ export default function CheckoutPage() {
                   <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
                     <div className="flex justify-between">
                       <p>
-                        Subtotal ({items.reduce((sum, item) => sum + item.quantity, 0)})
+                        Subtotal ({currentVendorItems.reduce((sum, item) => sum + item.quantity, 0)} items)
                       </p>
-                      <p className="font-medium">PHP {summary.subtotal.toFixed(2)}</p>
+                      <p className="font-medium">PHP {currentVendorSubtotal.toFixed(2)}</p>
                     </div>
                     {deliveryFee > 0 && (
                       <div className="flex justify-between">
