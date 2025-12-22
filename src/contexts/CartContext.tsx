@@ -22,6 +22,7 @@ interface CartContextType {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => boolean;
   clearCart: () => void;
+  removeVendorItems: (vendorName: string) => void;
   isInCart: (productId: string) => boolean;
   getItemQuantity: (productId: string) => number;
 }
@@ -286,6 +287,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, user?.id]);
 
+  const removeVendorItems = useCallback((vendorName: string) => {
+    setItems((prev) => {
+      const remainingItems = prev.filter((item) => {
+        const itemVendor = item.grower || "MASH";
+        return itemVendor !== vendorName;
+      });
+      
+      const removedCount = prev.length - remainingItems.length;
+      if (removedCount > 0) {
+        toast.success(`${removedCount} item(s) from ${vendorName} removed from cart`);
+      }
+      
+      return remainingItems;
+    });
+  }, []);
+
   const isInCart = (productId: string): boolean => {
     return items.some((item) => item.productId === productId);
   };
@@ -304,6 +321,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeFromCart,
     updateQuantity,
     clearCart,
+    removeVendorItems,
     isInCart,
     getItemQuantity,
   };

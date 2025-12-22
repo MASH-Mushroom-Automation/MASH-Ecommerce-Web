@@ -13,7 +13,7 @@ import { useUserProfile } from "@/hooks/useUser";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { MapPin, Truck, Package, CreditCard, Wallet, Banknote } from "lucide-react";
+import { MapPin, Truck, Package, Banknote } from "lucide-react";
 import {
   AddressPicker,
   LalamoveQuote,
@@ -62,7 +62,7 @@ const PAYMONGO_ENABLED = !!process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY;
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, summary, clearCart } = useCart();
+  const { items, summary, clearCart, removeVendorItems } = useCart();
   const { user, isAuthenticated: userIsAuthenticated } = useAuth();
   const { profile } = useUserProfile(); // Get full profile for phone number
   const { addresses: savedAddresses, defaultAddress, loading: addressesLoading } = useFirebaseAddresses();
@@ -286,45 +286,7 @@ export default function CheckoutPage() {
       setOrderId(newOrderId);
       const orderNumber = newOrderId.slice(-8).toUpperCase();
 
-      // Handle online payments (GCash, Card)
-      if (data.paymentMethod === "gcash" || data.paymentMethod === "card") {
-        setPaymentProcessing(true);
-
-        const paymentResult = await processPayment(
-          data.paymentMethod,
-          newOrderId,
-          orderNumber,
-          totalWithDelivery
-        );
-
-        if (!paymentResult.success) {
-          setError(paymentResult.error || "Payment failed. Please try again.");
-          setPaymentProcessing(false);
-          return;
-        }
-
-        // For GCash/GrabPay, redirect to payment page
-        if (paymentResult.checkoutUrl) {
-          // Save pending order info for when user returns
-          sessionStorage.setItem("pendingOrder", JSON.stringify({
-            orderId: newOrderId,
-            orderNumber,
-            customerEmail: step2Data.email,
-            customerName: step2Data.name,
-          }));
-
-          // Clear cart before redirect
-          clearCart();
-
-          // Redirect to payment provider
-          window.location.href = paymentResult.checkoutUrl;
-          return;
-        }
-
-        setPaymentProcessing(false);
-      }
-
-      // For COD orders or after successful payment, send confirmation email
+      // For COD orders, send confirmation email and show success
       sendOrderConfirmationEmailViaAPI(step2Data.email, {
         customerName: step2Data.name,
         orderNumber: orderNumber,
@@ -347,7 +309,12 @@ export default function CheckoutPage() {
         // Don't fail the order if email fails
       });
 
-      clearCart();
+      // Remove only this vendor's items from cart
+      if (selectedVendor) {
+        removeVendorItems(selectedVendor);
+      } else {
+        clearCart();
+      }
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Order submission failed:", err);
@@ -1156,54 +1123,103 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 px-4">
-          <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl border border-border/20">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Checkout successful!
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              The seller(s) will be notified with your new order!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  router.push("/shop");
-                }}
-              >
-                Continue Shopping
-              </Button>
-              <Button
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  router.push("/profile/order-history");
-                }}
-              >
-                View Orders
-              </Button>
+      {showSuccessModal && (() => {
+        // Calculate remaining vendors after this checkout
+        const remainingVendors = Object.keys(itemsByVendor).filter(v => v !== selectedVendor);
+        const hasRemainingVendors = remainingVendors.length > 0;
+        
+        return (
+          <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 px-4">
+            <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl border border-border/20">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Order placed successfully!
+              </h2>
+              <p className="text-muted-foreground mb-2">
+                {selectedVendor && `Your order from ${selectedVendor} has been confirmed.`}
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                The seller will be notified about your new order!
+              </p>
+              
+              {hasRemainingVendors && (
+                <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-2">
+                    🛒 You still have items from {remainingVendors.length} other {remainingVendors.length === 1 ? 'vendor' : 'vendors'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {remainingVendors.join(", ")}
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                {hasRemainingVendors ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/profile/order-history");
+                      }}
+                    >
+                      View Orders
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        // Auto-select the next vendor
+                        setSelectedVendor(remainingVendors[0]);
+                        setCurrentStep(1);
+                      }}
+                    >
+                      Checkout Next Vendor →
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/shop");
+                      }}
+                    >
+                      Continue Shopping
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/profile/order-history");
+                      }}
+                    >
+                      View Orders
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 }
