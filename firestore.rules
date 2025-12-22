@@ -152,6 +152,24 @@ service cloud.firestore {
     
     
     // ========================================
+    // ADDRESSES COLLECTION
+    // ========================================
+    match /addresses/{addressId} {
+      // Users can read their own addresses
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can create their own addresses
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own addresses
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own addresses
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    
+    // ========================================
     // ANALYTICS COLLECTION (Admin Only)
     // ========================================
     match /analytics/{document=**} {
