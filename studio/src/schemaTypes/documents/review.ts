@@ -32,7 +32,7 @@ export const review = defineType({
       name: 'customerEmail',
       title: 'Customer Email',
       type: 'email',
-      validation: (rule) => rule.required().email(),
+      validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'rating',

@@ -267,16 +267,17 @@ export const person = defineType({
       isActive: 'isActive',
     },
     prepare({ firstName, lastName, role, personType, picture, isActive }) {
-      const typeEmoji = {
+      const typeEmoji: Record<string, string> = {
         team: '👨‍💻',
         mentor: '👨‍🏫',
         author: '✍️',
         partner: '🤝',
-      }[personType || 'team'] || '👤'
+      }
+      const emoji = typeEmoji[personType || 'team'] || '👤'
 
       return {
         title: `${isActive ? '' : '🚫 '}${firstName} ${lastName}`,
-        subtitle: `${typeEmoji} ${role || 'No role set'}`,
+        subtitle: `${emoji} ${role || 'No role set'}`,
         media: picture,
       }
     },

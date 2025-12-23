@@ -126,7 +126,7 @@ export const contactPage = defineType({
           preview: {
             select: { title: 'label', subtitle: 'value', type: 'type' },
             prepare({ title, subtitle, type }) {
-              const emoji = {
+              const emojiMap: Record<string, string> = {
                 phone: '📞',
                 email: '📧',
                 address: '📍',
@@ -134,7 +134,8 @@ export const contactPage = defineType({
                 viber: '📱',
                 telegram: '✈️',
                 messenger: '💬',
-              }[type] || '📋'
+              }
+              const emoji = emojiMap[type] || '📋'
               return {
                 title: `${emoji} ${title || type}`,
                 subtitle,
@@ -297,7 +298,7 @@ export const contactPage = defineType({
           preview: {
             select: { platform: 'platform', handle: 'handle' },
             prepare({ platform, handle }) {
-              const emoji = {
+              const emojiMap: Record<string, string> = {
                 facebook: '📘',
                 instagram: '📸',
                 twitter: '🐦',
@@ -305,7 +306,8 @@ export const contactPage = defineType({
                 youtube: '📹',
                 tiktok: '🎵',
                 github: '💻',
-              }[platform] || '🔗'
+              }
+              const emoji = emojiMap[platform] || '🔗'
               return {
                 title: `${emoji} ${platform?.charAt(0).toUpperCase() + platform?.slice(1)}`,
                 subtitle: handle || '',
