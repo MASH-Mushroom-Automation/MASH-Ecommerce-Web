@@ -1155,155 +1155,70 @@ export default function ProductDetailPage({ params }: Props) {
         {/* You May Also Like Section - Automatically from Same Grower */}
         {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (
           <section className="mt-16 border-t pt-12">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                   You May Also Like
                 </h2>
                 {product.grower && (
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2">
                     <Store className="w-4 h-4" />
-                    More from {product.grower.name}
+                    More products from <span className="font-semibold text-foreground">{product.grower.name}</span>
+                    {product.grower.isVerified && (
+                      <BadgeCheck className="w-4 h-4 text-primary" title="Verified Grower" />
+                    )}
                   </p>
                 )}
               </div>
               {product.grower?.slug && (
                 <Link 
                   href={`/growers/${product.grower.slug}`}
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors group"
                 >
-                  View Farm
-                  <ExternalLink className="w-3 h-3" />
+                  View All Products
+                  <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </Link>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {suggestedProducts.slice(0, 4).map((item) => {
-                const isInWishlistItem = isInWishlist(item.id);
-                
-                return (
-                  <div
-                    key={item.id}
-                    className="group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
-                  >
-                    {/* Product Image */}
-                    <Link href={`/product/${item.slug}`}>
-                      <div className="relative aspect-square bg-muted overflow-hidden">
-                        {item.image && item.image.startsWith('http') && (
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
-                            sizes="(max-width: 768px) 50vw, 25vw"
-                          />
-                        )}
-                        {/* Badges */}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
-                          {item.isPromo && (
-                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-md">
-                              SALE
-                            </span>
-                          )}
-                          {item.isFeatured && (
-                            <span className="bg-primary text-white text-xs px-2 py-1 rounded-full font-semibold shadow-md">
-                              ⭐ Featured
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Quick Wishlist Button */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (isInWishlistItem) {
-                              removeFromWishlist(item.id);
-                              toast.success('Removed from wishlist');
-                            } else {
-                              addToWishlist({
-                                id: item.id,
-                                name: item.name,
-                                slug: item.slug,
-                                price: item.price,
-                                image: item.image,
-                                category: item.category,
-                              });
-                              toast.success('Added to wishlist! ❤️');
-                            }
-                          }}
-                          className={cn(
-                            "absolute top-2 right-2 p-2 rounded-full backdrop-blur-sm transition-all duration-200 opacity-0 group-hover:opacity-100",
-                            isInWishlistItem
-                              ? "bg-red-500 text-white hover:bg-red-600"
-                              : "bg-white/90 text-foreground hover:bg-white"
-                          )}
-                          aria-label={isInWishlistItem ? "Remove from wishlist" : "Add to wishlist"}
-                        >
-                          <Heart className={cn("w-4 h-4", isInWishlistItem && "fill-current")} />
-                        </button>
-                      </div>
-                    </Link>
-
-                    {/* Product Info */}
-                    <div className="p-3 md:p-4">
-                      <Link href={`/product/${item.slug}`}>
-                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2 min-h-[2.5rem] md:min-h-[3rem]">
-                          {item.name}
-                        </h3>
-                      </Link>
-                      
-                      <div className="flex items-baseline gap-2 mb-3">
-                        <p className="text-lg md:text-xl font-bold text-primary">
-                          ₱{item.price.toFixed(2)}
-                        </p>
-                        {item.compareAtPrice && item.compareAtPrice > item.price && (
-                          <p className="text-sm text-muted-foreground line-through">
-                            ₱{item.compareAtPrice.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Quick Add to Cart Button */}
-                      <Button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          addToCart({
-                            id: item.id,
-                            name: item.name,
-                            slug: item.slug,
-                            price: item.price,
-                            image: item.image,
-                            category: item.category,
-                            stock: item.stock || 99,
-                            sku: item.sku || '',
-                            grower: item.grower,
-                            unit: item.unit,
-                          }, 1);
-                          toast.success(
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span>Added to cart!</span>
-                            </div>
-                          );
-                          trackAddToCart({
-                            id: item.id,
-                            name: item.name,
-                            price: item.price,
-                            category: item.category,
-                            quantity: 1,
-                          });
-                        }}
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
-                        size="sm"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add to Cart
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+            
+            {/* Product Grid using reusable ProductCard component */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {suggestedProducts.slice(0, 4).map((item) => (
+                <ProductCard
+                  key={item.id}
+                  id={item.id}
+                  slug={item.slug}
+                  name={item.name}
+                  farm={product.grower?.name} // Pass grower name for context
+                  price={item.price}
+                  comparePrice={item.compareAtPrice}
+                  unit={item.unit || "kg"}
+                  image={item.image || "/mushroom-placeholder.png"}
+                  images={item.images}
+                  inStock={item.isAvailable && (item.stock ?? 0) > 0}
+                  stock={item.stock}
+                  tags={[
+                    ...(item.isFeatured ? ["Featured"] : []),
+                    ...(item.isPromo ? ["Sale"] : []),
+                    ...(item.productTags || []),
+                  ]}
+                  description={item.description}
+                />
+              ))}
             </div>
+
+            {/* Mobile: View All Link */}
+            {product.grower?.slug && (
+              <div className="mt-6 md:hidden text-center">
+                <Link 
+                  href={`/growers/${product.grower.slug}`}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                >
+                  View All Products from {product.grower.name}
+                  <ExternalLink className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </section>
         )}
 
