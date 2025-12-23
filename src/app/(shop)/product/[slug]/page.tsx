@@ -1172,7 +1172,7 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
               {product.grower?.slug && (
                 <Link 
-                  href={`/growers/${product.grower.slug}`}
+                  href={`/grower/${product.grower.slug}`}
                   className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors group"
                 >
                   View All Products
@@ -1211,7 +1211,7 @@ export default function ProductDetailPage({ params }: Props) {
             {product.grower?.slug && (
               <div className="mt-6 md:hidden text-center">
                 <Link 
-                  href={`/growers/${product.grower.slug}`}
+                  href={`/grower/${product.grower.slug}`}
                   className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
                 >
                   View All Products from {product.grower.name}
