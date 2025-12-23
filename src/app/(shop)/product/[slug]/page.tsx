@@ -10,7 +10,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
-import { useSanityProduct } from "@/hooks/useSanityProducts";
+import { useSanityProduct, useSanitySuggestedProducts } from "@/hooks/useSanityProducts";
 import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
@@ -91,6 +91,16 @@ export default function ProductDetailPage({ params }: Props) {
     rating, 
     loading: reviewsLoading 
   } = useSanityReviews(product?.id || '');
+
+  // Suggested Products hook - automatically fetch from same grower/store
+  const { 
+    suggestedProducts, 
+    loading: suggestedProductsLoading 
+  } = useSanitySuggestedProducts(
+    product?.id || '',
+    product?.grower?.id || '',
+    4  // Limit to 4 suggested products
+  );
 
   // Track product view when product loads
   React.useEffect(() => {
@@ -1141,14 +1151,21 @@ export default function ProductDetailPage({ params }: Props) {
           </section>
         )}
 
-        {/* You May Also Like Section */}
-        {product.suggestedProducts && product.suggestedProducts.length > 0 && (
+        {/* You May Also Like Section - Automatically from Same Grower */}
+        {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (
           <section className="mt-16 border-t pt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">
-              You May Also Like
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground">
+                You May Also Like
+              </h2>
+              {product.grower && (
+                <p className="text-sm text-muted-foreground">
+                  More from {product.grower.name}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {product.suggestedProducts.slice(0, 4).map((item) => (
+              {suggestedProducts.slice(0, 4).map((item) => (
                 <Link
                   key={item.id}
                   href={`/product/${item.slug}`}

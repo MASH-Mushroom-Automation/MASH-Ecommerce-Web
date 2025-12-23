@@ -396,16 +396,8 @@ export function useSanityProduct(slug: string) {
           },
           
           // E-Commerce Enhancements: Related Products
-          // Note: Null references are filtered in transformSanityProduct
-          suggestedProducts[]->{
-            _id,
-            name,
-            "slug": slug.current,
-            price,
-            "image": image.asset->url,
-            "isPromo": isOnPromo,
-            isFeatured
-          },
+          // Note: suggestedProducts field is DEPRECATED - use useSanitySuggestedProducts hook instead
+          // Kept for backward compatibility but will be empty
           complementaryProducts[]->{
             _id,
             name,
@@ -444,7 +436,18 @@ export function useSanityProduct(slug: string) {
             }
           },
           nutritionalHighlights,
-          searchKeywords
+          searchKeywords,
+          
+          // Grower Information (needed for auto-suggested products)
+          grower->{
+            _id,
+            name,
+            "slug": slug.current,
+            tagline,
+            location,
+            isVerified,
+            "image": logo.asset->url
+          }
         }`;
 
         const data: SanityProduct | null = await sanityClient.fetch(query, { slug });
@@ -500,15 +503,7 @@ export function useSanityProduct(slug: string) {
         },
         category->{ _id, name, "slug": slug.current, description },
         subcategory->{ _id, name, "slug": slug.current },
-        suggestedProducts[]->{
-          _id,
-          name,
-          "slug": slug.current,
-          price,
-          "image": image.asset->url,
-          "isPromo": isOnPromo,
-          isFeatured
-        },
+        // suggestedProducts is DEPRECATED - use useSanitySuggestedProducts hook instead
         complementaryProducts[]->{
           _id,
           name,
@@ -523,7 +518,16 @@ export function useSanityProduct(slug: string) {
         deliveryOptions,
         deliveryWeight,
         nutritionalHighlights,
-        searchKeywords
+        searchKeywords,
+        grower->{
+          _id,
+          name,
+          "slug": slug.current,
+          tagline,
+          location,
+          isVerified,
+          "image": logo.asset->url
+        }
       }`;
 
       const subscription = sanityClient
@@ -548,6 +552,90 @@ export function useSanityProduct(slug: string) {
   }, [slug]);
 
   return { product, loading, error };
+}
+
+/**
+ * Fetch suggested products automatically from the same grower/store
+ * Replaces manual suggestedProducts field - automatically finds products from same farm
+ * 
+ * @param currentProductId - ID of the current product being viewed
+ * @param growerId - ID of the grower/store to fetch products from
+ * @param limit - Number of suggested products to fetch (default: 4)
+ * @returns suggested products, loading state, error
+ * 
+ * @example
+ * const { suggestedProducts, loading } = useSanitySuggestedProducts(productId, growerId, 4);
+ */
+export function useSanitySuggestedProducts(
+  currentProductId?: string,
+  growerId?: string,
+  limit: number = 4
+) {
+  const [suggestedProducts, setSuggestedProducts] = useState<TransformedProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    async function fetchSuggestedProducts() {
+      // Don't fetch if no grower ID provided
+      if (!growerId || !currentProductId) {
+        setSuggestedProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Query to fetch products from the same grower, excluding the current product
+        const query = `*[_type == "product" 
+          && isAvailable == true 
+          && _id != $currentProductId 
+          && references($growerId)
+        ] | order(isFeatured desc, _createdAt desc) [0...$limit] {
+          _id,
+          name,
+          "slug": slug.current,
+          description,
+          price,
+          compareAtPrice,
+          "mainImage": image.asset->url,
+          "isPromo": isOnPromo,
+          isFeatured,
+          category->{ name }
+        }`;
+
+        const params = {
+          currentProductId,
+          growerId,
+          limit: limit - 1, // GROQ uses 0-based indexing
+        };
+
+        console.log('🔍 Fetching suggested products from same grower:', { growerId, currentProductId, limit });
+        const data: SanityProduct[] = await sanityClient.fetch(query, params);
+
+        if (data && Array.isArray(data)) {
+          const { transformSanityProduct } = await import('@/types/sanity');
+          const transformedProducts = data.map(transformSanityProduct);
+          setSuggestedProducts(transformedProducts);
+          console.log('✅ Suggested products fetched:', { count: transformedProducts.length, grower: growerId });
+        } else {
+          setSuggestedProducts([]);
+        }
+      } catch (err) {
+        console.error('Error fetching suggested products from Sanity:', err);
+        setError(err as Error);
+        setSuggestedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSuggestedProducts();
+  }, [currentProductId, growerId, limit]);
+
+  return { suggestedProducts, loading, error };
 }
 
 /**

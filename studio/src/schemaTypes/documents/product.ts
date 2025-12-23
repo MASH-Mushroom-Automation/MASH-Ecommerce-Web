@@ -468,13 +468,16 @@ export const product = defineType({
     // ========================================
 
     // Suggested Products & Smart Recommendations
+    // ⚠️ DEPRECATED: This field is no longer used - suggested products are now auto-generated
+    // from products in the same grower/store. Kept for backward compatibility only.
     defineField({
       name: 'suggestedProducts',
-      title: 'Suggested Products (You May Also Like)',
+      title: '⚠️ DEPRECATED - Suggested Products (Auto-generated)',
       type: 'array',
       of: [{type: 'reference', to: [{type: 'product'}]}],
-      description: 'AI-powered suggestions shown as "You may also like" - helps customers discover complementary products',
+      description: '⚠️ DEPRECATED: This field is no longer needed. Suggested products are now automatically shown from the same grower/store. You can leave this empty.',
       validation: (Rule) => Rule.max(8),
+      hidden: true,  // Hide this field in Sanity Studio
       options: {
         layout: 'grid',
       },
