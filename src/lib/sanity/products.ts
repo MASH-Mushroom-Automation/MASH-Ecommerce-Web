@@ -335,19 +335,95 @@ export async function createProduct(
 }
 
 /**
+ * Fetch a single product by ID (with optional seller verification)
+ */
+export async function fetchProductById(
+  productId: string,
+  sellerId?: string
+): Promise<{
+  _id: string;
+  name: string;
+  description?: string;
+  category: string;
+  price: number;
+  stock: number;
+  sku?: string;
+  weight?: number;
+  isAvailable?: boolean;
+  mainImage?: string;
+  images?: string[];
+  slug: string;
+  sellerId?: string;
+  compareAtPrice?: number;
+  hasVariants?: boolean;
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+  };
+} | null> {
+  try {
+    let query = `*[_type == "product" && _id == $productId`;
+    
+    // Verify seller ownership if sellerId provided
+    if (sellerId) {
+      query += ` && sellerId == $sellerId`;
+    }
+    
+    query += `][0] {
+      _id,
+      name,
+      description,
+      price,
+      compareAtPrice,
+      "stock": coalesce(inventory.quantityInStock, quantity, 0),
+      sku,
+      weight,
+      isAvailable,
+      hasVariants,
+      "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+      "images": images[].asset->url,
+      "category": category._ref,
+      "slug": slug.current,
+      sellerId,
+      seo {
+        metaTitle,
+        metaDescription
+      }
+    }`;
+
+    const product = await sanityClient.fetch(query, { productId, sellerId });
+    return product || null;
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    throw new Error("Failed to fetch product");
+  }
+}
+
+/**
  * Update an existing product in Sanity CMS
+ * Verifies seller ownership before updating
  */
 export async function updateProduct(
   productId: string,
-  data: ProductFormData
+  data: ProductFormData,
+  sellerId?: string
 ): Promise<{ _id: string; slug: string }> {
   try {
+    // Verify seller ownership if sellerId provided
+    if (sellerId) {
+      const existingProduct = await fetchProductById(productId, sellerId);
+      if (!existingProduct) {
+        throw new Error("Product not found or you don't have permission to edit it");
+      }
+    }
+
     // Upload new images if any
     const uploadedImages = await uploadProductImages(data.images);
     const [primaryImage, ...additionalImages] = uploadedImages;
 
-    // Update product
-    const patch = sanityClient.patch(productId);
+    // Update product using write client
+    const writeClient = getWriteClient();
+    const patch = writeClient.patch(productId);
 
     patch.set({
       name: data.name,
@@ -381,14 +457,14 @@ export async function updateProduct(
     await patch.commit();
 
     // Get current slug
-    const product = await sanityClient.fetch(
+    const product = await writeClient.fetch(
       `*[_type == "product" && _id == $id][0]{slug}`,
       { id: productId }
     );
 
     return {
       _id: productId,
-      slug: product.slug.current,
+      slug: product?.slug?.current || "",
     };
   } catch (error) {
     console.error("Error updating product:", error);

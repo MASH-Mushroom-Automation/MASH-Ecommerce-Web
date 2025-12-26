@@ -3,10 +3,9 @@ import { cookies } from "next/headers";
 import { createProduct, ProductFormData, fetchSellerProducts } from "@/lib/sanity/products";
 import type { UploadedImage } from "@/components/seller/product-form/ImageUploader";
 import type { ProductVariant } from "@/components/seller/product-form/VariantManager";
-import { apiRequest } from "@/lib/api-client";
-import type { ApiResponse, UserProfile } from "@/types/api";
+import { getUserIdFromToken } from "@/lib/jwt";
 
-// Helper function to get current user ID
+// Helper function to get current user ID from JWT token
 async function getCurrentUserId(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
@@ -16,17 +15,9 @@ async function getCurrentUserId(): Promise<string | null> {
       return null;
     }
 
-    // Get user profile to extract user ID
-    const response = await apiRequest<ApiResponse<UserProfile>>(
-      "/api/user/profile",
-      { method: "GET" }
-    );
-
-    if (response.success && response.data) {
-      return response.data.id;
-    }
-
-    return null;
+    // Extract user ID directly from JWT token (sub field)
+    const userId = getUserIdFromToken(token);
+    return userId;
   } catch (error) {
     console.error("Error getting current user ID:", error);
     return null;
