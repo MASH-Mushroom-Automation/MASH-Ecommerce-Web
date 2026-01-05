@@ -15,13 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -70,6 +63,8 @@ export default function SellerSettings() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [initialSellerData, setInitialSellerData] = useState<any | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -87,26 +82,32 @@ export default function SellerSettings() {
           fetch("/api/seller/notification-preferences")
         ]);
 
+        // Merge fetched parts into a single baseline object, then set both current and initial
+        let merged = { ...sellerData };
+
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           if (profileData.success) {
-            setSellerData(prev => ({ ...prev, ...profileData.data }));
+            merged = { ...merged, ...profileData.data };
           }
         }
 
         if (paymentRes.ok) {
           const paymentData = await paymentRes.json();
           if (paymentData.success) {
-            setSellerData(prev => ({ ...prev, ...paymentData.data }));
+            merged = { ...merged, ...paymentData.data };
           }
         }
 
         if (notifRes.ok) {
           const notifData = await notifRes.json();
           if (notifData.success) {
-            setSellerData(prev => ({ ...prev, ...notifData.data }));
+            merged = { ...merged, ...notifData.data };
           }
         }
+
+        setSellerData(merged);
+        setInitialSellerData(merged);
       } catch (error) {
         console.error("Error fetching seller data:", error);
         toast.error("Failed to load settings");
@@ -142,7 +143,12 @@ export default function SellerSettings() {
 
       if (data.success) {
         toast.success("Profile updated successfully!");
-        setSellerData(prev => ({ ...prev, ...data.data }));
+        setSellerData(prev => {
+          const updated = { ...prev, ...data.data };
+          setInitialSellerData(updated);
+          setIsEditingProfile(false);
+          return updated;
+        });
       } else {
         toast.error(data.error?.message || "Failed to update profile");
       }
@@ -152,6 +158,13 @@ export default function SellerSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleProfileCancel = () => {
+    if (initialSellerData) {
+      setSellerData(initialSellerData);
+    }
+    setIsEditingProfile(false);
   };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -371,8 +384,11 @@ export default function SellerSettings() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <header>
+        <h1 className="sm:text-2xl text-xl font-bold">Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage your store profile, payment information, notification preferences, and security settings.</p>
+        </header>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -393,7 +409,7 @@ export default function SellerSettings() {
                   Manage your store information and public profile.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="-mt-5">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="store-logo">Store Logo</Label>
@@ -464,15 +480,15 @@ export default function SellerSettings() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-name">Store Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-name"
                           placeholder="Your store name"
-                          className="pl-9"
                           value={sellerData.name}
+                          className="text-sm"
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -484,7 +500,7 @@ export default function SellerSettings() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-email">Email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -492,7 +508,7 @@ export default function SellerSettings() {
                           id="store-email"
                           type="email"
                           placeholder="contact@yourstore.com"
-                          className="pl-9"
+                          className="text-sm"
                           value={sellerData.email}
                           onChange={(e) =>
                             setSellerData({
@@ -507,14 +523,14 @@ export default function SellerSettings() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-phone">Phone Number</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-phone"
                           placeholder="e.g., 09123456789"
-                          className="pl-9"
+                          className="text-sm"
                           value={sellerData.phone}
                           onChange={(e) =>
                             setSellerData({
@@ -527,14 +543,14 @@ export default function SellerSettings() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-website">Website (Optional)</Label>
                       <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Globe className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-website"
                           placeholder="https://yourwebsite.com"
-                          className="pl-9"
+                          className="text-sm"
                           value={sellerData.website}
                           onChange={(e) =>
                             setSellerData({
@@ -547,12 +563,13 @@ export default function SellerSettings() {
                     </div>
                   </div>
 
-                  <div>
+                    <div className="space-y-2">
                     <Label htmlFor="store-location">Location</Label>
                     <Input
                       id="store-location"
                       placeholder="City, Province"
                       value={sellerData.location}
+                      className="text-sm"
                       onChange={(e) =>
                         setSellerData({
                           ...sellerData,
@@ -563,13 +580,15 @@ export default function SellerSettings() {
                     />
                   </div>
 
-                  <div>
+                    <div className="space-y-2">
                     <Label htmlFor="store-description">Store Description</Label>
                     <Textarea
                       id="store-description"
                       placeholder="Tell customers about your store..."
                       rows={4}
                       value={sellerData.description}
+                      className="text-sm"
+
                       onChange={(e) =>
                         setSellerData({
                           ...sellerData,
@@ -606,9 +625,9 @@ export default function SellerSettings() {
                 Payment gateway integration coming soon.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="-mt-3">
               <div className="space-y-4">
-                <div>
+                  <div className="space-y-2">
                   <Label htmlFor="tax-id">Tax Identification Number</Label>
                   <Input
                     id="tax-id"
@@ -671,7 +690,7 @@ export default function SellerSettings() {
                   Manage how you receive notifications from MASH.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="-mt-3">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -731,7 +750,7 @@ export default function SellerSettings() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end">
+              {/* <CardFooter className="flex justify-end">
                 <Button
                   type="submit"
                   className="bg-[#1E392A] hover:bg-[#1E392A]/90"
@@ -740,7 +759,7 @@ export default function SellerSettings() {
                   <Save className="mr-2 h-4 w-4" />
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
-              </CardFooter>
+              </CardFooter> */}
             </Card>
           </form>
         </TabsContent>
@@ -751,19 +770,18 @@ export default function SellerSettings() {
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your account password.</CardDescription>
+                <CardDescription>Your password must be at least 6 characters and should include a combination of numbers, letters and special characters (!$@%).</CardDescription>
               </CardHeader>
               <form onSubmit={handlePasswordUpdate}>
-                <CardContent className="space-y-4">
-                  <div>
+                <CardContent className="space-y-4 -mt-3">
+                  <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="current-password"
                         type="password"
                         placeholder="Enter current password"
-                        className="pl-9"
+                        className="text-sm"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         required
@@ -771,33 +789,31 @@ export default function SellerSettings() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="new-password">New Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="new-password"
                         type="password"
                         placeholder="Enter new password"
-                        className="pl-9"
-                        value={newPassword}
+                        className="text-sm"
+                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
                       />
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="confirm-password">
                       Confirm New Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="confirm-password"
                         type="password"
                         placeholder="Confirm new password"
-                        className="pl-9"
+                        className="text-sm"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
