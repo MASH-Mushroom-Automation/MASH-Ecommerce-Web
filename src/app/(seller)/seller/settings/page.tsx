@@ -36,7 +36,10 @@ import {
   Lock,
   Upload,
   Save,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import OperatingHoursModal from "@/components/OperatingHoursModal";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -48,6 +51,7 @@ export default function SellerSettings() {
     description: "Urban-grown gourmet mushrooms for the modern kitchen.",
     website: "https://fungifreshfarms.com",
     location: "Caloocan City, Metro Manila",
+    operatingHours: "9AM - 5PM Mon-Fri; Closed Sat-Sun",
     logo: "/placeholder.png",
     banner: "/placeholder.png",
     taxId: "123-456-789-000",
@@ -69,11 +73,46 @@ export default function SellerSettings() {
   const [stagedBannerFile, setStagedBannerFile] = useState<File | null>(null);
   const [stagedLogoPreview, setStagedLogoPreview] = useState<string | null>(null);
   const [stagedBannerPreview, setStagedBannerPreview] = useState<string | null>(null);
+
+  // Helper: format structured hours map into a human friendly summary
+  const formatTime = (t: string) => {
+    // expect HH:MM
+    const [hh, mm] = t.split(":" ).map(Number);
+    if (Number.isNaN(hh)) return t;
+    const period = hh >= 12 ? "PM" : "AM";
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${period}`;
+  };
+
+  const formatHoursSummary = (hoursMap: Record<string, any>) => {
+    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const abbr: Record<string,string> = {Monday:"Mon",Tuesday:"Tue",Wednesday:"Wed",Thursday:"Thu",Friday:"Fri",Saturday:"Sat",Sunday:"Sun"};
+    const entries = DAYS.map((d) => {
+      const v = hoursMap[d];
+      if (!v || v.closed) return { day: d, val: "Closed" };
+      return { day: d, val: `${formatTime(v.open)} - ${formatTime(v.close)}` };
+    });
+
+    // compress consecutive days with same val
+    const parts: string[] = [];
+    let i = 0;
+    while (i < entries.length) {
+      let j = i;
+      while (j + 1 < entries.length && entries[j+1].val === entries[i].val) j++;
+      const dayLabel = i === j ? abbr[entries[i].day] : `${abbr[entries[i].day]}-${abbr[entries[j].day]}`;
+      parts.push(`${dayLabel} ${entries[i].val}`);
+      i = j + 1;
+    }
+    return parts.join("; ");
+  };
   
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const router = useRouter();
 
@@ -147,17 +186,26 @@ export default function SellerSettings() {
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
+    // Basic validation (enforced client-side)
+    const isMatch = newPassword === confirmPassword;
+    const lengthOk = newPassword.length >= 6;
+    const hasLetter = /[A-Za-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(newPassword);
 
-    // Basic validation
-    if (newPassword !== confirmPassword) {
+    if (!isMatch) {
       setPasswordError("Passwords do not match");
       toast.error("Passwords do not match");
       return;
     }
 
-    if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-      toast.error("Password must be at least 8 characters");
+    if (!lengthOk || !hasLetter || !hasNumber || !hasSpecial) {
+      setPasswordError(
+        "Password must be at least 6 characters and include letters, numbers, and one of these special characters: !$@%"
+      );
+      toast.error(
+        "Password must be at least 6 characters and include letters, numbers, and one of these special characters: !$@%"
+      );
       return;
     }
 
@@ -193,6 +241,18 @@ export default function SellerSettings() {
       setSaving(false);
     }
   };
+
+  // Client-side password rules helper
+  const isPasswordValid = (pwd: string) => {
+    const lengthOk = pwd.length >= 6;
+    const hasLetter = /[A-Za-z]/.test(pwd);
+    const hasNumber = /\d/.test(pwd);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(pwd);
+    return lengthOk && hasLetter && hasNumber && hasSpecial;
+  };
+
+  const isPasswordFormValid =
+    currentPassword.trim().length > 0 && isPasswordValid(newPassword) && newPassword === confirmPassword;
 
   // Stage logo file locally (preview only). Actual upload occurs on Save.
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,6 +298,7 @@ export default function SellerSettings() {
     "description",
     "website",
     "location",
+    "operatingHours",
     "logo",
     "banner",
   ];
@@ -295,6 +356,7 @@ export default function SellerSettings() {
           email: sellerData.email,
           phone: sellerData.phone,
           description: sellerData.description,
+          operatingHours: sellerData.operatingHours,
           website: sellerData.website,
           location: sellerData.location,
           logo: logoUrl,
@@ -439,37 +501,54 @@ export default function SellerSettings() {
         <TabsContent value="profile">
           <form onSubmit={handleProfileUpdate}>
             <Card>
-              <CardHeader className="flex justify-between gap-4">
-                <div className="flex justify-between">
-                <div>
-                    <CardTitle>Store Profile</CardTitle>
-                    <CardDescription>
-                      Manage your store information and public profile.
-                    </CardDescription>
-                 </div>
-                    {!isEditingProfile ? (
-                      <Button size="sm" onClick={() => setIsEditingProfile(true)} disabled={loading}>
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleProfileCancel} disabled={saving}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={saveProfile} disabled={saving || !isProfileDirty}>
-                          <Save className="mr-2 h-4 w-4" />
-                          {saving ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-              <CardContent className="-mt-5">
+    <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+  {/* Title & description */}
+  <div>
+    <CardTitle>Store Profile</CardTitle>
+    <CardDescription>
+      Manage your store information and public profile.
+    </CardDescription>
+  </div>
+
+  {/* Actions */}
+  <div className="flex flex-wrap gap-2 sm:justify-end">
+    {!isEditingProfile ? (
+      <Button
+        size="sm"
+        onClick={() => setIsEditingProfile(true)}
+        disabled={loading}
+      >
+        Edit
+      </Button>
+    ) : (
+      <>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleProfileCancel}
+          disabled={saving}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={saveProfile}
+          disabled={saving || !isProfileDirty}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
+      </>
+    )}
+  </div>
+</CardHeader>
+
+              <CardContent className="sm:-mt-5">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="store-logo">Store Logo</Label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
+                  <div className="flex flex-row items-center gap-4 mt-2">
+                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border flex-shrink-0">
                         <Image
                           src={stagedLogoPreview || sellerData.logo}
                           alt="Store logo"
@@ -477,10 +556,10 @@ export default function SellerSettings() {
                           className="object-cover"
                         />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-auto">
                         <Label
                           htmlFor="logo-upload"
-                          className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
+                          className={`cursor-pointer inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingLogo ? "Uploading..." : "Upload Logo"}
@@ -493,7 +572,7 @@ export default function SellerSettings() {
                           onChange={handleLogoUpload}
                           disabled={!isEditingProfile}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 text-center sm:text-left">
                           Recommended: 500x500px, max 2MB
                         </p>
                       </div>
@@ -502,7 +581,7 @@ export default function SellerSettings() {
 
                   <div>
                     <Label htmlFor="store-banner">Store Banner</Label>
-                    <div className="mt-2">
+                      <div className="mt-2">
                       <div className="relative h-40 w-full rounded-lg overflow-hidden border border-border mb-2">
                         <Image
                           src={stagedBannerPreview || sellerData.banner}
@@ -511,10 +590,10 @@ export default function SellerSettings() {
                           className="object-cover"
                         />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-auto">
                         <Label
                           htmlFor="banner-upload"
-                          className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
+                          className={`cursor-pointer inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingBanner ? "Uploading..." : "Upload Banner"}
@@ -527,7 +606,7 @@ export default function SellerSettings() {
                           onChange={handleBannerUpload}
                           disabled={!isEditingProfile}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 text-center sm:text-left">
                           Recommended: 1200x300px, max 5MB
                         </p>
                       </div>
@@ -658,6 +737,42 @@ export default function SellerSettings() {
                       This description will appear on your store profile page.
                     </p>
                   </div>
+
+                      <div className="space-y-2">
+                      <Label htmlFor="store-hours">Operating Hours</Label>
+                      <div className={`flex items-center gap-3 p-3 rounded-md border flex-wrap sm:flex-nowrap ${!isEditingProfile ? "opacity-60" : ""}`}>
+                        <div className="flex-1 text-sm text-foreground min-w-0">
+                          {sellerData.operatingHours ? (
+                            <span className="block truncate">{sellerData.operatingHours}</span>
+                          ) : (
+                            <span className="text-muted-foreground">No operating hours set</span>
+                          )}
+                        </div>
+                        <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                          <OperatingHoursModal
+                            triggerLabel={isEditingProfile ? "Edit Hours" : "View Hours"}
+                            initialHours={(() => {
+                              try {
+                                // Try parse JSON stored in operatingHours if present
+                                const parsed = JSON.parse(String(sellerData.operatingHours || "{}"));
+                                return parsed;
+                              } catch {
+                                return undefined;
+                              }
+                            })()}
+                            onSave={(hours) => {
+                              // Generate a human-friendly summary and store in sellerData.operatingHours
+                              const fmt = formatHoursSummary(hours);
+                              setSellerData((prev) => ({ ...prev, operatingHours: fmt }));
+                            }}
+                            disabled={!isEditingProfile}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Public store operating hours shown on your profile.
+                      </p>
+                    </div>
                 </div>
               </CardContent>
             </Card>
@@ -821,19 +936,27 @@ export default function SellerSettings() {
                 <CardDescription>Your password must be at least 6 characters and should include a combination of numbers, letters and special characters (!$@%).</CardDescription>
               </CardHeader>
               <form onSubmit={handlePasswordUpdate}>
-                <CardContent className="space-y-4 -mt-3">
+                <CardContent className="space-y-4 sm:-mt-3">
                   <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
                     <div className="relative">
                       <Input
                         id="current-password"
-                        type="password"
+                        type={showCurrentPassword ? "text" : "password"}
                         placeholder="Enter current password"
-                        className="text-sm"
+                        className="text-sm pr-10"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
@@ -842,13 +965,21 @@ export default function SellerSettings() {
                     <div className="relative">
                       <Input
                         id="new-password"
-                        type="password"
+                        type={showNewPassword ? "text" : "password"}
                         placeholder="Enter new password"
-                        className="text-sm"
-                         value={newPassword}
+                        className="text-sm pr-10"
+                        value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
@@ -859,15 +990,33 @@ export default function SellerSettings() {
                     <div className="relative">
                       <Input
                         id="confirm-password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm new password"
-                        className="text-sm"
+                        className="text-sm pr-10"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
+
+                  {newPassword && !isPasswordValid(newPassword) && (
+                    <p className="text-sm text-red-600">
+                      Password must be at least 6 characters and include letters, numbers, and one of: <span className="font-mono">! $ @ %</span>
+                    </p>
+                  )}
+
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-red-600">Passwords do not match</p>
+                  )}
 
                   {passwordError && (
                     <p className="text-sm text-red-600">{passwordError}</p>
@@ -876,8 +1025,8 @@ export default function SellerSettings() {
                 <CardFooter className="flex justify-end">
                   <Button
                     type="submit"
-                    className="bg-[#1E392A] hover:bg-[#1E392A]/90"
-                    disabled={saving}
+                    className="bg-primary hover:bg-primary/90"
+                    disabled={saving || !isPasswordFormValid}
                   >
                     {saving ? "Updating..." : "Update Password"}
                   </Button>
@@ -907,7 +1056,7 @@ export default function SellerSettings() {
                     Danger Zone
                   </h4>
                   <p className="text-sm text-gray-500 mb-4">
-                    Permanently delete your seller account and all associated
+                    Deactivate your seller account and all associated
                     data.
                   </p>
                   <AlertDialog>
@@ -916,7 +1065,7 @@ export default function SellerSettings() {
                         variant="outline"
                         className="text-red-600 border-red-200 hover:bg-red-50"
                       >
-                        Delete Account
+                        Deactivate Account
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
