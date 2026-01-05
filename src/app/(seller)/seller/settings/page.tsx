@@ -65,6 +65,11 @@ export default function SellerSettings() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [initialSellerData, setInitialSellerData] = useState<any | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [stagedLogoFile, setStagedLogoFile] = useState<File | null>(null);
+  const [stagedBannerFile, setStagedBannerFile] = useState<File | null>(null);
+  const [stagedLogoPreview, setStagedLogoPreview] = useState<string | null>(null);
+  const [stagedBannerPreview, setStagedBannerPreview] = useState<string | null>(null);
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -121,49 +126,21 @@ export default function SellerSettings() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-
-    try {
-      const res = await fetch("/api/seller/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: sellerData.name,
-          email: sellerData.email,
-          phone: sellerData.phone,
-          description: sellerData.description,
-          website: sellerData.website,
-          location: sellerData.location,
-          logo: sellerData.logo,
-          banner: sellerData.banner
-        })
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success("Profile updated successfully!");
-        setSellerData(prev => {
-          const updated = { ...prev, ...data.data };
-          setInitialSellerData(updated);
-          setIsEditingProfile(false);
-          return updated;
-        });
-      } else {
-        toast.error(data.error?.message || "Failed to update profile");
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
-    } finally {
-      setSaving(false);
-    }
+    // Use saveProfile which will upload staged files (if any) then send profile PUT
+    await saveProfile();
   };
 
   const handleProfileCancel = () => {
     if (initialSellerData) {
       setSellerData(initialSellerData);
     }
+    // clear any staged previews
+    if (stagedLogoPreview) { try { URL.revokeObjectURL(stagedLogoPreview); } catch {} }
+    if (stagedBannerPreview) { try { URL.revokeObjectURL(stagedBannerPreview); } catch {} }
+    setStagedLogoFile(null);
+    setStagedBannerFile(null);
+    setStagedLogoPreview(null);
+    setStagedBannerPreview(null);
     setIsEditingProfile(false);
   };
 
@@ -217,81 +194,140 @@ export default function SellerSettings() {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Stage logo file locally (preview only). Actual upload occurs on Save.
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Logo must be less than 2MB");
       return;
     }
-
-    setUploadingLogo(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/cms/upload", {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        const logoUrl = data.data.url;
-        setSellerData({ ...sellerData, logo: logoUrl });
-        toast.success("Logo uploaded successfully!");
-      } else {
-        toast.error(data.error || "Failed to upload logo");
-      }
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-      toast.error("Failed to upload logo");
-    } finally {
-      setUploadingLogo(false);
+    // revoke previous preview if any
+    if (stagedLogoPreview) {
+      try { URL.revokeObjectURL(stagedLogoPreview); } catch {}
     }
+    const preview = URL.createObjectURL(file);
+    setStagedLogoFile(file);
+    setStagedLogoPreview(preview);
+    // make sure we're in edit mode
+    setIsEditingProfile(true);
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Stage banner file locally (preview only). Actual upload occurs on Save.
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Banner must be less than 5MB");
       return;
     }
+    if (stagedBannerPreview) {
+      try { URL.revokeObjectURL(stagedBannerPreview); } catch {}
+    }
+    const preview = URL.createObjectURL(file);
+    setStagedBannerFile(file);
+    setStagedBannerPreview(preview);
+    setIsEditingProfile(true);
+  };
 
-    setUploadingBanner(true);
+  // Determine if any profile field or staged files differ from the baseline
+  const profileKeys = [
+    "name",
+    "email",
+    "phone",
+    "description",
+    "website",
+    "location",
+    "logo",
+    "banner",
+  ];
 
+  const isProfileDirty = (() => {
+    if (!initialSellerData) return false;
+    const fieldDiff = profileKeys.some((k) => (initialSellerData as any)[k] !== (sellerData as any)[k]);
+    const stagedDiff = Boolean(stagedLogoFile || stagedBannerFile);
+    return fieldDiff || stagedDiff;
+  })();
+
+  // Save profile helper: upload staged files (if any), then PUT profile
+  const saveProfile = async () => {
+    setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      let logoUrl = sellerData.logo;
+      let bannerUrl = sellerData.banner;
 
-      const res = await fetch("/api/cms/upload", {
-        method: "POST",
-        body: formData
+      // Upload staged logo if present
+      if (stagedLogoFile) {
+        const formData = new FormData();
+        formData.append("file", stagedLogoFile);
+        const res = await fetch("/api/cms/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data?.success) {
+          logoUrl = data.data.url;
+        } else {
+          toast.error(data?.error || "Failed to upload logo");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Upload staged banner if present
+      if (stagedBannerFile) {
+        const formData = new FormData();
+        formData.append("file", stagedBannerFile);
+        const res = await fetch("/api/cms/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data?.success) {
+          bannerUrl = data.data.url;
+        } else {
+          toast.error(data?.error || "Failed to upload banner");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Send profile update
+      const res = await fetch("/api/seller/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: sellerData.name,
+          email: sellerData.email,
+          phone: sellerData.phone,
+          description: sellerData.description,
+          website: sellerData.website,
+          location: sellerData.location,
+          logo: logoUrl,
+          banner: bannerUrl,
+        }),
       });
 
       const data = await res.json();
-
       if (data.success) {
-        const bannerUrl = data.data.url;
-        setSellerData({ ...sellerData, banner: bannerUrl });
-        toast.success("Banner uploaded successfully!");
+        const updated = { ...sellerData, ...data.data };
+        setSellerData(updated);
+        setInitialSellerData(updated);
+        // clear staged previews
+        if (stagedLogoPreview) { try { URL.revokeObjectURL(stagedLogoPreview); } catch {} }
+        if (stagedBannerPreview) { try { URL.revokeObjectURL(stagedBannerPreview); } catch {} }
+        setStagedLogoFile(null);
+        setStagedBannerFile(null);
+        setStagedLogoPreview(null);
+        setStagedBannerPreview(null);
+        setIsEditingProfile(false);
+        toast.success("Profile updated successfully!");
       } else {
-        toast.error(data.error || "Failed to upload banner");
+        toast.error(data.error?.message || "Failed to update profile");
       }
     } catch (error) {
-      console.error("Error uploading banner:", error);
-      toast.error("Failed to upload banner");
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile");
     } finally {
-      setUploadingBanner(false);
+      setSaving(false);
     }
   };
+
+  
 
   const handleDeleteAccount = async () => {
     setSaving(true);
@@ -403,12 +439,31 @@ export default function SellerSettings() {
         <TabsContent value="profile">
           <form onSubmit={handleProfileUpdate}>
             <Card>
-              <CardHeader>
-                <CardTitle>Store Profile</CardTitle>
-                <CardDescription>
-                  Manage your store information and public profile.
-                </CardDescription>
-              </CardHeader>
+              <CardHeader className="flex justify-between gap-4">
+                <div className="flex justify-between">
+                <div>
+                    <CardTitle>Store Profile</CardTitle>
+                    <CardDescription>
+                      Manage your store information and public profile.
+                    </CardDescription>
+                 </div>
+                    {!isEditingProfile ? (
+                      <Button size="sm" onClick={() => setIsEditingProfile(true)} disabled={loading}>
+                        Edit
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={handleProfileCancel} disabled={saving}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={saveProfile} disabled={saving || !isProfileDirty}>
+                          <Save className="mr-2 h-4 w-4" />
+                          {saving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
               <CardContent className="-mt-5">
                 <div className="space-y-4">
                   <div>
@@ -416,7 +471,7 @@ export default function SellerSettings() {
                     <div className="flex items-center gap-4 mt-2">
                       <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
                         <Image
-                          src={sellerData.logo}
+                          src={stagedLogoPreview || sellerData.logo}
                           alt="Store logo"
                           fill
                           className="object-cover"
@@ -425,7 +480,7 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="logo-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingLogo ? "Uploading..." : "Upload Logo"}
@@ -436,7 +491,7 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
+                          disabled={!isEditingProfile}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Recommended: 500x500px, max 2MB
@@ -450,7 +505,7 @@ export default function SellerSettings() {
                     <div className="mt-2">
                       <div className="relative h-40 w-full rounded-lg overflow-hidden border border-border mb-2">
                         <Image
-                          src={sellerData.banner}
+                          src={stagedBannerPreview || sellerData.banner}
                           alt="Store banner"
                           fill
                           className="object-cover"
@@ -459,7 +514,7 @@ export default function SellerSettings() {
                       <div>
                         <Label
                           htmlFor="banner-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingBanner ? "Uploading..." : "Upload Banner"}
@@ -470,7 +525,7 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleBannerUpload}
-                          disabled={uploadingBanner}
+                          disabled={!isEditingProfile}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Recommended: 1200x300px, max 5MB
@@ -483,12 +538,12 @@ export default function SellerSettings() {
                     <div className="space-y-2">
                       <Label htmlFor="store-name">Store Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-name"
                           placeholder="Your store name"
                           value={sellerData.name}
-                          className="text-sm"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -503,13 +558,13 @@ export default function SellerSettings() {
                     <div className="space-y-2">
                       <Label htmlFor="store-email">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-email"
                           type="email"
                           placeholder="contact@yourstore.com"
-                          className="text-sm"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.email}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -526,12 +581,12 @@ export default function SellerSettings() {
                     <div className="space-y-2">
                       <Label htmlFor="store-phone">Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-phone"
                           placeholder="e.g., 09123456789"
-                          className="text-sm"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.phone}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -546,12 +601,12 @@ export default function SellerSettings() {
                     <div className="space-y-2">
                       <Label htmlFor="store-website">Website (Optional)</Label>
                       <div className="relative">
-                        <Globe className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-website"
                           placeholder="https://yourwebsite.com"
-                          className="text-sm"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.website}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -569,7 +624,8 @@ export default function SellerSettings() {
                       id="store-location"
                       placeholder="City, Province"
                       value={sellerData.location}
-                      className="text-sm"
+                      className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                      readOnly={!isEditingProfile}
                       onChange={(e) =>
                         setSellerData({
                           ...sellerData,
@@ -587,7 +643,8 @@ export default function SellerSettings() {
                       placeholder="Tell customers about your store..."
                       rows={4}
                       value={sellerData.description}
-                      className="text-sm"
+                      className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                      readOnly={!isEditingProfile}
 
                       onChange={(e) =>
                         setSellerData({
@@ -603,15 +660,6 @@ export default function SellerSettings() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </CardFooter>
             </Card>
           </form>
         </TabsContent>
