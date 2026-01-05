@@ -8,7 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
-    "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose"
+    "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose",
+    "import-cart-tasks": "node scripts/github-cart-tasks-importer.js",
+    "import-cart-tasks:dry-run": "node scripts/github-cart-tasks-importer.js --dry-run --verbose",
+    "import-ai-tasks": "node scripts/github-ai-tasks-importer.js",
+    "import-ai-tasks:dry-run": "node scripts/github-ai-tasks-importer.js --dry-run --verbose",
+    "import-seo-tasks": "node scripts/github-seo-tasks-importer.js",
+    "import-seo-tasks:dry-run": "node scripts/github-seo-tasks-importer.js --dry-run --verbose",
+    "labels:apply": "node scripts/github-labels-manager.js --apply",
+    "labels:apply:remove-duplicates": "node scripts/github-labels-manager.js --apply --remove-duplicates",
+    "labels:preview": "node scripts/github-labels-manager.js --dry-run --verbose",
+    "project:fetch-state": "node scripts/fetch-project-state.js"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",

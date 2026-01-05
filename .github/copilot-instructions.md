@@ -23,7 +23,7 @@
 # Frontend (Next.js) - Port 3000
 npm install && npm run dev
 
-# Sanity Studio - Port 3333
+# Sanity Studio - Default port 3333 (auto-assigned by Sanity CLI)
 cd studio && npm install && npm run dev
 
 # Backend (separate MASH-Backend repo) - Port 30000 (default) or 4000
@@ -90,7 +90,7 @@ const {
 - **Helper functions**: `src/lib/auth.ts` (setAuthToken, getAuthToken, logout)
 
 ### Protected Routes
-Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
+Proxy (formerly middleware) in `src/proxy.ts` (Next.js 16+ convention):
 - Protected: `/checkout`, `/seller/*`, `/profile/my-information`, `/profile/order-history`
 - Public: `/wishlist`, `/cart` (guest-friendly via localStorage)
 - Auth routes: `/login`, `/signup` (redirect if authenticated)
@@ -113,7 +113,7 @@ Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
 ## Critical Conventions
 
 ### File Structure
-1. **Middleware location**: Root `middleware.ts` ONLY (Next.js 13+ requirement)
+1. **Proxy location**: `src/proxy.ts` (Next.js 16+ convention, renamed from middleware.ts)
 2. **Route groups**: `(auth)`, `(shop)`, `(user)`, `(seller)` - invisible in URLs
 3. **Documentation**: All plans/guides in `.github/` folder
 4. **Imports**: Always use `@/` path alias (maps to `src/`)
@@ -129,9 +129,10 @@ Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
 
 ### Sanity CMS
 - **CDN enabled**: `useCdn: true` to avoid quota limits (slower updates)
-- **Project ID**: `gerattrr` (migrated from `xyq5fhxs` on Dec 6, 2024)
+- **Project ID**: `gerattrr` (migrated from `xyq5fhxs` on Dec 6, 2025)
 - **Dataset**: `production`
 - **API version**: `2024-11-26`
+- **Studio deployment**: `https://ppnamias.sanity.studio`
 
 ### State Management
 - **Cart/Wishlist**: localStorage with Firebase sync for authenticated users
@@ -271,7 +272,7 @@ Enable `NEXT_PUBLIC_ENABLE_API_LOGGING=true` to see:
 5. **Backend enum case**: Always UPPERCASE (`BUYER` not `buyer`)
 6. **Email endpoints**: Auto-route to local backend when `EMAIL_SERVICE_ENV=local` (for development)
 7. **Token refresh**: Handles 401 responses automatically in `api-client.ts`
-8. **Studio changes**: Run `cd studio && npm run dev` separately on port 3333
+8. **Studio changes**: Run `cd studio && npm run dev` separately (default port 3333)
 
 ## Extended Documentation
 
@@ -437,10 +438,10 @@ try {
 - **Fix**: Already using CDN (`useCdn: true` in [src/lib/sanity/client.ts](src/lib/sanity/client.ts))
 - **Workaround**: Changes take 1-5min to propagate; refresh manually if urgent
 
-**3. "Middleware not protecting routes"**
-- **Cause**: Middleware in wrong location (`src/middleware.ts` doesn't work)
-- **Fix**: Must be in **root** `middleware.ts` (Next.js 13+ requirement)
-- **Reference**: [middleware.ts](middleware.ts)
+**3. "Proxy not protecting routes"**
+- **Cause**: Proxy configuration error or route matcher issue
+- **Fix**: Check `src/proxy.ts` - ensure route matchers are correct
+- **Reference**: [src/proxy.ts](../src/proxy.ts)
 
 **4. "Backend 404 errors on localhost"**
 - **Cause**: Port mismatch (default is 30000, not 4000)
