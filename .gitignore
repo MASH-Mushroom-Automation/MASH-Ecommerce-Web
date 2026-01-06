@@ -45,7 +45,7 @@ studio/.env
 # Keep .github for workflows but ignore sensitive files
 # /.github
 /.github
-*.md
+.md
 /.github/*.md
 scripts/github-iot-tasks-importer.js
 scripts/github-mobile-real-issues.js
