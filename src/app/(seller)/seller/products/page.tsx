@@ -1,26 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import TanStackTable from "@/components/table/TanStackTable";
+import BulkActionBar from "@/components/BulkActionBar";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
 import {
   Pagination,
   PaginationContent,
@@ -31,16 +30,15 @@ import {
 } from "@/components/ui/pagination";
 import { Plus, Search, Filter, Edit, Trash } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useSellerProducts } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { SellerApi } from "@/lib/api/seller";
@@ -48,12 +46,16 @@ import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerProducts() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(10);
 
   // Use the seller products hook
   const { products, loading, error, pagination, refetch } = useSellerProducts({
+    page,
+    limit,
     search: searchTerm || undefined,
   });
 
@@ -73,17 +75,43 @@ export default function SellerProducts() {
     }
   };
 
-  // Filter products based on status and category
+  // Filter products based on status and category (support multiple categories)
   const filteredProducts = products.filter((product) => {
     const matchesStatus =
       statusFilter === "all" ||
       product.status.toLowerCase() === statusFilter.toLowerCase();
     const matchesCategory =
-      categoryFilter === "all" ||
-      product.category.toLowerCase() === categoryFilter.toLowerCase();
+      categoryFilter.length === 0 ||
+      categoryFilter.map((c) => c.toLowerCase()).includes(product.category.toLowerCase());
 
     return matchesStatus && matchesCategory;
   });
+
+  // Map for quick lookup
+  const productsMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    products.forEach((p) => (map[String(p.id)] = p));
+    return map;
+  }, [products]);
+
+  // Dynamic lists for filters
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(String(p.category));
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
+  const statuses = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.status) set.add(String(p.status));
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
+  const bulk = useBulkSelect<string | number>([]);
 
   if (loading) {
     return (
@@ -108,19 +136,24 @@ export default function SellerProducts() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Products</h1>
+          <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
+          <p className="text-muted-foreground mt-1 sm:text-base text-sm">
+            Create, Update, and Organize Products
+          </p>
+        </div>
         <Link href="/seller/products/new">
           <Button>
-            <Plus className="mr-2 h-4 w-4" /> Add New Product
+            <Plus className="h-4 w-4" /> Add New Product
           </Button>
         </Link>
       </div>
 
       <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-border">
+        <div className="p-2 sm:p-4 border-b border-border">
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
               <Input
                 type="search"
                 placeholder="Search products..."
@@ -129,170 +162,208 @@ export default function SellerProducts() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <div className="w-40">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="out of stock">Out of Stock</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-40">
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="fresh mushroom">
-                      Fresh Mushroom
-                    </SelectItem>
-                    <SelectItem value="growing kits">Growing Kits</SelectItem>
-                    <SelectItem value="mushroom products">
-                      Mushroom Products
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" /> Filters
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel className="text-muted-foreground">Status</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup value={statusFilter} onValueChange={(v: string) => setStatusFilter(v)}>
+                    <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                    {statuses.map((s) => (
+                      <DropdownMenuRadioItem key={s} value={s}>{s}</DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-muted-foreground">Categories</DropdownMenuLabel>
+                  {categories.map((cat) => (
+                    <DropdownMenuCheckboxItem
+                      key={cat}
+                      checked={categoryFilter.includes(cat)}
+                      onCheckedChange={() => {
+                        setCategoryFilter((prev) => (prev.includes(cat) ? prev.filter((p) => p !== cat) : [...prev, cat]));
+                      }}
+                    >
+                      {cat}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {/* Product details column */}
-                <TableHead className="w-[300px] pl-5">Product</TableHead>
-                {/* Pricing column */}
-                <TableHead className="text-right w-[120px]">Price</TableHead>
-                {/* Inventory column */}
-                <TableHead className="text-right w-[100px]">Stock</TableHead>
-                {/* Category label column */}
-                <TableHead className="w-[140px]">Category</TableHead>
-                {/* Status badge column */}
-                <TableHead className="w-[140px]">Status</TableHead>
-                {/* Row actions column */}
-                <TableHead className="text-right w-[100px] pr-5">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-muted/50">
-                    {/* Product details cell */}
-                    <TableCell className="pl-5">
-                      <div className="flex items-center gap-3">
-                        <div className="h-16 w-16 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
-                          <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <span className="font-medium text-sm line-clamp-2">
-                          {product.name}
-                        </span>
+        <div className="hidden md:block">
+          <div className="mb-3">
+            <BulkActionBar
+              selectedIds={bulk.selectedIds}
+              productsMap={productsMap}
+              onActivate={async (ids) => {
+                const success: string[] = [];
+                const failed: string[] = [];
+                for (const id of ids) {
+                  try {
+                    await SellerApi.updateProduct(String(id), { status: "Active" });
+                    success.push(String(id));
+                  } catch (e) {
+                    failed.push(String(id));
+                  }
+                }
+                // Refresh
+                refetch();
+                bulk.clearAll();
+                return { success, failed };
+              }}
+              onDeactivate={async (ids) => {
+                const success: string[] = [];
+                const failed: string[] = [];
+                for (const id of ids) {
+                  try {
+                    await SellerApi.updateProduct(String(id), { status: "Inactive" });
+                    success.push(String(id));
+                  } catch (e) {
+                    failed.push(String(id));
+                  }
+                }
+                refetch();
+                bulk.clearAll();
+                return { success, failed };
+              }}
+              onDelete={async (ids) => {
+                const success: string[] = [];
+                const failed: string[] = [];
+                for (const id of ids) {
+                  try {
+                    await SellerApi.deleteProduct(String(id));
+                    success.push(String(id));
+                  } catch (e) {
+                    failed.push(String(id));
+                  }
+                }
+                refetch();
+                bulk.clearAll();
+                return { success, failed };
+              }}
+              onUpdatePrice={async (ids, price) => {
+                const success: string[] = [];
+                const failed: string[] = [];
+                for (const id of ids) {
+                  try {
+                    await SellerApi.updateProduct(String(id), { price });
+                    success.push(String(id));
+                  } catch (e) {
+                    failed.push(String(id));
+                  }
+                }
+                refetch();
+                bulk.clearAll();
+                return { success, failed };
+              }}
+              onExport={(rows) => {
+                // export handled inside BulkActionBar via exportToCsv
+              }}
+              handlers={{ onComplete: () => {} }}
+              onClear={() => bulk.clearAll()}
+            />
+          </div>
+
+          <TanStackTable
+            data={filteredProducts}
+            rowKey="id"
+            columns={[
+              {
+                accessorKey: "name",
+                header: "Product",
+                enableSorting: true,
+                cell: ({ row }) => {
+                  const product = row.original as any;
+                  return (
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
+                        <Image src={product.image} alt={product.name} fill className="object-cover" />
                       </div>
-                    </TableCell>
-                    {/* Pricing cell */}
-                    <TableCell className="text-right font-semibold text-sm">
-                      ₱{product.price.toFixed(2)}
-                    </TableCell>
-                    {/* Inventory cell */}
-                    <TableCell className="text-right text-sm">
-                      <span className={product.stock < 10 ? "text-destructive font-medium" : ""}>
-                        {product.stock}
-                      </span>
-                    </TableCell>
-                    {/* Category cell */}
-                    <TableCell className="text-sm">{product.category}</TableCell>
-                    {/* Status badge cell */}
-                    <TableCell>
-                      {getStatusBadge(product.status)}
-                    </TableCell>
-                    {/* Row actions cell */}
-                    <TableCell className="text-right pr-5">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link href={`/seller/products/edit/${product.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 px-3"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                        </Link>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash className="h-4 w-4 mr-2" />
-                              Delete
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete Product
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() =>
-                                  handleDeleteProduct(product.id)
-                                }
-                                disabled={deletingProduct === product.id}
-                                className="bg-destructive hover:bg-destructive/90"
-                              >
-                                {deletingProduct === product.id
-                                  ? "Deleting..."
-                                  : "Delete"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <div>
+                        <div className="font-medium text-sm line-clamp-2">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">{product.category}</div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-12 text-muted-foreground"
-                  >
-                    <div className="text-center">
-                      <p className="text-sm">No products found</p>
-                      <p className="text-xs mt-1">Try adjusting your search or filters</p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  );
+                },
+              },
+              {
+                accessorKey: "price",
+                header: "Price",
+                enableSorting: true,
+                cell: ({ getValue }) => <div className="items-center">₱{Number(getValue()).toFixed(2)}</div>,
+              },
+              {
+                accessorKey: "stock",
+                header: "Stock",
+                enableSorting: true,
+                cell: ({ getValue }) => <div className="items-center">{getValue()}</div>,
+              },
+              {
+                accessorKey: "category",
+                header: "Category",
+                enableSorting: true,
+              },
+              {
+                accessorKey: "status",
+                header: "Status",
+                enableSorting: true,
+                cell: ({ getValue }) => getStatusBadge(String(getValue())),
+              },
+              {
+                id: "actions",
+                header: "Actions",
+                enableSorting: false,
+                cell: ({ row }) => {
+                  const p = row.original as any;
+                  return (
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/seller/products/edit/${p.id}`}>
+                        <Button variant="ghost" size="sm" className="h-9 px-3">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      </Link>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Product</DialogTitle>
+                            <DialogDescription>Are you sure you want to delete "{p.name}"? This action cannot be undone.</DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="ghost">Cancel</Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button onClick={() => handleDeleteProduct(p.id)} disabled={deletingProduct === p.id} className="bg-destructive hover:bg-destructive/90">
+                                {deletingProduct === p.id ? "Deleting..." : "Delete"}
+                              </Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  );
+                },
+              },
+            ]}
+            selectedIds={bulk.selectedIds}
+            onToggleRow={(id) => bulk.toggleRow(id)}
+            onSelectAll={(ids) => bulk.selectAll(ids)}
+          />
         </div>
 
         {/* Mobile Card View */}
@@ -359,8 +430,8 @@ export default function SellerProducts() {
                         Edit
                       </Link>
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                    <Dialog>
+                      <DialogTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
@@ -368,26 +439,30 @@ export default function SellerProducts() {
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                          <AlertDialogDescription>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Delete Product</DialogTitle>
+                          <DialogDescription>
                             Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteProduct(product.id)}
-                            disabled={deletingProduct === product.id}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            {deletingProduct === product.id ? "Deleting..." : "Delete"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="ghost">Cancel</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              disabled={deletingProduct === product.id}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              {deletingProduct === product.id ? "Deleting..." : "Delete"}
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               ))}
@@ -401,6 +476,29 @@ export default function SellerProducts() {
         </div>
 
         <div className="py-4 border-t border-border">
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4">
+              <div className="text-sm text-muted-foreground">Showing page {pagination.page} of {pagination.totalPages}</div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" disabled={pagination.page <= 1} onClick={() => setPage(Math.max(1, pagination.page - 1))}>
+                  Previous
+                </Button>
+
+                {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                  const p = i + 1;
+                  return (
+                    <Button key={p} size="sm" variant={p === pagination.page ? "default" : "ghost"} onClick={() => setPage(p)}>
+                      {p}
+                    </Button>
+                  );
+                })}
+
+                <Button size="sm" variant="ghost" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

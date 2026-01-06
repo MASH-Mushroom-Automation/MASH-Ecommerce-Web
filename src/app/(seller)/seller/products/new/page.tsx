@@ -437,7 +437,7 @@ export default function AddNewProduct() {
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-xl font-bold text-foreground">
           {isReviewing ? "Product Overview" : "Add New Product"}
         </h1>
         {isReviewing && <ListChecks className="h-6 w-6 text-primary ml-2" />}
@@ -459,7 +459,7 @@ export default function AddNewProduct() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 -mt-2 sm:-mt-6">
                     
                     {/* Display uploaded images */}
                     {productImages.map((image, index) => (
@@ -525,7 +525,7 @@ export default function AddNewProduct() {
                     Fill in the required information about your product.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="-mt-2 sm:-mt-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid grid-cols-2 mb-6">
                       <TabsTrigger value="basic">Basic Information</TabsTrigger>
@@ -536,11 +536,11 @@ export default function AddNewProduct() {
                     <TabsContent value="basic" className="space-y-6">
                       <div className="space-y-4">
                         {/* 1. Name */}
-                        <div>
-                          <Label htmlFor="product-name">Product Name *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-name">Product Name</Label>
                           <Input
                             id="product-name"
-                            placeholder="Premium Oyster Mushroom"
+                            placeholder="Enter product name"
                             value={productName}
                             onChange={(e) => setProductName(e.target.value)}
                             className={validationErrors.productName ? "border-red-500 focus:border-red-500" : ""}
@@ -551,11 +551,11 @@ export default function AddNewProduct() {
                         </div>
 
                         {/* 2. Description */}
-                        <div>
-                          <Label htmlFor="product-description">Description *</Label>
+                          <div className="space-y-2">
+                          <Label htmlFor="product-description">Description </Label>
                           <Textarea
                             id="product-description"
-                            placeholder="Fresh premium quality oyster mushrooms..."
+                            placeholder="Enter product description"
                             rows={3}
                             value={productDescription}
                             onChange={(e) => setProductDescription(e.target.value)}
@@ -567,11 +567,11 @@ export default function AddNewProduct() {
                         </div>
 
                         {/* 3. Slug (New Input) */}
-                        <div>
+                        <div className="space-y-2">
                           <Label htmlFor="product-slug">URL Slug</Label>
                           <Input
                             id="product-slug"
-                            placeholder="oyster-mushroom"
+                            placeholder="Enter product slug"
                             value={productSlug}
                             onChange={(e) => setProductSlug(e.target.value)}
                           />
@@ -580,20 +580,20 @@ export default function AddNewProduct() {
 
                         {/* 4. SKU & Category ID */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
+                          <div className="space-y-2">
                             <Label htmlFor="product-sku">SKU (Stock Keeping Unit)</Label>
                             <Input
                               id="product-sku"
-                              placeholder="SKU-OYS-001"
+                              placeholder="e.g., SKU-OYS-001"
                               value={productSku}
                               onChange={(e) => setProductSku(e.target.value)}
                             />
                           </div>
-                          <div>
+                          <div className="space-y-2">
                             <Label htmlFor="product-category-id">Category ID</Label>
                             <Input
                               id="product-category-id"
-                              placeholder="category-id-123"
+                              placeholder="e.g., category-id-123"
                               value={productCategoryId}
                               onChange={(e) => setProductCategoryId(e.target.value)}
                             />
@@ -601,8 +601,8 @@ export default function AddNewProduct() {
                         </div>
 
                         {/* 5. Category Dropdown */}
-                        <div>
-                          <Label htmlFor="product-category">Category Display Name *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-category">Category Display Name</Label>
                           <Select
                             value={productCategory}
                             onValueChange={setProductCategory}
@@ -635,8 +635,8 @@ export default function AddNewProduct() {
 
                         {/* 6. Weight/Unit */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="col-span-2 sm:col-span-1">
-                            <Label htmlFor="product-weight">Weight *</Label>
+                          <div className="col-span-2 sm:col-span-1 space-y-2">
+                            <Label htmlFor="product-weight">Weight</Label>
                             <div className="flex">
                               <Input
                                 id="product-weight"
@@ -671,7 +671,7 @@ export default function AddNewProduct() {
 
                         {/* 7. Metadata (New Checkboxes & Input) */}
                         <div className={`space-y-3 pt-4 border-t ${validationErrors.metadataCheckboxes || validationErrors.metadataFreshness ? "border-red-500 p-3 rounded-md" : ""}`}>
-                          <h3 className="text-md font-semibold">Product Metadata *</h3>
+                          <h3 className="text-sm font-semibold">Product Metadata</h3>
                           <div className="flex flex-col space-y-2">
                               <div className="flex items-center space-x-2">
                               <Checkbox
@@ -698,8 +698,8 @@ export default function AddNewProduct() {
                               <p className="text-sm text-red-500 mt-1">{validationErrors.metadataCheckboxes}</p>
                           )}
 
-                          <div className="pt-2">
-                            <Label htmlFor="metadata-freshness">Freshness/Shelf Life *</Label>
+                          <div className="pt-2 space-y-2">
+                            <Label htmlFor="metadata-freshness">Freshness/Shelf Life</Label>
                             <Input
                               id="metadata-freshness"
                               placeholder="e.g., 24 hours, 7 days refrigerated"
@@ -719,8 +719,8 @@ export default function AddNewProduct() {
                     <TabsContent value="sales" className="space-y-6">
                       <div className="space-y-4">
                         {/* 1. Price */}
-                        <div>
-                          <Label htmlFor="product-price">Price (₱) *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-price">Price (₱)</Label>
                           <Input
                             id="product-price"
                             type="number"
@@ -738,8 +738,8 @@ export default function AddNewProduct() {
                         </div>
 
                         {/* 2. Stock Quantity */}
-                        <div>
-                          <Label htmlFor="product-stock">Stock Quantity *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-stock">Stock Quantity</Label>
                           <Input
                             id="product-stock"
                             type="number"
@@ -756,8 +756,8 @@ export default function AddNewProduct() {
                         </div>
 
                         {/* 3. Status */}
-                        <div>
-                          <Label htmlFor="product-status">Product Status *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="product-status">Product Status</Label>
                           <Select
                             value={productStatus}
                             onValueChange={setProductStatus}
