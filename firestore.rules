@@ -158,6 +158,53 @@ service cloud.firestore {
     
     
     // ========================================
+    // APPOINTMENTS COLLECTION (AI-005)
+    // ========================================
+    match /appointments/{appointmentId} {
+      // Users can read their own appointments (as buyer)
+      // Sellers can read appointments where they are the seller
+      // Admins can read all appointments
+      allow read: if isSignedIn() && 
+                     (resource.data.buyer_uid == request.auth.uid || 
+                      resource.data.seller_uid == request.auth.uid ||
+                      isAdmin());
+      
+      // Authenticated users can create appointments
+      allow create: if isSignedIn() && request.resource.data.buyer_uid == request.auth.uid;
+      
+      // Buyers can update their own appointments (cancel, reschedule)
+      // Sellers can update appointments where they are the seller (confirm, complete)
+      // Admins can update any appointment
+      allow update: if isSignedIn() && 
+                       (resource.data.buyer_uid == request.auth.uid || 
+                        resource.data.seller_uid == request.auth.uid ||
+                        isAdmin());
+      
+      // Only admins can delete appointments
+      allow delete: if isAdmin();
+    }
+    
+    
+    // ========================================
+    // AVAILABILITY_SLOTS COLLECTION (AI-005)
+    // ========================================
+    match /availability_slots/{slotId} {
+      // Anyone can read available slots (needed for booking widget)
+      allow read: if true;
+      
+      // Only sellers can create/update their own availability slots
+      // Admins can manage all slots
+      allow create, update: if isSignedIn() && 
+                               (request.resource.data.seller_uid == request.auth.uid || isAdmin());
+      
+      // Only sellers can delete their own slots
+      // Admins can delete any slot
+      allow delete: if isSignedIn() && 
+                      (resource.data.seller_uid == request.auth.uid || isAdmin());
+    }
+    
+    
+    // ========================================
     // ANALYTICS COLLECTION (Admin Only)
     // ========================================
     match /analytics/{document=**} {

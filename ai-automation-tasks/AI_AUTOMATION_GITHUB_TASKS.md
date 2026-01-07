@@ -329,11 +329,75 @@ Create a beautiful, user-friendly widget that allows buyers to instantly book ap
 
 ---
 
-### AI-005: Appointment Webhook API
+### AI-005: Firebase Collections
 
 | Field | Value |
 |-------|-------|
 | Task ID | AI-005 |
+| Type | Feature |
+| Priority | High |
+| Status | ✅ Complete |
+| Parent | AI-001 |
+| Story Points | 5 |
+| Assignee | @PP-Namias |
+| Completed | January 8, 2026 |
+| Documentation | [ai-automation-tasks/ai-005-firebase-collections/COLLECTION_SCHEMA.md](ai-automation-tasks/ai-005-firebase-collections/COLLECTION_SCHEMA.md) |
+
+#### Description
+
+Create two Firestore collections (`availability_slots` and `appointments`) to enable the AI appointment booking system with proper security rules, composite indexes, and seed data.
+
+#### Dependencies
+
+- AI-002 (n8n setup)
+- AI-003 (Ollama setup)
+- AI-004 (Frontend Widget)
+
+#### Expected Outcomes
+
+- [x] `availability_slots` collection schema (9 fields)
+- [x] `appointments` collection schema (18 fields)
+- [x] Security rules for both collections in firestore.rules
+- [x] 5 composite indexes in firestore.indexes.json
+- [x] Seed data script with 3 sellers + 672 slots + 2 appointments
+- [x] Complete documentation with query examples
+
+#### Tasks
+
+1. ✅ Design collection schemas:
+   - `availability_slots`: seller_uid, seller_name, available_date, start_time, end_time, scheduled_time, is_available, created_at, updated_at
+   - `appointments`: buyer info (uid, name, email, phone, location), seller info (uid, name, email), product_type, quantity, scheduled_date, scheduled_time, status, special_requests, timestamps
+2. ✅ Add security rules to firestore.rules:
+   - `availability_slots`: Public read, seller-only write
+   - `appointments`: Buyer/seller read for own appointments, buyer create, buyer/seller update, admin delete
+3. ✅ Add composite indexes to firestore.indexes.json:
+   - availability_slots: seller_uid + date + availability, seller_uid + availability + date + time
+   - appointments: buyer_uid + status + time, seller_uid + status + time, seller_uid + date + time
+4. ✅ Create seed data script:
+   - 3 sample sellers (Juan's Farm, Maria's Mushrooms, Pedro's Organic)
+   - 7 days of availability (9 AM - 5 PM, 30-min intervals)
+   - 2 sample appointments (1 confirmed, 1 pending)
+5. ✅ Create documentation:
+   - COLLECTION_SCHEMA.md with field descriptions, query examples, security rules, deployment instructions
+   - PROGRESS.md tracking implementation
+
+#### Deployment (Manual Step)
+
+```bash
+# Deploy security rules and indexes
+firebase deploy --only firestore
+
+# Run seed data script
+node ai-automation-tasks/ai-005-firebase-collections/seed-appointment-data.js
+```
+
+---
+
+### AI-006: n8n Appointment Workflow
+
+| Field | Value |
+|-------|-------|
+| Task ID | AI-006 |
 | Type | Feature |
 | Priority | High |
 | Status | Not Started |
@@ -343,21 +407,22 @@ Create a beautiful, user-friendly widget that allows buyers to instantly book ap
 
 #### Description
 
-Create Next.js API routes that handle appointment booking requests, communicate with n8n workflows, and ensure data consistency in Firestore.
+Build the n8n workflow that processes appointment requests using the 5 webhook actions defined in AI-004. This workflow connects Ollama AI matching with Firestore database operations and email notifications.
 
 #### Dependencies
 
 - AI-002 (n8n setup)
 - AI-003 (Ollama setup)
+- AI-004 (Frontend Widget with 5 webhook actions defined)
+- AI-005 (Firebase Collections)
 
 #### Expected Outcomes
 
-- [ ] `/api/ai/appointment/book` - Creates new appointment
-- [ ] `/api/ai/appointment/check-availability` - Returns available sellers + slots
-- [ ] `/api/ai/appointment/cancel` - Cancels appointment, frees slot
-- [ ] All endpoints validated with Zod schemas
-- [ ] Rate limiting: 10 requests/min per user
-- [ ] Error handling with detailed messages
+- [ ] `find_sellers` action - Match sellers using Ollama AI + query availability
+- [ ] `get_availability` action - Query availability_slots for seller
+- [ ] `set_appointment` action - Create appointment + mark slot unavailable + send email
+- [ ] `cancel_appointment` action - Update status + free slot + notify
+- [ ] `get_appointments` action - Query user's appointments
 
 #### Tasks
 
