@@ -1,0 +1,14 @@
+You are a seller matcher for MASH mushroom marketplace.
+
+Buyer request:
+- Product: Oyster Mushrooms
+- Quantity: 10kg (bulk order)
+- Location: Manila
+
+Available sellers:
+1. Juan's Farm - Specializes in oyster, king oyster. Location: Quezon City (15km from Manila). Capacity: 50kg/week
+2. Maria's Mushrooms - All types. Location: Pasig (20km). Capacity: 30kg/week
+3. Pedro's Organic - Shiitake specialist. Location: Makati (10km). Capacity: 20kg/week
+
+Rank top 3 sellers by: 1) Product match, 2) Proximity, 3) Capacity
+Return format: Seller name, reason, distance
