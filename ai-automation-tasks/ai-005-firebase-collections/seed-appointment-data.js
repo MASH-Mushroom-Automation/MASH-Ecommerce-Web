@@ -16,16 +16,26 @@
  */
 
 const admin = require('firebase-admin');
-const path = require('path');
 
-// Initialize Firebase Admin
-const serviceAccountPath = path.join(__dirname, '../../mash-ddf8d-firebase-adminsdk-credentials.json');
-const serviceAccount = require(serviceAccountPath);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: 'mash-ddf8d'
-});
+// Initialize Firebase Admin with Application Default Credentials
+// First tries service account file, then falls back to ADC (gcloud auth, env var, etc)
+try {
+  const path = require('path');
+  const serviceAccountPath = path.join(__dirname, '../../mash-ddf8d-firebase-adminsdk-credentials.json');
+  const serviceAccount = require(serviceAccountPath);
+  
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: 'mash-ddf8d'
+  });
+  console.log('✅ Using service account credentials');
+} catch (e) {
+  // Fallback to Application Default Credentials (gcloud auth or GOOGLE_APPLICATION_CREDENTIALS)
+  console.log('📝 Service account file not found, using Application Default Credentials...');
+  admin.initializeApp({
+    projectId: 'mash-ddf8d'
+  });
+}
 
 const db = admin.firestore();
 
