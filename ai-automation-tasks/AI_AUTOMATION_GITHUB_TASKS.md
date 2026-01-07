@@ -499,32 +499,36 @@ Build the n8n workflow that processes appointment requests using the 5 webhook a
 
 ---
 
-### AI-006: Firestore Appointment Schema
+### AI-006: n8n Appointment Workflow
 
 | Field | Value |
 |-------|-------|
 | Task ID | AI-006 |
 | Type | Feature |
 | Priority | Critical |
-| Status | Not Started |
+| Status | In Progress |
 | Parent | AI-001 |
-| Story Points | 6 |
+| Story Points | 13 |
 | Assignee | @PP-Namias |
 
 #### Description
 
-Design and implement Firestore collections for appointment management, seller availability, and AI conversation logs.
+Build the n8n workflow that processes appointment requests using the 5 webhook actions defined in AI-004. This workflow connects Ollama AI matching with Firestore database operations and email notifications.
 
 #### Dependencies
 
-- ECOM-052 (Firebase already initialized)
+- AI-002 (n8n setup) ✅
+- AI-003 (Ollama setup) ✅
+- AI-004 (Frontend Widget with 5 webhook actions) ✅
+- AI-005 (Firebase Collections with availability_slots + appointments) ✅
 
 #### Expected Outcomes
 
-- [ ] Firestore collections created: `appointments`, `seller_availability`, `ai_conversations`
-- [ ] Security rules configured (buyers can only read their appointments)
-- [ ] Indexes created for common queries (by sellerId, by status, by scheduledTime)
-- [ ] Test data seeded (3 sellers, sample availability)
+- [ ] `find_sellers` action - Match sellers using Ollama AI + query availability_slots
+- [ ] `get_availability` action - Query availability_slots for specific seller
+- [ ] `set_appointment` action - Create appointment + mark slot unavailable + send email
+- [ ] `cancel_appointment` action - Update status + free slot + notify parties
+- [ ] `get_appointments` action - Query user's appointments (buyer or seller)
 
 #### Tasks
 
