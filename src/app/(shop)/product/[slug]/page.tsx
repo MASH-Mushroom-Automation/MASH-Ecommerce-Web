@@ -15,6 +15,7 @@ import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import { ProductCard } from "@/components/product";
+import { AppointmentWidget } from "@/components/appointments/AppointmentWidget";
 import type { MediaItem } from "@/types/sanity";
 
 // Placeholder image for products without images
@@ -660,6 +661,16 @@ export default function ProductDetailPage({ params }: Props) {
               <Button size="lg" variant="outline" onClick={handleShare}>
                 <Share2 className="w-5 h-5" />
               </Button>
+            </div>
+
+            {/* Appointment Widget - AI-004 */}
+            <div className="mt-4">
+              <AppointmentWidget
+                productType={product.name}
+                productSlug={slug}
+                quantity={quantity}
+                className="w-full"
+              />
             </div>
 
             {/* Product Meta */}
