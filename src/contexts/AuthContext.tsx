@@ -9,7 +9,7 @@
  * - Email Link (Passwordless)
  *
  * Handles auth state changes and optional backend sync.
- * 
+ *
  * Phase 5: Added token refresh management and logout everywhere
  */
 
@@ -38,8 +38,16 @@ import {
   type FirebaseUser,
   type FirestoreUserProfile,
 } from "@/lib/firebase";
-import { setAuthToken, logout as clearAuthTokens, logoutEverywhere } from "@/lib/auth";
-import { startTokenRefreshCheck, stopTokenRefreshCheck, getTokenInfo } from "@/lib/token-refresh";
+import {
+  setAuthToken,
+  logout as clearAuthTokens,
+  logoutEverywhere,
+} from "@/lib/auth";
+import {
+  startTokenRefreshCheck,
+  stopTokenRefreshCheck,
+  getTokenInfo,
+} from "@/lib/token-refresh";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -72,7 +80,11 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
 
   // Email/Password
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
@@ -126,7 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Convert Firestore profile to AuthUser
    */
   const profileToAuthUser = useCallback(
-    (profile: FirestoreUserProfile, provider: AuthUser["provider"]): AuthUser => {
+    (
+      profile: FirestoreUserProfile,
+      provider: AuthUser["provider"]
+    ): AuthUser => {
       return {
         id: profile.id,
         email: profile.email,
@@ -159,19 +174,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("🔵 [Auth] Syncing to Firestore profile...");
 
         // Get or create Firestore profile
-        const profile = await FirebaseUserService.createOrUpdateProfile(fbUser.uid, {
-          email: fbUser.email || "",
-          firstName: additionalData?.firstName || fbUser.displayName?.split(" ")[0],
-          lastName: additionalData?.lastName || fbUser.displayName?.split(" ").slice(1).join(" "),
-          displayName: additionalData?.displayName || fbUser.displayName || undefined,
-          phone: additionalData?.phone,
-          photoURL: fbUser.photoURL || undefined,
-          provider,
-          emailVerified: fbUser.emailVerified,
-        });
+        const profile = await FirebaseUserService.createOrUpdateProfile(
+          fbUser.uid,
+          {
+            email: fbUser.email || "",
+            firstName:
+              additionalData?.firstName || fbUser.displayName?.split(" ")[0],
+            lastName:
+              additionalData?.lastName ||
+              fbUser.displayName?.split(" ").slice(1).join(" "),
+            displayName:
+              additionalData?.displayName || fbUser.displayName || undefined,
+            phone: additionalData?.phone,
+            photoURL: fbUser.photoURL || undefined,
+            provider,
+            emailVerified: fbUser.emailVerified,
+          }
+        );
 
         const authUser = profileToAuthUser(profile, provider);
-        
+
         // Merge any additional data
         if (additionalData) {
           Object.assign(authUser, additionalData);
@@ -191,14 +213,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return authUser;
       } catch (error) {
         console.error("❌ [Auth] Firestore sync error:", error);
-        
+
         // Fallback: create AuthUser from Firebase Auth data only
         const authUser: AuthUser = {
           id: fbUser.uid,
           email: fbUser.email || "",
-          firstName: additionalData?.firstName || fbUser.displayName?.split(" ")[0],
-          lastName: additionalData?.lastName || fbUser.displayName?.split(" ").slice(1).join(" "),
-          displayName: additionalData?.displayName || fbUser.displayName || undefined,
+          firstName:
+            additionalData?.firstName || fbUser.displayName?.split(" ")[0],
+          lastName:
+            additionalData?.lastName ||
+            fbUser.displayName?.split(" ").slice(1).join(" "),
+          displayName:
+            additionalData?.displayName || fbUser.displayName || undefined,
           phone: additionalData?.phone,
           photoURL: fbUser.photoURL || undefined,
           avatar: fbUser.photoURL || undefined,
@@ -278,7 +304,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Build auth user object
         // imageUrl from backend is the DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
-        const backendImageUrl = data.user?.imageUrl || data.user?.profileImageUrl;
+        const backendImageUrl =
+          data.user?.imageUrl || data.user?.profileImageUrl;
         const authUser: AuthUser = {
           id: data.user?.id || fbUser.uid,
           email: fbUser.email || "",
@@ -338,14 +365,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             // Sync to Firestore profile first
             await syncToFirestoreProfile(result.user, "google");
-            
+
             // Optional: sync to backend for JWT
             try {
               await syncFirebaseUserToBackend(result.user);
             } catch {
               console.warn("Backend sync failed, using Firebase only");
             }
-            
+
             toast.dismiss("google-signin");
             toast.success(
               `Welcome, ${result.user.displayName || result.user.email}!`
@@ -465,14 +492,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Don't clear user if they logged in with email/password
         try {
           const storedUser = localStorage.getItem("user");
+          const hasAuthToken = document.cookie.includes("auth-token=");
+
           if (storedUser) {
             const parsed = JSON.parse(storedUser);
-            if (parsed.provider === "email") {
+            // Restore user if:
+            // 1. They have provider: "email" (new format)
+            // 2. Or they have an auth-token cookie (backward compatibility / backend login)
+            if (parsed.provider === "email" || hasAuthToken) {
+              // Ensure provider is set for consistency
+              if (!parsed.provider) {
+                parsed.provider = "email";
+              }
               setUser(parsed);
             } else {
               // Firebase user logged out, clear state
               setUser(null);
             }
+          } else if (hasAuthToken) {
+            // Has auth token but no stored user - could happen after page refresh
+            // Keep user null but don't clear token (let protected routes handle it)
+            console.log("[Auth] Auth token exists but no user in localStorage");
           }
         } catch {
           // Ignore parse errors
@@ -512,14 +552,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           // Sync to Firestore profile
           await syncToFirestoreProfile(result, "google");
-          
+
           // Optional: sync to backend
           try {
             await syncFirebaseUserToBackend(result);
           } catch {
             console.warn("Backend sync failed, using Firebase only");
           }
-          
+
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);
 
@@ -581,7 +621,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Re-throw with handled flag so pages can detect it but won't show duplicate errors
       const handledError = new Error(errorMessage);
       (handledError as Error & { handled: boolean }).handled = true;
-      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      (handledError as Error & { code: string }).code =
+        (error as { code?: string })?.code || "unknown";
       throw handledError;
     } finally {
       setLoading(false);
@@ -659,7 +700,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Re-throw with handled flag so pages can detect it but won't show duplicate errors
       const handledError = new Error(errorMessage);
       (handledError as Error & { handled: boolean }).handled = true;
-      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      (handledError as Error & { code: string }).code =
+        (error as { code?: string })?.code || "unknown";
       throw handledError;
     } finally {
       setLoading(false);
@@ -679,24 +721,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Password reset error:", error);
       const errorCode = (error as { code?: string })?.code;
       const errorMessage = getFirebaseErrorMessage(error);
-      
+
       // For security, don't reveal if email doesn't exist
       if (errorCode === "auth/user-not-found") {
         // Show success even if user not found (security best practice)
         toast.success("Password reset email sent", {
-          description: "If this email is registered, you'll receive instructions.",
+          description:
+            "If this email is registered, you'll receive instructions.",
         });
         // Still throw so the page can update state
         const handledError = new Error(errorMessage);
-        (handledError as Error & { handled: boolean; code: string }).handled = true;
-        (handledError as Error & { code: string }).code = errorCode || "unknown";
+        (handledError as Error & { handled: boolean; code: string }).handled =
+          true;
+        (handledError as Error & { code: string }).code =
+          errorCode || "unknown";
         throw handledError;
       }
-      
+
       toast.error("Password reset failed", { description: errorMessage });
       // Re-throw with handled flag and original code
       const handledError = new Error(errorMessage);
-      (handledError as Error & { handled: boolean; code: string }).handled = true;
+      (handledError as Error & { handled: boolean; code: string }).handled =
+        true;
       (handledError as Error & { code: string }).code = errorCode || "unknown";
       throw handledError;
     }
@@ -843,7 +889,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Stop token refresh monitoring
       stopTokenRefreshCheck();
 
-      toast.loading("Signing out from all devices...", { id: "logout-everywhere" });
+      toast.loading("Signing out from all devices...", {
+        id: "logout-everywhere",
+      });
 
       // Call backend to invalidate all sessions
       const success = await logoutEverywhere();
@@ -856,7 +904,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(null);
 
       toast.dismiss("logout-everywhere");
-      
+
       if (success) {
         toast.success("Signed out from all devices");
       } else {
@@ -877,7 +925,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Phase 5: Get current session info
    */
-  const handleGetSessionInfo = (): { hasToken: boolean; expiresIn: string | null } => {
+  const handleGetSessionInfo = (): {
+    hasToken: boolean;
+    expiresIn: string | null;
+  } => {
     const info = getTokenInfo();
     return {
       hasToken: info.hasToken,
@@ -983,7 +1034,7 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Password should be at least 6 characters.";
       case "auth/operation-not-allowed":
         return "This sign-in method is not enabled. Please contact support.";
-      
+
       // Sign-in errors
       case "auth/user-not-found":
         return "No account found with this email. Please sign up first.";
@@ -995,17 +1046,17 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Please enter a valid email address.";
       case "auth/user-disabled":
         return "This account has been disabled. Please contact support.";
-      
+
       // Rate limiting
       case "auth/too-many-requests":
         return "Too many failed attempts. Please wait a few minutes before trying again.";
-      
+
       // Network errors
       case "auth/network-request-failed":
         return "Network error. Please check your internet connection and try again.";
       case "auth/internal-error":
         return "An internal error occurred. Please try again later.";
-      
+
       // Email link errors
       case "auth/expired-action-code":
         return "This link has expired. Please request a new sign-in link.";
@@ -1013,19 +1064,19 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "This link is invalid or has already been used. Please request a new one.";
       case "auth/missing-email":
         return "Please enter your email address to continue.";
-      
+
       // Account linking errors
       case "auth/account-exists-with-different-credential":
         return "An account already exists with this email using a different sign-in method. Try signing in with Google or Email Link.";
       case "auth/credential-already-in-use":
         return "This credential is already associated with another account.";
-      
+
       // Session errors
       case "auth/requires-recent-login":
         return "Please sign in again to complete this action.";
       case "auth/user-token-expired":
         return "Your session has expired. Please sign in again.";
-      
+
       // Popup/redirect errors
       case "auth/popup-blocked":
         return "Sign-in popup was blocked. Please allow popups for this site.";
@@ -1033,7 +1084,7 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Sign-in was cancelled. Please try again.";
       case "auth/cancelled-popup-request":
         return "Sign-in was cancelled. Please try again.";
-      
+
       default:
         console.warn("Unhandled Firebase error code:", code);
         return "An error occurred. Please try again.";

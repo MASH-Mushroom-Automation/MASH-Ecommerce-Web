@@ -216,9 +216,14 @@ export const AuthApi = {
       localStorage.setItem("refreshToken", refreshToken);
     }
 
-    // Store user data
+    // Store user data with provider field for AuthContext compatibility
     if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
+      const userWithProvider = {
+        ...user,
+        provider: "email", // Mark as email/password login for AuthContext
+        emailVerified: user.emailVerified ?? true, // Default to true if not provided (backend validated)
+      };
+      localStorage.setItem("user", JSON.stringify(userWithProvider));
     }
 
     return response;
