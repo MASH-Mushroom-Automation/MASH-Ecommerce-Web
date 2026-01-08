@@ -16,7 +16,7 @@ function getAuthToken(): string | null {
  */
 function getUserId(): string | null {
   if (typeof window === "undefined") return null;
-  
+
   // Try to get from localStorage user object
   try {
     const storedUser = localStorage.getItem("user");
@@ -30,7 +30,7 @@ function getUserId(): string | null {
   } catch {
     // Ignore parse errors
   }
-  
+
   // Try to decode from JWT token
   try {
     const token = getAuthToken();
@@ -45,7 +45,10 @@ function getUserId(): string | null {
           return payload.sub;
         }
         if (payload.userId) {
-          console.log("[UserApi] Got user ID from JWT (userId):", payload.userId);
+          console.log(
+            "[UserApi] Got user ID from JWT (userId):",
+            payload.userId
+          );
           return payload.userId;
         }
         if (payload.id) {
@@ -57,7 +60,7 @@ function getUserId(): string | null {
   } catch {
     // Ignore decode errors
   }
-  
+
   console.warn("[UserApi] Could not get user ID");
   return null;
 }
@@ -199,8 +202,10 @@ export class UserApi {
   static async getProfile(options?: {
     skipCache?: boolean;
   }): Promise<ApiResponse<UserProfile>> {
-    console.log("[UserApi] getProfile called", { skipCache: options?.skipCache });
-    
+    console.log("[UserApi] getProfile called", {
+      skipCache: options?.skipCache,
+    });
+
     // Check cache first (unless skipCache is true)
     if (!options?.skipCache) {
       const cached = getCachedProfile();
@@ -211,24 +216,24 @@ export class UserApi {
     }
 
     console.log("[UserApi] API_ENDPOINT:", API_ENDPOINT);
-    
+
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
       const userId = getUserId();
       console.log("[UserApi] Auth token present:", !!token);
       console.log("[UserApi] User ID:", userId);
-      
+
       if (!userId) {
         console.warn("[UserApi] No user ID available, falling back to mock");
         await delay(300);
         return { data: MOCK_USER_PROFILE, success: true };
       }
-      
+
       // Backend expects /api/v1/users/:id/profile
       const url = `${API_ENDPOINT}/api/v1/users/${userId}/profile`;
       console.log("[UserApi] Fetching from:", url);
-      
+
       const { ok, json, status } = await tryFetch<unknown>(url, {
         method: "GET",
         headers: {
@@ -236,14 +241,14 @@ export class UserApi {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      
+
       console.log("[UserApi] Response:", { ok, status, json });
-      
+
       if (ok && json) {
         // Accept either {data: user} or raw user shape
         const data = extractData<UserProfile>(json);
         console.log("[UserApi] Extracted data:", data);
-        
+
         if (data) {
           // Cache the profile
           setCachedProfile(data);
@@ -273,12 +278,12 @@ export class UserApi {
     profile: Partial<UserProfile>
   ): Promise<ApiResponse<UserProfile>> {
     console.log("[UserApi] updateProfile called with:", profile);
-    
+
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
       const userId = getUserId();
-      
+
       if (!userId) {
         console.warn("[UserApi] No user ID available for update");
         // Fallback to mock
@@ -286,11 +291,11 @@ export class UserApi {
         const updatedProfile = { ...MOCK_USER_PROFILE, ...profile };
         return { data: updatedProfile, success: true };
       }
-      
+
       // Backend expects /api/v1/users/:id/profile
       const url = `${API_ENDPOINT}/api/v1/users/${userId}/profile`;
       console.log("[UserApi] Updating profile at:", url);
-      
+
       const { ok, json, status } = await tryFetch<unknown>(url, {
         method: "PUT",
         headers: {
@@ -299,9 +304,9 @@ export class UserApi {
         },
         body: JSON.stringify(profile),
       });
-      
+
       console.log("[UserApi] Update response:", { ok, status, json });
-      
+
       if (ok && json) {
         const data = extractData<UserProfile>(json);
         if (data) {
