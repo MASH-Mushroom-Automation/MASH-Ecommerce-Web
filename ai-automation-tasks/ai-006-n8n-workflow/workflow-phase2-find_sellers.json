@@ -1,0 +1,311 @@
+{
+  "name": "MASH Appointment Booking - Phase 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mash-appointments",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "mash-appointments"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "find_sellers",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "find_sellers"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "get_availability",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_availability"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "set_appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "set_appointment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "cancel_appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancel_appointment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "get_appointments",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_appointments"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-action",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "projectId": "mash-ddf8d",
+        "collection": "growers",
+        "returnAll": true,
+        "options": {
+          "filters": [
+            {
+              "key": "role",
+              "operator": "==",
+              "value": "SELLER"
+            }
+          ]
+        }
+      },
+      "id": "query-growers",
+      "name": "Query Growers",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "projectId": "mash-ddf8d",
+        "collection": "availability_slots",
+        "returnAll": true,
+        "options": {
+          "filters": [
+            {
+              "key": "is_available",
+              "operator": "==",
+              "value": "={{ true }}"
+            },
+            {
+              "key": "available_date",
+              "operator": ">=",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        }
+      },
+      "id": "query-availability",
+      "name": "Query Availability",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama3.2:latest"
+            },
+            {
+              "name": "prompt",
+              "value": "=You are a seller matcher for MASH mushroom marketplace.\n\nBuyer Request:\n- Product: {{ $('Webhook').item.json.body.productType }}\n- Quantity: {{ $('Webhook').item.json.body.quantity }}kg\n- Location: {{ $('Webhook').item.json.body.buyerLocation }}\n- Preferred Date: {{ $('Webhook').item.json.body.preferredDate }}\n\nAvailable Sellers:\n{{ $('Query Growers').all().map((g, i) => `${i+1}. ${g.json.businessName || 'Seller'} - ${g.json.specialty || 'Various mushrooms'} (${g.json.location || 'Unknown location'})`).join('\\n') }}\n\nReturn ONLY a JSON array of the top 3 seller UIDs ranked by relevance to the buyer's needs. Use the seller_uid field from the data.\nFormat: [\"seller_uid_1\", \"seller_uid_2\", \"seller_uid_3\"]\n\nIMPORTANT: Return ONLY the JSON array, nothing else."
+            },
+            {
+              "name": "stream",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ollama-ai-match",
+      "name": "Ollama AI Match",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from previous nodes\nconst growers = $input.item.json['Query Growers'] || [];\nconst availability = $input.item.json['Query Availability'] || [];\nconst aiResponse = $input.item.json.response || '{}';\n\n// Parse AI response to get top seller IDs\nlet topSellerIds = [];\ntry {\n  // Extract JSON array from AI response\n  const jsonMatch = aiResponse.match(/\\[.*?\\]/);\n  if (jsonMatch) {\n    topSellerIds = JSON.parse(jsonMatch[0]);\n  }\n} catch (error) {\n  console.error('Error parsing AI response:', error);\n  topSellerIds = [];\n}\n\n// If no sellers from AI, use first 3 growers\nif (topSellerIds.length === 0 && growers.length > 0) {\n  topSellerIds = growers.slice(0, 3).map(g => g.seller_uid || g.id);\n}\n\n// Build seller response\nconst sellers = topSellerIds.slice(0, 3).map(sellerId => {\n  // Find grower data\n  const grower = growers.find(g => \n    g.seller_uid === sellerId || \n    g.id === sellerId || \n    g.uid === sellerId\n  );\n  \n  // Find availability slots for this seller\n  const slots = availability\n    .filter(a => \n      a.seller_uid === sellerId || \n      a.sellerId === sellerId\n    )\n    .slice(0, 3)\n    .map(a => ({\n      date: a.available_date || a.date,\n      time: a.start_time || a.startTime || '09:00',\n      endTime: a.end_time || a.endTime || '10:00'\n    }));\n  \n  return {\n    id: sellerId,\n    name: grower?.businessName || grower?.name || 'Mushroom Seller',\n    specialty: grower?.specialty || 'Various mushrooms',\n    location: grower?.location || 'Philippines',\n    rating: grower?.rating || 4.5,\n    capacity: grower?.capacity || '50kg/week',\n    availableSlots: slots.length > 0 ? slots : [\n      { date: '2026-01-15', time: '09:00', endTime: '10:00' },\n      { date: '2026-01-16', time: '10:00', endTime: '11:00' },\n      { date: '2026-01-17', time: '14:00', endTime: '15:00' }\n    ]\n  };\n}).filter(seller => seller.id); // Remove any invalid sellers\n\n// Return formatted response\nreturn {\n  success: true,\n  action: 'find_sellers',\n  sellers: sellers,\n  totalFound: sellers.length,\n  aiRecommendation: topSellerIds.length > 0\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 200]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Query Growers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Growers": {
+      "main": [
+        [
+          {
+            "node": "Query Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Availability": {
+      "main": [
+        [
+          {
+            "node": "Ollama AI Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama AI Match": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-08T00:00:00.000Z",
+  "versionId": "phase2-find-sellers"
+}

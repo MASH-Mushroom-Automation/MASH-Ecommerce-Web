@@ -9,13 +9,13 @@
 
 ## Phase Checklist
 
-### Phase 1: Workflow Setup (15 min)
-- [ ] Open n8n at http://localhost:5678
-- [ ] Create workflow "MASH Appointment Booking"
-- [ ] Add Webhook Trigger (POST /webhook/mash-appointments)
-- [ ] Add Switch node (5 branches)
-- [ ] Test webhook responds
-- [ ] Save workflow
+### Phase 1: Workflow Setup (15 min) ✅ COMPLETE
+- [x] Open n8n at http://localhost:5678
+- [x] Create workflow "MASH Appointment Booking"
+- [x] Add Webhook Trigger (POST /webhook/mash-appointments)
+- [x] Add Switch node (5 branches)
+- [x] Test webhook responds
+- [x] Save workflow
 
 **Status:** ⏳ Not Started  
 **Time Spent:** 0 min  
