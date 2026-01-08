@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+
 const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/mash-appointments';
 
 export async function POST(req: NextRequest) {
@@ -21,9 +22,33 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    // Get response text first to handle empty responses
+    const responseText = await response.text();
+    
+    console.log('📥 n8n raw response:', responseText);
 
-    console.log('📥 n8n response:', data);
+    // If response is empty, return error
+    if (!responseText || responseText.trim() === '') {
+      console.error('❌ n8n returned empty response');
+      return NextResponse.json(
+        { error: 'n8n workflow returned empty response. Check if workflow is active and configured correctly.' },
+        { status: 502 }
+      );
+    }
+
+    // Try to parse as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse n8n response as JSON:', parseError);
+      return NextResponse.json(
+        { error: 'n8n workflow returned invalid JSON', details: responseText.substring(0, 200) },
+        { status: 502 }
+      );
+    }
+
+    console.log('📥 n8n parsed response:', data);
 
     if (!response.ok) {
       return NextResponse.json(
@@ -36,7 +61,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('❌ Appointment API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

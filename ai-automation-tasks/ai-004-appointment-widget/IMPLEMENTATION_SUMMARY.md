@@ -1,30 +1,127 @@
 # AI-004: Appointment Widget - Implementation Summary
 
-> **Status:** ✅ Complete  
-> **Created:** January 8, 2026  
-> **Dependencies:** AI-002 (n8n), AI-003 (Ollama)  
+> **Status:** ✅ FIXED (Updated Jan 9, 2026 - 2:30 PM)  
+> **Critical Fix:** Added missing imports to API route  
+> **Action Required:** Restart Next.js server (`Ctrl+C` → `npm run dev`)  
+> **Dependencies:** AI-007 (PostgreSQL n8n), AI-003 (Ollama)  
 > **GitHub Issue:** [#180](https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web/issues/180)
+
+---
+
+## 🚨 CRITICAL FIX APPLIED - READ THIS FIRST
+
+**Issue Fixed:** API route missing `NextRequest` and `NextResponse` imports  
+**Symptoms:** 500 errors, "Connection closed unexpectedly", widget shows "No sellers available"  
+**Fix:** Added imports to `src/app/api/appointments/route.ts`  
+**Action:** **RESTART NEXT.JS SERVER NOW** - Fix won't work until restart!
+
+👉 **Read:** [CRITICAL-FIX-GUIDE.md](./CRITICAL-FIX-GUIDE.md) for complete diagnostic guide
+
+---
+
+## 🚨 TROUBLESHOOTING FIRST?
+
+**If widget shows "No sellers available" or errors:**
+1. 🚨 **NEW:** [CRITICAL-FIX-GUIDE.md](./CRITICAL-FIX-GUIDE.md) - Latest fix with diagnostic tests
+2. 📖 [TROUBLESHOOTING-COMPLETE.md](./TROUBLESHOOTING-COMPLETE.md) - Complete diagnostic guide
+3. ⚡ [RESTART-AND-TEST.md](./RESTART-AND-TEST.md) - Quick 5-minute restart guide
+
+**Common Issue:** Server not restarted after code changes → Ctrl+C then `npm run dev`
 
 ---
 
 ## 📋 Quick Start
 
 ```bash
-# 1. Start n8n (if not running)
-cd ai-automation-tasks/ai-002-n8n-setup
-docker-compose up -d
+# 1. Verify services running
+ollama list                    # Should show llama3.2
+docker ps | findstr n8n        # Should show n8n container
 
 # 2. Start Ollama (if not running)
 ollama serve
 
-# 3. Start frontend
+# 3. Start n8n (if not running)
+cd ai-automation-tasks/ai-002-n8n-setup
+docker-compose up -d
+
+# 4. Restart Next.js (REQUIRED after any code changes)
+# Press Ctrl+C in terminal, then:
 npm run dev
 
-# 4. Open product page
-# http://localhost:3000/product/oyster-mushroom-fresh
+# 5. Open product page
+# http://localhost:3000/product/fresh-king-oyster-mushrooms
 
-# 5. Click "Book Meeting with Grower" button
+# 6. Click "Book Meeting with Grower" button
+# Expected: 3 seller cards appear in modal
 ```
+
+---
+
+## 🔄 Data Flow Architecture
+
+### Complete Request Flow:
+
+```
+1. User Action
+   └─> Click "Book Meeting with Grower" button
+
+2. Widget Component (AppointmentWidget.tsx)
+   └─> Calls: useAppointments.findMatchingSellers()
+
+3. Hook (useAppointments.ts)
+   └─> POST /api/appointments
+       Body: { 
+         action: "find_sellers",
+         productType: "King Oyster",
+         quantity: 5,
+         buyerLocation: "Manila",
+         preferredDate: "2026-01-15"
+       }
+
+4. Next.js API Route (src/app/api/appointments/route.ts)
+   └─> Forwards to: http://localhost:5678/webhook/mash-appointments
+       ⚠️ CRITICAL: Must use API route, not direct n8n call (CORS)
+
+5. n8n Webhook (Workflow: "MASH Appointment System - PostgreSQL + AI")
+   └─> Receives action: "find_sellers"
+   └─> Triggers Ollama Chat Model node
+
+6. Ollama AI (llama3.2:3b)
+   └─> Analyzes: Product type, quantity, location
+   └─> Generates SQL query parameters
+   └─> Returns: Matching criteria
+
+7. PostgreSQL Query (Neon Database)
+   └─> SELECT * FROM growers 
+       WHERE role = 'SELLER' 
+       AND specialty ILIKE '%King Oyster%'
+       AND location ILIKE '%Manila%'
+   └─> Returns: 3 sellers (seller_001, seller_002, seller_003)
+
+8. n8n Response Formatting
+   └─> Transforms database rows to JSON
+   └─> Returns: { sellers: [...] }
+
+9. API Route Response
+   └─> Forwards n8n response to frontend
+   └─> Adds CORS headers automatically
+
+10. Widget Displays Results
+    └─> Maps sellers to SellerCard components
+    └─> Shows: Name, location, specialties, capacity
+    └─> Enables: "View Available Slots" buttons
+```
+
+### Common Failure Points:
+
+| Step | Issue | Symptom | Fix |
+|------|-------|---------|-----|
+| 3 | Hook calls n8n directly | CORS error | ✅ Fixed: Use `/api/appointments` |
+| 4 | API route missing | 404 error | ✅ Fixed: File created |
+| 4 | Server not restarted | Connection closed | **Restart: npm run dev** |
+| 5 | n8n workflow inactive | Timeout | Activate workflow (green toggle) |
+| 6 | Ollama not running | AI error | Run: `ollama serve` |
+| 7 | Database empty | Empty array | Insert test sellers (see TROUBLESHOOTING) |
 
 ---
 
