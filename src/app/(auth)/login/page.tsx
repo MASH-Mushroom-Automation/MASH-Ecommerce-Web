@@ -2,7 +2,7 @@
 
 /**
  * Login Page - Backend & Firebase Authentication
- * 
+ *
  * Supports multiple sign-in methods:
  * - Email/Password (via NestJS Backend)
  * - Email Link (Passwordless via Firebase)
@@ -187,21 +187,9 @@ export default function LoginPage() {
 
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
-      
-      // Check if email is verified
-      if (user && !user.emailVerified) {
-        // Store email for verification page
-        sessionStorage.setItem("pendingVerificationEmail", data.email);
-        
-        toast.warning("Email not verified", {
-          description: "Please verify your email to continue.",
-          action: {
-            label: "Verify Now",
-            onClick: () => router.push("/verify-otp"),
-          },
-        });
-        return;
-      }
+
+      // Note: Email verification is not required for login
+      // Verification will be enforced for sensitive actions (checkout, seller dashboard, etc.)
 
       toast.success(`Welcome back, ${user?.firstName || user?.email}!`);
 
@@ -216,20 +204,22 @@ export default function LoginPage() {
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
-      
+
       // Extract error message
       let errorMessage = "Login failed. Please try again.";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === "object" && error !== null) {
         const errorObj = error as { message?: string; error?: string };
         errorMessage = errorObj.message || errorObj.error || errorMessage;
       }
-      
+
       // Check for specific errors
-      if (errorMessage.toLowerCase().includes("not verified") ||
-          errorMessage.toLowerCase().includes("email verification")) {
+      if (
+        errorMessage.toLowerCase().includes("not verified") ||
+        errorMessage.toLowerCase().includes("email verification")
+      ) {
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         toast.error("Email not verified", {
           description: "Please verify your email first.",
@@ -238,14 +228,18 @@ export default function LoginPage() {
             onClick: () => router.push("/verify-otp"),
           },
         });
-      } else if (errorMessage.toLowerCase().includes("invalid") ||
-                 errorMessage.toLowerCase().includes("incorrect") ||
-                 errorMessage.toLowerCase().includes("wrong")) {
+      } else if (
+        errorMessage.toLowerCase().includes("invalid") ||
+        errorMessage.toLowerCase().includes("incorrect") ||
+        errorMessage.toLowerCase().includes("wrong")
+      ) {
         toast.error("Invalid credentials", {
           description: "Please check your email and password.",
         });
-      } else if (errorMessage.toLowerCase().includes("not found") ||
-                 errorMessage.toLowerCase().includes("no user")) {
+      } else if (
+        errorMessage.toLowerCase().includes("not found") ||
+        errorMessage.toLowerCase().includes("no user")
+      ) {
         toast.error("Account not found", {
           description: "No account found with this email. Please sign up.",
         });
@@ -320,8 +314,8 @@ export default function LoginPage() {
                   verifyParam === "true"
                     ? "bg-yellow-500/10 border-yellow-500/30"
                     : verifiedParam === "true"
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-primary/10 border-primary/30"
+                      ? "bg-green-500/10 border-green-500/30"
+                      : "bg-primary/10 border-primary/30"
                 }`}
               >
                 <AlertCircle
@@ -329,8 +323,8 @@ export default function LoginPage() {
                     verifyParam === "true"
                       ? "text-yellow-600"
                       : verifiedParam === "true"
-                      ? "text-green-600"
-                      : "text-primary"
+                        ? "text-green-600"
+                        : "text-primary"
                   }`}
                 />
                 <AlertDescription
@@ -338,8 +332,8 @@ export default function LoginPage() {
                     verifyParam === "true"
                       ? "text-yellow-600"
                       : verifiedParam === "true"
-                      ? "text-green-600"
-                      : "text-primary"
+                        ? "text-green-600"
+                        : "text-primary"
                   }`}
                 >
                   {contextualMessage}
