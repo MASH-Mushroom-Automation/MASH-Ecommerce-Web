@@ -20,7 +20,14 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { ChevronRight, Loader2 } from "lucide-react";
+import {
+  ChevronRight,
+  Loader2,
+  Upload,
+  FileText,
+  X,
+  CheckCircle2,
+} from "lucide-react";
 import Link from "next/link";
 import { SellerApplicationForm } from "../page";
 
@@ -60,7 +67,11 @@ const regions = [
   "SOCCSKSARGEN",
 ];
 
-export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps) {
+export function ApplicationForm({
+  form,
+  onSubmit,
+  onBack,
+}: ApplicationFormProps) {
   return (
     <div className="min-h-screen bg-muted">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -81,7 +92,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Please fill in all required fields to complete your application.
-              We'll review your information and get back to you within 2-3 business days.
+              We'll review your information and get back to you within 2-3
+              business days.
             </p>
           </div>
 
@@ -120,15 +132,22 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                         <FormLabel>
                           Business Type <span className="text-red-500">*</span>
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger className="h-10 sm:h-12">
                               <SelectValue placeholder="Select business type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="individual">Individual/Sole Proprietor</SelectItem>
-                            <SelectItem value="company">Company/Corporation</SelectItem>
+                            <SelectItem value="individual">
+                              Individual/Sole Proprietor
+                            </SelectItem>
+                            <SelectItem value="company">
+                              Company/Corporation
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -149,7 +168,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                           />
                         </FormControl>
                         <FormDescription className="text-xs sm:text-sm">
-                          Providing a tax ID can speed up the verification process
+                          Providing a tax ID can speed up the verification
+                          process
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -252,7 +272,10 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                         <FormLabel>
                           Region <span className="text-red-500">*</span>
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger className="h-10 sm:h-12">
                               <SelectValue placeholder="Select your region" />
@@ -276,7 +299,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                     render={({ field }) => (
                       <FormItem className="sm:col-span-2">
                         <FormLabel>
-                          Complete Address <span className="text-red-500">*</span>
+                          Complete Address{" "}
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Textarea
@@ -305,7 +329,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                     render={() => (
                       <FormItem>
                         <FormLabel>
-                          Types of Mushrooms You Grow <span className="text-red-500">*</span>
+                          Types of Mushrooms You Grow{" "}
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormDescription className="text-xs sm:text-sm">
                           Select all that apply
@@ -327,9 +352,14 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                                         checked={field.value?.includes(type)}
                                         onCheckedChange={(checked) => {
                                           return checked
-                                            ? field.onChange([...field.value, type])
+                                            ? field.onChange([
+                                                ...field.value,
+                                                type,
+                                              ])
                                             : field.onChange(
-                                                field.value?.filter((value) => value !== type)
+                                                field.value?.filter(
+                                                  (value) => value !== type
+                                                )
                                               );
                                         }}
                                       />
@@ -353,7 +383,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Monthly Production Capacity <span className="text-red-500">*</span>
+                          Monthly Production Capacity{" "}
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -390,6 +421,258 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 </div>
               </div>
 
+              {/* Document Upload Section */}
+              <div>
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 pb-2 border-b">
+                  Required Documents
+                </h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Please upload clear copies of the following documents.
+                  Accepted formats: JPG, PNG, WebP, or PDF (max 5MB each).
+                </p>
+                <div className="grid gap-6">
+                  {/* Valid ID Upload */}
+                  <FormField
+                    control={form.control}
+                    name="validIdFile"
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Valid ID of Owner{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) onChange(file);
+                              }}
+                              className="hidden"
+                              id="validIdFile"
+                              {...field}
+                            />
+                            <label
+                              htmlFor="validIdFile"
+                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                value
+                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                                  : "border-border hover:border-primary hover:bg-muted/50"
+                              }`}
+                            >
+                              {value ? (
+                                <div className="flex items-center gap-3">
+                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {(value as File).name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(
+                                        (value as File).size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)}{" "}
+                                      MB
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      onChange(undefined);
+                                    }}
+                                    className="ml-2 p-1 hover:bg-muted rounded"
+                                  >
+                                    <X className="w-4 h-4 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="w-8 h-8 text-muted-foreground" />
+                                  <div className="text-center">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Upload Valid ID
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Government-issued ID (e.g., Driver&apos;s
+                                      License, Passport, PhilID)
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* BIR Certificate Upload */}
+                  <FormField
+                    control={form.control}
+                    name="birCertificateFile"
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>
+                          BIR Certificate{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) onChange(file);
+                              }}
+                              className="hidden"
+                              id="birCertificateFile"
+                              {...field}
+                            />
+                            <label
+                              htmlFor="birCertificateFile"
+                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                value
+                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                                  : "border-border hover:border-primary hover:bg-muted/50"
+                              }`}
+                            >
+                              {value ? (
+                                <div className="flex items-center gap-3">
+                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {(value as File).name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(
+                                        (value as File).size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)}{" "}
+                                      MB
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      onChange(undefined);
+                                    }}
+                                    className="ml-2 p-1 hover:bg-muted rounded"
+                                  >
+                                    <X className="w-4 h-4 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <FileText className="w-8 h-8 text-muted-foreground" />
+                                  <div className="text-center">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Upload BIR Certificate
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Certificate of Registration (COR) or Form
+                                      2303
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Business Certificate Upload */}
+                  <FormField
+                    control={form.control}
+                    name="businessCertificateFile"
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Business Certificate{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) onChange(file);
+                              }}
+                              className="hidden"
+                              id="businessCertificateFile"
+                              {...field}
+                            />
+                            <label
+                              htmlFor="businessCertificateFile"
+                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                value
+                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
+                                  : "border-border hover:border-primary hover:bg-muted/50"
+                              }`}
+                            >
+                              {value ? (
+                                <div className="flex items-center gap-3">
+                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {(value as File).name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(
+                                        (value as File).size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)}{" "}
+                                      MB
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      onChange(undefined);
+                                    }}
+                                    className="ml-2 p-1 hover:bg-muted rounded"
+                                  >
+                                    <X className="w-4 h-4 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <FileText className="w-8 h-8 text-muted-foreground" />
+                                  <div className="text-center">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Upload Business Certificate
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      DTI Registration, SEC Certificate, or
+                                      Mayor&apos;s Permit
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
               {/* Payment Information - Coming Soon */}
               <div className="bg-muted/50 border border-border rounded-lg p-6">
                 <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
@@ -397,10 +680,13 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                 </h2>
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Payment processing will be set up after your seller application is approved.
+                    Payment processing will be set up after your seller
+                    application is approved.
                   </p>
                   <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium text-foreground">Coming Soon:</span>
+                    <span className="text-sm font-medium text-foreground">
+                      Coming Soon:
+                    </span>
                     <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
                       PayMongo
                     </span>
@@ -412,7 +698,8 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground italic">
-                    💡 You&apos;ll be able to connect your preferred payment method once approved.
+                    💡 You&apos;ll be able to connect your preferred payment
+                    method once approved.
                   </p>
                 </div>
               </div>
@@ -433,11 +720,17 @@ export function ApplicationForm({ form, onSubmit, onBack }: ApplicationFormProps
                       <div className="space-y-1 leading-none">
                         <FormLabel className="text-sm sm:text-base">
                           I agree to the{" "}
-                          <Link href="/terms" className="text-accent hover:underline">
+                          <Link
+                            href="/terms"
+                            className="text-accent hover:underline"
+                          >
                             Terms and Conditions
                           </Link>{" "}
                           and{" "}
-                          <Link href="/privacy" className="text-accent hover:underline">
+                          <Link
+                            href="/privacy"
+                            className="text-accent hover:underline"
+                          >
                             Privacy Policy
                           </Link>{" "}
                           <span className="text-red-500">*</span>

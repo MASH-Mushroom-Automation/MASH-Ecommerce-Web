@@ -75,6 +75,29 @@ export const sellerApplicationSchema = z.object({
   productionCapacity: z.string().min(1, "Production capacity is required"),
   certifications: z.string().optional(),
 
+  // Document Uploads
+  validIdFile: z
+    .instanceof(File, { message: "Valid ID is required" })
+    .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
+    .refine(
+      (file) => ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type),
+      "Only JPG, PNG, WebP, or PDF files are allowed"
+    ),
+  birCertificateFile: z
+    .instanceof(File, { message: "BIR Certificate is required" })
+    .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
+    .refine(
+      (file) => ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type),
+      "Only JPG, PNG, WebP, or PDF files are allowed"
+    ),
+  businessCertificateFile: z
+    .instanceof(File, { message: "Business Certificate is required" })
+    .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
+    .refine(
+      (file) => ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type),
+      "Only JPG, PNG, WebP, or PDF files are allowed"
+    ),
+
   // Terms
   agreeToTerms: z
     .boolean()
@@ -103,6 +126,9 @@ export default function StartSellingPage() {
       mushroomTypes: [],
       productionCapacity: "",
       certifications: "",
+      validIdFile: undefined as unknown as File,
+      birCertificateFile: undefined as unknown as File,
+      businessCertificateFile: undefined as unknown as File,
       agreeToTerms: false,
     },
   });
