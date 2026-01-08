@@ -1,0 +1,646 @@
+{
+  "name": "MASH Appointment System - Production Complete",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "mash-appointments",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 460],
+      "webhookId": "mash-appointments"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "find_sellers",
+              "output": 0
+            },
+            {
+              "value2": "get_availability",
+              "output": 1
+            },
+            {
+              "value2": "set_appointment",
+              "output": 2
+            },
+            {
+              "value2": "cancel_appointment",
+              "output": 3
+            },
+            {
+              "value2": "get_appointments",
+              "output": 4
+            }
+          ]
+        }
+      },
+      "id": "action-router",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [460, 460]
+    },
+    {
+      "parameters": {
+        "collection": "growers",
+        "filters": {
+          "conditions": [
+            {
+              "field": "role",
+              "operator": "==",
+              "value": "SELLER"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "query-growers",
+      "name": "Query Growers",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetAllDocuments",
+      "typeVersion": 1,
+      "position": [700, 240],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "availability_slots",
+        "filters": {
+          "conditions": [
+            {
+              "field": "is_available",
+              "operator": "==",
+              "value": true
+            },
+            {
+              "field": "available_date",
+              "operator": ">=",
+              "value": "={{ $now.format('yyyy-MM-dd') }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "query-availability",
+      "name": "Query Availability",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetAllDocuments",
+      "typeVersion": 1,
+      "position": [920, 240],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama3.2:latest"
+            },
+            {
+              "name": "prompt",
+              "value": "=You are a seller matcher for MASH mushroom marketplace.\n\nBuyer request:\n- Product: {{ $('Webhook Trigger').first().json.body.productType }}\n- Quantity: {{ $('Webhook Trigger').first().json.body.quantity }}kg\n- Location: {{ $('Webhook Trigger').first().json.body.location }}\n- Preferred Date: {{ $('Webhook Trigger').first().json.body.preferredDate }}\n\nAvailable sellers:\n{{ $('Query Growers').all().map((item, index) => `${index + 1}. ${item.json.name} - ${item.json.specialty || 'All types'}. Location: ${item.json.location}. Capacity: ${item.json.capacity_kg || 'Unknown'}kg/week`).join('\\n') }}\n\nReturn ONLY a JSON array of the top 3 seller IDs ranked by relevance, like this:\n[\"seller_id_1\", \"seller_id_2\", \"seller_id_3\"]\n\nNo explanation, just the JSON array."
+            },
+            {
+              "name": "stream",
+              "value": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ollama-ai-match",
+      "name": "Ollama AI Match",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 240]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Get data from previous nodes\nconst growers = $('Query Growers').all();\nconst availabilitySlots = $('Query Availability').all();\nconst aiResponse = $('Ollama AI Match').first().json.response;\nconst requestData = $('Webhook Trigger').first().json.body;\n\n// Parse AI ranking\nlet topSellerIds = [];\ntry {\n  const match = aiResponse.match(/\\[.*?\\]/);\n  if (match) {\n    topSellerIds = JSON.parse(match[0]);\n  }\n} catch (e) {\n  // Fallback: return first 3 sellers\n  topSellerIds = growers.slice(0, 3).map(g => g.json._id || g.json.seller_uid);\n}\n\n// Build seller results with availability\nconst sellers = topSellerIds.slice(0, 3).map(sellerId => {\n  const grower = growers.find(g => (g.json._id === sellerId || g.json.seller_uid === sellerId));\n  if (!grower) return null;\n  \n  const sellerSlots = availabilitySlots\n    .filter(slot => slot.json.seller_uid === sellerId)\n    .slice(0, 3)\n    .map(slot => ({\n      slotId: slot.json._id || slot.json.slot_id,\n      date: slot.json.available_date,\n      startTime: slot.json.start_time,\n      endTime: slot.json.end_time,\n      duration: slot.json.duration_minutes\n    }));\n  \n  return {\n    id: sellerId,\n    name: grower.json.name,\n    specialty: grower.json.specialty || 'All mushroom types',\n    location: grower.json.location,\n    rating: grower.json.rating || 4.5,\n    capacity: grower.json.capacity_kg || 100,\n    availableSlots: sellerSlots\n  };\n}).filter(Boolean);\n\n// Format final response\nconst response = {\n  success: true,\n  action: 'find_sellers',\n  query: {\n    productType: requestData.productType,\n    quantity: requestData.quantity,\n    location: requestData.location,\n    preferredDate: requestData.preferredDate\n  },\n  sellers: sellers,\n  totalSellers: sellers.length,\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "id": "format-find-sellers",
+      "name": "Format Find Sellers Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 240]
+    },
+    {
+      "parameters": {
+        "collection": "availability_slots",
+        "filters": {
+          "conditions": [
+            {
+              "field": "seller_uid",
+              "operator": "==",
+              "value": "={{ $('Webhook Trigger').first().json.body.sellerId }}"
+            },
+            {
+              "field": "is_available",
+              "operator": "==",
+              "value": true
+            },
+            {
+              "field": "available_date",
+              "operator": ">=",
+              "value": "={{ $now.format('yyyy-MM-dd') }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {
+          "orderBy": [
+            {
+              "field": "available_date",
+              "direction": "ASCENDING"
+            },
+            {
+              "field": "start_time",
+              "direction": "ASCENDING"
+            }
+          ]
+        }
+      },
+      "id": "query-availability-slots",
+      "name": "Query Availability Slots",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetAllDocuments",
+      "typeVersion": 1,
+      "position": [700, 380],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const availabilitySlots = $input.all();\nconst requestData = $('Webhook Trigger').first().json.body;\nconst sellerId = requestData.sellerId;\nconst preferredDate = requestData.preferredDate;\n\n// Group slots by date\nconst slotsByDate = {};\navailabilitySlots.forEach(item => {\n  const slot = item.json;\n  const date = slot.available_date;\n  \n  if (!slotsByDate[date]) {\n    slotsByDate[date] = [];\n  }\n  \n  slotsByDate[date].push({\n    slotId: slot._id || slot.slot_id,\n    startTime: slot.start_time,\n    endTime: slot.end_time,\n    duration: slot.duration_minutes,\n    isAvailable: slot.is_available\n  });\n});\n\n// Filter by preferred date if provided\nlet filteredSlots = slotsByDate;\nif (preferredDate) {\n  filteredSlots = {};\n  if (slotsByDate[preferredDate]) {\n    filteredSlots[preferredDate] = slotsByDate[preferredDate];\n  }\n}\n\nconst response = {\n  success: true,\n  action: 'get_availability',\n  sellerId: sellerId,\n  preferredDate: preferredDate || null,\n  availabilityByDate: filteredSlots,\n  totalSlots: Object.values(filteredSlots).reduce((sum, slots) => sum + slots.length, 0),\n  dateRange: {\n    from: Object.keys(filteredSlots).sort()[0] || null,\n    to: Object.keys(filteredSlots).sort().reverse()[0] || null\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "id": "format-availability",
+      "name": "Format Availability Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 380]
+    },
+    {
+      "parameters": {
+        "collection": "appointments",
+        "documentId": "AUTO_GENERATE",
+        "dataFields": {
+          "fields": [
+            {
+              "name": "buyer_uid",
+              "value": "={{ $('Webhook Trigger').first().json.body.buyerUid }}"
+            },
+            {
+              "name": "seller_uid",
+              "value": "={{ $('Webhook Trigger').first().json.body.sellerUid }}"
+            },
+            {
+              "name": "product_type",
+              "value": "={{ $('Webhook Trigger').first().json.body.productType }}"
+            },
+            {
+              "name": "quantity_kg",
+              "value": "={{ $('Webhook Trigger').first().json.body.quantity }}"
+            },
+            {
+              "name": "scheduled_time",
+              "value": "={{ $('Webhook Trigger').first().json.body.scheduledTime }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $('Webhook Trigger').first().json.body.location }}"
+            },
+            {
+              "name": "status",
+              "value": "pending"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "notes",
+              "value": "={{ $('Webhook Trigger').first().json.body.notes || '' }}"
+            }
+          ]
+        }
+      },
+      "id": "create-appointment",
+      "name": "Create Appointment",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreAdd",
+      "typeVersion": 1,
+      "position": [700, 540],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "availability_slots",
+        "documentId": "={{ $('Webhook Trigger').first().json.body.slotId }}",
+        "updateFields": {
+          "fields": [
+            {
+              "name": "is_available",
+              "value": false
+            },
+            {
+              "name": "booked_by",
+              "value": "={{ $('Webhook Trigger').first().json.body.buyerUid }}"
+            },
+            {
+              "name": "appointment_id",
+              "value": "={{ $('Create Appointment').first().json.documentId }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "mark-slot-booked",
+      "name": "Mark Slot as Booked",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreUpdate",
+      "typeVersion": 1,
+      "position": [920, 540],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const appointment = $('Create Appointment').first().json;\nconst requestData = $('Webhook Trigger').first().json.body;\n\nconst response = {\n  success: true,\n  action: 'set_appointment',\n  appointmentId: appointment.documentId,\n  appointment: {\n    buyerUid: requestData.buyerUid,\n    sellerUid: requestData.sellerUid,\n    productType: requestData.productType,\n    quantity: requestData.quantity,\n    scheduledTime: requestData.scheduledTime,\n    location: requestData.location,\n    status: 'pending',\n    notes: requestData.notes || '',\n    createdAt: new Date().toISOString()\n  },\n  message: 'Appointment created successfully. Seller will be notified.',\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "id": "format-set-appointment",
+      "name": "Format Set Appointment Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 540]
+    },
+    {
+      "parameters": {
+        "collection": "appointments",
+        "documentId": "={{ $('Webhook Trigger').first().json.body.appointmentId }}",
+        "options": {}
+      },
+      "id": "get-appointment",
+      "name": "Get Appointment",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetDocument",
+      "typeVersion": 1,
+      "position": [700, 680],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "appointments",
+        "documentId": "={{ $('Webhook Trigger').first().json.body.appointmentId }}",
+        "updateFields": {
+          "fields": [
+            {
+              "name": "status",
+              "value": "cancelled"
+            },
+            {
+              "name": "cancelled_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "cancel_reason",
+              "value": "={{ $('Webhook Trigger').first().json.body.cancelReason || 'User cancelled' }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "update-appointment-cancelled",
+      "name": "Update Appointment to Cancelled",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreUpdate",
+      "typeVersion": 1,
+      "position": [920, 680],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "availability_slots",
+        "documentId": "={{ $('Get Appointment').first().json.slot_id }}",
+        "updateFields": {
+          "fields": [
+            {
+              "name": "is_available",
+              "value": true
+            },
+            {
+              "name": "booked_by",
+              "value": ""
+            },
+            {
+              "name": "appointment_id",
+              "value": ""
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "release-slot",
+      "name": "Release Slot",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreUpdate",
+      "typeVersion": 1,
+      "position": [1140, 680],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const appointment = $('Update Appointment to Cancelled').first().json;\nconst requestData = $('Webhook Trigger').first().json.body;\n\nconst response = {\n  success: true,\n  action: 'cancel_appointment',\n  appointmentId: requestData.appointmentId,\n  message: 'Appointment cancelled successfully. Time slot has been released.',\n  cancelledAt: new Date().toISOString(),\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "id": "format-cancel",
+      "name": "Format Cancel Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 680]
+    },
+    {
+      "parameters": {
+        "collection": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "field": "={{ $('Webhook Trigger').first().json.body.userType === 'buyer' ? 'buyer_uid' : 'seller_uid' }}",
+              "operator": "==",
+              "value": "={{ $('Webhook Trigger').first().json.body.userId }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {
+          "orderBy": [
+            {
+              "field": "created_at",
+              "direction": "DESCENDING"
+            }
+          ]
+        }
+      },
+      "id": "query-appointments",
+      "name": "Query Appointments",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetAllDocuments",
+      "typeVersion": 1,
+      "position": [700, 820],
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const appointments = $input.all();\nconst requestData = $('Webhook Trigger').first().json.body;\n\nconst formattedAppointments = appointments.map(item => {\n  const appt = item.json;\n  return {\n    appointmentId: appt._id,\n    buyerUid: appt.buyer_uid,\n    sellerUid: appt.seller_uid,\n    productType: appt.product_type,\n    quantity: appt.quantity_kg,\n    scheduledTime: appt.scheduled_time,\n    location: appt.location,\n    status: appt.status,\n    notes: appt.notes || '',\n    createdAt: appt.created_at,\n    updatedAt: appt.updated_at\n  };\n});\n\nconst response = {\n  success: true,\n  action: 'get_appointments',\n  userId: requestData.userId,\n  userType: requestData.userType,\n  appointments: formattedAppointments,\n  totalAppointments: formattedAppointments.length,\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "id": "format-get-appointments",
+      "name": "Format Get Appointments Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 820]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Router": {
+      "main": [
+        [
+          {
+            "node": "Query Growers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Availability Slots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Growers": {
+      "main": [
+        [
+          {
+            "node": "Query Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Availability": {
+      "main": [
+        [
+          {
+            "node": "Ollama AI Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama AI Match": {
+      "main": [
+        [
+          {
+            "node": "Format Find Sellers Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Availability Slots": {
+      "main": [
+        [
+          {
+            "node": "Format Availability Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment": {
+      "main": [
+        [
+          {
+            "node": "Mark Slot as Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Slot as Booked": {
+      "main": [
+        [
+          {
+            "node": "Format Set Appointment Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Appointment": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment to Cancelled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment to Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Release Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Slot": {
+      "main": [
+        [
+          {
+            "node": "Format Cancel Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Appointments": {
+      "main": [
+        [
+          {
+            "node": "Format Get Appointments Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "production",
+    "appointment",
+    "complete",
+    "all-actions"
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-08T00:00:00.000Z",
+  "versionId": "production-complete-v1"
+}
