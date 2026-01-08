@@ -90,20 +90,22 @@ INSERT INTO growers (user_uid, name, email, phone, specialty, location, capacity
 ON CONFLICT (user_uid) DO NOTHING;
 
 -- ============================================================================
--- Step 5: Seed Availability Slots (672 slots = 3 sellers × 7 days × 8 hours)
+-- Step 5: Seed Availability Slots (672 slots = 3 sellers × 7 days × 32 time slots)
 -- ============================================================================
+-- Creates 32 time slots per day (8am-4pm, 15-minute intervals)
+-- 3 sellers × 7 days × 32 slots = 672 total slots
 
 INSERT INTO availability_slots (seller_uid, available_date, start_time, end_time, duration_minutes, is_available)
 SELECT 
   seller_uid,
   (CURRENT_DATE + d.day) AS available_date,
-  (t.hour || ':00:00')::TIME AS start_time,
-  ((t.hour + 1) || ':00:00')::TIME AS end_time,
-  60,
+  (TIME '08:00:00' + (slot * INTERVAL '15 minutes')) AS start_time,
+  (TIME '08:00:00' + ((slot + 1) * INTERVAL '15 minutes')) AS end_time,
+  15,
   TRUE
 FROM (VALUES ('seller_001'), ('seller_002'), ('seller_003')) AS s(seller_uid)
 CROSS JOIN generate_series(0, 6) AS d(day)
-CROSS JOIN generate_series(9, 16) AS t(hour);
+CROSS JOIN generate_series(0, 31) AS slot;
 
 -- ============================================================================
 -- Step 6: Seed Sample Appointments (2 test appointments)

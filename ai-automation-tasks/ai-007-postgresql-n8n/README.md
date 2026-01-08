@@ -17,6 +17,7 @@
 | **workflow-neon-complete.json** | Complete n8n workflow (30+ nodes, 5 actions) | ✅ Complete |
 | **01-setup-database.sql** | Single SQL script for complete database setup | ✅ Complete |
 | **test-neon-workflow.ps1** | Automated test suite (5 comprehensive tests) | ✅ Complete |
+| **TROUBLESHOOTING-N8N.md** | 🆘 Fix Ollama, PostgreSQL, and workflow errors | ✅ Complete |
 | **PLANNING.md** | Complete 8-phase implementation guide | ✅ Complete |
 | **SUPABASE_TO_POSTGRESQL_CONVERSION.md** | Supabase → PostgreSQL node mappings | ✅ Complete |
 | **NEXT-STEPS-POSTGRESQL.md** | Detailed step-by-step implementation guide | ✅ Complete |
