@@ -1,0 +1,616 @@
+{
+  "name": "MASH Appointment System - PostgreSQL + AI",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "mash-appointments",
+        "options": {},
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-node-001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-928, 832],
+      "webhookId": "mash-appointments"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "action-find-sellers",
+              "name": "find_sellers",
+              "value": "=You are finding the best mushroom sellers for a buyer request.\n**Only follow the instructions provided.**\n\nProduct Type: {{ $json.body.productType }}\nQuantity (kg): {{ $json.body.quantity }}\nLocation: {{ $json.body.location }}\nPreferred Date: {{ $json.body.preferredDate }}\n\nSteps:\n1. Query the growers table for sellers matching the product specialty\n2. Filter by location proximity to: {{ $json.body.location }}\n3. Check availability_slots table for sellers with available slots on or after {{ $json.body.preferredDate }}\n4. Rank sellers by: rating (DESC), capacity_kg (DESC), location match\n5. Return top 3 sellers with their next 5 available slots\n6. Output JSON format: {\"sellers\": [{\"name\": \"...\", \"rating\": X.X, \"specialty\": \"...\", \"availableSlots\": [...]}]}",
+              "type": "string"
+            },
+            {
+              "id": "action-get-availability",
+              "name": "get_availability",
+              "value": "=You are retrieving available time slots for a specific seller.\n**Only follow the instructions provided.**\n\nSeller UID: {{ $json.body.sellerId }}\nPreferred Date: {{ $json.body.preferredDate || 'any' }}\n\nSteps:\n1. Query availability_slots table WHERE seller_uid = '{{ $json.body.sellerId }}' AND is_available = TRUE\n2. If preferredDate provided, filter WHERE available_date >= '{{ $json.body.preferredDate }}'\n3. Order by available_date ASC, start_time ASC\n4. Group slots by date\n5. Return JSON: {\"sellerId\": \"...\", \"sellerName\": \"...\", \"totalSlots\": N, \"availabilityByDate\": {\"2026-01-10\": [{\"slotId\": \"...\", \"startTime\": \"10:00\", \"endTime\": \"11:00\"}]}}",
+              "type": "string"
+            },
+            {
+              "id": "action-set-appointment",
+              "name": "set_appointment",
+              "value": "=You are creating a new appointment and marking the slot as booked.\n**Only follow the instructions provided.**\n\nBuyer UID: {{ $json.body.buyerUid }}\nBuyer Name: {{ $json.body.buyerName }}\nBuyer Email: {{ $json.body.buyerEmail }}\nBuyer Phone: {{ $json.body.buyerPhone }}\nSeller UID: {{ $json.body.sellerUid }}\nSeller Name: {{ $json.body.sellerName }}\nSlot ID: {{ $json.body.slotId }}\nProduct Type: {{ $json.body.productType }}\nQuantity (kg): {{ $json.body.quantity }}\nScheduled Time: {{ $json.body.scheduledTime }}\nLocation: {{ $json.body.location }}\nMeeting Type: {{ $json.body.meetingType || 'consultation' }}\nNotes: {{ $json.body.notes || '' }}\n\nSteps:\n1. Check availability_slots WHERE id = '{{ $json.body.slotId }}' AND is_available = TRUE\n2. If slot not available, return: {\"error\": \"Slot no longer available\"}\n3. INSERT INTO appointments (buyer_uid, buyer_name, buyer_email, buyer_phone, seller_uid, seller_name, product_type, quantity_kg, scheduled_time, location, status, meeting_type, notes)\n4. Get the new appointment ID from INSERT RETURNING *\n5. UPDATE availability_slots SET is_available = FALSE, booked_by = '{{ $json.body.buyerUid }}', appointment_id = <new_id> WHERE id = '{{ $json.body.slotId }}'\n6. Return JSON: {\"success\": true, \"appointmentId\": \"...\", \"appointment\": {...}, \"message\": \"Appointment confirmed\"}",
+              "type": "string"
+            },
+            {
+              "id": "action-cancel-appointment",
+              "name": "cancel_appointment",
+              "value": "=You are canceling an appointment and releasing the time slot.\n**Only follow the instructions provided.**\n\nAppointment ID: {{ $json.body.appointmentId }}\nCancel Reason: {{ $json.body.cancelReason || 'No reason provided' }}\n\nSteps:\n1. SELECT * FROM appointments WHERE id = '{{ $json.body.appointmentId }}'\n2. If not found, return: {\"error\": \"Appointment not found\"}\n3. UPDATE appointments SET status = 'cancelled', cancel_reason = '{{ $json.body.cancelReason }}', cancelled_at = CURRENT_TIMESTAMP WHERE id = '{{ $json.body.appointmentId }}'\n4. UPDATE availability_slots SET is_available = TRUE, booked_by = NULL, appointment_id = NULL WHERE appointment_id = '{{ $json.body.appointmentId }}'\n5. Return JSON: {\"success\": true, \"status\": \"cancelled\", \"slotReleased\": {\"slotId\": \"...\", \"nowAvailable\": true}}",
+              "type": "string"
+            },
+            {
+              "id": "action-get-appointments",
+              "name": "get_appointments",
+              "value": "=You are retrieving all appointments for a user.\n**Only follow the instructions provided.**\n\nUser ID: {{ $json.body.userId }}\nUser Type: {{ $json.body.userType }} (buyer or seller)\n\nSteps:\n1. If userType = 'buyer': SELECT * FROM appointments WHERE buyer_uid = '{{ $json.body.userId }}' ORDER BY scheduled_time DESC\n2. If userType = 'seller': SELECT * FROM appointments WHERE seller_uid = '{{ $json.body.userId }}' ORDER BY scheduled_time DESC\n3. Return JSON: {\"userId\": \"...\", \"userType\": \"...\", \"totalAppointments\": N, \"appointments\": [{\"id\": \"...\", \"productType\": \"...\", \"scheduledTime\": \"...\", \"status\": \"...\"}]}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-actions-001",
+      "name": "Appointment Actions",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-704, 832]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "find_sellers",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "get_availability",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "set_appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "cancel_appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "get_appointments",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-router-001",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [-480, 784]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "ollama-find-sellers",
+      "name": "Ollama Chat Model (Find Sellers)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-208, -256]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "ollama-get-availability",
+      "name": "Ollama Chat Model (Get Availability)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-112, 448]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "ollama-set-appointment",
+      "name": "Ollama Chat Model (Set Appointment)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-128, 896]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "ollama-cancel-appointment",
+      "name": "Ollama Chat Model (Cancel)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-48, 1424]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "ollama-get-appointments",
+      "name": "Ollama Chat Model (Get Appointments)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [-32, 2048]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  g.user_uid,\n  g.name,\n  g.email,\n  g.phone,\n  g.specialty,\n  g.location,\n  g.capacity_kg,\n  g.rating,\n  COUNT(a.id) as available_slots_count\nFROM growers g\nLEFT JOIN availability_slots a ON g.user_uid = a.seller_uid AND a.is_available = TRUE\nWHERE g.role = 'SELLER'\n  AND g.specialty ILIKE '%{{ $json.body.productType }}%'\nGROUP BY g.user_uid, g.name, g.email, g.phone, g.specialty, g.location, g.capacity_kg, g.rating\nHAVING COUNT(a.id) > 0\nORDER BY g.rating DESC, g.capacity_kg DESC\nLIMIT 3;",
+        "additionalFields": {}
+      },
+      "id": "postgres-query-growers",
+      "name": "Query Growers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-16, -240],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  id as slot_id,\n  available_date,\n  start_time,\n  end_time,\n  duration_minutes\nFROM availability_slots\nWHERE seller_uid = '{{ $('Query Growers').item.json.user_uid }}'\n  AND is_available = TRUE\n  AND available_date >= CURRENT_DATE\nORDER BY available_date ASC, start_time ASC\nLIMIT 5;",
+        "additionalFields": {}
+      },
+      "id": "postgres-get-seller-slots",
+      "name": "Get Seller Available Slots",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [144, -240],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Appointment Actions').item.json.find_sellers }}\n/no_think",
+        "options": {},
+        "promptType": "define"
+      },
+      "id": "agent-find-sellers",
+      "name": "AI Seller Matching Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [-128, -416]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  a.id as slot_id,\n  a.available_date,\n  a.start_time,\n  a.end_time,\n  a.duration_minutes,\n  g.name as seller_name\nFROM availability_slots a\nJOIN growers g ON a.seller_uid = g.user_uid\nWHERE a.seller_uid = '{{ $json.body.sellerId }}'\n  AND a.is_available = TRUE\n  AND a.available_date >= CURRENT_DATE\nORDER BY a.available_date ASC, a.start_time ASC;",
+        "additionalFields": {}
+      },
+      "id": "postgres-query-availability",
+      "name": "Query Availability Slots",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [32, 400],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Appointment Actions').item.json.get_availability }}\n/no_think",
+        "options": {},
+        "promptType": "define"
+      },
+      "id": "agent-get-availability",
+      "name": "AI Availability Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [48, 192]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 1: Check slot availability\nSELECT id, seller_uid, is_available \nFROM availability_slots \nWHERE id::TEXT = '{{ $json.body.slotId }}' \nAND is_available = TRUE;",
+        "additionalFields": {}
+      },
+      "id": "postgres-check-slot",
+      "name": "Check Slot Available",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [0, 880],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 2: Create appointment\nINSERT INTO appointments (\n  buyer_uid, buyer_name, buyer_email, buyer_phone,\n  seller_uid, seller_name,\n  product_type, quantity_kg,\n  scheduled_time, location, status, meeting_type, notes\n) VALUES (\n  '{{ $json.body.buyerUid }}',\n  '{{ $json.body.buyerName }}',\n  '{{ $json.body.buyerEmail }}',\n  '{{ $json.body.buyerPhone }}',\n  '{{ $json.body.sellerUid }}',\n  '{{ $json.body.sellerName }}',\n  '{{ $json.body.productType }}',\n  {{ $json.body.quantity }},\n  '{{ $json.body.scheduledTime }}'::TIMESTAMP,\n  '{{ $json.body.location }}',\n  'pending',\n  '{{ $json.body.meetingType || \"consultation\" }}',\n  '{{ $json.body.notes || \"\" }}'\n)\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-create-appointment",
+      "name": "Create Appointment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [160, 880],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 3: Mark slot as booked\nUPDATE availability_slots \nSET \n  is_available = FALSE,\n  booked_by = '{{ $json.body.buyerUid }}',\n  appointment_id = '{{ $('Create Appointment').item.json.id }}'::UUID,\n  updated_at = CURRENT_TIMESTAMP\nWHERE id::TEXT = '{{ $json.body.slotId }}'\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-mark-slot-booked",
+      "name": "Mark Slot as Booked",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 880],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Appointment Actions').item.json.set_appointment }}\n/no_think",
+        "options": {},
+        "promptType": "define"
+      },
+      "id": "agent-set-appointment",
+      "name": "AI Appointment Booking Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [48, 656]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 1: Get appointment details\nSELECT * FROM appointments \nWHERE id::TEXT = '{{ $json.body.appointmentId }}';",
+        "additionalFields": {}
+      },
+      "id": "postgres-get-appointment",
+      "name": "Get Appointment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [32, 1408],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 2: Update appointment status to cancelled\nUPDATE appointments \nSET \n  status = 'cancelled',\n  cancel_reason = '{{ $json.body.cancelReason || \"No reason provided\" }}',\n  cancelled_at = CURRENT_TIMESTAMP,\n  updated_at = CURRENT_TIMESTAMP\nWHERE id::TEXT = '{{ $json.body.appointmentId }}'\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-cancel-appointment",
+      "name": "Cancel Appointment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [192, 1408],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Step 3: Release the time slot\nUPDATE availability_slots \nSET \n  is_available = TRUE,\n  booked_by = NULL,\n  appointment_id = NULL,\n  updated_at = CURRENT_TIMESTAMP\nWHERE appointment_id::TEXT = '{{ $json.body.appointmentId }}'\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-release-slot",
+      "name": "Release Slot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [352, 1408],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Appointment Actions').item.json.cancel_appointment }}\n/no_think",
+        "options": {},
+        "promptType": "define"
+      },
+      "id": "agent-cancel-appointment",
+      "name": "AI Cancellation Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [-80, 1184]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get all appointments for user\nSELECT \n  id,\n  buyer_uid,\n  buyer_name,\n  seller_uid,\n  seller_name,\n  product_type,\n  quantity_kg,\n  scheduled_time,\n  location,\n  status,\n  meeting_type,\n  notes,\n  created_at\nFROM appointments\nWHERE \n  CASE \n    WHEN '{{ $json.body.userType }}' = 'buyer' THEN buyer_uid = '{{ $json.body.userId }}'\n    WHEN '{{ $json.body.userType }}' = 'seller' THEN seller_uid = '{{ $json.body.userId }}'\n  END\nORDER BY scheduled_time DESC;",
+        "additionalFields": {}
+      },
+      "id": "postgres-get-appointments",
+      "name": "Query Appointments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [112, 2032],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Appointment Actions').item.json.get_appointments }}\n/no_think",
+        "options": {},
+        "promptType": "define"
+      },
+      "id": "agent-get-appointments",
+      "name": "AI Appointments Retrieval Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [-32, 1808]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-find-sellers",
+      "name": "Respond Find Sellers",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [480, -320]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-get-availability",
+      "name": "Respond Get Availability",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [304, 192]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-set-appointment",
+      "name": "Respond Appointment Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [528, 880]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-cancel-appointment",
+      "name": "Respond Cancellation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [560, 1408]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-get-appointments",
+      "name": "Respond Get Appointments",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [320, 2032]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Appointment Actions", "type": "main", "index": 0}]]
+    },
+    "Appointment Actions": {
+      "main": [[{"node": "Switch", "type": "main", "index": 0}]]
+    },
+    "Switch": {
+      "main": [
+        [{"node": "AI Seller Matching Agent", "type": "main", "index": 0}],
+        [{"node": "AI Availability Agent", "type": "main", "index": 0}],
+        [{"node": "AI Appointment Booking Agent", "type": "main", "index": 0}],
+        [{"node": "AI Cancellation Agent", "type": "main", "index": 0}],
+        [{"node": "AI Appointments Retrieval Agent", "type": "main", "index": 0}]
+      ]
+    },
+    "AI Seller Matching Agent": {
+      "main": [[{"node": "Query Growers", "type": "main", "index": 0}]]
+    },
+    "Query Growers": {
+      "main": [[{"node": "Get Seller Available Slots", "type": "main", "index": 0}]]
+    },
+    "Get Seller Available Slots": {
+      "main": [[{"node": "Respond Find Sellers", "type": "main", "index": 0}]]
+    },
+    "AI Availability Agent": {
+      "main": [[{"node": "Query Availability Slots", "type": "main", "index": 0}]]
+    },
+    "Query Availability Slots": {
+      "main": [[{"node": "Respond Get Availability", "type": "main", "index": 0}]]
+    },
+    "AI Appointment Booking Agent": {
+      "main": [[{"node": "Check Slot Available", "type": "main", "index": 0}]]
+    },
+    "Check Slot Available": {
+      "main": [[{"node": "Create Appointment", "type": "main", "index": 0}]]
+    },
+    "Create Appointment": {
+      "main": [[{"node": "Mark Slot as Booked", "type": "main", "index": 0}]]
+    },
+    "Mark Slot as Booked": {
+      "main": [[{"node": "Respond Appointment Created", "type": "main", "index": 0}]]
+    },
+    "AI Cancellation Agent": {
+      "main": [[{"node": "Get Appointment", "type": "main", "index": 0}]]
+    },
+    "Get Appointment": {
+      "main": [[{"node": "Cancel Appointment", "type": "main", "index": 0}]]
+    },
+    "Cancel Appointment": {
+      "main": [[{"node": "Release Slot", "type": "main", "index": 0}]]
+    },
+    "Release Slot": {
+      "main": [[{"node": "Respond Cancellation", "type": "main", "index": 0}]]
+    },
+    "AI Appointments Retrieval Agent": {
+      "main": [[{"node": "Query Appointments", "type": "main", "index": 0}]]
+    },
+    "Query Appointments": {
+      "main": [[{"node": "Respond Get Appointments", "type": "main", "index": 0}]]
+    },
+    "Ollama Chat Model (Find Sellers)": {
+      "ai_languageModel": [[{"node": "AI Seller Matching Agent", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Ollama Chat Model (Get Availability)": {
+      "ai_languageModel": [[{"node": "AI Availability Agent", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Ollama Chat Model (Set Appointment)": {
+      "ai_languageModel": [[{"node": "AI Appointment Booking Agent", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Ollama Chat Model (Cancel)": {
+      "ai_languageModel": [[{"node": "AI Cancellation Agent", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Ollama Chat Model (Get Appointments)": {
+      "ai_languageModel": [[{"node": "AI Appointments Retrieval Agent", "type": "ai_languageModel", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "mash-postgresql-ai-system"
+  },
+  "id": "mash-appointments-postgresql",
+  "tags": []
+}

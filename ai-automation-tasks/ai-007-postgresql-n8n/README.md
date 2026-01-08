@@ -12,36 +12,46 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
+| **START-HERE.md** | ⭐ Quick start guide for Phase 1 (database setup) | ✅ Complete |
+| **IMPORT-WORKFLOW-GUIDE.md** | ⚡ Fast track: Import workflow in 5 minutes | ✅ Complete |
+| **workflow-neon-complete.json** | Complete n8n workflow (30+ nodes, 5 actions) | ✅ Complete |
+| **01-setup-database.sql** | Single SQL script for complete database setup | ✅ Complete |
+| **test-neon-workflow.ps1** | Automated test suite (5 comprehensive tests) | ✅ Complete |
 | **PLANNING.md** | Complete 8-phase implementation guide | ✅ Complete |
 | **SUPABASE_TO_POSTGRESQL_CONVERSION.md** | Supabase → PostgreSQL node mappings | ✅ Complete |
-| **test-neon-workflow.ps1** | Automated test suite (5 tests) | ✅ Complete |
-| **NEXT-STEPS-POSTGRESQL.md** | What to do now, step-by-step | ✅ Complete |
-| workflow-neon-complete.json | Complete n8n workflow (all actions) | ⏳ Pending |
+| **NEXT-STEPS-POSTGRESQL.md** | Detailed step-by-step implementation guide | ✅ Complete |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Choose Your Path)
 
-### Step 1: Read Planning Document
-Open **[PLANNING.md](PLANNING.md)** to understand:
-- Database schema (3 tables: growers, availability_slots, appointments)
-- All 8 implementation phases
-- SQL seed scripts
-- Expected outcomes
+### ⚡ FASTEST: Import Complete Workflow (5 minutes)
 
-### Step 2: Follow Next Steps Guide
-Open **[NEXT-STEPS-POSTGRESQL.md](NEXT-STEPS-POSTGRESQL.md)** and choose:
-- **"Start Phase 1"** - Database setup (1-2 hours)
-- **"Create workflow JSON"** - Get complete n8n workflow
-- **"Manual build"** - Step-by-step node creation
+1. **Setup Database** (2 min)
+   - Open [START-HERE.md](START-HERE.md)
+   - Run `01-setup-database.sql` in Neon Console
+   - Creates 3 tables, 8 indexes, seeds 672 test slots
 
-### Step 3: Test Everything
-Run automated test suite:
-```powershell
-.\test-neon-workflow.ps1
-```
+2. **Import Workflow** (3 min)
+   - Open [IMPORT-WORKFLOW-GUIDE.md](IMPORT-WORKFLOW-GUIDE.md)
+   - Import `workflow-neon-complete.json` into n8n
+   - Configure PostgreSQL credential (copy-paste connection details)
 
-Expected: 5 tests pass (find_sellers, get_availability, set_appointment, get_appointments, cancel_appointment)
+3. **Test Everything** (2 min)
+   ```powershell
+   .\test-neon-workflow.ps1
+   ```
+   Expected: 5 tests pass ✅
+
+**Total time: 10 minutes to working AI appointment system!**
+
+---
+
+### 📚 DETAILED: Step-by-Step Manual Build
+
+1. Read [PLANNING.md](PLANNING.md) - Complete 8-phase technical plan
+2. Follow [NEXT-STEPS-POSTGRESQL.md](NEXT-STEPS-POSTGRESQL.md) - Detailed implementation guide
+3. Use [SUPABASE_TO_POSTGRESQL_CONVERSION.md](SUPABASE_TO_POSTGRESQL_CONVERSION.md) - Query pattern reference
 
 ---
 
@@ -95,12 +105,14 @@ postgresql://Namias_owner:SyuJeBKs09iN@ep-wispy-thunder-a5pqgxiw-pooler.us-east-
 
 ## 🔧 Prerequisites
 
-- [x] Neon PostgreSQL account (free tier OK)
-- [x] n8n running locally (http://localhost:5678)
-- [x] Ollama installed with Llama 3.2 3B model
-- [x] Docker Desktop installed
-- [ ] PostgreSQL credential configured in n8n (Phase 2)
-- [ ] Database tables created (Phase 1)
+Before starting, ensure you have:
+
+- [x] **Neon PostgreSQL account** (free tier OK) - Sign up at https://console.neon.tech
+- [x] **n8n running** locally at http://localhost:5678 (see ai-002-n8n-setup if needed)
+- [x] **Ollama installed** with Llama 3.2 3B: `ollama pull llama3.2:latest`
+- [x] **Docker Desktop** installed and running
+- [ ] **PostgreSQL credential** configured in n8n → Follow [IMPORT-WORKFLOW-GUIDE.md](IMPORT-WORKFLOW-GUIDE.md) Step 2
+- [ ] **Database tables** created → Run `01-setup-database.sql` in Neon Console
 
 ---
 
