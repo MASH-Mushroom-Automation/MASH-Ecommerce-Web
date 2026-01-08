@@ -35,6 +35,7 @@ interface ApplicationFormProps {
   form: UseFormReturn<SellerApplicationForm>;
   onSubmit: (data: SellerApplicationForm) => Promise<void>;
   onBack: () => void;
+  isSubmitting?: boolean;
 }
 
 const mushroomOptions = [
@@ -71,7 +72,10 @@ export function ApplicationForm({
   form,
   onSubmit,
   onBack,
+  isSubmitting = false,
 }: ApplicationFormProps) {
+  // Use external isSubmitting if provided, otherwise fall back to form state
+  const isFormSubmitting = isSubmitting || form.formState.isSubmitting;
   return (
     <div className="min-h-screen bg-muted">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -749,15 +753,16 @@ export function ApplicationForm({
                   variant="outline"
                   onClick={onBack}
                   className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8"
+                  disabled={isFormSubmitting}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   className="w-full sm:flex-1 h-10 sm:h-12 px-6 sm:px-8 text-base font-semibold"
-                  disabled={form.formState.isSubmitting}
+                  disabled={isFormSubmitting}
                 >
-                  {form.formState.isSubmitting ? (
+                  {isFormSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Submitting...
