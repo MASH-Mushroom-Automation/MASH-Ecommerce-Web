@@ -1,0 +1,191 @@
+{
+  "name": "MASH Appointment Booking - Phase 4: set_appointment",
+  "nodes": [
+    {
+      "id": "webhook-node",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "parameters": {
+        "path": "mash-appointments",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "mash-appointments",
+      "typeVersion": 2
+    },
+    {
+      "id": "switch-node",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [450, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "find_sellers",
+              "output": 0
+            },
+            {
+              "value2": "get_availability",
+              "output": 1
+            },
+            {
+              "value2": "set_appointment",
+              "output": 2
+            },
+            {
+              "value2": "cancel_appointment",
+              "output": 3
+            },
+            {
+              "value2": "get_appointments",
+              "output": 4
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "create-appointment-node",
+      "name": "Create Appointment",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreAdd",
+      "position": [700, 500],
+      "parameters": {
+        "collection": "appointments",
+        "documentId": "={{ $json.body.appointmentId || 'AUTO_GENERATE' }}",
+        "dataFields": {
+          "fields": [
+            {
+              "name": "buyer_uid",
+              "value": "={{ $json.body.buyerUid }}"
+            },
+            {
+              "name": "seller_uid",
+              "value": "={{ $json.body.sellerUid }}"
+            },
+            {
+              "name": "product_type",
+              "value": "={{ $json.body.productType }}"
+            },
+            {
+              "name": "quantity_kg",
+              "value": "={{ $json.body.quantity }}"
+            },
+            {
+              "name": "scheduled_time",
+              "value": "={{ $json.body.scheduledTime }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json.body.location }}"
+            },
+            {
+              "name": "status",
+              "value": "pending"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "notes",
+              "value": "={{ $json.body.notes || '' }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "update-slot-node",
+      "name": "Mark Slot as Booked",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreUpdate",
+      "position": [900, 500],
+      "parameters": {
+        "collection": "availability_slots",
+        "documentId": "={{ $('Webhook Trigger').first().json.body.slotId }}",
+        "updateFields": {
+          "fields": [
+            {
+              "name": "is_available",
+              "value": false
+            },
+            {
+              "name": "booked_by",
+              "value": "={{ $('Webhook Trigger').first().json.body.buyerUid }}"
+            },
+            {
+              "name": "appointment_id",
+              "value": "={{ $('Create Appointment').first().json.documentId }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "format-response-node",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.code",
+      "position": [1100, 500],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Get created appointment data\nconst appointment = $('Create Appointment').first().json;\nconst requestData = $('Webhook Trigger').first().json.body;\n\n// Format response\nconst response = {\n  success: true,\n  action: 'set_appointment',\n  appointmentId: appointment.documentId,\n  appointment: {\n    buyerUid: requestData.buyerUid,\n    sellerUid: requestData.sellerUid,\n    productType: requestData.productType,\n    quantity: requestData.quantity,\n    scheduledTime: requestData.scheduledTime,\n    location: requestData.location,\n    status: 'pending',\n    notes: requestData.notes || '',\n    createdAt: new Date().toISOString()\n  },\n  message: 'Appointment created successfully. Seller will be notified.',\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Action Router", "type": "main", "index": 0 }]]
+    },
+    "Action Router": {
+      "main": [
+        [],
+        [],
+        [{ "node": "Create Appointment", "type": "main", "index": 0 }],
+        [],
+        []
+      ]
+    },
+    "Create Appointment": {
+      "main": [[{ "node": "Mark Slot as Booked", "type": "main", "index": 0 }]]
+    },
+    "Mark Slot as Booked": {
+      "main": [[{ "node": "Format Success Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-08T00:00:00.000Z",
+  "versionId": "phase4-set-appointment"
+}

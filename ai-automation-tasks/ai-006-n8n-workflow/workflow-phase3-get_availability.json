@@ -1,0 +1,138 @@
+{
+  "name": "MASH Appointment Booking - Phase 3: get_availability",
+  "nodes": [
+    {
+      "id": "webhook-node",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "parameters": {
+        "path": "mash-appointments",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "mash-appointments",
+      "typeVersion": 2
+    },
+    {
+      "id": "switch-node",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [450, 300],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "find_sellers",
+              "output": 0
+            },
+            {
+              "value2": "get_availability",
+              "output": 1
+            },
+            {
+              "value2": "set_appointment",
+              "output": 2
+            },
+            {
+              "value2": "cancel_appointment",
+              "output": 3
+            },
+            {
+              "value2": "get_appointments",
+              "output": 4
+            }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "query-availability-node",
+      "name": "Query Availability Slots",
+      "type": "@n8n/n8n-nodes-langchain.googleFirestoreGetAllDocuments",
+      "position": [700, 400],
+      "parameters": {
+        "collection": "availability_slots",
+        "filters": {
+          "conditions": [
+            {
+              "field": "seller_uid",
+              "operator": "==",
+              "value": "={{ $json.body.sellerId }}"
+            },
+            {
+              "field": "is_available",
+              "operator": "==",
+              "value": true
+            },
+            {
+              "field": "available_date",
+              "operator": ">=",
+              "value": "={{ $now.format('yyyy-MM-dd') }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {
+          "orderBy": [
+            {
+              "field": "available_date",
+              "direction": "ASCENDING"
+            },
+            {
+              "field": "start_time",
+              "direction": "ASCENDING"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "CREDENTIALS_PLACEHOLDER",
+          "name": "Firebase MASH"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "format-response-node",
+      "name": "Format Availability Response",
+      "type": "n8n-nodes-base.code",
+      "position": [900, 400],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Get availability slots from Query Availability node\nconst availabilitySlots = $input.all();\n\n// Get request data\nconst requestData = $('Webhook Trigger').first().json.body;\nconst sellerId = requestData.sellerId;\nconst preferredDate = requestData.preferredDate; // Optional filter\n\n// Group slots by date\nconst slotsByDate = {};\navailabilitySlots.forEach(item => {\n  const slot = item.json;\n  const date = slot.available_date;\n  \n  if (!slotsByDate[date]) {\n    slotsByDate[date] = [];\n  }\n  \n  slotsByDate[date].push({\n    slotId: slot.slot_id,\n    startTime: slot.start_time,\n    endTime: slot.end_time,\n    duration: slot.duration_minutes,\n    isAvailable: slot.is_available\n  });\n});\n\n// Filter by preferred date if provided\nlet filteredSlots = slotsByDate;\nif (preferredDate) {\n  filteredSlots = {};\n  if (slotsByDate[preferredDate]) {\n    filteredSlots[preferredDate] = slotsByDate[preferredDate];\n  }\n}\n\n// Format final response\nconst response = {\n  success: true,\n  action: 'get_availability',\n  sellerId: sellerId,\n  preferredDate: preferredDate || null,\n  availabilityByDate: filteredSlots,\n  totalSlots: Object.values(filteredSlots).reduce((sum, slots) => sum + slots.length, 0),\n  dateRange: {\n    from: Object.keys(filteredSlots).sort()[0] || null,\n    to: Object.keys(filteredSlots).sort().reverse()[0] || null\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn [response];"
+      },
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Action Router", "type": "main", "index": 0 }]]
+    },
+    "Action Router": {
+      "main": [
+        [],
+        [{ "node": "Query Availability Slots", "type": "main", "index": 0 }],
+        [],
+        [],
+        []
+      ]
+    },
+    "Query Availability Slots": {
+      "main": [[{ "node": "Format Availability Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-08T00:00:00.000Z",
+  "versionId": "phase3-get-availability"
+}

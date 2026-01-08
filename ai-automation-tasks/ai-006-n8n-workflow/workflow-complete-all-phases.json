@@ -1,0 +1,64 @@
+{
+  "name": "MASH Appointment Booking - COMPLETE (All 5 Actions)",
+  "nodes": [
+    {
+      "id": "webhook-node",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 500],
+      "parameters": {
+        "path": "mash-appointments",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "mash-appointments",
+      "typeVersion": 2
+    },
+    {
+      "id": "switch-node",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [450, 500],
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.action }}",
+        "rules": {
+          "rules": [
+            { "value2": "find_sellers", "output": 0 },
+            { "value2": "get_availability", "output": 1 },
+            { "value2": "set_appointment", "output": 2 },
+            { "value2": "cancel_appointment", "output": 3 },
+            { "value2": "get_appointments", "output": 4 }
+          ]
+        }
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "position": [1400, 800],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Format error response\nconst error = $input.first().json.error || 'Unknown error occurred';\nconst requestData = $('Webhook Trigger').first().json.body;\n\nconst response = {\n  success: false,\n  action: requestData.action || 'unknown',\n  error: error.message || error,\n  errorDetails: {\n    code: error.code || 'INTERNAL_ERROR',\n    message: error.message || error.toString(),\n    timestamp: new Date().toISOString()\n  },\n  request: requestData\n};\n\nreturn [response];"
+      },
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Action Router", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "error-handler"
+  },
+  "staticData": null,
+  "tags": ["appointment", "production", "complete"],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-08T00:00:00.000Z",
+  "versionId": "complete-all-phases"
+}
