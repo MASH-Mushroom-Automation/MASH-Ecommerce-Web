@@ -12,8 +12,11 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
+| **DO-THIS-NOW.md** | 🚀 START HERE! Complete execution plan (20 min) | ✅ Complete |
+| **check-health.ps1** | 🏥 Health check script - verify all services | ✅ Complete |
 | **START-HERE.md** | ⭐ Quick start guide for Phase 1 (database setup) | ✅ Complete |
 | **IMPORT-WORKFLOW-GUIDE.md** | ⚡ Fast track: Import workflow in 5 minutes | ✅ Complete |
+| **URGENT-FIX-GUIDE.md** | 🚨 Fix 3 critical issues (slots, errors, Ollama) | ✅ Complete |
 | **workflow-neon-complete.json** | Complete n8n workflow (30+ nodes, 5 actions) | ✅ Complete |
 | **01-setup-database.sql** | Single SQL script for complete database setup | ✅ Complete |
 | **test-neon-workflow.ps1** | Automated test suite (5 comprehensive tests) | ✅ Complete |
