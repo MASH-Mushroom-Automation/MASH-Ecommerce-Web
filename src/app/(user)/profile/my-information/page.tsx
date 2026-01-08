@@ -54,6 +54,7 @@ import {
   linkWithCredential,
 } from "firebase/auth";
 import { FirebaseUserService } from "@/lib/firebase";
+import { UserApi } from "@/lib/api/user";
 
 export default function MyInformationPage() {
   const { user: authUser, isAuthenticated, updateUserProfile } = useAuth();
@@ -98,6 +99,16 @@ export default function MyInformationPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Backend profile data
+  const [backendProfile, setBackendProfile] = useState<{
+    phoneNumber?: string;
+    phone?: string; // Legacy fallback
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  } | null>(null);
 
   // Address states
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -136,13 +147,55 @@ export default function MyInformationPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   /**
-   * Initialize phone number from user profile
+   * Fetch user profile from backend API (with caching)
    */
   useEffect(() => {
-    if (user?.phone) {
+    const fetchBackendProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const response = await UserApi.getProfile();
+
+        if (response.success && response.data) {
+          console.log("[Profile] Fetched from backend:", response.data);
+          setBackendProfile(response.data);
+
+          // Update phone number from backend - prefer phoneNumber, fallback to phone
+          const phone = response.data.phoneNumber || response.data.phone;
+          if (phone) {
+            setPhoneNumber(phone);
+          }
+        }
+      } catch (error) {
+        console.error("[Profile] Failed to fetch backend profile:", error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    // Only fetch if user is authenticated (has auth-token)
+    const hasAuthToken = document.cookie.includes("auth-token=");
+    if (hasAuthToken) {
+      fetchBackendProfile();
+    } else {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  /**
+   * Initialize phone number from user profile (fallback to context/localStorage if backend didn't have it)
+   */
+  useEffect(() => {
+    // Only set from context/localStorage if backend didn't provide phone number
+    const backendPhone = backendProfile?.phoneNumber || backendProfile?.phone;
+    if (!backendPhone && user?.phone && !phoneNumber) {
       setPhoneNumber(user.phone);
     }
-  }, [user?.phone]);
+  }, [
+    user?.phone,
+    backendProfile?.phoneNumber,
+    backendProfile?.phone,
+    phoneNumber,
+  ]);
 
   /**
    * Detect authentication provider on mount
@@ -231,14 +284,9 @@ export default function MyInformationPage() {
   };
 
   /**
-   * Handle phone number update
+   * Handle phone number update - saves to backend API
    */
   const handleSavePhone = async () => {
-    if (!user?.id) {
-      toast.error("No user signed in");
-      return;
-    }
-
     // Trim whitespace
     const cleanPhone = phoneNumber.trim();
 
@@ -258,16 +306,41 @@ export default function MyInformationPage() {
     setPhoneLoading(true);
 
     try {
-      // Update Firestore profile
-      await FirebaseUserService.updateProfile(user.id, {
-        phone: cleanPhone,
+      // Update via backend API using phoneNumber field
+      const response = await UserApi.updateProfile({
+        phoneNumber: cleanPhone,
       });
 
-      // Update local auth context
-      await updateUserProfile({ phone: cleanPhone });
+      if (response.success) {
+        // Update local state
+        setBackendProfile((prev) =>
+          prev
+            ? { ...prev, phoneNumber: cleanPhone }
+            : { phoneNumber: cleanPhone }
+        );
 
-      toast.success("Phone number updated successfully!");
-      setIsEditingPhone(false);
+        // Update auth context if available
+        if (updateUserProfile) {
+          await updateUserProfile({ phone: cleanPhone });
+        }
+
+        // Also update localStorage user
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            parsed.phone = cleanPhone;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          }
+        } catch {
+          // Ignore localStorage errors
+        }
+
+        toast.success("Phone number updated successfully!");
+        setIsEditingPhone(false);
+      } else {
+        toast.error("Failed to update phone number");
+      }
     } catch (error) {
       console.error("[Profile] Error updating phone:", error);
       toast.error("Failed to update phone number");
@@ -693,7 +766,16 @@ export default function MyInformationPage() {
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-900">
-                      {user?.firstName || "N/A"} {user?.lastName || ""}
+                      {profileLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      ) : (
+                        <>
+                          {backendProfile?.firstName ||
+                            user?.firstName ||
+                            "N/A"}{" "}
+                          {backendProfile?.lastName || user?.lastName || ""}
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -706,7 +788,11 @@ export default function MyInformationPage() {
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-900 truncate">
-                      {user?.email || "N/A"}
+                      {profileLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      ) : (
+                        backendProfile?.email || user?.email || "N/A"
+                      )}
                     </span>
                   </div>
                 </div>
