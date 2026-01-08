@@ -434,19 +434,18 @@ export function ApplicationForm({
                   Please upload clear copies of the following documents.
                   Accepted formats: JPG, PNG, WebP, or PDF (max 5MB each).
                 </p>
-                <div className="grid gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Valid ID Upload */}
                   <FormField
                     control={form.control}
                     name="validIdFile"
                     render={({ field: { onChange, value, ...field } }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Valid ID of Owner{" "}
-                          <span className="text-red-500">*</span>
+                      <FormItem className="border rounded-lg p-4 bg-background">
+                        <FormLabel className="font-semibold text-foreground">
+                          Valid ID of Business Owner
                         </FormLabel>
                         <FormControl>
-                          <div className="relative">
+                          <div className="mt-2">
                             <input
                               type="file"
                               accept=".jpg,.jpeg,.png,.webp,.pdf"
@@ -460,54 +459,43 @@ export function ApplicationForm({
                             />
                             <label
                               htmlFor="validIdFile"
-                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                                value
-                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
-                                  : "border-border hover:border-primary hover:bg-muted/50"
-                              }`}
+                              className="flex flex-col items-center justify-center w-full h-28 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
                             >
                               {value ? (
-                                <div className="flex items-center gap-3">
-                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                  <div className="text-left">
-                                    <p className="text-sm font-medium text-foreground">
-                                      {(value as File).name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(
-                                        (value as File).size /
-                                        1024 /
-                                        1024
-                                      ).toFixed(2)}{" "}
-                                      MB
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      onChange(undefined);
-                                    }}
-                                    className="ml-2 p-1 hover:bg-muted rounded"
-                                  >
-                                    <X className="w-4 h-4 text-muted-foreground" />
-                                  </button>
-                                </div>
+                                <>
+                                  {(value as File).type.startsWith("image/") ? (
+                                    <img
+                                      src={URL.createObjectURL(value as File)}
+                                      alt="Preview"
+                                      className="h-20 w-auto rounded object-contain"
+                                    />
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <FileText className="w-8 h-8 text-muted-foreground" />
+                                      <span className="text-sm text-muted-foreground">
+                                        PDF
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
                               ) : (
-                                <div className="flex flex-col items-center gap-2">
-                                  <Upload className="w-8 h-8 text-muted-foreground" />
-                                  <div className="text-center">
-                                    <p className="text-sm font-medium text-foreground">
-                                      Upload Valid ID
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Government-issued ID (e.g., Driver&apos;s
-                                      License, Passport, PhilID)
-                                    </p>
-                                  </div>
+                                <div className="flex flex-col items-center gap-1">
+                                  <FileText className="w-8 h-8 text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">
+                                    Document
+                                  </span>
                                 </div>
                               )}
                             </label>
+                            {value && (
+                              <button
+                                type="button"
+                                onClick={() => onChange(undefined)}
+                                className="mt-2 text-xs text-red-500 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            )}
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -520,13 +508,12 @@ export function ApplicationForm({
                     control={form.control}
                     name="birCertificateFile"
                     render={({ field: { onChange, value, ...field } }) => (
-                      <FormItem>
-                        <FormLabel>
-                          BIR Certificate{" "}
-                          <span className="text-red-500">*</span>
+                      <FormItem className="border rounded-lg p-4 bg-background">
+                        <FormLabel className="font-semibold text-foreground">
+                          BIR Certificate
                         </FormLabel>
                         <FormControl>
-                          <div className="relative">
+                          <div className="mt-2">
                             <input
                               type="file"
                               accept=".jpg,.jpeg,.png,.webp,.pdf"
@@ -540,54 +527,43 @@ export function ApplicationForm({
                             />
                             <label
                               htmlFor="birCertificateFile"
-                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                                value
-                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
-                                  : "border-border hover:border-primary hover:bg-muted/50"
-                              }`}
+                              className="flex flex-col items-center justify-center w-full h-28 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
                             >
                               {value ? (
-                                <div className="flex items-center gap-3">
-                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                  <div className="text-left">
-                                    <p className="text-sm font-medium text-foreground">
-                                      {(value as File).name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(
-                                        (value as File).size /
-                                        1024 /
-                                        1024
-                                      ).toFixed(2)}{" "}
-                                      MB
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      onChange(undefined);
-                                    }}
-                                    className="ml-2 p-1 hover:bg-muted rounded"
-                                  >
-                                    <X className="w-4 h-4 text-muted-foreground" />
-                                  </button>
-                                </div>
+                                <>
+                                  {(value as File).type.startsWith("image/") ? (
+                                    <img
+                                      src={URL.createObjectURL(value as File)}
+                                      alt="Preview"
+                                      className="h-20 w-auto rounded object-contain"
+                                    />
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <FileText className="w-8 h-8 text-muted-foreground" />
+                                      <span className="text-sm text-muted-foreground">
+                                        PDF
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
                               ) : (
-                                <div className="flex flex-col items-center gap-2">
+                                <div className="flex flex-col items-center gap-1">
                                   <FileText className="w-8 h-8 text-muted-foreground" />
-                                  <div className="text-center">
-                                    <p className="text-sm font-medium text-foreground">
-                                      Upload BIR Certificate
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Certificate of Registration (COR) or Form
-                                      2303
-                                    </p>
-                                  </div>
+                                  <span className="text-sm text-muted-foreground">
+                                    PDF
+                                  </span>
                                 </div>
                               )}
                             </label>
+                            {value && (
+                              <button
+                                type="button"
+                                onClick={() => onChange(undefined)}
+                                className="mt-2 text-xs text-red-500 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            )}
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -600,13 +576,12 @@ export function ApplicationForm({
                     control={form.control}
                     name="businessCertificateFile"
                     render={({ field: { onChange, value, ...field } }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Business Certificate{" "}
-                          <span className="text-red-500">*</span>
+                      <FormItem className="border rounded-lg p-4 bg-background">
+                        <FormLabel className="font-semibold text-foreground">
+                          Business Certificate
                         </FormLabel>
                         <FormControl>
-                          <div className="relative">
+                          <div className="mt-2">
                             <input
                               type="file"
                               accept=".jpg,.jpeg,.png,.webp,.pdf"
@@ -620,54 +595,43 @@ export function ApplicationForm({
                             />
                             <label
                               htmlFor="businessCertificateFile"
-                              className={`flex items-center justify-center gap-3 w-full h-24 sm:h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                                value
-                                  ? "border-green-500 bg-green-50 dark:bg-green-950/20"
-                                  : "border-border hover:border-primary hover:bg-muted/50"
-                              }`}
+                              className="flex flex-col items-center justify-center w-full h-28 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
                             >
                               {value ? (
-                                <div className="flex items-center gap-3">
-                                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                  <div className="text-left">
-                                    <p className="text-sm font-medium text-foreground">
-                                      {(value as File).name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(
-                                        (value as File).size /
-                                        1024 /
-                                        1024
-                                      ).toFixed(2)}{" "}
-                                      MB
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      onChange(undefined);
-                                    }}
-                                    className="ml-2 p-1 hover:bg-muted rounded"
-                                  >
-                                    <X className="w-4 h-4 text-muted-foreground" />
-                                  </button>
-                                </div>
+                                <>
+                                  {(value as File).type.startsWith("image/") ? (
+                                    <img
+                                      src={URL.createObjectURL(value as File)}
+                                      alt="Preview"
+                                      className="h-20 w-auto rounded object-contain"
+                                    />
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <FileText className="w-8 h-8 text-muted-foreground" />
+                                      <span className="text-sm text-muted-foreground">
+                                        PDF
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
                               ) : (
-                                <div className="flex flex-col items-center gap-2">
+                                <div className="flex flex-col items-center gap-1">
                                   <FileText className="w-8 h-8 text-muted-foreground" />
-                                  <div className="text-center">
-                                    <p className="text-sm font-medium text-foreground">
-                                      Upload Business Certificate
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      DTI Registration, SEC Certificate, or
-                                      Mayor&apos;s Permit
-                                    </p>
-                                  </div>
+                                  <span className="text-sm text-muted-foreground">
+                                    PDF
+                                  </span>
                                 </div>
                               )}
                             </label>
+                            {value && (
+                              <button
+                                type="button"
+                                onClick={() => onChange(undefined)}
+                                className="mt-2 text-xs text-red-500 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            )}
                           </div>
                         </FormControl>
                         <FormMessage />
