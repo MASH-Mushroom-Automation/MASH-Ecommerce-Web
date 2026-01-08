@@ -10,9 +10,7 @@ import type {
   TimeSlot,
 } from "@/components/appointments/types";
 
-const N8N_WEBHOOK_URL =
-  process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL ||
-  "http://localhost:5678/webhook/mash-appointments";
+const API_URL = "/api/appointments";
 
 export function useAppointments() {
   const { user } = useAuth();
@@ -29,8 +27,8 @@ export function useAppointments() {
       setError(null);
 
       try {
-        // Call n8n webhook with action: find_sellers
-        const response = await fetch(N8N_WEBHOOK_URL, {
+        // Call Next.js API route which forwards to n8n webhook
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -75,7 +73,7 @@ export function useAppointments() {
       setError(null);
 
       try {
-        const response = await fetch(N8N_WEBHOOK_URL, {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -123,7 +121,7 @@ export function useAppointments() {
       setError(null);
 
       try {
-        const response = await fetch(N8N_WEBHOOK_URL, {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
