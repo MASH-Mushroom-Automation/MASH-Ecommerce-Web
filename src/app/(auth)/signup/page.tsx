@@ -83,12 +83,11 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
-      // Generate unique username from email/name
-      const baseUsername = generateUsername(data.email, data.firstName, data.lastName);
-      const uniqueUsername = await generateUniqueUsername(baseUsername);
+      // Generate username from email only (simple extraction, no validation)
+      const username = generateUsername(data.email);
       
       // Generate DiceBear avatar URL
-      const avatarUrl = getDiceBearAvatar(uniqueUsername);
+      const avatarUrl = getDiceBearAvatar(username);
       
       // Register user with backend API
       const response = await AuthApi.register({
@@ -96,7 +95,7 @@ export default function SignupPage() {
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        username: uniqueUsername,
+        username: username,
         imageUrl: avatarUrl,
       });
 
