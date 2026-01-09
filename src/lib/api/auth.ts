@@ -7,6 +7,8 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  username?: string;    // Auto-generated from email/name
+  imageUrl?: string;    // DiceBear avatar URL
 }
 
 export interface VerifyCodeRequest {
@@ -277,4 +279,13 @@ export const AuthApi = {
     if (typeof document === "undefined") return false;
     return document.cookie.includes("auth-token=");
   },
-};
+  /**
+   * Check if username is available
+   * @param username - Username to check
+   * @returns Promise<{ available: boolean; username: string }>
+   */
+  checkUsername: async (username: string): Promise<{ available: boolean; username: string }> => {
+    return apiRequest<{ available: boolean; username: string }>(
+      `/auth/check-username?username=${encodeURIComponent(username)}`
+    );
+  },};

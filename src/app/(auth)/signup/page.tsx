@@ -21,6 +21,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { AuthApi } from "@/lib/api/auth";
+import { generateUsername, generateUniqueUsername } from "@/lib/utils/username";
+import { getDiceBearAvatar } from "@/lib/avatar";
 
 const signupSchema = z
   .object({
@@ -81,12 +83,21 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
+      // Generate unique username from email/name
+      const baseUsername = generateUsername(data.email, data.firstName, data.lastName);
+      const uniqueUsername = await generateUniqueUsername(baseUsername);
+      
+      // Generate DiceBear avatar URL
+      const avatarUrl = getDiceBearAvatar(uniqueUsername);
+      
       // Register user with backend API
       const response = await AuthApi.register({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
+        username: uniqueUsername,
+        imageUrl: avatarUrl,
       });
 
       // Check if registration was successful
