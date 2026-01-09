@@ -106,25 +106,73 @@ export default function SignupPage() {
     } catch (err: unknown) {
       console.error("Registration error:", err);
       
-      // Extract error message
+      // Extract error details from various error formats
       let errorMessage = "Registration failed. Please try again.";
+      let statusCode = 500;
       
       if (err instanceof Error) {
         errorMessage = err.message;
+        // Check if error has statusCode property
+        if ('statusCode' in err) {
+          statusCode = (err as any).statusCode;
+        }
+        // Check if error has response property
+        if ('response' in err) {
+          const response = (err as any).response;
+          errorMessage = response?.error?.message || response?.message || errorMessage;
+        }
       } else if (typeof err === "object" && err !== null) {
-        const errorObj = err as { message?: string; error?: string };
+        const errorObj = err as { message?: string; error?: string; statusCode?: number };
         errorMessage = errorObj.message || errorObj.error || errorMessage;
+        statusCode = errorObj.statusCode || 500;
       }
       
-      // Check for specific errors
-      if (errorMessage.toLowerCase().includes("already exists") || 
-          errorMessage.toLowerCase().includes("already registered")) {
+      // Handle specific error types based on status code
+      if (statusCode === 409 || 
+          errorMessage.toLowerCase().includes("already exists") || 
+          errorMessage.toLowerCase().includes("already registered") ||
+          errorMessage.toLowerCase().includes("already in use")) {
+        // Email already exists (409 Conflict)
         toast.error("Email already registered", {
-          description: "Try signing in instead or use a different email.",
+          description: (
+            <div className="space-y-2">
+              <p>This email is already associated with an account.</p>
+              <div className="flex flex-col gap-1 text-xs">
+                <span>• Try <strong>signing in</strong> instead</span>
+                <span>• Use a <strong>different email</strong></span>
+                <span>• <strong>Reset your password</strong> if you forgot it</span>
+              </div>
+            </div>
+          ),
+          duration: 6000,
+          action: {
+            label: "Sign In",
+            onClick: () => router.push("/login"),
+          },
+        });
+      } else if (statusCode === 429) {
+        // Rate limit exceeded
+        toast.error("Too many attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
+        });
+      } else if (statusCode === 400) {
+        // Validation error
+        toast.error("Invalid information", {
+          description: errorMessage,
+          duration: 5000,
+        });
+      } else if (statusCode === 500) {
+        // Server error
+        toast.error("Server error", {
+          description: "Something went wrong on our end. Please try again later.",
+          duration: 5000,
         });
       } else {
+        // Generic error
         toast.error("Registration failed", {
           description: errorMessage,
+          duration: 5000,
         });
       }
     }

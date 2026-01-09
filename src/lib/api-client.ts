@@ -188,7 +188,19 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new Error(data.message || `API Error: ${response.status}`);
+    // Extract detailed error message from various response formats
+    let errorMessage = data.message || data.error?.message || `API Error: ${response.status}`;
+    
+    // Add status code for better error handling
+    const error: any = new Error(errorMessage);
+    error.statusCode = response.status;
+    error.response = data;
+    
+    if (ENABLE_API_LOGGING) {
+      console.error(`[API] ❌ Error: ${response.status} - ${errorMessage}`, data);
+    }
+    
+    throw error;
   }
 
   return data;
