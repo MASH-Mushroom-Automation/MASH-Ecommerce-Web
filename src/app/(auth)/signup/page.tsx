@@ -127,16 +127,21 @@ export default function SignupPage() {
         if ('statusCode' in err) {
           statusCode = (err as any).statusCode;
         }
-        // Check if error has response property
+        // Check if error has response property (from api-client)
         if ('response' in err) {
           const response = (err as any).response;
-          errorMessage = response?.error?.message || response?.message || errorMessage;
+          // Backend format: { success: false, error: { message: "..." }, statusCode: 409 }
+          errorMessage = response?.error?.message || response?.message || err.message;
+          statusCode = response?.statusCode || statusCode;
         }
       } else if (typeof err === "object" && err !== null) {
-        const errorObj = err as { message?: string; error?: string; statusCode?: number };
-        errorMessage = errorObj.message || errorObj.error || errorMessage;
+        const errorObj = err as { message?: string; error?: any; statusCode?: number };
+        // Extract from nested error object
+        errorMessage = errorObj.error?.message || errorObj.message || errorMessage;
         statusCode = errorObj.statusCode || 500;
       }
+      
+      console.log("[Signup] Extracted error:", { statusCode, errorMessage });
       
       // Handle specific error types based on status code
       if (statusCode === 409 || 
