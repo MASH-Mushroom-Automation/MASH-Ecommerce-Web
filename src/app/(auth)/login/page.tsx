@@ -33,6 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthApi } from "@/lib/api/auth";
+import { setAuthToken } from "@/lib/auth";
 import { toast } from "sonner";
 
 const getPasswordRequirements = (password: string) => {
@@ -190,7 +191,13 @@ export default function LoginPage() {
       // Store tokens if available
       if (tokens?.accessToken) {
         console.log("🔑 [Login] Storing access token...");
-        localStorage.setItem("auth-token", tokens.accessToken);
+        setAuthToken(tokens.accessToken, data.rememberMe); // Use proper cookie storage
+        
+        // Also store refresh token if available
+        if (tokens.refreshToken) {
+          console.log("🔑 [Login] Storing refresh token...");
+          localStorage.setItem("refreshToken", tokens.refreshToken);
+        }
       }
 
       // Success notification
