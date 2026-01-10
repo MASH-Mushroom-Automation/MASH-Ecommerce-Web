@@ -3,9 +3,8 @@
 /**
  * Login Page - Backend & Firebase Authentication
  * 
- * Supports multiple sign-in methods:
+ * Supports two sign-in methods:
  * - Email/Password (via NestJS Backend)
- * - Email Link (Passwordless via Firebase)
  * - Google OAuth (via Firebase)
  */
 
@@ -26,7 +25,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -83,20 +81,14 @@ export default function LoginPage() {
 
   const {
     signInWithEmailPassword,
-    sendEmailSignInLink,
     resendVerificationEmail,
-    checkForEmailLink,
-    completeEmailLinkSignIn,
-    getStoredEmail,
     loading: authLoading,
   } = useAuth();
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
-  const [isEmailLinkMode, setIsEmailLinkMode] = useState(false);
-  const [emailLinkSent, setEmailLinkSent] = useState(false);
-  const [sendingEmailLink, setSendingEmailLink] = useState(false);
+
 
   const {
     register,
@@ -108,39 +100,6 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberMe: false },
   });
-
-  // Check for email link on mount
-  useEffect(() => {
-    const handleEmailLink = async () => {
-      if (checkForEmailLink()) {
-        const storedEmail = getStoredEmail();
-        if (storedEmail) {
-          try {
-            await completeEmailLinkSignIn(storedEmail, window.location.href);
-          } catch (error) {
-            console.error("Email link sign-in failed:", error);
-            // Clear URL params
-            window.history.replaceState({}, "", "/login");
-          }
-        } else {
-          // Ask user for email
-          const userEmail = window.prompt(
-            "Please enter your email to complete sign-in:"
-          );
-          if (userEmail) {
-            try {
-              await completeEmailLinkSignIn(userEmail, window.location.href);
-            } catch (error) {
-              console.error("Email link sign-in failed:", error);
-            }
-          }
-          window.history.replaceState({}, "", "/login");
-        }
-      }
-    };
-
-    handleEmailLink();
-  }, [checkForEmailLink, getStoredEmail, completeEmailLinkSignIn]);
 
   // Store redirect URL
   useEffect(() => {
@@ -257,23 +216,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendEmailLink = async () => {
-    const emailValue = email.trim();
-    if (!emailValue || !getEmailStatus(emailValue).isValid) {
-      return;
-    }
-
-    try {
-      setSendingEmailLink(true);
-      await sendEmailSignInLink(emailValue);
-      setEmailLinkSent(true);
-    } catch (error) {
-      console.error("Send email link error:", error);
-    } finally {
-      setSendingEmailLink(false);
-    }
-  };
-
   const contextualMessage = getContextualMessage();
 
   return (
@@ -355,136 +297,11 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Toggle between Password and Email Link */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Button
-                type="button"
-                variant={!isEmailLinkMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsEmailLinkMode(false)}
-                className="text-xs"
-              >
-                <Lock className="w-3 h-3 mr-1" />
-                Password
-              </Button>
-              <Button
-                type="button"
-                variant={isEmailLinkMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsEmailLinkMode(true)}
-                className="text-xs"
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                Email Link
-              </Button>
-            </div>
-
-            {isEmailLinkMode ? (
-              /* Email Link (Passwordless) Mode */
-              <div className="space-y-4">
-                {emailLinkSent ? (
-                  <div className="text-center py-8">
-                    <div className="bg-green-500/10 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                      <Mail className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      Check your email
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-4">
-                      We sent a sign-in link to <strong>{email}</strong>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Click the link in the email to sign in. No password
-                      needed!
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-4"
-                      onClick={() => {
-                        setEmailLinkSent(false);
-                        setEmail("");
-                      }}
-                    >
-                      Use a different email
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label
-                        htmlFor="email-link"
-                        className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                      >
-                        Email Address
-                      </label>
-                      <Input
-                        id="email-link"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full"
-                        placeholder="Enter your email"
-                        icon={<Mail className="h-5 w-5" />}
-                      />
-                      {email && (
-                        <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                          <div
-                            className={`flex items-center gap-2 text-xs ${
-                              getEmailStatus(email).isValid
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {getEmailStatus(email).isValid ? (
-                              <Check className="h-3 w-3 flex-shrink-0" />
-                            ) : (
-                              <XIcon className="h-3 w-3 flex-shrink-0" />
-                            )}
-                            <span>{getEmailStatus(email).message}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="lg"
-                      className="w-full font-semibold"
-                      onClick={handleSendEmailLink}
-                      disabled={
-                        sendingEmailLink ||
-                        !email ||
-                        !getEmailStatus(email).isValid
-                      }
-                    >
-                      {sendingEmailLink ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Send Sign-In Link
-                        </>
-                      )}
-                    </Button>
-
-                    <p className="text-xs text-center text-muted-foreground">
-                      We&apos;ll send you a magic link to sign in without a
-                      password
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              /* Password Mode (Traditional) */
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="space-y-3 sm:space-y-4 md:space-y-5"
-              >
+            {/* Password Sign-In Form */}
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-3 sm:space-y-4 md:space-y-5"
+            >
                 {/* Email Input */}
                 <div>
                   <label
@@ -697,7 +514,6 @@ export default function LoginPage() {
                   )}
                 </Button>
               </form>
-            )}
 
             {/* Divider */}
             <div className="relative my-3 sm:my-4 md:my-5">
