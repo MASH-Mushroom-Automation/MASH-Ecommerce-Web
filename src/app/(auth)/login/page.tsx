@@ -242,23 +242,35 @@ export default function LoginPage() {
         message: error?.message,
         response: error?.response,
         status: error?.response?.status,
+        fullError: error?.response?.data
       });
       
-      // Extract error message with fallback
+      // Extract error message from all possible paths (backend sends: data.error.message)
       let errorMessage = "Unable to sign in. Please try again.";
       let errorTitle = "Login Failed";
       
-      if (error?.response?.data?.message) {
+      // Try nested error.message path first (correct backend structure)
+      if (error?.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error?.response?.data?.details?.message) {
+        errorMessage = error.response.data.details.message;
+      } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (error?.message) {
+      } else if (error?.message && typeof error.message === 'string') {
         errorMessage = error.message;
       } else if (typeof error === "string") {
         errorMessage = error;
       }
 
+      // Ensure errorMessage is a string before calling string methods
+      if (typeof errorMessage !== 'string') {
+        console.warn("[Login] errorMessage is not a string:", errorMessage);
+        errorMessage = JSON.stringify(errorMessage);
+      }
+
       console.log("[Login] Error message:", errorMessage);
       
-      // Handle specific error cases
+      // Handle specific error cases (now safe to call .toLowerCase())
       const lowerMsg = errorMessage.toLowerCase();
       const statusCode = error?.response?.status || error?.response?.statusCode;
       

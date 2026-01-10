@@ -138,8 +138,18 @@ export async function apiRequest<T>(
                           endpoint.includes('/auth/reset-password');
     
     if (isAuthEndpoint) {
-      const errorMessage = data.message || data.error || "Validation failed";
-      const error: any = new Error(errorMessage);
+      // Extract error message from backend structure
+      const errorMessage = data.error?.message || 
+                         data.details?.message || 
+                         data.message || 
+                         "Validation failed";
+      
+      // Ensure errorMessage is always a string
+      const messageString = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
+      const error: any = new Error(messageString);
       error.statusCode = 400;
       
       // Create comprehensive nested error response structure
@@ -147,16 +157,19 @@ export async function apiRequest<T>(
         status: 400,
         statusCode: 400,
         data: {
-          message: data.message || errorMessage,
-          error: data.error || "Bad Request",
+          message: messageString,
+          error: data.error?.type || data.error?.code || "Bad Request",
           statusCode: data.statusCode || 400,
-          details: data.details || data,
+          details: data.details || data.error,
           ...data
         }
       };
       
       if (ENABLE_API_LOGGING) {
-        console.error(`[API] Auth error (400): ${errorMessage}`, data);
+        console.error(`[API] Auth error (400): ${messageString}`, {
+          fullError: data.error,
+          details: data.details
+        });
       }
       
       throw error;
@@ -223,8 +236,19 @@ export async function apiRequest<T>(
     // If it's an auth endpoint (login/register), throw the error immediately
     // so the page can show proper toast notifications
     if (isAuthEndpoint) {
-      const errorMessage = data.message || data.error || "Authentication failed";
-      const error: any = new Error(errorMessage);
+      // Extract error message from backend structure: data.error.message
+      // Backend sends: {error: {message: "Invalid credentials"}}
+      const errorMessage = data.error?.message || 
+                         data.details?.message || 
+                         data.message || 
+                         "Authentication failed";
+      
+      // Ensure errorMessage is always a string (defensive coding)
+      const messageString = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
+      const error: any = new Error(messageString);
       error.statusCode = 401;
       
       // Create comprehensive nested error response structure
@@ -232,16 +256,19 @@ export async function apiRequest<T>(
         status: 401,
         statusCode: 401,
         data: {
-          message: data.message || errorMessage,
-          error: data.error || "Unauthorized",
+          message: messageString,
+          error: data.error?.type || data.error?.code || "Unauthorized",
           statusCode: data.statusCode || 401,
-          details: data.details || data,
+          details: data.details || data.error,
           ...data // Include all backend fields
         }
       };
       
       if (ENABLE_API_LOGGING) {
-        console.error(`[API] Auth error (401): ${errorMessage}`, data);
+        console.error(`[API] Auth error (401): ${messageString}`, {
+          fullError: data.error,
+          details: data.details
+        });
       }
       
       throw error;
