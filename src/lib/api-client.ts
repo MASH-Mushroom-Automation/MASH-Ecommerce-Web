@@ -189,16 +189,24 @@ export async function apiRequest<T>(
     // If it's an auth endpoint (login/register), throw the error immediately
     // so the page can show proper toast notifications
     if (isAuthEndpoint) {
-      const errorMessage = data.message || "Authentication failed";
+      const errorMessage = data.message || data.error || "Authentication failed";
       const error: any = new Error(errorMessage);
       error.statusCode = 401;
+      
+      // Create properly nested error response structure
       error.response = {
         status: 401,
-        data: data // Nest the data so login page can access error.response.data.message
+        statusCode: 401,
+        data: {
+          message: errorMessage,
+          error: data.error || "Unauthorized",
+          statusCode: 401,
+          ...data // Include any additional fields from backend
+        }
       };
       
       if (ENABLE_API_LOGGING) {
-        console.error(`[API] Auth error: ${errorMessage}`, data);
+        console.error(`[API] Auth error: ${errorMessage}`, error.response.data);
       }
       
       throw error;

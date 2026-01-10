@@ -28,6 +28,7 @@ export interface VerifyCodeRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface ForgotPasswordRequest {
@@ -232,13 +233,17 @@ export const AuthApi = {
 
   /**
    * Login with email and password
-   * @param data - Email and password
+   * @param data - Email, password, and optional rememberMe
    * @returns Promise<LoginResponse>
    */
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const response = await apiRequest<LoginResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        rememberMe: data.rememberMe || false,
+      }),
     });
 
     // Handle both response formats (nested data or direct)
@@ -246,9 +251,9 @@ export const AuthApi = {
     const refreshToken = response.data?.refreshToken || response.refreshToken;
     const user = response.data?.user || response.user;
 
-    // Store tokens automatically
+    // Store tokens with rememberMe setting
     if (accessToken) {
-      setAuthToken(accessToken, true);
+      setAuthToken(accessToken, data.rememberMe || false);
     }
 
     if (refreshToken) {

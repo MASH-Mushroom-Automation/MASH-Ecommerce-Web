@@ -159,14 +159,16 @@ export default function LoginPage() {
       console.log("[Login] Starting login process...");
       console.log("[Login] Email:", data.email);
       console.log("[Login] Password length:", data.password.length);
+      console.log("[Login] Remember Me:", data.rememberMe);
       
       // Use backend API for email/password login
       const response = await AuthApi.login({
         email: data.email.trim(),
         password: data.password,
+        rememberMe: data.rememberMe || false,
       });
 
-      console.log("✅ [Login] Backend response received:", response);
+      console.log("[Login] Backend response received:", response);
 
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
