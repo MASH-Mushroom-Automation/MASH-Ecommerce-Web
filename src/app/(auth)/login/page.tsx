@@ -65,9 +65,16 @@ const getEmailStatus = (email: string) => {
 };
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  rememberMe: z.boolean(),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .transform(val => val.trim().toLowerCase()),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -96,9 +103,15 @@ export default function LoginPage() {
     control,
     formState: { errors, isSubmitting },
     setValue,
-  } = useForm({
+    clearErrors,
+  } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", rememberMe: false },
+    defaultValues: { 
+      email: "", 
+      password: "", 
+      rememberMe: false 
+    },
+    mode: "onChange", // Validate on change for better UX
   });
 
   // Store redirect URL
@@ -136,24 +149,36 @@ export default function LoginPage() {
     return "Please sign in to continue";
   };
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     try {
+      console.log("🔐 [Login] Starting login process...");
+      
       // Use backend API for email/password login
       const response = await AuthApi.login({
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
       });
 
+      console.log("✅ [Login] Backend response received:", response);
+
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
+      const tokens = response.data?.tokens || response.tokens;
+      
+      if (!user) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
+      console.log("👤 [Login] User data:", { email: user.email, verified: user.emailVerified });
       
       // Check if email is verified
-      if (user && !user.emailVerified) {
-        // Store email for verification page
+      if (!user.emailVerified) {
+        console.warn("⚠️ [Login] Email not verified");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         
-        toast.warning("Email not verified", {
-          description: "Please verify your email to continue.",
+        toast.warning("Email Verification Required", {
+          description: "Please verify your email address to continue.",
+          duration: 5000,
           action: {
             label: "Verify Now",
             onClick: () => router.push("/verify-otp"),
@@ -162,55 +187,95 @@ export default function LoginPage() {
         return;
       }
 
-      toast.success(`Welcome back, ${user?.firstName || user?.email}!`);
+      // Store tokens if available
+      if (tokens?.accessToken) {
+        console.log("🔑 [Login] Storing access token...");
+        localStorage.setItem("auth-token", tokens.accessToken);
+      }
 
-      // Redirect to stored URL or home
+      // Success notification
+      const displayName = user.firstName || user.username || user.email.split("@")[0];
+      toast.success("Login Successful!", {
+        description: `Welcome back, ${displayName}! 👋`,
+        duration: 3000,
+      });
+
+      console.log("🎉 [Login] Login successful, redirecting...");
+
+      // Small delay for toast to show before navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Redirect to stored URL or home (NO page refresh)
       const redirectUrl = sessionStorage.getItem("auth-redirect-url");
       if (redirectUrl) {
         sessionStorage.removeItem("auth-redirect-url");
+        console.log("↪️ [Login] Redirecting to:", redirectUrl);
         router.push(redirectUrl);
       } else {
-        router.push("/");
+        console.log("🏠 [Login] Redirecting to home");
+        router.push("/shop");
       }
-      router.refresh();
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (error: any) {
+      console.error("❌ [Login] Error:", error);
       
-      // Extract error message
-      let errorMessage = "Login failed. Please try again.";
+      // Extract error message with fallback
+      let errorMessage = "Unable to sign in. Please try again.";
+      let errorTitle = "Login Failed";
       
-      if (error instanceof Error) {
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null) {
-        const errorObj = error as { message?: string; error?: string };
-        errorMessage = errorObj.message || errorObj.error || errorMessage;
+      } else if (typeof error === "string") {
+        errorMessage = error;
       }
+
+      console.log("📝 [Login] Error message:", errorMessage);
       
-      // Check for specific errors
-      if (errorMessage.toLowerCase().includes("not verified") ||
-          errorMessage.toLowerCase().includes("email verification")) {
+      // Handle specific error cases
+      const lowerMsg = errorMessage.toLowerCase();
+      
+      if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
         sessionStorage.setItem("pendingVerificationEmail", data.email);
-        toast.error("Email not verified", {
-          description: "Please verify your email first.",
+        toast.error("Email Not Verified", {
+          description: "Please verify your email address to continue.",
+          duration: 6000,
           action: {
-            label: "Verify",
+            label: "Verify Email",
             onClick: () => router.push("/verify-otp"),
           },
         });
-      } else if (errorMessage.toLowerCase().includes("invalid") ||
-                 errorMessage.toLowerCase().includes("incorrect") ||
-                 errorMessage.toLowerCase().includes("wrong")) {
-        toast.error("Invalid credentials", {
-          description: "Please check your email and password.",
+      } else if (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect") || 
+                 lowerMsg.includes("wrong") || lowerMsg.includes("credentials")) {
+        toast.error("Invalid Credentials", {
+          description: "The email or password you entered is incorrect. Please try again.",
+          duration: 5000,
         });
-      } else if (errorMessage.toLowerCase().includes("not found") ||
-                 errorMessage.toLowerCase().includes("no user")) {
-        toast.error("Account not found", {
-          description: "No account found with this email. Please sign up.",
+      } else if (lowerMsg.includes("not found") || lowerMsg.includes("no user") || 
+                 lowerMsg.includes("doesn't exist")) {
+        toast.error("Account Not Found", {
+          description: "No account exists with this email. Would you like to sign up?",
+          duration: 6000,
+          action: {
+            label: "Sign Up",
+            onClick: () => router.push("/signup"),
+          },
+        });
+      } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
+        toast.error("Connection Error", {
+          description: "Unable to reach the server. Please check your internet connection.",
+          duration: 5000,
+        });
+      } else if (lowerMsg.includes("too many") || lowerMsg.includes("rate limit")) {
+        toast.error("Too Many Attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
         });
       } else {
-        toast.error("Login failed", {
+        // Generic error with actual message
+        toast.error(errorTitle, {
           description: errorMessage,
+          duration: 5000,
         });
       }
     }
@@ -301,7 +366,19 @@ export default function LoginPage() {
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-3 sm:space-y-4 md:space-y-5"
+              noValidate
             >
+              {/* Loading Overlay */}
+              {(isSubmitting || authLoading) && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-50">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Signing you in...
+                    </p>
+                  </div>
+                </div>
+              )}
                 {/* Email Input */}
                 <div>
                   <label
@@ -315,12 +392,19 @@ export default function LoginPage() {
                     type="email"
                     {...register("email")}
                     onInput={(e) => {
-                      setEmail(e.currentTarget.value);
-                      setValue("email", e.currentTarget.value);
+                      const value = e.currentTarget.value;
+                      setEmail(value);
+                      setValue("email", value, { shouldValidate: true });
+                      // Clear errors when user starts typing
+                      if (errors.email && value) {
+                        clearErrors("email");
+                      }
                     }}
-                    className="w-full"
+                    className={`w-full ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
                     placeholder="Enter your email"
                     icon={<Mail className="h-5 w-5" />}
+                    disabled={isSubmitting || authLoading}
+                    autoComplete="email"
                   />
 
                   {/* Email Validation Indicator */}
@@ -364,10 +448,19 @@ export default function LoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       {...register("password")}
-                      onInput={(e) => setPassword(e.currentTarget.value)}
-                      className="w-full pr-10"
+                      onInput={(e) => {
+                        const value = e.currentTarget.value;
+                        setPassword(value);
+                        // Clear errors when user starts typing
+                        if (errors.password && value) {
+                          clearErrors("password");
+                        }
+                      }}
+                      className={`w-full pr-10 ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
                       placeholder="Enter your password"
                       icon={<Lock className="h-5 w-5" />}
+                      disabled={isSubmitting || authLoading}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -501,8 +594,9 @@ export default function LoginPage() {
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full font-semibold"
-                  disabled={isSubmitting || authLoading}
+                  className="w-full font-semibold transition-all duration-200 hover:shadow-lg"
+                  disabled={isSubmitting || authLoading || !!errors.email || !!errors.password}
+                  aria-label="Sign in to your account"
                 >
                   {isSubmitting || authLoading ? (
                     <>
@@ -510,9 +604,17 @@ export default function LoginPage() {
                       Signing In...
                     </>
                   ) : (
-                    "Sign In"
+                    <>
+                      <Lock className="w-4 h-4 mr-2" />
+                      Sign In
+                    </>
                   )}
                 </Button>
+
+                {/* Keyboard Shortcut Hint */}
+                <p className="text-xs text-center text-muted-foreground">
+                  Press <kbd className="px-2 py-0.5 text-xs font-semibold bg-muted border border-border rounded">Enter</kbd> to sign in
+                </p>
               </form>
 
             {/* Divider */}
