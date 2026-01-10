@@ -54,7 +54,7 @@ function getBaseUrl(endpoint: string): string {
   if (isEmailEndpoint && EMAIL_SERVICE_ENV === "local") {
     if (ENABLE_API_LOGGING) {
       console.log(
-        `[API] 📧 Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`
+        `[API] Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`
       );
     }
     return LOCAL_API_URL;
@@ -63,7 +63,7 @@ function getBaseUrl(endpoint: string): string {
   // All other endpoints use production backend
   if (ENABLE_API_LOGGING) {
     console.log(
-      `[API] ☁️ Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`
+      `[API] Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`
     );
   }
   return PRODUCTION_API_URL;
@@ -94,7 +94,7 @@ export async function apiRequest<T>(
   const url = `${baseUrl}${endpoint}`;
 
   if (ENABLE_API_LOGGING) {
-    console.log(`[API] 📡 Request: ${options.method || "GET"} ${url}`);
+    console.log(`[API] Request: ${options.method || "GET"} ${url}`);
   }
 
   const headers: Record<string, string> = {
@@ -148,7 +148,7 @@ export async function apiRequest<T>(
 
         if (ENABLE_API_LOGGING) {
           console.log(
-            `[API] 🔄 Token expired, attempting refresh: ${refreshUrl}`
+            `[API] Token expired, attempting refresh: ${refreshUrl}`
           );
         }
 
@@ -192,10 +192,13 @@ export async function apiRequest<T>(
       const errorMessage = data.message || "Authentication failed";
       const error: any = new Error(errorMessage);
       error.statusCode = 401;
-      error.response = data;
+      error.response = {
+        status: 401,
+        data: data // Nest the data so login page can access error.response.data.message
+      };
       
       if (ENABLE_API_LOGGING) {
-        console.error(`[API] ❌ Auth error: ${errorMessage}`, data);
+        console.error(`[API] Auth error: ${errorMessage}`, data);
       }
       
       throw error;
@@ -221,7 +224,7 @@ export async function apiRequest<T>(
     error.response = data;
     
     if (ENABLE_API_LOGGING) {
-      console.error(`[API] ❌ Error: ${response.status} - ${errorMessage}`, data);
+      console.error(`[API] Error: ${response.status} - ${errorMessage}`, data);
     }
     
     throw error;

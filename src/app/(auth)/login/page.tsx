@@ -156,9 +156,9 @@ export default function LoginPage() {
     setHasError(false);
     
     try {
-      console.log("🔐 [Login] Starting login process...");
-      console.log("📧 [Login] Email:", data.email);
-      console.log("🔒 [Login] Password length:", data.password.length);
+      console.log("[Login] Starting login process...");
+      console.log("[Login] Email:", data.email);
+      console.log("[Login] Password length:", data.password.length);
       
       // Use backend API for email/password login
       const response = await AuthApi.login({
@@ -176,11 +176,11 @@ export default function LoginPage() {
         throw new Error("Invalid response from server. Please try again.");
       }
 
-      console.log("👤 [Login] User data:", { email: user.email, verified: user.emailVerified });
+      console.log("[Login] User data:", { email: user.email, verified: user.emailVerified });
       
       // Check if email is verified
       if (!user.emailVerified) {
-        console.warn("⚠️ [Login] Email not verified");
+        console.warn("[Login] Email not verified");
         setHasError(true); // Mark as error to prevent navigation
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         
@@ -197,12 +197,12 @@ export default function LoginPage() {
 
       // Store tokens if available
       if (tokens?.accessToken) {
-        console.log("🔑 [Login] Storing access token...");
+        console.log("[Login] Storing access token...");
         setAuthToken(tokens.accessToken, data.rememberMe); // Use proper cookie storage
         
         // Also store refresh token if available
         if (tokens.refreshToken) {
-          console.log("🔑 [Login] Storing refresh token...");
+          console.log("[Login] Storing refresh token...");
           localStorage.setItem("refreshToken", tokens.refreshToken);
         }
       }
@@ -210,11 +210,11 @@ export default function LoginPage() {
       // Success notification
       const displayName = user.firstName || user.username || user.email.split("@")[0];
       toast.success("Login Successful!", {
-        description: `Welcome back, ${displayName}! 👋`,
+        description: `Welcome back, ${displayName}!`,
         duration: 3000,
       });
 
-      console.log("🎉 [Login] Login successful, redirecting...");
+      console.log("[Login] Login successful, redirecting...");
 
       // Small delay for toast to show before navigation
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -225,18 +225,18 @@ export default function LoginPage() {
         const redirectUrl = sessionStorage.getItem("auth-redirect-url");
         if (redirectUrl) {
           sessionStorage.removeItem("auth-redirect-url");
-          console.log("↪️ [Login] Redirecting to:", redirectUrl);
+          console.log("[Login] Redirecting to:", redirectUrl);
           router.push(redirectUrl);
         } else {
-          console.log("🏠 [Login] Redirecting to shop");
+          console.log("[Login] Redirecting to shop");
           router.push("/shop");
         }
       }
     } catch (error: any) {
       // Set error flag to prevent navigation
       setHasError(true);
-      console.error("❌ [Login] Error:", error);
-      console.error("❌ [Login] Error details:", {
+      console.error("[Login] Error:", error);
+      console.error("[Login] Error details:", {
         message: error?.message,
         response: error?.response,
         status: error?.response?.status,
@@ -254,13 +254,13 @@ export default function LoginPage() {
         errorMessage = error;
       }
 
-      console.log("📝 [Login] Error message:", errorMessage);
+      console.log("[Login] Error message:", errorMessage);
       
       // Handle specific error cases
       const lowerMsg = errorMessage.toLowerCase();
       
       if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
-        console.log("🚫 [Login] Email not verified (from error)");
+        console.log("[Login] Email not verified (from error)");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         toast.error("Email Not Verified", {
           description: "Please verify your email address to continue.",
@@ -273,7 +273,7 @@ export default function LoginPage() {
         return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect") || 
                  lowerMsg.includes("wrong") || lowerMsg.includes("credentials")) {
-        console.log("🚫 [Login] Invalid credentials detected");
+        console.log("[Login] Invalid credentials detected");
         toast.error("Invalid Credentials", {
           description: "The email or password you entered is incorrect. Please try again.",
           duration: 5000,
@@ -281,7 +281,7 @@ export default function LoginPage() {
         return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("not found") || lowerMsg.includes("no user") || 
                  lowerMsg.includes("doesn't exist")) {
-        console.log("🚫 [Login] Account not found");
+        console.log("[Login] Account not found");
         toast.error("Account Not Found", {
           description: "No account exists with this email. Would you like to sign up?",
           duration: 6000,
@@ -292,14 +292,14 @@ export default function LoginPage() {
         });
         return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
-        console.log("🚫 [Login] Network/timeout error");
+        console.log("[Login] Network/timeout error");
         toast.error("Connection Error", {
           description: "Unable to reach the server. Please check your internet connection.",
           duration: 5000,
         });
         return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("too many") || lowerMsg.includes("rate limit")) {
-        console.log("🚫 [Login] Rate limit exceeded");
+        console.log("[Login] Rate limit exceeded");
         toast.error("Too Many Attempts", {
           description: "Please wait a few minutes before trying again.",
           duration: 5000,
@@ -307,7 +307,7 @@ export default function LoginPage() {
         return; // CRITICAL: Stop execution, don't navigate
       } else {
         // Generic error with actual message
-        console.log("🚫 [Login] Generic error:", errorMessage);
+        console.log("[Login] Generic error:", errorMessage);
         toast.error(errorTitle, {
           description: errorMessage,
           duration: 5000,
@@ -316,7 +316,7 @@ export default function LoginPage() {
       }
     } finally {
       // Always log completion
-      console.log("🏁 [Login] Form submission completed (error:", hasError, ")");
+      console.log("[Login] Form submission completed (error:", hasError, ")");
     }
   };
 
