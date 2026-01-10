@@ -59,11 +59,19 @@ apiClient.interceptors.response.use(
       const status = error.response.status;
       
       if (status === 401) {
-        // Unauthorized - redirect to login
-        if (typeof window !== 'undefined') {
+        // ⚠️ DON'T auto-redirect on 401 - let the calling component handle it
+        // This allows login/signup pages to show proper error messages
+        // Only redirect if NOT on an auth-related endpoint
+        const isAuthEndpoint = error.config?.url?.includes('/auth/');
+        
+        if (!isAuthEndpoint && typeof window !== 'undefined') {
+          // Non-auth endpoint returned 401 - user session expired
           localStorage.removeItem('auth_token');
-          window.location.href = '/sign-in';
+          console.warn('[API] Session expired - redirecting to login');
+          window.location.href = '/login';
         }
+        // For auth endpoints (login, register, etc.), let the error propagate
+        // so the page can show proper toast notifications
       } else if (status === 403) {
         console.error('[API] Forbidden - Insufficient permissions');
       } else if (status === 404) {

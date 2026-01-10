@@ -132,7 +132,16 @@ export async function apiRequest<T>(
   // Handle unauthorized errors (token expired)
   if (response.status === 401) {
     const refreshToken = getRefreshToken();
-    if (refreshToken) {
+    
+    // ⚠️ DON'T redirect on auth endpoints (login, register, etc.)
+    // Let those pages handle the error and show toast notifications
+    const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                          endpoint.includes('/auth/register') || 
+                          endpoint.includes('/auth/verify') ||
+                          endpoint.includes('/auth/forgot-password') ||
+                          endpoint.includes('/auth/reset-password');
+    
+    if (refreshToken && !isAuthEndpoint) {
       try {
         // Refresh token always uses production backend (session management)
         const refreshUrl = `${PRODUCTION_API_URL}/auth/refresh-token`;
@@ -177,7 +186,22 @@ export async function apiRequest<T>(
       }
     }
 
-    // If refresh fails or no refresh token, clear tokens and redirect to login
+    // If it's an auth endpoint (login/register), throw the error immediately
+    // so the page can show proper toast notifications
+    if (isAuthEndpoint) {
+      const errorMessage = data.message || "Authentication failed";
+      const error: any = new Error(errorMessage);
+      error.statusCode = 401;
+      error.response = data;
+      
+      if (ENABLE_API_LOGGING) {
+        console.error(`[API] ❌ Auth error: ${errorMessage}`, data);
+      }
+      
+      throw error;
+    }
+
+    // If refresh fails or no refresh token (non-auth endpoints), clear tokens and redirect
     if (typeof window !== "undefined") {
       document.cookie =
         "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
