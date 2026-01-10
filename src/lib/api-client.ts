@@ -129,6 +129,40 @@ export async function apiRequest<T>(
 
   const data = await response.json();
 
+  // Handle 400 Bad Request for auth endpoints (validation errors)
+  if (response.status === 400) {
+    const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                          endpoint.includes('/auth/register') || 
+                          endpoint.includes('/auth/verify') ||
+                          endpoint.includes('/auth/forgot-password') ||
+                          endpoint.includes('/auth/reset-password');
+    
+    if (isAuthEndpoint) {
+      const errorMessage = data.message || data.error || "Validation failed";
+      const error: any = new Error(errorMessage);
+      error.statusCode = 400;
+      
+      // Create comprehensive nested error response structure
+      error.response = {
+        status: 400,
+        statusCode: 400,
+        data: {
+          message: data.message || errorMessage,
+          error: data.error || "Bad Request",
+          statusCode: data.statusCode || 400,
+          details: data.details || data,
+          ...data
+        }
+      };
+      
+      if (ENABLE_API_LOGGING) {
+        console.error(`[API] Auth error (400): ${errorMessage}`, data);
+      }
+      
+      throw error;
+    }
+  }
+
   // Handle unauthorized errors (token expired)
   if (response.status === 401) {
     const refreshToken = getRefreshToken();
@@ -193,20 +227,21 @@ export async function apiRequest<T>(
       const error: any = new Error(errorMessage);
       error.statusCode = 401;
       
-      // Create properly nested error response structure
+      // Create comprehensive nested error response structure
       error.response = {
         status: 401,
         statusCode: 401,
         data: {
-          message: errorMessage,
+          message: data.message || errorMessage,
           error: data.error || "Unauthorized",
-          statusCode: 401,
-          ...data // Include any additional fields from backend
+          statusCode: data.statusCode || 401,
+          details: data.details || data,
+          ...data // Include all backend fields
         }
       };
       
       if (ENABLE_API_LOGGING) {
-        console.error(`[API] Auth error: ${errorMessage}`, error.response.data);
+        console.error(`[API] Auth error (401): ${errorMessage}`, data);
       }
       
       throw error;

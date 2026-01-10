@@ -237,12 +237,13 @@ export const AuthApi = {
    * @returns Promise<LoginResponse>
    */
   login: async (data: LoginRequest): Promise<LoginResponse> => {
+    // Don't send rememberMe to backend - it doesn't accept it (causes 400 error)
+    // Backend only expects: {email, password}
     const response = await apiRequest<LoginResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({
         email: data.email,
         password: data.password,
-        rememberMe: data.rememberMe || false,
       }),
     });
 
@@ -251,7 +252,9 @@ export const AuthApi = {
     const refreshToken = response.data?.refreshToken || response.refreshToken;
     const user = response.data?.user || response.user;
 
-    // Store tokens with rememberMe setting
+    // Use rememberMe for client-side cookie expiry only
+    // rememberMe=true → 7 days cookie
+    // rememberMe=false → session cookie (expires on browser close)
     if (accessToken) {
       setAuthToken(accessToken, data.rememberMe || false);
     }

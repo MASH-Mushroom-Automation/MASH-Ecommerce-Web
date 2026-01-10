@@ -260,6 +260,17 @@ export default function LoginPage() {
       
       // Handle specific error cases
       const lowerMsg = errorMessage.toLowerCase();
+      const statusCode = error?.response?.status || error?.response?.statusCode;
+      
+      // Handle validation errors (400 Bad Request)
+      if (statusCode === 400 || lowerMsg.includes("validation")) {
+        console.log("[Login] Validation error detected");
+        toast.error("Invalid Request", {
+          description: "Please check your login information and try again.",
+          duration: 5000,
+        });
+        return;
+      }
       
       if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
         console.log("[Login] Email not verified (from error)");
