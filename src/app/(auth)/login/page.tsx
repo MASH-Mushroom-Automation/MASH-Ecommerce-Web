@@ -96,6 +96,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
+  const [hasError, setHasError] = useState(false);
 
 
   const {
@@ -151,8 +152,13 @@ export default function LoginPage() {
   };
 
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
+    // Reset error state
+    setHasError(false);
+    
     try {
       console.log("🔐 [Login] Starting login process...");
+      console.log("📧 [Login] Email:", data.email);
+      console.log("🔒 [Login] Password length:", data.password.length);
       
       // Use backend API for email/password login
       const response = await AuthApi.login({
@@ -175,6 +181,7 @@ export default function LoginPage() {
       // Check if email is verified
       if (!user.emailVerified) {
         console.warn("⚠️ [Login] Email not verified");
+        setHasError(true); // Mark as error to prevent navigation
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         
         toast.warning("Email Verification Required", {
@@ -212,18 +219,28 @@ export default function LoginPage() {
       // Small delay for toast to show before navigation
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Redirect to stored URL or home (NO page refresh)
-      const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-      if (redirectUrl) {
-        sessionStorage.removeItem("auth-redirect-url");
-        console.log("↪️ [Login] Redirecting to:", redirectUrl);
-        router.push(redirectUrl);
-      } else {
-        console.log("🏠 [Login] Redirecting to home");
-        router.push("/shop");
+      // Only navigate if no errors occurred
+      if (!hasError) {
+        // Redirect to stored URL or home (NO page refresh)
+        const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+        if (redirectUrl) {
+          sessionStorage.removeItem("auth-redirect-url");
+          console.log("↪️ [Login] Redirecting to:", redirectUrl);
+          router.push(redirectUrl);
+        } else {
+          console.log("🏠 [Login] Redirecting to shop");
+          router.push("/shop");
+        }
       }
     } catch (error: any) {
+      // Set error flag to prevent navigation
+      setHasError(true);
       console.error("❌ [Login] Error:", error);
+      console.error("❌ [Login] Error details:", {
+        message: error?.message,
+        response: error?.response,
+        status: error?.response?.status,
+      });
       
       // Extract error message with fallback
       let errorMessage = "Unable to sign in. Please try again.";
@@ -243,6 +260,7 @@ export default function LoginPage() {
       const lowerMsg = errorMessage.toLowerCase();
       
       if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
+        console.log("🚫 [Login] Email not verified (from error)");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         toast.error("Email Not Verified", {
           description: "Please verify your email address to continue.",
@@ -252,14 +270,18 @@ export default function LoginPage() {
             onClick: () => router.push("/verify-otp"),
           },
         });
+        return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect") || 
                  lowerMsg.includes("wrong") || lowerMsg.includes("credentials")) {
+        console.log("🚫 [Login] Invalid credentials detected");
         toast.error("Invalid Credentials", {
           description: "The email or password you entered is incorrect. Please try again.",
           duration: 5000,
         });
+        return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("not found") || lowerMsg.includes("no user") || 
                  lowerMsg.includes("doesn't exist")) {
+        console.log("🚫 [Login] Account not found");
         toast.error("Account Not Found", {
           description: "No account exists with this email. Would you like to sign up?",
           duration: 6000,
@@ -268,23 +290,33 @@ export default function LoginPage() {
             onClick: () => router.push("/signup"),
           },
         });
+        return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
+        console.log("🚫 [Login] Network/timeout error");
         toast.error("Connection Error", {
           description: "Unable to reach the server. Please check your internet connection.",
           duration: 5000,
         });
+        return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("too many") || lowerMsg.includes("rate limit")) {
+        console.log("🚫 [Login] Rate limit exceeded");
         toast.error("Too Many Attempts", {
           description: "Please wait a few minutes before trying again.",
           duration: 5000,
         });
+        return; // CRITICAL: Stop execution, don't navigate
       } else {
         // Generic error with actual message
+        console.log("🚫 [Login] Generic error:", errorMessage);
         toast.error(errorTitle, {
           description: errorMessage,
           duration: 5000,
         });
+        return; // CRITICAL: Stop execution, don't navigate
       }
+    } finally {
+      // Always log completion
+      console.log("🏁 [Login] Form submission completed (error:", hasError, ")");
     }
   };
 
