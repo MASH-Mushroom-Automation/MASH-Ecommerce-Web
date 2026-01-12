@@ -52,6 +52,19 @@ service cloud.firestore {
     // ========================================
     // ORDERS COLLECTION
     // ========================================
+    
+    // GUEST CART & WISHLIST (Allow unauthenticated access)
+    // Required for guest users to add items before login
+    match /carts/{cartId} {
+      // Allow anyone to read/write their own cart (authenticated or guest)
+      allow read, write: if true;
+    }
+    
+    match /wishlists/{wishlistId} {
+      // Allow anyone to read/write their own wishlist (authenticated or guest)
+      allow read, write: if true;
+    }
+    
     match /orders/{orderId} {
       // Users can read their own orders
       // Sellers/Admins can read all orders
