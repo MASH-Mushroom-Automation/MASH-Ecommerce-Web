@@ -63,6 +63,11 @@ export async function uploadToCloudinary(
   // Determine resource type (auto for PDFs and images)
   const resourceType = options.resourceType || "auto";
 
+  // Log upload attempt for debugging
+  console.log(
+    `[Cloudinary] Uploading ${file.name} (${file.type}, ${file.size} bytes) as ${resourceType}`
+  );
+
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
     {
@@ -73,8 +78,9 @@ export async function uploadToCloudinary(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    console.error("[Cloudinary] Upload failed:", error);
     throw new Error(
-      error.error?.message || "Failed to upload file to Cloudinary"
+      error.error?.message || `Failed to upload ${file.name} to Cloudinary`
     );
   }
 
