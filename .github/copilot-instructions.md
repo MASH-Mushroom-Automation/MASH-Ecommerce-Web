@@ -1,6 +1,6 @@
 # MASH E-Commerce Platform - AI Agent Guide
 
-> **Stack:** Next.js 15 (Turbopack) + Sanity CMS + Firebase Auth + NestJS Backend
+> **Stack:** Next.js 16 (Turbopack) + Sanity CMS + Firebase Auth + NestJS Backend
 
 ---
 
@@ -47,7 +47,7 @@ npm run dev
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Frontend (Next.js 15 - Railway Production)                     │
+│  Frontend (Next.js 16 - Railway Production)                     │
 │  https://mash-ecommerce-web-production.up.railway.app          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Sanity CMS ←→ Products, content, marketing (GROQ queries)     │
@@ -149,8 +149,10 @@ const {
 - **Refresh**: Auto-retry on 401 with token refresh (`src/lib/token-refresh.ts`)
 - **Helper functions**: `src/lib/auth.ts` (setAuthToken, getAuthToken, logout)
 
-### Protected Routes
-Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
+### Protected Routes (Proxy)
+**Next.js 16 uses `proxy.ts` instead of `middleware.ts`** (renamed in Next.js 16):
+- **File location**: `src/proxy.ts`
+- **Function name**: `export function proxy(request: NextRequest)`
 - Protected: `/checkout`, `/seller/*`, `/profile/my-information`, `/profile/order-history`
 - Public: `/wishlist`, `/cart` (guest-friendly via localStorage)
 - Auth routes: `/login`, `/signup` (redirect if authenticated)
@@ -161,6 +163,7 @@ Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
 |---------|----------|
 | Pages | `src/app/(route-group)/path/page.tsx` |
 | API routes | `src/app/api/*/route.ts` |
+| **Proxy (auth protection)** | `src/proxy.ts` (Next.js 16 - renamed from middleware) |
 | Sanity queries | `src/lib/sanity/queries.ts` |
 | Sanity client | `src/lib/sanity/client.ts` (projectId: `gerattrr`) |
 | CMS schemas | `studio/src/schemaTypes/documents/` |
@@ -173,7 +176,7 @@ Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
 ## Critical Conventions
 
 ### File Structure
-1. **Middleware location**: Root `middleware.ts` ONLY (Next.js 13+ requirement)
+1. **Proxy location**: `src/proxy.ts` (Next.js 16 - renamed from middleware.ts)
 2. **Route groups**: `(auth)`, `(shop)`, `(user)`, `(seller)` - invisible in URLs
 3. **Documentation**: All plans/guides in `.github/` folder
 4. **Imports**: Always use `@/` path alias (maps to `src/`)
@@ -333,7 +336,7 @@ npm run import-iot-tasks       # Import GitHub tasks (IOT)
 ### Common Errors
 - **`auth-token` not set**: Check `setAuthToken()` in `src/lib/auth.ts` - runs client-side only
 - **Sanity quota exceeded**: CDN is enabled; manually refresh if changes don't appear
-- **Middleware not running**: Must be in root `middleware.ts`, not `src/middleware.ts`
+- **Proxy not protecting routes**: File must be `src/proxy.ts` with `export function proxy()` (Next.js 16)
 - **Backend 404**: Ensure `NEXT_PUBLIC_API_URL` points to production: `https://mash-backend-production.up.railway.app/api/v1`
 
 ### API Logging
@@ -348,12 +351,13 @@ Enable `NEXT_PUBLIC_ENABLE_API_LOGGING=true` to see:
 1. **Route groups don't affect URLs**: `app/(shop)/shop/page.tsx` → `/shop` (not `/(shop)/shop`)
 2. **Cart/wishlist are guest-friendly**: Don't require authentication; sync to Firebase when user logs in
 3. **Sanity image fields**: Use `coalesce(mainImage.asset->url, image.asset->url)` for compatibility
-4. **Middleware runs on Edge runtime**: Can't use Node.js APIs or heavy libraries
+4. **Proxy runs on Edge runtime**: Can't use Node.js APIs or heavy libraries (Next.js 16 renamed middleware to proxy)
 5. **Backend enum case**: Always UPPERCASE (`BUYER` not `buyer`)
 6. **Production URLs**: Always use Railway URLs, never localhost in production
 7. **Token refresh**: Handles 401 responses automatically in `api-client.ts`
 8. **Studio changes**: Run `cd studio && npm run dev` separately on port 3333
 9. **Build before run**: ALWAYS run `npm run build` before `npm run dev`
+10. **Next.js 16**: `middleware.ts` → `proxy.ts`, `middleware()` → `proxy()` function
 
 ## Extended Documentation
 
@@ -521,10 +525,10 @@ try {
 - **Fix**: Already using CDN (`useCdn: true` in [src/lib/sanity/client.ts](src/lib/sanity/client.ts))
 - **Workaround**: Changes take 1-5min to propagate; refresh manually if urgent
 
-**3. "Middleware not protecting routes"**
-- **Cause**: Middleware in wrong location (`src/middleware.ts` doesn't work)
-- **Fix**: Must be in **root** `middleware.ts` (Next.js 13+ requirement)
-- **Reference**: [middleware.ts](middleware.ts)
+**3. "Proxy not protecting routes" (Next.js 16)**
+- **Cause**: File still named `middleware.ts` or function named `middleware`
+- **Fix**: Must be `src/proxy.ts` with `export function proxy()` (Next.js 16 requirement)
+- **Reference**: [src/proxy.ts](src/proxy.ts)
 
 **4. "Backend connection errors"**
 - **Cause**: Wrong API URL (localhost instead of production)
