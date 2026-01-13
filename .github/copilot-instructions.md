@@ -2,16 +2,64 @@
 
 > **Stack:** Next.js 15 (Turbopack) + Sanity CMS + Firebase Auth + NestJS Backend
 
+---
+
+## ⚠️ CRITICAL: BUILD-FIRST DEVELOPMENT POLICY
+
+**Before running the system, ALL build errors must be resolved:**
+
+```bash
+# MANDATORY: Run build first to catch all errors
+npm run build
+
+# Only after successful build, start development
+npm run dev
+```
+
+**Why this matters:**
+- Production deployments will fail if build errors exist
+- TypeScript errors caught at build time prevent runtime crashes
+- Ensures code quality and deployment readiness
+
+**If build fails:**
+1. Fix ALL TypeScript/ESLint errors shown in terminal
+2. Re-run `npm run build` until it succeeds
+3. Only then proceed with `npm run dev`
+
+---
+
+## 🌐 Production Deployments
+
+| Service | Production URL | Dashboard |
+|---------|----------------|-----------|
+| **Frontend** | https://mash-ecommerce-web-production.up.railway.app | Railway |
+| **Backend API** | https://mash-backend-production.up.railway.app | Railway |
+| **Firebase** | - | https://console.firebase.google.com/u/7/project/mash-ddf8d/ |
+| **Sanity CMS** | https://ppnamias.sanity.studio | https://www.sanity.io/organizations/oBQP4vpxm/project/gerattrr/ |
+
+**⚠️ IMPORTANT:** Frontend must ALWAYS connect to production backend in deployed environments.
+- Production API: `https://mash-backend-production.up.railway.app/api/v1`
+- Never use `localhost` URLs in production builds
+
+---
+
 ## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Frontend (Next.js 15 - Port 3000)                              │
+│  Frontend (Next.js 15 - Railway Production)                     │
+│  https://mash-ecommerce-web-production.up.railway.app          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Sanity CMS ←→ Products, content, marketing (GROQ queries)     │
 │  Firebase   ←→ Google OAuth + Firestore user profiles          │
 │  NestJS API ←→ Orders, transactions, email auth (REST)         │
 │  LocalStorage → Cart, wishlist (guest-friendly)                │
+└─────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Backend (NestJS - Railway Production)                          │
+│  https://mash-backend-production.up.railway.app/api/v1         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -19,18 +67,30 @@
 
 ## Quick Start
 
+### Production Testing (Recommended)
+```bash
+# 1. ALWAYS build first to catch errors
+npm run build
+
+# 2. Test production build locally
+npm run start
+
+# Frontend connects to production backend automatically
+```
+
+### Local Development
 ```bash
 # Frontend (Next.js) - Port 3000
-npm install && npm run dev
+npm install && npm run build && npm run dev
 
 # Sanity Studio - Port 3333
 cd studio && npm install && npm run dev
 
-# Backend (separate MASH-Backend repo) - Port 30000 (default) or 4000
+# Backend (separate MASH-Backend repo) - Only if testing backend changes locally
 npm run start:dev
 ```
 
-**Default Backend Port:** 30000 (configured in `.env.local` as `NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1`)
+**Production Backend URL:** `https://mash-backend-production.up.railway.app/api/v1`
 
 ## Data Fetching Patterns
 
@@ -124,7 +184,7 @@ Middleware in **root** `middleware.ts` (NOT `src/middleware.ts`):
 - **Error handling**: Backend returns `{ message: string, statusCode: number }`
 
 ### TypeScript Configuration
-- `ignoreBuildErrors: true` in `next.config.ts` (legacy codebase)
+- `ignoreBuildErrors: false` - **ALL ERRORS MUST BE FIXED BEFORE BUILD**
 - Path alias: `@/*` → `src/*` (tsconfig.json)
 
 ### Sanity CMS
@@ -174,24 +234,44 @@ toast.error("Failed to process order");
 
 ## Environment Variables
 
-### Required (.env.local)
+### Production (Railway)
 ```env
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
 
-# Backend API (default port 30000)
-NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1
-NEXT_PUBLIC_LOCAL_API_URL=http://localhost:30000/api/v1
+# Backend API - PRODUCTION (Railway)
+NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
 
 # Firebase Auth
 NEXT_PUBLIC_FIREBASE_API_KEY=<key>
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<domain>
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
 
-# Email Routing (local dev)
-NEXT_PUBLIC_EMAIL_SERVICE_ENV=local
+# Email Routing (production)
+NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
+```
+
+### Local Development (.env.local)
+```env
+# Sanity CMS
+NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
+NEXT_PUBLIC_SANITY_DATASET=production
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
+
+# Backend API - Use production unless testing backend locally
+NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
+# Or for local backend testing:
+# NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1
+
+# Firebase Auth
+NEXT_PUBLIC_FIREBASE_API_KEY=<key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<domain>
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
+
+# Email Routing (local dev can use production)
+NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
 ```
 
 ### Optional (debugging)
@@ -243,8 +323,9 @@ function Component() {
 
 ### Terminal Commands
 ```bash
-npm run dev                    # Start dev server (Turbopack)
-npm run build                  # Production build
+npm run build                  # MANDATORY: Production build (run first!)
+npm run dev                    # Start dev server (only after successful build)
+npm run start                  # Run production build locally
 npm run lint                   # Run ESLint
 npm run import-iot-tasks       # Import GitHub tasks (IOT)
 ```
@@ -253,12 +334,12 @@ npm run import-iot-tasks       # Import GitHub tasks (IOT)
 - **`auth-token` not set**: Check `setAuthToken()` in `src/lib/auth.ts` - runs client-side only
 - **Sanity quota exceeded**: CDN is enabled; manually refresh if changes don't appear
 - **Middleware not running**: Must be in root `middleware.ts`, not `src/middleware.ts`
-- **Backend 404**: Check port (30000 vs 4000) and `NEXT_PUBLIC_API_URL` in `.env.local`
+- **Backend 404**: Ensure `NEXT_PUBLIC_API_URL` points to production: `https://mash-backend-production.up.railway.app/api/v1`
 
 ### API Logging
 Enable `NEXT_PUBLIC_ENABLE_API_LOGGING=true` to see:
 ```
-[API] 📧 Email endpoint detected: /auth/register → Using LOCAL backend
+[API] 📧 Email endpoint detected: /auth/register → Using backend
 [API] ☁️ Standard endpoint: /orders → Using PRODUCTION backend
 ```
 
@@ -269,9 +350,10 @@ Enable `NEXT_PUBLIC_ENABLE_API_LOGGING=true` to see:
 3. **Sanity image fields**: Use `coalesce(mainImage.asset->url, image.asset->url)` for compatibility
 4. **Middleware runs on Edge runtime**: Can't use Node.js APIs or heavy libraries
 5. **Backend enum case**: Always UPPERCASE (`BUYER` not `buyer`)
-6. **Email endpoints**: Auto-route to local backend when `EMAIL_SERVICE_ENV=local` (for development)
+6. **Production URLs**: Always use Railway URLs, never localhost in production
 7. **Token refresh**: Handles 401 responses automatically in `api-client.ts`
 8. **Studio changes**: Run `cd studio && npm run dev` separately on port 3333
+9. **Build before run**: ALWAYS run `npm run build` before `npm run dev`
 
 ## Extended Documentation
 
@@ -279,7 +361,7 @@ Comprehensive guides in `.github/`:
 - **`LOCAL_DEVELOPMENT_GUIDE.md`**: Full setup for backend + frontend
 - **`FIREBASE_GOOGLE_SIGNIN_SETUP.md`**: OAuth implementation details
 - **`CART_AND_CHECKOUT_COMPLETE_PLAN.md`**: Cart/checkout architecture
-- **`VERCEL_DEPLOYMENT_PLAN.md`**: Production deployment steps
+- **`RAILWAY_DEPLOYMENT_PLAN.md`**: Production deployment steps
 - **`ECOMMERCE_ORDER_SYSTEM_PHASES.md`**: Order system architecture
 - **`SANITY_FREE_MIGRATION_PLAN.md`**: CMS migration history
 
@@ -308,20 +390,21 @@ Critical scripts in `scripts/` folder - run with: `node scripts/<script-name>.js
 
 ## Deployment Workflows
 
-### Vercel Deployment (Production)
+### Railway Deployment (Production)
 ```bash
-# Automated via GitHub Actions (.github/workflows/deploy-vercel.yml)
-# Triggers: Push to main = Production | Pull Request = Preview
+# Automated via Railway GitHub integration
+# Push to main branch triggers automatic deployment
 
-# Manual deployment
-vercel --prod  # Production
-vercel         # Preview
+# Production URLs:
+# Frontend: https://mash-ecommerce-web-production.up.railway.app
+# Backend:  https://mash-backend-production.up.railway.app
 ```
 
-**Environment:** See [VERCEL_DEPLOYMENT_PLAN.md](.github/VERCEL_DEPLOYMENT_PLAN.md)
-- Production: `https://mash-ecommerce.vercel.app`
-- Preview: Auto-generated per PR
-- Project ID: `prj_T0c5MwwNkBQ4XaardQs2q5QtNfuX`
+**Pre-deployment checklist:**
+1. Run `npm run build` locally - fix ALL errors
+2. Test with `npm run start` 
+3. Commit and push to main branch
+4. Railway auto-deploys
 
 ### Sanity Studio Deployment
 ```bash
@@ -369,6 +452,7 @@ npx prisma generate                               # Regenerate Prisma client
 - **Components**: `AddressPicker`, `LalamoveQuote`
 
 ### Firebase Services
+- **Console**: https://console.firebase.google.com/u/7/project/mash-ddf8d/
 - **Auth**: Google OAuth, Email/Password, Email Link (passwordless)
 - **Firestore**: Cart, Wishlist, Orders, User profiles (real-time sync)
 - **Storage**: User avatars, order attachments
@@ -442,10 +526,10 @@ try {
 - **Fix**: Must be in **root** `middleware.ts` (Next.js 13+ requirement)
 - **Reference**: [middleware.ts](middleware.ts)
 
-**4. "Backend 404 errors on localhost"**
-- **Cause**: Port mismatch (default is 30000, not 4000)
-- **Fix**: Check `NEXT_PUBLIC_API_URL` in `.env.local` (should be `http://localhost:30000/api/v1`)
-- **Note**: Email endpoints auto-route to local when `EMAIL_SERVICE_ENV=local`
+**4. "Backend connection errors"**
+- **Cause**: Wrong API URL (localhost instead of production)
+- **Fix**: Ensure `NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1`
+- **Note**: Never use localhost URLs in production deployments
 
 **5. "Cart items disappearing on refresh"**
 - **Cause**: Old cart format (v1) incompatible with current code
@@ -454,8 +538,8 @@ try {
 - **Reference**: [src/contexts/CartContext.tsx](src/contexts/CartContext.tsx)
 
 **6. "TypeScript build errors"**
-- **Status**: `ignoreBuildErrors: true` in [next.config.ts](next.config.ts) - legacy codebase
-- **Action**: Fix incrementally; don't let TS errors block development
+- **Status**: ALL ERRORS MUST BE FIXED - no more `ignoreBuildErrors`
+- **Action**: Run `npm run build` and fix every error before proceeding
 
 **7. "Sanity images not loading (coalesce error)"**
 - **Cause**: Mixed field names (`mainImage` vs `image`)
@@ -468,7 +552,7 @@ try {
 NEXT_PUBLIC_ENABLE_API_LOGGING=true
 
 # Logs show:
-# [API] 📧 Email endpoint detected: /auth/register → Using LOCAL backend
+# [API] 📧 Email endpoint detected: /auth/register → Using backend
 # [API] ☁️ Standard endpoint: /orders → Using PRODUCTION backend
 ```
 

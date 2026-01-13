@@ -52,3 +52,4 @@ scripts/github-mobile-real-issues.js
 scripts/github-mobile-tasks-importer.js
 scripts/github-project-cleanup.js
 scripts/run-iot-import.ps1
+*.env*
