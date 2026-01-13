@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +37,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Eye, Info, CheckCircle, XCircle } from "lucide-react";
+import { Search, Eye, Info, CheckCircle, XCircle, Download, MoreHorizontal, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { getStatusBadge } from "@/lib/status-utils";
 import { toast } from "sonner";
 import {
@@ -100,9 +107,22 @@ export default function RefundPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [refundResponse, setRefundResponse] = useState("");
+  // Track whether the details view was open before showing a confirmation
+  const [prevViewWasOpen, setPrevViewWasOpen] = useState(false);
+  // New: manage refunds in state so bulk operations can update UI
+  const [refunds, setRefunds] = useState(REFUND_REQUESTS);
+
+  // Selection state: array of selected refund IDs (persist across filters)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Bulk action state
+  const [bulkAction, setBulkAction] = useState<"approve" | "reject" | "export" | null>(null);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   // Filter refund requests based on search term, status filter, and current tab
-  const filteredRefunds = REFUND_REQUESTS.filter((refund) => {
+  const filteredRefunds = refunds.filter((refund) => {
     const matchesSearch =
       refund.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       refund.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -124,69 +144,155 @@ export default function RefundPage() {
 
   // Get counts for each status for the tabs
   const getStatusCount = (status: string) => {
-    return REFUND_REQUESTS.filter(
+    return refunds.filter(
       (refund) =>
         status === "all" || refund.status.toLowerCase() === status.toLowerCase()
     ).length;
   };
 
   const handleViewRefund = (refund: any) => {
+    // Close any open confirmation dialogs so only the details dialog is visible
+    setIsRejectDialogOpen(false);
+    setIsBulkModalOpen(false);
+    setPrevViewWasOpen(false);
     setSelectedRefund(refund);
     setRefundResponse("");
     setIsViewDialogOpen(true);
   };
 
-  const handleApproveRefund = () => {
-    // In a real application, you would send this update to your API
-    console.log(
-      "Approving refund:",
-      selectedRefund.id,
-      "Response:",
-      refundResponse
+  // Selection helpers
+  const isSelected = (id: string) => selectedIds.includes(id);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const selectVisible = (visibleIds: string[]) => {
+    // Add any visible ids that are not yet selected
+    setSelectedIds((prev) => {
+      const set = new Set(prev);
+      let changed = false;
+      visibleIds.forEach((id) => {
+        if (!set.has(id)) {
+          set.add(id);
+          changed = true;
+        }
+      });
+      return changed ? Array.from(set) : prev;
+    });
+  };
+
+  const deselectVisible = (visibleIds: string[]) => {
+    setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+  };
+
+  const toggleSelectAllVisible = (visibleIds: string[]) => {
+    const allSelected = visibleIds.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      deselectVisible(visibleIds);
+    } else {
+      selectVisible(visibleIds);
+    }
+  };
+
+  const selectedRefunds = useMemo(
+    () => refunds.filter((r) => selectedIds.includes(r.id)),
+    [refunds, selectedIds]
+  );
+
+  const selectedStatuses = useMemo(
+    () => Array.from(new Set(selectedRefunds.map((r) => r.status))),
+    [selectedRefunds]
+  );
+
+  const mixedStatus = selectedStatuses.length > 1;
+  const canBulkApprove = !mixedStatus && selectedStatuses.length === 1 && selectedStatuses[0] === "Pending";
+  const canBulkReject = !mixedStatus && selectedStatuses.length === 1 && (selectedStatuses[0] === "Pending" || selectedStatuses[0] === "Processing");
+
+  // Mock API call for bulk actions (single request)
+  const performBulkAction = async (action: "approve" | "reject" | "export", ids: string[], reason?: string) => {
+    setIsProcessingBulk(true);
+    // Simulate API request
+    await new Promise((res) => setTimeout(res, 900));
+
+    const results: { id: string; success: boolean; message?: string }[] = [];
+
+    ids.forEach((id) => {
+      const refund = refunds.find((r) => r.id === id);
+      if (!refund) {
+        results.push({ id, success: false, message: "Not found" });
+        return;
+      }
+
+      if (action === "approve") {
+        if (refund.status !== "Pending") {
+          results.push({ id, success: false, message: "Invalid status" });
+        } else {
+          results.push({ id, success: true });
+        }
+      } else if (action === "reject") {
+        if (refund.status !== "Pending" && refund.status !== "Processing") {
+          results.push({ id, success: false, message: "Invalid status" });
+        } else {
+          results.push({ id, success: true });
+        }
+      } else if (action === "export") {
+        results.push({ id, success: true });
+      }
+    });
+
+    // Apply updates for successes
+    setRefunds((prev) =>
+      prev.map((r) => {
+        if (!ids.includes(r.id)) return r;
+        const res = results.find((x) => x.id === r.id);
+        if (!res || !res.success) return r;
+        if (action === "approve") return { ...r, status: "Approved" };
+        if (action === "reject") return { ...r, status: "Rejected" };
+        return r;
+      })
     );
 
-    // Close dialog
+    setIsProcessingBulk(false);
+    return results;
+  };
+
+  const handleApproveRefund = () => {
+    // In a real application, you would send this update to your API
+    if (!selectedRefund) return;
+    setRefunds((prev) => prev.map(r => r.id === selectedRefund.id ? { ...r, status: "Approved" } : r));
     setIsViewDialogOpen(false);
+    toast.success("Refund approved");
   };
 
   const handleRejectClick = () => {
+    // Remember whether the view was open so Cancel can restore it
+    setPrevViewWasOpen(isViewDialogOpen);
+    // Close the details view so only the reject confirmation appears
+    setIsViewDialogOpen(false);
     setIsRejectDialogOpen(true);
   };
 
   const handleRejectConfirm = () => {
     if (!selectedRefund) return;
-    
-    // In a real application, you would send this update to your API
-    console.log(
-      "Rejecting refund:",
-      selectedRefund.id,
-      "Response:",
-      refundResponse
-    );
-
-    // Close dialogs
+    setRefunds((prev) => prev.map(r => r.id === selectedRefund.id ? { ...r, status: "Rejected" } : r));
     setIsRejectDialogOpen(false);
     setIsViewDialogOpen(false);
-    
     toast.success("Refund request rejected");
   };
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Refund Requests</h1>
-      </div>
-
-      <div className="bg-accent/30 p-4 rounded-lg mb-6 flex gap-3 border border-accent">
-        <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-foreground">
-          <p className="font-semibold">Managing Refund Requests</p>
-          <p className="mt-1 text-muted-foreground">
-            Review and respond to customer refund requests. Approve valid
+        <div className="mb-4">
+          <h1 className="sm:text-2xl text-2xl font-bold">Refund Requests</h1>
+          <p className="text-muted-foreground mt-1 mb-5 sm:text-sm text-xs">
+           Review and respond to customer refund requests. Approve valid
             requests and provide clear reasons for any rejections.
           </p>
         </div>
-      </div>
+
 
       <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
         <div className="p-4 border-b border-border">
@@ -196,7 +302,7 @@ export default function RefundPage() {
             onValueChange={setCurrentTab}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-4">
+            <TabsList>
               <TabsTrigger value="all">
                 All ({getStatusCount("all")})
               </TabsTrigger>
@@ -215,20 +321,20 @@ export default function RefundPage() {
             </TabsList>
           </Tabs>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 pt-4">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-5 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 type="search"
                 placeholder="Search by refund ID, order ID, or customer name..."
-                className="pl-9"
+                className="pl-9 h-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="w-40">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -243,10 +349,127 @@ export default function RefundPage() {
           </div>
         </div>
 
+        {/* Bulk Action controls: only show when at least one item is selected */}
+        {selectedIds.length > 0 && (
+          (currentTab === "approved" || currentTab === "rejected") ? (
+            <div className="p-3 border-b border-border bg-primary/10 flex items-center justify-between">
+              <div className="text-sm">Selected: <span className="font-semibold">{selectedIds.length}</span></div>
+              <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      aria-label="Bulk actions"
+                      className="bg-primary text-white w-10 h-6 p-0 rounded-md flex items-center justify-center"
+                    >
+                      <MoreHorizontal />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        const ids = selectedIds.slice();
+                        const rows = refunds.filter(r=>ids.includes(r.id)).map(r=>`"${r.id}","${r.orderId}","${r.customer}","${r.status}","${r.amount}"`);
+                        const csv = ["Refund ID,Order ID,Customer,Status,Amount", ...rows].join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `refunds_export_${Date.now()}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success(`Exported ${ids.length} refunds`);
+                      }}
+                    >
+                      Export
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 border-b border-border bg-primary/10">
+              <div>
+                <div className="flex justify-between py-2">
+                <div className="text-sm">Selected: <span className="font-semibold">{selectedIds.length}</span></div>
+                 <div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      aria-label="Bulk actions"
+                      className="bg-primary text-white w-8 h-6 p-0 rounded-md flex items-center justify-center"
+                    >
+                      <MoreHorizontal />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => { setPrevViewWasOpen(isViewDialogOpen); setBulkAction("approve"); setIsViewDialogOpen(false); setIsBulkModalOpen(true); }}
+                      disabled={!canBulkApprove}
+                      className="text-green-600"
+                    >
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Approve
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => { setPrevViewWasOpen(isViewDialogOpen); setBulkAction("reject"); setIsViewDialogOpen(false); setIsBulkModalOpen(true); }}
+                      disabled={!canBulkReject}
+                      className="text-red-600"
+                    >
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      Reject
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        const ids = selectedIds.slice();
+                        const rows = refunds.filter(r=>ids.includes(r.id)).map(r=>`"${r.id}","${r.orderId}","${r.customer}","${r.status}","${r.amount}"`);
+                        const csv = ["Refund ID,Order ID,Customer,Status,Amount", ...rows].join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `refunds_export_${Date.now()}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success(`Exported ${ids.length} refunds`);
+                      }}
+                    >
+                      Export
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              </div>
+                {mixedStatus ? (
+                  <div
+                    className="w-full flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-2 rounded-md text-sm"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <Info className="h-4 w-4" />
+                    <span>Selected refunds have different statuses. Some bulk actions may be disabled.</span>
+                  </div>
+                ) : null}
+              </div>
+             
+            </div>
+
+            
+          )
+        )}
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>
+                  <input
+                    type="checkbox"
+                    checked={filteredRefunds.length > 0 && filteredRefunds.every(r => selectedIds.includes(r.id))}
+                    onChange={() => toggleSelectAllVisible(filteredRefunds.map(r => r.id))}
+                    aria-label="Select all visible refunds"
+                  />
+                </TableHead>
                 <TableHead>Refund ID</TableHead>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
@@ -261,6 +484,14 @@ export default function RefundPage() {
               {filteredRefunds.length > 0 ? (
                 filteredRefunds.map((refund) => (
                   <TableRow key={refund.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={isSelected(refund.id)}
+                        onChange={() => toggleSelect(refund.id)}
+                        aria-label={`Select refund ${refund.id}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{refund.id}</TableCell>
                     <TableCell>{refund.orderId}</TableCell>
                     <TableCell>{refund.date}</TableCell>
@@ -289,7 +520,7 @@ export default function RefundPage() {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No refund requests found
@@ -314,10 +545,10 @@ export default function RefundPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
+            <div className="space-y-2">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
+                <CardHeader>
+                  <CardTitle className="text-base -mb-16">
                     Request Information
                   </CardTitle>
                 </CardHeader>
@@ -365,7 +596,7 @@ export default function RefundPage() {
               {(selectedRefund.status === "Pending" ||
                 selectedRefund.status === "Processing") && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Your Response</h4>
+                  <h4 className="text-sm font-medium pt-2 mb-2">Your Response</h4>
                   <Textarea
                     placeholder="Provide a response to the customer's refund request..."
                     value={refundResponse}
@@ -388,13 +619,13 @@ export default function RefundPage() {
                     <XCircle className="mr-2 h-4 w-4" />
                     Reject
                   </Button>
-                  <Button
+                  {/* <Button
                     className="flex-1"
                     onClick={handleApproveRefund}
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Approve
-                  </Button>
+                  </Button> */}
                 </div>
               ) : (
                 <Button onClick={() => setIsViewDialogOpen(false)}>
@@ -416,12 +647,113 @@ export default function RefundPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setIsRejectDialogOpen(false);
+                if (prevViewWasOpen) {
+                  setIsViewDialogOpen(true);
+                  setPrevViewWasOpen(false);
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleRejectConfirm}
               className="bg-red-600 text-white hover:bg-red-700"
             >
               Reject Refund
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <AlertDialog open={isBulkModalOpen} onOpenChange={setIsBulkModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkAction === "approve" && `Approve ${selectedIds.length} refund(s)`}
+              {bulkAction === "reject" && `Reject ${selectedIds.length} refund(s)`}
+              {bulkAction === "export" && `Export ${selectedIds.length} refund(s)`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === "approve" && (
+                <p>Are you sure you want to approve {selectedIds.length} refund(s)? This will mark them as Approved.</p>
+              )}
+              {bulkAction === "reject" && (
+                <p>Are you sure you want to reject {selectedIds.length} refund(s)? This action cannot be undone. A rejection reason is required.</p>
+              )}
+              {bulkAction === "export" && (
+                <p>This will export the selected refunds to CSV.</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="p-4">
+            {bulkAction === "reject" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Rejection Reason (required)</label>
+                <Textarea
+                  value={bulkRejectReason}
+                  onChange={(e) => setBulkRejectReason(e.target.value)}
+                  placeholder="Provide a reason for rejecting these refunds"
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isProcessingBulk}
+              onClick={() => {
+                setIsBulkModalOpen(false);
+                if (prevViewWasOpen) {
+                  setIsViewDialogOpen(true);
+                  setPrevViewWasOpen(false);
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!bulkAction) return;
+                if (bulkAction === "reject" && !bulkRejectReason.trim()) {
+                  toast.error("Please provide a rejection reason");
+                  return;
+                }
+
+                const ids = selectedIds.slice();
+                setIsBulkModalOpen(false);
+                setPrevViewWasOpen(false);
+                const results = await performBulkAction(bulkAction, ids, bulkRejectReason);
+
+                const successCount = results.filter(r => r.success).length;
+                const failCount = results.length - successCount;
+
+                if (bulkAction === "export") {
+                  // Export handled earlier in-export path; but keep notification
+                  toast.success(`Exported ${successCount} refunds`);
+                } else if (failCount === 0) {
+                  toast.success(`${successCount} refunds updated successfully`);
+                } else if (successCount > 0) {
+                  toast(`Partial success: ${successCount} succeeded, ${failCount} failed`);
+                } else {
+                  toast.error(`Bulk action failed for all selected refunds`);
+                }
+
+                // Deselect the successfully processed ids
+                const succeededIds = results.filter(r=>r.success).map(r=>r.id);
+                setSelectedIds((prev) => prev.filter(id => !succeededIds.includes(id)));
+                setBulkRejectReason("");
+                setBulkAction(null);
+              }}
+              className={bulkAction === "reject" ? "bg-red-600 text-white hover:bg-red-700" : ""}
+              disabled={isProcessingBulk}
+            >
+              {isProcessingBulk ? "Processing..." : (bulkAction === "reject" ? "Confirm Reject" : "Confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
