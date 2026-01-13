@@ -15,13 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -43,7 +36,10 @@ import {
   Lock,
   Upload,
   Save,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import OperatingHoursModal from "@/components/OperatingHoursModal";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -55,6 +51,7 @@ export default function SellerSettings() {
     description: "Urban-grown gourmet mushrooms for the modern kitchen.",
     website: "https://fungifreshfarms.com",
     location: "Caloocan City, Metro Manila",
+    operatingHours: "9AM - 5PM Mon-Fri; Closed Sat-Sun",
     logo: "/placeholder.png",
     banner: "/placeholder.png",
     taxId: "123-456-789-000",
@@ -70,10 +67,52 @@ export default function SellerSettings() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [initialSellerData, setInitialSellerData] = useState<any | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [stagedLogoFile, setStagedLogoFile] = useState<File | null>(null);
+  const [stagedBannerFile, setStagedBannerFile] = useState<File | null>(null);
+  const [stagedLogoPreview, setStagedLogoPreview] = useState<string | null>(null);
+  const [stagedBannerPreview, setStagedBannerPreview] = useState<string | null>(null);
+
+  // Helper: format structured hours map into a human friendly summary
+  const formatTime = (t: string) => {
+    // expect HH:MM
+    const [hh, mm] = t.split(":" ).map(Number);
+    if (Number.isNaN(hh)) return t;
+    const period = hh >= 12 ? "PM" : "AM";
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${period}`;
+  };
+
+  const formatHoursSummary = (hoursMap: Record<string, any>) => {
+    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const abbr: Record<string,string> = {Monday:"Mon",Tuesday:"Tue",Wednesday:"Wed",Thursday:"Thu",Friday:"Fri",Saturday:"Sat",Sunday:"Sun"};
+    const entries = DAYS.map((d) => {
+      const v = hoursMap[d];
+      if (!v || v.closed) return { day: d, val: "Closed" };
+      return { day: d, val: `${formatTime(v.open)} - ${formatTime(v.close)}` };
+    });
+
+    // compress consecutive days with same val
+    const parts: string[] = [];
+    let i = 0;
+    while (i < entries.length) {
+      let j = i;
+      while (j + 1 < entries.length && entries[j+1].val === entries[i].val) j++;
+      const dayLabel = i === j ? abbr[entries[i].day] : `${abbr[entries[i].day]}-${abbr[entries[j].day]}`;
+      parts.push(`${dayLabel} ${entries[i].val}`);
+      i = j + 1;
+    }
+    return parts.join("; ");
+  };
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const router = useRouter();
 
@@ -87,26 +126,32 @@ export default function SellerSettings() {
           fetch("/api/seller/notification-preferences")
         ]);
 
+        // Merge fetched parts into a single baseline object, then set both current and initial
+        let merged = { ...sellerData };
+
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           if (profileData.success) {
-            setSellerData(prev => ({ ...prev, ...profileData.data }));
+            merged = { ...merged, ...profileData.data };
           }
         }
 
         if (paymentRes.ok) {
           const paymentData = await paymentRes.json();
           if (paymentData.success) {
-            setSellerData(prev => ({ ...prev, ...paymentData.data }));
+            merged = { ...merged, ...paymentData.data };
           }
         }
 
         if (notifRes.ok) {
           const notifData = await notifRes.json();
           if (notifData.success) {
-            setSellerData(prev => ({ ...prev, ...notifData.data }));
+            merged = { ...merged, ...notifData.data };
           }
         }
+
+        setSellerData(merged);
+        setInitialSellerData(merged);
       } catch (error) {
         console.error("Error fetching seller data:", error);
         toast.error("Failed to load settings");
@@ -120,54 +165,47 @@ export default function SellerSettings() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    // Use saveProfile which will upload staged files (if any) then send profile PUT
+    await saveProfile();
+  };
 
-    try {
-      const res = await fetch("/api/seller/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: sellerData.name,
-          email: sellerData.email,
-          phone: sellerData.phone,
-          description: sellerData.description,
-          website: sellerData.website,
-          location: sellerData.location,
-          logo: sellerData.logo,
-          banner: sellerData.banner
-        })
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success("Profile updated successfully!");
-        setSellerData(prev => ({ ...prev, ...data.data }));
-      } else {
-        toast.error(data.error?.message || "Failed to update profile");
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
-    } finally {
-      setSaving(false);
+  const handleProfileCancel = () => {
+    if (initialSellerData) {
+      setSellerData(initialSellerData);
     }
+    // clear any staged previews
+    if (stagedLogoPreview) { try { URL.revokeObjectURL(stagedLogoPreview); } catch {} }
+    if (stagedBannerPreview) { try { URL.revokeObjectURL(stagedBannerPreview); } catch {} }
+    setStagedLogoFile(null);
+    setStagedBannerFile(null);
+    setStagedLogoPreview(null);
+    setStagedBannerPreview(null);
+    setIsEditingProfile(false);
   };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
+    // Basic validation (enforced client-side)
+    const isMatch = newPassword === confirmPassword;
+    const lengthOk = newPassword.length >= 6;
+    const hasLetter = /[A-Za-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(newPassword);
 
-    // Basic validation
-    if (newPassword !== confirmPassword) {
+    if (!isMatch) {
       setPasswordError("Passwords do not match");
       toast.error("Passwords do not match");
       return;
     }
 
-    if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-      toast.error("Password must be at least 8 characters");
+    if (!lengthOk || !hasLetter || !hasNumber || !hasSpecial) {
+      setPasswordError(
+        "Password must be at least 6 characters and include letters, numbers, and one of these special characters: !$@%"
+      );
+      toast.error(
+        "Password must be at least 6 characters and include letters, numbers, and one of these special characters: !$@%"
+      );
       return;
     }
 
@@ -204,81 +242,154 @@ export default function SellerSettings() {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Client-side password rules helper
+  const isPasswordValid = (pwd: string) => {
+    const lengthOk = pwd.length >= 6;
+    const hasLetter = /[A-Za-z]/.test(pwd);
+    const hasNumber = /\d/.test(pwd);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(pwd);
+    return lengthOk && hasLetter && hasNumber && hasSpecial;
+  };
+
+  const isPasswordFormValid =
+    currentPassword.trim().length > 0 && isPasswordValid(newPassword) && newPassword === confirmPassword;
+
+  // Stage logo file locally (preview only). Actual upload occurs on Save.
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Logo must be less than 2MB");
       return;
     }
-
-    setUploadingLogo(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/cms/upload", {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        const logoUrl = data.data.url;
-        setSellerData({ ...sellerData, logo: logoUrl });
-        toast.success("Logo uploaded successfully!");
-      } else {
-        toast.error(data.error || "Failed to upload logo");
-      }
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-      toast.error("Failed to upload logo");
-    } finally {
-      setUploadingLogo(false);
+    // revoke previous preview if any
+    if (stagedLogoPreview) {
+      try { URL.revokeObjectURL(stagedLogoPreview); } catch {}
     }
+    const preview = URL.createObjectURL(file);
+    setStagedLogoFile(file);
+    setStagedLogoPreview(preview);
+    // make sure we're in edit mode
+    setIsEditingProfile(true);
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Stage banner file locally (preview only). Actual upload occurs on Save.
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Banner must be less than 5MB");
       return;
     }
+    if (stagedBannerPreview) {
+      try { URL.revokeObjectURL(stagedBannerPreview); } catch {}
+    }
+    const preview = URL.createObjectURL(file);
+    setStagedBannerFile(file);
+    setStagedBannerPreview(preview);
+    setIsEditingProfile(true);
+  };
 
-    setUploadingBanner(true);
+  // Determine if any profile field or staged files differ from the baseline
+  const profileKeys = [
+    "name",
+    "email",
+    "phone",
+    "description",
+    "website",
+    "location",
+    "operatingHours",
+    "logo",
+    "banner",
+  ];
 
+  const isProfileDirty = (() => {
+    if (!initialSellerData) return false;
+    const fieldDiff = profileKeys.some((k) => (initialSellerData as any)[k] !== (sellerData as any)[k]);
+    const stagedDiff = Boolean(stagedLogoFile || stagedBannerFile);
+    return fieldDiff || stagedDiff;
+  })();
+
+  // Save profile helper: upload staged files (if any), then PUT profile
+  const saveProfile = async () => {
+    setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      let logoUrl = sellerData.logo;
+      let bannerUrl = sellerData.banner;
 
-      const res = await fetch("/api/cms/upload", {
-        method: "POST",
-        body: formData
+      // Upload staged logo if present
+      if (stagedLogoFile) {
+        const formData = new FormData();
+        formData.append("file", stagedLogoFile);
+        const res = await fetch("/api/cms/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data?.success) {
+          logoUrl = data.data.url;
+        } else {
+          toast.error(data?.error || "Failed to upload logo");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Upload staged banner if present
+      if (stagedBannerFile) {
+        const formData = new FormData();
+        formData.append("file", stagedBannerFile);
+        const res = await fetch("/api/cms/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data?.success) {
+          bannerUrl = data.data.url;
+        } else {
+          toast.error(data?.error || "Failed to upload banner");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Send profile update
+      const res = await fetch("/api/seller/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: sellerData.name,
+          email: sellerData.email,
+          phone: sellerData.phone,
+          description: sellerData.description,
+          operatingHours: sellerData.operatingHours,
+          website: sellerData.website,
+          location: sellerData.location,
+          logo: logoUrl,
+          banner: bannerUrl,
+        }),
       });
 
       const data = await res.json();
-
       if (data.success) {
-        const bannerUrl = data.data.url;
-        setSellerData({ ...sellerData, banner: bannerUrl });
-        toast.success("Banner uploaded successfully!");
+        const updated = { ...sellerData, ...data.data };
+        setSellerData(updated);
+        setInitialSellerData(updated);
+        // clear staged previews
+        if (stagedLogoPreview) { try { URL.revokeObjectURL(stagedLogoPreview); } catch {} }
+        if (stagedBannerPreview) { try { URL.revokeObjectURL(stagedBannerPreview); } catch {} }
+        setStagedLogoFile(null);
+        setStagedBannerFile(null);
+        setStagedLogoPreview(null);
+        setStagedBannerPreview(null);
+        setIsEditingProfile(false);
+        toast.success("Profile updated successfully!");
       } else {
-        toast.error(data.error || "Failed to upload banner");
+        toast.error(data.error?.message || "Failed to update profile");
       }
     } catch (error) {
-      console.error("Error uploading banner:", error);
-      toast.error("Failed to upload banner");
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile");
     } finally {
-      setUploadingBanner(false);
+      setSaving(false);
     }
   };
+
+  
 
   const handleDeleteAccount = async () => {
     setSaving(true);
@@ -371,8 +482,11 @@ export default function SellerSettings() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <header>
+        <h1 className="sm:text-2xl text-xl font-bold">Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage your store profile, payment information, notification preferences, and security settings.</p>
+        </header>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -387,29 +501,65 @@ export default function SellerSettings() {
         <TabsContent value="profile">
           <form onSubmit={handleProfileUpdate}>
             <Card>
-              <CardHeader>
-                <CardTitle>Store Profile</CardTitle>
-                <CardDescription>
-                  Manage your store information and public profile.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+    <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+  {/* Title & description */}
+  <div>
+    <CardTitle>Store Profile</CardTitle>
+    <CardDescription>
+      Manage your store information and public profile.
+    </CardDescription>
+  </div>
+
+  {/* Actions */}
+  <div className="flex flex-wrap gap-2 sm:justify-end">
+    {!isEditingProfile ? (
+      <Button
+        size="sm"
+        onClick={() => setIsEditingProfile(true)}
+        disabled={loading}
+      >
+        Edit
+      </Button>
+    ) : (
+      <>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleProfileCancel}
+          disabled={saving}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={saveProfile}
+          disabled={saving || !isProfileDirty}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
+      </>
+    )}
+  </div>
+</CardHeader>
+
+              <CardContent className="sm:-mt-5">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="store-logo">Store Logo</Label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border">
+                  <div className="flex flex-row items-center gap-4 mt-2">
+                      <div className="relative h-20 w-20 rounded-lg overflow-hidden border border-border flex-shrink-0">
                         <Image
-                          src={sellerData.logo}
+                          src={stagedLogoPreview || sellerData.logo}
                           alt="Store logo"
                           fill
                           className="object-cover"
                         />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-auto">
                         <Label
                           htmlFor="logo-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`cursor-pointer inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingLogo ? "Uploading..." : "Upload Logo"}
@@ -420,9 +570,9 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
+                          disabled={!isEditingProfile}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 text-center sm:text-left">
                           Recommended: 500x500px, max 2MB
                         </p>
                       </div>
@@ -431,19 +581,19 @@ export default function SellerSettings() {
 
                   <div>
                     <Label htmlFor="store-banner">Store Banner</Label>
-                    <div className="mt-2">
+                      <div className="mt-2">
                       <div className="relative h-40 w-full rounded-lg overflow-hidden border border-border mb-2">
                         <Image
-                          src={sellerData.banner}
+                          src={stagedBannerPreview || sellerData.banner}
                           alt="Store banner"
                           fill
                           className="object-cover"
                         />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-auto">
                         <Label
                           htmlFor="banner-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`cursor-pointer inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 px-4 py-2 bg-background border border-input rounded-md text-sm font-medium text-foreground ${!isEditingProfile ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}
                         >
                           <Upload className="h-4 w-4" />
                           {uploadingBanner ? "Uploading..." : "Upload Banner"}
@@ -454,9 +604,9 @@ export default function SellerSettings() {
                           accept="image/*"
                           className="hidden"
                           onChange={handleBannerUpload}
-                          disabled={uploadingBanner}
+                          disabled={!isEditingProfile}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 text-center sm:text-left">
                           Recommended: 1200x300px, max 5MB
                         </p>
                       </div>
@@ -464,15 +614,15 @@ export default function SellerSettings() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-name">Store Name</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-name"
                           placeholder="Your store name"
-                          className="pl-9"
                           value={sellerData.name}
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -484,16 +634,16 @@ export default function SellerSettings() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-email">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-email"
                           type="email"
                           placeholder="contact@yourstore.com"
-                          className="pl-9"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.email}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -507,15 +657,15 @@ export default function SellerSettings() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-phone">Phone Number</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-phone"
                           placeholder="e.g., 09123456789"
-                          className="pl-9"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.phone}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -527,15 +677,15 @@ export default function SellerSettings() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="store-website">Website (Optional)</Label>
                       <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="store-website"
                           placeholder="https://yourwebsite.com"
-                          className="pl-9"
+                          className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
                           value={sellerData.website}
+                          readOnly={!isEditingProfile}
                           onChange={(e) =>
                             setSellerData({
                               ...sellerData,
@@ -547,12 +697,14 @@ export default function SellerSettings() {
                     </div>
                   </div>
 
-                  <div>
+                    <div className="space-y-2">
                     <Label htmlFor="store-location">Location</Label>
                     <Input
                       id="store-location"
                       placeholder="City, Province"
                       value={sellerData.location}
+                      className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                      readOnly={!isEditingProfile}
                       onChange={(e) =>
                         setSellerData({
                           ...sellerData,
@@ -563,13 +715,16 @@ export default function SellerSettings() {
                     />
                   </div>
 
-                  <div>
+                    <div className="space-y-2">
                     <Label htmlFor="store-description">Store Description</Label>
                     <Textarea
                       id="store-description"
                       placeholder="Tell customers about your store..."
                       rows={4}
                       value={sellerData.description}
+                      className={`text-sm ${!isEditingProfile ? "pointer-events-none opacity-60" : ""}`}
+                      readOnly={!isEditingProfile}
+
                       onChange={(e) =>
                         setSellerData({
                           ...sellerData,
@@ -582,17 +737,44 @@ export default function SellerSettings() {
                       This description will appear on your store profile page.
                     </p>
                   </div>
+
+                      <div className="space-y-2">
+                      <Label htmlFor="store-hours">Operating Hours</Label>
+                      <div className={`flex items-center gap-3 p-3 rounded-md border flex-wrap sm:flex-nowrap ${!isEditingProfile ? "opacity-60" : ""}`}>
+                        <div className="flex-1 text-sm text-foreground min-w-0">
+                          {sellerData.operatingHours ? (
+                            <span className="block truncate">{sellerData.operatingHours}</span>
+                          ) : (
+                            <span className="text-muted-foreground">No operating hours set</span>
+                          )}
+                        </div>
+                        <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                          <OperatingHoursModal
+                            triggerLabel={isEditingProfile ? "Edit Hours" : "View Hours"}
+                            initialHours={(() => {
+                              try {
+                                // Try parse JSON stored in operatingHours if present
+                                const parsed = JSON.parse(String(sellerData.operatingHours || "{}"));
+                                return parsed;
+                              } catch {
+                                return undefined;
+                              }
+                            })()}
+                            onSave={(hours) => {
+                              // Generate a human-friendly summary and store in sellerData.operatingHours
+                              const fmt = formatHoursSummary(hours);
+                              setSellerData((prev) => ({ ...prev, operatingHours: fmt }));
+                            }}
+                            disabled={!isEditingProfile}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Public store operating hours shown on your profile.
+                      </p>
+                    </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </CardFooter>
             </Card>
           </form>
         </TabsContent>
@@ -606,9 +788,9 @@ export default function SellerSettings() {
                 Payment gateway integration coming soon.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="-mt-3">
               <div className="space-y-4">
-                <div>
+                  <div className="space-y-2">
                   <Label htmlFor="tax-id">Tax Identification Number</Label>
                   <Input
                     id="tax-id"
@@ -671,7 +853,7 @@ export default function SellerSettings() {
                   Manage how you receive notifications from MASH.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="-mt-3">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -731,7 +913,7 @@ export default function SellerSettings() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end">
+              {/* <CardFooter className="flex justify-end">
                 <Button
                   type="submit"
                   className="bg-[#1E392A] hover:bg-[#1E392A]/90"
@@ -740,7 +922,7 @@ export default function SellerSettings() {
                   <Save className="mr-2 h-4 w-4" />
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
-              </CardFooter>
+              </CardFooter> */}
             </Card>
           </form>
         </TabsContent>
@@ -751,59 +933,90 @@ export default function SellerSettings() {
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your account password.</CardDescription>
+                <CardDescription>Your password must be at least 6 characters and should include a combination of numbers, letters and special characters (!$@%).</CardDescription>
               </CardHeader>
               <form onSubmit={handlePasswordUpdate}>
-                <CardContent className="space-y-4">
-                  <div>
+                <CardContent className="space-y-4 sm:-mt-3">
+                  <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="current-password"
-                        type="password"
+                        type={showCurrentPassword ? "text" : "password"}
                         placeholder="Enter current password"
-                        className="pl-9"
+                        className="text-sm pr-10"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="new-password">New Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="new-password"
-                        type="password"
+                        type={showNewPassword ? "text" : "password"}
                         placeholder="Enter new password"
-                        className="pl-9"
+                        className="text-sm pr-10"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="confirm-password">
                       Confirm New Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         id="confirm-password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm new password"
-                        className="pl-9"
+                        className="text-sm pr-10"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
+
+                  {newPassword && !isPasswordValid(newPassword) && (
+                    <p className="text-sm text-red-600">
+                      Password must be at least 6 characters and include letters, numbers, and one of: <span className="font-mono">! $ @ %</span>
+                    </p>
+                  )}
+
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-red-600">Passwords do not match</p>
+                  )}
 
                   {passwordError && (
                     <p className="text-sm text-red-600">{passwordError}</p>
@@ -812,8 +1025,8 @@ export default function SellerSettings() {
                 <CardFooter className="flex justify-end">
                   <Button
                     type="submit"
-                    className="bg-[#1E392A] hover:bg-[#1E392A]/90"
-                    disabled={saving}
+                    className="bg-primary hover:bg-primary/90"
+                    disabled={saving || !isPasswordFormValid}
                   >
                     {saving ? "Updating..." : "Update Password"}
                   </Button>
@@ -843,7 +1056,7 @@ export default function SellerSettings() {
                     Danger Zone
                   </h4>
                   <p className="text-sm text-gray-500 mb-4">
-                    Permanently delete your seller account and all associated
+                    Deactivate your seller account and all associated
                     data.
                   </p>
                   <AlertDialog>
@@ -852,7 +1065,7 @@ export default function SellerSettings() {
                         variant="outline"
                         className="text-red-600 border-red-200 hover:bg-red-50"
                       >
-                        Delete Account
+                        Deactivate Account
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

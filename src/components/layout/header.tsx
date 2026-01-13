@@ -228,13 +228,13 @@ export function SellerHeader() {
       className="bg-background shadow-sm sticky top-0 z-50 border-b border-border"
     >
       <SellerInfoBar sellerStatus={sellerStatus} />
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-4">
+<div className="mx-4 sm:mx-8 lg:mx-28 flex items-center justify-between gap-4 py-3 sm:py-4">
         <Link href="/" className="flex items-center">
           {settings?.logo ? (
             <img
               src={settings.logo}
               alt={settings?.companyName || "MASH Logo"}
-              className="h-10 w-auto sm:h-12 object-contain"
+            className="h-10 sm:h-8 md:h-10 lg:h-12 w-auto object-contain"
             />
           ) : (
             <Image
@@ -242,7 +242,7 @@ export function SellerHeader() {
               alt="MASH Logo"
               width={150}
               height={50}
-              className="h-10 w-auto sm:h-12"
+              className="h-16 w-auto sm:h-20"
               priority
             />
           )}

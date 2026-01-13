@@ -34,7 +34,7 @@ const publicRoutes = [
   "/returns-policy",
 ];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Get authentication token from cookies
