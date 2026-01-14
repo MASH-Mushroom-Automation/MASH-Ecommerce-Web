@@ -75,6 +75,9 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Export as default for Next.js 16+ compatibility
+export default proxy;
+
 // Configure which routes the middleware should run on
 export const config = {
   matcher: [
