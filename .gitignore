@@ -31,6 +31,8 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+.env
+.env*.local
 
 # vercel
 .vercel
@@ -47,8 +49,4 @@ studio/.env
 /.github
 *.md
 /.github/*.md
-scripts/github-iot-tasks-importer.js
-scripts/github-mobile-real-issues.js
-scripts/github-mobile-tasks-importer.js
-scripts/github-project-cleanup.js
-scripts/run-iot-import.ps1
+*.env*
