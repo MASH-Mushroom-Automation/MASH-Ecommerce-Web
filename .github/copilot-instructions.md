@@ -61,9 +61,11 @@ npm run dev
 | **Firebase** | - | https://console.firebase.google.com/u/7/project/mash-ddf8d/ |
 | **Sanity CMS** | https://ppnamias.sanity.studio | https://www.sanity.io/organizations/oBQP4vpxm/project/gerattrr/ |
 
-**⚠️ IMPORTANT:** Frontend must ALWAYS connect to production backend in deployed environments.
-- Production API: `https://mash-backend-production.up.railway.app/api/v1`
-- Never use `localhost` URLs in production builds
+**⚠️ CRITICAL:** 
+- **.env** file contains **production** configuration with Railway backend URL
+- Frontend is **always connected to production backend** (https://mash-backend-production.up.railway.app)
+- Firebase Google Auth is **enabled and configured**
+- Never use `localhost` URLs in this `.env` file
 
 ---
 
@@ -261,39 +263,39 @@ toast.error("Failed to process order");
 
 ## Environment Variables
 
-### 📂 File Structure (Simplified)
+### 📂 File Structure
 ```
-.env              # Local development (localhost backend + all credentials)
-.env.production   # Production template for Railway dashboard
+.env              # Production configuration (Railway backend + all credentials)
+.env.production   # Production template for Railway dashboard (placeholders only)
 .gitignore        # Excludes all .env* files from Git
 ```
 
-**⚠️ IMPORTANT:** We use a single `.env` file for local development (with localhost backend) and `.env.production` as a template for Railway deployment. Never commit `.env` with real credentials!
+**⚠️ IMPORTANT:** The `.env` file is configured for **production** with Railway backend URL. This is the primary configuration file for the deployed application.
 
-### Local Development (.env)
+### Production Configuration (.env)
 ```env
-# Backend API - LOCAL DEVELOPMENT (localhost)
-NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1
+# Backend API - PRODUCTION (Railway)
+NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
 
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
 
-# Firebase Auth (use actual keys from Firebase Console)
+# Firebase Auth (Google OAuth enabled)
 NEXT_PUBLIC_FIREBASE_API_KEY=<your_key>
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=mash-ddf8d.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
 
-# Email Routing (local dev can test with production backend)
+# Email Routing
 NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
 
 # Optional debugging
 NEXT_PUBLIC_ENABLE_API_LOGGING=true  # Logs API routing decisions
 ```
 
-### Production (Railway Dashboard Variables)
-Copy from `.env.production` template:
+### Railway Dashboard Variables (.env.production template)
+Copy from `.env.production` template and replace placeholders:
 ```env
 # Backend API - PRODUCTION ONLY
 NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
