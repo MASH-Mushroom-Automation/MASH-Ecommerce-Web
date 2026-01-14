@@ -2,7 +2,7 @@
 
 /**
  * Forgot Password Page - Firebase Authentication
- * 
+ *
  * Sends password reset email via Firebase Auth.
  */
 
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
     } catch (err: unknown) {
       // Error already handled by AuthContext with toast
       console.error("Forgot password error (handled):", err);
-      
+
       // For security, still show success for user-not-found
       // This prevents email enumeration attacks
       const errorCode = (err as { code?: string })?.code;
@@ -80,8 +80,8 @@ export default function ForgotPasswordPage() {
           <strong className="text-foreground">{sentToEmail}</strong>
         </p>
         <p className="text-sm text-muted-foreground mb-6">
-          Click the link in the email to reset your password.
-          The link will expire in 1 hour.
+          Click the link in the email to reset your password. The link will
+          expire in 1 hour.
         </p>
         <div className="space-y-3">
           <Button
@@ -106,101 +106,69 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  const onSubmit = async (values: ForgotPasswordForm) => {
-    try {
-      // Call backend API
-      const response = await apiRequest<ForgotPasswordResponse>("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({
-          email: values.email,
-        }),
-      });
-
-      // Store email for reset page
-      sessionStorage.setItem("resetPasswordEmail", values.email);
-
-      // Show success message
-      toast.success("Password reset email sent!", {
-        description: response.data.message || "Check your email for instructions to reset your password.",
-      });
-
-      // Redirect to reset password page
-      router.push("/reset-password");
-    } catch (err) {
-      console.error("Forgot password error:", err);
-      toast.error("Request failed", {
-        description: err instanceof Error ? err.message : "Unable to process request. Please try again.",
-      });
-    }
-  };
-
-  const handleCancel = () => {
-    router.push("/login");
-  };
-
   return (
     <>
       {/* Card */}
       <div className="bg-card rounded-lg shadow-md p-8">
-          {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="bg-primary rounded-full p-4">
-              <KeyRound className="w-8 h-8 text-primary-foreground" />
-            </div>
+        {/* Icon */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-primary rounded-full p-4">
+            <KeyRound className="w-8 h-8 text-primary-foreground" />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-center text-foreground mb-2">
+          Reset your Password
+        </h2>
+        <p className="text-center text-muted-foreground text-sm mb-8">
+          Enter your email address and we&apos;ll send you a reset link.
+        </p>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Email Input */}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-muted-foreground mb-2"
+            >
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email")}
+              className="w-full"
+              placeholder="Enter your email"
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-destructive">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
-          {/* Title */}
-          <h2 className="text-2xl font-bold text-center text-foreground mb-2">
-            Reset your Password
-          </h2>
-          <p className="text-center text-muted-foreground text-sm mb-8">
-            Enter your email address and we&apos;ll send you a reset link.
-          </p>
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
+          >
+            {isSubmitting ? "Sending..." : "Send Reset Link"}
+          </Button>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email Input */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-muted-foreground mb-2"
-              >
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                className="w-full"
-                placeholder="Enter your email"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-destructive">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-lg font-semibold"
-            >
-              {isSubmitting ? "Sending..." : "Send Reset Link"}
-            </Button>
-
-            {/* Cancel Button */}
-            <Button
-              type="button"
-              onClick={handleCancel}
-              variant="outline"
-              className="w-full py-6 border-primary text-primary hover:bg-primary/10"
-            >
-              Cancel
-            </Button>
-          </form>
-        </div>
+          {/* Cancel Button */}
+          <Button
+            type="button"
+            onClick={handleCancel}
+            variant="outline"
+            className="w-full py-6 border-primary text-primary hover:bg-primary/10"
+          >
+            Cancel
+          </Button>
+        </form>
+      </div>
     </>
   );
 }
