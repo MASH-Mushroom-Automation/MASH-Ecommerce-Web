@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "prebuild": "node scripts/validate-env.js",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "start": "next start -H 0.0.0.0",
     "validate-env": "node scripts/validate-env.js",
     "lint": "eslint",
     "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
