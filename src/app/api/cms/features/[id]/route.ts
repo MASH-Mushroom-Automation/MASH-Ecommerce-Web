@@ -5,14 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FeaturesAPI } from '@/lib/cms/database';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const feature = await FeaturesAPI.getById(params.id);
+    const { id } = await params;
+    const feature = await FeatureAPI.getById(id);
 
     if (!feature) {
       return NextResponse.json({

@@ -1,5 +1,32 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🚀 Production Deployment
+
+**Live URLs:**
+- **Frontend:** https://mash-ecommerce-web-production.up.railway.app
+- **Backend API:** https://mash-backend-production.up.railway.app
+- **Sanity Studio:** https://ppnamias.sanity.studio
+- **Firebase Console:** https://console.firebase.google.com/u/7/project/mash-ddf8d/
+
+## ⚠️ CRITICAL: Build-First Development
+
+**ALWAYS run build before starting development:**
+
+```bash
+# 1. MANDATORY: Build first to catch all errors
+npm run build
+
+# 2. Fix ALL TypeScript/ESLint errors
+
+# 3. Only then start development
+npm run dev
+```
+
+**Why this matters:**
+- Production deployments will fail if build errors exist
+- Catches TypeScript errors early
+- Ensures code quality and deployment readiness
+
 ## Getting Started
 
 First, run the development server:

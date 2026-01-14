@@ -28,6 +28,30 @@ npm run dev
 
 ---
 
+## ⚠️ CRITICAL: BUILD-FIRST DEVELOPMENT POLICY
+
+**Before running the system, ALL build errors must be resolved:**
+
+```bash
+# MANDATORY: Run build first to catch all errors
+npm run build
+
+# Only after successful build, start development
+npm run dev
+```
+
+**Why this matters:**
+- Production deployments will fail if build errors exist
+- TypeScript errors caught at build time prevent runtime crashes
+- Ensures code quality and deployment readiness
+
+**If build fails:**
+1. Fix ALL TypeScript/ESLint errors shown in terminal
+2. Re-run `npm run build` until it succeeds
+3. Only then proceed with `npm run dev`
+
+---
+
 ## 🌐 Production Deployments
 
 | Service | Production URL | Dashboard |
@@ -237,49 +261,58 @@ toast.error("Failed to process order");
 
 ## Environment Variables
 
-### Production (Railway)
+### 📂 File Structure (Simplified)
+```
+.env              # Local development (localhost backend + all credentials)
+.env.production   # Production template for Railway dashboard
+.gitignore        # Excludes all .env* files from Git
+```
+
+**⚠️ IMPORTANT:** We use a single `.env` file for local development (with localhost backend) and `.env.production` as a template for Railway deployment. Never commit `.env` with real credentials!
+
+### Local Development (.env)
 ```env
+# Backend API - LOCAL DEVELOPMENT (localhost)
+NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1
+
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
 
-# Backend API - PRODUCTION (Railway)
+# Firebase Auth (use actual keys from Firebase Console)
+NEXT_PUBLIC_FIREBASE_API_KEY=<your_key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=mash-ddf8d.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
+
+# Email Routing (local dev can test with production backend)
+NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
+
+# Optional debugging
+NEXT_PUBLIC_ENABLE_API_LOGGING=true  # Logs API routing decisions
+```
+
+### Production (Railway Dashboard Variables)
+Copy from `.env.production` template:
+```env
+# Backend API - PRODUCTION ONLY
 NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
+
+# Sanity CMS
+NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
+NEXT_PUBLIC_SANITY_DATASET=production
+NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
 
 # Firebase Auth
 NEXT_PUBLIC_FIREBASE_API_KEY=<key>
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<domain>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=mash-ddf8d.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
 
 # Email Routing (production)
 NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
-```
 
-### Local Development (.env.local)
-```env
-# Sanity CMS
-NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
-NEXT_PUBLIC_SANITY_DATASET=production
-NEXT_PUBLIC_SANITY_API_VERSION=2024-11-26
-
-# Backend API - Use production unless testing backend locally
-NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
-# Or for local backend testing:
-# NEXT_PUBLIC_API_URL=http://localhost:30000/api/v1
-
-# Firebase Auth
-NEXT_PUBLIC_FIREBASE_API_KEY=<key>
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<domain>
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=mash-ddf8d
-
-# Email Routing (local dev can use production)
-NEXT_PUBLIC_EMAIL_SERVICE_ENV=production
-```
-
-### Optional (debugging)
-```env
-NEXT_PUBLIC_ENABLE_API_LOGGING=true  # Logs API routing decisions
+# Feature Flags
+NEXT_PUBLIC_ENABLE_API_LOGGING=false  # Disable in production
 ```
 
 ## Common Workflows
