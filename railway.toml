@@ -1,0 +1,13 @@
+# Railway Configuration
+# https://docs.railway.app/reference/nixpacks#configure-with-nixpacks
+
+[build]
+# Use Node.js 20 (matches .nvmrc)
+builder = "nixpacks"
+
+[deploy]
+# Health check configuration
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

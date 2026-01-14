@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/validate-env.js",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "validate-env": "node scripts/validate-env.js",
     "lint": "eslint",
     "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
     "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose",
