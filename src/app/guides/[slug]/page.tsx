@@ -14,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { YouTubeEmbed } from '@/components/content/YouTubeEmbed';
 
+// Force dynamic rendering (no static generation at build time)
+export const dynamic = 'force-dynamic';
+
 // GROQ query for single growing guide with all details
 const guideQuery = `*[_type == "growingGuide" && slug.current == $slug][0] {
   _id,
@@ -83,13 +86,8 @@ const guideQuery = `*[_type == "growingGuide" && slug.current == $slug][0] {
   seo
 }`;
 
-// Generate static params for all guides
-export async function generateStaticParams() {
-  const slugs = await client.fetch<{ slug: { current: string } }[]>(
-    `*[_type == "growingGuide" && isPublished == true]{ slug }`
-  );
-  return slugs.map((item) => ({ slug: item.slug.current }));
-}
+// Don't generate static params - fully dynamic rendering
+export const dynamicParams = true;
 
 // Generate metadata
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

@@ -54,7 +54,7 @@ function getBaseUrl(endpoint: string): string {
   if (isEmailEndpoint && EMAIL_SERVICE_ENV === "local") {
     if (ENABLE_API_LOGGING) {
       console.log(
-        `[API] 📧 Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`
+        `[API] Email endpoint detected: ${endpoint} → Using LOCAL backend (${LOCAL_API_URL})`
       );
     }
     return LOCAL_API_URL;
@@ -63,7 +63,7 @@ function getBaseUrl(endpoint: string): string {
   // All other endpoints use production backend
   if (ENABLE_API_LOGGING) {
     console.log(
-      `[API] ☁️ Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`
+      `[API] Standard endpoint: ${endpoint} → Using PRODUCTION backend (${PRODUCTION_API_URL})`
     );
   }
   return PRODUCTION_API_URL;
@@ -94,7 +94,7 @@ export async function apiRequest<T>(
   const url = `${baseUrl}${endpoint}`;
 
   if (ENABLE_API_LOGGING) {
-    console.log(`[API] 📡 Request: ${options.method || "GET"} ${url}`);
+    console.log(`[API] Request: ${options.method || "GET"} ${url}`);
   }
 
   const headers: Record<string, string> = {
@@ -129,17 +129,73 @@ export async function apiRequest<T>(
 
   const data = await response.json();
 
+  // Handle 400 Bad Request for auth endpoints (validation errors)
+  if (response.status === 400) {
+    const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                          endpoint.includes('/auth/register') || 
+                          endpoint.includes('/auth/verify') ||
+                          endpoint.includes('/auth/forgot-password') ||
+                          endpoint.includes('/auth/reset-password');
+    
+    if (isAuthEndpoint) {
+      // Extract error message from backend structure
+      const errorMessage = data.error?.message || 
+                         data.details?.message || 
+                         data.message || 
+                         "Validation failed";
+      
+      // Ensure errorMessage is always a string
+      const messageString = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
+      const error: any = new Error(messageString);
+      error.statusCode = 400;
+      
+      // Create comprehensive nested error response structure
+      error.response = {
+        status: 400,
+        statusCode: 400,
+        data: {
+          message: messageString,
+          error: data.error?.type || data.error?.code || "Bad Request",
+          statusCode: data.statusCode || 400,
+          details: data.details || data.error,
+          ...data
+        }
+      };
+      
+      if (ENABLE_API_LOGGING) {
+        console.error(`[API] Auth error (400): ${messageString}`, {
+          fullError: data.error,
+          details: data.details
+        });
+      }
+      
+      throw error;
+    }
+  }
+
   // Handle unauthorized errors (token expired)
   if (response.status === 401) {
     const refreshToken = getRefreshToken();
-    if (refreshToken) {
+    
+    // ⚠️ DON'T redirect on auth endpoints (login, register, etc.)
+    // Let those pages handle the error and show toast notifications
+    const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                          endpoint.includes('/auth/register') || 
+                          endpoint.includes('/auth/verify') ||
+                          endpoint.includes('/auth/forgot-password') ||
+                          endpoint.includes('/auth/reset-password');
+    
+    if (refreshToken && !isAuthEndpoint) {
       try {
         // Refresh token always uses production backend (session management)
         const refreshUrl = `${PRODUCTION_API_URL}/auth/refresh-token`;
 
         if (ENABLE_API_LOGGING) {
           console.log(
-            `[API] 🔄 Token expired, attempting refresh: ${refreshUrl}`
+            `[API] Token expired, attempting refresh: ${refreshUrl}`
           );
         }
 
@@ -177,7 +233,48 @@ export async function apiRequest<T>(
       }
     }
 
-    // If refresh fails or no refresh token, clear tokens and redirect to login
+    // If it's an auth endpoint (login/register), throw the error immediately
+    // so the page can show proper toast notifications
+    if (isAuthEndpoint) {
+      // Extract error message from backend structure: data.error.message
+      // Backend sends: {error: {message: "Invalid credentials"}}
+      const errorMessage = data.error?.message || 
+                         data.details?.message || 
+                         data.message || 
+                         "Authentication failed";
+      
+      // Ensure errorMessage is always a string (defensive coding)
+      const messageString = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
+      const error: any = new Error(messageString);
+      error.statusCode = 401;
+      
+      // Create comprehensive nested error response structure
+      error.response = {
+        status: 401,
+        statusCode: 401,
+        data: {
+          message: messageString,
+          error: data.error?.type || data.error?.code || "Unauthorized",
+          statusCode: data.statusCode || 401,
+          details: data.details || data.error,
+          ...data // Include all backend fields
+        }
+      };
+      
+      if (ENABLE_API_LOGGING) {
+        console.error(`[API] Auth error (401): ${messageString}`, {
+          fullError: data.error,
+          details: data.details
+        });
+      }
+      
+      throw error;
+    }
+
+    // If refresh fails or no refresh token (non-auth endpoints), clear tokens and redirect
     if (typeof window !== "undefined") {
       document.cookie =
         "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
@@ -188,7 +285,19 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new Error(data.message || `API Error: ${response.status}`);
+    // Extract detailed error message from various response formats
+    let errorMessage = data.message || data.error?.message || `API Error: ${response.status}`;
+    
+    // Add status code for better error handling
+    const error: any = new Error(errorMessage);
+    error.statusCode = response.status;
+    error.response = data;
+    
+    if (ENABLE_API_LOGGING) {
+      console.error(`[API] Error: ${response.status} - ${errorMessage}`, data);
+    }
+    
+    throw error;
   }
 
   return data;

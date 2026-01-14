@@ -23,7 +23,6 @@ import React, {
 } from "react";
 import {
   signInWithGoogle,
-  getGoogleRedirectResult,
   signOutFirebase,
   onFirebaseAuthStateChanged,
   createUserWithEmail,
@@ -220,201 +219,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   /**
-   * Sync Firebase user to NestJS backend (optional)
-   * Creates or updates user record and returns JWT
+   * Sync Google OAuth user to NestJS backend PostgreSQL database
+   * Creates or updates user record and returns JWT for authenticated sessions
+   * 
+   * Backend Endpoint: POST /auth/google/sync
+   * See: GOOGLE_AUTH_TESTING_GUIDE.md for full documentation
    */
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
       try {
-        const idToken = await fbUser.getIdToken();
+        console.log("🔵 [Auth] Syncing Google user to PostgreSQL backend...");
+        
+        // Extract name parts from Firebase displayName
+        const nameParts = (fbUser.displayName || "").split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
 
-        // Call our Next.js API route which will sync with NestJS backend
-        const response = await fetch("/api/auth/firebase-sync", {
+        // Call backend API directly (no Next.js proxy needed)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/sync`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           credentials: "include",
           body: JSON.stringify({
-            idToken,
-            user: {
-              uid: fbUser.uid,
-              email: fbUser.email,
-              displayName: fbUser.displayName,
-              photoURL: fbUser.photoURL,
-              emailVerified: fbUser.emailVerified,
-            },
+            googleId: fbUser.uid,
+            email: fbUser.email,
+            firstName: firstName,
+            lastName: lastName,
+            photoURL: fbUser.photoURL || undefined,
+            username: fbUser.email?.split("@")[0], // Generate username from email prefix
           }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to sync user");
+          console.error("❌ [Auth] Backend sync failed:", data);
+          throw new Error(data.message || "Failed to sync user to backend");
         }
 
-        // Store the JWT token from backend
-        if (data.accessToken) {
-          console.log("🟢 [Auth Context] Setting auth token in cookie...");
-          setAuthToken(data.accessToken, true);
-          console.log("🟢 [Auth Context] Auth token stored successfully");
+        console.log("🟢 [Auth] Backend sync successful:", {
+          userId: data.user?.id,
+          username: data.user?.username,
+          hasToken: !!data.tokens?.accessToken,
+        });
+
+        // Store JWT access token from backend
+        if (data.tokens?.accessToken) {
+          console.log("🟢 [Auth] Setting backend JWT token...");
+          setAuthToken(data.tokens.accessToken, true);
+          console.log("🟢 [Auth] JWT token stored successfully");
         } else {
-          console.warn(
-            "⚠️ [Auth Context] No access token received from backend!"
-          );
+          console.warn("⚠️ [Auth] No access token received from backend!");
         }
 
         // Store refresh token if available
-        if (data.refreshToken) {
+        if (data.tokens?.refreshToken) {
           try {
-            console.log(
-              "🟢 [Auth Context] Storing refresh token in localStorage..."
-            );
-            localStorage.setItem("refreshToken", data.refreshToken);
-          } catch {
-            // Ignore storage errors
+            console.log("🟢 [Auth] Storing refresh token in localStorage...");
+            localStorage.setItem("refreshToken", data.tokens.refreshToken);
+          } catch (err) {
+            console.error("❌ [Auth] Failed to store refresh token:", err);
           }
         }
 
-        // Build auth user object
-        // imageUrl from backend is the DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
-        const backendImageUrl = data.user?.imageUrl || data.user?.profileImageUrl;
+        // Build unified auth user object with backend data
+        // Backend returns: { id, email, username, firstName, lastName, imageUrl (DiceBear), role }
+        const backendUser = data.user;
+        const backendImageUrl = backendUser?.imageUrl; // DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
+        
         const authUser: AuthUser = {
-          id: data.user?.id || fbUser.uid,
+          id: backendUser?.id || fbUser.uid,
           email: fbUser.email || "",
-          firstName: data.user?.firstName || fbUser.displayName?.split(" ")[0],
-          lastName:
-            data.user?.lastName ||
-            fbUser.displayName?.split(" ").slice(1).join(" "),
+          firstName: backendUser?.firstName || firstName,
+          lastName: backendUser?.lastName || lastName,
           displayName: fbUser.displayName || undefined,
-          username: data.user?.username || undefined, // Username from backend for DiceBear seed
-          phone: data.user?.phone || undefined,
-          photoURL: fbUser.photoURL || undefined, // Firebase photo (Google profile pic)
-          imageUrl: backendImageUrl || undefined, // DiceBear URL from backend
-          avatar: backendImageUrl || fbUser.photoURL || undefined, // Prefer backend DiceBear, fallback to Firebase photo
-          provider: "firebase",
+          username: backendUser?.username || fbUser.email?.split("@")[0], // Backend username for DiceBear seed
+          phone: backendUser?.phone || undefined,
+          photoURL: fbUser.photoURL || undefined, // Google profile photo
+          imageUrl: backendImageUrl || undefined, // DiceBear avatar from backend
+          avatar: backendImageUrl || fbUser.photoURL || undefined, // Prefer DiceBear, fallback to Google photo
+          provider: "google",
           emailVerified: fbUser.emailVerified,
         };
 
         setUser(authUser);
 
-        // Store in localStorage for persistence
+        // Persist to localStorage
         try {
           localStorage.setItem("user", JSON.stringify(authUser));
-        } catch {
-          console.error("Failed to store user in localStorage");
+          console.log("🟢 [Auth] User data persisted to localStorage");
+        } catch (err) {
+          console.error("❌ [Auth] Failed to store user in localStorage:", err);
         }
 
         return authUser;
       } catch (error) {
         console.error(
-          "❌ [Auth Context] Failed to sync Firebase user to backend:",
+          "❌ [Auth] Failed to sync Google user to PostgreSQL backend:",
           error
         );
-        throw error;
+        // Don't throw - allow user to continue with Firebase-only auth
+        return null;
       }
     },
     []
   );
-
-  /**
-   * Handle Google sign-in redirect result
-   */
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        // Check both storages for redirect marker
-        const isReturningFromGoogle =
-          sessionStorage.getItem("google_auth_redirect") ||
-          localStorage.getItem("google_auth_redirect");
-
-        const result = await getGoogleRedirectResult();
-
-        if (result?.user) {
-          sessionStorage.removeItem("google_auth_redirect");
-          localStorage.removeItem("google_auth_redirect");
-          toast.loading("Signing you in...", { id: "google-signin" });
-
-          try {
-            // Sync to Firestore profile first
-            await syncToFirestoreProfile(result.user, "google");
-            
-            // Optional: sync to backend for JWT
-            try {
-              await syncFirebaseUserToBackend(result.user);
-            } catch {
-              console.warn("Backend sync failed, using Firebase only");
-            }
-            
-            toast.dismiss("google-signin");
-            toast.success(
-              `Welcome, ${result.user.displayName || result.user.email}!`
-            );
-
-            // Check for redirect URL in sessionStorage
-            const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-
-            // Use window.location for full page reload
-            if (redirectUrl) {
-              sessionStorage.removeItem("auth-redirect-url");
-              window.location.href = redirectUrl;
-            } else {
-              window.location.href = "/";
-            }
-          } catch (syncError) {
-            toast.dismiss("google-signin");
-            toast.error("Failed to complete sign-in. Please try again.");
-            console.error("❌ [Auth Context] Sync error:", syncError);
-          }
-        } else if (isReturningFromGoogle === "true") {
-          sessionStorage.setItem("awaiting_firebase_auth", "true");
-
-          // Poll for Firebase user for up to 5 seconds
-          let attempts = 0;
-          const maxAttempts = 25;
-
-          const pollForUser = async () => {
-            attempts++;
-            const { getCurrentUser } = await import("@/lib/firebase/auth");
-            const currentUser = getCurrentUser();
-
-            if (currentUser && !user) {
-              sessionStorage.removeItem("awaiting_firebase_auth");
-              sessionStorage.removeItem("google_auth_redirect");
-              localStorage.removeItem("google_auth_redirect");
-
-              try {
-                setLoading(true);
-                await syncToFirestoreProfile(currentUser, "google");
-                toast.success(
-                  `Welcome, ${currentUser.displayName || currentUser.email}!`
-                );
-                window.location.href = "/";
-              } catch (error) {
-                console.error("Failed to sync polled user:", error);
-                setLoading(false);
-              }
-            } else if (attempts < maxAttempts) {
-              setTimeout(pollForUser, 200);
-            } else {
-              sessionStorage.removeItem("awaiting_firebase_auth");
-              sessionStorage.removeItem("google_auth_redirect");
-              localStorage.removeItem("google_auth_redirect");
-            }
-          };
-
-          pollForUser();
-        }
-      } catch (error) {
-        console.error("Google redirect error:", error);
-        toast.error("Sign-in failed. Please try again.");
-        sessionStorage.removeItem("google_auth_redirect");
-        sessionStorage.removeItem("awaiting_firebase_auth");
-      }
-    };
-
-    handleRedirectResult();
-  }, [syncToFirestoreProfile, syncFirebaseUserToBackend, router, user]);
 
   /**
    * Listen to Firebase auth state changes
@@ -422,27 +333,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onFirebaseAuthStateChanged(async (fbUser) => {
       setFirebaseUser(fbUser);
-
-      // Check if we're waiting for auth after redirect
-      const awaitingAuth = sessionStorage.getItem("awaiting_firebase_auth");
-
-      if (fbUser && awaitingAuth === "true") {
-        sessionStorage.removeItem("awaiting_firebase_auth");
-        sessionStorage.removeItem("google_auth_redirect");
-        localStorage.removeItem("google_auth_redirect");
-
-        try {
-          setLoading(true);
-          await syncToFirestoreProfile(fbUser, "google");
-          toast.success(`Welcome, ${fbUser.displayName || fbUser.email}!`);
-          window.location.href = "/";
-          return;
-        } catch (error) {
-          console.error("Failed to sync after redirect:", error);
-          toast.error("Failed to complete sign-in. Please try again.");
-          setLoading(false);
-        }
-      }
 
       if (fbUser) {
         // Check if we have user data already
@@ -486,11 +376,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Trigger Google sign-in (popup in dev, redirect in prod)
+   * Sign in with Google using popup (works in both dev and production)
    */
   const handleSignInWithGoogle = async () => {
-    const isDevelopment = process.env.NODE_ENV === "development";
-
     try {
       setLoading(true);
 
@@ -503,10 +391,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // Popup returns user immediately in all environments
       const result = await signInWithGoogle();
 
-      // In development, popup returns user immediately
-      if (isDevelopment && result) {
+      if (result) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
@@ -537,7 +425,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       }
-      // In production, redirect flow - control leaves page
     } catch (error) {
       setLoading(false);
       console.error("Sign-in error:", error);

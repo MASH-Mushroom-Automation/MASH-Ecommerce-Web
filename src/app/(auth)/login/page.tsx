@@ -3,9 +3,8 @@
 /**
  * Login Page - Backend & Firebase Authentication
  * 
- * Supports multiple sign-in methods:
+ * Supports two sign-in methods:
  * - Email/Password (via NestJS Backend)
- * - Email Link (Passwordless via Firebase)
  * - Google OAuth (via Firebase)
  */
 
@@ -26,7 +25,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -35,6 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthApi } from "@/lib/api/auth";
+import { setAuthToken } from "@/lib/auth";
 import { toast } from "sonner";
 
 const getPasswordRequirements = (password: string) => {
@@ -67,8 +66,15 @@ const getEmailStatus = (email: string) => {
 };
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .transform(val => val.trim().toLowerCase()),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
   rememberMe: z.boolean(),
 });
 
@@ -83,20 +89,15 @@ export default function LoginPage() {
 
   const {
     signInWithEmailPassword,
-    sendEmailSignInLink,
     resendVerificationEmail,
-    checkForEmailLink,
-    completeEmailLinkSignIn,
-    getStoredEmail,
     loading: authLoading,
   } = useAuth();
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
-  const [isEmailLinkMode, setIsEmailLinkMode] = useState(false);
-  const [emailLinkSent, setEmailLinkSent] = useState(false);
-  const [sendingEmailLink, setSendingEmailLink] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
 
   const {
     register,
@@ -104,43 +105,16 @@ export default function LoginPage() {
     control,
     formState: { errors, isSubmitting },
     setValue,
-  } = useForm({
+    clearErrors,
+  } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", rememberMe: false },
+    defaultValues: { 
+      email: "", 
+      password: "", 
+      rememberMe: false 
+    },
+    mode: "onChange", // Validate on change for better UX
   });
-
-  // Check for email link on mount
-  useEffect(() => {
-    const handleEmailLink = async () => {
-      if (checkForEmailLink()) {
-        const storedEmail = getStoredEmail();
-        if (storedEmail) {
-          try {
-            await completeEmailLinkSignIn(storedEmail, window.location.href);
-          } catch (error) {
-            console.error("Email link sign-in failed:", error);
-            // Clear URL params
-            window.history.replaceState({}, "", "/login");
-          }
-        } else {
-          // Ask user for email
-          const userEmail = window.prompt(
-            "Please enter your email to complete sign-in:"
-          );
-          if (userEmail) {
-            try {
-              await completeEmailLinkSignIn(userEmail, window.location.href);
-            } catch (error) {
-              console.error("Email link sign-in failed:", error);
-            }
-          }
-          window.history.replaceState({}, "", "/login");
-        }
-      }
-    };
-
-    handleEmailLink();
-  }, [checkForEmailLink, getStoredEmail, completeEmailLinkSignIn]);
 
   // Store redirect URL
   useEffect(() => {
@@ -177,24 +151,45 @@ export default function LoginPage() {
     return "Please sign in to continue";
   };
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
+    // Reset error state
+    setHasError(false);
+    
     try {
+      console.log("[Login] Starting login process...");
+      console.log("[Login] Email:", data.email);
+      console.log("[Login] Password length:", data.password.length);
+      console.log("[Login] Remember Me:", data.rememberMe);
+      
       // Use backend API for email/password login
       const response = await AuthApi.login({
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
+        rememberMe: data.rememberMe || false,
       });
+
+      console.log("[Login] Backend response received:", response);
 
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
+      const accessToken = response.data?.accessToken || response.accessToken;
+      const refreshToken = response.data?.refreshToken || response.refreshToken;
+      
+      if (!user) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
+      console.log("[Login] User data:", { email: user.email, verified: user.emailVerified });
       
       // Check if email is verified
-      if (user && !user.emailVerified) {
-        // Store email for verification page
+      if (!user.emailVerified) {
+        console.warn("[Login] Email not verified");
+        setHasError(true); // Mark as error to prevent navigation
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         
-        toast.warning("Email not verified", {
-          description: "Please verify your email to continue.",
+        toast.warning("Email Verification Required", {
+          description: "Please verify your email address to continue.",
+          duration: 5000,
           action: {
             label: "Verify Now",
             onClick: () => router.push("/verify-otp"),
@@ -203,74 +198,151 @@ export default function LoginPage() {
         return;
       }
 
-      toast.success(`Welcome back, ${user?.firstName || user?.email}!`);
+      // Store tokens if available
+      if (accessToken) {
+        console.log("[Login] Storing access token...");
+        setAuthToken(accessToken, data.rememberMe); // Use proper cookie storage
+        
+        // Also store refresh token if available
+        if (refreshToken) {
+          console.log("[Login] Storing refresh token...");
+          localStorage.setItem("refreshToken", refreshToken);
+        }
+      }
 
-      // Redirect to stored URL or home
-      const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-      if (redirectUrl) {
-        sessionStorage.removeItem("auth-redirect-url");
-        router.push(redirectUrl);
-      } else {
-        router.push("/");
+      // Success notification
+      const displayName = user.firstName || user.email.split("@")[0];
+      toast.success("Login Successful!", {
+        description: `Welcome back, ${displayName}!`,
+        duration: 3000,
+      });
+
+      console.log("[Login] Login successful, redirecting...");
+
+      // Small delay for toast to show before navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Only navigate if no errors occurred
+      if (!hasError) {
+        // Redirect to stored URL or home (NO page refresh)
+        const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+        if (redirectUrl) {
+          sessionStorage.removeItem("auth-redirect-url");
+          console.log("[Login] Redirecting to:", redirectUrl);
+          router.push(redirectUrl);
+        } else {
+          console.log("[Login] Redirecting to shop");
+          router.push("/shop");
+        }
       }
-      router.refresh();
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (error: any) {
+      // Set error flag to prevent navigation
+      setHasError(true);
+      console.error("[Login] Error:", error);
+      console.error("[Login] Error details:", {
+        message: error?.message,
+        response: error?.response,
+        status: error?.response?.status,
+        fullError: error?.response?.data
+      });
       
-      // Extract error message
-      let errorMessage = "Login failed. Please try again.";
+      // Extract error message from all possible paths (backend sends: data.error.message)
+      let errorMessage = "Unable to sign in. Please try again.";
+      let errorTitle = "Login Failed";
       
-      if (error instanceof Error) {
+      // Try nested error.message path first (correct backend structure)
+      if (error?.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error?.response?.data?.details?.message) {
+        errorMessage = error.response.data.details.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message && typeof error.message === 'string') {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null) {
-        const errorObj = error as { message?: string; error?: string };
-        errorMessage = errorObj.message || errorObj.error || errorMessage;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      // Ensure errorMessage is a string before calling string methods
+      if (typeof errorMessage !== 'string') {
+        console.warn("[Login] errorMessage is not a string:", errorMessage);
+        errorMessage = JSON.stringify(errorMessage);
+      }
+
+      console.log("[Login] Error message:", errorMessage);
+      
+      // Handle specific error cases (now safe to call .toLowerCase())
+      const lowerMsg = errorMessage.toLowerCase();
+      const statusCode = error?.response?.status || error?.response?.statusCode;
+      
+      // Handle validation errors (400 Bad Request)
+      if (statusCode === 400 || lowerMsg.includes("validation")) {
+        console.log("[Login] Validation error detected");
+        toast.error("Invalid Request", {
+          description: "Please check your login information and try again.",
+          duration: 5000,
+        });
+        return;
       }
       
-      // Check for specific errors
-      if (errorMessage.toLowerCase().includes("not verified") ||
-          errorMessage.toLowerCase().includes("email verification")) {
+      if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
+        console.log("[Login] Email not verified (from error)");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
-        toast.error("Email not verified", {
-          description: "Please verify your email first.",
+        toast.error("Email Not Verified", {
+          description: "Please verify your email address to continue.",
+          duration: 6000,
           action: {
-            label: "Verify",
+            label: "Verify Email",
             onClick: () => router.push("/verify-otp"),
           },
         });
-      } else if (errorMessage.toLowerCase().includes("invalid") ||
-                 errorMessage.toLowerCase().includes("incorrect") ||
-                 errorMessage.toLowerCase().includes("wrong")) {
-        toast.error("Invalid credentials", {
-          description: "Please check your email and password.",
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect") || 
+                 lowerMsg.includes("wrong") || lowerMsg.includes("credentials")) {
+        console.log("[Login] Invalid credentials detected");
+        toast.error("Invalid Credentials", {
+          description: "The email or password you entered is incorrect. Please try again.",
+          duration: 5000,
         });
-      } else if (errorMessage.toLowerCase().includes("not found") ||
-                 errorMessage.toLowerCase().includes("no user")) {
-        toast.error("Account not found", {
-          description: "No account found with this email. Please sign up.",
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (lowerMsg.includes("not found") || lowerMsg.includes("no user") || 
+                 lowerMsg.includes("doesn't exist")) {
+        console.log("[Login] Account not found");
+        toast.error("Account Not Found", {
+          description: "No account exists with this email. Would you like to sign up?",
+          duration: 6000,
+          action: {
+            label: "Sign Up",
+            onClick: () => router.push("/signup"),
+          },
         });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
+        console.log("[Login] Network/timeout error");
+        toast.error("Connection Error", {
+          description: "Unable to reach the server. Please check your internet connection.",
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (lowerMsg.includes("too many") || lowerMsg.includes("rate limit")) {
+        console.log("[Login] Rate limit exceeded");
+        toast.error("Too Many Attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
       } else {
-        toast.error("Login failed", {
+        // Generic error with actual message
+        console.log("[Login] Generic error:", errorMessage);
+        toast.error(errorTitle, {
           description: errorMessage,
+          duration: 5000,
         });
+        return; // CRITICAL: Stop execution, don't navigate
       }
-    }
-  };
-
-  const handleSendEmailLink = async () => {
-    const emailValue = email.trim();
-    if (!emailValue || !getEmailStatus(emailValue).isValid) {
-      return;
-    }
-
-    try {
-      setSendingEmailLink(true);
-      await sendEmailSignInLink(emailValue);
-      setEmailLinkSent(true);
-    } catch (error) {
-      console.error("Send email link error:", error);
     } finally {
-      setSendingEmailLink(false);
+      // Always log completion
+      console.log("[Login] Form submission completed (error:", hasError, ")");
     }
   };
 
@@ -355,136 +427,23 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Toggle between Password and Email Link */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Button
-                type="button"
-                variant={!isEmailLinkMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsEmailLinkMode(false)}
-                className="text-xs"
-              >
-                <Lock className="w-3 h-3 mr-1" />
-                Password
-              </Button>
-              <Button
-                type="button"
-                variant={isEmailLinkMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsEmailLinkMode(true)}
-                className="text-xs"
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                Email Link
-              </Button>
-            </div>
-
-            {isEmailLinkMode ? (
-              /* Email Link (Passwordless) Mode */
-              <div className="space-y-4">
-                {emailLinkSent ? (
-                  <div className="text-center py-8">
-                    <div className="bg-green-500/10 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                      <Mail className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      Check your email
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-4">
-                      We sent a sign-in link to <strong>{email}</strong>
+            {/* Password Sign-In Form */}
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-3 sm:space-y-4 md:space-y-5"
+              noValidate
+            >
+              {/* Loading Overlay */}
+              {(isSubmitting || authLoading) && (
+                <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-50">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Signing you in...
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Click the link in the email to sign in. No password
-                      needed!
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-4"
-                      onClick={() => {
-                        setEmailLinkSent(false);
-                        setEmail("");
-                      }}
-                    >
-                      Use a different email
-                    </Button>
                   </div>
-                ) : (
-                  <>
-                    <div>
-                      <label
-                        htmlFor="email-link"
-                        className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                      >
-                        Email Address
-                      </label>
-                      <Input
-                        id="email-link"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full"
-                        placeholder="Enter your email"
-                        icon={<Mail className="h-5 w-5" />}
-                      />
-                      {email && (
-                        <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                          <div
-                            className={`flex items-center gap-2 text-xs ${
-                              getEmailStatus(email).isValid
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {getEmailStatus(email).isValid ? (
-                              <Check className="h-3 w-3 flex-shrink-0" />
-                            ) : (
-                              <XIcon className="h-3 w-3 flex-shrink-0" />
-                            )}
-                            <span>{getEmailStatus(email).message}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="lg"
-                      className="w-full font-semibold"
-                      onClick={handleSendEmailLink}
-                      disabled={
-                        sendingEmailLink ||
-                        !email ||
-                        !getEmailStatus(email).isValid
-                      }
-                    >
-                      {sendingEmailLink ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Send Sign-In Link
-                        </>
-                      )}
-                    </Button>
-
-                    <p className="text-xs text-center text-muted-foreground">
-                      We&apos;ll send you a magic link to sign in without a
-                      password
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              /* Password Mode (Traditional) */
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="space-y-3 sm:space-y-4 md:space-y-5"
-              >
+                </div>
+              )}
                 {/* Email Input */}
                 <div>
                   <label
@@ -498,12 +457,19 @@ export default function LoginPage() {
                     type="email"
                     {...register("email")}
                     onInput={(e) => {
-                      setEmail(e.currentTarget.value);
-                      setValue("email", e.currentTarget.value);
+                      const value = e.currentTarget.value;
+                      setEmail(value);
+                      setValue("email", value, { shouldValidate: true });
+                      // Clear errors when user starts typing
+                      if (errors.email && value) {
+                        clearErrors("email");
+                      }
                     }}
-                    className="w-full"
+                    className={`w-full ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
                     placeholder="Enter your email"
                     icon={<Mail className="h-5 w-5" />}
+                    disabled={isSubmitting || authLoading}
+                    autoComplete="email"
                   />
 
                   {/* Email Validation Indicator */}
@@ -547,10 +513,19 @@ export default function LoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       {...register("password")}
-                      onInput={(e) => setPassword(e.currentTarget.value)}
-                      className="w-full pr-10"
+                      onInput={(e) => {
+                        const value = e.currentTarget.value;
+                        setPassword(value);
+                        // Clear errors when user starts typing
+                        if (errors.password && value) {
+                          clearErrors("password");
+                        }
+                      }}
+                      className={`w-full pr-10 ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
                       placeholder="Enter your password"
                       icon={<Lock className="h-5 w-5" />}
+                      disabled={isSubmitting || authLoading}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -684,8 +659,9 @@ export default function LoginPage() {
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full font-semibold"
-                  disabled={isSubmitting || authLoading}
+                  className="w-full font-semibold transition-all duration-200 hover:shadow-lg"
+                  disabled={isSubmitting || authLoading || !!errors.email || !!errors.password}
+                  aria-label="Sign in to your account"
                 >
                   {isSubmitting || authLoading ? (
                     <>
@@ -693,11 +669,18 @@ export default function LoginPage() {
                       Signing In...
                     </>
                   ) : (
-                    "Sign In"
+                    <>
+                      <Lock className="w-4 h-4 mr-2" />
+                      Sign In
+                    </>
                   )}
                 </Button>
+
+                {/* Keyboard Shortcut Hint */}
+                <p className="text-xs text-center text-muted-foreground">
+                  Press <kbd className="px-2 py-0.5 text-xs font-semibold bg-muted border border-border rounded">Enter</kbd> to sign in
+                </p>
               </form>
-            )}
 
             {/* Divider */}
             <div className="relative my-3 sm:my-4 md:my-5">

@@ -5,14 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HeroAPI } from '@/lib/cms/database';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const hero = await HeroAPI.getById(params.id);
+    const { id } = await params;
+    const heroSlide = await HeroAPI.getById(id);
 
     if (!hero) {
       return NextResponse.json({

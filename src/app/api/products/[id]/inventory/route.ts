@@ -6,10 +6,10 @@ import type { ApiResponse } from "@/types/api";
 // Get product inventory
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Call real backend API
     const response = await apiRequest<ApiResponse<any>>(
@@ -40,9 +40,10 @@ export async function GET(
 // Update stock levels
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
 
@@ -58,8 +59,6 @@ export async function PUT(
         { status: 401 }
       );
     }
-
-    const { id } = params;
     const body = await request.json();
 
     // Call real backend API

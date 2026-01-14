@@ -16,6 +16,7 @@ import {
   ChevronsUpDown,
   User,
   Bell,
+  Box
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
@@ -68,7 +69,7 @@ const sidebarLinks = [
   },
   {
     href: "/seller/products",
-    icon: Package,
+    icon: Box,
     label: "Products",
   },
   {
@@ -168,7 +169,7 @@ function SellerNavUser() {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{getDisplayName()}</span>
-                <span className="truncate text-xs">{getUserEmail()}</span>
+                <span className="truncate text-xs text-gray-500">{getUserEmail()}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -189,7 +190,7 @@ function SellerNavUser() {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{getDisplayName()}</span>
-                  <span className="truncate text-xs">{getUserEmail()}</span>
+                  <span className="truncate text-xs text-gray-500">{getUserEmail()}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
