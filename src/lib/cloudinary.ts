@@ -60,8 +60,9 @@ export async function uploadToCloudinary(
     formData.append("context", contextString);
   }
 
-  // Determine resource type (auto for PDFs and images)
-  const resourceType = options.resourceType || "auto";
+  // Always use "auto" for resource type in URL to let Cloudinary detect the file type
+  // This avoids format validation issues with presets
+  const resourceType = "auto";
 
   // Log upload attempt for debugging
   console.log(
@@ -79,6 +80,10 @@ export async function uploadToCloudinary(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     console.error("[Cloudinary] Upload failed:", error);
+    console.error(
+      "[Cloudinary] Full error details:",
+      JSON.stringify(error, null, 2)
+    );
     throw new Error(
       error.error?.message || `Failed to upload ${file.name} to Cloudinary`
     );

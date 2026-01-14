@@ -70,7 +70,7 @@ async function uploadDocument(file: File, docType: string): Promise<string> {
   const result = await uploadToCloudinary(file, {
     folder: "seller-applications",
     tags: ["seller-document", docType],
-    resourceType: "auto", // Handles both images and PDFs
+    resourceType: "auto", // Let Cloudinary auto-detect the file type
   });
   return result.secureUrl;
 }
