@@ -159,16 +159,24 @@ const {
   user,                      // AuthUser with unified profile
   isAuthenticated,           // Boolean auth state
   signInWithGoogle,          // Google OAuth via Firebase
-  signInWithEmailPassword,   // Email/password via Firebase
+  signInWithEmailPassword,   // Email/password via Backend API
   signOut,                   // Clears both Firebase & backend tokens
   signOutEverywhere          // Phase 5: Revokes all refresh tokens
 } = useAuth();
 ```
 
 ### Auth Flows
-1. **Google OAuth**: Firebase → Firestore profile → optional backend JWT sync
-2. **Email/Password**: Firebase Auth → email verification → backend JWT
+1. **Google OAuth (Firebase)**: `signInWithGoogle()` → Firebase Auth → Firestore profile → backend JWT sync
+2. **Email/Password (Backend)**: POST `/api/v1/auth/register` → POST `/api/v1/auth/verify-email` → POST `/api/v1/auth/login`
 3. **Email Link** (Passwordless): `sendEmailSignInLink()` → `completeEmailLinkSignIn()`
+
+### Backend Auth Endpoints
+- **Registration**: `POST /api/v1/auth/register` (creates user + sends verification email)
+- **Email Verification**: `POST /api/v1/auth/verify-email` (required before login)
+- **Login**: `POST /api/v1/auth/login` (returns JWT access + refresh tokens)
+- **Refresh Token**: `POST /api/v1/auth/refresh-token` (get new access token)
+- **Forgot Password**: `POST /api/v1/auth/forgot-password`
+- **Reset Password**: `POST /api/v1/auth/reset-password`
 
 ### Token Management
 - **Storage**: `auth-token` cookie (HTTP-only style), `refreshToken` in localStorage
