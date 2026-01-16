@@ -4,13 +4,12 @@
  * Authentication Context
  *
  * Provides unified auth state for all Firebase authentication methods:
- * - Google Sign-In (OAuth)
+ * - Google Sign-In (OAuth) - Firebase only, no backend sync
  * - Email/Password (Traditional)
  * - Email Link (Passwordless)
  *
- * Handles auth state changes and optional backend sync.
- * 
- * Phase 5: Added token refresh management and logout everywhere
+ * Google Auth: Uses ONLY Firebase Auth and Firestore for maximum reliability
+ * Email/Password: Can optionally sync with backend for additional features
  */
 
 import React, {
@@ -90,7 +89,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   syncFirebaseUserToBackend: (
     firebaseUser: FirebaseUser
-  ) => Promise<AuthUser | null>;
+  ) => Promise<AuthUser | null>; // OPTIONAL: Only for email/password users, not Google
 
   // Phase 5: Session Management
   signOutEverywhere: () => Promise<void>;
@@ -219,10 +218,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   /**
-   * Sync Google OAuth user to NestJS backend PostgreSQL database
+   * Sync Firebase user to NestJS backend PostgreSQL database (OPTIONAL - Email/Password only)
    * Creates or updates user record and returns JWT for authenticated sessions
    * 
-   * Backend Endpoint: POST /auth/google/sync
+   * ⚠️ NOT USED FOR GOOGLE AUTH - Google auth is Firebase-only
+   * 
+   * This is only called for email/password users who want backend features like:
+   * - Order management through backend API
+   * - Advanced user roles and permissions
+   * - Backend-specific features
+   * 
+   * Backend Endpoint: POST /auth/google/sync (legacy endpoint, not used for Google)
    * See: GOOGLE_AUTH_TESTING_GUIDE.md for full documentation
    */
   const syncFirebaseUserToBackend = useCallback(
@@ -376,7 +382,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Sign in with Google using popup (works in both dev and production)
+   * Sign in with Google using Firebase only (no backend sync)
+   * This provides a more solid and reliable Google authentication experience
    */
   const handleSignInWithGoogle = async () => {
     try {
@@ -398,15 +405,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
-          // Sync to Firestore profile
+          // Sync to Firestore profile ONLY - no backend sync
           await syncToFirestoreProfile(result, "google");
           
-          // Optional: sync to backend
-          try {
-            await syncFirebaseUserToBackend(result);
-          } catch {
-            console.warn("Backend sync failed, using Firebase only");
+          // Get Firebase ID token for authentication
+          const idToken = await result.getIdToken();
+          
+          // Store Firebase token (not backend JWT)
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("firebase-token", idToken);
           }
+          
+          console.log("🟢 [Auth] Google sign-in successful - Firebase only, no backend sync");
           
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);
