@@ -334,6 +334,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onFirebaseAuthStateChanged(async (fbUser) => {
       setFirebaseUser(fbUser);
 
+      // Check if we're waiting for auth after redirect
+      const awaitingAuth = sessionStorage.getItem("awaiting_firebase_auth");
+
+      if (fbUser && awaitingAuth === "true") {
+        sessionStorage.removeItem("awaiting_firebase_auth");
+        sessionStorage.removeItem("google_auth_redirect");
+        localStorage.removeItem("google_auth_redirect");
+
+        try {
+          setLoading(true);
+          await syncToFirestoreProfile(fbUser, "google");
+          toast.success(`Welcome, ${fbUser.displayName || fbUser.email}!`);
+          window.location.href = "/";
+          return;
+        } catch (error) {
+          console.error("Failed to sync after redirect:", error);
+          toast.error("Failed to complete sign-in. Please try again.");
+          setLoading(false);
+        }
+      }
+
       if (fbUser) {
         // Check if we have user data already
         console.log(
@@ -376,9 +397,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Sign in with Google using popup (works in both dev and production)
+   * Trigger Google sign-in (popup method for all environments)
+   * Enhanced with comprehensive error logging
    */
   const handleSignInWithGoogle = async () => {
+    console.log("🔵 [Google Auth] Starting Google sign-in process");
+
     try {
       setLoading(true);
 
@@ -387,48 +411,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectUrl = searchParams.get("redirect");
         if (redirectUrl) {
+          console.log(`📍 [Google Auth] Storing redirect URL: ${redirectUrl}`);
           sessionStorage.setItem("auth-redirect-url", redirectUrl);
         }
       }
 
-      // Popup returns user immediately in all environments
+      console.log("🟡 [Google Auth] Calling Firebase signInWithGoogle()");
       const result = await signInWithGoogle();
+      console.log("🟢 [Google Auth] Firebase sign-in successful", {
+        uid: result.uid,
+        email: result.email,
+        displayName: result.displayName,
+      });
 
-      if (result) {
-        toast.loading("Signing you in...", { id: "google-signin" });
+      // Popup returns user immediately
+      toast.loading("Signing you in...", { id: "google-signin" });
 
+      try {
+        console.log("🔵 [Google Auth] Syncing user to Firestore profile");
+        // Sync to Firestore profile
+        await syncToFirestoreProfile(result, "google");
+        console.log("🟢 [Google Auth] Firestore profile sync successful");
+        
+        // Optional: sync to backend
         try {
-          // Sync to Firestore profile
-          await syncToFirestoreProfile(result, "google");
-          
-          // Optional: sync to backend
-          try {
-            await syncFirebaseUserToBackend(result);
-          } catch {
-            console.warn("Backend sync failed, using Firebase only");
-          }
-          
-          toast.dismiss("google-signin");
-          toast.success(`Welcome, ${result.displayName || result.email}!`);
-
-          const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-          if (redirectUrl) {
-            sessionStorage.removeItem("auth-redirect-url");
-            window.location.href = redirectUrl;
-          } else {
-            window.location.href = "/";
-          }
-        } catch (syncError) {
-          toast.dismiss("google-signin");
-          toast.error("Failed to complete sign-in. Please try again.");
-          console.error("Sync error:", syncError);
-          setLoading(false);
+          console.log("🔵 [Google Auth] Syncing user to backend PostgreSQL");
+          await syncFirebaseUserToBackend(result);
+          console.log("🟢 [Google Auth] Backend sync successful");
+        } catch (backendError) {
+          console.warn("⚠️ [Google Auth] Backend sync failed (non-critical):", backendError);
+          console.warn("⚠️ [Google Auth] Continuing with Firebase-only auth");
         }
+        
+        toast.dismiss("google-signin");
+        toast.success(`Welcome, ${result.displayName || result.email}!`);
+        console.log("✅ [Google Auth] Sign-in complete, redirecting user");
+
+        const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+        if (redirectUrl) {
+          console.log(`🔀 [Google Auth] Redirecting to: ${redirectUrl}`);
+          sessionStorage.removeItem("auth-redirect-url");
+          window.location.href = redirectUrl;
+        } else {
+          console.log("🏠 [Google Auth] Redirecting to home");
+          window.location.href = "/";
+        }
+      } catch (syncError) {
+        console.error("❌ [Google Auth] Sync error:", syncError);
+        toast.dismiss("google-signin");
+        toast.error("Failed to complete sign-in. Please try again.");
+        setLoading(false);
       }
     } catch (error) {
+      console.error("❌ [Google Auth] Sign-in error:", error);
+      
+      // Log detailed error information
+      if (error instanceof Error) {
+        console.error("❌ [Google Auth] Error message:", error.message);
+        console.error("❌ [Google Auth] Error stack:", error.stack);
+      }
+      
+      // Check for specific Firebase errors
+      const errorCode = (error as { code?: string })?.code;
+      if (errorCode) {
+        console.error("❌ [Google Auth] Firebase error code:", errorCode);
+        
+        switch (errorCode) {
+          case "auth/popup-blocked":
+            toast.error("Popup blocked", {
+              description: "Please allow popups for this site and try again",
+            });
+            break;
+          case "auth/popup-closed-by-user":
+            toast.error("Sign-in cancelled", {
+              description: "You closed the sign-in window",
+            });
+            break;
+          case "auth/cancelled-popup-request":
+            console.log("🔵 [Google Auth] Popup cancelled (another popup opened)");
+            break;
+          case "auth/network-request-failed":
+            toast.error("Network error", {
+              description: "Please check your internet connection",
+            });
+            break;
+          default:
+            toast.error("Sign-in failed", {
+              description: "Please try again or contact support",
+            });
+        }
+      } else {
+        toast.error("Failed to start sign-in. Please try again.");
+      }
+      
       setLoading(false);
-      console.error("Sign-in error:", error);
-      toast.error("Failed to start sign-in. Please try again.");
     }
   };
 

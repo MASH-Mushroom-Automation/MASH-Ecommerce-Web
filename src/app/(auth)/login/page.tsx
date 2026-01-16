@@ -75,7 +75,7 @@ const loginSchema = z.object({
     .string()
     .min(1, "Password is required")
     .min(6, "Password must be at least 6 characters"),
-  rememberMe: z.boolean(),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -172,8 +172,7 @@ export default function LoginPage() {
 
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
-      const accessToken = response.data?.accessToken || response.accessToken;
-      const refreshToken = response.data?.refreshToken || response.refreshToken;
+      const tokens = response.data?.tokens || response.tokens;
       
       if (!user) {
         throw new Error("Invalid response from server. Please try again.");
@@ -199,19 +198,19 @@ export default function LoginPage() {
       }
 
       // Store tokens if available
-      if (accessToken) {
+      if (tokens?.accessToken) {
         console.log("[Login] Storing access token...");
-        setAuthToken(accessToken, data.rememberMe); // Use proper cookie storage
+        setAuthToken(tokens.accessToken, data.rememberMe); // Use proper cookie storage
         
         // Also store refresh token if available
-        if (refreshToken) {
+        if (tokens.refreshToken) {
           console.log("[Login] Storing refresh token...");
-          localStorage.setItem("refreshToken", refreshToken);
+          localStorage.setItem("refreshToken", tokens.refreshToken);
         }
       }
 
       // Success notification
-      const displayName = user.firstName || user.email.split("@")[0];
+      const displayName = user.firstName || user.username || user.email.split("@")[0];
       toast.success("Login Successful!", {
         description: `Welcome back, ${displayName}!`,
         duration: 3000,

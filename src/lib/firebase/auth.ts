@@ -225,17 +225,43 @@ export function getStoredEmailForSignIn(): string | null {
  * Sign in with Google using popup
  * - Uses POPUP for both development and production (reliable, no sessionStorage issues)
  * - Popup is more reliable than redirect and avoids "missing initial state" errors
+ * - Enhanced with comprehensive error logging
  */
 export async function signInWithGoogle(): Promise<FirebaseUser> {
+  console.log("🔵 [Firebase Auth] signInWithGoogle() called");
+  
   try {
     // Set persistence to local (survives browser restart)
+    console.log("🔵 [Firebase Auth] Setting persistence to browserLocalPersistence");
     await setPersistence(auth, browserLocalPersistence);
+    console.log("🟢 [Firebase Auth] Persistence set successfully");
 
     // Use popup for all environments (more reliable than redirect)
+    console.log("🔵 [Firebase Auth] Opening Google sign-in popup");
     const result = await signInWithPopup(auth, googleProvider);
+    
+    console.log("🟢 [Firebase Auth] signInWithPopup successful", {
+      uid: result.user.uid,
+      email: result.user.email,
+      displayName: result.user.displayName,
+      provider: result.providerId,
+    });
+    
     return result.user;
   } catch (error) {
-    console.error("Firebase Google sign-in error:", error);
+    console.error("❌ [Firebase Auth] Google sign-in error:", error);
+    
+    // Log additional error details
+    if (error instanceof Error) {
+      console.error("❌ [Firebase Auth] Error message:", error.message);
+      console.error("❌ [Firebase Auth] Error name:", error.name);
+    }
+    
+    const errorCode = (error as { code?: string })?.code;
+    if (errorCode) {
+      console.error("❌ [Firebase Auth] Error code:", errorCode);
+    }
+    
     throw error;
   }
 }
