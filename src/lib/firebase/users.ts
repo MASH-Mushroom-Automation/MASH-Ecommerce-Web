@@ -100,6 +100,9 @@ export const FirebaseUserService = {
           lastLoginAt: now,
         };
         
+        // Always update email if provided (critical for e-commerce features)
+        if (data.email !== undefined) updateData.email = data.email;
+        
         // Only add fields that have values
         if (data.firstName !== undefined) updateData.firstName = data.firstName;
         if (data.lastName !== undefined) updateData.lastName = data.lastName;
@@ -113,13 +116,15 @@ export const FirebaseUserService = {
 
         await updateDoc(userRef, updateData);
 
-        // Return merged data
+        // Return merged data with email ensured
         const existing = existingDoc.data() as FirestoreUserProfile;
         return {
           ...existing,
           ...data,
           id: userId,
           uid: userId,
+          // Ensure email is always present
+          email: data.email || existing.email,
         } as FirestoreUserProfile;
       } else {
         // Create new profile

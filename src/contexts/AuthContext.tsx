@@ -154,13 +154,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       additionalData?: Partial<AuthUser>
     ): Promise<AuthUser> => {
       try {
-        console.log("🔵 [Auth] Syncing to Firestore profile...");
+        console.log("[Auth Context] Syncing to Firestore profile...");
+
+        // Parse name properly (handle "Last, First" format from Google)
+        let firstName = additionalData?.firstName;
+        let lastName = additionalData?.lastName;
+        
+        if (!firstName || !lastName) {
+          const displayName = fbUser.displayName || "";
+          
+          // Check if name is in "Last, First" format
+          if (displayName.includes(",")) {
+            const parts = displayName.split(",").map(p => p.trim());
+            lastName = parts[0] || "";
+            firstName = parts[1] || "";
+          } else {
+            // Standard "First Last" format
+            const nameParts = displayName.split(" ");
+            firstName = nameParts[0] || "";
+            lastName = nameParts.slice(1).join(" ") || "";
+          }
+        }
 
         // Get or create Firestore profile
         const profile = await FirebaseUserService.createOrUpdateProfile(fbUser.uid, {
           email: fbUser.email || "",
-          firstName: additionalData?.firstName || fbUser.displayName?.split(" ")[0],
-          lastName: additionalData?.lastName || fbUser.displayName?.split(" ").slice(1).join(" "),
+          firstName,
+          lastName,
           displayName: additionalData?.displayName || fbUser.displayName || undefined,
           phone: additionalData?.phone,
           photoURL: fbUser.photoURL || undefined,
@@ -185,17 +205,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Failed to store user in localStorage");
         }
 
-        console.log("🟢 [Auth] Profile synced to Firestore");
+        console.log("[Auth Context] Profile synced to Firestore successfully");
         return authUser;
       } catch (error) {
-        console.error("❌ [Auth] Firestore sync error:", error);
+        console.error("[Auth Context] Firestore sync error:", error);
         
         // Fallback: create AuthUser from Firebase Auth data only
+        // Parse name properly
+        let firstName = additionalData?.firstName;
+        let lastName = additionalData?.lastName;
+        
+        if (!firstName || !lastName) {
+          const displayName = fbUser.displayName || "";
+          if (displayName.includes(",")) {
+            const parts = displayName.split(",").map(p => p.trim());
+            lastName = parts[0] || "";
+            firstName = parts[1] || "";
+          } else {
+            const nameParts = displayName.split(" ");
+            firstName = nameParts[0] || "";
+            lastName = nameParts.slice(1).join(" ") || "";
+          }
+        }
+        
         const authUser: AuthUser = {
           id: fbUser.uid,
           email: fbUser.email || "",
-          firstName: additionalData?.firstName || fbUser.displayName?.split(" ")[0],
-          lastName: additionalData?.lastName || fbUser.displayName?.split(" ").slice(1).join(" "),
+          firstName,
+          lastName,
           displayName: additionalData?.displayName || fbUser.displayName || undefined,
           phone: additionalData?.phone,
           photoURL: fbUser.photoURL || undefined,
@@ -374,28 +411,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // If not in localStorage, load from Firestore
         try {
-          console.log("🔵 [Auth Context] Loading profile from Firestore...");
+          console.log("[Auth Context] Loading profile from Firestore...");
           const profile = await FirebaseUserService.getProfile(fbUser.uid);
           
           if (profile) {
             const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google");
+            
+            // Ensure email is always present (critical for cart, wishlist, checkout)
+            if (!authUser.email && fbUser.email) {
+              authUser.email = fbUser.email;
+            }
+            
             setUser(authUser);
             localStorage.setItem("user", JSON.stringify(authUser));
-            console.log("🟢 [Auth Context] User profile loaded from Firestore");
+            console.log("[Auth Context] User profile loaded from Firestore:", {
+              id: authUser.id,
+              email: authUser.email,
+              name: `${authUser.firstName} ${authUser.lastName}`,
+              provider: authUser.provider
+            });
           } else {
             // Profile doesn't exist, create it
-            console.log("🔵 [Auth Context] No Firestore profile found, creating one...");
+            console.log("[Auth Context] No Firestore profile found, creating one...");
             await syncToFirestoreProfile(fbUser, "google");
           }
         } catch (error) {
-          console.error("❌ [Auth Context] Failed to load profile:", error);
+          console.error("[Auth Context] Failed to load profile:", error);
           
           // Fallback: create user from Firebase Auth data
+          // Parse name properly
+          let firstName = "";
+          let lastName = "";
+          
+          if (fbUser.displayName) {
+            if (fbUser.displayName.includes(",")) {
+              const parts = fbUser.displayName.split(",").map(p => p.trim());
+              lastName = parts[0] || "";
+              firstName = parts[1] || "";
+            } else {
+              const nameParts = fbUser.displayName.split(" ");
+              firstName = nameParts[0] || "";
+              lastName = nameParts.slice(1).join(" ") || "";
+            }
+          }
+          
           const authUser: AuthUser = {
             id: fbUser.uid,
             email: fbUser.email || "",
-            firstName: fbUser.displayName?.split(" ")[0],
-            lastName: fbUser.displayName?.split(" ").slice(1).join(" "),
+            firstName,
+            lastName,
             displayName: fbUser.displayName || undefined,
             photoURL: fbUser.photoURL || undefined,
             avatar: fbUser.photoURL || undefined,
