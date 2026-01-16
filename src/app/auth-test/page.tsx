@@ -49,7 +49,7 @@ export default function AuthTestPage() {
                 <XCircle className="h-5 w-5 text-red-500" />
               )}
               <span className="font-medium">
-                {isAuthenticated ? "Authenticated ✓" : "Not Authenticated"}
+                {isAuthenticated ? "Authenticated" : "Not Authenticated"}
               </span>
             </div>
 
