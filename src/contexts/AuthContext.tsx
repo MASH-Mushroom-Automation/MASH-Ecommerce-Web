@@ -341,20 +341,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
-        // Check if we have user data already
-        console.log(
-          "🔵 [Auth Context] Checking localStorage for existing user..."
-        );
+        console.log("🔵 [Auth Context] Firebase user detected:", fbUser.email);
+        
+        // First, try to load from localStorage for instant UI update
         try {
           const storedUser = localStorage.getItem("user");
           if (storedUser) {
             const parsed = JSON.parse(storedUser);
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
+              console.log("🟢 [Auth Context] User loaded from localStorage");
               setUser(parsed);
+              setLoading(false);
+              
+              // Still fetch from Firestore in background to ensure data is fresh
+              try {
+                const profile = await FirebaseUserService.getProfile(fbUser.uid);
+                if (profile) {
+                  const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google");
+                  setUser(authUser);
+                  localStorage.setItem("user", JSON.stringify(authUser));
+                  console.log("🟢 [Auth Context] User profile refreshed from Firestore");
+                }
+              } catch (error) {
+                console.warn("⚠️ [Auth Context] Failed to refresh profile from Firestore:", error);
+              }
+              return;
             }
           }
-        } catch {
-          // Ignore parse errors
+        } catch (error) {
+          console.warn("⚠️ [Auth Context] Failed to load from localStorage:", error);
+        }
+
+        // If not in localStorage, load from Firestore
+        try {
+          console.log("🔵 [Auth Context] Loading profile from Firestore...");
+          const profile = await FirebaseUserService.getProfile(fbUser.uid);
+          
+          if (profile) {
+            const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google");
+            setUser(authUser);
+            localStorage.setItem("user", JSON.stringify(authUser));
+            console.log("🟢 [Auth Context] User profile loaded from Firestore");
+          } else {
+            // Profile doesn't exist, create it
+            console.log("🔵 [Auth Context] No Firestore profile found, creating one...");
+            await syncToFirestoreProfile(fbUser, "google");
+          }
+        } catch (error) {
+          console.error("❌ [Auth Context] Failed to load profile:", error);
+          
+          // Fallback: create user from Firebase Auth data
+          const authUser: AuthUser = {
+            id: fbUser.uid,
+            email: fbUser.email || "",
+            firstName: fbUser.displayName?.split(" ")[0],
+            lastName: fbUser.displayName?.split(" ").slice(1).join(" "),
+            displayName: fbUser.displayName || undefined,
+            photoURL: fbUser.photoURL || undefined,
+            avatar: fbUser.photoURL || undefined,
+            provider: "google",
+            emailVerified: fbUser.emailVerified,
+          };
+          setUser(authUser);
+          localStorage.setItem("user", JSON.stringify(authUser));
         }
       } else {
         // No Firebase user, check for traditional auth via cookie
@@ -368,10 +417,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               // Firebase user logged out, clear state
               setUser(null);
+              localStorage.removeItem("user");
             }
+          } else {
+            setUser(null);
           }
         } catch {
-          // Ignore parse errors
+          setUser(null);
         }
       }
 
@@ -379,7 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [profileToAuthUser, syncToFirestoreProfile]);
 
   /**
    * Sign in with Google using Firebase only (no backend sync)
@@ -398,6 +450,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      console.log("🔵 [Auth] Starting Google sign-in...");
+      
       // Popup returns user immediately in all environments
       const result = await signInWithGoogle();
 
@@ -405,8 +459,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
+          console.log("🟢 [Auth] Google sign-in successful:", {
+            uid: result.uid,
+            email: result.email,
+            displayName: result.displayName,
+          });
+          
           // Sync to Firestore profile ONLY - no backend sync
-          await syncToFirestoreProfile(result, "google");
+          const authUser = await syncToFirestoreProfile(result, "google");
           
           // Get Firebase ID token for authentication
           const idToken = await result.getIdToken();
@@ -416,10 +476,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sessionStorage.setItem("firebase-token", idToken);
           }
           
-          console.log("🟢 [Auth] Google sign-in successful - Firebase only, no backend sync");
+          console.log("🟢 [Auth] Google sign-in complete - user profile:", {
+            id: authUser.id,
+            email: authUser.email,
+            displayName: authUser.displayName,
+            photoURL: authUser.photoURL,
+          });
           
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);
+
+          // Small delay to ensure state is updated before redirect
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           const redirectUrl = sessionStorage.getItem("auth-redirect-url");
           if (redirectUrl) {
@@ -431,13 +499,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (syncError) {
           toast.dismiss("google-signin");
           toast.error("Failed to complete sign-in. Please try again.");
-          console.error("Sync error:", syncError);
+          console.error("❌ [Auth] Sync error:", syncError);
           setLoading(false);
         }
       }
     } catch (error) {
       setLoading(false);
-      console.error("Sign-in error:", error);
+      console.error("❌ [Auth] Sign-in error:", error);
       toast.error("Failed to start sign-in. Please try again.");
     }
   };
