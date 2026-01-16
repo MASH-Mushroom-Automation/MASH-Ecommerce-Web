@@ -376,6 +376,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   /**
+   * Migrate old cached user data (fix email and name parsing)
+   */
+  const migrateOldUserData = useCallback((fbUser: FirebaseUser): boolean => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      
+      const parsed = JSON.parse(storedUser);
+      
+      // Check if data needs migration (missing email or incorrect name parsing)
+      const needsMigration = 
+        !parsed.email || 
+        (parsed.firstName && parsed.firstName.includes(","));
+      
+      if (needsMigration && fbUser.email) {
+        console.log("[Auth Context] Migrating old user data...");
+        
+        // Fix email
+        if (!parsed.email) {
+          parsed.email = fbUser.email;
+        }
+        
+        // Fix name parsing if comma detected in firstName
+        if (parsed.firstName && parsed.firstName.includes(",")) {
+          const displayName = fbUser.displayName || "";
+          if (displayName.includes(",")) {
+            const parts = displayName.split(",").map(p => p.trim());
+            parsed.lastName = parts[0];
+            parsed.firstName = parts[1];
+          }
+        }
+        
+        // Save migrated data
+        localStorage.setItem("user", JSON.stringify(parsed));
+        console.log("[Auth Context] User data migrated successfully");
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("[Auth Context] Migration error:", error);
+      return false;
+    }
+  }, []);
+
+  /**
    * Listen to Firebase auth state changes
    */
   useEffect(() => {
@@ -385,6 +431,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (fbUser) {
         console.log("[Auth Context] Firebase user detected:", fbUser.email);
         
+        // Migrate old cached data if needed
+        const wasMigrated = migrateOldUserData(fbUser);
+        
         // First, try to load from localStorage for instant UI update
         try {
           const storedUser = localStorage.getItem("user");
@@ -392,8 +441,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const parsed = JSON.parse(storedUser);
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
               console.log("[Auth Context] User loaded from localStorage");
+              
+              // Use migrated data if available, otherwise use stored data
               setUser(parsed);
               setLoading(false);
+              
+              // If data was migrated or missing email, fetch fresh from Firestore
+              if (wasMigrated || !parsed.email) {
+                console.log("[Auth Context] Fetching fresh data from Firestore after migration...");
+                const profile = await FirebaseUserService.getProfile(fbUser.uid);
+                if (profile) {
+                  const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google", fbUser.email || undefined);
+                  if (!authUser.email && fbUser.email) {
+                    authUser.email = fbUser.email;
+                  }
+                  setUser(authUser);
+                  localStorage.setItem("user", JSON.stringify(authUser));
+                  console.log("[Auth Context] User profile updated from Firestore");
+                }
+                return;
+              }
               
               // Still fetch from Firestore in background to ensure data is fresh
               try {
