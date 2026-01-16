@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Google Auth Test Page
+ * Authentication Test Page
  * 
  * Use this page to test and verify Google authentication is working properly.
  * Access at: /auth-test
@@ -30,7 +30,7 @@ export default function AuthTestPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold">Google Auth Test Page</h1>
+        <h1 className="text-3xl font-bold">Authentication Test Page</h1>
         <p className="text-muted-foreground">
           This page helps verify that Google authentication is working correctly.
         </p>
@@ -111,9 +111,9 @@ export default function AuthTestPage() {
                   <dt className="font-medium text-sm text-muted-foreground">Email Verified</dt>
                   <dd className="mt-1">
                     {firebaseUser.emailVerified ? (
-                      <span className="text-green-600">✓ Verified</span>
+                      <span className="text-green-600 font-medium">Verified</span>
                     ) : (
-                      <span className="text-yellow-600">Not verified</span>
+                      <span className="text-yellow-600 font-medium">Not verified</span>
                     )}
                   </dd>
                 </div>
