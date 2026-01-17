@@ -212,14 +212,14 @@ const transformed = transformSanityProduct(sanityProduct);
 
 ## Authentication System
 
-Unified `AuthContext` manages dual auth (Firebase + Backend):
+Unified `AuthContext` manages dual auth strategies:
 
 ```typescript
 import { useAuth } from "@/contexts/AuthContext";
 const { 
   user,                      // AuthUser with unified profile
   isAuthenticated,           // Boolean auth state
-  signInWithGoogle,          // Google OAuth via Firebase
+  signInWithGoogle,          // Google OAuth via Firebase ONLY (no backend sync)
   signInWithEmailPassword,   // Email/password via Backend API
   signOut,                   // Clears both Firebase & backend tokens
   signOutEverywhere          // Phase 5: Revokes all refresh tokens
@@ -227,9 +227,11 @@ const {
 ```
 
 ### Auth Flows
-1. **Google OAuth (Firebase)**: `signInWithGoogle()` → Firebase Auth → Firestore profile → backend JWT sync
+1. **Google OAuth (Firebase ONLY)**: `signInWithGoogle()` → Firebase Auth → Firestore profile → Store Firebase token (NO BACKEND SYNC)
 2. **Email/Password (Backend)**: POST `/api/v1/auth/register` → POST `/api/v1/auth/verify-email` → POST `/api/v1/auth/login`
 3. **Email Link** (Passwordless): `sendEmailSignInLink()` → `completeEmailLinkSignIn()`
+
+**🔥 IMPORTANT CHANGE:** Google authentication now uses ONLY Firebase Auth with Firestore profile storage. No backend synchronization occurs for maximum reliability and simplicity. See [.github/FIREBASE_ONLY_GOOGLE_AUTH.md](.github/FIREBASE_ONLY_GOOGLE_AUTH.md) for complete details.
 
 ### Backend Auth Endpoints
 - **Registration**: `POST /api/v1/auth/register` (creates user + sends verification email)
@@ -561,8 +563,9 @@ npx prisma generate                               # Regenerate Prisma client
 
 ### Firebase Services
 - **Console**: https://console.firebase.google.com/u/7/project/mash-ddf8d/
-- **Auth**: Google OAuth, Email/Password, Email Link (passwordless)
+- **Auth**: Google OAuth (Firebase ONLY - no backend sync), Email/Password, Email Link (passwordless)
 - **Firestore**: Cart, Wishlist, Orders, User profiles (real-time sync)
+- **Google OAuth**: 100% Firebase-based with Firestore profile storage for maximum reliability
 - **Storage**: User avatars, order attachments
 - **Security**: [.github/FIRESTORE_SECURITY_RULES.md](.github/FIRESTORE_SECURITY_RULES.md)
 

@@ -3,11 +3,13 @@
 /**
  * Google Sign-In Button Component
  *
- * Reusable button for Google authentication.
- * Uses Firebase signInWithRedirect for full-page redirect flow.
+ * Reusable button for Google authentication using Firebase Auth only.
+ * - Uses Firebase popup flow for reliable authentication
+ * - No backend synchronization - pure Firebase Auth
+ * - User profile stored in Firestore for maximum reliability
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

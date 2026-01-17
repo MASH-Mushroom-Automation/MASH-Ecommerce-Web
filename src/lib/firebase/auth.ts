@@ -12,9 +12,7 @@
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
   signInWithPopup,
-  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -218,24 +216,35 @@ export function getStoredEmailForSignIn(): string | null {
 }
 
 // ============================================================================
-// GOOGLE OAUTH AUTHENTICATION
+// GOOGLE OAUTH AUTHENTICATION (Firebase Only - No Backend Sync)
 // ============================================================================
 
 /**
- * Sign in with Google using popup
+ * Sign in with Google using Firebase Authentication
  * - Uses POPUP for both development and production (reliable, no sessionStorage issues)
  * - Popup is more reliable than redirect and avoids "missing initial state" errors
+ * - Authentication is handled 100% by Firebase - no backend synchronization
+ * - User profile is stored in Firestore for maximum reliability
  */
 export async function signInWithGoogle(): Promise<FirebaseUser> {
   try {
+    console.log("🔵 [Firebase Auth] Starting Google sign-in with popup...");
+    
     // Set persistence to local (survives browser restart)
     await setPersistence(auth, browserLocalPersistence);
 
     // Use popup for all environments (more reliable than redirect)
     const result = await signInWithPopup(auth, googleProvider);
+    
+    console.log("🟢 [Firebase Auth] Google sign-in successful:", {
+      uid: result.user.uid,
+      email: result.user.email,
+      displayName: result.user.displayName,
+    });
+    
     return result.user;
   } catch (error) {
-    console.error("Firebase Google sign-in error:", error);
+    console.error("❌ [Firebase Auth] Google sign-in error:", error);
     throw error;
   }
 }
