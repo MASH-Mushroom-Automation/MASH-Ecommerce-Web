@@ -14,6 +14,25 @@
  * Product Queries
  */
 
+// Fetch suggested products from the same grower/store (auto-generated)
+// This replaces the manual suggestedProducts field in the product schema
+export const suggestedProductsByGrowerQuery = `*[_type == "product" 
+  && isAvailable == true 
+  && _id != $currentProductId 
+  && references($growerId)
+] | order(isFeatured desc, _createdAt desc) [0...$limit] {
+  _id,
+  name,
+  slug,
+  description,
+  price,
+  compareAtPrice,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+  "isPromo": isOnPromo,
+  isFeatured,
+  category->{ name, slug }
+}`;
+
 // Fetch all products with complete details
 export const productsQuery = `*[_type == "product" && !(_id in path("drafts.**"))] | order(name asc) {
   _id,

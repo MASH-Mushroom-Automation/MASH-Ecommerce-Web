@@ -22,6 +22,7 @@ interface CartContextType {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => boolean;
   clearCart: () => void;
+  removeVendorItems: (vendorName: string) => void;
   isInCart: (productId: string) => boolean;
   getItemQuantity: (productId: string) => number;
 }
@@ -38,12 +39,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from localStorage on mount
   useEffect(() => {
+    console.log("[CartContext] Loading cart from localStorage...");
     const savedCart = localStorage.getItem("mash-cart");
+    console.log("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
+        console.log("[CartContext] Parsed cart:", parsedCart);
         // Check version for migration
         if (parsedCart.version === 2 && Array.isArray(parsedCart.items)) {
+          console.log("[CartContext] Loading", parsedCart.items.length, "items");
           setItems(parsedCart.items);
         } else {
           // Old cart format - clear it
@@ -56,11 +61,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
+    console.log("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isLoaded) {
+      console.log("[CartContext] Saving to localStorage, items:", items.length);
       localStorage.setItem(
         "mash-cart",
         JSON.stringify({
@@ -69,6 +76,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           updatedAt: new Date().toISOString(),
         })
       );
+      console.log("[CartContext] Saved to localStorage");
     }
   }, [items, isLoaded]);
 
@@ -129,9 +137,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !user?.id || !isLoaded || isSyncing) return;
 
+    // Additional validation to prevent undefined userId
+    const userId = user.id;
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.warn("[CartContext] Skipping sync - invalid userId:", userId);
+      return;
+    }
+
     const timeout = setTimeout(() => {
       lastSyncRef.current = Date.now();
-      FirebaseCartService.saveCart(user.id, items).catch((error) => {
+      FirebaseCartService.saveCart(userId, items).catch((error) => {
         console.error("Failed to sync cart to Firebase:", error);
       });
     }, 500); // Debounce by 500ms
@@ -144,8 +159,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const tax = subtotal * 0.12; // 12% tax
-    const shipping = subtotal > 500 ? 0 : 50; // Free shipping over ₱500
+    const tax = 0; // No tax - direct to grower
+    const shipping = 0; // Shipping calculated at checkout based on delivery method
     const total = subtotal + tax + shipping;
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -160,6 +175,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
+    console.log("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
+    
     // Validate stock
     if (product.stock < quantity) {
       toast.error("Not enough stock available", {
@@ -169,9 +186,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     setItems((prev) => {
+      console.log("[CartContext] setItems called, prev items:", prev.length);
       const existingItem = prev.find((item) => item.productId === product.id);
 
       if (existingItem) {
+        console.log("[CartContext] Item already in cart, updating quantity");
         // Check if combined quantity exceeds stock
         const newQuantity = existingItem.quantity + quantity;
         if (newQuantity > product.stock) {
@@ -182,29 +201,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Update existing item quantity
-        return prev.map((item) =>
+        const updated = prev.map((item) =>
           item.productId === product.id
             ? { ...item, quantity: newQuantity }
             : item
         );
+        console.log("[CartContext] Updated cart:", updated.length);
+        return updated;
       }
 
-      // Add new item with full product details
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          slug: product.slug,
-          stock: product.stock,
-          grower: product.grower,
-          unit: product.unit,
-          comparePrice: product.comparePrice,
-          quantity,
-        },
-      ];
+      // Add new item with full product details (sanitize optional fields)
+      const newItem: CartItem = {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        slug: product.slug,
+        stock: product.stock,
+        quantity,
+      };
+
+      // Only include optional fields if they have values
+      if (product.grower !== undefined && product.grower !== null) {
+        newItem.grower = product.grower;
+      }
+      if (product.unit !== undefined && product.unit !== null) {
+        newItem.unit = product.unit;
+      }
+      if (product.comparePrice !== undefined && product.comparePrice !== null) {
+        newItem.comparePrice = product.comparePrice;
+      }
+
+      console.log("[CartContext] Adding new item:", newItem);
+      const newCart = [...prev, newItem];
+      console.log("[CartContext] New cart size:", newCart.length);
+      return newCart;
     });
 
     toast.success(`${product.name} added to cart!`, {
@@ -256,6 +287,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, user?.id]);
 
+  const removeVendorItems = useCallback((vendorName: string) => {
+    setItems((prev) => {
+      const remainingItems = prev.filter((item) => {
+        const itemVendor = item.grower || "MASH";
+        return itemVendor !== vendorName;
+      });
+      
+      const removedCount = prev.length - remainingItems.length;
+      if (removedCount > 0) {
+        toast.success(`${removedCount} item(s) from ${vendorName} removed from cart`);
+      }
+      
+      return remainingItems;
+    });
+  }, []);
+
   const isInCart = (productId: string): boolean => {
     return items.some((item) => item.productId === productId);
   };
@@ -274,6 +321,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeFromCart,
     updateQuantity,
     clearCart,
+    removeVendorItems,
     isInCart,
     getItemQuantity,
   };

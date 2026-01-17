@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * Signup Page - Firebase Authentication
+ * Signup Page - Backend Email/Password Registration
  * 
- * Creates new user accounts with Firebase Auth.
- * Sends email verification automatically.
+ * Creates new user accounts via the NestJS backend.
+ * Sends 6-digit verification code to email.
+ * Redirects to verification page after successful registration.
  */
 
 import React, { useState } from "react";
@@ -13,13 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { User, Eye, EyeOff, Check, X as XIcon, Mail, Loader2 } from "lucide-react";
+import { User, Eye, EyeOff, Check, X as XIcon, Mail } from "lucide-react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { AuthApi } from "@/lib/api/auth";
+import { generateUsername, generateUniqueUsername } from "@/lib/utils/username";
+import { getDiceBearAvatar } from "@/lib/avatar";
 
 const signupSchema = z
   .object({
@@ -54,7 +57,6 @@ const getPasswordRequirements = (password: string) => {
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signUpWithEmail } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
@@ -81,20 +83,113 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
-      // Create user with Firebase Auth
-      const displayName = `${data.firstName} ${data.lastName}`;
-      await signUpWithEmail(data.email, data.password, displayName);
-
-      // Show success state
-      setRegisteredEmail(data.email);
-      setRegistrationSuccess(true);
+      // Generate username from email only (simple extraction, no validation)
+      const username = generateUsername(data.email);
       
-      // Note: Toast is already shown by AuthContext on success
+      // Generate DiceBear avatar URL
+      const avatarUrl = getDiceBearAvatar(username);
+      
+      // Register user with backend API
+      const response = await AuthApi.register({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        username: username,
+        imageUrl: avatarUrl,
+      });
+
+      // Check if registration was successful
+      if (response.success || response.data?.success) {
+        // Store email for verification page (both keys for compatibility)
+        sessionStorage.setItem("verification-email", data.email);
+        sessionStorage.setItem("pendingVerificationEmail", data.email);
+        
+        // Show success state
+        setRegisteredEmail(data.email);
+        setRegistrationSuccess(true);
+        
+        toast.success("Account created!", {
+          description: "Check your email for the 6-digit verification code.",
+        });
+      }
     } catch (err: unknown) {
-      // Error already handled by AuthContext with toast
-      // Just log for debugging, don't show another toast
-      console.error("Registration error (handled):", err);
-      // Error toast already shown by AuthContext
+      console.error("Registration error:", err);
+      
+      // Extract error details from various error formats
+      let errorMessage = "Registration failed. Please try again.";
+      let statusCode = 500;
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        // Check if error has statusCode property
+        if ('statusCode' in err) {
+          statusCode = (err as any).statusCode;
+        }
+        // Check if error has response property (from api-client)
+        if ('response' in err) {
+          const response = (err as any).response;
+          // Backend format: { success: false, error: { message: "..." }, statusCode: 409 }
+          errorMessage = response?.error?.message || response?.message || err.message;
+          statusCode = response?.statusCode || statusCode;
+        }
+      } else if (typeof err === "object" && err !== null) {
+        const errorObj = err as { message?: string; error?: any; statusCode?: number };
+        // Extract from nested error object
+        errorMessage = errorObj.error?.message || errorObj.message || errorMessage;
+        statusCode = errorObj.statusCode || 500;
+      }
+      
+      console.log("[Signup] Extracted error:", { statusCode, errorMessage });
+      
+      // Handle specific error types based on status code
+      if (statusCode === 409 || 
+          errorMessage.toLowerCase().includes("already exists") || 
+          errorMessage.toLowerCase().includes("already registered") ||
+          errorMessage.toLowerCase().includes("already in use")) {
+        // Email already exists (409 Conflict)
+        toast.error("Email already registered", {
+          description: (
+            <div className="space-y-2">
+              <p>This email is already associated with an account.</p>
+              <div className="flex flex-col gap-1 text-xs">
+                <span>• Try <strong>signing in</strong> instead</span>
+                <span>• Use a <strong>different email</strong></span>
+                <span>• <strong>Reset your password</strong> if you forgot it</span>
+              </div>
+            </div>
+          ),
+          duration: 6000,
+          action: {
+            label: "Sign In",
+            onClick: () => router.push("/login"),
+          },
+        });
+      } else if (statusCode === 429) {
+        // Rate limit exceeded
+        toast.error("Too many attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
+        });
+      } else if (statusCode === 400) {
+        // Validation error
+        toast.error("Invalid information", {
+          description: errorMessage,
+          duration: 5000,
+        });
+      } else if (statusCode === 500) {
+        // Server error
+        toast.error("Server error", {
+          description: "Something went wrong on our end. Please try again later.",
+          duration: 5000,
+        });
+      } else {
+        // Generic error
+        toast.error("Registration failed", {
+          description: errorMessage,
+          duration: 5000,
+        });
+      }
     }
   };
 
@@ -113,20 +208,20 @@ export default function SignupPage() {
               Verify your email
             </h2>
             <p className="text-muted-foreground mb-6">
-              We&apos;ve sent a verification email to:
+              We&apos;ve sent a 6-digit verification code to:
               <br />
               <strong className="text-foreground">{registeredEmail}</strong>
             </p>
             <p className="text-sm text-muted-foreground mb-6">
-              Click the link in the email to verify your account, then you can sign in.
+              Enter the code to verify your account and complete registration.
             </p>
             <div className="space-y-3">
               <Button
                 variant="primary"
                 className="w-full"
-                onClick={() => router.push("/login?verify=true")}
+                onClick={() => router.push("/verify-otp")}
               >
-                Go to Sign In
+                Enter Verification Code
               </Button>
               <Button
                 variant="outline"

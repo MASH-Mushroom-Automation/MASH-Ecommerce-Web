@@ -230,7 +230,11 @@ export interface TransformedProduct {
   promoEndDate?: string;
   
   // E-Commerce Enhancements (Phase 9)
-  suggestedProducts?: RelatedProduct[];  // "You May Also Like"
+  /**
+   * @deprecated This field is no longer used. Use useSanitySuggestedProducts hook instead.
+   * Suggested products are now automatically fetched from the same grower/store.
+   */
+  suggestedProducts?: RelatedProduct[];  // "You May Also Like" - DEPRECATED
   complementaryProducts?: RelatedProduct[];  // "Frequently Bought Together"
   productTags?: string[];  // Smart search tags
   
@@ -262,7 +266,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
   // Handle image URL - Sanity returns full CDN URLs with image.asset->url
   const imageUrl = product.mainImage && product.mainImage !== 'null' 
     ? product.mainImage 
-    : 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image';
+    : '/mushroom-placeholder.png';
   
   const imageUrls = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images.filter(img => img && img !== 'null')
@@ -275,19 +279,9 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
         : product.category.slug.current)
     : undefined;
 
-  // Transform suggested products (filter out null references from deleted products)
-  const suggestedProducts: RelatedProduct[] | undefined = (product as any).suggestedProducts
-    ?.filter((p: any) => p !== null && p !== undefined && p._id)
-    ?.map((p: any) => ({
-      id: p._id,
-      name: p.name || 'Unknown Product',
-      slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
-      price: p.price || 0,
-      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
-      isPromo: p.isPromo || false,
-      isFeatured: p.isFeatured || false,
-    }));
-
+  // DEPRECATED: suggestedProducts field is no longer used
+  // Use useSanitySuggestedProducts hook instead for automatic suggestions from same grower
+  
   // Transform complementary products (filter out null references from deleted products)
   const complementaryProducts: RelatedProduct[] | undefined = (product as any).complementaryProducts
     ?.filter((p: any) => p !== null && p !== undefined && p._id)
@@ -296,7 +290,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
       name: p.name || 'Unknown Product',
       slug: typeof p.slug === 'string' ? p.slug : p.slug?.current || '',
       price: p.price || 0,
-      image: p.image || 'https://via.placeholder.com/400x400/F5F5DC/1E392A?text=No+Image',
+      image: p.image || '/mushroom-placeholder.png',
       isPromo: p.isPromo || false,
     }));
 
@@ -339,7 +333,8 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     promoEndDate: product.promoEndDate,
     
     // E-Commerce Enhancements
-    suggestedProducts: suggestedProducts?.length ? suggestedProducts : undefined,
+    // suggestedProducts is DEPRECATED - use useSanitySuggestedProducts hook instead
+    suggestedProducts: undefined,  // Always undefined - use hook for auto-suggestions
     complementaryProducts: complementaryProducts?.length ? complementaryProducts : undefined,
     productTags: (product as any).productTags,
     

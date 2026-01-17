@@ -10,10 +10,11 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
-import { useSanityProduct } from "@/hooks/useSanityProducts";
+import { useSanityProduct, useSanitySuggestedProducts } from "@/hooks/useSanityProducts";
 import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
+import { ProductCard } from "@/components/product";
 import type { MediaItem } from "@/types/sanity";
 
 // Placeholder image for products without images
@@ -91,6 +92,16 @@ export default function ProductDetailPage({ params }: Props) {
     rating, 
     loading: reviewsLoading 
   } = useSanityReviews(product?.id || '');
+
+  // Suggested Products hook - automatically fetch from same grower/store
+  const { 
+    suggestedProducts, 
+    loading: suggestedProductsLoading 
+  } = useSanitySuggestedProducts(
+    product?.id || '',
+    product?.grower?.id || '',
+    4  // Limit to 4 suggested products
+  );
 
   // Track product view when product loads
   React.useEffect(() => {
@@ -1141,49 +1152,73 @@ export default function ProductDetailPage({ params }: Props) {
           </section>
         )}
 
-        {/* You May Also Like Section */}
-        {product.suggestedProducts && product.suggestedProducts.length > 0 && (
+        {/* You May Also Like Section - Automatically from Same Grower */}
+        {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (
           <section className="mt-16 border-t pt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">
-              You May Also Like
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {product.suggestedProducts.slice(0, 4).map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/product/${item.slug}`}
-                  className="group"
-                >
-                  <div className="relative aspect-square bg-muted rounded-lg overflow-hidden mb-3">
-                    {item.image && item.image.startsWith('http') && (
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                      />
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                  You May Also Like
+                </h2>
+                {product.grower && (
+                  <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2">
+                    <Store className="w-4 h-4" />
+                    More products from <span className="font-semibold text-foreground">{product.grower.name}</span>
+                    {product.grower.isVerified && (
+                      <BadgeCheck className="w-4 h-4 text-primary" title="Verified Grower" />
                     )}
-                    {item.isPromo && (
-                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                        SALE
-                      </span>
-                    )}
-                    {item.isFeatured && (
-                      <span className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
-                        ⭐
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                    {item.name}
-                  </h3>
-                  <p className="text-primary font-semibold">
-                    ₱{item.price.toFixed(2)}
                   </p>
+                )}
+              </div>
+              {product.grower?.slug && (
+                <Link 
+                  href={`/grower/${product.grower.slug}`}
+                  className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors group"
+                >
+                  View All Products
+                  <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </Link>
+              )}
+            </div>
+            
+            {/* Product Grid using reusable ProductCard component */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {suggestedProducts.slice(0, 4).map((item) => (
+                <ProductCard
+                  key={item.id}
+                  id={item.id}
+                  slug={item.slug}
+                  name={item.name}
+                  farm={product.grower?.name} // Pass grower name for context
+                  price={item.price}
+                  comparePrice={item.compareAtPrice}
+                  unit={item.unit || "kg"}
+                  image={item.image || "/mushroom-placeholder.png"}
+                  images={item.images}
+                  inStock={item.isAvailable && (item.stock ?? 0) > 0}
+                  stock={item.stock}
+                  tags={[
+                    ...(item.isFeatured ? ["Featured"] : []),
+                    ...(item.isPromo ? ["Sale"] : []),
+                    ...(item.productTags || []),
+                  ]}
+                  description={item.description}
+                />
               ))}
             </div>
+
+            {/* Mobile: View All Link */}
+            {product.grower?.slug && (
+              <div className="mt-6 md:hidden text-center">
+                <Link 
+                  href={`/grower/${product.grower.slug}`}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                >
+                  View All Products from {product.grower.name}
+                  <ExternalLink className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </section>
         )}
 

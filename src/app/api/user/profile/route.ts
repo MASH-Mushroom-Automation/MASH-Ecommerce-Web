@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Call real backend API
     const response = await apiRequest<ApiResponse<UserProfile>>(
-      "/api/users/profile",
+      "/users/profile",
       { method: "GET" }
     );
 
@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest) {
 
     // Call real backend API
     const response = await apiRequest<ApiResponse<UserProfile>>(
-      "/api/users/profile",
+      "/users/profile",
       {
         method: "PUT",
         body: JSON.stringify(body),

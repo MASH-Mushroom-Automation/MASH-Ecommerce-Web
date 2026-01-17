@@ -9,7 +9,6 @@ export {
   auth,
   // Google OAuth
   signInWithGoogle,
-  getGoogleRedirectResult,
   // Email/Password
   createUserWithEmail,
   signInWithEmail,

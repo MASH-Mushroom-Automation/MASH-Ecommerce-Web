@@ -1,5 +1,5 @@
 import {defineField, defineType} from 'sanity'
-import {DocumentTextIcon} from '@sanity/icons'
+import {DocumentTextIcon, BookIcon} from '@sanity/icons'
 
 /**
  * Recipe Schema - Mushroom Cooking Recipes
@@ -320,7 +320,7 @@ export const recipe = defineType({
               return {
                 title: title || 'Untitled Video',
                 subtitle: videoId ? `youtu.be/${videoId}` : 'No video ID',
-                media: BookOpenIcon,
+                media: BookIcon,
               }
             },
           },

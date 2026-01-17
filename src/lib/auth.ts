@@ -1,9 +1,25 @@
 import { signOutFirebase } from "@/lib/firebase";
 
+// API Base URL for backend calls
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
+
 // Utility to check if user is authenticated (client-side)
 export function isAuthenticated(): boolean {
   if (typeof document === "undefined") return false;
   return document.cookie.includes("auth-token=");
+}
+
+// Get auth token from cookie
+export function getAuthToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/auth-token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Get refresh token from localStorage
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refreshToken");
 }
 
 // Set auth token cookie (optionally persistent via Max-Age)
@@ -78,5 +94,109 @@ export function logout() {
   } catch {
     // ignore storage errors (e.g., disabled storage)
     console.error("❌ [Auth] Error clearing storage");
+  }
+}
+
+/**
+ * Logout from all devices/sessions
+ * 
+ * Phase 5: Session Management & Security
+ * 
+ * This function:
+ * 1. Calls backend to invalidate all refresh tokens
+ * 2. Clears local auth state
+ * 3. Signs out from Firebase
+ * 
+ * @returns Promise<boolean> - True if backend logout succeeded
+ */
+export async function logoutEverywhere(): Promise<boolean> {
+  console.log("🔴 [Auth] logoutEverywhere called - invalidating all sessions");
+
+  const token = getAuthToken();
+  const refreshToken = getRefreshToken();
+
+  // Try to call backend logout endpoint
+  let backendLogoutSuccess = false;
+  
+  if (token || refreshToken) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          refreshToken: refreshToken || undefined,
+          logoutAll: true, // Invalidate all sessions
+        }),
+      });
+
+      if (response.ok) {
+        console.log("🟢 [Auth] Backend logout successful - all sessions invalidated");
+        backendLogoutSuccess = true;
+      } else {
+        console.warn("⚠️ [Auth] Backend logout failed:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ [Auth] Backend logout error:", error);
+      // Continue with local logout even if backend fails
+    }
+  }
+
+  // Always clear local state
+  logout();
+
+  return backendLogoutSuccess;
+}
+
+/**
+ * Refresh the access token using the refresh token
+ * 
+ * @returns Promise<string | null> - New access token or null if refresh failed
+ */
+export async function refreshToken(): Promise<string | null> {
+  const currentRefreshToken = getRefreshToken();
+  
+  if (!currentRefreshToken) {
+    console.log("[Auth] No refresh token available");
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken: currentRefreshToken }),
+    });
+
+    if (!response.ok) {
+      console.error("[Auth] Token refresh failed:", response.status);
+      if (response.status === 401 || response.status === 403) {
+        // Refresh token is invalid - logout
+        logout();
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    const newAccessToken = data.data?.accessToken || data.accessToken;
+    const newRefreshToken = data.data?.refreshToken || data.refreshToken;
+
+    if (newAccessToken) {
+      setAuthToken(newAccessToken, true);
+    }
+
+    if (newRefreshToken) {
+      localStorage.setItem("refreshToken", newRefreshToken);
+    }
+
+    console.log("[Auth] Token refresh successful");
+    return newAccessToken;
+  } catch (error) {
+    console.error("[Auth] Token refresh error:", error);
+    return null;
   }
 }

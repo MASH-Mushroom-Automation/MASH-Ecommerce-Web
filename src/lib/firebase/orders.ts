@@ -115,21 +115,33 @@ export interface FirestoreOrder {
 
   // Lalamove Tracking (Phase 8)
   lalamoveTracking?: {
+    orderId: string; // Lalamove order ID
+    quotationId: string; // Lalamove quotation ID
     status: string;
     shareLink?: string;
-    driverId?: string;
-    driverName?: string;
-    driverPhone?: string;
-    driverPlateNumber?: string;
-    driverPhoto?: string;
-    driverLocation?: {
-      lat: number;
-      lng: number;
-      updatedAt: Timestamp;
+    driver?: {
+      id: string;
+      name: string;
+      phone: string;
+      plateNumber: string;
+      photo?: string;
+      coordinates?: {
+        lat: number;
+        lng: number;
+        updatedAt: Date;
+      };
     };
-    pickupEta?: string;
-    deliveryEta?: string;
-    lastUpdated?: Timestamp;
+    eta?: {
+      minutes: number;
+      distance: number; // in km
+    };
+    timeline?: Array<{
+      status: string;
+      timestamp: Date;
+      note?: string;
+    }>;
+    createdAt: Date;
+    lastUpdated: Date;
   };
 
   // Payment
@@ -513,6 +525,12 @@ export class FirebaseOrdersService {
    */
   static async approveOrder(orderId: string, adminId: string): Promise<void> {
     try {
+      // Validate inputs
+      if (!adminId || adminId === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid adminId, using default");
+        adminId = "system";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
 
       await runTransaction(db, async (transaction) => {
@@ -527,7 +545,7 @@ export class FirebaseOrdersService {
         }
 
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
+          ...(order.statusHistory || []),
           {
             status: "approved",
             timestamp: Timestamp.now(),
@@ -536,13 +554,16 @@ export class FirebaseOrdersService {
           },
         ];
 
-        transaction.update(orderRef, {
+        // Only include defined fields
+        const updateData: any = {
           status: "approved",
           statusHistory: newHistory,
           approvedBy: adminId,
           approvedAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order approved:", orderId);
@@ -561,6 +582,15 @@ export class FirebaseOrdersService {
     reason: string
   ): Promise<void> {
     try {
+      // Validate inputs
+      if (!adminId || adminId === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid adminId, using default");
+        adminId = "system";
+      }
+      if (!reason || reason === 'undefined') {
+        reason = "Order rejected by seller";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
 
       await runTransaction(db, async (transaction) => {
@@ -572,7 +602,7 @@ export class FirebaseOrdersService {
         const order = orderSnap.data() as FirestoreOrder;
 
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
+          ...(order.statusHistory || []),
           {
             status: "rejected",
             timestamp: Timestamp.now(),
@@ -581,12 +611,15 @@ export class FirebaseOrdersService {
           },
         ];
 
-        transaction.update(orderRef, {
+        // Only include defined fields
+        const updateData: any = {
           status: "rejected",
           statusHistory: newHistory,
           rejectionReason: reason,
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order rejected:", orderId);
@@ -606,6 +639,12 @@ export class FirebaseOrdersService {
     note?: string
   ): Promise<void> {
     try {
+      // Validate inputs
+      if (!updatedBy || updatedBy === 'undefined') {
+        console.warn("[FirebaseOrdersService] Invalid updatedBy, using default");
+        updatedBy = "system";
+      }
+
       const orderRef = doc(db, this.COLLECTION, orderId);
       
       // First, get order info before transaction
@@ -625,21 +664,31 @@ export class FirebaseOrdersService {
 
         const order = orderSnapInTx.data() as FirestoreOrder;
 
+        // Build status history entry without undefined fields
+        const historyEntry: StatusHistoryEntry = {
+          status: newStatus,
+          timestamp: Timestamp.now(),
+          updatedBy: updatedBy || "system",
+        };
+        
+        // Only add note if it's defined
+        if (note) {
+          historyEntry.note = note;
+        }
+
         const newHistory: StatusHistoryEntry[] = [
-          ...order.statusHistory,
-          {
-            status: newStatus,
-            timestamp: Timestamp.now(),
-            updatedBy,
-            note,
-          },
+          ...(order.statusHistory || []),
+          historyEntry,
         ];
 
-        transaction.update(orderRef, {
+        // Build update data with only defined fields
+        const updateData: any = {
           status: newStatus,
           statusHistory: newHistory,
           updatedAt: Timestamp.now(),
-        });
+        };
+
+        transaction.update(orderRef, updateData);
       });
 
       console.log("[FirebaseOrdersService] Order status updated:", {
@@ -661,6 +710,35 @@ export class FirebaseOrdersService {
       console.error("[FirebaseOrdersService] Error updating order status:", error);
       throw error;
     }
+  }
+
+  /**
+   * Listen to realtime order updates
+   * Returns unsubscribe function to stop listening
+   */
+  static listenToOrder(
+    orderId: string,
+    callback: (order: FirestoreOrder | null) => void
+  ): () => void {
+    const orderRef = doc(db, this.COLLECTION, orderId);
+    
+    const unsubscribe = onSnapshot(
+      orderRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const order = { ...snapshot.data(), id: snapshot.id } as FirestoreOrder;
+          callback(order);
+        } else {
+          callback(null);
+        }
+      },
+      (error) => {
+        console.error("[FirebaseOrdersService] Realtime listener error:", error);
+        callback(null);
+      }
+    );
+
+    return unsubscribe;
   }
 
   /**
@@ -733,15 +811,23 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
+      
+      // Build lalamove tracking object without undefined fields
+      const lalamoveTracking: any = {
+        status: "ASSIGNING_DRIVER",
+        lastUpdated: Timestamp.now(),
+      };
+      
+      // Only add shareLink if defined
+      if (shareLink) {
+        lalamoveTracking.shareLink = shareLink;
+      }
+      
       await setDoc(
         orderRef,
         {
           lalamoveOrderId,
-          lalamoveTracking: {
-            status: "ASSIGNING_DRIVER",
-            shareLink,
-            lastUpdated: Timestamp.now(),
-          },
+          lalamoveTracking,
           updatedAt: Timestamp.now(),
         },
         { merge: true }
@@ -764,14 +850,23 @@ export class FirebaseOrdersService {
     orderId: string,
     tracking: {
       status?: string;
-      driverId?: string;
-      driverName?: string;
-      driverPhone?: string;
-      driverPlateNumber?: string;
-      driverPhoto?: string;
-      driverLocation?: { lat: number; lng: number };
-      pickupEta?: string;
-      deliveryEta?: string;
+      driver?: {
+        id: string;
+        name: string;
+        phone: string;
+        plateNumber: string;
+        photo?: string;
+        coordinates?: {
+          lat: number;
+          lng: number;
+          updatedAt: Date;
+        };
+      };
+      eta?: {
+        minutes: number;
+        distance: number;
+      };
+      lastUpdated?: Date;
     }
   ): Promise<void> {
     try {
@@ -780,54 +875,40 @@ export class FirebaseOrdersService {
         updatedAt: Timestamp.now(),
       };
 
-      // Build tracking update
-      const trackingUpdate: Record<string, unknown> = {
-        lastUpdated: Timestamp.now(),
-      };
-
-      if (tracking.status) trackingUpdate.status = tracking.status;
-      if (tracking.driverId) trackingUpdate.driverId = tracking.driverId;
-      if (tracking.driverName) trackingUpdate.driverName = tracking.driverName;
-      if (tracking.driverPhone) trackingUpdate.driverPhone = tracking.driverPhone;
-      if (tracking.driverPlateNumber) trackingUpdate.driverPlateNumber = tracking.driverPlateNumber;
-      if (tracking.driverPhoto) trackingUpdate.driverPhoto = tracking.driverPhoto;
-      if (tracking.pickupEta) trackingUpdate.pickupEta = tracking.pickupEta;
-      if (tracking.deliveryEta) trackingUpdate.deliveryEta = tracking.deliveryEta;
-      if (tracking.driverLocation) {
-        trackingUpdate.driverLocation = {
-          lat: tracking.driverLocation.lat,
-          lng: tracking.driverLocation.lng,
-          updatedAt: Timestamp.now(),
-        };
-      }
-
-      // Merge with existing tracking
+      // Get existing order for merging
       const orderSnap = await getDoc(orderRef);
       let existingOrder: FirestoreOrder | null = null;
       
       if (orderSnap.exists()) {
         existingOrder = orderSnap.data() as FirestoreOrder;
-        updateData.lalamoveTracking = {
-          ...existingOrder.lalamoveTracking,
-          ...trackingUpdate,
-        };
-      } else {
-        updateData.lalamoveTracking = trackingUpdate;
       }
+
+      // Build tracking update - preserve orderId and quotationId
+      const trackingUpdate: any = {
+        ...existingOrder?.lalamoveTracking,
+        lastUpdated: new Date(),
+      };
+
+      if (tracking.status) trackingUpdate.status = tracking.status;
+      if (tracking.driver) trackingUpdate.driver = tracking.driver;
+      if (tracking.eta) trackingUpdate.eta = tracking.eta;
+
+      updateData.lalamoveTracking = trackingUpdate;
 
       await setDoc(orderRef, updateData, { merge: true });
 
       console.log("[FirebaseOrdersService] Lalamove tracking updated:", {
         orderId,
         status: tracking.status,
+        hasDriver: !!tracking.driver,
       });
 
       // Send notification when driver is assigned
-      if (tracking.driverName && existingOrder) {
+      if (tracking.driver && existingOrder) {
         try {
           const template = NotificationTemplates.driverAssigned(
             existingOrder.orderNumber,
-            tracking.driverName
+            tracking.driver.name
           );
           await FirebaseNotificationsService.createOrderNotification(
             existingOrder.userId,

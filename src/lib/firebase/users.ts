@@ -187,6 +187,7 @@ export const FirebaseUserService = {
 
   /**
    * Update user profile
+   * Creates document if it doesn't exist (using setDoc with merge: true)
    */
   async updateProfile(
     userId: string,
@@ -207,7 +208,8 @@ export const FirebaseUserService = {
         }
       });
 
-      await updateDoc(userRef, updateData);
+      // Use setDoc with merge: true to create document if it doesn't exist
+      await setDoc(userRef, updateData, { merge: true });
       return true;
     } catch (error) {
       console.error("[FirebaseUserService] Update error:", error);

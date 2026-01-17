@@ -1,24 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -27,445 +13,946 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
+  AlertCircle,
   ArrowLeft,
-  Package,
   CheckCircle,
   XCircle,
   Clock,
-  User,
+  Package,
+  Truck,
+  MapPin,
   Phone,
   Mail,
-  MapPin,
-  CreditCard,
-  MessageSquare,
-  CalendarDays,
-  Handshake,
+  User,
+  Loader2,
+  Info,
 } from "lucide-react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useSellerOrderDetail } from "@/hooks/useSeller";
-import { SellerOrderStatus, SellerOrderDetail as OrderDetailType } from "@/types/api";
+import { useFirebaseOrder } from "@/hooks/useFirebaseOrders";
+import { FirebaseOrdersService } from "@/lib/firebase/orders";
+import { format } from "date-fns";
 import { toast } from "sonner";
+import { useState, useEffect, useRef } from "react";
+import { LALAMOVE_VEHICLES, calculateEstimate } from "@/lib/lalamove/vehicle-types";
+import { useAuth } from "@/contexts/AuthContext";
+import LalamoveTrackingTimeline from "@/components/seller/LalamoveTrackingTimeline";
 
-// Mock fallback data for development
-const MOCK_ORDER_FALLBACK: OrderDetailType = {
-  id: "ORD-001",
-  date: "2025-10-20",
-  status: "PENDING",
-  customer: {
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+63 912 345 6789",
-    address: "123 Main Street, Barangay San Antonio, Quezon City, Metro Manila 1105",
+const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
+// MASH Pickup Location
+const MASH_PICKUP_LOCATION = {
+  lat: 14.6760,
+  lng: 121.0437,
+  address: "MASH Farm, Quezon City, Metro Manila",
+};
+
+// Status configuration
+const STATUS_CONFIG = {
+  pending_approval: {
+    label: "Pending Approval",
+    color: "text-yellow-700",
+    bgColor: "bg-yellow-50 border-yellow-200",
+    icon: AlertCircle,
   },
-  items: [
-    { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
-    { id: "P-205", name: "Oyster Mushroom Growing Kit", quantity: 1, price: 150, total: 150 },
-  ],
-  coordination: {
-    method: "Meet-up",
-    location: "MASH Farm Hub - Quezon City",
-    preferredDate: "2025-10-22",
-    preferredTime: "10:00 AM",
-    contactPerson: "John Doe",
-    contactNumber: "+63 912 345 6789",
-    instructions: "Bring your reusable bag for pickup.",
+  approved: {
+    label: "Approved",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50 border-blue-200",
+    icon: CheckCircle,
   },
-  payment: {
-    method: "GCash",
-    status: "Paid",
-    transactionId: "TXN-ORD-001-20251020",
+  rejected: {
+    label: "Rejected",
+    color: "text-red-700",
+    bgColor: "bg-red-50 border-red-200",
+    icon: XCircle,
   },
-  totals: {
-    subtotal: 450,
-    coordinationFee: 0,
-    total: 450,
+  processing: {
+    label: "Processing",
+    color: "text-purple-700",
+    bgColor: "bg-purple-50 border-purple-200",
+    icon: Package,
   },
-  notes: "Buyer prefers morning pickup and will message before arrival.",
-  timeline: [
-    {
-      status: "PENDING",
-      date: "2025-10-20T10:30:00Z",
-      description: "Order received and waiting for seller confirmation",
-    },
-  ],
-  createdAt: "2025-10-20T10:30:00Z",
-  updatedAt: "2025-10-20T10:30:00Z",
-};
+  ready_for_pickup: {
+    label: "Ready for Pickup",
+    color: "text-cyan-700",
+    bgColor: "bg-cyan-50 border-cyan-200",
+    icon: MapPin,
+  },
+  shipped: {
+    label: "Shipped",
+    color: "text-indigo-700",
+    bgColor: "bg-indigo-50 border-indigo-200",
+    icon: Truck,
+  },
+  delivered: {
+    label: "Delivered",
+    color: "text-green-700",
+    bgColor: "bg-green-50 border-green-200",
+    icon: CheckCircle,
+  },
+  completed: {
+    label: "Completed",
+    color: "text-gray-700",
+    bgColor: "bg-gray-50 border-gray-200",
+    icon: CheckCircle,
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "text-red-700",
+    bgColor: "bg-red-50 border-red-200",
+    icon: XCircle,
+  },
+} as const;
 
-const STATUS_OPTIONS: { value: SellerOrderStatus; label: string }[] = [
-  { value: "PENDING", label: "Pending" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "PROCESSING", label: "Processing" },
-  { value: "SHIPPED", label: "Shipped" },
-  { value: "DELIVERED", label: "Delivered" },
-  { value: "CANCELLED", label: "Cancelled" },
-  { value: "REFUNDED", label: "Refunded" },
-];
-
-const statusColorMap: Record<SellerOrderStatus, string> = {
-  PENDING: "bg-yellow-100/10 text-yellow-700 dark:text-yellow-600 border border-yellow-300",
-  CONFIRMED: "bg-blue-100/10 text-blue-700 dark:text-blue-600 border border-blue-300",
-  PROCESSING: "bg-purple-100/10 text-purple-700 dark:text-purple-600 border border-purple-300",
-  SHIPPED: "bg-indigo-100/10 text-indigo-700 dark:text-indigo-600 border border-indigo-300",
-  DELIVERED: "bg-green-100/10 text-green-700 dark:text-green-600 border border-green-300",
-  CANCELLED: "",
-  REFUNDED: "bg-muted text-muted-foreground border border-border",
-};
-
-const getStatusIcon = (status: SellerOrderStatus) => {
-  switch (status) {
-    case "PENDING":
-      return <Clock className="h-4 w-4" />;
-    case "CONFIRMED":
-      return <Package className="h-4 w-4" />;
-    case "PROCESSING":
-      return <Package className="h-4 w-4" />;
-    case "SHIPPED":
-      return <Handshake className="h-4 w-4" />;
-    case "DELIVERED":
-      return <CheckCircle className="h-4 w-4" />;
-    case "CANCELLED":
-      return <XCircle className="h-4 w-4" />;
-    case "REFUNDED":
-      return <XCircle className="h-4 w-4" />;
-    default:
-      return <Clock className="h-4 w-4" />;
-  }
-};
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
-const formatDateTime = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 2,
-  }).format(value);
-
-export default function OrderDetails() {
+export default function SellerOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const orderId = params.id as string;
 
-  const { order, loading, error, updateStatus, refetch } = useSellerOrderDetail(orderId);
-  const [newStatus, setNewStatus] = useState<SellerOrderStatus>("PENDING");
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { order, loading, error } = useFirebaseOrder(orderId);
+  const [actioning, setActioning] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<string>("sedan");
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [realtimeOrder, setRealtimeOrder] = useState(order);
+  const riderMarkerRef = useRef<any>(null); // Store rider marker reference
 
+  // Load Google Maps Script
   useEffect(() => {
-    if (order) {
-      setNewStatus(order.status);
+    // Check if Google Maps is already loaded
+    if ((window as any).google?.maps) {
+      setMapLoaded(true);
+      return;
     }
-  }, [order]);
 
-  const handleStatusUpdate = async () => {
-    if (!displayOrder) return;
-    setIsUpdating(true);
+    // Check if script is already being loaded
+    const existingScript = document.querySelector(
+      'script[src*="maps.googleapis.com/maps/api/js"]'
+    );
+    
+    if (existingScript) {
+      existingScript.addEventListener("load", () => setMapLoaded(true));
+      return;
+    }
+
+    // Load the script
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,geometry`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setMapLoaded(true);
+    script.onerror = () => {
+      console.error("Failed to load Google Maps");
+      toast.error("Failed to load map");
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  // Firebase Realtime Listener - Phase 3
+  useEffect(() => {
+    if (!orderId) return;
+
+    console.log("[Realtime] Setting up Firebase listener for order:", orderId);
+
+    const unsubscribe = FirebaseOrdersService.listenToOrder(orderId, (updatedOrder) => {
+      if (updatedOrder) {
+        console.log("[Realtime] Order updated:", {
+          status: updatedOrder.status,
+          lalamoveStatus: updatedOrder.lalamoveTracking?.status,
+          riderCoords: updatedOrder.lalamoveTracking?.driver?.coordinates,
+        });
+        setRealtimeOrder(updatedOrder);
+      }
+    });
+
+    return () => {
+      console.log("[Realtime] Cleaning up listener");
+      unsubscribe();
+    };
+  }, [orderId]);
+
+  // Polling Fallback - Phase 3
+  useEffect(() => {
+    if (!realtimeOrder?.lalamoveTracking?.orderId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log("[Polling] Checking Lalamove status...");
+        const response = await fetch(`/api/lalamove/order-details?orderId=${realtimeOrder.lalamoveTracking!.orderId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[Polling] Lalamove status:", data.status);
+        }
+      } catch (error) {
+        console.error("[Polling] Failed to fetch Lalamove status:", error);
+      }
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [realtimeOrder?.lalamoveTracking?.orderId]);
+
+  // Initialize map when order and script are loaded
+  useEffect(() => {
+    const currentOrder = realtimeOrder || order;
+    if (!mapLoaded || !currentOrder || currentOrder.deliveryMethod !== "lalamove") return;
+
+    const initMap = () => {
+      const mapElement = document.getElementById("order-map");
+      if (!mapElement || !(window as any).google) return;
+
+      const google = (window as any).google;
+      const pickup = MASH_PICKUP_LOCATION;
+      const dropoff = currentOrder.deliveryAddress;
+
+      if (!dropoff?.lat || !dropoff?.lng) return;
+
+      // Initialize map
+      const map = new google.maps.Map(mapElement, {
+        zoom: 12,
+        center: { lat: pickup.lat, lng: pickup.lng },
+        mapTypeControl: false,
+        fullscreenControl: true,
+        streetViewControl: false,
+      });
+
+      // Pickup marker
+      new google.maps.Marker({
+        position: { lat: pickup.lat, lng: pickup.lng },
+        map: map,
+        title: "Pickup: MASH Farm",
+        label: {
+          text: "P",
+          color: "white",
+          fontWeight: "bold",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#10b981",
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 3,
+          scale: 12,
+        },
+      });
+
+      // Dropoff marker
+      new google.maps.Marker({
+        position: { lat: dropoff.lat, lng: dropoff.lng },
+        map: map,
+        title: `Delivery: ${dropoff.address}`,
+        label: {
+          text: "D",
+          color: "white",
+          fontWeight: "bold",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#3b82f6",
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 3,
+          scale: 12,
+        },
+      });
+
+      // Draw route
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true,
+        polylineOptions: {
+          strokeColor: "#3b82f6",
+          strokeWeight: 4,
+          strokeOpacity: 0.7,
+        },
+      });
+
+      directionsService.route(
+        {
+          origin: { lat: pickup.lat, lng: pickup.lng },
+          destination: { lat: dropoff.lat, lng: dropoff.lng },
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result: any, status: any) => {
+          if (status === "OK") {
+            directionsRenderer.setDirections(result);
+          }
+        }
+      );
+
+      // Store map reference for rider marker updates
+      (window as any).lalamoveOrderMap = map;
+    };
+
+    initMap();
+  }, [mapLoaded, order, realtimeOrder]);
+
+  // Update rider marker when tracking data changes
+  useEffect(() => {
+    const currentOrder = realtimeOrder || order;
+    if (!mapLoaded || !currentOrder?.lalamoveTracking?.driver?.coordinates) return;
+
+    const google = (window as any).google;
+    const map = (window as any).lalamoveOrderMap;
+    if (!google || !map) return;
+
+    const riderCoords = currentOrder.lalamoveTracking.driver.coordinates;
+
+    // Create or update rider marker
+    if (!riderMarkerRef.current) {
+      riderMarkerRef.current = new google.maps.Marker({
+        position: { lat: riderCoords.lat, lng: riderCoords.lng },
+        map: map,
+        title: `Rider: ${currentOrder.lalamoveTracking.driver.name}`,
+        label: {
+          text: "R",
+          color: "white",
+          fontWeight: "bold",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#f97316", // Orange
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 3,
+          scale: 12,
+        },
+        animation: google.maps.Animation.DROP,
+      });
+    } else {
+      // Smoothly animate marker to new position
+      riderMarkerRef.current.setPosition({
+        lat: riderCoords.lat,
+        lng: riderCoords.lng,
+      });
+    }
+
+    // Auto-center map on rider (optional - can be toggled)
+    if (currentOrder.lalamoveTracking.status === "ON_GOING" || currentOrder.lalamoveTracking.status === "PICKED_UP") {
+      map.panTo({ lat: riderCoords.lat, lng: riderCoords.lng });
+    }
+  }, [mapLoaded, order?.lalamoveTracking?.driver?.coordinates, realtimeOrder?.lalamoveTracking?.driver?.coordinates]);
+
+  const handleApproveOrder = async () => {
+    if (!order) return;
+    setActioning(true);
+    try {
+      await FirebaseOrdersService.updateOrderStatus(
+        order.id,
+        "approved",
+        user?.id || "seller-admin"
+      );
+      toast.success("Order approved successfully");
+    } catch (error) {
+      toast.error("Failed to approve order");
+      console.error(error);
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  const handleRejectOrder = async () => {
+    if (!order) return;
+    const reason = prompt("Please provide a reason for rejection:");
+    if (!reason) return;
+
+    setActioning(true);
+    try {
+      await FirebaseOrdersService.rejectOrder(order.id, user?.id || "seller-admin", reason);
+      toast.success("Order rejected");
+    } catch (error) {
+      toast.error("Failed to reject order");
+      console.error(error);
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!order) return;
+    setActioning(true);
+    try {
+      // Phase 5: Auto-create Lalamove delivery when marking as "processing"
+      if (newStatus === "processing" && order.deliveryMethod === "lalamove") {
+        // Check if Lalamove order already exists
+        if (order.lalamoveOrderId) {
+          toast.info("Lalamove delivery already created");
+        } else if (!order.lalamoveQuotationId) {
+          toast.error("No delivery quotation found. Please create a quote first.");
+          setActioning(false);
+          return;
+        } else {
+          // Create Lalamove delivery order
+          toast.loading("Creating Lalamove delivery...", { id: "lalamove-create" });
+          
+          try {
+            const response = await fetch("/api/lalamove/create-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: order.id,
+                quotationId: order.lalamoveQuotationId,
+                sender: {
+                  name: "MASH Farm",
+                  phone: "+639497536575", // MASH contact number
+                },
+                recipient: {
+                  name: order.deliveryAddress?.name || order.userName,
+                  phone: order.deliveryAddress?.phone || order.userPhone,
+                  notes: order.notes || "Please handle with care - fresh mushrooms",
+                },
+              }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.message || "Failed to create delivery");
+            }
+
+            toast.success("Lalamove delivery created successfully!", { 
+              id: "lalamove-create",
+              duration: 5000 
+            });
+
+            console.log("[Lalamove] Order created:", result.data);
+          } catch (lalamoveError: any) {
+            toast.error(`Lalamove error: ${lalamoveError.message}`, { 
+              id: "lalamove-create",
+              duration: 7000 
+            });
+            console.error("[Lalamove] Creation failed:", lalamoveError);
+            
+            // Ask if seller wants to continue without Lalamove
+            const continueAnyway = confirm(
+              "Lalamove delivery creation failed. Do you want to mark as processing anyway?\n\n" +
+              "You can manually create the delivery later."
+            );
+            
+            if (!continueAnyway) {
+              setActioning(false);
+              return;
+            }
+          }
+        }
+      }
+
+      // Update order status
+      await FirebaseOrdersService.updateOrderStatus(
+        order.id,
+        newStatus as any,
+        user?.id || "seller-admin"
+      );
+      toast.success(`Order status updated to ${newStatus.replace("_", " ")}`);
+    } catch (error) {
+      toast.error("Failed to update order status");
+      console.error(error);
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  // Manual refresh Lalamove tracking - Phase 3
+  const handleRefreshTracking = async () => {
+    const currentOrder = realtimeOrder || order;
+    if (!currentOrder?.lalamoveTracking?.orderId) {
+      toast.error("No Lalamove delivery found");
+      return;
+    }
 
     try {
-      await updateStatus(newStatus);
-      toast.success("Order status updated successfully");
-      setIsDialogOpen(false);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update status";
-      toast.error(message);
-    } finally {
-      setIsUpdating(false);
+      const response = await fetch(
+        `/api/lalamove/order-details?orderId=${currentOrder.lalamoveTracking.orderId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch Lalamove details");
+      }
+
+      const result = await response.json();
+      const data = result.data;
+      console.log("[Manual Refresh] Latest Lalamove data:", data);
+
+      // Fetch driver details if driver is assigned
+      let driverInfo = undefined;
+      if (data.driverId) {
+        try {
+          const driverResponse = await fetch(
+            `/api/lalamove/driver-details?orderId=${currentOrder.lalamoveTracking.orderId}&driverId=${data.driverId}`
+          );
+          if (driverResponse.ok) {
+            const driverResult = await driverResponse.json();
+            driverInfo = driverResult.data;
+          }
+        } catch (error) {
+          console.warn("[Manual Refresh] Could not fetch driver details:", error);
+        }
+      }
+
+      // Update Firebase with latest tracking data
+      await FirebaseOrdersService.updateLalamoveTracking(currentOrder.id, {
+        status: data.status,
+        driver: driverInfo ? {
+          id: driverInfo.driverId || data.driverId,
+          name: driverInfo.name || "Unknown",
+          phone: driverInfo.phone || "",
+          plateNumber: driverInfo.plateNumber || "",
+          photo: driverInfo.photo || undefined,
+          coordinates: driverInfo.coordinates ? {
+            lat: parseFloat(driverInfo.coordinates.lat),
+            lng: parseFloat(driverInfo.coordinates.lng),
+            updatedAt: new Date(driverInfo.coordinates.updatedAt),
+          } : undefined,
+        } : undefined,
+        lastUpdated: new Date(),
+      });
+
+      toast.success("Tracking updated successfully");
+    } catch (error) {
+      console.error("[Manual Refresh] Error:", error);
+      throw error; // Re-throw to be caught by component
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
-  // Use fallback data if API fails or order not found
-  const displayOrder = order || (error ? MOCK_ORDER_FALLBACK : null);
-
-  if (error && !order) {
-    toast.error("Using mock data - API unavailable", { id: "api-fallback" });
-  }
-
-  if (!displayOrder) {
+  if (error || !order) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center">
-        <p className="text-muted-foreground">Order not found.</p>
-        <Button variant="outline" onClick={() => router.back()}>
-          Back to Orders
-        </Button>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-red-700">
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Order not found</h3>
+                <p className="text-sm">{error || "The order you're looking for doesn't exist."}</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/seller/orders")}
+              className="mt-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Orders
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
+
+  const statusConfig = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
+  const StatusIcon = statusConfig.icon;
+
+  // Calculate estimated cost for selected vehicle
+  const estimatedDistance = 10; // Default estimate for delivery
+  const estimatedCost = calculateEstimate(selectedVehicle, estimatedDistance);
+  const selectedVehicleData = LALAMOVE_VEHICLES.find((v) => v.id === selectedVehicle);
 
   return (
-    <div>
+    <div className="container mx-auto px-4 py-8 space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="flex items-center gap-2 mb-4"
+          size="icon"
+          onClick={() => router.push("/seller/orders")}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Orders
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Order Details - {displayOrder.id}
-          </h1>
-          <p className="text-muted-foreground">Order placed on {formatDate(displayOrder.date)}</p>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-foreground">Order Details</h1>
+          <p className="text-muted-foreground">Order #{order.id}</p>
         </div>
+        <Badge
+          variant="secondary"
+          className={`${statusConfig.color} ${statusConfig.bgColor} px-4 py-2 text-base`}
+        >
+          <StatusIcon className="h-4 w-4 mr-2" />
+          {statusConfig.label}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
+        {/* Left Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Order Status */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  {getStatusIcon(displayOrder.status)}
-                  Order Status
-                </CardTitle>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Update Status
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Update Order Status</DialogTitle>
-                      <DialogDescription>
-                        Select the new status for this displayOrder.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                      <Select
-                        value={newStatus}
-                        onValueChange={(value) =>
-                          setNewStatus(value as SellerOrderStatus)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleStatusUpdate}
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? "Updating..." : "Update Status"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Badge 
-                  variant={displayOrder.status === "CANCELLED" ? "destructive" : "outline"}
-                  className={statusColorMap[displayOrder.status] ?? "bg-muted text-muted-foreground border border-border"}
-                >
-                  {displayOrder.status}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Last updated{" "}
-                  {displayOrder.timeline.length > 0
-                    ? formatDateTime(displayOrder.timeline[displayOrder.timeline.length - 1]!.date)
-                    : formatDateTime(displayOrder.updatedAt)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Order Items */}
           <Card>
             <CardHeader>
-              <CardTitle>Order Items</CardTitle>
-              <CardDescription>
-                {displayOrder.items.length} item(s) in this order
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayOrder.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <Package className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              ID: {item.id}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.quantity}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.price)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(item.total)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Order Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Timeline</CardTitle>
-              <CardDescription>
-                Track the progress of this order
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Order Items
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {displayOrder.timeline.map((event, index) => (
-                  <div key={`${event.status}-${index}`} className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-100/10 border border-blue-300 rounded-full flex items-center justify-center flex-shrink-0">
-                      {getStatusIcon(event.status as SellerOrderStatus)}
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="flex gap-4 p-4 rounded-lg border bg-muted/20">
+                    {/* Product Image */}
+                    <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted border">
+                      <img
+                        src={item.image || PLACEHOLDER_IMAGE}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{event.status}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDateTime(event.date)}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {event.description}
+
+                    {/* Product Details */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-foreground truncate">
+                        {item.name}
+                      </h4>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <span className="text-muted-foreground">
+                          Qty: <span className="font-medium text-foreground">{item.quantity}</span>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Price: <span className="font-medium text-foreground">₱{item.price.toLocaleString()}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Item Total */}
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Total</p>
+                      <p className="text-lg font-bold text-foreground">
+                        ₱{(item.price * item.quantity).toLocaleString()}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
+
+              <Separator className="my-4" />
+
+              {/* Order Summary */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium">₱{order.subtotal.toLocaleString()}</span>
+                </div>
+                {order.deliveryFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Delivery Fee</span>
+                    <span className="font-medium">₱{order.deliveryFee.toLocaleString()}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span>₱{order.total.toLocaleString()}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Information */}
+          {order.deliveryMethod === "lalamove" && order.deliveryAddress && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Lalamove Delivery
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Map */}
+                <div className="w-full h-[400px] rounded-lg overflow-hidden border bg-muted relative">
+                  <div id="order-map" className="w-full h-full"></div>
+                  {!mapLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Route Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-green-700">
+                      <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                      Pickup Location
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-5">
+                      {MASH_PICKUP_LOCATION.address}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                      <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                      Delivery Address
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-5">
+                      {order.deliveryAddress.address}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Vehicle Selection */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-foreground">Select Vehicle Type</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {LALAMOVE_VEHICLES.map((vehicle) => {
+                      const isSelected = selectedVehicle === vehicle.id;
+                      const estimate = calculateEstimate(vehicle.id, estimatedDistance);
+
+                      return (
+                        <TooltipProvider key={vehicle.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => setSelectedVehicle(vehicle.id)}
+                                className={`
+                                  relative p-4 rounded-lg border-2 text-left transition-all
+                                  ${
+                                    isSelected
+                                      ? "border-primary bg-primary/5 shadow-md"
+                                      : "border-border hover:border-primary/50 hover:bg-muted/50"
+                                  }
+                                `}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className="text-3xl">{vehicle.image}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <h5 className="font-semibold text-sm truncate">
+                                      {vehicle.name}
+                                    </h5>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Up to {vehicle.weightLimit}kg
+                                    </p>
+                                    <p className="text-sm font-bold text-primary mt-2">
+                                      ~₱{estimate.toLocaleString()}
+                                    </p>
+                                  </div>
+                                  {isSelected && (
+                                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                                  )}
+                                </div>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <div className="space-y-2 text-xs">
+                                <p className="font-semibold">{vehicle.name}</p>
+                                <p>{vehicle.description}</p>
+                                <div className="space-y-1 pt-2 border-t">
+                                  <p><span className="font-medium">Base Fare:</span> ₱{vehicle.baseFare}</p>
+                                  <p><span className="font-medium">Per KM:</span> {vehicle.pricePerKm}</p>
+                                  <p><span className="font-medium">Add Stop:</span> ₱{vehicle.addStopFee}</p>
+                                  <p><span className="font-medium">Weight Limit:</span> {vehicle.weightLimit}kg</p>
+                                  <p><span className="font-medium">Size Limit:</span> {vehicle.sizeLimit}</p>
+                                  {vehicle.longDistanceFare && (
+                                    <p className="pt-1 border-t">
+                                      <span className="font-medium">Long Distance:</span> {vehicle.longDistanceFare}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
+                  </div>
+
+                  {selectedVehicleData && (
+                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="font-medium">{selectedVehicleData.name} - Estimated ₱{estimatedCost.toLocaleString()}</p>
+                          <p className="text-xs">{selectedVehicleData.description}</p>
+                          <p className="text-xs italic mt-2">{selectedVehicleData.surcharge}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Lalamove Real-Time Tracking Timeline */}
+          {order.deliveryMethod === "lalamove" && order.lalamoveTracking && (
+            <LalamoveTrackingTimeline
+              tracking={order.lalamoveTracking}
+              onRefresh={handleRefreshTracking}
+            />
+          )}
+
+          {/* Pickup Information - Phase 4 */}
+          {order.deliveryMethod === "pickup" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-green-600" />
+                  Customer Pickup Instructions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Pickup Location */}
+                {order.pickupLocation && (
+                  <div className="p-4 rounded-lg bg-green-50 border-2 border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-green-600">
+                        <MapPin className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-green-900 mb-1">
+                          {order.pickupLocation.name || "MASH Farm"}
+                        </h4>
+                        <p className="text-sm text-green-800">
+                          {order.pickupLocation.address}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pickup Instructions */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    Instructions for Customer
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Customer will visit the farm/store to collect their order</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>No delivery fee applies for pickup orders</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Direct transaction reduces scam risk</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Customer can inspect products before payment</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer Contact */}
+                <Separator />
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground flex items-center gap-2">
+                    <User className="h-4 w-4 text-purple-600" />
+                    Customer Contact
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                      <span className="text-sm text-muted-foreground">Name</span>
+                      <span className="font-medium">{order.userName}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                      <span className="text-sm text-muted-foreground">Phone</span>
+                      <a 
+                        href={`tel:${order.userPhone}`} 
+                        className="font-medium text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3" />
+                        {order.userPhone}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pickup Status Info */}
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-900">
+                      <p className="font-medium mb-1">When Order is Ready</p>
+                      <p className="text-xs">
+                        Mark as "Ready for Pickup" to notify the customer. They will receive 
+                        a notification to collect their order at the pickup location above.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Validation Warning */}
+                {order.lalamoveTracking && (
+                  <div className="p-4 rounded-lg bg-yellow-50 border-2 border-yellow-300">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-700 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-yellow-900">
+                        <p className="font-semibold mb-1">⚠️ Data Inconsistency Detected</p>
+                        <p className="text-xs">
+                          This pickup order has Lalamove tracking data. This should not happen. 
+                          Pickup orders should not create Lalamove deliveries. Please contact 
+                          technical support if this persists.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Order Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Order Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {order.statusHistory && order.statusHistory.length > 0 ? (
+                  order.statusHistory.map((entry, idx) => (
+                    <div key={idx} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                        {idx < order.statusHistory!.length - 1 && (
+                          <div className="w-0.5 h-full bg-border mt-1"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="font-medium text-sm">
+                          {entry.status.replace(/_/g, " ").toUpperCase()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(entry.timestamp.toDate(), "MMM dd, yyyy 'at' hh:mm a")}
+                        </p>
+                        {entry.note && (
+                          <p className="text-sm text-muted-foreground mt-1">{entry.note}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No timeline available</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar */}
+        {/* Right Column - Customer & Actions */}
         <div className="space-y-6">
-          {/* Coordination Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Handshake className="h-5 w-5" />
-                Handover Coordination
-              </CardTitle>
-              <CardDescription>
-                Details shared between seller and buyer for the handover
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Method:</span>
-                <span>{displayOrder.coordination.method}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="font-medium">Location</p>
-                  <p>{displayOrder.coordination.location}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <CalendarDays className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="font-medium">Preferred Schedule</p>
-                  <p>
-                    {formatDate(displayOrder.coordination.preferredDate)} at {displayOrder.coordination.preferredTime}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Contact Person:</span>
-                <span>{displayOrder.coordination.contactPerson}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Contact Number:</span>
-                <span>{displayOrder.coordination.contactNumber}</span>
-              </div>
-              {displayOrder.coordination.instructions && (
-                <div className="pt-2 border-t border-border">
-                  <p className="font-medium text-foreground">Additional Instructions</p>
-                  <p className="mt-1 text-muted-foreground">
-                    {displayOrder.coordination.instructions}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Customer Information */}
           <Card>
             <CardHeader>
@@ -474,99 +961,201 @@ export default function OrderDetails() {
                 Customer Information
               </CardTitle>
             </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  {order.userName}
+                </p>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <a href={`mailto:${order.userEmail}`} className="text-primary hover:underline">
+                    {order.userEmail}
+                  </a>
+                </p>
+              </div>
+              <Separator />
+              {order.userPhone && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <a href={`tel:${order.userPhone}`} className="text-primary hover:underline">
+                      {order.userPhone}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Order Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Actions</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{displayOrder.customer.name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{displayOrder.customer.email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{displayOrder.customer.phone}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <span className="text-sm">{displayOrder.customer.address}</span>
-              </div>
+              {order.status === "pending_approval" && (
+                <>
+                  <Button
+                    onClick={handleApproveOrder}
+                    disabled={actioning}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {actioning ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Approve Order
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleRejectOrder}
+                    disabled={actioning}
+                    className="w-full border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    {actioning ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Reject Order
+                  </Button>
+                </>
+              )}
+
+              {order.status === "approved" && (
+                <Button
+                  onClick={() => handleUpdateStatus("processing")}
+                  disabled={actioning}
+                  className="w-full"
+                >
+                  {actioning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Package className="h-4 w-4 mr-2" />
+                  )}
+                  Mark as Processing
+                </Button>
+              )}
+
+              {order.status === "processing" && (
+                <Button
+                  onClick={() =>
+                    handleUpdateStatus(
+                      order.deliveryMethod === "pickup" ? "ready_for_pickup" : "shipped"
+                    )
+                  }
+                  disabled={actioning}
+                  className="w-full"
+                >
+                  {actioning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : order.deliveryMethod === "pickup" ? (
+                    <MapPin className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Truck className="h-4 w-4 mr-2" />
+                  )}
+                  {order.deliveryMethod === "pickup" ? "Ready for Pickup" : "Mark as Shipped"}
+                </Button>
+              )}
+
+              {(order.status === "shipped" || order.status === "ready_for_pickup") && (
+                <Button
+                  onClick={() => handleUpdateStatus("delivered")}
+                  disabled={actioning}
+                  className="w-full"
+                >
+                  {actioning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Mark as Delivered
+                </Button>
+              )}
+
+              {order.status === "delivered" && (
+                <Button
+                  onClick={() => handleUpdateStatus("completed")}
+                  disabled={actioning}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  {actioning ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Complete Order
+                </Button>
+              )}
             </CardContent>
           </Card>
 
           {/* Payment Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Payment Information
-              </CardTitle>
+              <CardTitle>Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm font-medium">Method</p>
-                <p className="text-sm text-muted-foreground">{displayOrder.payment.method}</p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Method</p>
+                <p className="font-medium uppercase">{order.paymentMethod.replace("_", " ")}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium">Status</p>
-                <Badge variant="outline" className="bg-green-100/10 text-green-700 dark:text-green-600 border-green-300">
-                  {displayOrder.payment.status}
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge
+                  variant={
+                    order.paymentStatus === "paid"
+                      ? "default"
+                      : order.paymentStatus === "pending"
+                      ? "secondary"
+                      : "destructive"
+                  }
+                >
+                  {order.paymentStatus}
                 </Badge>
               </div>
-              <div>
-                <p className="text-sm font-medium">Transaction ID</p>
-                <p className="text-sm text-muted-foreground font-mono">
-                  {displayOrder.payment.transactionId}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Order Summary */}
+          {/* Order Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>Order Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm">Subtotal</span>
-                <span className="text-sm">
-                  {formatCurrency(displayOrder.totals.subtotal)}
-                </span>
+            <CardContent className="space-y-3 text-sm">
+              <div className="space-y-2">
+                <p className="text-muted-foreground">Order ID</p>
+                <p className="font-mono text-xs">{order.id}</p>
               </div>
-              {typeof displayOrder.totals.coordinationFee === "number" && (
-                <div className="flex justify-between">
-                  <span className="text-sm">Coordination Fee</span>
-                  <span className="text-sm">
-                    {formatCurrency(displayOrder.totals.coordinationFee)}
-                  </span>
-                </div>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-muted-foreground">Placed On</p>
+                <p className="font-medium">
+                  {format(order.createdAt?.toDate() || new Date(), "MMM dd, yyyy 'at' hh:mm a")}
+                </p>
+              </div>
+              {order.updatedAt && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">Last Updated</p>
+                    <p className="font-medium">
+                      {format(order.updatedAt.toDate(), "MMM dd, yyyy 'at' hh:mm a")}
+                    </p>
+                  </div>
+                </>
               )}
-              <div className="border-t pt-3">
-                <div className="flex justify-between">
-                  <span className="font-medium">Total</span>
-                  <span className="font-medium">
-                    {formatCurrency(displayOrder.totals.total)}
-                  </span>
-                </div>
-              </div>
             </CardContent>
           </Card>
-
-          {/* Order Notes */}
-          {displayOrder.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Order Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{displayOrder.notes}</p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

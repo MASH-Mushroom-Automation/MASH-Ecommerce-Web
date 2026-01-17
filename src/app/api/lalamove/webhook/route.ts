@@ -8,10 +8,15 @@
  * - Pickup complete
  * - Delivery complete
  * - Order status changed
+ * 
+ * Phase 6: Enhanced with Firestore integration
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { FirebaseOrdersService } from '@/lib/firebase/orders';
+import { collection, query, where, getDocs, getFirestore } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase/config';
 
 interface LalamoveWebhookPayload {
   event: string;
@@ -119,6 +124,28 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Find Firestore order by Lalamove order ID
+ */
+async function findOrderByLalamoveId(lalamoveOrderId: string): Promise<string | null> {
+  try {
+    const db = getFirestore(firebaseApp);
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('lalamoveOrderId', '==', lalamoveOrderId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      console.warn(`[Webhook] No order found for Lalamove ID: ${lalamoveOrderId}`);
+      return null;
+    }
+
+    return querySnapshot.docs[0].id;
+  } catch (error) {
+    console.error('[Webhook] Error finding order:', error);
+    return null;
+  }
+}
+
+/**
  * Event Handlers
  * Update database, send notifications, trigger actions
  */
@@ -129,9 +156,14 @@ async function handleOrderStatusChanged(payload: LalamoveWebhookPayload) {
   
   console.log(`[Webhook] Order ${orderId} status changed to ${newStatus}`);
   
-  // TODO: Update order status in database
-  // TODO: Send push notification to customer
-  // TODO: Update admin dashboard in real-time
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update Lalamove tracking status
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: newStatus,
+    lastUpdated: new Date(),
+  });
 }
 
 async function handleDriverAssigned(payload: LalamoveWebhookPayload) {
@@ -145,9 +177,21 @@ async function handleDriverAssigned(payload: LalamoveWebhookPayload) {
     vehicle: driverInfo.plateNumber,
   });
   
-  // TODO: Save driver details to database
-  // TODO: Send SMS to customer with driver info
-  // TODO: Show driver card on tracking page
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update with driver information
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'DRIVER_ASSIGNED',
+    driver: {
+      id: driverInfo.id,
+      name: driverInfo.name,
+      phone: driverInfo.phone,
+      plateNumber: driverInfo.plateNumber,
+      photo: driverInfo.photo,
+    },
+    lastUpdated: new Date(),
+  });
 }
 
 async function handleDriverLocationUpdated(payload: LalamoveWebhookPayload) {
@@ -156,9 +200,24 @@ async function handleDriverLocationUpdated(payload: LalamoveWebhookPayload) {
   
   console.log(`[Webhook] Driver location updated for order ${orderId}:`, location);
   
-  // TODO: Update driver location in real-time map
-  // TODO: Broadcast to WebSocket clients
-  // TODO: Calculate ETA based on current location
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update driver coordinates
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    driver: {
+      id: data.driver?.id || '',
+      name: data.driver?.name || '',
+      phone: data.driver?.phone || '',
+      plateNumber: data.driver?.plateNumber || '',
+      coordinates: {
+        lat: location.lat,
+        lng: location.lng,
+        updatedAt: new Date(),
+      },
+    },
+    lastUpdated: new Date(),
+  });
 }
 
 async function handleDriverArrivedAtPickup(payload: LalamoveWebhookPayload) {
@@ -166,9 +225,13 @@ async function handleDriverArrivedAtPickup(payload: LalamoveWebhookPayload) {
   
   console.log(`[Webhook] Driver arrived at pickup for order ${orderId}`);
   
-  // TODO: Send notification to store staff
-  // TODO: Update order status UI
-  // TODO: Start pickup timer
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'ARRIVED_AT_PICKUP',
+    lastUpdated: new Date(),
+  });
 }
 
 async function handleDriverPickedUp(payload: LalamoveWebhookPayload) {
@@ -179,9 +242,22 @@ async function handleDriverPickedUp(payload: LalamoveWebhookPayload) {
     podImage: data.podImage,
   });
   
-  // TODO: Update order status to "Out for delivery"
-  // TODO: Send notification to customer
-  // TODO: Update estimated delivery time
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update Lalamove status
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'PICKED_UP',
+    lastUpdated: new Date(),
+  });
+
+  // Update order status to "shipped"
+  await FirebaseOrdersService.updateOrderStatus(
+    firestoreOrderId,
+    'shipped',
+    'lalamove-webhook',
+    'Package picked up by driver'
+  );
 }
 
 async function handleDriverArrivedAtDropoff(payload: LalamoveWebhookPayload) {
@@ -189,9 +265,13 @@ async function handleDriverArrivedAtDropoff(payload: LalamoveWebhookPayload) {
   
   console.log(`[Webhook] Driver arrived at dropoff for order ${orderId}`);
   
-  // TODO: Send SMS to customer
-  // TODO: Show "Driver is outside" notification
-  // TODO: Prepare delivery confirmation flow
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'ARRIVED_AT_DROPOFF',
+    lastUpdated: new Date(),
+  });
 }
 
 async function handleOrderCompleted(payload: LalamoveWebhookPayload) {
@@ -203,11 +283,22 @@ async function handleOrderCompleted(payload: LalamoveWebhookPayload) {
     signature: data.signature,
   });
   
-  // TODO: Update order status to "Delivered"
-  // TODO: Store POD (Proof of Delivery) image
-  // TODO: Send delivery confirmation email
-  // TODO: Request customer review
-  // TODO: Mark seller payment as ready for disbursement
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update Lalamove status
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'COMPLETED',
+    lastUpdated: new Date(),
+  });
+
+  // Update order status to "delivered"
+  await FirebaseOrdersService.updateOrderStatus(
+    firestoreOrderId,
+    'delivered',
+    'lalamove-webhook',
+    'Successfully delivered to customer'
+  );
 }
 
 async function handleOrderCancelled(payload: LalamoveWebhookPayload) {
@@ -218,11 +309,17 @@ async function handleOrderCancelled(payload: LalamoveWebhookPayload) {
     cancelledBy: data.cancelledBy,
   });
   
-  // TODO: Update order status to "Cancelled"
-  // TODO: Process refund
-  // TODO: Send cancellation email
-  // TODO: Notify seller
-  // TODO: Find alternative delivery method
+  const firestoreOrderId = await findOrderByLalamoveId(orderId);
+  if (!firestoreOrderId) return;
+
+  // Update Lalamove status
+  await FirebaseOrdersService.updateLalamoveTracking(firestoreOrderId, {
+    status: 'CANCELLED',
+    lastUpdated: new Date(),
+  });
+
+  // Note: Don't auto-cancel the order - let seller decide
+  // They may want to arrange alternative delivery
 }
 
 /**

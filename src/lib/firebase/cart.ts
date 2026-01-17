@@ -65,13 +65,45 @@ export class FirebaseCartService {
    * Save cart to Firestore
    */
   static async saveCart(userId: string, items: CartItem[]): Promise<void> {
+    // Validate userId is not undefined
+    if (!userId || userId === 'undefined') {
+      console.error("[FirebaseCartService] Invalid userId:", userId);
+      return; // Don't attempt to save with invalid userId
+    }
+
     try {
+      // Sanitize items to remove undefined fields
+      const sanitizedItems = (items || []).map(item => {
+        const sanitized: any = {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name,
+          image: item.image,
+          slug: item.slug,
+          stock: item.stock
+        };
+
+        // Only include optional fields if they have values
+        if (item.grower !== undefined && item.grower !== null) {
+          sanitized.grower = item.grower;
+        }
+        if (item.unit !== undefined && item.unit !== null) {
+          sanitized.unit = item.unit;
+        }
+        if (item.comparePrice !== undefined && item.comparePrice !== null) {
+          sanitized.comparePrice = item.comparePrice;
+        }
+
+        return sanitized;
+      });
+
       const cartRef = doc(db, this.COLLECTION, userId);
       await setDoc(
         cartRef,
         {
           userId,
-          items,
+          items: sanitizedItems,
           updatedAt: Timestamp.now(),
           version: Date.now(),
         },
@@ -122,12 +154,13 @@ export class FirebaseCartService {
   static async clearCart(userId: string): Promise<void> {
     try {
       const cartRef = doc(db, this.COLLECTION, userId);
-      await setDoc(cartRef, {
-        userId,
+      const cartData: FirestoreCart = {
+        userId: userId,
         items: [],
         updatedAt: Timestamp.now(),
         version: Date.now(),
-      });
+      };
+      await setDoc(cartRef, cartData);
       console.log("[FirebaseCartService] Cart cleared for user:", userId);
     } catch (error) {
       console.error("[FirebaseCartService] Error clearing cart:", error);

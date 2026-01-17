@@ -13,7 +13,7 @@ import { useUserProfile } from "@/hooks/useUser";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { MapPin, Truck, Package, CreditCard, Wallet, Banknote } from "lucide-react";
+import { MapPin, Truck, Package, Banknote } from "lucide-react";
 import {
   AddressPicker,
   LalamoveQuote,
@@ -50,7 +50,7 @@ const step2Schema = z.object({
 });
 
 const step3Schema = z.object({
-  paymentMethod: z.enum(["cod", "gcash", "card"]),
+  paymentMethod: z.enum(["cod"]), // Only COD payment allowed
 });
 
 type Step1FormValues = z.infer<typeof step1Schema>;
@@ -62,7 +62,7 @@ const PAYMONGO_ENABLED = !!process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY;
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, summary, clearCart } = useCart();
+  const { items, summary, clearCart, removeVendorItems } = useCart();
   const { user, isAuthenticated: userIsAuthenticated } = useAuth();
   const { profile } = useUserProfile(); // Get full profile for phone number
   const { addresses: savedAddresses, defaultAddress, loading: addressesLoading } = useFirebaseAddresses();
@@ -79,6 +79,7 @@ export default function CheckoutPage() {
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -285,45 +286,7 @@ export default function CheckoutPage() {
       setOrderId(newOrderId);
       const orderNumber = newOrderId.slice(-8).toUpperCase();
 
-      // Handle online payments (GCash, Card)
-      if (data.paymentMethod === "gcash" || data.paymentMethod === "card") {
-        setPaymentProcessing(true);
-
-        const paymentResult = await processPayment(
-          data.paymentMethod,
-          newOrderId,
-          orderNumber,
-          totalWithDelivery
-        );
-
-        if (!paymentResult.success) {
-          setError(paymentResult.error || "Payment failed. Please try again.");
-          setPaymentProcessing(false);
-          return;
-        }
-
-        // For GCash/GrabPay, redirect to payment page
-        if (paymentResult.checkoutUrl) {
-          // Save pending order info for when user returns
-          sessionStorage.setItem("pendingOrder", JSON.stringify({
-            orderId: newOrderId,
-            orderNumber,
-            customerEmail: step2Data.email,
-            customerName: step2Data.name,
-          }));
-
-          // Clear cart before redirect
-          clearCart();
-
-          // Redirect to payment provider
-          window.location.href = paymentResult.checkoutUrl;
-          return;
-        }
-
-        setPaymentProcessing(false);
-      }
-
-      // For COD orders or after successful payment, send confirmation email
+      // For COD orders, send confirmation email and show success
       sendOrderConfirmationEmailViaAPI(step2Data.email, {
         customerName: step2Data.name,
         orderNumber: orderNumber,
@@ -346,7 +309,12 @@ export default function CheckoutPage() {
         // Don't fail the order if email fails
       });
 
-      clearCart();
+      // Remove only this vendor's items from cart
+      if (selectedVendor) {
+        removeVendorItems(selectedVendor);
+      } else {
+        clearCart();
+      }
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Order submission failed:", err);
@@ -372,6 +340,35 @@ export default function CheckoutPage() {
   };
 
   const isCartEmpty = items.length === 0;
+
+  // Group items by vendor/grower
+  const itemsByVendor = items.reduce((acc, item) => {
+    const vendor = item.grower || "MASH";
+    if (!acc[vendor]) {
+      acc[vendor] = [];
+    }
+    acc[vendor].push(item);
+    return acc;
+  }, {} as Record<string, typeof items>);
+
+  const vendorNames = Object.keys(itemsByVendor);
+  const hasMultipleVendors = vendorNames.length > 1;
+
+  // Auto-select first vendor if none selected
+  useEffect(() => {
+    if (hasMultipleVendors && !selectedVendor && vendorNames.length > 0) {
+      setSelectedVendor(vendorNames[0]);
+    } else if (!hasMultipleVendors && vendorNames.length === 1) {
+      setSelectedVendor(vendorNames[0]);
+    }
+  }, [hasMultipleVendors, selectedVendor, vendorNames]);
+
+  // Get items for currently selected vendor
+  const currentVendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
+  const currentVendorSubtotal = currentVendorItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   return (
     <>
@@ -412,6 +409,81 @@ export default function CheckoutPage() {
           {error && (
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
               <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
+
+          {hasMultipleVendors && (
+            <div className="mb-6 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                  <Package className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
+                    Multiple Vendors Detected ({vendorNames.length} stores)
+                  </h3>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+                    Your cart contains products from <strong>{vendorNames.length} different vendors</strong>. 
+                    {watchDeliveryMethod === "pickup" && (
+                      <> Each vendor has a different pickup location - you'll need to pick up from each location separately.</>
+                    )}
+                    {watchDeliveryMethod === "lalamove" && (
+                      <> We recommend checking out separately for each vendor to ensure accurate delivery.</>
+                    )}
+                  </p>
+                  
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-3">
+                      Select vendor to checkout:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {vendorNames.map((vendor) => {
+                        const vendorItemCount = itemsByVendor[vendor].length;
+                        const vendorTotal = itemsByVendor[vendor].reduce(
+                          (sum, item) => sum + item.price * item.quantity,
+                          0
+                        );
+                        return (
+                          <button
+                            key={vendor}
+                            onClick={() => setSelectedVendor(vendor)}
+                            className={cn(
+                              "text-left p-3 rounded-lg border-2 transition-all",
+                              selectedVendor === vendor
+                                ? "border-primary bg-primary/5 shadow-md"
+                                : "border-gray-200 dark:border-gray-700 hover:border-primary/50"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                  selectedVendor === vendor ? "border-primary" : "border-gray-300"
+                                )}>
+                                  {selectedVendor === vendor && (
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                  )}
+                                </div>
+                                <span className="font-medium text-foreground">{vendor}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {vendorItemCount} item{vendorItemCount !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 ml-6">
+                              Total: ₱{vendorTotal.toFixed(2)}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 flex items-start gap-2">
+                      <span className="font-bold">💡</span>
+                      <span>You can checkout other vendors after completing this order.</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -829,7 +901,7 @@ export default function CheckoutPage() {
                         Payment Method
                       </h2>
                       <p className="text-sm sm:text-base text-muted-foreground">
-                        Select how you would like to pay for your order.
+                        Cash payment only - Pay when you receive your order.
                       </p>
 
                       <Form {...step3Form}>
@@ -841,35 +913,28 @@ export default function CheckoutPage() {
                               <label
                                 className={cn(
                                   "block border-2 rounded-lg p-4 cursor-pointer transition-colors",
-                                  field.value === "cod"
-                                    ? "border-primary bg-primary/5"
-                                    : "border-border hover:border-primary/50"
+                                  "border-primary bg-primary/5"
                                 )}
                               >
                                 <input
                                   type="radio"
                                   value="cod"
-                                  checked={field.value === "cod"}
+                                  checked={true}
                                   onChange={() => field.onChange("cod")}
                                   className="sr-only"
                                 />
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <Banknote className="h-5 w-5 text-primary" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "cod" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "cod" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
+                                    <div className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center">
+                                      <div className="w-2 h-2 rounded-full bg-primary" />
                                     </div>
                                     <div className="font-medium text-foreground">
                                       {step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery"}
                                     </div>
                                   </div>
                                   <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                                    Available
+                                    Default Payment
                                   </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-2 ml-7">
@@ -877,114 +942,6 @@ export default function CheckoutPage() {
                                     ? "Pay when you pick up your order at the selected location"
                                     : "Pay the rider when your order is delivered"
                                   }
-                                </p>
-                              </label>
-
-                              {/* GCash Payment Option */}
-                              <label
-                                className={cn(
-                                  "block border-2 rounded-lg p-4 transition-colors",
-                                  PAYMONGO_ENABLED
-                                    ? field.value === "gcash"
-                                      ? "border-primary bg-primary/5 cursor-pointer"
-                                      : "border-border hover:border-primary/50 cursor-pointer"
-                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
-                                )}
-                              >
-                                <input
-                                  type="radio"
-                                  value="gcash"
-                                  checked={field.value === "gcash"}
-                                  onChange={() => PAYMONGO_ENABLED && field.onChange("gcash")}
-                                  disabled={!PAYMONGO_ENABLED}
-                                  className="sr-only"
-                                />
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Wallet className="h-5 w-5 text-blue-500" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "gcash" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "gcash" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                    <div className={cn(
-                                      "font-medium",
-                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
-                                    )}>
-                                      GCash
-                                    </div>
-                                  </div>
-                                  <span className={cn(
-                                    "text-xs font-medium px-2 py-1 rounded",
-                                    PAYMONGO_ENABLED
-                                      ? "text-green-600 bg-green-50"
-                                      : "text-amber-600 bg-amber-50"
-                                  )}>
-                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
-                                  </span>
-                                </div>
-                                <p className={cn(
-                                  "text-sm mt-2 ml-7",
-                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
-                                )}>
-                                  Pay instantly using your GCash e-wallet
-                                </p>
-                              </label>
-
-                              {/* Credit/Debit Card Payment Option */}
-                              <label
-                                className={cn(
-                                  "block border-2 rounded-lg p-4 transition-colors",
-                                  PAYMONGO_ENABLED
-                                    ? field.value === "card"
-                                      ? "border-primary bg-primary/5 cursor-pointer"
-                                      : "border-border hover:border-primary/50 cursor-pointer"
-                                    : "border-border bg-muted/30 opacity-60 cursor-not-allowed"
-                                )}
-                              >
-                                <input
-                                  type="radio"
-                                  value="card"
-                                  checked={field.value === "card"}
-                                  onChange={() => PAYMONGO_ENABLED && field.onChange("card")}
-                                  disabled={!PAYMONGO_ENABLED}
-                                  className="sr-only"
-                                />
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <CreditCard className="h-5 w-5 text-purple-500" />
-                                    <div className={cn(
-                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                      field.value === "card" ? "border-primary" : "border-muted-foreground"
-                                    )}>
-                                      {field.value === "card" && (
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                    <div className={cn(
-                                      "font-medium",
-                                      PAYMONGO_ENABLED ? "text-foreground" : "text-muted-foreground"
-                                    )}>
-                                      Credit/Debit Card
-                                    </div>
-                                  </div>
-                                  <span className={cn(
-                                    "text-xs font-medium px-2 py-1 rounded",
-                                    PAYMONGO_ENABLED
-                                      ? "text-green-600 bg-green-50"
-                                      : "text-amber-600 bg-amber-50"
-                                  )}>
-                                    {PAYMONGO_ENABLED ? "Available" : "Coming Soon"}
-                                  </span>
-                                </div>
-                                <p className={cn(
-                                  "text-sm mt-2 ml-7",
-                                  PAYMONGO_ENABLED ? "text-muted-foreground" : "text-muted-foreground/70"
-                                )}>
-                                  Pay securely with Visa, Mastercard, or other cards
                                 </p>
                               </label>
                             </FormItem>
@@ -1020,12 +977,31 @@ export default function CheckoutPage() {
                             <p className="text-sm font-medium">
                               {step1Data?.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mb-2">
                               {step1Data?.deliveryMethod === "pickup"
                                 ? getSelectedPickupLocation(step1Data?.pickupLocation)?.address
                                 : deliveryAddress?.formattedAddress
                               }
                             </p>
+                            {step1Data?.deliveryMethod === "pickup" && hasMultipleVendors && selectedVendor && (
+                              <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                                <p className="text-xs text-amber-800 dark:text-amber-200">
+                                  <strong>📍 Vendor:</strong> {selectedVendor} - Default MASH pickup location shown. Please coordinate with vendor for exact address.
+                                </p>
+                              </div>
+                            )}
+                            {step1Data?.deliveryMethod === "pickup" && getSelectedPickupLocation(step1Data?.pickupLocation) && (
+                              <div className="mt-3">
+                                <iframe
+                                  width="100%"
+                                  height="180"
+                                  frameBorder="0"
+                                  style={{ border: 0, borderRadius: "8px" }}
+                                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(getSelectedPickupLocation(step1Data?.pickupLocation)?.address || "MASH Philippines")}&zoom=15`}
+                                  allowFullScreen
+                                ></iframe>
+                              </div>
+                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -1054,19 +1030,10 @@ export default function CheckoutPage() {
                         disabled={submitting || paymentProcessing || items.length === 0}
                         onClick={step3Form.handleSubmit(onStep3Submit)}
                       >
-                        {paymentProcessing ? (
-                          <>
-                            <LoadingSpinner className="mr-2 h-4 w-4" />
-                            Processing Payment...
-                          </>
-                        ) : submitting ? (
+                        {submitting ? (
                           "Creating Order..."
-                        ) : step3Form.watch("paymentMethod") === "gcash" ? (
-                          "Pay with GCash"
-                        ) : step3Form.watch("paymentMethod") === "card" ? (
-                          "Pay with Card"
                         ) : (
-                          "Place Order"
+                          "Place Order (Cash Payment)"
                         )}
                       </Button>
                     </div>
@@ -1078,6 +1045,11 @@ export default function CheckoutPage() {
                 <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
                   <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
                     Summary
+                    {hasMultipleVendors && selectedVendor && (
+                      <span className="block text-sm font-normal text-muted-foreground mt-1">
+                        Checking out: {selectedVendor}
+                      </span>
+                    )}
                   </h2>
                   <div className="mt-4 space-y-4">
                     {loading ? (
@@ -1085,49 +1057,47 @@ export default function CheckoutPage() {
                         <LoadingSpinner className="mx-auto mb-4" />
                         <p className="text-muted-foreground">Loading cart items...</p>
                       </div>
-                    ) : items.length === 0 ? (
+                    ) : currentVendorItems.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">Your cart is empty</p>
+                        <p className="text-muted-foreground">No items for this vendor</p>
                       </div>
                     ) : (
-                      items.map((item) => (
-                        <div key={item.productId} className="flex items-start gap-3">
-                          <Image
-                            src={item.image || PLACEHOLDER_IMAGE}
-                            alt={item.name}
-                            width={56}
-                            height={56}
-                            className={cn(
-                              "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
-                              item.image ? "object-cover" : "object-contain bg-muted p-1"
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
-                              {item.name}
-                            </p>
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                              Quantity: {item.quantity}
+                      <>
+                        {currentVendorItems.map((item) => (
+                          <div key={item.productId} className="flex items-start gap-3">
+                            <Image
+                              src={item.image || PLACEHOLDER_IMAGE}
+                              alt={item.name}
+                              width={56}
+                              height={56}
+                              className={cn(
+                                "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
+                                item.image ? "object-cover" : "object-contain bg-muted p-1"
+                              )}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
+                                {item.name}
+                              </p>
+                              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                Quantity: {item.quantity}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
+                              PHP {(item.price * item.quantity).toFixed(2)}
                             </p>
                           </div>
-                          <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
-                            PHP {(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))
+                        ))}
+                      </>
                     )}
                   </div>
 
                   <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
                     <div className="flex justify-between">
                       <p>
-                        Subtotal ({items.reduce((sum, item) => sum + item.quantity, 0)})
+                        Subtotal ({currentVendorItems.reduce((sum, item) => sum + item.quantity, 0)} items)
                       </p>
-                      <p className="font-medium">PHP {summary.subtotal.toFixed(2)}</p>
-                    </div>
-                    <div className="flex justify-between">
-                      <p>Tax</p>
-                      <p className="font-medium">PHP {summary.tax.toFixed(2)}</p>
+                      <p className="font-medium">PHP {currentVendorSubtotal.toFixed(2)}</p>
                     </div>
                     {deliveryFee > 0 && (
                       <div className="flex justify-between">
@@ -1153,54 +1123,103 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Checkout successful!
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              The seller(s) will be notified with your new order!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  router.push("/shop");
-                }}
-              >
-                Continue Shopping
-              </Button>
-              <Button
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  router.push("/profile/order-history");
-                }}
-              >
-                View Orders
-              </Button>
+      {showSuccessModal && (() => {
+        // Calculate remaining vendors after this checkout
+        const remainingVendors = Object.keys(itemsByVendor).filter(v => v !== selectedVendor);
+        const hasRemainingVendors = remainingVendors.length > 0;
+        
+        return (
+          <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 px-4">
+            <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl border border-border/20">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Order placed successfully!
+              </h2>
+              <p className="text-muted-foreground mb-2">
+                {selectedVendor && `Your order from ${selectedVendor} has been confirmed.`}
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                The seller will be notified about your new order!
+              </p>
+              
+              {hasRemainingVendors && (
+                <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-2">
+                    🛒 You still have items from {remainingVendors.length} other {remainingVendors.length === 1 ? 'vendor' : 'vendors'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {remainingVendors.join(", ")}
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                {hasRemainingVendors ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/profile/order-history");
+                      }}
+                    >
+                      View Orders
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        // Auto-select the next vendor
+                        setSelectedVendor(remainingVendors[0]);
+                        setCurrentStep(1);
+                      }}
+                    >
+                      Checkout Next Vendor →
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/shop");
+                      }}
+                    >
+                      Continue Shopping
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        router.push("/profile/order-history");
+                      }}
+                    >
+                      View Orders
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 }

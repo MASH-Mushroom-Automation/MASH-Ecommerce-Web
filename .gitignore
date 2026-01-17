@@ -31,6 +31,11 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+.env
+.env.local
+.env.production
+.env*.local
+*.env
 
 # vercel
 .vercel
@@ -45,3 +50,6 @@ studio/.env
 # Keep .github for workflows but ignore sensitive files
 # /.github
 /.github
+*.md
+/.github/*.md
+*.env
