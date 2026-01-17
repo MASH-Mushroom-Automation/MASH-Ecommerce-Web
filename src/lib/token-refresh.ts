@@ -1,8 +1,8 @@
 /**
  * Token Refresh Service
- * 
+ *
  * Phase 5: Session Management & Security
- * 
+ *
  * Handles silent token refresh to maintain user sessions:
  * - Automatic token refresh before expiry
  * - Token expiry detection
@@ -16,7 +16,8 @@ const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // Refresh 5 minutes before ex
 const TOKEN_CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 
 // Token refresh state
 let refreshPromise: Promise<string | null> | null = null;
@@ -43,11 +44,13 @@ export function getRefreshToken(): string | null {
  * Decode JWT token to get payload (without verification)
  * Note: This is for client-side expiry checking only
  */
-export function decodeToken(token: string): { exp?: number; iat?: number; sub?: string } | null {
+export function decodeToken(
+  token: string
+): { exp?: number; iat?: number; sub?: string } | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    
+
     const payload = parts[1];
     const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
     return JSON.parse(decoded);
@@ -63,10 +66,10 @@ export function decodeToken(token: string): { exp?: number; iat?: number; sub?: 
 export function isTokenExpiringSoon(token: string): boolean {
   const decoded = decodeToken(token);
   if (!decoded?.exp) return true; // Treat invalid tokens as expired
-  
+
   const expiryTime = decoded.exp * 1000; // Convert to milliseconds
   const timeUntilExpiry = expiryTime - Date.now();
-  
+
   return timeUntilExpiry < TOKEN_REFRESH_THRESHOLD_MS;
 }
 
@@ -76,7 +79,7 @@ export function isTokenExpiringSoon(token: string): boolean {
 export function isTokenExpired(token: string): boolean {
   const decoded = decodeToken(token);
   if (!decoded?.exp) return true;
-  
+
   return Date.now() >= decoded.exp * 1000;
 }
 
@@ -86,7 +89,7 @@ export function isTokenExpired(token: string): boolean {
 export function getTokenExpiryTime(token: string): number | null {
   const decoded = decodeToken(token);
   if (!decoded?.exp) return null;
-  
+
   return decoded.exp * 1000 - Date.now();
 }
 
@@ -120,20 +123,23 @@ export async function refreshAccessToken(): Promise<string | null> {
       });
 
       if (!response.ok) {
-        console.error("[TokenRefresh] Refresh failed with status:", response.status);
-        
+        console.error(
+          "[TokenRefresh] Refresh failed with status:",
+          response.status
+        );
+
         // If refresh token is invalid/expired, logout user
         if (response.status === 401 || response.status === 403) {
           console.log("[TokenRefresh] Refresh token invalid, logging out...");
           logout();
           return null;
         }
-        
+
         throw new Error(`Refresh failed: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       // Handle both response formats
       const newAccessToken = data.data?.accessToken || data.accessToken;
       const newRefreshToken = data.data?.refreshToken || data.refreshToken;
@@ -156,7 +162,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       return newAccessToken;
     } catch (error) {
       console.error("[TokenRefresh] Token refresh error:", error);
-      
+
       // On network error, don't logout immediately - might be temporary
       // The next API call will trigger another refresh attempt
       return null;
@@ -171,12 +177,13 @@ export async function refreshAccessToken(): Promise<string | null> {
 /**
  * Check and refresh token if needed
  * Returns true if token is valid (either already valid or successfully refreshed)
+ * Note: Returns false silently for Firebase-only users (no backend token expected)
  */
 export async function ensureValidToken(): Promise<boolean> {
   const token = getAuthToken();
-  
+
   if (!token) {
-    console.log("[TokenRefresh] No auth token found");
+    // Don't log - this is expected for Google OAuth users who use Firebase-only auth
     return false;
   }
 
@@ -187,7 +194,9 @@ export async function ensureValidToken(): Promise<boolean> {
   }
 
   if (isTokenExpiringSoon(token)) {
-    console.log("[TokenRefresh] Token expiring soon, refreshing proactively...");
+    console.log(
+      "[TokenRefresh] Token expiring soon, refreshing proactively..."
+    );
     // Don't wait for this - let it refresh in background
     refreshAccessToken().catch(console.error);
   }
@@ -214,7 +223,9 @@ export function startTokenRefreshCheck(): void {
   tokenCheckInterval = setInterval(() => {
     const token = getAuthToken();
     if (token && isTokenExpiringSoon(token)) {
-      console.log("[TokenRefresh] Periodic check: token expiring soon, refreshing...");
+      console.log(
+        "[TokenRefresh] Periodic check: token expiring soon, refreshing..."
+      );
       refreshAccessToken().catch(console.error);
     }
   }, TOKEN_CHECK_INTERVAL_MS);

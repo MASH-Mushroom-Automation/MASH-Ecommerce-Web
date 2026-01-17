@@ -3,13 +3,13 @@ import type { NextRequest } from "next/server";
 
 /**
  * Authentication Proxy (Next.js 16)
- * 
+ *
  * Protects routes based on authentication status.
- * 
+ *
  * Authentication Methods Supported:
  * - Google OAuth: Firebase Auth (token in sessionStorage on client)
  * - Email/Password: Backend JWT (token in auth-token cookie)
- * 
+ *
  * Note: For Firebase-only Google auth, client-side protection in AuthContext
  * handles most auth flows. This proxy provides server-side route protection
  * for backend-authenticated users.
@@ -52,10 +52,11 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check for authentication
-  // - Backend users: auth-token cookie (JWT)
-  // - Firebase Google users: Client-side only (checked in AuthContext)
+  // - Backend users: auth-token cookie (JWT from email/password login)
+  // - Firebase Google users: firebase-auth cookie (set by AuthContext)
   const authToken = request.cookies.get("auth-token")?.value;
-  const isAuthenticated = !!authToken;
+  const firebaseAuth = request.cookies.get("firebase-auth")?.value;
+  const isAuthenticated = !!authToken || !!firebaseAuth;
 
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some((route) =>

@@ -2,7 +2,7 @@
 
 /**
  * Login Page - Backend & Firebase Authentication
- * 
+ *
  * Supports two sign-in methods:
  * - Email/Password (via NestJS Backend)
  * - Google OAuth (via Firebase)
@@ -70,7 +70,7 @@ const loginSchema = z.object({
     .string()
     .min(1, "Email is required")
     .email("Please enter a valid email address")
-    .transform(val => val.trim().toLowerCase()),
+    .transform((val) => val.trim().toLowerCase()),
   password: z
     .string()
     .min(1, "Password is required")
@@ -88,6 +88,8 @@ export default function LoginPage() {
   const verifiedParam = searchParams.get("verified");
 
   const {
+    user,
+    isAuthenticated,
     signInWithEmailPassword,
     resendVerificationEmail,
     loading: authLoading,
@@ -98,6 +100,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [hasError, setHasError] = useState(false);
 
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("[Login] User already authenticated, redirecting...");
+      const storedRedirect = sessionStorage.getItem("auth-redirect-url");
+      const destination = storedRedirect || redirectUrl || "/shop";
+
+      // Clean up stored redirect
+      if (storedRedirect) {
+        sessionStorage.removeItem("auth-redirect-url");
+      }
+
+      // Use window.location for reliable redirect
+      window.location.href = destination;
+    }
+  }, [isAuthenticated, user, redirectUrl]);
 
   const {
     register,
@@ -108,10 +126,10 @@ export default function LoginPage() {
     clearErrors,
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { 
-      email: "", 
-      password: "", 
-      rememberMe: false 
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
     },
     mode: "onChange", // Validate on change for better UX
   });
@@ -154,13 +172,13 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     // Reset error state
     setHasError(false);
-    
+
     try {
       console.log("[Login] Starting login process...");
       console.log("[Login] Email:", data.email);
       console.log("[Login] Password length:", data.password.length);
       console.log("[Login] Remember Me:", data.rememberMe);
-      
+
       // Use backend API for email/password login
       const response = await AuthApi.login({
         email: data.email.trim(),
@@ -174,19 +192,22 @@ export default function LoginPage() {
       const user = response.data?.user || response.user;
       const accessToken = response.data?.accessToken || response.accessToken;
       const refreshToken = response.data?.refreshToken || response.refreshToken;
-      
+
       if (!user) {
         throw new Error("Invalid response from server. Please try again.");
       }
 
-      console.log("[Login] User data:", { email: user.email, verified: user.emailVerified });
-      
+      console.log("[Login] User data:", {
+        email: user.email,
+        verified: user.emailVerified,
+      });
+
       // Check if email is verified
       if (!user.emailVerified) {
         console.warn("[Login] Email not verified");
         setHasError(true); // Mark as error to prevent navigation
         sessionStorage.setItem("pendingVerificationEmail", data.email);
-        
+
         toast.warning("Email Verification Required", {
           description: "Please verify your email address to continue.",
           duration: 5000,
@@ -202,7 +223,7 @@ export default function LoginPage() {
       if (accessToken) {
         console.log("[Login] Storing access token...");
         setAuthToken(accessToken, data.rememberMe); // Use proper cookie storage
-        
+
         // Also store refresh token if available
         if (refreshToken) {
           console.log("[Login] Storing refresh token...");
@@ -220,7 +241,7 @@ export default function LoginPage() {
       console.log("[Login] Login successful, redirecting...");
 
       // Small delay for toast to show before navigation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Only navigate if no errors occurred
       if (!hasError) {
@@ -243,13 +264,13 @@ export default function LoginPage() {
         message: error?.message,
         response: error?.response,
         status: error?.response?.status,
-        fullError: error?.response?.data
+        fullError: error?.response?.data,
       });
-      
+
       // Extract error message from all possible paths (backend sends: data.error.message)
       let errorMessage = "Unable to sign in. Please try again.";
       let errorTitle = "Login Failed";
-      
+
       // Try nested error.message path first (correct backend structure)
       if (error?.response?.data?.error?.message) {
         errorMessage = error.response.data.error.message;
@@ -257,24 +278,24 @@ export default function LoginPage() {
         errorMessage = error.response.data.details.message;
       } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (error?.message && typeof error.message === 'string') {
+      } else if (error?.message && typeof error.message === "string") {
         errorMessage = error.message;
       } else if (typeof error === "string") {
         errorMessage = error;
       }
 
       // Ensure errorMessage is a string before calling string methods
-      if (typeof errorMessage !== 'string') {
+      if (typeof errorMessage !== "string") {
         console.warn("[Login] errorMessage is not a string:", errorMessage);
         errorMessage = JSON.stringify(errorMessage);
       }
 
       console.log("[Login] Error message:", errorMessage);
-      
+
       // Handle specific error cases (now safe to call .toLowerCase())
       const lowerMsg = errorMessage.toLowerCase();
       const statusCode = error?.response?.status || error?.response?.statusCode;
-      
+
       // Handle validation errors (400 Bad Request)
       if (statusCode === 400 || lowerMsg.includes("validation")) {
         console.log("[Login] Validation error detected");
@@ -284,8 +305,11 @@ export default function LoginPage() {
         });
         return;
       }
-      
-      if (lowerMsg.includes("not verified") || lowerMsg.includes("email verification")) {
+
+      if (
+        lowerMsg.includes("not verified") ||
+        lowerMsg.includes("email verification")
+      ) {
         console.log("[Login] Email not verified (from error)");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         toast.error("Email Not Verified", {
@@ -297,19 +321,28 @@ export default function LoginPage() {
           },
         });
         return; // CRITICAL: Stop execution, don't navigate
-      } else if (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect") || 
-                 lowerMsg.includes("wrong") || lowerMsg.includes("credentials")) {
+      } else if (
+        lowerMsg.includes("invalid") ||
+        lowerMsg.includes("incorrect") ||
+        lowerMsg.includes("wrong") ||
+        lowerMsg.includes("credentials")
+      ) {
         console.log("[Login] Invalid credentials detected");
         toast.error("Invalid Credentials", {
-          description: "The email or password you entered is incorrect. Please try again.",
+          description:
+            "The email or password you entered is incorrect. Please try again.",
           duration: 5000,
         });
         return; // CRITICAL: Stop execution, don't navigate
-      } else if (lowerMsg.includes("not found") || lowerMsg.includes("no user") || 
-                 lowerMsg.includes("doesn't exist")) {
+      } else if (
+        lowerMsg.includes("not found") ||
+        lowerMsg.includes("no user") ||
+        lowerMsg.includes("doesn't exist")
+      ) {
         console.log("[Login] Account not found");
         toast.error("Account Not Found", {
-          description: "No account exists with this email. Would you like to sign up?",
+          description:
+            "No account exists with this email. Would you like to sign up?",
           duration: 6000,
           action: {
             label: "Sign Up",
@@ -320,11 +353,15 @@ export default function LoginPage() {
       } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
         console.log("[Login] Network/timeout error");
         toast.error("Connection Error", {
-          description: "Unable to reach the server. Please check your internet connection.",
+          description:
+            "Unable to reach the server. Please check your internet connection.",
           duration: 5000,
         });
         return; // CRITICAL: Stop execution, don't navigate
-      } else if (lowerMsg.includes("too many") || lowerMsg.includes("rate limit")) {
+      } else if (
+        lowerMsg.includes("too many") ||
+        lowerMsg.includes("rate limit")
+      ) {
         console.log("[Login] Rate limit exceeded");
         toast.error("Too Many Attempts", {
           description: "Please wait a few minutes before trying again.",
@@ -392,8 +429,8 @@ export default function LoginPage() {
                   verifyParam === "true"
                     ? "bg-yellow-500/10 border-yellow-500/30"
                     : verifiedParam === "true"
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-primary/10 border-primary/30"
+                      ? "bg-green-500/10 border-green-500/30"
+                      : "bg-primary/10 border-primary/30"
                 }`}
               >
                 <AlertCircle
@@ -401,8 +438,8 @@ export default function LoginPage() {
                     verifyParam === "true"
                       ? "text-yellow-600"
                       : verifiedParam === "true"
-                      ? "text-green-600"
-                      : "text-primary"
+                        ? "text-green-600"
+                        : "text-primary"
                   }`}
                 />
                 <AlertDescription
@@ -410,8 +447,8 @@ export default function LoginPage() {
                     verifyParam === "true"
                       ? "text-yellow-600"
                       : verifiedParam === "true"
-                      ? "text-green-600"
-                      : "text-primary"
+                        ? "text-green-600"
+                        : "text-primary"
                   }`}
                 >
                   {contextualMessage}
@@ -444,243 +481,248 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
-                {/* Email Input */}
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
-                  >
-                    Email Address
-                  </label>
+              {/* Email Input */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                >
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  onInput={(e) => {
+                    const value = e.currentTarget.value;
+                    setEmail(value);
+                    setValue("email", value, { shouldValidate: true });
+                    // Clear errors when user starts typing
+                    if (errors.email && value) {
+                      clearErrors("email");
+                    }
+                  }}
+                  className={`w-full ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
+                  placeholder="Enter your email"
+                  icon={<Mail className="h-5 w-5" />}
+                  disabled={isSubmitting || authLoading}
+                  autoComplete="email"
+                />
+
+                {/* Email Validation Indicator */}
+                {email && (
+                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                    <div
+                      className={`flex items-center gap-2 text-xs ${
+                        getEmailStatus(email).isValid
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {getEmailStatus(email).isValid ? (
+                        <Check className="h-3 w-3 flex-shrink-0" />
+                      ) : (
+                        <XIcon className="h-3 w-3 flex-shrink-0" />
+                      )}
+                      <span>{getEmailStatus(email).message}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {errors.email && (
+                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                    {String(errors.email.message)}
+                  </p>
+                )}
+              </div>
+
+              {/* Password Input */}
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                >
+                  Password
+                </label>
+                <div className="relative">
                   <Input
-                    id="email"
-                    type="email"
-                    {...register("email")}
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
                     onInput={(e) => {
                       const value = e.currentTarget.value;
-                      setEmail(value);
-                      setValue("email", value, { shouldValidate: true });
+                      setPassword(value);
                       // Clear errors when user starts typing
-                      if (errors.email && value) {
-                        clearErrors("email");
+                      if (errors.password && value) {
+                        clearErrors("password");
                       }
                     }}
-                    className={`w-full ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
-                    placeholder="Enter your email"
-                    icon={<Mail className="h-5 w-5" />}
+                    className={`w-full pr-10 ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
+                    placeholder="Enter your password"
+                    icon={<Lock className="h-5 w-5" />}
                     disabled={isSubmitting || authLoading}
-                    autoComplete="email"
+                    autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
 
-                  {/* Email Validation Indicator */}
-                  {email && (
-                    <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                {/* Password Requirements Indicator */}
+                {password && (
+                  <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
+                      Password Requirements:
+                    </p>
+                    <div className="space-y-1">
                       <div
                         className={`flex items-center gap-2 text-xs ${
-                          getEmailStatus(email).isValid
+                          getPasswordRequirements(password).minLength
                             ? "text-green-600"
-                            : "text-red-600"
+                            : "text-muted-foreground"
                         }`}
                       >
-                        {getEmailStatus(email).isValid ? (
+                        {getPasswordRequirements(password).minLength ? (
                           <Check className="h-3 w-3 flex-shrink-0" />
                         ) : (
                           <XIcon className="h-3 w-3 flex-shrink-0" />
                         )}
-                        <span>{getEmailStatus(email).message}</span>
+                        <span>At least 6 characters</span>
+                      </div>
+
+                      <div
+                        className={`flex items-center gap-2 text-xs ${
+                          getPasswordRequirements(password).hasUppercase
+                            ? "text-green-600"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {getPasswordRequirements(password).hasUppercase ? (
+                          <Check className="h-3 w-3 flex-shrink-0" />
+                        ) : (
+                          <XIcon className="h-3 w-3 flex-shrink-0" />
+                        )}
+                        <span>Contains uppercase letter (A-Z)</span>
+                      </div>
+
+                      <div
+                        className={`flex items-center gap-2 text-xs ${
+                          getPasswordRequirements(password).hasNumber
+                            ? "text-green-600"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {getPasswordRequirements(password).hasNumber ? (
+                          <Check className="h-3 w-3 flex-shrink-0" />
+                        ) : (
+                          <XIcon className="h-3 w-3 flex-shrink-0" />
+                        )}
+                        <span>Contains a number (0-9)</span>
+                      </div>
+
+                      <div
+                        className={`flex items-center gap-2 text-xs ${
+                          getPasswordRequirements(password).hasSpecialChar
+                            ? "text-green-600"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {getPasswordRequirements(password).hasSpecialChar ? (
+                          <Check className="h-3 w-3 flex-shrink-0" />
+                        ) : (
+                          <XIcon className="h-3 w-3 flex-shrink-0" />
+                        )}
+                        <span>Contains special character (!@#$%^&* etc.)</span>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Error Message */}
-                  {errors.email && (
-                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                      {String(errors.email.message)}
-                    </p>
-                  )}
-                </div>
+                {/* Error Message */}
+                {errors.password && (
+                  <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
+                    {String(errors.password.message)}
+                  </p>
+                )}
+              </div>
 
-                {/* Password Input */}
-                <div>
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Controller
+                    name="rememberMe"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="remember"
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(!!checked)}
+                      />
+                    )}
+                  />
                   <label
-                    htmlFor="password"
-                    className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2"
+                    htmlFor="remember"
+                    className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
                   >
-                    Password
+                    Remember Me
                   </label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      {...register("password")}
-                      onInput={(e) => {
-                        const value = e.currentTarget.value;
-                        setPassword(value);
-                        // Clear errors when user starts typing
-                        if (errors.password && value) {
-                          clearErrors("password");
-                        }
-                      }}
-                      className={`w-full pr-10 ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
-                      placeholder="Enter your password"
-                      icon={<Lock className="h-5 w-5" />}
-                      disabled={isSubmitting || authLoading}
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Password Requirements Indicator */}
-                  {password && (
-                    <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-muted/50 rounded-md border border-border">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1.5 sm:mb-2">
-                        Password Requirements:
-                      </p>
-                      <div className="space-y-1">
-                        <div
-                          className={`flex items-center gap-2 text-xs ${
-                            getPasswordRequirements(password).minLength
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {getPasswordRequirements(password).minLength ? (
-                            <Check className="h-3 w-3 flex-shrink-0" />
-                          ) : (
-                            <XIcon className="h-3 w-3 flex-shrink-0" />
-                          )}
-                          <span>At least 6 characters</span>
-                        </div>
-
-                        <div
-                          className={`flex items-center gap-2 text-xs ${
-                            getPasswordRequirements(password).hasUppercase
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {getPasswordRequirements(password).hasUppercase ? (
-                            <Check className="h-3 w-3 flex-shrink-0" />
-                          ) : (
-                            <XIcon className="h-3 w-3 flex-shrink-0" />
-                          )}
-                          <span>Contains uppercase letter (A-Z)</span>
-                        </div>
-
-                        <div
-                          className={`flex items-center gap-2 text-xs ${
-                            getPasswordRequirements(password).hasNumber
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {getPasswordRequirements(password).hasNumber ? (
-                            <Check className="h-3 w-3 flex-shrink-0" />
-                          ) : (
-                            <XIcon className="h-3 w-3 flex-shrink-0" />
-                          )}
-                          <span>Contains a number (0-9)</span>
-                        </div>
-
-                        <div
-                          className={`flex items-center gap-2 text-xs ${
-                            getPasswordRequirements(password).hasSpecialChar
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {getPasswordRequirements(password).hasSpecialChar ? (
-                            <Check className="h-3 w-3 flex-shrink-0" />
-                          ) : (
-                            <XIcon className="h-3 w-3 flex-shrink-0" />
-                          )}
-                          <span>
-                            Contains special character (!@#$%^&* etc.)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Error Message */}
-                  {errors.password && (
-                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
-                      {String(errors.password.message)}
-                    </p>
-                  )}
                 </div>
-
-                {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Controller
-                      name="rememberMe"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          id="remember"
-                          checked={field.value}
-                          onCheckedChange={(checked) =>
-                            field.onChange(!!checked)
-                          }
-                        />
-                      )}
-                    />
-                    <label
-                      htmlFor="remember"
-                      className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
-                    >
-                      Remember Me
-                    </label>
-                  </div>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs sm:text-sm text-primary hover:underline"
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
-
-                {/* Sign In Button */}
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  className="w-full font-semibold transition-all duration-200 hover:shadow-lg"
-                  disabled={isSubmitting || authLoading || !!errors.email || !!errors.password}
-                  aria-label="Sign in to your account"
+                <Link
+                  href="/forgot-password"
+                  className="text-xs sm:text-sm text-primary hover:underline"
                 >
-                  {isSubmitting || authLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Signing In...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4 mr-2" />
-                      Sign In
-                    </>
-                  )}
-                </Button>
+                  Forgot Password?
+                </Link>
+              </div>
 
-                {/* Keyboard Shortcut Hint */}
-                <p className="text-xs text-center text-muted-foreground">
-                  Press <kbd className="px-2 py-0.5 text-xs font-semibold bg-muted border border-border rounded">Enter</kbd> to sign in
-                </p>
-              </form>
+              {/* Sign In Button */}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="w-full font-semibold transition-all duration-200 hover:shadow-lg"
+                disabled={
+                  isSubmitting ||
+                  authLoading ||
+                  !!errors.email ||
+                  !!errors.password
+                }
+                aria-label="Sign in to your account"
+              >
+                {isSubmitting || authLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 mr-2" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+
+              {/* Keyboard Shortcut Hint */}
+              <p className="text-xs text-center text-muted-foreground">
+                Press{" "}
+                <kbd className="px-2 py-0.5 text-xs font-semibold bg-muted border border-border rounded">
+                  Enter
+                </kbd>{" "}
+                to sign in
+              </p>
+            </form>
 
             {/* Divider */}
             <div className="relative my-3 sm:my-4 md:my-5">
