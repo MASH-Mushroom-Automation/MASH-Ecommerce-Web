@@ -383,32 +383,47 @@ export class SellerApi {
   static async getProducts(
     params: { page?: number; limit?: number; search?: string } = {}
   ): Promise<ApiResponse<SellerProduct[]>> {
-    await delay(300);
+    try {
+      // Import Sanity function dynamically to avoid circular dependencies
+      const { fetchSellerProducts } = await import("@/lib/sanity/products");
+      
+      const result = await fetchSellerProducts(params);
+      
+      return {
+        data: result.products,
+        success: true,
+        pagination: result.pagination,
+      };
+    } catch (error) {
+      console.error("Error fetching products from Sanity:", error);
+      // Fallback to mock data if Sanity fails
+      await delay(300);
 
-    let filteredProducts = [...MOCK_SELLER_PRODUCTS];
+      let filteredProducts = [...MOCK_SELLER_PRODUCTS];
 
-    if (params.search) {
-      filteredProducts = filteredProducts.filter((p) =>
-        p.name.toLowerCase().includes(params.search!.toLowerCase())
-      );
+      if (params.search) {
+        filteredProducts = filteredProducts.filter((p) =>
+          p.name.toLowerCase().includes(params.search!.toLowerCase())
+        );
+      }
+
+      const page = params.page || 1;
+      const limit = params.limit || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+      return {
+        data: paginatedProducts,
+        success: true,
+        pagination: {
+          page,
+          limit,
+          total: filteredProducts.length,
+          totalPages: Math.ceil(filteredProducts.length / limit),
+        },
+      };
     }
-
-    const page = params.page || 1;
-    const limit = params.limit || 10;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-
-    return {
-      data: paginatedProducts,
-      success: true,
-      pagination: {
-        page,
-        limit,
-        total: filteredProducts.length,
-        totalPages: Math.ceil(filteredProducts.length / limit),
-      },
-    };
   }
 
   static async getProductById(
