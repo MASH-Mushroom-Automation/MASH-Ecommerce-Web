@@ -6,11 +6,25 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Package, DollarSign, Clock, TrendingUp, Search, Filter, Download } from "lucide-react";
+import {
+  Package,
+  DollarSign,
+  Clock,
+  TrendingUp,
+  Search,
+  Filter,
+  Download,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useSanityOrders } from "@/hooks/useSanityOrders";
 import { OrderList } from "@/components/orders/OrderCard";
@@ -51,7 +65,8 @@ export default function OrdersPage() {
   }, [statusFilter, paymentFilter, dateRange]);
 
   // Fetch orders with real-time updates
-  const { orders, summary, loading, error, searchOrders } = useSanityOrders(filters);
+  const { orders, summary, loading, error, searchOrders, refetch } =
+    useSanityOrders(filters);
 
   // Apply search filter
   const filteredOrders = useMemo(() => {
@@ -70,12 +85,16 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Order Management</h1>
-          <p className="text-muted-foreground">Track and manage customer orders in real-time</p>
+          <p className="text-muted-foreground">
+            Track and manage customer orders in real-time
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-green-700">Live Updates (1-2s)</span>
+            <span className="text-xs font-medium text-green-700">
+              Live Updates (1-2s)
+            </span>
           </div>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
@@ -89,51 +108,70 @@ export default function OrdersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Orders
+              </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary.totalOrders}</div>
               <p className="text-xs text-muted-foreground">
-                {summary.deliveredOrders} delivered • {summary.cancelledOrders} cancelled
+                {summary.deliveredOrders} delivered • {summary.cancelledOrders}{" "}
+                cancelled
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Pending Orders
+              </CardTitle>
               <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{summary.pendingOrders}</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {summary.pendingOrders}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {summary.processingOrders} processing • {summary.shippedOrders} shipped
+                {summary.processingOrders} processing • {summary.shippedOrders}{" "}
+                shipped
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Revenue
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground">From {summary.totalOrders - summary.cancelledOrders} orders</p>
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(summary.totalRevenue)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                From {summary.totalOrders - summary.cancelledOrders} orders
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Average Order
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{formatCurrency(summary.averageOrderValue)}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {formatCurrency(summary.averageOrderValue)}
+              </div>
               {summary.priorityOrders > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  ⭐ {summary.priorityOrders} priority order{summary.priorityOrders > 1 ? "s" : ""}
+                  ⭐ {summary.priorityOrders} priority order
+                  {summary.priorityOrders > 1 ? "s" : ""}
                 </p>
               )}
             </CardContent>
@@ -203,7 +241,10 @@ export default function OrdersPage() {
             </Select>
 
             {/* Clear Filters */}
-            {(statusFilter !== "all" || paymentFilter !== "all" || dateRange !== "all" || searchQuery !== "") && (
+            {(statusFilter !== "all" ||
+              paymentFilter !== "all" ||
+              dateRange !== "all" ||
+              searchQuery !== "") && (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -271,7 +312,8 @@ export default function OrdersPage() {
         <>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">
-              {filteredOrders.length} Order{filteredOrders.length !== 1 ? "s" : ""}
+              {filteredOrders.length} Order
+              {filteredOrders.length !== 1 ? "s" : ""}
             </h2>
           </div>
 
@@ -295,6 +337,7 @@ export default function OrdersPage() {
               console.log("Print invoice:", orderId);
               // Open print dialog
             }}
+            onOrderUpdated={refetch}
           />
         </>
       )}

@@ -1,6 +1,6 @@
 /**
  * Firebase Orders Dashboard
- * 
+ *
  * Real-time order management for sellers/admins.
  * Uses Firebase Firestore for order data.
  */
@@ -49,7 +49,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirebaseOrders } from "@/hooks/useFirebaseOrders";
-import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
+import {
+  type FirestoreOrder,
+  type OrderStatus,
+  FirebaseOrdersService,
+} from "@/lib/firebase/orders";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -59,11 +63,15 @@ import {
   sendOrderShippedEmailViaAPI,
   sendOrderDeliveredEmailViaAPI,
 } from "@/lib/email/client";
+import { OrderRejectionModal } from "@/components/orders/OrderRejectionModal";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 // Status configuration
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Record<
+  OrderStatus,
+  { label: string; color: string; icon: React.ReactNode }
+> = {
   pending_approval: {
     label: "Pending Approval",
     color: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -149,9 +157,10 @@ export default function FirebaseOrdersPage() {
   // Local state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
-  const [selectedOrder, setSelectedOrder] = useState<FirestoreOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<FirestoreOrder | null>(
+    null,
+  );
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   // Filter orders
@@ -179,11 +188,11 @@ export default function FirebaseOrdersPage() {
     }
 
     setProcessingAction(order.id);
-    
+
     try {
       // First approve the order
       const success = await approveOrder(order.id, user.id);
-      
+
       if (!success) {
         toast.error("Failed to approve order");
         setProcessingAction(null);
@@ -216,7 +225,9 @@ export default function FirebaseOrdersPage() {
 
       // If this is a Lalamove delivery order, schedule the delivery
       if (order.deliveryMethod === "lalamove" && order.deliveryAddress) {
-        toast.loading("Scheduling Lalamove delivery...", { id: "lalamove-schedule" });
+        toast.loading("Scheduling Lalamove delivery...", {
+          id: "lalamove-schedule",
+        });
 
         try {
           const response = await fetch("/api/orders/schedule-delivery", {
@@ -248,16 +259,23 @@ export default function FirebaseOrdersPage() {
             await FirebaseOrdersService.setLalamoveOrderId(
               order.id,
               data.data.lalamoveOrderId,
-              data.data.shareLink
+              data.data.shareLink,
             );
-            
-            toast.success("Lalamove delivery scheduled!", { id: "lalamove-schedule" });
+
+            toast.success("Lalamove delivery scheduled!", {
+              id: "lalamove-schedule",
+            });
           } else {
-            toast.error(`Delivery scheduling failed: ${data.message}`, { id: "lalamove-schedule" });
+            toast.error(`Delivery scheduling failed: ${data.message}`, {
+              id: "lalamove-schedule",
+            });
           }
         } catch (deliveryError) {
           console.error("Lalamove scheduling error:", deliveryError);
-          toast.error("Failed to schedule Lalamove delivery. You can retry manually.", { id: "lalamove-schedule" });
+          toast.error(
+            "Failed to schedule Lalamove delivery. You can retry manually.",
+            { id: "lalamove-schedule" },
+          );
         }
       }
     } catch (error) {
@@ -269,16 +287,11 @@ export default function FirebaseOrdersPage() {
   };
 
   // Handle reject
-  const handleReject = async () => {
+  const handleReject = async (reason: string) => {
     if (!selectedOrder || !user?.id) return;
 
-    if (!rejectReason.trim()) {
-      toast.error("Please provide a reason for rejection");
-      return;
-    }
-
     setProcessingAction(selectedOrder.id);
-    const success = await rejectOrder(selectedOrder.id, user.id, rejectReason);
+    const success = await rejectOrder(selectedOrder.id, user.id, reason);
     setProcessingAction(null);
 
     if (success) {
@@ -299,13 +312,12 @@ export default function FirebaseOrdersPage() {
         deliveryFee: selectedOrder.deliveryFee,
         total: selectedOrder.total,
         deliveryMethod: selectedOrder.deliveryMethod,
-        rejectionReason: rejectReason,
+        rejectionReason: reason,
       }).catch((err) => {
         console.error("Failed to send rejection email:", err);
       });
 
       setShowRejectDialog(false);
-      setRejectReason("");
       setSelectedOrder(null);
     } else {
       toast.error("Failed to reject order");
@@ -313,7 +325,10 @@ export default function FirebaseOrdersPage() {
   };
 
   // Handle status update
-  const handleStatusUpdate = async (order: FirestoreOrder, newStatus: OrderStatus) => {
+  const handleStatusUpdate = async (
+    order: FirestoreOrder,
+    newStatus: OrderStatus,
+  ) => {
     if (!user?.id) return;
 
     setProcessingAction(order.id);
@@ -321,7 +336,9 @@ export default function FirebaseOrdersPage() {
     setProcessingAction(null);
 
     if (success) {
-      toast.success(`Order status updated to ${STATUS_CONFIG[newStatus].label}`);
+      toast.success(
+        `Order status updated to ${STATUS_CONFIG[newStatus].label}`,
+      );
 
       // Send email notifications based on status change
       if (newStatus === "shipped") {
@@ -413,7 +430,9 @@ export default function FirebaseOrdersPage() {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-green-700">Live Updates</span>
+            <span className="text-xs font-medium text-green-700">
+              Live Updates
+            </span>
           </div>
           <Button variant="outline" size="sm" onClick={() => refreshOrders()}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -424,13 +443,22 @@ export default function FirebaseOrdersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className={cn(stats.pendingApproval > 0 && "ring-2 ring-yellow-400")}>
+        <Card
+          className={cn(stats.pendingApproval > 0 && "ring-2 ring-yellow-400")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Approval
+            </CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", stats.pendingApproval > 0 && "text-yellow-600")}>
+            <div
+              className={cn(
+                "text-2xl font-bold",
+                stats.pendingApproval > 0 && "text-yellow-600",
+              )}
+            >
               {stats.pendingApproval}
             </div>
             <p className="text-xs text-muted-foreground">Needs attention</p>
@@ -452,7 +480,9 @@ export default function FirebaseOrdersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today&apos;s Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Today&apos;s Orders
+            </CardTitle>
             <Package className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -487,7 +517,8 @@ export default function FirebaseOrdersPage() {
               <AlertCircle className="h-5 w-5 text-yellow-600" />
               <div className="flex-1">
                 <p className="font-medium text-yellow-800">
-                  {pendingOrders.length} order{pendingOrders.length > 1 ? "s" : ""} waiting for approval
+                  {pendingOrders.length} order
+                  {pendingOrders.length > 1 ? "s" : ""} waiting for approval
                 </p>
                 <p className="text-sm text-yellow-700">
                   Review and approve or reject pending orders
@@ -523,27 +554,45 @@ export default function FirebaseOrdersPage() {
             </div>
             <Select
               value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as OrderStatus | "all")}
+              onValueChange={(value) =>
+                setStatusFilter(value as OrderStatus | "all")
+              }
             >
               <SelectTrigger className="w-full sm:w-[200px]">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Orders ({stats.totalOrders})</SelectItem>
+                <SelectItem value="all">
+                  All Orders ({stats.totalOrders})
+                </SelectItem>
                 <SelectItem value="pending_approval">
                   Pending ({stats.pendingApproval})
                 </SelectItem>
-                <SelectItem value="approved">Approved ({stats.approved})</SelectItem>
-                <SelectItem value="processing">Processing ({stats.processing})</SelectItem>
+                <SelectItem value="approved">
+                  Approved ({stats.approved})
+                </SelectItem>
+                <SelectItem value="processing">
+                  Processing ({stats.processing})
+                </SelectItem>
                 <SelectItem value="ready_for_pickup">
                   Ready for Pickup ({stats.readyForPickup})
                 </SelectItem>
-                <SelectItem value="shipped">Shipped ({stats.shipped})</SelectItem>
-                <SelectItem value="delivered">Delivered ({stats.delivered})</SelectItem>
-                <SelectItem value="completed">Completed ({stats.completed})</SelectItem>
-                <SelectItem value="cancelled">Cancelled ({stats.cancelled})</SelectItem>
-                <SelectItem value="rejected">Rejected ({stats.rejected})</SelectItem>
+                <SelectItem value="shipped">
+                  Shipped ({stats.shipped})
+                </SelectItem>
+                <SelectItem value="delivered">
+                  Delivered ({stats.delivered})
+                </SelectItem>
+                <SelectItem value="completed">
+                  Completed ({stats.completed})
+                </SelectItem>
+                <SelectItem value="cancelled">
+                  Cancelled ({stats.cancelled})
+                </SelectItem>
+                <SelectItem value="rejected">
+                  Rejected ({stats.rejected})
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -561,8 +610,8 @@ export default function FirebaseOrdersPage() {
                 {searchQuery
                   ? "Try adjusting your search query"
                   : statusFilter !== "all"
-                  ? `No ${STATUS_CONFIG[statusFilter]?.label.toLowerCase()} orders`
-                  : "Orders will appear here when customers place them"}
+                    ? `No ${STATUS_CONFIG[statusFilter]?.label.toLowerCase()} orders`
+                    : "Orders will appear here when customers place them"}
               </p>
             </CardContent>
           </Card>
@@ -582,49 +631,16 @@ export default function FirebaseOrdersPage() {
         )}
       </div>
 
-      {/* Reject Dialog */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Order</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting order{" "}
-              <span className="font-semibold">{selectedOrder?.orderNumber}</span>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Enter rejection reason..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRejectDialog(false);
-                setRejectReason("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || processingAction === selectedOrder?.id}
-            >
-              {processingAction === selectedOrder?.id ? (
-                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <XCircle className="h-4 w-4 mr-2" />
-              )}
-              Reject Order
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reject Dialog - Using OrderRejectionModal */}
+      {selectedOrder && (
+        <OrderRejectionModal
+          open={showRejectDialog}
+          onClose={() => setShowRejectDialog(false)}
+          onConfirm={handleReject}
+          orderNumber={selectedOrder.orderNumber}
+          loading={processingAction === selectedOrder.id}
+        />
+      )}
 
       {/* Order Detail Dialog */}
       {selectedOrder && !showRejectDialog && (
@@ -666,19 +682,28 @@ function OrderCard({
   const nextOptions = getNextStatusOptions(order.status);
 
   return (
-    <Card className={cn(order.status === "pending_approval" && "ring-2 ring-yellow-300")}>
+    <Card
+      className={cn(
+        order.status === "pending_approval" && "ring-2 ring-yellow-300",
+      )}
+    >
       <CardContent className="pt-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Order Info */}
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-mono font-semibold">{order.orderNumber}</span>
+              <span className="font-mono font-semibold">
+                {order.orderNumber}
+              </span>
               <Badge className={cn("border", statusConfig.color)}>
                 {statusConfig.icon}
                 <span className="ml-1">{statusConfig.label}</span>
               </Badge>
               {order.deliveryMethod === "lalamove" && (
-                <Badge variant="outline" className="border-green-300 text-green-700">
+                <Badge
+                  variant="outline"
+                  className="border-green-300 text-green-700"
+                >
                   <Truck className="h-3 w-3 mr-1" />
                   Lalamove
                 </Badge>
@@ -687,7 +712,9 @@ function OrderCard({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>{order.userName}</span>
               <span>•</span>
-              <span>{order.items.length} item{order.items.length > 1 ? "s" : ""}</span>
+              <span>
+                {order.items.length} item{order.items.length > 1 ? "s" : ""}
+              </span>
               <span>•</span>
               <span>{formatDate(order.createdAt)}</span>
             </div>
@@ -716,7 +743,9 @@ function OrderCard({
 
           {/* Total */}
           <div className="text-right">
-            <div className="text-2xl font-bold">{formatCurrency(order.total)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(order.total)}
+            </div>
             {order.deliveryFee > 0 && (
               <div className="text-xs text-muted-foreground">
                 incl. {formatCurrency(order.deliveryFee)} delivery
@@ -752,7 +781,9 @@ function OrderCard({
                 </Button>
               </>
             ) : nextOptions.length > 0 ? (
-              <Select onValueChange={(value) => onStatusUpdate(value as OrderStatus)}>
+              <Select
+                onValueChange={(value) => onStatusUpdate(value as OrderStatus)}
+              >
                 <SelectTrigger className="w-[140px]" disabled={isProcessing}>
                   <span className="text-sm">Update Status</span>
                   <ChevronDown className="h-4 w-4 ml-1" />
@@ -820,9 +851,18 @@ function OrderDetailDialog({
           <div>
             <h4 className="font-semibold mb-2">Customer Information</h4>
             <div className="bg-muted rounded-lg p-4 space-y-1 text-sm">
-              <p><span className="text-muted-foreground">Name:</span> {order.userName}</p>
-              <p><span className="text-muted-foreground">Email:</span> {order.userEmail}</p>
-              <p><span className="text-muted-foreground">Phone:</span> {order.userPhone}</p>
+              <p>
+                <span className="text-muted-foreground">Name:</span>{" "}
+                {order.userName}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Email:</span>{" "}
+                {order.userEmail}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Phone:</span>{" "}
+                {order.userPhone}
+              </p>
             </div>
           </div>
 
@@ -838,7 +878,8 @@ function OrderDetailDialog({
                   </p>
                   {order.pickupLocation && (
                     <p className="text-muted-foreground ml-6">
-                      {order.pickupLocation.name} - {order.pickupLocation.address}
+                      {order.pickupLocation.name} -{" "}
+                      {order.pickupLocation.address}
                     </p>
                   )}
                 </>
@@ -868,19 +909,31 @@ function OrderDetailDialog({
                     <Navigation className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium">Lalamove Order</span>
                   </div>
-                  <Badge variant="outline" className="text-green-700 border-green-300">
+                  <Badge
+                    variant="outline"
+                    className="text-green-700 border-green-300"
+                  >
                     {order.lalamoveTracking?.status || "ASSIGNING_DRIVER"}
                   </Badge>
                 </div>
-                
+
                 {order.lalamoveTracking?.driverName && (
                   <div className="text-sm">
-                    <p><span className="text-muted-foreground">Driver:</span> {order.lalamoveTracking.driverName}</p>
+                    <p>
+                      <span className="text-muted-foreground">Driver:</span>{" "}
+                      {order.lalamoveTracking.driverName}
+                    </p>
                     {order.lalamoveTracking.driverPlateNumber && (
-                      <p><span className="text-muted-foreground">Plate:</span> {order.lalamoveTracking.driverPlateNumber}</p>
+                      <p>
+                        <span className="text-muted-foreground">Plate:</span>{" "}
+                        {order.lalamoveTracking.driverPlateNumber}
+                      </p>
                     )}
                     {order.lalamoveTracking.driverPhone && (
-                      <p><span className="text-muted-foreground">Phone:</span> {order.lalamoveTracking.driverPhone}</p>
+                      <p>
+                        <span className="text-muted-foreground">Phone:</span>{" "}
+                        {order.lalamoveTracking.driverPhone}
+                      </p>
                     )}
                   </div>
                 )}
@@ -890,7 +943,9 @@ function OrderDetailDialog({
                     size="sm"
                     variant="outline"
                     className="w-full border-green-300 text-green-700 hover:bg-green-100"
-                    onClick={() => window.open(order.lalamoveTracking?.shareLink, "_blank")}
+                    onClick={() =>
+                      window.open(order.lalamoveTracking?.shareLink, "_blank")
+                    }
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Track on Lalamove
@@ -902,7 +957,9 @@ function OrderDetailDialog({
 
           {/* Order Items */}
           <div>
-            <h4 className="font-semibold mb-2">Order Items ({order.items.length})</h4>
+            <h4 className="font-semibold mb-2">
+              Order Items ({order.items.length})
+            </h4>
             <div className="border rounded-lg divide-y">
               {order.items.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-4 p-4">
@@ -918,7 +975,9 @@ function OrderDetailDialog({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{item.name}</p>
                     {item.grower && (
-                      <p className="text-sm text-muted-foreground">by @{item.grower}</p>
+                      <p className="text-sm text-muted-foreground">
+                        by @{item.grower}
+                      </p>
                     )}
                     <p className="text-sm text-muted-foreground">
                       {formatCurrency(item.price)} × {item.quantity}
@@ -962,15 +1021,18 @@ function OrderDetailDialog({
             <h4 className="font-semibold mb-2">Status History</h4>
             <div className="space-y-2">
               {order.statusHistory.map((entry, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 text-sm"
-                >
-                  <div className={cn("w-2 h-2 mt-1.5 rounded-full", 
-                    STATUS_CONFIG[entry.status]?.color.split(" ")[0] || "bg-gray-300"
-                  )} />
+                <div key={idx} className="flex items-start gap-3 text-sm">
+                  <div
+                    className={cn(
+                      "w-2 h-2 mt-1.5 rounded-full",
+                      STATUS_CONFIG[entry.status]?.color.split(" ")[0] ||
+                        "bg-gray-300",
+                    )}
+                  />
                   <div className="flex-1">
-                    <p className="font-medium">{STATUS_CONFIG[entry.status]?.label || entry.status}</p>
+                    <p className="font-medium">
+                      {STATUS_CONFIG[entry.status]?.label || entry.status}
+                    </p>
                     {entry.note && (
                       <p className="text-muted-foreground">{entry.note}</p>
                     )}
@@ -1010,7 +1072,9 @@ function OrderDetailDialog({
             </>
           )}
           {nextOptions.length > 0 && order.status !== "pending_approval" && (
-            <Select onValueChange={(value) => onStatusUpdate(value as OrderStatus)}>
+            <Select
+              onValueChange={(value) => onStatusUpdate(value as OrderStatus)}
+            >
               <SelectTrigger className="w-[180px]" disabled={isProcessing}>
                 <span>Update Status</span>
               </SelectTrigger>
