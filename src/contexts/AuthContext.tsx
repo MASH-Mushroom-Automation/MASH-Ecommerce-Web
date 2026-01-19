@@ -327,92 +327,124 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * - Advanced user roles and permissions
    * - Backend-specific features
    *
-   * Backend Endpoint: POST /auth/google/sync (legacy endpoint, not used for Google)
-   * See: GOOGLE_AUTH_TESTING_GUIDE.md for full documentation
+   * Backend Endpoint: POST /auth/firebase-sync
+   *
+   * Security Flow:
+   * 1. Frontend gets Firebase ID token after Google login
+   * 2. Backend verifies token with Firebase Admin SDK (never trusts frontend)
+   * 3. User matched by firebaseUid → upsert to Postgres
+   * 4. Backend issues JWT with firebase_uid claim
+   * 5. HTTP-only cookie set for web apps
    */
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
       try {
-        console.log("[Auth] Syncing Google user to PostgreSQL backend...");
+        console.log("[Auth] Syncing Firebase user to backend...");
+        console.log("[Auth] Firebase user:", {
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
+        });
 
-        // Extract name parts from Firebase displayName
-        const nameParts = (fbUser.displayName || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
+        // Get Firebase ID token for backend verification
+        const idToken = await fbUser.getIdToken(true); // Force refresh to ensure valid token
 
-        // Call backend API directly (no Next.js proxy needed)
+        if (!idToken) {
+          console.error("[Auth] Failed to get Firebase ID token");
+          return null;
+        }
+
+        console.log("[Auth] Got Firebase ID token, length:", idToken.length);
+        console.log("[Auth] Token preview:", idToken.substring(0, 50) + "...");
+
+        // Only send idToken - backend extracts user info from the verified Firebase token
+        const requestBody = {
+          idToken: idToken,
+        };
+
+        console.log("[Auth] Request body:", requestBody);
+        console.log(
+          "[Auth] Sending to:",
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`
+        );
+
+        // Call backend API with Firebase ID token in request body
+        // Backend will verify this token with Firebase Admin SDK
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/google/sync`,
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            credentials: "include",
-            body: JSON.stringify({
-              googleId: fbUser.uid,
-              email: fbUser.email,
-              firstName: firstName,
-              lastName: lastName,
-              photoURL: fbUser.photoURL || undefined,
-              username: fbUser.email?.split("@")[0], // Generate username from email prefix
-            }),
+            credentials: "include", // Important for receiving HTTP-only cookies
+            body: JSON.stringify(requestBody),
           }
         );
 
+        console.log("[Auth] Backend response status:", response.status);
+
         const data = await response.json();
+        console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
-          console.error("[Auth] Backend sync failed:", data);
+          console.error("[Auth] Backend Firebase sync failed:", data);
           throw new Error(data.message || "Failed to sync user to backend");
         }
 
-        console.log("[Auth] Backend sync successful:", {
+        console.log("[Auth] Backend Firebase sync successful:", {
           userId: data.user?.id,
-          username: data.user?.username,
-          hasToken: !!data.tokens?.accessToken,
+          email: data.user?.email,
+          firebaseUid: data.user?.firebaseUid,
+          hasAccessToken: !!data.accessToken || !!data.tokens?.accessToken,
         });
 
-        // Store JWT access token from backend
-        if (data.tokens?.accessToken) {
-          console.log("[Auth] Setting backend JWT token...");
-          setAuthToken(data.tokens.accessToken, true);
-          console.log("[Auth] JWT token stored successfully");
-        } else {
-          console.warn("[Auth] No access token received from backend!");
+        // Backend may set HTTP-only cookie automatically, but also handle token in response
+        const accessToken = data.accessToken || data.tokens?.accessToken;
+        if (accessToken) {
+          console.log("[Auth] Setting backend JWT token from response...");
+          setAuthToken(accessToken, true);
         }
 
-        // Store refresh token if available
-        if (data.tokens?.refreshToken) {
+        // Store refresh token if available (for token refresh flow)
+        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+        if (refreshToken) {
           try {
-            console.log("[Auth] Storing refresh token in localStorage...");
-            localStorage.setItem("refreshToken", data.tokens.refreshToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            console.log("[Auth] Refresh token stored");
           } catch (err) {
             console.error("[Auth] Failed to store refresh token:", err);
           }
         }
 
-        // Build unified auth user object with backend data
-        // Backend returns: { id, email, username, firstName, lastName, imageUrl (DiceBear), role }
+        // Build unified auth user object with backend-verified data
         const backendUser = data.user;
-        const backendImageUrl = backendUser?.imageUrl; // DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
+
+        // Parse name from displayName if backend doesn't provide it
+        const nameParts = (fbUser.displayName || "").split(" ");
+        const fallbackFirstName = nameParts[0] || "";
+        const fallbackLastName = nameParts.slice(1).join(" ") || "";
 
         const authUser: AuthUser = {
           id: backendUser?.id || fbUser.uid,
-          email: fbUser.email || "",
-          firstName: backendUser?.firstName || firstName,
-          lastName: backendUser?.lastName || lastName,
+          email: backendUser?.email || fbUser.email || "",
+          firstName: backendUser?.firstName || fallbackFirstName,
+          lastName: backendUser?.lastName || fallbackLastName,
           displayName: fbUser.displayName || undefined,
-          username: backendUser?.username || fbUser.email?.split("@")[0], // Backend username for DiceBear seed
+          username: backendUser?.username || fbUser.email?.split("@")[0],
           phone: backendUser?.phone || undefined,
-          photoURL: fbUser.photoURL || undefined, // Google profile photo
-          imageUrl: backendImageUrl || undefined, // DiceBear avatar from backend
-          avatar: backendImageUrl || fbUser.photoURL || undefined, // Prefer DiceBear, fallback to Google photo
+          photoURL: fbUser.photoURL || undefined,
+          imageUrl: backendUser?.imageUrl || undefined,
+          avatar: backendUser?.imageUrl || fbUser.photoURL || undefined,
           provider: "google",
-          emailVerified: fbUser.emailVerified,
+          emailVerified: true, // Verified by Firebase
         };
 
         setUser(authUser);
+        setFirebaseUser(fbUser);
+
+        // Set Firebase auth cookie for proxy detection
+        setFirebaseAuthCookie(fbUser.uid);
 
         // Persist to localStorage
         try {
@@ -424,11 +456,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return authUser;
       } catch (error) {
-        console.error(
-          "[Auth] Failed to sync Google user to PostgreSQL backend:",
-          error
-        );
+        console.error("[Auth] Failed to sync Firebase user to backend:", error);
         // Don't throw - allow user to continue with Firebase-only auth
+        // The firebase-auth cookie is still set for basic proxy detection
         return null;
       }
     },
@@ -507,6 +537,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               // Set Firebase auth cookie for proxy detection (returning user)
               setFirebaseAuthCookie(fbUser.uid);
+
+              // Sync with backend in background (for JWT token to access backend APIs)
+              // This ensures returning users get a valid backend JWT
+              syncFirebaseUserToBackend(fbUser).catch((err) => {
+                console.warn(
+                  "[Auth Context] Background backend sync failed:",
+                  err
+                );
+              });
 
               // If data was migrated or missing email, fetch fresh from Firestore
               if (wasMigrated || !parsed.email) {
@@ -667,7 +706,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [migrateOldUserData, profileToAuthUser, syncToFirestoreProfile]);
+  }, [
+    migrateOldUserData,
+    profileToAuthUser,
+    syncFirebaseUserToBackend,
+    syncToFirestoreProfile,
+  ]);
 
   /**
    * Sign in with Google using Firebase only (no backend sync)
@@ -701,15 +745,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             displayName: result.displayName,
           });
 
-          // Sync to Firestore profile ONLY - no backend sync
-          const authUser = await syncToFirestoreProfile(result, "google");
+          // First sync to Firestore profile (local Firebase storage)
+          const firestoreUser = await syncToFirestoreProfile(result, "google");
 
-          // Get Firebase ID token for authentication
-          const idToken = await result.getIdToken();
-
-          // Store Firebase token (not backend JWT)
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("firebase-token", idToken);
+          // Then try to sync with backend (for order management, etc.)
+          // This sends the Firebase ID token to backend for verification
+          let authUser = firestoreUser;
+          try {
+            console.log("[Auth] Attempting backend sync...");
+            const backendUser = await syncFirebaseUserToBackend(result);
+            if (backendUser) {
+              authUser = backendUser;
+              console.log("[Auth] Backend sync successful");
+            } else {
+              console.log(
+                "[Auth] Backend sync skipped/failed, using Firebase-only auth"
+              );
+            }
+          } catch (backendError) {
+            console.warn(
+              "[Auth] Backend sync failed, continuing with Firebase-only:",
+              backendError
+            );
           }
 
           console.log("[Auth] Google sign-in complete - user profile:", {
