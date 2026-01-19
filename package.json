@@ -10,7 +10,14 @@
     "validate-env": "node scripts/validate-env.js",
     "lint": "eslint",
     "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
-    "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose"
+    "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:calendly": "jest --config jest.calendly.config.js",
+    "test:calendly:watch": "jest --config jest.calendly.config.js --watch",
+    "test:calendly:coverage": "jest --config jest.calendly.config.js --coverage",
+    "populate:growers": "node scripts/enable-growers-calendly.js"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
