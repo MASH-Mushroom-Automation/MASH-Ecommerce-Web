@@ -92,6 +92,9 @@ module.exports = {
       },
     }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-sanity)/)',
+  ],
   testTimeout: 10000,
   verbose: true,
 };
