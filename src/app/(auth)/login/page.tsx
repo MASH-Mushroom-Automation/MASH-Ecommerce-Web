@@ -384,71 +384,6 @@ export default function LoginPage() {
     }
   };
 
-  // Dev bypass logic
-  const DEV_TOKEN = process.env.NEXT_PUBLIC_DEV_ADMIN_TOKEN;
-  const USE_DEV_TOKEN = process.env.NEXT_PUBLIC_USE_DEV_TOKEN === "true";
-  const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-
-  const handleDevBypass = () => {
-    if (DEV_TOKEN) {
-      // Decode JWT to get user info (simple base64 decode of payload)
-      let userEmail = "admin@mash.com";
-      let userId = "dev-admin-user";
-      let userRole = "ADMIN";
-
-      try {
-        const parts = DEV_TOKEN.split(".");
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1]));
-          userEmail = payload.email || userEmail;
-          userId = payload.sub || userId;
-          userRole = payload.role || userRole;
-        }
-      } catch (e) {
-        console.warn("Could not decode token, using defaults", e);
-      }
-
-      // Set cookie properly using setAuthToken (URL-encodes the token)
-      setAuthToken(DEV_TOKEN, true);
-
-      // Create a mock user profile for the UI
-      const mockProfile = {
-        id: userId,
-        email: userEmail,
-        firstName: "Admin",
-        lastName: "User",
-        role: userRole,
-        sellerStatus: "approved" as const, // Admin users should have approved seller status
-        emailVerified: true,
-        onboardingCompleted: true,
-        avatar: null,
-        phone: null,
-        preferences: {
-          emailNotifications: true,
-          smsNotifications: false,
-          marketingEmails: false,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Store user profile in localStorage and sessionStorage
-      try {
-        localStorage.setItem("user", JSON.stringify(mockProfile));
-        sessionStorage.setItem("user", JSON.stringify(mockProfile));
-      } catch (e) {
-        console.warn("Could not store user profile", e);
-      }
-
-      // Redirect to home or intended page
-      const redirect =
-        sessionStorage.getItem("auth-redirect-url") || "/seller/dashboard";
-      window.location.href = redirect;
-    } else {
-      alert("Dev token not set in environment.");
-    }
-  };
-
   const contextualMessage = getContextualMessage();
 
   return (
@@ -806,19 +741,6 @@ export default function LoginPage() {
               size="lg"
               text="Sign in with Google"
             />
-
-            {/* Dev Bypass Button (only show in dev or when enabled) */}
-            {(IS_DEVELOPMENT || USE_DEV_TOKEN) && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                className="w-full font-semibold mb-3"
-                onClick={handleDevBypass}
-              >
-                🚀 Dev Login Bypass (Admin)
-              </Button>
-            )}
           </div>
         </div>
       </div>
