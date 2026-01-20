@@ -105,7 +105,7 @@ export default function LoginPage() {
     if (isAuthenticated && user) {
       console.log("[Login] User already authenticated, redirecting...");
       const storedRedirect = sessionStorage.getItem("auth-redirect-url");
-      const destination = storedRedirect || redirectUrl || "/shop";
+      const destination = storedRedirect || redirectUrl || "/";
 
       // Clean up stored redirect
       if (storedRedirect) {
@@ -252,8 +252,8 @@ export default function LoginPage() {
           console.log("[Login] Redirecting to:", redirectUrl);
           router.push(redirectUrl);
         } else {
-          console.log("[Login] Redirecting to shop");
-          router.push("/shop");
+          console.log("[Login] Redirecting to home");
+          router.push("/");
         }
       }
     } catch (error: any) {

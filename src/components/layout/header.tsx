@@ -215,7 +215,7 @@ export function SellerHeader() {
       const height = element.getBoundingClientRect().height;
       document.documentElement.style.setProperty(
         "--seller-header-height",
-        `${height}px`
+        `${height}px`,
       );
     };
 
@@ -372,9 +372,7 @@ export function Header() {
       clearWishlist();
       clearCart();
       clearProfile();
-      router.push("/");
-      router.refresh();
-      toast.success("Signed out");
+      // Note: signOut() already shows toast and handles redirect
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to sign out");
