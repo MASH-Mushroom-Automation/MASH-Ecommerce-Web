@@ -135,7 +135,7 @@ export async function generateResponse(
       source: 'gemini',
       metadata: {
         tokensUsed: data.usageMetadata?.totalTokenCount,
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         processingTime,
       },
     };
@@ -262,7 +262,7 @@ export async function generateStreamResponse(
       success: true,
       source: 'gemini',
       metadata: {
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         processingTime,
       },
     };

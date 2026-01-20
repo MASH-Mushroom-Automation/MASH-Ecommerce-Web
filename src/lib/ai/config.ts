@@ -26,7 +26,7 @@ export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1
 export const HF_API_ENDPOINT = 'https://api-inference.huggingface.co/models';
 
 // Model Configuration
-export const GEMINI_MODEL = 'gemini-1.5-flash';
+export const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 export const HF_FALLBACK_MODEL = 'mistralai/Mixtral-8x7B-Instruct-v0.1';
 
 // Request Timeouts (milliseconds)

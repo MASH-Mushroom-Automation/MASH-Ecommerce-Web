@@ -129,7 +129,7 @@ export function buildProductDocument(
   // Extract and preprocess all searchable fields
   const nameWords = preprocessText(product.name);
   const descWords = preprocessText(product.description || '');
-  const tagWords = product.tags.flatMap((tag) => preprocessText(tag));
+  const tagWords = (product.tags || []).flatMap((tag) => preprocessText(tag));
   const benefitWords = (product.benefits || []).flatMap((b) => preprocessText(b));
   const categoryWords = preprocessText(product.category || '');
   const growerWords = product.grower ? preprocessText(product.grower.name) : [];

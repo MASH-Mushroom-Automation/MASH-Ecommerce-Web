@@ -9,17 +9,18 @@
 
 /**
  * Introductory prompt - First message shown to users
+ * Professional styling with MASH logo branding
  */
-export const INTRO_PROMPT = `Hi! I'm MASH AI Assistant.
+export const INTRO_PROMPT = `**Welcome to MASH AI Assistant**
 
 I can help you find the perfect mushrooms for your recipes, provide cooking tips, and answer questions about our products.
 
-Try asking:
+**Try asking:**
 • "What mushroom is good for beef pepper garlic?"
 • "Show me oyster mushrooms"
 • "How do I cook king oyster mushrooms?"
 
-How can I help you today?`;
+**How can I help you today?**`;
 
 /**
  * System prompt for product recommendations
@@ -108,20 +109,19 @@ User Context:
 Guidelines:
 1. Show 3-4 product varieties
 2. Include brief description (flavor, texture, use case)
-3. Use emojis to make it engaging (🍄 for mushrooms)
-4. Always include product links
-5. Mention price if available
+3. Always include product links
+4. Mention price if available
 
 Format like:
 "Here are our [category] mushrooms:
 
-🍄 **[Name]** - [Brief description]
+**[Name]** - [Brief description]
    [View Product](/shop/slug) - ₱[price]/kg
 
-🍄 **[Name]** - [Brief description]
+**[Name]** - [Brief description]
    [View Product](/shop/slug) - ₱[price]/kg"
 
-Make it exciting and appetizing!`;
+Make it clear and informative!`;
 
 /**
  * Fallback prompt when AI doesn't understand
