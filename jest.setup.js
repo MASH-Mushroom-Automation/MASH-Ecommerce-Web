@@ -4,29 +4,29 @@
  * Configures testing library and mocks for Calendly component tests.
  */
 
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props) => {
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img {...props} />;
+    return props;
   },
 }));
 
 // Mock Next.js Link component
 jest.mock('next/link', () => ({
   __esModule: true,
-  default: ({ children, href }: any) => {
-    return <a href={href}>{children}</a>;
+  default: ({ children, href }) => {
+    return { children, href };
   },
 }));
 
 // Suppress console errors during tests (optional)
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args) => {
     if (
       typeof args[0] === 'string' &&
       args[0].includes('Warning: ReactDOM.render')
