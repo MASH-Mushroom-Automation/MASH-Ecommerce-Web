@@ -65,7 +65,7 @@ describe('Phase 1: AI Configuration', () => {
       const url = getGeminiUrl();
 
       expect(url).toContain('generativelanguage.googleapis.com');
-      expect(url).toContain('gemini-1.5-flash');
+      expect(url).toContain('gemini-2.0-flash-exp');
       expect(url).toContain('generateContent');
       expect(url).toContain('key=');
     });
@@ -110,7 +110,7 @@ describe('Phase 1: AI Configuration', () => {
 
   describe('Configuration Constants', () => {
     it('should have correct Gemini model name', () => {
-      expect(GEMINI_MODEL).toBe('gemini-1.5-flash');
+      expect(GEMINI_MODEL).toBe('gemini-2.0-flash-exp');
     });
 
     it('should have reasonable timeout values', () => {

@@ -82,7 +82,7 @@ describe('ChatDialog', () => {
   it('should render dialog title', () => {
     render(<ChatDialog {...defaultProps} />);
 
-    expect(screen.getByText('🍄 MASH AI Assistant')).toBeInTheDocument();
+    expect(screen.getByText('MASH AI Assistant')).toBeInTheDocument();
   });
 
   it('should render all messages', () => {

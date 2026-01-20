@@ -11,14 +11,14 @@
  * Introductory prompt - First message shown to users
  * Professional styling with MASH branding (logo via ChatDialog component)
  */
-export const INTRO_PROMPT = `Welcome to MASH AI Assistant
+export const INTRO_PROMPT = `**Welcome to MASH AI Assistant**
 
 I can help you find the perfect mushrooms for your recipes, provide cooking tips, and answer questions about our products.
 
 **Try asking:**
-• "What mushroom is good for beef pepper garlic?"
-• "Show me oyster mushrooms"
-• "How do I cook king oyster mushrooms?"
+- "What mushroom is good for beef pepper garlic?"
+- "Show me oyster mushrooms"
+- "How do I cook king oyster mushrooms?"
 
 **How can I help you today?**`;
 

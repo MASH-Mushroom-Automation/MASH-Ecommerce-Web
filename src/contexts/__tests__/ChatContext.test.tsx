@@ -261,12 +261,17 @@ describe('ChatContext', () => {
   it('should prevent sending multiple messages while loading', async () => {
     const mockResponse = {
       content: 'Response',
+      success: true,
       source: 'gemini',
       productCards: [],
     };
 
+    let resolveFirstMessage: ((value: any) => void) | null = null;
     (ragService.smartRAGSearch as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve(mockResponse), 100))
+      () =>
+        new Promise((resolve) => {
+          resolveFirstMessage = resolve;
+        })
     );
 
     const { result } = renderHook(() => useChat(), {
@@ -278,9 +283,19 @@ describe('ChatContext', () => {
       result.current.sendMessage('Message 1');
     });
 
-    // Try to send second message while first is loading
-    await act(async () => {
-      await result.current.sendMessage('Message 2');
+    // Wait for loading state
+    await waitFor(() => {
+      expect(result.current.loading).toBe(true);
+    });
+
+    // Try to send second message while first is loading (should be ignored)
+    act(() => {
+      result.current.sendMessage('Message 2');
+    });
+
+    // Resolve first message
+    act(() => {
+      resolveFirstMessage?.(mockResponse);
     });
 
     // Wait for first message to complete
@@ -288,7 +303,7 @@ describe('ChatContext', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Should only have called RAG service once
+    // Should only have called RAG service once (second was prevented)
     expect(ragService.smartRAGSearch).toHaveBeenCalledTimes(1);
   });
 });

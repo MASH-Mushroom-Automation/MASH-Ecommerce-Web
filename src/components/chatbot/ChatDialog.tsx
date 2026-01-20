@@ -13,6 +13,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -75,6 +76,9 @@ export function ChatDialog({
         data-testid="chat-dialog"
       >
         <DialogHeader className="flex-shrink-0">
+          <DialogDescription className="sr-only">
+            Chat with MASH AI Assistant to find mushrooms and get cooking tips
+          </DialogDescription>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-3">
               <img 
