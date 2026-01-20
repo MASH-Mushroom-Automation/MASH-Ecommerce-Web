@@ -22,7 +22,7 @@ export const MAX_MESSAGES_PER_MINUTE = parseInt(
 );
 
 // API Endpoints
-export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta';
+export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1';
 export const HF_API_ENDPOINT = 'https://api-inference.huggingface.co/models';
 
 // Model Configuration

@@ -10,7 +10,8 @@
  */
 
 import React from 'react';
-import { Bot, User } from 'lucide-react';
+import { User } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ProductCard } from './ProductCard';
 import type { Message as MessageType } from '@/types/chatbot';
@@ -45,11 +46,21 @@ export function Message({
       {/* Avatar */}
       <div
         className={cn(
-          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
+          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden',
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-white border-2 border-secondary'
         )}
       >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+        {isUser ? (
+          <User className="h-4 w-4" />
+        ) : (
+          <Image
+            src="/logo.png"
+            alt="MASH AI"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+        )}
       </div>
 
       {/* Message content */}
@@ -62,15 +73,20 @@ export function Message({
         {/* Message bubble */}
         <div
           className={cn(
-            'rounded-lg px-4 py-2',
+            'rounded-lg px-4 py-3',
             isUser
               ? 'bg-primary text-primary-foreground'
               : 'bg-secondary text-secondary-foreground'
           )}
         >
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          <div 
+            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+            dangerouslySetInnerHTML={{ 
+              __html: message.content
+                .replace(/\n/g, '<br/>')
+                .replace(/•/g, '<span class="inline-block w-4">•</span>')
+            }}
+          />
 
           {/* Timestamp */}
           {message.timestamp && (

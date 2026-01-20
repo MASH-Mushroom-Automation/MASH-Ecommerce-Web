@@ -10,7 +10,7 @@
 /**
  * Introductory prompt - First message shown to users
  */
-export const INTRO_PROMPT = `Hi! I'm MASH AI Assistant. 🍄
+export const INTRO_PROMPT = `Hi! I'm MASH AI Assistant.
 
 I can help you find the perfect mushrooms for your recipes, provide cooking tips, and answer questions about our products.
 
