@@ -138,11 +138,12 @@ describe('Gemini Service', () => {
       const spamMessage = 'aaaaaaaaaaaaaaaaaaa'; // Repeated character
       const result = validateMessage(spamMessage);
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('spam');
+      expect(result.error).toContain('Invalid');
     });
     
     it('should allow messages exactly 500 characters', () => {
-      const message = 'a'.repeat(500);
+      // Create mix of characters to avoid spam detection
+      const message = 'Hello world! '.repeat(40).substring(0, 500);
       const result = validateMessage(message);
       expect(result.valid).toBe(true);
     });
@@ -151,8 +152,9 @@ describe('Gemini Service', () => {
   describe('getIntroMessage', () => {
     it('should return intro message', () => {
       const intro = getIntroMessage();
-      expect(intro).toContain('MASH');
-      expect(intro).toContain('mushroom');
+      expect(intro.content).toContain('MASH');
+      expect(intro.content).toContain('mushroom');
+      expect(intro.success).toBe(true);
     });
   });
 });

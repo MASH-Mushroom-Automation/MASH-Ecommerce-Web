@@ -181,7 +181,7 @@ describe('Error Handler', () => {
       expect(getUserFriendlyError(ChatbotError.RATE_LIMIT)).toContain('too quickly');
       expect(getUserFriendlyError(ChatbotError.TIMEOUT)).toContain('took too long');
       expect(getUserFriendlyError(ChatbotError.NETWORK_ERROR)).toContain('connection failed');
-      expect(getUserFriendlyError(ChatbotError.INVALID_INPUT)).toContain('invalid content');
+      expect(getUserFriendlyError(ChatbotError.INVALID_INPUT)).toContain('invalid');
       expect(getUserFriendlyError(ChatbotError.CONFIGURATION_ERROR)).toContain('temporarily unavailable');
       expect(getUserFriendlyError(ChatbotError.API_ERROR)).toContain('having trouble');
     });

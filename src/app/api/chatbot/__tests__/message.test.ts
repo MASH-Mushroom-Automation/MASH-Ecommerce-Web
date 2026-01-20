@@ -6,7 +6,7 @@
  * @see .github/AI_CHATBOT_MASTER_PLAN.md - Phase 2, Task 2.6
  */
 
-import { POST, GET } from '../route';
+import { POST, GET } from '@/app/api/chatbot/message/route';
 import { NextRequest } from 'next/server';
 import * as geminiService from '@/services/chatbot/gemini-service';
 import * as rateLimiter from '@/lib/ai/rate-limiter';

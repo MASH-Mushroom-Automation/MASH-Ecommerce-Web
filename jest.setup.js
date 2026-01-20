@@ -6,6 +6,20 @@
 
 require('@testing-library/jest-dom');
 
+// Add TextEncoder/TextDecoder for Node environment
+if (typeof TextEncoder === 'undefined') {
+  const util = require('util');
+  global.TextEncoder = util.TextEncoder;
+  global.TextDecoder = util.TextDecoder;
+}
+
+// Mock Next.js Request/Response for API route tests
+if (typeof Request === 'undefined') {
+  global.Request = class Request {};
+  global.Response = class Response {};
+  global.Headers = class Headers {};
+}
+
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
