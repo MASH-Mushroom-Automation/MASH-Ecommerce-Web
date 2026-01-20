@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { CalendlyButton } from "@/components/appointments";
 import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles, Play, Store, BadgeCheck, ExternalLink } from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
@@ -692,6 +693,57 @@ export default function ProductDetailPage({ params }: Props) {
                 </span>
               </div>
             </div>
+
+            {/* Meet the Grower CTA */}
+            {product.grower && product.grower.slug && (
+              <div className="border-t border-border pt-6">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg p-5 border border-green-200 dark:border-green-900">
+                  <div className="flex items-start gap-4">
+                    {product.grower.image && (
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-green-300">
+                        <Image
+                          src={product.grower.image}
+                          alt={product.grower.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+                        <Store className="w-4 h-4 text-green-600" />
+                        Meet the Grower
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {product.grower.name}
+                        {product.grower.location && (
+                          <span className="block text-xs mt-0.5">
+                            <MapPin className="w-3 h-3 inline mr-1" />
+                            {product.grower.location}
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/grower/${product.grower.slug}`}>
+                          <Button variant="outline" size="sm" className="text-xs">
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View Profile
+                          </Button>
+                        </Link>
+                        <CalendlyButton
+                          growerSlug={product.grower.slug}
+                          growerName={product.grower.name}
+                          calendlyEnabled={product.grower.calendlyEnabled || false}
+                          variant="default"
+                          size="sm"
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

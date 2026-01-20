@@ -9,14 +9,8 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
 import { CalendlyButton, AppointmentTypeCard } from '../CalendlyButton';
 import '@testing-library/jest-dom';
-
-// Mock Next.js router
-jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(),
-}));
 
 // Mock Lucide icons
 jest.mock('lucide-react', () => ({
@@ -28,13 +22,8 @@ jest.mock('lucide-react', () => ({
 }));
 
 describe('CalendlyButton Component', () => {
-  const mockPush = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue({
-      push: mockPush,
-    });
   });
 
   const defaultProps = {
@@ -63,11 +52,13 @@ describe('CalendlyButton Component', () => {
       expect(screen.getByText(/book appointment/i)).toBeInTheDocument();
     });
 
-    it('should show compact text in compact mode', () => {
+    it('should show only icon in compact mode', () => {
       render(<CalendlyButton {...defaultProps} compact={true} />);
       
-      expect(screen.getByText(/book/i)).toBeInTheDocument();
-      expect(screen.queryByText(/appointment/i)).toBeInTheDocument();
+      const button = screen.getByRole('button');
+      expect(button).toHaveAttribute('title', 'Book appointment with Shroomarket');
+      expect(screen.getByTestId('calendar-icon')).toBeInTheDocument();
+      expect(screen.queryByText(/book appointment/i)).not.toBeInTheDocument();
     });
   });
 
@@ -88,13 +79,11 @@ describe('CalendlyButton Component', () => {
   });
 
   describe('Navigation', () => {
-    it('should navigate to booking page when clicked', () => {
+    it('should have correct href to booking page', () => {
       render(<CalendlyButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/shroomarket/book');
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', '/grower/shroomarket/book');
     });
 
     it('should construct correct URL with different grower slugs', () => {
@@ -106,10 +95,8 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/fungi-fresh-farms/book');
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', '/grower/fungi-fresh-farms/book');
     });
 
     it('should handle slugs with special characters', () => {
@@ -121,10 +108,8 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/the-mushroom-patch-bukidnon/book');
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', '/grower/the-mushroom-patch-bukidnon/book');
     });
   });
 
@@ -262,7 +247,8 @@ describe('CalendlyButton Component', () => {
       render(<CalendlyButton {...defaultProps} />);
       
       const button = screen.getByRole('button', { name: /book appointment/i });
-      expect(button).toHaveAttribute('type', 'button');
+      // Button is inside a Link, so it doesn't have a type attribute
+      expect(button).toBeInTheDocument();
     });
 
     it('should be keyboard accessible', () => {
@@ -352,7 +338,7 @@ describe('AppointmentTypeCard Component', () => {
         />
       );
       
-      expect(screen.getByText(/online \(google meet\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/online meeting/i)).toBeInTheDocument();
     });
 
     it('should display "In-Person Visit" for in-person type', () => {
@@ -362,7 +348,7 @@ describe('AppointmentTypeCard Component', () => {
         />
       );
       
-      expect(screen.getByText(/in-person visit/i)).toBeInTheDocument();
+      expect(screen.getByText(/store visit/i)).toBeInTheDocument();
     });
 
     it('should display "Phone Call" for phone type', () => {

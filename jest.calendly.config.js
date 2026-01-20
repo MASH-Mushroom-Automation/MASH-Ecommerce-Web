@@ -28,7 +28,7 @@ module.exports = {
     '!src/components/appointments/__tests__/**',
     '!src/components/appointments/index.ts',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,
