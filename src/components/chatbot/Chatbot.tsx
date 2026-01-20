@@ -20,6 +20,7 @@ export function Chatbot() {
     productCardsByMessageId,
     loading,
     isOpen,
+    conversationId,
     sendMessage,
     clearHistory,
     setIsOpen,
@@ -36,6 +37,7 @@ export function Chatbot() {
         onSendMessage={sendMessage}
         onClearHistory={clearHistory}
         loading={loading}
+        conversationId={conversationId || undefined}
       />
     </>
   );

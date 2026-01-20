@@ -35,6 +35,7 @@ interface ChatDialogProps {
   onAddToCart?: (productId: string) => void;
   loading?: boolean;
   className?: string;
+  conversationId?: string;
 }
 
 export function ChatDialog({
@@ -47,6 +48,7 @@ export function ChatDialog({
   onAddToCart,
   loading = false,
   className,
+  conversationId,
 }: ChatDialogProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +110,7 @@ export function ChatDialog({
                   message={message}
                   productCards={productCardsByMessageId[message.id]}
                   onAddToCart={onAddToCart}
+                  conversationId={conversationId}
                 />
               ))
             )}

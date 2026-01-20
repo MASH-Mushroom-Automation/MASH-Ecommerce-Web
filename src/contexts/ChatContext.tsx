@@ -21,6 +21,7 @@ import { smartRAGSearch } from '@/lib/ai/rag-service';
 import type { Message, AIResponse } from '@/types/chatbot';
 import type { ProductCardData } from '@/lib/ai/context-builder';
 import type { RAGResponse } from '@/lib/ai/rag-service';
+import * as analytics from '@/lib/analytics/chatbot-analytics';
 
 interface ChatContextValue {
   messages: Message[];
@@ -28,6 +29,7 @@ interface ChatContextValue {
   loading: boolean;
   error: string | null;
   isOpen: boolean;
+  conversationId: string | null;
   sendMessage: (content: string) => Promise<void>;
   clearHistory: () => void;
   setIsOpen: (open: boolean) => void;
@@ -41,7 +43,7 @@ const INTRO_SHOWN_KEY = 'mash-chatbot-intro-shown';
 const INTRO_MESSAGE: Message = {
   id: 'intro',
   role: 'assistant',
-  content: `Hi! I'm MASH AI Assistant. 🍄
+  content: `Hi! I'm MASH AI Assistant.
 
 I can help you find the perfect mushrooms for your recipes, provide cooking tips, and answer questions about our products.
 
@@ -66,6 +68,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Load chat history from localStorage
   useEffect(() => {
@@ -110,6 +113,13 @@ export function ChatProvider({ children }: ChatProviderProps) {
     async (content: string) => {
       if (!content.trim() || loading) return;
 
+      // Start conversation tracking on first message
+      if (!conversationId) {
+        const newConversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        setConversationId(newConversationId);
+        await analytics.startConversation('anonymous', newConversationId);
+      }
+
       setLoading(true);
       setError(null);
 
@@ -123,6 +133,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
       setMessages((prev) => [...prev, userMessage]);
 
+      const startTime = Date.now();
+
       try {
         // CRITICAL: Use smartRAGSearch to get response with product cards
         const response: RAGResponse = await smartRAGSearch(
@@ -134,6 +146,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
             minRelevanceScore: 0.3,
           }
         );
+
+        const responseTime = Date.now() - startTime;
 
         // Create assistant message
         const assistantMessage: Message = {
@@ -155,6 +169,28 @@ export function ChatProvider({ children }: ChatProviderProps) {
             [assistantMessage.id]: response.productCards!,
           }));
         }
+
+        // Track query analytics
+        if (conversationId) {
+          await analytics.logQuery({
+            query: content.trim(),
+            timestamp: Date.now(),
+            userId: 'anonymous',
+            conversationId,
+            responseTime,
+            productCardsReturned: response.productCards?.length || 0,
+            success: true,
+          });
+
+          await analytics.incrementMessageCount(conversationId);
+
+          // Update conversation metrics
+          if (response.productCards && response.productCards.length > 0) {
+            await analytics.updateConversationMetrics(conversationId, {
+              productCardsShown: response.productCards.length,
+            });
+          }
+        }
       } catch (err) {
         console.error('[ChatContext] Failed to send message:', err);
         
@@ -170,11 +206,40 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
         setMessages((prev) => [...prev, errorMessage]);
         setError(err instanceof Error ? err.message : 'Unknown error');
+
+        // Track error analytics
+        if (conversationId) {
+          const errorType = err instanceof Error && err.message.includes('429') 
+            ? 'rate_limit' 
+            : err instanceof Error && err.message.includes('timeout')
+            ? 'timeout'
+            : 'api_error';
+
+          await analytics.logError({
+            type: errorType,
+            message: err instanceof Error ? err.message : 'Unknown error',
+            timestamp: Date.now(),
+            userId: 'anonymous',
+            conversationId,
+            query: content.trim(),
+            responseTime: Date.now() - startTime,
+          });
+
+          await analytics.logQuery({
+            query: content.trim(),
+            timestamp: Date.now(),
+            userId: 'anonymous',
+            conversationId,
+            responseTime: Date.now() - startTime,
+            productCardsReturned: 0,
+            success: false,
+          });
+        }
       } finally {
         setLoading(false);
       }
     },
-    [loading, messages]
+    [loading, messages, conversationId]
   );
 
   const clearHistory = useCallback(() => {
@@ -190,6 +255,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     loading,
     error,
     isOpen,
+    conversationId,
     sendMessage,
     clearHistory,
     setIsOpen,

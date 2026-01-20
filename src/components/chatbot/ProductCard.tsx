@@ -19,22 +19,54 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ProductCardData } from '@/lib/ai/context-builder';
+import * as analytics from '@/lib/analytics/chatbot-analytics';
 
 interface ProductCardProps {
   product: ProductCardData;
   className?: string;
   onAddToCart?: (productId: string) => void;
+  conversationId?: string;
+  messageId?: string;
 }
 
-export function ProductCard({ product, className, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, className, onAddToCart, conversationId, messageId }: ProductCardProps) {
   const router = useRouter();
 
-  const handleCardClick = () => {
+  const handleCardClick = async () => {
+    // Track product click
+    if (conversationId) {
+      await analytics.logProductClick({
+        productId: product.id,
+        productName: product.name,
+        productSlug: product.slug,
+        timestamp: Date.now(),
+        userId: 'anonymous',
+        conversationId,
+        clickedFromMessage: messageId,
+        leadToPurchase: false,
+      });
+    }
+    
     router.push(`/products/${product.slug}`);
   };
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
+    
+    // Track cart addition
+    if (conversationId) {
+      await analytics.logProductClick({
+        productId: product.id,
+        productName: product.name,
+        productSlug: product.slug,
+        timestamp: Date.now(),
+        userId: 'anonymous',
+        conversationId,
+        clickedFromMessage: messageId,
+        leadToPurchase: false,
+      });
+    }
+    
     if (onAddToCart) {
       onAddToCart(product.id);
     }

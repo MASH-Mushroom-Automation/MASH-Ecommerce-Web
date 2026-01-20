@@ -171,6 +171,36 @@ service cloud.firestore {
     
     
     // ========================================
+    // CHATBOT ANALYTICS COLLECTIONS
+    // ========================================
+    
+    // Chatbot conversations - users can write their own, admins can read all
+    match /chatbot_conversations/{conversationId} {
+      allow create: if isSignedIn();
+      allow update: if isOwner(resource.data.userId);
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+    }
+    
+    // Chatbot queries - users can write their own, admins can read all
+    match /chatbot_queries/{queryId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+    
+    // Product clicks - users can write their own, admins can read all
+    match /chatbot_product_clicks/{clickId} {
+      allow create: if isSignedIn();
+      allow update: if isOwner(resource.data.userId);
+      allow read: if isAdmin();
+    }
+    
+    // Error logs - anyone can write (for guest users too), admins can read
+    match /chatbot_errors/{errorId} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+    
+    // ========================================
     // ANALYTICS COLLECTION (Admin Only)
     // ========================================
     match /analytics/{document=**} {

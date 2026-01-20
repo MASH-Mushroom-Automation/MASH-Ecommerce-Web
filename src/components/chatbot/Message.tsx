@@ -22,6 +22,7 @@ interface MessageProps {
   productCards?: ProductCardData[];
   onAddToCart?: (productId: string) => void;
   className?: string;
+  conversationId?: string;
 }
 
 export function Message({
@@ -29,6 +30,7 @@ export function Message({
   productCards,
   onAddToCart,
   className,
+  conversationId,
 }: MessageProps) {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
@@ -116,6 +118,8 @@ export function Message({
                   key={product.id}
                   product={product}
                   onAddToCart={onAddToCart}
+                  conversationId={conversationId}
+                  messageId={message.id}
                 />
               ))}
             </div>
