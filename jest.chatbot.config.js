@@ -37,6 +37,7 @@ module.exports = {
     '**/lib/ai/__tests__/sanity-rag.test.ts',
     '**/lib/ai/__tests__/search-engine.test.ts',
     '**/lib/ai/__tests__/context-builder.test.ts',
+    '**/lib/ai/__tests__/rag-service.test.ts',
     
     // Phase 4: UI Components
     '**/components/chatbot/__tests__/**/*.test.tsx',
