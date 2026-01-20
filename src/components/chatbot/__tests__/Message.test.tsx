@@ -27,14 +27,14 @@ const userMessage: MessageType = {
   id: 'msg-1',
   role: 'user',
   content: 'What mushrooms are good for stir-fry?',
-  timestamp: '2026-01-21T10:00:00Z',
+  timestamp: 1737456000000,
 };
 
 const assistantMessage: MessageType = {
   id: 'msg-2',
   role: 'assistant',
   content: 'I found some great mushrooms for stir-fry!',
-  timestamp: '2026-01-21T10:00:01Z',
+  timestamp: 1737456001000,
 };
 
 const mockProductCards: ProductCardData[] = [

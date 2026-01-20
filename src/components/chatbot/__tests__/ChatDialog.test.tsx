@@ -28,13 +28,13 @@ const mockMessages: Message[] = [
     id: 'msg-1',
     role: 'assistant',
     content: 'Hello! How can I help you?',
-    timestamp: '2026-01-21T10:00:00Z',
+    timestamp: 1737456000000,
   },
   {
     id: 'msg-2',
     role: 'user',
     content: 'Show me oyster mushrooms',
-    timestamp: '2026-01-21T10:00:01Z',
+    timestamp: 1737456001000,
   },
 ];
 

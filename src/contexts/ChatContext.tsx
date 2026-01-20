@@ -51,7 +51,7 @@ Try asking:
 • "How do I cook king oyster mushrooms?"
 
 How can I help you today?`,
-  timestamp: new Date().toISOString(),
+  timestamp: Date.now(),
 };
 
 interface ChatProviderProps {
@@ -118,7 +118,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         id: `user-${Date.now()}`,
         role: 'user',
         content: content.trim(),
-        timestamp: new Date().toISOString(),
+        timestamp: Date.now(),
       };
 
       setMessages((prev) => [...prev, userMessage]);
@@ -140,10 +140,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: response.content,
-          timestamp: new Date().toISOString(),
+          timestamp: Date.now(),
           metadata: {
             source: response.source,
-            tokensUsed: response.tokensUsed,
           },
         };
 
@@ -163,7 +162,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
           id: `error-${Date.now()}`,
           role: 'assistant',
           content: 'Sorry, I encountered an error. Please try again.',
-          timestamp: new Date().toISOString(),
+          timestamp: Date.now(),
           metadata: {
             error: err instanceof Error ? err.message : 'Unknown error',
           },
