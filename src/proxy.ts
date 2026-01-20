@@ -46,6 +46,12 @@ const publicRoutes = [
   "/terms",
   "/shipping-info",
   "/returns-policy",
+  // Auth routes are public (anyone can access them)
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/verify-otp",
+  "/reset-password",
 ];
 
 export function proxy(request: NextRequest) {
@@ -60,7 +66,7 @@ export function proxy(request: NextRequest) {
 
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   // Check if the current path is an auth route
@@ -68,7 +74,7 @@ export function proxy(request: NextRequest) {
 
   // Check if the current path is public
   const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   // Redirect unauthenticated users trying to access protected routes
@@ -78,10 +84,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect authenticated users trying to access auth routes
-  if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/shop", request.url));
-  }
+  // Note: We no longer redirect authenticated users from auth routes here.
+  // This is handled client-side in the login page useEffect to avoid cookie timing issues.
 
   // Allow access to public routes
   if (isPublicRoute) {
