@@ -76,8 +76,13 @@ export function ChatDialog({
       >
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              🍄 MASH AI Assistant
+            <DialogTitle className="flex items-center gap-3">
+              <img 
+                src="/logo.png" 
+                alt="MASH" 
+                className="h-8 w-auto"
+              />
+              <span className="font-semibold text-lg">MASH AI Assistant</span>
             </DialogTitle>
             <Button
               variant="ghost"

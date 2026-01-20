@@ -1,15 +1,18 @@
 /**
  * Google Gemini API Client
  * 
- * Handles communication with Google's Gemini 1.5 Flash API for chat functionality.
+ * Handles communication with Google's Gemini 3 Flash Preview API for chat functionality.
  * Supports both standard and streaming responses.
  * 
+ * Model: gemini-3-flash-preview (Latest - Jan 2026)
+ * 
  * @see .github/AI_CHATBOT_MASTER_PLAN.md - Phase 1
- * @see https://ai.google.dev/tutorials/get_started_web
+ * @see https://ai.google.dev/gemini-api/docs
  */
 
 import {
   GEMINI_API_KEY,
+  GEMINI_MODEL,
   GEMINI_TIMEOUT,
   CHATBOT_DEBUG,
   getGeminiUrl,
