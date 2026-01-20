@@ -17,6 +17,11 @@
     "test:calendly": "jest --config jest.calendly.config.js",
     "test:calendly:watch": "jest --config jest.calendly.config.js --watch",
     "test:calendly:coverage": "jest --config jest.calendly.config.js --coverage",
+    "test:chatbot": "jest --config jest.chatbot.config.js",
+    "test:chatbot:watch": "jest --config jest.chatbot.config.js --watch",
+    "test:chatbot:coverage": "jest --config jest.chatbot.config.js --coverage",
+    "test:chatbot:phase": "jest --config jest.chatbot.config.js --testNamePattern",
+    "chatbot:auto-progress": "node scripts/chatbot-auto-progress.js",
     "populate:growers": "node scripts/enable-growers-calendly.js"
   },
   "dependencies": {
