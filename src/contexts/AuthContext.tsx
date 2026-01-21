@@ -36,10 +36,43 @@ import {
   type FirebaseUser,
   type FirestoreUserProfile,
 } from "@/lib/firebase";
-import { setAuthToken, logout as clearAuthTokens, logoutEverywhere } from "@/lib/auth";
-import { startTokenRefreshCheck, stopTokenRefreshCheck, getTokenInfo } from "@/lib/token-refresh";
+import {
+  setAuthToken,
+  logout as clearAuthTokens,
+  logoutEverywhere,
+} from "@/lib/auth";
+import {
+  startTokenRefreshCheck,
+  stopTokenRefreshCheck,
+  getTokenInfo,
+} from "@/lib/token-refresh";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+// ============================================================================
+// Firebase Auth Cookie Helpers (for proxy/middleware detection)
+// ============================================================================
+
+/**
+ * Set a cookie to indicate Firebase user is authenticated
+ * This allows the server-side proxy to detect Google OAuth users
+ */
+function setFirebaseAuthCookie(userId: string): void {
+  if (typeof document === "undefined") return;
+  // Set cookie with 30 day expiry
+  const maxAge = 60 * 60 * 24 * 30;
+  document.cookie = `firebase-auth=${userId}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  console.log("[Auth] Firebase auth cookie set for user:", userId);
+}
+
+/**
+ * Clear the Firebase auth cookie on logout
+ */
+function clearFirebaseAuthCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = "firebase-auth=; Path=/; Max-Age=0";
+  console.log("[Auth] Firebase auth cookie cleared");
+}
 
 // User type that works for both Firebase and traditional auth
 export interface AuthUser {
@@ -53,7 +86,7 @@ export interface AuthUser {
   photoURL?: string;
   imageUrl?: string; // DiceBear avatar URL from backend (e.g., https://api.dicebear.com/9.x/bottts-neutral/svg?seed=username)
   avatar?: string; // Alias for photoURL, used by profile components
-  provider: "firebase" | "email" | "google" | "email-link";
+  provider: "email" | "google" | "email-link";
   emailVerified: boolean;
   onboardingCompleted?: boolean;
   preferences?: FirestoreUserProfile["preferences"];
@@ -70,7 +103,11 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
 
   // Email/Password
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
@@ -106,10 +143,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Phase 5: Start token refresh check when user is authenticated
+   * Only runs for email/password users who have backend JWT tokens
+   * Google OAuth users use Firebase-only auth (no backend tokens)
    */
   useEffect(() => {
-    if (user) {
-      console.log("[Auth] Starting token refresh monitoring...");
+    // Only start token refresh for email/password users with backend tokens
+    // Google OAuth users don't have backend JWT tokens
+    if (user && user.provider === "email") {
+      console.log("[Auth] Starting token refresh monitoring for email user...");
       startTokenRefreshCheck();
     } else {
       stopTokenRefreshCheck();
@@ -124,7 +165,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Convert Firestore profile to AuthUser
    */
   const profileToAuthUser = useCallback(
-    (profile: FirestoreUserProfile, provider: AuthUser["provider"], fallbackEmail?: string): AuthUser => {
+    (
+      profile: FirestoreUserProfile,
+      provider: AuthUser["provider"],
+      fallbackEmail?: string
+    ): AuthUser => {
       return {
         id: profile.id,
         email: profile.email || fallbackEmail || "",
@@ -159,13 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Parse name properly (handle "Last, First" format from Google)
         let firstName = additionalData?.firstName;
         let lastName = additionalData?.lastName;
-        
+
         if (!firstName || !lastName) {
           const displayName = fbUser.displayName || "";
-          
+
           // Check if name is in "Last, First" format
           if (displayName.includes(",")) {
-            const parts = displayName.split(",").map(p => p.trim());
+            const parts = displayName.split(",").map((p) => p.trim());
             lastName = parts[0] || "";
             firstName = parts[1] || "";
           } else {
@@ -177,24 +222,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Get or create Firestore profile
-        const profile = await FirebaseUserService.createOrUpdateProfile(fbUser.uid, {
-          email: fbUser.email || "",
-          firstName,
-          lastName,
-          displayName: additionalData?.displayName || fbUser.displayName || undefined,
-          phone: additionalData?.phone,
-          photoURL: fbUser.photoURL || undefined,
-          provider,
-          emailVerified: fbUser.emailVerified,
-        });
+        const profile = await FirebaseUserService.createOrUpdateProfile(
+          fbUser.uid,
+          {
+            email: fbUser.email || "",
+            firstName,
+            lastName,
+            displayName:
+              additionalData?.displayName || fbUser.displayName || undefined,
+            phone: additionalData?.phone,
+            photoURL: fbUser.photoURL || undefined,
+            provider,
+            emailVerified: fbUser.emailVerified,
+          }
+        );
 
-        const authUser = profileToAuthUser(profile, provider, fbUser.email || undefined);
-        
+        const authUser = profileToAuthUser(
+          profile,
+          provider,
+          fbUser.email || undefined
+        );
+
         // CRITICAL: Ensure email is always present (required for cart, wishlist, checkout)
         if (!authUser.email && fbUser.email) {
           authUser.email = fbUser.email;
         }
-        
+
         // Merge any additional data
         if (additionalData) {
           Object.assign(authUser, additionalData);
@@ -202,6 +255,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(authUser);
         setFirebaseUser(fbUser);
+
+        // Set Firebase auth cookie for proxy detection
+        setFirebaseAuthCookie(fbUser.uid);
 
         // Store in localStorage
         try {
@@ -214,16 +270,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return authUser;
       } catch (error) {
         console.error("[Auth Context] Firestore sync error:", error);
-        
+
         // Fallback: create AuthUser from Firebase Auth data only
         // Parse name properly
         let firstName = additionalData?.firstName;
         let lastName = additionalData?.lastName;
-        
+
         if (!firstName || !lastName) {
           const displayName = fbUser.displayName || "";
           if (displayName.includes(",")) {
-            const parts = displayName.split(",").map(p => p.trim());
+            const parts = displayName.split(",").map((p) => p.trim());
             lastName = parts[0] || "";
             firstName = parts[1] || "";
           } else {
@@ -232,13 +288,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             lastName = nameParts.slice(1).join(" ") || "";
           }
         }
-        
+
         const authUser: AuthUser = {
           id: fbUser.uid,
           email: fbUser.email || "",
           firstName,
           lastName,
-          displayName: additionalData?.displayName || fbUser.displayName || undefined,
+          displayName:
+            additionalData?.displayName || fbUser.displayName || undefined,
           phone: additionalData?.phone,
           photoURL: fbUser.photoURL || undefined,
           avatar: fbUser.photoURL || undefined,
@@ -262,97 +319,132 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sync Firebase user to NestJS backend PostgreSQL database (OPTIONAL - Email/Password only)
    * Creates or updates user record and returns JWT for authenticated sessions
-   * 
+   *
    * ⚠️ NOT USED FOR GOOGLE AUTH - Google auth is Firebase-only
-   * 
+   *
    * This is only called for email/password users who want backend features like:
    * - Order management through backend API
    * - Advanced user roles and permissions
    * - Backend-specific features
-   * 
-   * Backend Endpoint: POST /auth/google/sync (legacy endpoint, not used for Google)
-   * See: GOOGLE_AUTH_TESTING_GUIDE.md for full documentation
+   *
+   * Backend Endpoint: POST /auth/firebase-sync
+   *
+   * Security Flow:
+   * 1. Frontend gets Firebase ID token after Google login
+   * 2. Backend verifies token with Firebase Admin SDK (never trusts frontend)
+   * 3. User matched by firebaseUid → upsert to Postgres
+   * 4. Backend issues JWT with firebase_uid claim
+   * 5. HTTP-only cookie set for web apps
    */
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
       try {
-        console.log("[Auth] Syncing Google user to PostgreSQL backend...");
-        
-        // Extract name parts from Firebase displayName
-        const nameParts = (fbUser.displayName || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
-
-        // Call backend API directly (no Next.js proxy needed)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/sync`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            googleId: fbUser.uid,
-            email: fbUser.email,
-            firstName: firstName,
-            lastName: lastName,
-            photoURL: fbUser.photoURL || undefined,
-            username: fbUser.email?.split("@")[0], // Generate username from email prefix
-          }),
+        console.log("[Auth] Syncing Firebase user to backend...");
+        console.log("[Auth] Firebase user:", {
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
         });
 
+        // Get Firebase ID token for backend verification
+        const idToken = await fbUser.getIdToken(true); // Force refresh to ensure valid token
+
+        if (!idToken) {
+          console.error("[Auth] Failed to get Firebase ID token");
+          return null;
+        }
+
+        console.log("[Auth] Got Firebase ID token, length:", idToken.length);
+        console.log("[Auth] Token preview:", idToken.substring(0, 50) + "...");
+
+        // Only send idToken - backend extracts user info from the verified Firebase token
+        const requestBody = {
+          idToken: idToken,
+        };
+
+        console.log("[Auth] Request body:", requestBody);
+        console.log(
+          "[Auth] Sending to:",
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`
+        );
+
+        // Call backend API with Firebase ID token in request body
+        // Backend will verify this token with Firebase Admin SDK
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Important for receiving HTTP-only cookies
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        console.log("[Auth] Backend response status:", response.status);
+
         const data = await response.json();
+        console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
-          console.error("[Auth] Backend sync failed:", data);
+          console.error("[Auth] Backend Firebase sync failed:", data);
           throw new Error(data.message || "Failed to sync user to backend");
         }
 
-        console.log("[Auth] Backend sync successful:", {
+        console.log("[Auth] Backend Firebase sync successful:", {
           userId: data.user?.id,
-          username: data.user?.username,
-          hasToken: !!data.tokens?.accessToken,
+          email: data.user?.email,
+          firebaseUid: data.user?.firebaseUid,
+          hasAccessToken: !!data.accessToken || !!data.tokens?.accessToken,
         });
 
-        // Store JWT access token from backend
-        if (data.tokens?.accessToken) {
-          console.log("[Auth] Setting backend JWT token...");
-          setAuthToken(data.tokens.accessToken, true);
-          console.log("[Auth] JWT token stored successfully");
-        } else {
-          console.warn("[Auth] No access token received from backend!");
+        // Backend may set HTTP-only cookie automatically, but also handle token in response
+        const accessToken = data.accessToken || data.tokens?.accessToken;
+        if (accessToken) {
+          console.log("[Auth] Setting backend JWT token from response...");
+          setAuthToken(accessToken, true);
         }
 
-        // Store refresh token if available
-        if (data.tokens?.refreshToken) {
+        // Store refresh token if available (for token refresh flow)
+        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+        if (refreshToken) {
           try {
-            console.log("[Auth] Storing refresh token in localStorage...");
-            localStorage.setItem("refreshToken", data.tokens.refreshToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            console.log("[Auth] Refresh token stored");
           } catch (err) {
             console.error("[Auth] Failed to store refresh token:", err);
           }
         }
 
-        // Build unified auth user object with backend data
-        // Backend returns: { id, email, username, firstName, lastName, imageUrl (DiceBear), role }
+        // Build unified auth user object with backend-verified data
         const backendUser = data.user;
-        const backendImageUrl = backendUser?.imageUrl; // DiceBear URL: https://api.dicebear.com/9.x/bottts-neutral/svg?seed={username}
-        
+
+        // Parse name from displayName if backend doesn't provide it
+        const nameParts = (fbUser.displayName || "").split(" ");
+        const fallbackFirstName = nameParts[0] || "";
+        const fallbackLastName = nameParts.slice(1).join(" ") || "";
+
         const authUser: AuthUser = {
           id: backendUser?.id || fbUser.uid,
-          email: fbUser.email || "",
-          firstName: backendUser?.firstName || firstName,
-          lastName: backendUser?.lastName || lastName,
+          email: backendUser?.email || fbUser.email || "",
+          firstName: backendUser?.firstName || fallbackFirstName,
+          lastName: backendUser?.lastName || fallbackLastName,
           displayName: fbUser.displayName || undefined,
-          username: backendUser?.username || fbUser.email?.split("@")[0], // Backend username for DiceBear seed
+          username: backendUser?.username || fbUser.email?.split("@")[0],
           phone: backendUser?.phone || undefined,
-          photoURL: fbUser.photoURL || undefined, // Google profile photo
-          imageUrl: backendImageUrl || undefined, // DiceBear avatar from backend
-          avatar: backendImageUrl || fbUser.photoURL || undefined, // Prefer DiceBear, fallback to Google photo
+          photoURL: fbUser.photoURL || undefined,
+          imageUrl: backendUser?.imageUrl || undefined,
+          avatar: backendUser?.imageUrl || fbUser.photoURL || undefined,
           provider: "google",
-          emailVerified: fbUser.emailVerified,
+          emailVerified: true, // Verified by Firebase
         };
 
         setUser(authUser);
+        setFirebaseUser(fbUser);
+
+        // Set Firebase auth cookie for proxy detection
+        setFirebaseAuthCookie(fbUser.uid);
 
         // Persist to localStorage
         try {
@@ -364,11 +456,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return authUser;
       } catch (error) {
-        console.error(
-          "[Auth] Failed to sync Google user to PostgreSQL backend:",
-          error
-        );
+        console.error("[Auth] Failed to sync Firebase user to backend:", error);
         // Don't throw - allow user to continue with Firebase-only auth
+        // The firebase-auth cookie is still set for basic proxy detection
         return null;
       }
     },
@@ -382,38 +472,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedUser = localStorage.getItem("user");
       if (!storedUser) return false;
-      
+
       const parsed = JSON.parse(storedUser);
-      
+
       // Check if data needs migration (missing email or incorrect name parsing)
-      const needsMigration = 
-        !parsed.email || 
-        (parsed.firstName && parsed.firstName.includes(","));
-      
+      const needsMigration =
+        !parsed.email || (parsed.firstName && parsed.firstName.includes(","));
+
       if (needsMigration && fbUser.email) {
         console.log("[Auth Context] Migrating old user data...");
-        
+
         // Fix email
         if (!parsed.email) {
           parsed.email = fbUser.email;
         }
-        
+
         // Fix name parsing if comma detected in firstName
         if (parsed.firstName && parsed.firstName.includes(",")) {
           const displayName = fbUser.displayName || "";
           if (displayName.includes(",")) {
-            const parts = displayName.split(",").map(p => p.trim());
+            const parts = displayName.split(",").map((p) => p.trim());
             parsed.lastName = parts[0];
             parsed.firstName = parts[1];
           }
         }
-        
+
         // Save migrated data
         localStorage.setItem("user", JSON.stringify(parsed));
         console.log("[Auth Context] User data migrated successfully");
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error("[Auth Context] Migration error:", error);
@@ -430,10 +519,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (fbUser) {
         console.log("[Auth Context] Firebase user detected:", fbUser.email);
-        
+
         // Migrate old cached data if needed
         const wasMigrated = migrateOldUserData(fbUser);
-        
+
         // First, try to load from localStorage for instant UI update
         try {
           const storedUser = localStorage.getItem("user");
@@ -441,89 +530,133 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const parsed = JSON.parse(storedUser);
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
               console.log("[Auth Context] User loaded from localStorage");
-              
+
               // Use migrated data if available, otherwise use stored data
               setUser(parsed);
               setLoading(false);
-              
+
+              // Set Firebase auth cookie for proxy detection (returning user)
+              setFirebaseAuthCookie(fbUser.uid);
+
+              // Sync with backend in background (for JWT token to access backend APIs)
+              // This ensures returning users get a valid backend JWT
+              syncFirebaseUserToBackend(fbUser).catch((err) => {
+                console.warn(
+                  "[Auth Context] Background backend sync failed:",
+                  err
+                );
+              });
+
               // If data was migrated or missing email, fetch fresh from Firestore
               if (wasMigrated || !parsed.email) {
-                console.log("[Auth Context] Fetching fresh data from Firestore after migration...");
-                const profile = await FirebaseUserService.getProfile(fbUser.uid);
+                console.log(
+                  "[Auth Context] Fetching fresh data from Firestore after migration..."
+                );
+                const profile = await FirebaseUserService.getProfile(
+                  fbUser.uid
+                );
                 if (profile) {
-                  const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google", fbUser.email || undefined);
+                  const authUser = profileToAuthUser(
+                    profile,
+                    (profile.provider as AuthUser["provider"]) || "google",
+                    fbUser.email || undefined
+                  );
                   if (!authUser.email && fbUser.email) {
                     authUser.email = fbUser.email;
                   }
                   setUser(authUser);
                   localStorage.setItem("user", JSON.stringify(authUser));
-                  console.log("[Auth Context] User profile updated from Firestore");
+                  console.log(
+                    "[Auth Context] User profile updated from Firestore"
+                  );
                 }
                 return;
               }
-              
+
               // Still fetch from Firestore in background to ensure data is fresh
               try {
-                const profile = await FirebaseUserService.getProfile(fbUser.uid);
+                const profile = await FirebaseUserService.getProfile(
+                  fbUser.uid
+                );
                 if (profile) {
-                  const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google", fbUser.email || undefined);
+                  const authUser = profileToAuthUser(
+                    profile,
+                    (profile.provider as AuthUser["provider"]) || "google",
+                    fbUser.email || undefined
+                  );
                   // Ensure email is present
                   if (!authUser.email && fbUser.email) {
                     authUser.email = fbUser.email;
                   }
                   setUser(authUser);
                   localStorage.setItem("user", JSON.stringify(authUser));
-                  console.log("[Auth Context] User profile refreshed from Firestore");
+                  console.log(
+                    "[Auth Context] User profile refreshed from Firestore"
+                  );
                 }
               } catch (error) {
-                console.warn("[Auth Context] Failed to refresh profile from Firestore:", error);
+                console.warn(
+                  "[Auth Context] Failed to refresh profile from Firestore:",
+                  error
+                );
               }
               return;
             }
           }
         } catch (error) {
-          console.warn("[Auth Context] Failed to load from localStorage:", error);
+          console.warn(
+            "[Auth Context] Failed to load from localStorage:",
+            error
+          );
         }
 
         // If not in localStorage, load from Firestore
         try {
           console.log("[Auth Context] Loading profile from Firestore...");
           const profile = await FirebaseUserService.getProfile(fbUser.uid);
-          
+
           if (profile) {
-            const authUser = profileToAuthUser(profile, profile.provider as AuthUser["provider"] || "google", fbUser.email || undefined);
-            
+            const authUser = profileToAuthUser(
+              profile,
+              (profile.provider as AuthUser["provider"]) || "google",
+              fbUser.email || undefined
+            );
+
             // CRITICAL: Validate email is present (required for all e-commerce features)
             if (!authUser.email && fbUser.email) {
               authUser.email = fbUser.email;
               // Update Firestore with missing email
-              await FirebaseUserService.createOrUpdateProfile(fbUser.uid, { email: fbUser.email });
+              await FirebaseUserService.createOrUpdateProfile(fbUser.uid, {
+                email: fbUser.email,
+              });
             }
-            
+
             setUser(authUser);
             localStorage.setItem("user", JSON.stringify(authUser));
             console.log("[Auth Context] User profile loaded from Firestore:", {
               id: authUser.id,
               email: authUser.email,
               name: `${authUser.firstName} ${authUser.lastName}`,
-              provider: authUser.provider
+              provider: authUser.provider,
             });
           } else {
             // Profile doesn't exist, create it
-            console.log("[Auth Context] No Firestore profile found, creating one...");
+            console.log(
+              "[Auth Context] No Firestore profile found, creating one..."
+            );
             await syncToFirestoreProfile(fbUser, "google");
           }
         } catch (error) {
           console.error("[Auth Context] Failed to load profile:", error);
-          
+
           // Fallback: create user from Firebase Auth data
           // Parse name properly
           let firstName = "";
           let lastName = "";
-          
+
           if (fbUser.displayName) {
             if (fbUser.displayName.includes(",")) {
-              const parts = fbUser.displayName.split(",").map(p => p.trim());
+              const parts = fbUser.displayName.split(",").map((p) => p.trim());
               lastName = parts[0] || "";
               firstName = parts[1] || "";
             } else {
@@ -532,7 +665,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               lastName = nameParts.slice(1).join(" ") || "";
             }
           }
-          
+
           const authUser: AuthUser = {
             id: fbUser.uid,
             email: fbUser.email || "",
@@ -573,7 +706,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [profileToAuthUser, syncToFirestoreProfile]);
+  }, [
+    migrateOldUserData,
+    profileToAuthUser,
+    syncFirebaseUserToBackend,
+    syncToFirestoreProfile,
+  ]);
 
   /**
    * Sign in with Google using Firebase only (no backend sync)
@@ -593,7 +731,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log("[Auth] Starting Google sign-in...");
-      
+
       // Popup returns user immediately in all environments
       const result = await signInWithGoogle();
 
@@ -606,30 +744,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: result.email,
             displayName: result.displayName,
           });
-          
-          // Sync to Firestore profile ONLY - no backend sync
-          const authUser = await syncToFirestoreProfile(result, "google");
-          
-          // Get Firebase ID token for authentication
-          const idToken = await result.getIdToken();
-          
-          // Store Firebase token (not backend JWT)
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("firebase-token", idToken);
+
+          // First sync to Firestore profile (local Firebase storage)
+          const firestoreUser = await syncToFirestoreProfile(result, "google");
+
+          // Then try to sync with backend (for order management, etc.)
+          // This sends the Firebase ID token to backend for verification
+          let authUser = firestoreUser;
+          try {
+            console.log("[Auth] Attempting backend sync...");
+            const backendUser = await syncFirebaseUserToBackend(result);
+            if (backendUser) {
+              authUser = backendUser;
+              console.log("[Auth] Backend sync successful");
+            } else {
+              console.log(
+                "[Auth] Backend sync skipped/failed, using Firebase-only auth"
+              );
+            }
+          } catch (backendError) {
+            console.warn(
+              "[Auth] Backend sync failed, continuing with Firebase-only:",
+              backendError
+            );
           }
-          
+
           console.log("[Auth] Google sign-in complete - user profile:", {
             id: authUser.id,
             email: authUser.email,
             displayName: authUser.displayName,
             photoURL: authUser.photoURL,
           });
-          
+
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);
 
           // Small delay to ensure state is updated before redirect
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
 
           const redirectUrl = sessionStorage.getItem("auth-redirect-url");
           if (redirectUrl) {
@@ -688,7 +839,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Re-throw with handled flag so pages can detect it but won't show duplicate errors
       const handledError = new Error(errorMessage);
       (handledError as Error & { handled: boolean }).handled = true;
-      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      (handledError as Error & { code: string }).code =
+        (error as { code?: string })?.code || "unknown";
       throw handledError;
     } finally {
       setLoading(false);
@@ -766,7 +918,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Re-throw with handled flag so pages can detect it but won't show duplicate errors
       const handledError = new Error(errorMessage);
       (handledError as Error & { handled: boolean }).handled = true;
-      (handledError as Error & { code: string }).code = (error as { code?: string })?.code || 'unknown';
+      (handledError as Error & { code: string }).code =
+        (error as { code?: string })?.code || "unknown";
       throw handledError;
     } finally {
       setLoading(false);
@@ -786,24 +939,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Password reset error:", error);
       const errorCode = (error as { code?: string })?.code;
       const errorMessage = getFirebaseErrorMessage(error);
-      
+
       // For security, don't reveal if email doesn't exist
       if (errorCode === "auth/user-not-found") {
         // Show success even if user not found (security best practice)
         toast.success("Password reset email sent", {
-          description: "If this email is registered, you'll receive instructions.",
+          description:
+            "If this email is registered, you'll receive instructions.",
         });
         // Still throw so the page can update state
         const handledError = new Error(errorMessage);
-        (handledError as Error & { handled: boolean; code: string }).handled = true;
-        (handledError as Error & { code: string }).code = errorCode || "unknown";
+        (handledError as Error & { handled: boolean; code: string }).handled =
+          true;
+        (handledError as Error & { code: string }).code =
+          errorCode || "unknown";
         throw handledError;
       }
-      
+
       toast.error("Password reset failed", { description: errorMessage });
       // Re-throw with handled flag and original code
       const handledError = new Error(errorMessage);
-      (handledError as Error & { handled: boolean; code: string }).handled = true;
+      (handledError as Error & { handled: boolean; code: string }).handled =
+        true;
       (handledError as Error & { code: string }).code = errorCode || "unknown";
       throw handledError;
     }
@@ -929,6 +1086,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear traditional auth tokens
       clearAuthTokens();
 
+      // Clear Firebase auth cookie
+      clearFirebaseAuthCookie();
+
       // Clear user state
       setUser(null);
       setFirebaseUser(null);
@@ -950,7 +1110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Stop token refresh monitoring
       stopTokenRefreshCheck();
 
-      toast.loading("Signing out from all devices...", { id: "logout-everywhere" });
+      toast.loading("Signing out from all devices...", {
+        id: "logout-everywhere",
+      });
 
       // Call backend to invalidate all sessions
       const success = await logoutEverywhere();
@@ -963,7 +1125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(null);
 
       toast.dismiss("logout-everywhere");
-      
+
       if (success) {
         toast.success("Signed out from all devices");
       } else {
@@ -984,7 +1146,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Phase 5: Get current session info
    */
-  const handleGetSessionInfo = (): { hasToken: boolean; expiresIn: string | null } => {
+  const handleGetSessionInfo = (): {
+    hasToken: boolean;
+    expiresIn: string | null;
+  } => {
     const info = getTokenInfo();
     return {
       hasToken: info.hasToken,
@@ -1090,7 +1255,7 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Password should be at least 6 characters.";
       case "auth/operation-not-allowed":
         return "This sign-in method is not enabled. Please contact support.";
-      
+
       // Sign-in errors
       case "auth/user-not-found":
         return "No account found with this email. Please sign up first.";
@@ -1102,17 +1267,17 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Please enter a valid email address.";
       case "auth/user-disabled":
         return "This account has been disabled. Please contact support.";
-      
+
       // Rate limiting
       case "auth/too-many-requests":
         return "Too many failed attempts. Please wait a few minutes before trying again.";
-      
+
       // Network errors
       case "auth/network-request-failed":
         return "Network error. Please check your internet connection and try again.";
       case "auth/internal-error":
         return "An internal error occurred. Please try again later.";
-      
+
       // Email link errors
       case "auth/expired-action-code":
         return "This link has expired. Please request a new sign-in link.";
@@ -1120,19 +1285,19 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "This link is invalid or has already been used. Please request a new one.";
       case "auth/missing-email":
         return "Please enter your email address to continue.";
-      
+
       // Account linking errors
       case "auth/account-exists-with-different-credential":
         return "An account already exists with this email using a different sign-in method. Try signing in with Google or Email Link.";
       case "auth/credential-already-in-use":
         return "This credential is already associated with another account.";
-      
+
       // Session errors
       case "auth/requires-recent-login":
         return "Please sign in again to complete this action.";
       case "auth/user-token-expired":
         return "Your session has expired. Please sign in again.";
-      
+
       // Popup/redirect errors
       case "auth/popup-blocked":
         return "Sign-in popup was blocked. Please allow popups for this site.";
@@ -1140,7 +1305,7 @@ function getFirebaseErrorMessage(error: unknown): string {
         return "Sign-in was cancelled. Please try again.";
       case "auth/cancelled-popup-request":
         return "Sign-in was cancelled. Please try again.";
-      
+
       default:
         console.warn("Unhandled Firebase error code:", code);
         return "An error occurred. Please try again.";
