@@ -103,11 +103,11 @@ export function ChatDialog({
 
         {/* Messages scroll area */}
         <ScrollArea
-          className="flex-1 pr-4"
+          className="flex-1 pr-4 max-h-[calc(100%-140px)] overflow-y-auto"
           ref={scrollAreaRef}
           data-testid="messages-scroll-area"
         >
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 min-h-[200px]">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <p>No messages yet. Start by asking about mushrooms!</p>

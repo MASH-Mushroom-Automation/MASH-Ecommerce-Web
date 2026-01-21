@@ -16,10 +16,13 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, CheckCircle2, XCircle } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, XCircle, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ProductCardData } from '@/lib/ai/context-builder';
 import * as analytics from '@/lib/analytics/chatbot-analytics';
+import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: ProductCardData;
@@ -31,6 +34,9 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className, onAddToCart, conversationId, messageId }: ProductCardProps) {
   const router = useRouter();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addItem } = useCart();
+  const inWishlist = isInWishlist(product.id);
 
   const handleCardClick = async () => {
     // Track product click
@@ -51,24 +57,50 @@ export function ProductCard({ product, className, onAddToCart, conversationId, m
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
+    e.stopPropagation();
     
-    // Track cart addition
-    if (conversationId) {
-      await analytics.logProductClick({
+    try {
+      // Track cart addition
+      if (conversationId) {
+        await analytics.logProductClick({
+          productId: product.id,
+          productName: product.name,
+          productSlug: product.slug,
+          timestamp: Date.now(),
+          userId: 'anonymous',
+          conversationId,
+          clickedFromMessage: messageId,
+          leadToPurchase: false,
+        });
+      }
+      
+      // Add to cart using CartContext
+      await addItem({
         productId: product.id,
-        productName: product.name,
-        productSlug: product.slug,
-        timestamp: Date.now(),
-        userId: 'anonymous',
-        conversationId,
-        clickedFromMessage: messageId,
-        leadToPurchase: false,
+        quantity: 1,
+        variantId: undefined,
       });
+      
+      toast.success(`${product.name} added to cart!`);
+      
+      if (onAddToCart) {
+        onAddToCart(product.id);
+      }
+    } catch (error) {
+      toast.error('Failed to add to cart');
+      console.error('Add to cart error:', error);
     }
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
     
-    if (onAddToCart) {
-      onAddToCart(product.id);
+    if (inWishlist) {
+      removeFromWishlist(product.id);
+      toast.success('Removed from wishlist');
+    } else {
+      addToWishlist(product.id);
+      toast.success('Added to wishlist');
     }
   };
 
@@ -184,15 +216,23 @@ export function ProductCard({ product, className, onAddToCart, conversationId, m
         )}
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex gap-2">
         <Button
           onClick={handleAddToCart}
           disabled={!product.inStock}
-          className="w-full"
+          className="flex-1"
           variant={product.inStock ? 'default' : 'secondary'}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+        </Button>
+        <Button
+          onClick={handleToggleWishlist}
+          variant={inWishlist ? 'default' : 'outline'}
+          size="icon"
+          title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+        >
+          <Heart className={cn('h-4 w-4', inWishlist && 'fill-current')} />
         </Button>
       </CardFooter>
     </Card>

@@ -82,9 +82,10 @@ export function Message({
           )}
         >
           <div 
-            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:my-1 [&_p]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2"
             dangerouslySetInnerHTML={{ 
               __html: message.content
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br/>')
                 .replace(/•/g, '<span class="inline-block w-4">•</span>')
             }}
