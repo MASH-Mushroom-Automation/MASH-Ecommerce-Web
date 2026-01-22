@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  // Silence turbopack workspace warning
+  // Explicitly set Turbopack root to this project directory
   turbopack: {
-    root: __dirname,
+    root: path.resolve(__dirname),
   },
   images: {
     remotePatterns: [
@@ -51,7 +52,8 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // Temporarily ignore TypeScript errors during build
+  // TODO: Fix remaining TypeScript errors before production deployment
+  // Currently set to true to allow deployment while errors are being resolved
   typescript: {
     ignoreBuildErrors: true,
   },

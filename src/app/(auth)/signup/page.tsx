@@ -2,13 +2,13 @@
 
 /**
  * Signup Page - Backend Email/Password Registration
- * 
+ *
  * Creates new user accounts via the NestJS backend.
  * Sends 6-digit verification code to email.
  * Redirects to verification page after successful registration.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { AuthApi } from "@/lib/api/auth";
+import { generateUsername, generateUniqueUsername } from "@/lib/utils/username";
+import { getDiceBearAvatar } from "@/lib/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const signupSchema = z
   .object({
@@ -55,11 +58,20 @@ const getPasswordRequirements = (password: string) => {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+
+  // Redirect authenticated users away from signup page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("[Signup] User already authenticated, redirecting...");
+      router.replace("/shop");
+    }
+  }, [isAuthenticated, user, router]);
 
   const {
     register,
@@ -81,12 +93,20 @@ export default function SignupPage() {
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
+      // Generate username from email only (simple extraction, no validation)
+      const username = generateUsername(data.email);
+
+      // Generate DiceBear avatar URL
+      const avatarUrl = getDiceBearAvatar(username);
+
       // Register user with backend API
       const response = await AuthApi.register({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
+        username: username,
+        imageUrl: avatarUrl,
       });
 
       // Check if registration was successful
@@ -94,37 +114,105 @@ export default function SignupPage() {
         // Store email for verification page (both keys for compatibility)
         sessionStorage.setItem("verification-email", data.email);
         sessionStorage.setItem("pendingVerificationEmail", data.email);
-        
+
         // Show success state
         setRegisteredEmail(data.email);
         setRegistrationSuccess(true);
-        
+
         toast.success("Account created!", {
           description: "Check your email for the 6-digit verification code.",
         });
       }
     } catch (err: unknown) {
       console.error("Registration error:", err);
-      
-      // Extract error message
+
+      // Extract error details from various error formats
       let errorMessage = "Registration failed. Please try again.";
-      
+      let statusCode = 500;
+
       if (err instanceof Error) {
         errorMessage = err.message;
+        // Check if error has statusCode property
+        if ("statusCode" in err) {
+          statusCode = (err as any).statusCode;
+        }
+        // Check if error has response property (from api-client)
+        if ("response" in err) {
+          const response = (err as any).response;
+          // Backend format: { success: false, error: { message: "..." }, statusCode: 409 }
+          errorMessage =
+            response?.error?.message || response?.message || err.message;
+          statusCode = response?.statusCode || statusCode;
+        }
       } else if (typeof err === "object" && err !== null) {
-        const errorObj = err as { message?: string; error?: string };
-        errorMessage = errorObj.message || errorObj.error || errorMessage;
+        const errorObj = err as {
+          message?: string;
+          error?: any;
+          statusCode?: number;
+        };
+        // Extract from nested error object
+        errorMessage =
+          errorObj.error?.message || errorObj.message || errorMessage;
+        statusCode = errorObj.statusCode || 500;
       }
-      
-      // Check for specific errors
-      if (errorMessage.toLowerCase().includes("already exists") || 
-          errorMessage.toLowerCase().includes("already registered")) {
+
+      console.log("[Signup] Extracted error:", { statusCode, errorMessage });
+
+      // Handle specific error types based on status code
+      if (
+        statusCode === 409 ||
+        errorMessage.toLowerCase().includes("already exists") ||
+        errorMessage.toLowerCase().includes("already registered") ||
+        errorMessage.toLowerCase().includes("already in use")
+      ) {
+        // Email already exists (409 Conflict)
         toast.error("Email already registered", {
-          description: "Try signing in instead or use a different email.",
+          description: (
+            <div className="space-y-2">
+              <p>This email is already associated with an account.</p>
+              <div className="flex flex-col gap-1 text-xs">
+                <span>
+                  • Try <strong>signing in</strong> instead
+                </span>
+                <span>
+                  • Use a <strong>different email</strong>
+                </span>
+                <span>
+                  • <strong>Reset your password</strong> if you forgot it
+                </span>
+              </div>
+            </div>
+          ),
+          duration: 6000,
+          action: {
+            label: "Sign In",
+            onClick: () => router.push("/login"),
+          },
+        });
+      } else if (statusCode === 429) {
+        // Rate limit exceeded
+        toast.error("Too many attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
+        });
+      } else if (statusCode === 400) {
+        // Validation error
+        toast.error("Invalid information", {
+          description: errorMessage,
+          duration: 5000,
+        });
+      } else if (statusCode === 500) {
+        // Server error
+        toast.error("Server error", {
+          description:
+            "Something went wrong on our end. Please try again later.",
+          duration: 5000,
         });
       } else {
+        // Generic error
         toast.error("Registration failed", {
           description: errorMessage,
+          duration: 5000,
         });
       }
     }
@@ -290,28 +378,50 @@ export default function SignupPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
-              
+
               {/* Password Requirements */}
               {password && (
                 <div className="mt-2 p-2 bg-muted/50 rounded-md border border-border space-y-1">
-                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.minLength ? "text-green-600" : "text-muted-foreground"}`}>
-                    {passwordReqs.minLength ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                  <div
+                    className={`flex items-center gap-2 text-xs ${passwordReqs.minLength ? "text-green-600" : "text-muted-foreground"}`}
+                  >
+                    {passwordReqs.minLength ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <XIcon className="h-3 w-3" />
+                    )}
                     <span>At least 6 characters</span>
                   </div>
-                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.hasUppercase ? "text-green-600" : "text-muted-foreground"}`}>
-                    {passwordReqs.hasUppercase ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                  <div
+                    className={`flex items-center gap-2 text-xs ${passwordReqs.hasUppercase ? "text-green-600" : "text-muted-foreground"}`}
+                  >
+                    {passwordReqs.hasUppercase ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <XIcon className="h-3 w-3" />
+                    )}
                     <span>One uppercase letter (recommended)</span>
                   </div>
-                  <div className={`flex items-center gap-2 text-xs ${passwordReqs.hasNumber ? "text-green-600" : "text-muted-foreground"}`}>
-                    {passwordReqs.hasNumber ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3" />}
+                  <div
+                    className={`flex items-center gap-2 text-xs ${passwordReqs.hasNumber ? "text-green-600" : "text-muted-foreground"}`}
+                  >
+                    {passwordReqs.hasNumber ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <XIcon className="h-3 w-3" />
+                    )}
                     <span>One number (recommended)</span>
                   </div>
                 </div>
               )}
-              
+
               {errors.password && (
                 <p className="mt-1 text-sm text-destructive">
                   {errors.password.message}
@@ -340,7 +450,11 @@ export default function SignupPage() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               {errors.confirmPassword && (
@@ -370,10 +484,7 @@ export default function SignupPage() {
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to the{" "}
-                  <Link
-                    href="/terms"
-                    className="text-primary hover:underline"
-                  >
+                  <Link href="/terms" className="text-primary hover:underline">
                     Terms & Conditions
                   </Link>
                   .
@@ -440,8 +551,8 @@ export default function SignupPage() {
             </div>
 
             {/* Google Sign Up */}
-            <GoogleSignInButton 
-              fullWidth 
+            <GoogleSignInButton
+              fullWidth
               size="lg"
               text="Sign up with Google"
               className="py-6"

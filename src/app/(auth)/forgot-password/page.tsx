@@ -2,7 +2,7 @@
 
 /**
  * Forgot Password Page - Backend Authentication
- * 
+ *
  * Sends password reset email via NestJS backend.
  * Uses 6-digit verification code for password reset.
  */
@@ -57,23 +57,31 @@ export default function ForgotPasswordPage() {
       });
     } catch (err) {
       console.error("Forgot password error:", err);
-      
+
       // For security, show success even if email not found
       // This prevents email enumeration attacks
-      const errorMessage = err instanceof Error ? err.message.toLowerCase() : "";
-      
-      if (errorMessage.includes("not found") || errorMessage.includes("no user")) {
+      const errorMessage =
+        err instanceof Error ? err.message.toLowerCase() : "";
+
+      if (
+        errorMessage.includes("not found") ||
+        errorMessage.includes("no user")
+      ) {
         // Store email anyway (for UX consistency)
         sessionStorage.setItem("resetPasswordEmail", values.email);
         setSentToEmail(values.email);
         setEmailSent(true);
-        
+
         toast.success("Reset code sent!", {
-          description: "If this email is registered, you'll receive a reset code.",
+          description:
+            "If this email is registered, you'll receive a reset code.",
         });
       } else {
         toast.error("Request failed", {
-          description: err instanceof Error ? err.message : "Unable to process request. Please try again.",
+          description:
+            err instanceof Error
+              ? err.message
+              : "Unable to process request. Please try again.",
         });
       }
     }
@@ -99,8 +107,8 @@ export default function ForgotPasswordPage() {
           <strong className="text-foreground">{sentToEmail}</strong>
         </p>
         <p className="text-sm text-muted-foreground mb-6">
-          Enter the code on the next page to reset your password.
-          The code will expire in 15 minutes.
+          Enter the code on the next page to reset your password. The code will
+          expire in 15 minutes.
         </p>
         <div className="space-y-3">
           <Button

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Auth Data - MASH</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .danger {
+            background: #f44336;
+        }
+        .danger:hover {
+            background: #da190b;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #666;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            display: none;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clear Authentication Data</h1>
+        
+        <div class="info">
+            <strong>Current Stored Data:</strong>
+            <pre id="current-data">Loading...</pre>
+        </div>
+        
+        <div class="success" id="success-message">
+            Authentication data cleared successfully! Please close this page and sign in again.
+        </div>
+        
+        <h3>Actions:</h3>
+        
+        <button onclick="showData()">
+            Show Current Data
+        </button>
+        
+        <button class="danger" onclick="clearAuth()">
+            Clear Auth Data
+        </button>
+        
+        <button onclick="goToAuthTest()">
+            Go to Auth Test Page
+        </button>
+        
+        <button onclick="goHome()">
+            Go to Home Page
+        </button>
+    </div>
+    
+    <script>
+        function showData() {
+            const data = {
+                localStorage: {
+                    user: localStorage.getItem('user'),
+                    refreshToken: localStorage.getItem('refreshToken'),
+                },
+                sessionStorage: {
+                    user: sessionStorage.getItem('user'),
+                    firebaseToken: sessionStorage.getItem('firebase-token'),
+                },
+                cookies: document.cookie
+            };
+            
+            document.getElementById('current-data').textContent = JSON.stringify(data, null, 2);
+        }
+        
+        function clearAuth() {
+            if (!confirm('Are you sure you want to clear all authentication data? You will need to sign in again.')) {
+                return;
+            }
+            
+            // Clear localStorage
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('firebase-token');
+            localStorage.removeItem('mash-cart');
+            localStorage.removeItem('cart');
+            
+            // Clear sessionStorage
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('firebase-token');
+            sessionStorage.removeItem('auth-token');
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Show success message
+            document.getElementById('success-message').style.display = 'block';
+            
+            // Update display
+            showData();
+            
+            console.log('All authentication data cleared');
+        }
+        
+        function goToAuthTest() {
+            window.location.href = '/auth-test';
+        }
+        
+        function goHome() {
+            window.location.href = '/';
+        }
+        
+        // Load data on page load
+        window.addEventListener('load', showData);
+    </script>
+</body>
+</html>

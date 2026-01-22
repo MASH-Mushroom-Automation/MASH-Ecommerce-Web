@@ -5,14 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FAQAPI } from '@/lib/cms/database';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const faq = await FAQAPI.getById(params.id);
+    const { id } = await params;
+    const faq = await FAQAPI.getById(id);
 
     if (!faq) {
       return NextResponse.json({
@@ -37,10 +38,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if FAQ exists
-    const existingFAQ = await CMS.findById('faq_items', params.id);
+    const existingFAQ = await CMS.findById('faq_items', id);
     if (!existingFAQ) {
       return NextResponse.json({
         success: false,
@@ -48,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }, { status: 404 });
     }
 
-    const updatedFAQ = await CMS.update('faq_items', params.id, body);
+    const updatedFAQ = await CMS.update('faq_items', id, body);
 
     return NextResponse.json({
       data: updatedFAQ,
@@ -66,7 +68,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const deleted = await CMS.delete('faq_items', params.id);
+    const { id } = await params;
+    const deleted = await CMS.delete('faq_items', id);
 
     if (!deleted) {
       return NextResponse.json({

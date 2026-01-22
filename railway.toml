@@ -1,0 +1,21 @@
+# Railway Configuration
+# https://docs.railway.app/reference/nixpacks#configure-with-nixpacks
+
+[build]
+# Use Node.js 20 (matches .nvmrc)
+builder = "nixpacks"
+
+[deploy]
+# Start command - Next.js automatically uses PORT env var
+startCommand = "npm run start"
+
+# Health check configuration
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Environment
+[env]
+NODE_ENV = "production"
+PORT = "3000"

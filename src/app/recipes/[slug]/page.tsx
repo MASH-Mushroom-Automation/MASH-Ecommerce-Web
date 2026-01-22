@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { YouTubeEmbed } from '@/components/content/YouTubeEmbed';
 
+// Force dynamic rendering (no static generation at build time)
+export const dynamic = 'force-dynamic';
+
 // GROQ query for single recipe with all details
 const recipeQuery = `*[_type == "recipe" && slug.current == $slug][0] {
   _id,
@@ -79,13 +82,8 @@ const recipeQuery = `*[_type == "recipe" && slug.current == $slug][0] {
   seo
 }`;
 
-// Generate static params for all recipes
-export async function generateStaticParams() {
-  const slugs = await client.fetch<{ slug: { current: string } }[]>(
-    `*[_type == "recipe" && isPublished == true]{ slug }`
-  );
-  return slugs.map((item) => ({ slug: item.slug.current }));
-}
+// Don't generate static params - fully dynamic rendering
+export const dynamicParams = true;
 
 // Generate metadata
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

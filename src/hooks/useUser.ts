@@ -1,14 +1,14 @@
 // Custom hooks for user data fetching
 import { useState, useEffect, useCallback } from "react";
 import { UserApi } from "@/lib/api/user";
-import { UserProfile, UserOnboardingData, ApiResponse } from "@/types/api";
+import { UserProfile, UserOnboardingData } from "@/types/api";
 
 // Profile hooks
 export function useUserProfile() {
   // Try to hydrate profile from storage for instant UI update after login
   const getStoredUser = (): UserProfile | null => {
     try {
-      if (typeof window !== "undefined") {
+      if (typeof globalThis.window !== "undefined") {
         const s = sessionStorage.getItem("user") || localStorage.getItem("user");
         if (s) return JSON.parse(s) as UserProfile;
       }
@@ -34,8 +34,26 @@ export function useUserProfile() {
     setError(null);
 
     try {
-      // Prefer hitting the local API route which proxies to the backend and
-      // attaches auth from cookies (avoids CORS and ensures server-side auth).
+      // Check if user is Firebase-authenticated (Google OAuth)
+      // Firebase users don't have backend JWT tokens
+      // Check for Firebase token in sessionStorage or localStorage
+      const hasFirebaseToken = 
+        (typeof globalThis.window !== "undefined" && 
+         (sessionStorage.getItem("firebase-token") || 
+          localStorage.getItem("firebase-token")));
+      
+      const storedUser = getStoredUser();
+      
+      if (hasFirebaseToken && storedUser) {
+        // For Firebase users, data is already in localStorage from AuthContext
+        // No need to call backend API (which would return 401)
+        console.log('[useUserProfile] Firebase user detected, using localStorage data');
+        setProfile(storedUser);
+        setLoading(false);
+        return;
+      }
+
+      // For email/password users, fetch from backend API
       const res = await fetch("/api/user/profile", { method: "GET" });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
@@ -45,7 +63,7 @@ export function useUserProfile() {
       setProfile(data);
       // Update storage with fresh data
       try {
-        if (typeof window !== "undefined") {
+        if (typeof globalThis.window !== "undefined") {
           localStorage.setItem("user", JSON.stringify(data));
           sessionStorage.setItem("user", JSON.stringify(data));
         }
@@ -121,8 +139,8 @@ export function useUserProfile() {
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    globalThis.window.addEventListener("storage", handleStorageChange);
+    return () => globalThis.window.removeEventListener("storage", handleStorageChange);
   }, [clearProfile]);
 
   // Also check auth cookie periodically to detect logout

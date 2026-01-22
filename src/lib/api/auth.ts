@@ -7,6 +7,17 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  username?: string;    // Auto-generated from email/name
+  imageUrl?: string;    // DiceBear avatar URL
+}
+
+export interface GoogleSyncRequest {
+  googleId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  photoURL?: string;
+  username?: string;
 }
 
 export interface VerifyCodeRequest {
@@ -17,6 +28,7 @@ export interface VerifyCodeRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface ForgotPasswordRequest {
@@ -136,8 +148,36 @@ export interface ResetPasswordResponse {
 
 // Auth API Service
 export const AuthApi = {
-  /**
-   * Register a new user account
+  /**   * Sync Google OAuth user to PostgreSQL database
+   * @param data - Google user data from Firebase
+   * @returns Promise with user and JWT tokens
+   */
+  syncGoogleUser: async (data: GoogleSyncRequest): Promise<any> => {
+    const response = await apiRequest<any>("/auth/google/sync", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    // Store tokens automatically
+    if (response.data?.tokens?.accessToken) {
+      setAuthToken(response.data.tokens.accessToken, true);
+    }
+
+    // Store refresh token
+    if (response.data?.tokens?.refreshToken) {
+      localStorage.setItem("refreshToken", response.data.tokens.refreshToken);
+    }
+
+    // Store user data
+    if (response.data?.user || response.user) {
+      const user = response.data?.user || response.user;
+      localStorage.setItem("user", JSON.stringify(user));
+    }
+
+    return response;
+  },
+
+  /**   * Register a new user account
    * @param data - User registration data
    * @returns Promise<RegisterResponse>
    */
@@ -193,13 +233,18 @@ export const AuthApi = {
 
   /**
    * Login with email and password
-   * @param data - Email and password
+   * @param data - Email, password, and optional rememberMe
    * @returns Promise<LoginResponse>
    */
   login: async (data: LoginRequest): Promise<LoginResponse> => {
+    // Don't send rememberMe to backend - it doesn't accept it (causes 400 error)
+    // Backend only expects: {email, password}
     const response = await apiRequest<LoginResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+      }),
     });
 
     // Handle both response formats (nested data or direct)
@@ -207,9 +252,11 @@ export const AuthApi = {
     const refreshToken = response.data?.refreshToken || response.refreshToken;
     const user = response.data?.user || response.user;
 
-    // Store tokens automatically
+    // Use rememberMe for client-side cookie expiry only
+    // rememberMe=true → 7 days cookie
+    // rememberMe=false → session cookie (expires on browser close)
     if (accessToken) {
-      setAuthToken(accessToken, true);
+      setAuthToken(accessToken, data.rememberMe || false);
     }
 
     if (refreshToken) {
@@ -282,4 +329,13 @@ export const AuthApi = {
     if (typeof document === "undefined") return false;
     return document.cookie.includes("auth-token=");
   },
-};
+  /**
+   * Check if username is available
+   * @param username - Username to check
+   * @returns Promise<{ available: boolean; username: string }>
+   */
+  checkUsername: async (username: string): Promise<{ available: boolean; username: string }> => {
+    return apiRequest<{ available: boolean; username: string }>(
+      `/auth/check-username?username=${encodeURIComponent(username)}`
+    );
+  },};
