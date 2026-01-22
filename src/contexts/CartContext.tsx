@@ -12,6 +12,7 @@ import { CartItem, OrderSummary, AddToCartProduct } from "@/types/api";
 import { toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { FirebaseCartService } from "@/lib/firebase/cart";
+import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
 
 interface CartContextType {
   items: CartItem[];
@@ -37,46 +38,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastSyncRef = useRef<number>(0);
 
-  // Load cart from localStorage on mount
+  // Load cart from cookie on mount
   useEffect(() => {
-    console.log("[CartContext] Loading cart from localStorage...");
-    const savedCart = localStorage.getItem("mash-cart");
+    console.log("[CartContext] Loading cart from cookie...");
+    const savedCart = getCartCookie();
     console.log("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart);
-        console.log("[CartContext] Parsed cart:", parsedCart);
+        console.log("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
-        if (parsedCart.version === 2 && Array.isArray(parsedCart.items)) {
-          console.log("[CartContext] Loading", parsedCart.items.length, "items");
-          setItems(parsedCart.items);
+        if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
+          console.log("[CartContext] Loading", savedCart.items.length, "items");
+          setItems(savedCart.items);
         } else {
           // Old cart format - clear it
           console.log("Old cart format detected, clearing cart");
-          localStorage.removeItem("mash-cart");
-          localStorage.removeItem("cart"); // Old key
+          clearCartCookie();
         }
       } catch (error) {
-        console.error("Failed to load cart from localStorage:", error);
+        console.error("Failed to load cart from cookie:", error);
       }
     }
     setIsLoaded(true);
     console.log("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.log("[CartContext] Saving to localStorage, items:", items.length);
-      localStorage.setItem(
-        "mash-cart",
-        JSON.stringify({
-          version: 2,
-          items,
-          updatedAt: new Date().toISOString(),
-        })
-      );
-      console.log("[CartContext] Saved to localStorage");
+      console.log("[CartContext] Saving to cookie, items:", items.length);
+      setCartCookie({
+        version: 2,
+        items,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
