@@ -1,7 +1,9 @@
 import { signOutFirebase } from "@/lib/firebase";
+import { UserApi } from "@/lib/api/user";
 
 // API Base URL for backend calls
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 
 // Utility to check if user is authenticated (client-side)
 export function isAuthenticated(): boolean {
@@ -77,11 +79,14 @@ export function logout() {
     // Optional: clear cached user data
     sessionStorage.removeItem("user");
 
+    // Clear user profile cache
+    UserApi.clearCache();
+
     // Proactively clear client-side persisted app state
     localStorage.removeItem("mash-wishlist");
     localStorage.removeItem("cart");
     localStorage.removeItem("mash-cart"); // Current cart key
-    
+
     // Clear Google auth redirect markers
     localStorage.removeItem("google_auth_redirect");
     sessionStorage.removeItem("google_auth_redirect");
@@ -99,14 +104,14 @@ export function logout() {
 
 /**
  * Logout from all devices/sessions
- * 
+ *
  * Phase 5: Session Management & Security
- * 
+ *
  * This function:
  * 1. Calls backend to invalidate all refresh tokens
  * 2. Clears local auth state
  * 3. Signs out from Firebase
- * 
+ *
  * @returns Promise<boolean> - True if backend logout succeeded
  */
 export async function logoutEverywhere(): Promise<boolean> {
@@ -117,7 +122,7 @@ export async function logoutEverywhere(): Promise<boolean> {
 
   // Try to call backend logout endpoint
   let backendLogoutSuccess = false;
-  
+
   if (token || refreshToken) {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/logout`, {
@@ -133,7 +138,9 @@ export async function logoutEverywhere(): Promise<boolean> {
       });
 
       if (response.ok) {
-        console.log("🟢 [Auth] Backend logout successful - all sessions invalidated");
+        console.log(
+          "🟢 [Auth] Backend logout successful - all sessions invalidated"
+        );
         backendLogoutSuccess = true;
       } else {
         console.warn("⚠️ [Auth] Backend logout failed:", response.status);
@@ -152,12 +159,12 @@ export async function logoutEverywhere(): Promise<boolean> {
 
 /**
  * Refresh the access token using the refresh token
- * 
+ *
  * @returns Promise<string | null> - New access token or null if refresh failed
  */
 export async function refreshToken(): Promise<string | null> {
   const currentRefreshToken = getRefreshToken();
-  
+
   if (!currentRefreshToken) {
     console.log("[Auth] No refresh token available");
     return null;

@@ -82,8 +82,9 @@ service cloud.firestore {
       // Only admins can delete orders
       allow delete: if isAdmin();
       
-      // Allow sellers to list all orders
-      allow list: if isAdmin();
+      // TEMPORARY: Allow all authenticated users to list orders
+      // TODO: Implement proper role-based access control
+      allow list: if isSignedIn();
     }
     
     

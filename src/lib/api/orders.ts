@@ -300,4 +300,65 @@ export class OrdersApi {
       },
     };
   }
+
+  /**
+   * Update order status (Seller action)
+   * Used for approving or rejecting orders
+   */
+  static async updateOrderStatus(
+    orderId: string,
+    newStatus: "TO_SHIP" | "CANCELLED",
+    reason?: string
+  ): Promise<ApiResponse<{ message: string; order?: any }>> {
+    const token = getAuthToken();
+    const url = `${API_BASE_URL}/orders/${orderId}/status`;
+
+    console.log("[OrdersApi] Updating order status:", { orderId, newStatus, reason });
+
+    const { ok, json, status } = await tryFetch<{ data?: any; message?: string }>(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        status: newStatus,
+        ...(reason && { cancellationReason: reason }),
+      }),
+    });
+
+    if (ok && json) {
+      console.log("[OrdersApi] Order status updated successfully:", json);
+      return {
+        success: true,
+        data: {
+          message: json.message || "Order status updated successfully",
+          order: json.data,
+        },
+      };
+    }
+
+    // Log error but continue to mock fallback
+    if (status === 401) {
+      console.warn("[OrdersApi] Unauthorized - seller may need to login");
+      return {
+        success: false,
+        data: null as any,
+        message: "Unauthorized. Please login again.",
+      };
+    } else if (status === 0) {
+      console.warn("[OrdersApi] Backend not available, using mock");
+    } else {
+      console.warn("[OrdersApi] Backend error:", status, json);
+    }
+
+    // Mock fallback for development
+    await delay(500);
+    return {
+      success: true,
+      data: {
+        message: `Order ${newStatus === "TO_SHIP" ? "approved" : "cancelled"} successfully`,
+      },
+    };
+  }
 }

@@ -685,9 +685,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Don't clear user if they logged in with email/password
         try {
           const storedUser = localStorage.getItem("user");
+          const hasAuthToken = document.cookie.includes("auth-token=");
+
           if (storedUser) {
             const parsed = JSON.parse(storedUser);
-            if (parsed.provider === "email") {
+            // Restore user if:
+            // 1. They have provider: "email" (new format)
+            // 2. Or they have an auth-token cookie (backward compatibility / backend login)
+            if (parsed.provider === "email" || hasAuthToken) {
+              // Ensure provider is set for consistency
+              if (!parsed.provider) {
+                parsed.provider = "email";
+              }
               setUser(parsed);
             } else {
               // Firebase user logged out, clear state
