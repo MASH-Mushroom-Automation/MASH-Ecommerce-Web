@@ -357,16 +357,21 @@ npm run dev
 
 | Service | Production URL | Dashboard |
 |---------|----------------|-----------|
-| **Frontend** | https://mash-ecommerce-web-production.up.railway.app | Railway |
+| **E-Commerce** | https://www.mashmarket.app | Railway |
+| **E-Commerce Dev** | https://beta.mashmarket.app | Railway |
+| **Admin Panel** | https://zen.mashmarket.app | Railway |
+| **Landing Page** | https://join.mashmarket.app (tentative) | Railway |
 | **Backend API** | https://mash-backend-production.up.railway.app | Railway |
 | **Firebase** | - | https://console.firebase.google.com/u/7/project/mash-ddf8d/ |
 | **Sanity CMS** | https://ppnamias.sanity.studio | https://www.sanity.io/organizations/oBQP4vpxm/project/gerattrr/ |
 
 **[CRITICAL]** 
 - **.env** file contains **production** configuration with Railway backend URL
-- Frontend is **always connected to production backend** (https://mash-backend-production.up.railway.app)
+- Frontend domains: www.mashmarket.app (production), beta.mashmarket.app (dev)
+- Admin panel: zen.mashmarket.app for order management and seller operations
+- Backend API: https://mash-backend-production.up.railway.app/api/v1
 - Firebase Google Auth is **enabled and configured**
-- Never use `localhost` URLs in this `.env` file
+- Never use `localhost` URLs in production `.env` file
 
 ---
 
@@ -434,7 +439,10 @@ npm run dev
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Frontend (Next.js 16 - Railway Production)                     │
-│  https://mash-ecommerce-web-production.up.railway.app          │
+│  Production: https://www.mashmarket.app                         │
+│  Development: https://beta.mashmarket.app                       │
+│  Admin Panel: https://zen.mashmarket.app                        │
+│  Landing: https://join.mashmarket.app (tentative)               │
 ├─────────────────────────────────────────────────────────────────┤
 │  Sanity CMS ←→ Products, content, marketing (GROQ queries)     │
 │  Firebase   ←→ Google OAuth + Firestore user profiles          │
@@ -448,6 +456,12 @@ npm run dev
 │  https://mash-backend-production.up.railway.app/api/v1         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Active Domains:**
+- **E-Commerce**: www.mashmarket.app (customer shopping)
+- **E-Commerce Dev**: beta.mashmarket.app (testing/staging)
+- **Admin Panel**: zen.mashmarket.app (seller & admin dashboard)
+- **Landing Page**: join.mashmarket.app (marketing - tentative)
 
 **Route Groups** (invisible in URLs): `(auth)/`, `(shop)/`, `(user)/`, `(seller)/`
 
@@ -804,9 +818,12 @@ Critical scripts in `scripts/` folder - run with: `node scripts/<script-name>.js
 # Automated via Railway GitHub integration
 # Push to main branch triggers automatic deployment
 
-# Production URLs:
-# Frontend: https://mash-ecommerce-web-production.up.railway.app
-# Backend:  https://mash-backend-production.up.railway.app
+# Production Domains:
+# E-Commerce:     https://www.mashmarket.app
+# E-Commerce Dev: https://beta.mashmarket.app
+# Admin Panel:    https://zen.mashmarket.app
+# Landing Page:   https://join.mashmarket.app (tentative)
+# Backend API:    https://mash-backend-production.up.railway.app
 ```
 
 **Pre-deployment checklist:**
