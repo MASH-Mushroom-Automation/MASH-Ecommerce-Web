@@ -56,7 +56,8 @@ export default function GrowersPage() {
   const { growers, loading, error } = useSanityGrowers({ isActive: true });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [selectedGrower, setSelectedGrower] = useState<TransformedGrower | null>(null);
+  const [selectedGrower, setSelectedGrower] =
+    useState<TransformedGrower | null>(null);
   const [showNearMe, setShowNearMe] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -208,7 +209,9 @@ export default function GrowersPage() {
             {/* Active filter badge */}
             {selectedRegion && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Filtering by:</span>
+                <span className="text-sm text-muted-foreground">
+                  Filtering by:
+                </span>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   {selectedRegion}
                   <button
@@ -240,7 +243,7 @@ export default function GrowersPage() {
                   setItemsPerPage(newValue);
                   setDisplayCount(newValue);
                 }}
-                className="border border-border rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="bg-background text-foreground border border-border rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value={8}>8 per page</option>
                 <option value={16}>16 per page</option>
@@ -297,7 +300,10 @@ export default function GrowersPage() {
                       <GrowerInfoRow icon={Phone} text={grower.contactPhone} />
                     )}
                     {grower.specialties && grower.specialties.length > 0 && (
-                      <GrowerInfoRow icon={Store} text={grower.specialties.slice(0, 2).join(", ")} />
+                      <GrowerInfoRow
+                        icon={Store}
+                        text={grower.specialties.slice(0, 2).join(", ")}
+                      />
                     )}
                   </div>
 
@@ -363,44 +369,46 @@ export default function GrowersPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Growers List for Map */}
                   <div className="lg:col-span-1 space-y-3">
-                    {growers.filter(g => g.coordinates).map((grower) => (
-                      <Card
-                        key={grower.id}
-                        onClick={() => setSelectedGrower(grower)}
-                        className={cn(
-                          "p-4 cursor-pointer transition-all duration-200 border-2",
-                          selectedGrower.id === grower.id
-                            ? "bg-muted border-primary"
-                            : "bg-card hover:bg-muted/50 border-transparent"
-                        )}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-sm text-foreground mb-2">
-                              {grower.name}
-                            </h3>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {grower.location || 'Location not specified'}
-                            </p>
-                          </div>
-                          {grower.coordinates && (
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coordinates.lat},${grower.coordinates.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex flex-col items-center text-xs text-muted-foreground hover:text-foreground"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="bg-primary text-primary-foreground rounded-full p-2">
-                                <Send className="w-3 h-3" />
-                              </div>
-                              <span className="mt-1 text-[10px]">Go</span>
-                            </a>
+                    {growers
+                      .filter((g) => g.coordinates)
+                      .map((grower) => (
+                        <Card
+                          key={grower.id}
+                          onClick={() => setSelectedGrower(grower)}
+                          className={cn(
+                            "p-4 cursor-pointer transition-all duration-200 border-2",
+                            selectedGrower.id === grower.id
+                              ? "bg-muted border-primary"
+                              : "bg-card hover:bg-muted/50 border-transparent"
                           )}
-                        </div>
-                      </Card>
-                    ))}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-sm text-foreground mb-2">
+                                {grower.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {grower.location || "Location not specified"}
+                              </p>
+                            </div>
+                            {grower.coordinates && (
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${grower.coordinates.lat},${grower.coordinates.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex flex-col items-center text-xs text-muted-foreground hover:text-foreground"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="bg-primary text-primary-foreground rounded-full p-2">
+                                  <Send className="w-3 h-3" />
+                                </div>
+                                <span className="mt-1 text-[10px]">Go</span>
+                              </a>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
                   </div>
 
                   {/* Map */}
