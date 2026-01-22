@@ -7,42 +7,40 @@
  * - Automatic token refresh before expiry
  * - Token expiry detection
  * - Graceful session termination on refresh failure
+ * 
+ * Updated for cookie-based token storage (HTTP-only cookies)
  */
 
-import { setAuthToken, logout } from "./auth";
+import { refreshToken as refreshAuthToken, logout } from "./auth";
 
 // Configuration
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // Refresh 5 minutes before expiry
 const TOKEN_CHECK_INTERVAL_MS = 60 * 1000; // Check every minute
 
-// API Base URL
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
-
 // Token refresh state
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 let tokenCheckInterval: NodeJS.Timeout | null = null;
 
 /**
- * Get the auth token from cookies
+ * Check if tokens exist using API route
+ * HTTP-only cookies are not accessible from JavaScript
  */
-export function getAuthToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/auth-token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-/**
- * Get the refresh token from localStorage
- */
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("refreshToken");
+async function hasValidTokens(): Promise<boolean> {
+  try {
+    const response = await fetch("/api/auth/get-token");
+    if (!response.ok) return false;
+    
+    const data = await response.json();
+    return data.hasAuthToken || false;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Decode JWT token to get payload (without verification)
  * Note: This is for client-side expiry checking only
+ * Since tokens are HTTP-only, we can't access them directly
  */
 export function decodeToken(
   token: string
@@ -61,111 +59,32 @@ export function decodeToken(
 }
 
 /**
- * Check if token is expired or about to expire
- */
-export function isTokenExpiringSoon(token: string): boolean {
-  const decoded = decodeToken(token);
-  if (!decoded?.exp) return true; // Treat invalid tokens as expired
-
-  const expiryTime = decoded.exp * 1000; // Convert to milliseconds
-  const timeUntilExpiry = expiryTime - Date.now();
-
-  return timeUntilExpiry < TOKEN_REFRESH_THRESHOLD_MS;
-}
-
-/**
- * Check if token is fully expired
- */
-export function isTokenExpired(token: string): boolean {
-  const decoded = decodeToken(token);
-  if (!decoded?.exp) return true;
-
-  return Date.now() >= decoded.exp * 1000;
-}
-
-/**
- * Get time until token expiry in milliseconds
- */
-export function getTokenExpiryTime(token: string): number | null {
-  const decoded = decodeToken(token);
-  if (!decoded?.exp) return null;
-
-  return decoded.exp * 1000 - Date.now();
-}
-
-/**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token (HTTP-only cookies)
  * Implements request deduplication to prevent multiple simultaneous refresh requests
  */
-export async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<boolean> {
   // Return existing promise if refresh is already in progress
   if (refreshPromise) {
     console.log("[TokenRefresh] Refresh already in progress, waiting...");
     return refreshPromise;
   }
 
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    console.log("[TokenRefresh] No refresh token available");
-    return null;
-  }
-
-  console.log("[TokenRefresh] Starting token refresh...");
+  console.log("[TokenRefresh] Starting token refresh using HTTP-only cookies...");
 
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        console.error(
-          "[TokenRefresh] Refresh failed with status:",
-          response.status
-        );
-
-        // If refresh token is invalid/expired, logout user
-        if (response.status === 401 || response.status === 403) {
-          console.log("[TokenRefresh] Refresh token invalid, logging out...");
-          logout();
-          return null;
-        }
-
-        throw new Error(`Refresh failed: ${response.status}`);
+      const success = await refreshAuthToken();
+      
+      if (success) {
+        console.log("[TokenRefresh] Token refresh successful!");
+      } else {
+        console.error("[TokenRefresh] Token refresh failed");
       }
-
-      const data = await response.json();
-
-      // Handle both response formats
-      const newAccessToken = data.data?.accessToken || data.accessToken;
-      const newRefreshToken = data.data?.refreshToken || data.refreshToken;
-
-      if (!newAccessToken) {
-        console.error("[TokenRefresh] No access token in response");
-        return null;
-      }
-
-      // Store new tokens
-      console.log("[TokenRefresh] Storing new access token...");
-      setAuthToken(newAccessToken, true);
-
-      if (newRefreshToken) {
-        console.log("[TokenRefresh] Storing new refresh token...");
-        localStorage.setItem("refreshToken", newRefreshToken);
-      }
-
-      console.log("[TokenRefresh] Token refresh successful!");
-      return newAccessToken;
+      
+      return success;
     } catch (error) {
       console.error("[TokenRefresh] Token refresh error:", error);
-
-      // On network error, don't logout immediately - might be temporary
-      // The next API call will trigger another refresh attempt
-      return null;
+      return false;
     } finally {
       refreshPromise = null;
     }
@@ -177,36 +96,29 @@ export async function refreshAccessToken(): Promise<string | null> {
 /**
  * Check and refresh token if needed
  * Returns true if token is valid (either already valid or successfully refreshed)
- * Note: Returns false silently for Firebase-only users (no backend token expected)
+ * 
+ * Note: Since tokens are HTTP-only, we rely on backend to check expiry
+ * We attempt refresh on API 401 errors rather than proactive checking
  */
 export async function ensureValidToken(): Promise<boolean> {
-  const token = getAuthToken();
+  const hasTokens = await hasValidTokens();
 
-  if (!token) {
-    // Don't log - this is expected for Google OAuth users who use Firebase-only auth
+  if (!hasTokens) {
+    // Don't log - this is expected for guests or logged-out users
     return false;
   }
 
-  if (isTokenExpired(token)) {
-    console.log("[TokenRefresh] Token is expired, attempting refresh...");
-    const newToken = await refreshAccessToken();
-    return !!newToken;
-  }
-
-  if (isTokenExpiringSoon(token)) {
-    console.log(
-      "[TokenRefresh] Token expiring soon, refreshing proactively..."
-    );
-    // Don't wait for this - let it refresh in background
-    refreshAccessToken().catch(console.error);
-  }
-
+  // Tokens exist - assume valid
+  // Actual validation happens on backend API calls
   return true;
 }
 
 /**
  * Start automatic token refresh checking
  * Should be called once when the app initializes (in AuthProvider)
+ * 
+ * Note: With HTTP-only cookies, we can't check token expiry client-side
+ * Instead, we rely on API interceptors to handle 401 responses
  */
 export function startTokenRefreshCheck(): void {
   if (tokenCheckInterval) {
@@ -214,19 +126,17 @@ export function startTokenRefreshCheck(): void {
     return;
   }
 
-  console.log("[TokenRefresh] Starting automatic token refresh check...");
+  console.log("[TokenRefresh] Starting automatic token validity check...");
 
   // Initial check
   ensureValidToken().catch(console.error);
 
-  // Periodic checks
-  tokenCheckInterval = setInterval(() => {
-    const token = getAuthToken();
-    if (token && isTokenExpiringSoon(token)) {
-      console.log(
-        "[TokenRefresh] Periodic check: token expiring soon, refreshing..."
-      );
-      refreshAccessToken().catch(console.error);
+  // Periodic checks (basic presence check)
+  tokenCheckInterval = setInterval(async () => {
+    const hasTokens = await hasValidTokens();
+    if (!hasTokens) {
+      console.log("[TokenRefresh] No tokens found, stopping check");
+      stopTokenRefreshCheck();
     }
   }, TOKEN_CHECK_INTERVAL_MS);
 }
@@ -245,47 +155,47 @@ export function stopTokenRefreshCheck(): void {
 
 /**
  * Get token expiry info for debugging/display
+ * 
+ * Note: Limited functionality with HTTP-only cookies
+ * We can only check token existence, not expiry
  */
-export function getTokenInfo(): {
+export async function getTokenInfo(): Promise<{
   hasToken: boolean;
   hasRefreshToken: boolean;
   isExpired: boolean;
   isExpiringSoon: boolean;
   expiresIn: string | null;
-} {
-  const token = getAuthToken();
-  const refreshToken = getRefreshToken();
-
-  if (!token) {
+}> {
+  try {
+    const response = await fetch("/api/auth/get-token");
+    
+    if (!response.ok) {
+      return {
+        hasToken: false,
+        hasRefreshToken: false,
+        isExpired: true,
+        isExpiringSoon: true,
+        expiresIn: null,
+      };
+    }
+    
+    const data = await response.json();
+    
+    return {
+      hasToken: data.hasAuthToken || false,
+      hasRefreshToken: data.hasRefreshToken || false,
+      isExpired: !data.hasAuthToken, // Assume expired if no token
+      isExpiringSoon: false, // Can't determine without decoding token
+      expiresIn: data.hasAuthToken ? "Unknown (HTTP-only)" : null,
+    };
+  } catch (error) {
+    console.error("[TokenRefresh] Error getting token info:", error);
     return {
       hasToken: false,
-      hasRefreshToken: !!refreshToken,
+      hasRefreshToken: false,
       isExpired: true,
       isExpiringSoon: true,
       expiresIn: null,
     };
   }
-
-  const expiryMs = getTokenExpiryTime(token);
-  let expiresIn: string | null = null;
-
-  if (expiryMs !== null) {
-    if (expiryMs < 0) {
-      expiresIn = "Expired";
-    } else if (expiryMs < 60000) {
-      expiresIn = `${Math.round(expiryMs / 1000)}s`;
-    } else if (expiryMs < 3600000) {
-      expiresIn = `${Math.round(expiryMs / 60000)}m`;
-    } else {
-      expiresIn = `${Math.round(expiryMs / 3600000)}h`;
-    }
-  }
-
-  return {
-    hasToken: true,
-    hasRefreshToken: !!refreshToken,
-    isExpired: isTokenExpired(token),
-    isExpiringSoon: isTokenExpiringSoon(token),
-    expiresIn,
-  };
 }

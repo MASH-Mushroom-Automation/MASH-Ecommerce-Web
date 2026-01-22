@@ -3,97 +3,153 @@ import { signOutFirebase } from "@/lib/firebase";
 // API Base URL for backend calls
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 
-// Utility to check if user is authenticated (client-side)
-export function isAuthenticated(): boolean {
+/**
+ * Check if user is authenticated by verifying HTTP-only cookie existence
+ * Uses Next.js API route to check cookie presence
+ */
+export async function isAuthenticated(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  
+  try {
+    const response = await fetch("/api/auth/get-token");
+    if (!response.ok) return false;
+    
+    const data = await response.json();
+    return data.hasAuthToken || false;
+  } catch (error) {
+    console.error("[Auth] Error checking authentication:", error);
+    return false;
+  }
+}
+
+/**
+ * Synchronous auth check using cookie presence
+ * Less reliable but doesn't require async call
+ */
+export function isAuthenticatedSync(): boolean {
   if (typeof document === "undefined") return false;
   return document.cookie.includes("auth-token=");
 }
 
-// Get auth token from cookie
-export function getAuthToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/auth-token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+/**
+ * Get auth token info (existence only, not the actual token value)
+ * Tokens are HTTP-only and not accessible from client-side JavaScript
+ */
+export async function getAuthTokenInfo(): Promise<{
+  hasAuthToken: boolean;
+  hasRefreshToken: boolean;
+}> {
+  try {
+    const response = await fetch("/api/auth/get-token");
+    if (!response.ok) {
+      return { hasAuthToken: false, hasRefreshToken: false };
+    }
+    
+    const data = await response.json();
+    return {
+      hasAuthToken: data.hasAuthToken || false,
+      hasRefreshToken: data.hasRefreshToken || false,
+    };
+  } catch (error) {
+    console.error("[Auth] Error getting token info:", error);
+    return { hasAuthToken: false, hasRefreshToken: false };
+  }
 }
 
-// Get refresh token from localStorage
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("refreshToken");
-}
-
-// Set auth token cookie (optionally persistent via Max-Age)
-export function setAuthToken(token: string, remember = false) {
-  console.log("🟢 [Auth] setAuthToken called with:", {
-    tokenLength: token?.length,
-    remember,
-    hasDocument: typeof document !== "undefined",
+/**
+ * Set auth and refresh tokens using HTTP-only cookies
+ * Replaces direct localStorage access for security
+ * 
+ * @param accessToken - JWT access token from backend
+ * @param refreshToken - JWT refresh token from backend (optional)
+ * @param rememberMe - Extend cookie expiry if true
+ */
+export async function setAuthToken(
+  accessToken: string,
+  refreshToken?: string,
+  rememberMe = false
+): Promise<boolean> {
+  console.log("🟢 [Auth] setAuthToken called via API route:", {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+    rememberMe,
   });
 
-  if (typeof document === "undefined") {
-    console.error(
-      "❌ [Auth] Cannot set cookie - document is undefined (SSR context)"
-    );
-    return;
-  }
+  try {
+    const response = await fetch("/api/auth/set-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        accessToken,
+        refreshToken,
+        rememberMe,
+      }),
+      credentials: "include", // Important: allows cookies to be set
+    });
 
-  const attrs: string[] = ["Path=/"]; // same-site defaults to Lax in modern browsers
-  if (remember) {
-    const maxAge = 60 * 60 * 24 * 30; // 30 days
-    attrs.push(`Max-Age=${maxAge}`);
-  }
+    if (!response.ok) {
+      console.error("❌ [Auth] Failed to set auth tokens via API:", response.status);
+      return false;
+    }
 
-  const cookieString = `auth-token=${encodeURIComponent(token)}; ${attrs.join("; ")}`;
-  console.log(
-    "🟢 [Auth] Setting cookie:",
-    cookieString.substring(0, 50) + "..."
-  );
-  document.cookie = cookieString;
-
-  // Verify cookie was set
-  const wasSet = document.cookie.includes("auth-token=");
-  console.log("🟢 [Auth] Cookie verification - was set:", wasSet);
-  if (!wasSet) {
-    console.error("❌ [Auth] Failed to set auth-token cookie!");
+    console.log("🟢 [Auth] Auth tokens set successfully via HTTP-only cookies");
+    return true;
+  } catch (error) {
+    console.error("❌ [Auth] Error setting auth tokens:", error);
+    return false;
   }
 }
 
-// Clear auth token cookie and any auth-related storage
-export function logout() {
+/**
+ * Clear auth tokens and logout
+ * Uses API route to clear HTTP-only cookies
+ */
+export async function logout(): Promise<void> {
   console.log("🔴 [Auth] logout called");
-  if (typeof document === "undefined") return;
-  // Expire the auth cookie
-  console.log("🔴 [Auth] Expiring auth-token cookie");
-  document.cookie =
-    "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+  
   try {
-    // Clear all auth-related storage
-    console.log("🔴 [Auth] Clearing localStorage and sessionStorage");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("pendingVerificationEmail");
-    sessionStorage.removeItem("resetPasswordEmail");
-
-    // Optional: clear cached user data
-    sessionStorage.removeItem("user");
-
-    // Proactively clear client-side persisted app state
-    localStorage.removeItem("mash-wishlist");
-    localStorage.removeItem("cart");
-    localStorage.removeItem("mash-cart"); // Current cart key
-    
-    // Clear Google auth redirect markers
-    localStorage.removeItem("google_auth_redirect");
-    sessionStorage.removeItem("google_auth_redirect");
-
-    // Also sign out from Firebase if user was authenticated via Google
-    console.log("🔴 [Auth] Signing out from Firebase");
-    signOutFirebase().catch((err) => {
-      console.warn("Firebase sign out failed:", err);
+    // Clear HTTP-only cookies via API
+    const response = await fetch("/api/auth/clear-tokens", {
+      method: "POST",
+      credentials: "include",
     });
-  } catch {
-    // ignore storage errors (e.g., disabled storage)
-    console.error("❌ [Auth] Error clearing storage");
+
+    if (!response.ok) {
+      console.warn("⚠️ [Auth] Failed to clear tokens via API, clearing client state anyway");
+    } else {
+      console.log("🔴 [Auth] Auth tokens cleared via API");
+    }
+  } catch (error) {
+    console.error("❌ [Auth] Error clearing tokens via API:", error);
+  }
+
+  // Clear client-side storage (non-sensitive data)
+  if (typeof window !== "undefined") {
+    try {
+      console.log("🔴 [Auth] Clearing client-side storage");
+      
+      // Clear user data
+      sessionStorage.removeItem("pendingVerificationEmail");
+      sessionStorage.removeItem("resetPasswordEmail");
+      sessionStorage.removeItem("user");
+      
+      // Clear cart/wishlist (user will lose guest data on logout)
+      localStorage.removeItem("mash-wishlist");
+      localStorage.removeItem("cart");
+      localStorage.removeItem("mash-cart");
+      
+      // Clear Google auth redirect markers
+      localStorage.removeItem("google_auth_redirect");
+      sessionStorage.removeItem("google_auth_redirect");
+
+      // Sign out from Firebase if user was authenticated via Google
+      console.log("🔴 [Auth] Signing out from Firebase");
+      await signOutFirebase();
+    } catch (error) {
+      console.error("❌ [Auth] Error clearing storage:", error);
+    }
   }
 }
 
@@ -104,64 +160,53 @@ export function logout() {
  * 
  * This function:
  * 1. Calls backend to invalidate all refresh tokens
- * 2. Clears local auth state
- * 3. Signs out from Firebase
+ * 2. Clears local auth state via logout()
  * 
  * @returns Promise<boolean> - True if backend logout succeeded
  */
 export async function logoutEverywhere(): Promise<boolean> {
   console.log("🔴 [Auth] logoutEverywhere called - invalidating all sessions");
 
-  const token = getAuthToken();
-  const refreshToken = getRefreshToken();
-
-  // Try to call backend logout endpoint
+  // Try to call backend logout endpoint (requires auth token in cookie)
   let backendLogoutSuccess = false;
   
-  if (token || refreshToken) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          refreshToken: refreshToken || undefined,
-          logoutAll: true, // Invalidate all sessions
-        }),
-      });
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // Send auth cookies
+      body: JSON.stringify({
+        logoutAll: true, // Invalidate all sessions
+      }),
+    });
 
-      if (response.ok) {
-        console.log("🟢 [Auth] Backend logout successful - all sessions invalidated");
-        backendLogoutSuccess = true;
-      } else {
-        console.warn("⚠️ [Auth] Backend logout failed:", response.status);
-      }
-    } catch (error) {
-      console.error("❌ [Auth] Backend logout error:", error);
-      // Continue with local logout even if backend fails
+    if (response.ok) {
+      console.log("🟢 [Auth] Backend logout successful - all sessions invalidated");
+      backendLogoutSuccess = true;
+    } else {
+      console.warn("⚠️ [Auth] Backend logout failed:", response.status);
     }
+  } catch (error) {
+    console.error("❌ [Auth] Backend logout error:", error);
+    // Continue with local logout even if backend fails
   }
 
   // Always clear local state
-  logout();
+  await logout();
 
   return backendLogoutSuccess;
 }
 
 /**
- * Refresh the access token using the refresh token
+ * Refresh the access token using the refresh token from HTTP-only cookie
+ * Tokens are managed server-side for security
  * 
- * @returns Promise<string | null> - New access token or null if refresh failed
+ * @returns Promise<boolean> - True if refresh succeeded
  */
-export async function refreshToken(): Promise<string | null> {
-  const currentRefreshToken = getRefreshToken();
-  
-  if (!currentRefreshToken) {
-    console.log("[Auth] No refresh token available");
-    return null;
-  }
+export async function refreshToken(): Promise<boolean> {
+  console.log("[Auth] Attempting token refresh using HTTP-only cookies");
 
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
@@ -169,16 +214,16 @@ export async function refreshToken(): Promise<string | null> {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ refreshToken: currentRefreshToken }),
+      credentials: "include", // Send refresh-token cookie
     });
 
     if (!response.ok) {
       console.error("[Auth] Token refresh failed:", response.status);
       if (response.status === 401 || response.status === 403) {
         // Refresh token is invalid - logout
-        logout();
+        await logout();
       }
-      return null;
+      return false;
     }
 
     const data = await response.json();
@@ -186,17 +231,18 @@ export async function refreshToken(): Promise<string | null> {
     const newRefreshToken = data.data?.refreshToken || data.refreshToken;
 
     if (newAccessToken) {
-      setAuthToken(newAccessToken, true);
+      // Set new tokens via API (HTTP-only cookies)
+      const success = await setAuthToken(newAccessToken, newRefreshToken, true);
+      if (success) {
+        console.log("[Auth] Token refresh successful");
+        return true;
+      }
     }
 
-    if (newRefreshToken) {
-      localStorage.setItem("refreshToken", newRefreshToken);
-    }
-
-    console.log("[Auth] Token refresh successful");
-    return newAccessToken;
+    console.error("[Auth] Token refresh failed - no access token in response");
+    return false;
   } catch (error) {
     console.error("[Auth] Token refresh error:", error);
-    return null;
+    return false;
   }
 }

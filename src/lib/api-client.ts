@@ -76,11 +76,8 @@ function getAuthToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// Helper to get refresh token from localStorage
-function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("refreshToken");
-}
+// Note: Refresh token is now in HTTP-only cookie (not accessible from JavaScript)
+// Token refresh is handled automatically by backend via cookie
 
 // Generic API request function with dynamic base URL selection
 export async function apiRequest<T>(
@@ -190,7 +187,8 @@ export async function apiRequest<T>(
     
     if (refreshToken && !isAuthEndpoint) {
       try {
-        // Refresh token always uses production backend (session management)
+        // Refresh token using HTTP-only cookies
+        // Backend will read refresh-token cookie automatically
         const refreshUrl = `${PRODUCTION_API_URL}/auth/refresh-token`;
 
         if (ENABLE_API_LOGGING) {
@@ -204,28 +202,14 @@ export async function apiRequest<T>(
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ refreshToken }),
+          credentials: "include", // Send HTTP-only cookies
         });
 
         if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-
-          // Update tokens (handle both response formats)
-          const newAccessToken =
-            refreshData.data?.accessToken || refreshData.accessToken;
-          const newRefreshToken =
-            refreshData.data?.refreshToken || refreshData.refreshToken;
-
-          if (typeof document !== "undefined" && newAccessToken) {
-            document.cookie = `auth-token=${encodeURIComponent(
-              newAccessToken
-            )}; Path=/`;
-          }
-          if (typeof window !== "undefined" && newRefreshToken) {
-            localStorage.setItem("refreshToken", newRefreshToken);
-          }
-
-          // Retry original request with new token
+          // Tokens are automatically set as HTTP-only cookies by backend
+          // No need to manually update cookies here
+          
+          // Retry original request with refreshed cookies
           return apiRequest<T>(endpoint, options);
         }
       } catch (error) {
@@ -276,9 +260,16 @@ export async function apiRequest<T>(
 
     // If refresh fails or no refresh token (non-auth endpoints), clear tokens and redirect
     if (typeof window !== "undefined") {
+      // Clear auth token cookie (client-side fallback)
       document.cookie =
         "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      localStorage.removeItem("refreshToken");
+      
+      // Call logout API to clear HTTP-only cookies properly
+      fetch("/api/auth/clear-tokens", {
+        method: "POST",
+        credentials: "include",
+      }).catch(console.error);
+      
       window.location.href = "/login";
     }
     throw new Error("Unauthorized");
