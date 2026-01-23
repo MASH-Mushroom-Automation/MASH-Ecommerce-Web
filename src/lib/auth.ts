@@ -128,20 +128,18 @@ export async function logout(): Promise<void> {
   // Clear client-side storage (non-sensitive data)
   if (typeof window !== "undefined") {
     try {
-      console.log("🔴 [Auth] Clearing client-side storage");
-      
-      // Clear user data
+      console.log("🔴 [Auth] Clearing client-side storage (cookies + session)");
+
+      // Clear cookie-based data (cart, wishlist, preferences) and HTTP-only auth cookies
+      const { clearAllCookies } = await import("@/lib/cookies");
+      await clearAllCookies();
+
+      // Clear ephemeral sessionStorage keys
       sessionStorage.removeItem("pendingVerificationEmail");
       sessionStorage.removeItem("resetPasswordEmail");
       sessionStorage.removeItem("user");
-      
-      // Clear cart/wishlist (user will lose guest data on logout)
-      localStorage.removeItem("mash-wishlist");
-      localStorage.removeItem("cart");
-      localStorage.removeItem("mash-cart");
-      
+
       // Clear Google auth redirect markers
-      localStorage.removeItem("google_auth_redirect");
       sessionStorage.removeItem("google_auth_redirect");
 
       // Sign out from Firebase if user was authenticated via Google

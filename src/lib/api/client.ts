@@ -13,16 +13,12 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
+// Request interceptor - NOTE: Auth is managed with HTTP-only cookies on the server.
+// Client-side code should not read access tokens from localStorage for security reasons.
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get token from localStorage or cookies
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    // Do not set Authorization header from localStorage. Server will use cookies.
+    // If a non-HTTP-only token is intentionally used, set it here (explicitly).
 
     // Log request in development
     if (process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === 'true') {
@@ -65,8 +61,7 @@ apiClient.interceptors.response.use(
         const isAuthEndpoint = error.config?.url?.includes('/auth/');
         
         if (!isAuthEndpoint && typeof window !== 'undefined') {
-          // Non-auth endpoint returned 401 - user session expired
-          localStorage.removeItem('auth_token');
+          // Non-auth endpoint returned 401 - user session expired. Redirect to login.
           console.warn('[API] Session expired - redirecting to login');
           window.location.href = '/login';
         }

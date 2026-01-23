@@ -25,6 +25,7 @@ import { mockFirebaseAuth, mockFirebaseUser } from '@/__mocks__/firebase';
 import { mockApiRequest } from '@/__mocks__/api-client';
 import * as firebaseAuth from '@/lib/firebase/auth';
 import * as authLib from '@/lib/auth';
+import { setCookie } from '@/lib/cookies';
 import * as tokenRefresh from '@/lib/token-refresh';
 import { FirebaseUserService } from '@/lib/firebase/users';
 import { toast } from 'sonner';
@@ -111,8 +112,10 @@ describe('AuthContext', () => {
     // Clear all mocks
     jest.clearAllMocks();
     
-    // Clear localStorage
+    // Clear localStorage (tests may still use it for non-sensitive stubbing)
     localStorage.clear();
+    // Reset cookie-based user/state
+    document.cookie = '';
     
     // Clear sessionStorage
     sessionStorage.clear();
@@ -293,8 +296,8 @@ describe('AuthContext', () => {
             body: expect.stringContaining('firebase-id-token'),
           })
         );
-        expect(authLib.setAuthToken).toHaveBeenCalledWith('jwt-access-token', true);
-        expect(localStorage.getItem('refreshToken')).toBe('jwt-refresh-token');
+        expect(authLib.setAuthToken).toHaveBeenCalledWith('jwt-access-token','jwt-refresh-token', true);
+        // Refresh token stored via secure cookie (server-side). Do not use localStorage for refresh token.
       });
     });
 
@@ -618,13 +621,14 @@ describe('AuthContext', () => {
         return jest.fn();
       });
       
-      localStorage.setItem('user', JSON.stringify({
+      // Persist user via cookie for instant load
+      document.cookie = `user=${encodeURIComponent(JSON.stringify({
         id: mockUser.uid,
         email: mockUser.email,
         firstName: 'Test',
         lastName: 'User',
         provider: 'google',
-      }));
+      }))}; Path=/`;
       
       render(
         <AuthProvider>
@@ -674,14 +678,14 @@ describe('AuthContext', () => {
         );
       };
       
-      // Setup authenticated user
-      localStorage.setItem('user', JSON.stringify({
+      // Setup authenticated user (cookie-based)
+      setCookie('user', {
         id: mockUser.uid,
         email: mockUser.email,
         firstName: 'Test',
         lastName: 'User',
         provider: 'google',
-      }));
+      }, { expires: 30 });
       
       (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation((callback) => {
         callback(mockUser);
@@ -710,8 +714,8 @@ describe('AuthContext', () => {
       const mockRouter = { push: jest.fn(), refresh: jest.fn() };
       jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue(mockRouter);
       
-      // Setup authenticated user
-      localStorage.setItem('user', JSON.stringify({ id: 'test', email: 'test@example.com' }));
+      // Setup authenticated user (cookie-based)
+      setCookie('user', { id: 'test', email: 'test@example.com' }, { expires: 30 });
       
       render(
         <AuthProvider>
@@ -787,7 +791,7 @@ describe('AuthContext', () => {
         provider: 'google' as const,
       };
       
-      localStorage.setItem('user', JSON.stringify(storedUser));
+      setCookie('user', storedUser, { expires: 30 });
       
       (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation((callback) => {
         callback(mockUser);
@@ -881,7 +885,8 @@ describe('AuthContext', () => {
         provider: 'google',
       };
       
-      localStorage.setItem('user', JSON.stringify(oldUserData));
+      // Persist user via cookie for migration test
+      document.cookie = `user=${encodeURIComponent(JSON.stringify(oldUserData))}; Path=/`;
       
       const userWithCommaSeparatedName = {
         ...mockUser,
@@ -900,7 +905,8 @@ describe('AuthContext', () => {
       );
 
       await waitFor(() => {
-        const migratedData = JSON.parse(localStorage.getItem('user') || '{}');
+        const cookiePair = document.cookie.split('; ').find(c => c.startsWith('user='));
+        const migratedData = cookiePair ? JSON.parse(decodeURIComponent(cookiePair.split('=')[1])) : {};
         expect(migratedData.email).toBe(mockUser.email);
         expect(migratedData.firstName).toBe('Test');
         expect(migratedData.lastName).toBe('User');
@@ -916,7 +922,7 @@ describe('AuthContext', () => {
         lastName: 'User',
       };
       
-      localStorage.setItem('user', JSON.stringify(emailUser));
+      setCookie('user', emailUser, { expires: 30 });
       
       (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation((callback) => {
         callback(null); // No Firebase user
@@ -943,7 +949,8 @@ describe('AuthContext', () => {
         lastName: 'User',
       };
       
-      localStorage.setItem('user', JSON.stringify(googleUser));
+      // Persist user via cookie
+      document.cookie = `user=${encodeURIComponent(JSON.stringify(googleUser))}; Path=/`;
       
       (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation((callback) => {
         callback(null); // No Firebase user
@@ -958,7 +965,9 @@ describe('AuthContext', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('user-email')).toHaveTextContent('Not logged in');
-        expect(localStorage.getItem('user')).toBeNull();
+        // Cookie should be cleared when Firebase user nulls
+        const cookieExists = document.cookie.split('; ').some(c => c.startsWith('user='));
+        expect(cookieExists).toBe(false);
       });
     });
   });

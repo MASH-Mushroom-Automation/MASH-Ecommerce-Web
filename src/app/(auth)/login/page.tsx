@@ -229,7 +229,7 @@ export default function LoginPage() {
           setAuthToken(accessToken, refreshToken, data.rememberMe); // Use proper cookie storage
         } else {
           setAuthToken(accessToken, undefined, data.rememberMe); // Use proper cookie storage without refresh token
-          localStorage.setItem("refreshToken", refreshToken);
+          // Refresh token not stored in localStorage; managed via HTTP-only cookies
         }
       }
 

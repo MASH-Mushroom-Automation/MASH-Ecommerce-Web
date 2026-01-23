@@ -165,7 +165,8 @@ export async function sendSignInLink(email: string): Promise<void> {
     
     // Store email locally to complete sign-in after user clicks link
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("emailForSignIn", email);
+      // Store email for sign-in in cookie (short-lived)
+      document.cookie = `emailForSignIn=${encodeURIComponent(email)}; Path=/; Max-Age=${60 * 60}`;
     }
   } catch (error) {
     console.error("Firebase send sign-in link error:", error);
@@ -195,9 +196,9 @@ export async function completeSignInWithEmailLink(
   try {
     const result = await signInWithEmailLink(auth, email, url);
     
-    // Clear the email from storage
+    // Clear the email from cookie
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem("emailForSignIn");
+      document.cookie = "emailForSignIn=; Path=/; Max-Age=0";
     }
     
     return result.user;
@@ -212,7 +213,8 @@ export async function completeSignInWithEmailLink(
  */
 export function getStoredEmailForSignIn(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("emailForSignIn");
+  const pair = document.cookie.split('; ').find(c => c.startsWith('emailForSignIn='));
+  return pair ? decodeURIComponent(pair.split('=')[1]) : null;
 }
 
 // ============================================================================

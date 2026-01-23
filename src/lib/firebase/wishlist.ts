@@ -244,7 +244,8 @@ export class FirebaseWishlistService {
   // ==========================================================================
 
   /**
-   * Merge localStorage wishlist into Firebase wishlist
+   * Merge client-side wishlist into Firebase wishlist
+   * Accepts items read from cookies (preferred) or localStorage (fallback)
    * Call this when user signs in
    */
   static async mergeLocalStorageWishlist(
@@ -252,7 +253,7 @@ export class FirebaseWishlistService {
     localWishlistItems: WishlistItemInput[]
   ): Promise<void> {
     try {
-      console.log(`[FirebaseWishlistService] Merging ${localWishlistItems.length} items from localStorage`);
+      console.log(`[FirebaseWishlistService] Merging ${localWishlistItems.length} client-side items (cookie or localStorage fallback)`);
       
       for (const item of localWishlistItems) {
         await this.addItem(userId, item);

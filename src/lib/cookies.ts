@@ -72,8 +72,13 @@ export function getCookieJSON<T>(name: string): T | null {
   try {
     return JSON.parse(value) as T;
   } catch (error) {
-    console.error(`Failed to parse cookie ${name}:`, error);
-    return null;
+    // Try decoding in case cookie value was URI-encoded (tests and some code use encodeURIComponent)
+    try {
+      return JSON.parse(decodeURIComponent(value)) as T;
+    } catch (e) {
+      console.error(`Failed to parse cookie ${name}:`, error);
+      return null;
+    }
   }
 }
 

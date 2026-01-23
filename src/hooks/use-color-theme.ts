@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { themes, getThemeByName } from "@/lib/themes";
+import { getThemeCookie, setThemeCookie } from "@/lib/cookies";
 
 export function useColorTheme() {
   const [colorTheme, setColorTheme] = useState("default");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("color-theme") || "default";
+    const savedTheme = getThemeCookie() || "default";
     setColorTheme(savedTheme);
     applyTheme(savedTheme);
   }, []);
@@ -29,7 +30,7 @@ export function useColorTheme() {
 
   const changeTheme = (themeName: string) => {
     setColorTheme(themeName);
-    localStorage.setItem("color-theme", themeName);
+    setThemeCookie(themeName);
     applyTheme(themeName);
   };
 

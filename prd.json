@@ -572,7 +572,35 @@
       "filesChanged": [
         ".github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md",
         "prd.json"
-      ]    }
+      ]    },
+    {
+      "id": "STORY-TEST-021",
+      "title": "Finalize Cookie Migration & Stabilize Tests",
+      "priority": 1,
+      "phase": "Phase 1-2: Finalization & Stabilization",
+      "status": "In Progress",
+      "passes": false,
+      "startedAt": "2026-01-24T23:30:00Z",
+      "acceptanceCriteria": [
+        "Find and migrate remaining localStorage usages or document exceptions",
+        "Ensure all tests pass consistently (fix flaky AuthContext tests)",
+        "Run full build and test cycle until green",
+        "Update PRD with final status and test/build artifacts",
+        "Prepare migration run plan for Sanity (non-dry-run)"
+      ],
+      "filesChanged": [
+        "src/contexts/AuthContext.tsx",
+        "src/lib/cookies.ts",
+        "src/hooks/useUser.ts",
+        "src/hooks/use-color-theme.ts",
+        "src/app/grower/[id]/book/page.tsx",
+        "studio/src/schemaTypes/documents/grower.ts",
+        "scripts/migrate-calendly-to-calcom.js",
+        "src/contexts/__tests__/AuthContext.test.tsx",
+        "src/lib/__tests__/cookies.test.ts"
+      ],
+      "notes": "Currently stabilizing failing AuthContext tests and completing a final sweep for remaining localStorage usages. After stabilization, run migration script in live mode upon user approval."
+    }
   ],
   "buildStatus": {
     "lastBuildDate": "2026-01-22T23:45:00Z",

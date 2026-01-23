@@ -52,6 +52,7 @@ import { useRouter } from "next/navigation";
 // ============================================================================
 // Firebase Auth Cookie Helpers (for proxy/middleware detection)
 // ============================================================================
+import { setCookie, getCookieJSON, getCookie, removeCookie } from "@/lib/cookies";
 
 /**
  * Set a cookie to indicate Firebase user is authenticated
@@ -259,11 +260,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set Firebase auth cookie for proxy detection
         setFirebaseAuthCookie(fbUser.uid);
 
-        // Store in localStorage
+        // Persist profile to cookies (client-accessible, 30 days)
         try {
-          localStorage.setItem("user", JSON.stringify(authUser));
-        } catch {
-          console.error("Failed to store user in localStorage");
+          setCookie("user", authUser, { expires: 30 });
+        } catch (e) {
+          console.error("Failed to set user cookie:", e);
         }
 
         console.log("[Auth Context] Profile synced to Firestore successfully");
@@ -307,8 +308,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setFirebaseUser(fbUser);
 
         try {
-          localStorage.setItem("user", JSON.stringify(authUser));
-        } catch {}
+          setCookie("user", authUser, { expires: 30 });
+        } catch (e) {
+          console.error("Failed to set user cookie:", e);
+        }
 
         return authUser;
       }
@@ -407,13 +410,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log("[Auth] Setting backend JWT token from response...");
           setAuthToken(accessToken, refreshToken, true);
         }
+        // Refresh token is managed via HTTP-only cookies set by setAuthToken()
         if (refreshToken) {
-          try {
-            localStorage.setItem("refreshToken", refreshToken);
-            console.log("[Auth] Refresh token stored");
-          } catch (err) {
-            console.error("[Auth] Failed to store refresh token:", err);
-          }
+          console.log("[Auth] Refresh token handled via HTTP-only cookie (setAuthToken)");
         }
 
         // Build unified auth user object with backend-verified data
@@ -445,12 +444,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set Firebase auth cookie for proxy detection
         setFirebaseAuthCookie(fbUser.uid);
 
-        // Persist to localStorage
+        // Persist to cookie (30d)
         try {
-          localStorage.setItem("user", JSON.stringify(authUser));
-          console.log("[Auth] User data persisted to localStorage");
+          setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
+          console.log("[Auth] User data persisted to cookie");
         } catch (err) {
-          console.error("[Auth] Failed to store user in localStorage:", err);
+          console.error("[Auth] Failed to store user in cookie:", err);
         }
 
         return authUser;
@@ -469,10 +468,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const migrateOldUserData = useCallback((fbUser: FirebaseUser): boolean => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = getCookieJSON<any>("user");
       if (!storedUser) return false;
 
-      const parsed = JSON.parse(storedUser);
+      const parsed = storedUser;
 
       // Check if data needs migration (missing email or incorrect name parsing)
       const needsMigration =
@@ -496,8 +495,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Save migrated data
-        localStorage.setItem("user", JSON.stringify(parsed));
+        // Save migrated data to cookie
+        setCookie("user", parsed, { maxAge: 60 * 60 * 24 * 30 });
         console.log("[Auth Context] User data migrated successfully");
         return true;
       }
@@ -522,13 +521,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Migrate old cached data if needed
         const wasMigrated = migrateOldUserData(fbUser);
 
-        // First, try to load from localStorage for instant UI update
+        // First, try to load from cookie for instant UI update
         try {
-          const storedUser = localStorage.getItem("user");
+          const storedUser = getCookieJSON<any>("user");
           if (storedUser) {
-            const parsed = JSON.parse(storedUser);
+            const parsed = storedUser;
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
-              console.log("[Auth Context] User loaded from localStorage");
+              console.log("[Auth Context] User loaded from cookie");
 
               // Use migrated data if available, otherwise use stored data
               setUser(parsed);
@@ -564,7 +563,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     authUser.email = fbUser.email;
                   }
                   setUser(authUser);
-                  localStorage.setItem("user", JSON.stringify(authUser));
+                  setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
                   console.log(
                     "[Auth Context] User profile updated from Firestore"
                   );
@@ -588,7 +587,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     authUser.email = fbUser.email;
                   }
                   setUser(authUser);
-                  localStorage.setItem("user", JSON.stringify(authUser));
+                  setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
                   console.log(
                     "[Auth Context] User profile refreshed from Firestore"
                   );
@@ -631,7 +630,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setUser(authUser);
-            localStorage.setItem("user", JSON.stringify(authUser));
+            try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
             console.log("[Auth Context] User profile loaded from Firestore:", {
               id: authUser.id,
               email: authUser.email,
@@ -677,21 +676,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             emailVerified: fbUser.emailVerified,
           };
           setUser(authUser);
-          localStorage.setItem("user", JSON.stringify(authUser));
+          setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
         }
       } else {
         // No Firebase user, check for traditional auth via cookie
         // Don't clear user if they logged in with email/password
         try {
-          const storedUser = localStorage.getItem("user");
+          const storedUser = getCookieJSON<any>("user");
           if (storedUser) {
-            const parsed = JSON.parse(storedUser);
-            if (parsed.provider === "email") {
-              setUser(parsed);
+            if (storedUser.provider === "email") {
+              setUser(storedUser);
             } else {
               // Firebase user logged out, clear state
               setUser(null);
-              localStorage.removeItem("user");
+              removeCookie("user");
             }
           } else {
             setUser(null);
@@ -895,7 +893,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         setUser(authUser);
-        localStorage.setItem("user", JSON.stringify(authUser));
+        try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
       }
 
       toast.dismiss("email-signin");
@@ -1088,9 +1086,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear Firebase auth cookie
       clearFirebaseAuthCookie();
 
-      // Clear user state
+      // Clear user state and cookies
       setUser(null);
       setFirebaseUser(null);
+      removeCookie("user");
 
       toast.success("Signed out successfully");
       router.push("/");
@@ -1180,7 +1179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update local state
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
 
       toast.success("Profile updated!");
     } catch (error) {
@@ -1201,7 +1200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profile) {
         const authUser = profileToAuthUser(profile, user.provider);
         setUser(authUser);
-        localStorage.setItem("user", JSON.stringify(authUser));
+        try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
       }
     } catch (error) {
       console.error("Profile refresh error:", error);
