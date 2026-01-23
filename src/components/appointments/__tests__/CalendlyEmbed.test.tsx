@@ -12,6 +12,19 @@ import { render, screen } from '@testing-library/react';
 import { CalendlyEmbed } from '../CalendlyEmbed';
 import '@testing-library/jest-dom';
 
+// Mock useAuth hook - MUST return a function
+jest.mock('@/contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => ({
+    user: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    },
+    isAuthenticated: true,
+  }),
+}));
+
 // Mock react-calendly InlineWidget
 jest.mock('react-calendly', () => ({
   InlineWidget: ({ url, prefill, styles }: any) => (

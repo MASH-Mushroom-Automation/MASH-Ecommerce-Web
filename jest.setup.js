@@ -16,6 +16,17 @@ process.env.NEXT_PUBLIC_SANITY_DATASET = 'production';
 process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'test-api-key';
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'mash-test';
 
+// Mock global fetch API (for tests that use fetch directly)
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    headers: new Headers(),
+  })
+);
+
 // ============================================================================
 // NEXT.JS MOCKS
 // ============================================================================

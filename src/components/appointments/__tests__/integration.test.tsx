@@ -17,6 +17,19 @@ jest.mock('next/navigation', () => ({
   useParams: jest.fn(),
 }));
 
+// Mock useAuth hook - MUST return a function
+jest.mock('@/contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => ({
+    user: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    },
+    isAuthenticated: true,
+  }),
+}));
+
 // Mock Sanity client
 jest.mock('@/hooks/useSanityGrowers', () => ({
   useSanityGrower: jest.fn(),
