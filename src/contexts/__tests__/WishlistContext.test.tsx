@@ -1,14 +1,14 @@
 /**
  * Wishlist Context Unit Tests
- * Story: STORY-TEST-009
+ * Story: STORY-TEST-010
  * 
  * Coverage:
  * - Add to wishlist
  * - Remove from wishlist
  * - Check if product in wishlist
  * - Clear wishlist
- * - localStorage persistence
- * - Storage event handling (cross-tab sync)
+ * - Cookie persistence
+ * - Cookie change handling (cross-tab sync)
  * - Wishlist count calculation
  * - Context error handling
  * 
@@ -19,28 +19,10 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WishlistProvider, useWishlist } from '../WishlistContext';
+import { getWishlistCookie, setWishlistCookie, clearWishlistCookie } from '@/lib/cookies';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
-
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+// Mock cookie functions
+jest.mock('@/lib/cookies');
 
 // Test component to access wishlist context
 function TestComponent() {
@@ -83,9 +65,13 @@ function TestComponent() {
 
 describe('WishlistContext', () => {
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear();
+    // Clear all mocks before each test
     jest.clearAllMocks();
+    
+    // Default mock implementations
+    (getWishlistCookie as jest.Mock).mockReturnValue(null);
+    (setWishlistCookie as jest.Mock).mockImplementation(() => {});
+    (clearWishlistCookie as jest.Mock).mockImplementation(() => {});
   });
 
   describe('Context Provider', () => {
@@ -124,9 +110,13 @@ describe('WishlistContext', () => {
       expect(screen.getByTestId('wishlist-count').textContent).toBe('0');
     });
 
-    it('should load wishlist from localStorage on mount', () => {
-      const savedWishlist = ['product-1', 'product-2', 'product-3'];
-      localStorage.setItem('mash-wishlist', JSON.stringify(savedWishlist));
+    it('should load wishlist from cookie on mount', () => {
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2', 'product-3'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -137,12 +127,13 @@ describe('WishlistContext', () => {
       const wishlistIds = JSON.parse(
         screen.getByTestId('wishlist-ids').textContent || '[]'
       );
-      expect(wishlistIds).toEqual(savedWishlist);
+      expect(wishlistIds).toEqual(savedWishlist.items);
       expect(screen.getByTestId('wishlist-count').textContent).toBe('3');
     });
 
-    it('should handle corrupted localStorage data gracefully', () => {
-      localStorage.setItem('mash-wishlist', 'invalid-json{');
+    it('should handle corrupted cookie data gracefully', () => {
+      // Mock invalid wishlist structure
+      (getWishlistCookie as jest.Mock).mockReturnValue({ invalid: 'data' });
 
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -158,8 +149,8 @@ describe('WishlistContext', () => {
       consoleError.mockRestore();
     });
 
-    it('should handle missing localStorage gracefully', () => {
-      // localStorage.getItem returns null
+    it('should handle missing cookie gracefully', () => {
+      // getWishlistCookie returns null by default
       render(
         <WishlistProvider>
           <TestComponent />
@@ -254,7 +245,12 @@ describe('WishlistContext', () => {
 
   describe('Remove from Wishlist', () => {
     it('should remove product from wishlist', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1', 'product-2']));
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -289,7 +285,12 @@ describe('WishlistContext', () => {
     });
 
     it('should update isInWishlist after removing', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -310,10 +311,12 @@ describe('WishlistContext', () => {
 
   describe('Clear Wishlist', () => {
     it('should clear all products from wishlist', async () => {
-      localStorage.setItem(
-        'mash-wishlist',
-        JSON.stringify(['product-1', 'product-2', 'product-3'])
-      );
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2', 'product-3'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -330,8 +333,13 @@ describe('WishlistContext', () => {
       });
     });
 
-    it('should remove wishlist from localStorage when cleared', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+    it('should remove wishlist from cookie when cleared', async () => {
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -343,9 +351,7 @@ describe('WishlistContext', () => {
       await userEvent.click(clearButton);
 
       await waitFor(() => {
-        // After clearing, localStorage should either be null or empty array
-        const stored = localStorage.getItem('mash-wishlist');
-        expect(stored === null || stored === '[]').toBe(true);
+        expect(clearWishlistCookie).toHaveBeenCalled();
       });
     });
   });
@@ -395,7 +401,12 @@ describe('WishlistContext', () => {
     });
 
     it('should update count when items removed', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1', 'product-2']));
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -416,7 +427,12 @@ describe('WishlistContext', () => {
 
   describe('isInWishlist Check', () => {
     it('should return true for product in wishlist', () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -455,7 +471,17 @@ describe('WishlistContext', () => {
     });
 
     it('should update when product removed', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+      let savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Mock cookie to persist data
+      (getWishlistCookie as jest.Mock).mockImplementation(() => savedWishlist);
+      (setWishlistCookie as jest.Mock).mockImplementation((wishlist) => {
+        savedWishlist = wishlist;
+      });
 
       render(
         <WishlistProvider>
@@ -474,8 +500,8 @@ describe('WishlistContext', () => {
     });
   });
 
-  describe('localStorage Persistence', () => {
-    it('should save wishlist to localStorage when items added', async () => {
+  describe('Cookie Persistence', () => {
+    it('should save wishlist to cookie when items added', async () => {
       render(
         <WishlistProvider>
           <TestComponent />
@@ -486,13 +512,22 @@ describe('WishlistContext', () => {
       await userEvent.click(addButton);
 
       await waitFor(() => {
-        const saved = localStorage.getItem('mash-wishlist');
-        expect(saved).toBe('["product-1"]');
+        expect(setWishlistCookie).toHaveBeenCalledWith(
+          expect.objectContaining({
+            version: 2,
+            items: ['product-1'],
+          })
+        );
       });
     });
 
-    it('should update localStorage when items removed', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1', 'product-2']));
+    it('should update cookie when items removed', async () => {
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -504,12 +539,28 @@ describe('WishlistContext', () => {
       await userEvent.click(removeButton);
 
       await waitFor(() => {
-        const saved = localStorage.getItem('mash-wishlist');
-        expect(saved).toBe('["product-2"]');
+        expect(setWishlistCookie).toHaveBeenCalledWith(
+          expect.objectContaining({
+            version: 2,
+            items: ['product-2'],
+          })
+        );
       });
     });
 
     it('should persist across component remounts', async () => {
+      let savedWishlist = {
+        version: 2 as const,
+        items: [] as string[],
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Mock cookie to persist data
+      (getWishlistCookie as jest.Mock).mockImplementation(() => savedWishlist);
+      (setWishlistCookie as jest.Mock).mockImplementation((wishlist) => {
+        savedWishlist = wishlist;
+      });
+
       const { unmount } = render(
         <WishlistProvider>
           <TestComponent />
@@ -538,8 +589,13 @@ describe('WishlistContext', () => {
     });
   });
 
-  describe('Storage Event Handling (Cross-Tab Sync)', () => {
-    it('should sync wishlist when localStorage updated from another tab', async () => {
+  describe('Cookie Change Handling (Cross-Tab Sync)', () => {
+    it('should sync wishlist when cookie updated from another tab', async () => {
+      jest.useFakeTimers();
+      
+      // Start with empty wishlist
+      (getWishlistCookie as jest.Mock).mockReturnValue(null);
+
       render(
         <WishlistProvider>
           <TestComponent />
@@ -548,15 +604,17 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
 
-      // Simulate storage event from another tab
-      const storageEvent = new StorageEvent('storage', {
-        key: 'mash-wishlist',
-        newValue: '["product-1","product-2"]',
-        oldValue: '[]',
-      });
+      // Simulate cookie change from another tab
+      const updatedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(updatedWishlist);
 
+      // Fast-forward timer to trigger cookie polling
       await act(async () => {
-        window.dispatchEvent(storageEvent);
+        jest.advanceTimersByTime(2000);
       });
 
       await waitFor(() => {
@@ -565,10 +623,19 @@ describe('WishlistContext', () => {
         );
         expect(wishlistIds).toEqual(['product-1', 'product-2']);
       });
+
+      jest.useRealTimers();
     });
 
-    it('should clear wishlist when localStorage cleared from another tab', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+    it('should clear wishlist when cookie cleared from another tab', async () => {
+      jest.useFakeTimers();
+
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -578,24 +645,23 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
 
-      // Simulate storage event (logout from another tab)
-      const storageEvent = new StorageEvent('storage', {
-        key: 'mash-wishlist',
-        newValue: null,
-        oldValue: '["product-1"]',
-      });
+      // Simulate cookie cleared from another tab
+      (getWishlistCookie as jest.Mock).mockReturnValue(null);
 
+      // Fast-forward timer
       await act(async () => {
-        window.dispatchEvent(storageEvent);
+        jest.advanceTimersByTime(2000);
       });
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
       });
+
+      jest.useRealTimers();
     });
 
-    it('should ignore storage events for other keys', async () => {
-      localStorage.setItem('mash-wishlist', JSON.stringify(['product-1']));
+    it('should handle corrupted data in cookie sync', async () => {
+      jest.useFakeTimers();
 
       render(
         <WishlistProvider>
@@ -603,41 +669,17 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const originalCount = screen.getByTestId('wishlist-count').textContent;
-
-      // Simulate storage event for different key
-      const storageEvent = new StorageEvent('storage', {
-        key: 'other-key',
-        newValue: 'some-value',
-      });
+      // Simulate corrupted cookie data
+      (getWishlistCookie as jest.Mock).mockReturnValue({ invalid: 'data' });
 
       await act(async () => {
-        window.dispatchEvent(storageEvent);
-      });
-
-      // Wishlist should not change
-      expect(screen.getByTestId('wishlist-count').textContent).toBe(originalCount);
-    });
-
-    it('should handle corrupted data in storage event', async () => {
-      render(
-        <WishlistProvider>
-          <TestComponent />
-        </WishlistProvider>
-      );
-
-      // Simulate storage event with invalid JSON
-      const storageEvent = new StorageEvent('storage', {
-        key: 'mash-wishlist',
-        newValue: 'invalid-json{',
-      });
-
-      await act(async () => {
-        window.dispatchEvent(storageEvent);
+        jest.advanceTimersByTime(2000);
       });
 
       // Should not crash, wishlist remains empty
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
+
+      jest.useRealTimers();
     });
   });
 });

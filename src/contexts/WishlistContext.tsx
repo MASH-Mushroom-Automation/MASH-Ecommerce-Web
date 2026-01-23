@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { getWishlistCookie, setWishlistCookie, clearWishlistCookie } from "@/lib/cookies";
 
 interface WishlistContextType {
   wishlistIds: string[];
@@ -19,46 +20,60 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load wishlist from localStorage on mount
+  // Load wishlist from cookie on mount
   useEffect(() => {
-    const stored = localStorage.getItem("mash-wishlist");
-    if (stored) {
+    console.log("[WishlistContext] Loading wishlist from cookie...");
+    const savedWishlist = getWishlistCookie();
+    console.log("[WishlistContext] savedWishlist:", savedWishlist ? "found" : "not found");
+    if (savedWishlist) {
       try {
-        setWishlistIds(JSON.parse(stored));
+        console.log("[WishlistContext] Parsed wishlist:", savedWishlist);
+        // Check version for migration
+        if (savedWishlist.version === 2 && Array.isArray(savedWishlist.items)) {
+          console.log("[WishlistContext] Loading", savedWishlist.items.length, "items");
+          setWishlistIds(savedWishlist.items);
+        } else {
+          // Old wishlist format - clear it
+          console.log("[WishlistContext] Old wishlist format detected, clearing wishlist");
+          clearWishlistCookie();
+        }
       } catch (error) {
-        console.error("Failed to load wishlist:", error);
+        console.error("Failed to load wishlist from cookie:", error);
       }
     }
     setIsLoaded(true);
+    console.log("[WishlistContext] Wishlist loaded, isLoaded set to true");
   }, []);
 
-  // Save wishlist to localStorage whenever it changes
+  // Save wishlist to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("mash-wishlist", JSON.stringify(wishlistIds));
+      console.log("[WishlistContext] Saving to cookie, items:", wishlistIds.length);
+      setWishlistCookie({
+        version: 2,
+        items: wishlistIds,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log("[WishlistContext] Saved to cookie");
     }
   }, [wishlistIds, isLoaded]);
 
-  // Listen for storage changes (e.g., logout clears localStorage from another context)
+  // Listen for cookie changes across tabs
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "mash-wishlist") {
-        if (e.newValue === null) {
-          // Wishlist was cleared (logout)
-          setWishlistIds([]);
-        } else {
-          // Wishlist was updated from another tab
-          try {
-            setWishlistIds(JSON.parse(e.newValue));
-          } catch {
-            // Ignore parse errors
-          }
-        }
+    const handleCookieChange = () => {
+      const savedWishlist = getWishlistCookie();
+      if (!savedWishlist) {
+        // Wishlist was cleared
+        setWishlistIds([]);
+      } else if (savedWishlist.version === 2 && Array.isArray(savedWishlist.items)) {
+        // Wishlist was updated from another tab
+        setWishlistIds(savedWishlist.items);
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    // Poll for cookie changes every 2 seconds (cookies don't have storage events)
+    const interval = setInterval(handleCookieChange, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const addToWishlist = useCallback((productId: string) => {
@@ -78,8 +93,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const clearWishlist = useCallback(() => {
     setWishlistIds([]);
-    // Also clear from localStorage immediately
-    localStorage.removeItem("mash-wishlist");
+    // Also clear from cookie immediately
+    clearWishlistCookie();
   }, []);
 
   const value: WishlistContextType = {
