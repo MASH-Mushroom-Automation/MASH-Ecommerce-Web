@@ -26,7 +26,7 @@ export const grower = defineType({
     {name: 'location', title: 'Location & Map'},
     {name: 'products', title: 'Products'},
     {name: 'social', title: 'Social & Links'},
-    {name: 'appointments', title: 'Appointments (Calendly)'},
+    {name: 'appointments', title: 'Appointments (Cal.com)'},
     {name: 'settings', title: 'Settings'},
   ],
   fields: [
@@ -326,27 +326,28 @@ export const grower = defineType({
       initialValue: false,
     }),
 
-    // ===== APPOINTMENTS (CALENDLY) =====
+    // ===== APPOINTMENTS (CAL.COM) =====
     defineField({
       name: 'calendlyEnabled',
       title: 'Enable Appointment Booking',
       type: 'boolean',
       group: 'appointments',
-      description: 'Allow buyers to book appointments with this grower via Calendly',
+      description: 'Allow buyers to book appointments with this grower via Cal.com',
       initialValue: false,
     }),
     defineField({
       name: 'calendlyUsername',
-      title: 'Calendly Username',
+      title: 'Cal.com Username',
       type: 'string',
       group: 'appointments',
-      description: 'Your Calendly username (e.g., mash-mushroom-automation). Find it in your Calendly URL: calendly.com/YOUR-USERNAME',
+      description: 'Your Cal.com username (e.g., mash-mushroom). Find it in your Cal.com URL: cal.com/YOUR-USERNAME',
+      placeholder: 'mash-mushroom',
       hidden: ({parent}) => !parent?.calendlyEnabled,
       validation: (Rule) =>
         Rule.custom((value, context) => {
           const parent = context.parent as {calendlyEnabled?: boolean}
           if (parent?.calendlyEnabled && !value) {
-            return 'Calendly username is required when appointments are enabled'
+            return 'Cal.com username is required when appointments are enabled'
           }
           if (value && !/^[a-z0-9-]+$/.test(value)) {
             return 'Username should only contain lowercase letters, numbers, and hyphens'
@@ -359,16 +360,25 @@ export const grower = defineType({
       title: 'Default Event Slug',
       type: 'string',
       group: 'appointments',
-      description: 'The default event type slug (e.g., "30min" for a 30-minute meeting). This appears after your username in the URL.',
+      description: 'The default event type slug (e.g., "30min", "15min", "1-hour-meeting"). This appears after your username in the URL: cal.com/YOUR-USERNAME/EVENT-SLUG',
+      placeholder: '30min',
       hidden: ({parent}) => !parent?.calendlyEnabled,
       initialValue: '30min',
+      options: {
+        list: [
+          {title: '15 minutes', value: '15min'},
+          {title: '30 minutes (Recommended)', value: '30min'},
+          {title: '1 hour', value: '1-hour-meeting'},
+          {title: 'Secret meeting', value: 'secret'},
+        ],
+      },
     }),
     defineField({
       name: 'appointmentTypes',
       title: 'Available Appointment Types',
       type: 'array',
       group: 'appointments',
-      description: 'Different appointment options buyers can choose from',
+      description: 'Different appointment options buyers can choose from (15min, 30min, 1 hour, etc.)',
       hidden: ({parent}) => !parent?.calendlyEnabled,
       of: [
         {
@@ -380,15 +390,31 @@ export const grower = defineType({
               name: 'name',
               title: 'Appointment Name',
               type: 'string',
-              description: 'Display name (e.g., "Product Consultation")',
+              description: 'Display name (e.g., "Product Consultation", "Farm Tour")',
+              placeholder: '30 Min Meeting',
               validation: (Rule) => Rule.required(),
             },
             {
               name: 'eventSlug',
-              title: 'Calendly Event Slug',
+              title: 'Cal.com Event Slug',
               type: 'string',
-              description: 'The URL slug for this event type (e.g., "30min", "store-visit")',
-              validation: (Rule) => Rule.required(),
+              description: 'The URL slug for this event type on Cal.com (e.g., "30min", "15min", "1-hour-meeting", "secret")',
+              placeholder: '30min',
+              validation: (Rule) =>
+                Rule.required().custom((value) => {
+                  if (value && !/^[a-z0-9-]+$/.test(value)) {
+                    return 'Event slug should only contain lowercase letters, numbers, and hyphens'
+                  }
+                  return true
+                }),
+              options: {
+                list: [
+                  {title: '15 minutes', value: '15min'},
+                  {title: '30 minutes', value: '30min'},
+                  {title: '1 hour', value: '1-hour-meeting'},
+                  {title: 'Secret meeting', value: 'secret'},
+                ],
+              },
             },
             {
               name: 'duration',
