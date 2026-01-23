@@ -144,9 +144,14 @@ jest.mock('sonner', () => ({
   },
 }));
 
-// Mock React Calendly
-jest.mock('react-calendly', () => ({
-  InlineWidget: () => <div data-testid="calendly-widget">Calendly Widget</div>,
+// Mock Cal.com Embed React
+jest.mock('@calcom/embed-react', () => ({
+  getCalApi: jest.fn(() => Promise.resolve((action, config) => {
+    // Mock Cal API functions
+    if (action === 'ui') return config;
+    if (action === 'preload') return config;
+    return null;
+  })),
 }));
 
 // Mock Google Maps
