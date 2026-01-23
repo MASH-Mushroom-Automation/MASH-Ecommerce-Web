@@ -448,10 +448,10 @@
     "testExecutionTime": "~60s"
   },
   "securityStatus": {
-    "localStorageUsage": "Wishlist only (will migrate in TEST-010)",
+    "localStorageUsage": "None - All migrated to cookies",
     "authTokensSecure": true,
     "httpOnlyCookies": true,
     "cartMigratedToCookies": true,
-    "wishlistMigratedToCookies": false
+    "wishlistMigratedToCookies": true
   }
 }
