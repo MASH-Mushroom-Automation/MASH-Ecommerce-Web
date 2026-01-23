@@ -223,11 +223,12 @@ export default function LoginPage() {
       // Store tokens if available
       if (accessToken) {
         console.log("[Login] Storing access token...");
-        setAuthToken(accessToken, data.rememberMe); // Use proper cookie storage
-
         // Also store refresh token if available
         if (refreshToken) {
           console.log("[Login] Storing refresh token...");
+          setAuthToken(accessToken, refreshToken, data.rememberMe); // Use proper cookie storage
+        } else {
+          setAuthToken(accessToken, undefined, data.rememberMe); // Use proper cookie storage without refresh token
           localStorage.setItem("refreshToken", refreshToken);
         }
       }

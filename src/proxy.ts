@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { applyRateLimit } from "@/middleware/rate-limit";
 
 /**
  * Authentication Proxy (Next.js 16)
  *
  * Protects routes based on authentication status.
+ * Implements rate limiting for API endpoints (STORY-TEST-016).
  *
  * Authentication Methods Supported:
  * - Google OAuth: Firebase Auth (token in sessionStorage on client)
@@ -56,6 +58,14 @@ const publicRoutes = [
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // STORY-TEST-016: Apply rate limiting to API endpoints
+  if (pathname.startsWith("/api/")) {
+    const rateLimitResponse = applyRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse; // Return 429 if rate limited
+    }
+  }
 
   // Check for authentication
   // - Backend users: auth-token cookie (JWT from email/password login)

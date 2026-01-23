@@ -79,7 +79,7 @@ export default function VerifyOTPPage() {
       });
 
       // Store auth token
-      setAuthToken(response.data.token, true);
+      setAuthToken(response.data.token, undefined, true);
 
       // Store user data
       if (response.data.user) {

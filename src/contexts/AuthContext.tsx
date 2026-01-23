@@ -401,13 +401,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Backend may set HTTP-only cookie automatically, but also handle token in response
         const accessToken = data.accessToken || data.tokens?.accessToken;
+        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+        
         if (accessToken) {
           console.log("[Auth] Setting backend JWT token from response...");
-          setAuthToken(accessToken, true);
+          setAuthToken(accessToken, refreshToken, true);
         }
-
-        // Store refresh token if available (for token refresh flow)
-        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
         if (refreshToken) {
           try {
             localStorage.setItem("refreshToken", refreshToken);
