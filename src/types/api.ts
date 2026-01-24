@@ -431,3 +431,62 @@ export interface HomePageData {
   topGrowers: Grower[];
   heroSlides: string[];
 }
+
+// Analytics Types (for /analytics/* endpoints)
+export interface AnalyticsQuery {
+  startDate: string; // ISO date string (YYYY-MM-DD)
+  endDate: string; // ISO date string (YYYY-MM-DD)
+  sellerId?: string; // Filter by seller
+  categoryId?: string; // Filter by category
+  productId?: string; // Filter by specific product
+  includeComparison?: boolean; // Include previous period comparison
+  groupBy?: "day" | "week" | "month"; // Data aggregation level
+}
+
+export interface AnalyticsApiResponse {
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  metrics: {
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    conversionRate: number;
+    totalProducts: number;
+    totalCustomers: number;
+  };
+  salesTrend: Array<{
+    date: string;
+    revenue: number;
+    orders: number;
+    customers: number;
+  }>;
+  categoryBreakdown: Array<{
+    category: string;
+    categoryId?: string;
+    revenue: number;
+    orders: number;
+    percentage: number;
+  }>;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    slug?: string;
+    unitsSold: number;
+    revenue: number;
+    orders: number;
+    averagePrice: number;
+  }>;
+  orderMetrics: {
+    totalOrders: number;
+    pendingOrders: number;
+    confirmedOrders: number;
+    shippedOrders: number;
+    deliveredOrders: number;
+    cancelledOrders: number;
+    averageOrderValue: number;
+    conversionRate: number;
+  };
+}
+

@@ -370,26 +370,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Call backend API with Firebase ID token in request body
         // Backend will verify this token with Firebase Admin SDK
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Important for receiving HTTP-only cookies
-            body: JSON.stringify(requestBody),
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include", // Important for receiving HTTP-only cookies
+              body: JSON.stringify(requestBody),
+            }
+          );
+
+          console.log("[Auth] Backend response status:", response.status);
+
+          const data = await response.json();
+          console.log("[Auth] Backend response data:", data);
+
+          if (!response.ok) {
+            console.warn("[Auth] Backend sync failed, continuing with Firebase-only auth:", data);
+            return; // Continue without backend sync
           }
-        );
-
-        console.log("[Auth] Backend response status:", response.status);
-
-        const data = await response.json();
-        console.log("[Auth] Backend response data:", data);
-
-        if (!response.ok) {
-          console.error("[Auth] Backend Firebase sync failed:", data);
-          throw new Error(data.message || "Failed to sync user to backend");
+        } catch (error) {
+          console.warn("[Auth] Backend unavailable, continuing with Firebase-only auth:", error);
+          return; // Gracefully continue without backend
         }
 
         console.log("[Auth] Backend Firebase sync successful:", {

@@ -16,7 +16,8 @@ import {
   ChevronsUpDown,
   User,
   Bell,
-  Box
+  Box,
+  BarChart3
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
@@ -66,6 +67,11 @@ const sidebarLinks = [
     href: "/seller/dashboard",
     icon: LayoutGrid,
     label: "Dashboard",
+  },
+  {
+    href: "/seller/analytics",
+    icon: BarChart3,
+    label: "Analytics",
   },
   {
     href: "/seller/products",
