@@ -26,6 +26,7 @@ export const grower = defineType({
     {name: 'location', title: 'Location & Map'},
     {name: 'products', title: 'Products'},
     {name: 'social', title: 'Social & Links'},
+    {name: 'appointments', title: 'Appointments (Calendly)'},
     {name: 'settings', title: 'Settings'},
   ],
   fields: [
@@ -324,6 +325,135 @@ export const grower = defineType({
       description: 'Show on homepage "Meet Our Growers" section',
       initialValue: false,
     }),
+
+    // ===== APPOINTMENTS (CALENDLY) =====
+    defineField({
+      name: 'calendlyEnabled',
+      title: 'Enable Appointment Booking',
+      type: 'boolean',
+      group: 'appointments',
+      description: 'Allow buyers to book appointments with this grower via Calendly',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'calendlyUsername',
+      title: 'Calendly Username',
+      type: 'string',
+      group: 'appointments',
+      description: 'Your Calendly username (e.g., mash-mushroom-automation). Find it in your Calendly URL: calendly.com/YOUR-USERNAME',
+      hidden: ({parent}) => !parent?.calendlyEnabled,
+      validation: (Rule) =>
+        Rule.custom((value, context) => {
+          const parent = context.parent as {calendlyEnabled?: boolean}
+          if (parent?.calendlyEnabled && !value) {
+            return 'Calendly username is required when appointments are enabled'
+          }
+          if (value && !/^[a-z0-9-]+$/.test(value)) {
+            return 'Username should only contain lowercase letters, numbers, and hyphens'
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'calendlyDefaultEvent',
+      title: 'Default Event Slug',
+      type: 'string',
+      group: 'appointments',
+      description: 'The default event type slug (e.g., "30min" for a 30-minute meeting). This appears after your username in the URL.',
+      hidden: ({parent}) => !parent?.calendlyEnabled,
+      initialValue: '30min',
+    }),
+    defineField({
+      name: 'appointmentTypes',
+      title: 'Available Appointment Types',
+      type: 'array',
+      group: 'appointments',
+      description: 'Different appointment options buyers can choose from',
+      hidden: ({parent}) => !parent?.calendlyEnabled,
+      of: [
+        {
+          type: 'object',
+          name: 'appointmentType',
+          title: 'Appointment Type',
+          fields: [
+            {
+              name: 'name',
+              title: 'Appointment Name',
+              type: 'string',
+              description: 'Display name (e.g., "Product Consultation")',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: 'eventSlug',
+              title: 'Calendly Event Slug',
+              type: 'string',
+              description: 'The URL slug for this event type (e.g., "30min", "store-visit")',
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: 'duration',
+              title: 'Duration (minutes)',
+              type: 'number',
+              description: 'Appointment duration in minutes',
+              initialValue: 30,
+              validation: (Rule) => Rule.required().min(15).max(180),
+            },
+            {
+              name: 'meetingType',
+              title: 'Meeting Type',
+              type: 'string',
+              options: {
+                list: [
+                  {title: 'Online (Google Meet)', value: 'online'},
+                  {title: 'In-Person Store Visit', value: 'in-person'},
+                  {title: 'Phone Call', value: 'phone'},
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'online',
+            },
+            {
+              name: 'description',
+              title: 'Description',
+              type: 'text',
+              rows: 2,
+              description: 'Brief description shown to buyers',
+            },
+            {
+              name: 'isDefault',
+              title: 'Default Option',
+              type: 'boolean',
+              description: 'Show this as the primary/recommended option',
+              initialValue: false,
+            },
+          ],
+          preview: {
+            select: {
+              title: 'name',
+              duration: 'duration',
+              type: 'meetingType',
+            },
+            prepare({title, duration, type}) {
+              const typeEmoji = type === 'online' ? '💻' : type === 'in-person' ? '🏪' : '📞'
+              return {
+                title: `${typeEmoji} ${title}`,
+                subtitle: `${duration} minutes`,
+              }
+            },
+          },
+        },
+      ],
+    }),
+    defineField({
+      name: 'appointmentNotes',
+      title: 'Booking Page Notes',
+      type: 'text',
+      group: 'appointments',
+      rows: 3,
+      description: 'Additional information shown on the booking page (e.g., what to expect, preparation needed)',
+      hidden: ({parent}) => !parent?.calendlyEnabled,
+    }),
+
     defineField({
       name: 'isActive',
       title: 'Is Active',

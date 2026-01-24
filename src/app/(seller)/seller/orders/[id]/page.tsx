@@ -39,15 +39,19 @@ import { FirebaseOrdersService } from "@/lib/firebase/orders";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
-import { LALAMOVE_VEHICLES, calculateEstimate } from "@/lib/lalamove/vehicle-types";
+import {
+  LALAMOVE_VEHICLES,
+  calculateEstimate,
+} from "@/lib/lalamove/vehicle-types";
 import { useAuth } from "@/contexts/AuthContext";
 import LalamoveTrackingTimeline from "@/components/seller/LalamoveTrackingTimeline";
+import { OrderRejectionModal } from "@/components/orders/OrderRejectionModal";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 // MASH Pickup Location
 const MASH_PICKUP_LOCATION = {
-  lat: 14.6760,
+  lat: 14.676,
   lng: 121.0437,
   address: "MASH Farm, Quezon City, Metro Manila",
 };
@@ -118,6 +122,7 @@ export default function SellerOrderDetailPage() {
 
   const { order, loading, error } = useFirebaseOrder(orderId);
   const [actioning, setActioning] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("sedan");
   const [mapLoaded, setMapLoaded] = useState(false);
   const [realtimeOrder, setRealtimeOrder] = useState(order);
@@ -133,9 +138,9 @@ export default function SellerOrderDetailPage() {
 
     // Check if script is already being loaded
     const existingScript = document.querySelector(
-      'script[src*="maps.googleapis.com/maps/api/js"]'
+      'script[src*="maps.googleapis.com/maps/api/js"]',
     );
-    
+
     if (existingScript) {
       existingScript.addEventListener("load", () => setMapLoaded(true));
       return;
@@ -160,16 +165,19 @@ export default function SellerOrderDetailPage() {
 
     console.log("[Realtime] Setting up Firebase listener for order:", orderId);
 
-    const unsubscribe = FirebaseOrdersService.listenToOrder(orderId, (updatedOrder) => {
-      if (updatedOrder) {
-        console.log("[Realtime] Order updated:", {
-          status: updatedOrder.status,
-          lalamoveStatus: updatedOrder.lalamoveTracking?.status,
-          riderCoords: updatedOrder.lalamoveTracking?.driver?.coordinates,
-        });
-        setRealtimeOrder(updatedOrder);
-      }
-    });
+    const unsubscribe = FirebaseOrdersService.listenToOrder(
+      orderId,
+      (updatedOrder) => {
+        if (updatedOrder) {
+          console.log("[Realtime] Order updated:", {
+            status: updatedOrder.status,
+            lalamoveStatus: updatedOrder.lalamoveTracking?.status,
+            riderCoords: updatedOrder.lalamoveTracking?.driver?.coordinates,
+          });
+          setRealtimeOrder(updatedOrder);
+        }
+      },
+    );
 
     return () => {
       console.log("[Realtime] Cleaning up listener");
@@ -184,7 +192,9 @@ export default function SellerOrderDetailPage() {
     const pollInterval = setInterval(async () => {
       try {
         console.log("[Polling] Checking Lalamove status...");
-        const response = await fetch(`/api/lalamove/order-details?orderId=${realtimeOrder.lalamoveTracking!.orderId}`);
+        const response = await fetch(
+          `/api/lalamove/order-details?orderId=${realtimeOrder.lalamoveTracking!.orderId}`,
+        );
         if (response.ok) {
           const data = await response.json();
           console.log("[Polling] Lalamove status:", data.status);
@@ -200,7 +210,12 @@ export default function SellerOrderDetailPage() {
   // Initialize map when order and script are loaded
   useEffect(() => {
     const currentOrder = realtimeOrder || order;
-    if (!mapLoaded || !currentOrder || currentOrder.deliveryMethod !== "lalamove") return;
+    if (
+      !mapLoaded ||
+      !currentOrder ||
+      currentOrder.deliveryMethod !== "lalamove"
+    )
+      return;
 
     const initMap = () => {
       const mapElement = document.getElementById("order-map");
@@ -283,7 +298,7 @@ export default function SellerOrderDetailPage() {
           if (status === "OK") {
             directionsRenderer.setDirections(result);
           }
-        }
+        },
       );
 
       // Store map reference for rider marker updates
@@ -296,7 +311,8 @@ export default function SellerOrderDetailPage() {
   // Update rider marker when tracking data changes
   useEffect(() => {
     const currentOrder = realtimeOrder || order;
-    if (!mapLoaded || !currentOrder?.lalamoveTracking?.driver?.coordinates) return;
+    if (!mapLoaded || !currentOrder?.lalamoveTracking?.driver?.coordinates)
+      return;
 
     const google = (window as any).google;
     const map = (window as any).lalamoveOrderMap;
@@ -334,10 +350,17 @@ export default function SellerOrderDetailPage() {
     }
 
     // Auto-center map on rider (optional - can be toggled)
-    if (currentOrder.lalamoveTracking.status === "ON_GOING" || currentOrder.lalamoveTracking.status === "PICKED_UP") {
+    if (
+      currentOrder.lalamoveTracking.status === "ON_GOING" ||
+      currentOrder.lalamoveTracking.status === "PICKED_UP"
+    ) {
       map.panTo({ lat: riderCoords.lat, lng: riderCoords.lng });
     }
-  }, [mapLoaded, order?.lalamoveTracking?.driver?.coordinates, realtimeOrder?.lalamoveTracking?.driver?.coordinates]);
+  }, [
+    mapLoaded,
+    order?.lalamoveTracking?.driver?.coordinates,
+    realtimeOrder?.lalamoveTracking?.driver?.coordinates,
+  ]);
 
   const handleApproveOrder = async () => {
     if (!order) return;
@@ -346,7 +369,7 @@ export default function SellerOrderDetailPage() {
       await FirebaseOrdersService.updateOrderStatus(
         order.id,
         "approved",
-        user?.id || "seller-admin"
+        user?.id || "seller-admin",
       );
       toast.success("Order approved successfully");
     } catch (error) {
@@ -357,15 +380,23 @@ export default function SellerOrderDetailPage() {
     }
   };
 
-  const handleRejectOrder = async () => {
+  const handleRejectOrder = () => {
     if (!order) return;
-    const reason = prompt("Please provide a reason for rejection:");
-    if (!reason) return;
+    setShowRejectDialog(true);
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    if (!order) return;
 
     setActioning(true);
     try {
-      await FirebaseOrdersService.rejectOrder(order.id, user?.id || "seller-admin", reason);
+      await FirebaseOrdersService.rejectOrder(
+        order.id,
+        user?.id || "seller-admin",
+        reason,
+      );
       toast.success("Order rejected");
+      setShowRejectDialog(false);
     } catch (error) {
       toast.error("Failed to reject order");
       console.error(error);
@@ -384,13 +415,17 @@ export default function SellerOrderDetailPage() {
         if (order.lalamoveOrderId) {
           toast.info("Lalamove delivery already created");
         } else if (!order.lalamoveQuotationId) {
-          toast.error("No delivery quotation found. Please create a quote first.");
+          toast.error(
+            "No delivery quotation found. Please create a quote first.",
+          );
           setActioning(false);
           return;
         } else {
           // Create Lalamove delivery order
-          toast.loading("Creating Lalamove delivery...", { id: "lalamove-create" });
-          
+          toast.loading("Creating Lalamove delivery...", {
+            id: "lalamove-create",
+          });
+
           try {
             const response = await fetch("/api/lalamove/create-order", {
               method: "POST",
@@ -405,7 +440,8 @@ export default function SellerOrderDetailPage() {
                 recipient: {
                   name: order.deliveryAddress?.name || order.userName,
                   phone: order.deliveryAddress?.phone || order.userPhone,
-                  notes: order.notes || "Please handle with care - fresh mushrooms",
+                  notes:
+                    order.notes || "Please handle with care - fresh mushrooms",
                 },
               }),
             });
@@ -416,25 +452,25 @@ export default function SellerOrderDetailPage() {
               throw new Error(result.message || "Failed to create delivery");
             }
 
-            toast.success("Lalamove delivery created successfully!", { 
+            toast.success("Lalamove delivery created successfully!", {
               id: "lalamove-create",
-              duration: 5000 
+              duration: 5000,
             });
 
             console.log("[Lalamove] Order created:", result.data);
           } catch (lalamoveError: any) {
-            toast.error(`Lalamove error: ${lalamoveError.message}`, { 
+            toast.error(`Lalamove error: ${lalamoveError.message}`, {
               id: "lalamove-create",
-              duration: 7000 
+              duration: 7000,
             });
             console.error("[Lalamove] Creation failed:", lalamoveError);
-            
+
             // Ask if seller wants to continue without Lalamove
             const continueAnyway = confirm(
               "Lalamove delivery creation failed. Do you want to mark as processing anyway?\n\n" +
-              "You can manually create the delivery later."
+                "You can manually create the delivery later.",
             );
-            
+
             if (!continueAnyway) {
               setActioning(false);
               return;
@@ -447,7 +483,7 @@ export default function SellerOrderDetailPage() {
       await FirebaseOrdersService.updateOrderStatus(
         order.id,
         newStatus as any,
-        user?.id || "seller-admin"
+        user?.id || "seller-admin",
       );
       toast.success(`Order status updated to ${newStatus.replace("_", " ")}`);
     } catch (error) {
@@ -468,7 +504,7 @@ export default function SellerOrderDetailPage() {
 
     try {
       const response = await fetch(
-        `/api/lalamove/order-details?orderId=${currentOrder.lalamoveTracking.orderId}`
+        `/api/lalamove/order-details?orderId=${currentOrder.lalamoveTracking.orderId}`,
       );
 
       if (!response.ok) {
@@ -484,32 +520,39 @@ export default function SellerOrderDetailPage() {
       if (data.driverId) {
         try {
           const driverResponse = await fetch(
-            `/api/lalamove/driver-details?orderId=${currentOrder.lalamoveTracking.orderId}&driverId=${data.driverId}`
+            `/api/lalamove/driver-details?orderId=${currentOrder.lalamoveTracking.orderId}&driverId=${data.driverId}`,
           );
           if (driverResponse.ok) {
             const driverResult = await driverResponse.json();
             driverInfo = driverResult.data;
           }
         } catch (error) {
-          console.warn("[Manual Refresh] Could not fetch driver details:", error);
+          console.warn(
+            "[Manual Refresh] Could not fetch driver details:",
+            error,
+          );
         }
       }
 
       // Update Firebase with latest tracking data
       await FirebaseOrdersService.updateLalamoveTracking(currentOrder.id, {
         status: data.status,
-        driver: driverInfo ? {
-          id: driverInfo.driverId || data.driverId,
-          name: driverInfo.name || "Unknown",
-          phone: driverInfo.phone || "",
-          plateNumber: driverInfo.plateNumber || "",
-          photo: driverInfo.photo || undefined,
-          coordinates: driverInfo.coordinates ? {
-            lat: parseFloat(driverInfo.coordinates.lat),
-            lng: parseFloat(driverInfo.coordinates.lng),
-            updatedAt: new Date(driverInfo.coordinates.updatedAt),
-          } : undefined,
-        } : undefined,
+        driver: driverInfo
+          ? {
+              id: driverInfo.driverId || data.driverId,
+              name: driverInfo.name || "Unknown",
+              phone: driverInfo.phone || "",
+              plateNumber: driverInfo.plateNumber || "",
+              photo: driverInfo.photo || undefined,
+              coordinates: driverInfo.coordinates
+                ? {
+                    lat: parseFloat(driverInfo.coordinates.lat),
+                    lng: parseFloat(driverInfo.coordinates.lng),
+                    updatedAt: new Date(driverInfo.coordinates.updatedAt),
+                  }
+                : undefined,
+            }
+          : undefined,
         lastUpdated: new Date(),
       });
 
@@ -539,7 +582,9 @@ export default function SellerOrderDetailPage() {
               <AlertCircle className="h-5 w-5" />
               <div>
                 <h3 className="font-semibold">Order not found</h3>
-                <p className="text-sm">{error || "The order you're looking for doesn't exist."}</p>
+                <p className="text-sm">
+                  {error || "The order you're looking for doesn't exist."}
+                </p>
               </div>
             </div>
             <Button
@@ -556,13 +601,16 @@ export default function SellerOrderDetailPage() {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
+  const statusConfig =
+    STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
   const StatusIcon = statusConfig.icon;
 
   // Calculate estimated cost for selected vehicle
   const estimatedDistance = 10; // Default estimate for delivery
   const estimatedCost = calculateEstimate(selectedVehicle, estimatedDistance);
-  const selectedVehicleData = LALAMOVE_VEHICLES.find((v) => v.id === selectedVehicle);
+  const selectedVehicleData = LALAMOVE_VEHICLES.find(
+    (v) => v.id === selectedVehicle,
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -602,7 +650,10 @@ export default function SellerOrderDetailPage() {
             <CardContent>
               <div className="space-y-4">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="flex gap-4 p-4 rounded-lg border bg-muted/20">
+                  <div
+                    key={idx}
+                    className="flex gap-4 p-4 rounded-lg border bg-muted/20"
+                  >
                     {/* Product Image */}
                     <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted border">
                       <img
@@ -619,10 +670,16 @@ export default function SellerOrderDetailPage() {
                       </h4>
                       <div className="flex items-center gap-4 mt-2 text-sm">
                         <span className="text-muted-foreground">
-                          Qty: <span className="font-medium text-foreground">{item.quantity}</span>
+                          Qty:{" "}
+                          <span className="font-medium text-foreground">
+                            {item.quantity}
+                          </span>
                         </span>
                         <span className="text-muted-foreground">
-                          Price: <span className="font-medium text-foreground">₱{item.price.toLocaleString()}</span>
+                          Price:{" "}
+                          <span className="font-medium text-foreground">
+                            ₱{item.price.toLocaleString()}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -644,12 +701,16 @@ export default function SellerOrderDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">₱{order.subtotal.toLocaleString()}</span>
+                  <span className="font-medium">
+                    ₱{order.subtotal.toLocaleString()}
+                  </span>
                 </div>
                 {order.deliveryFee > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery Fee</span>
-                    <span className="font-medium">₱{order.deliveryFee.toLocaleString()}</span>
+                    <span className="font-medium">
+                      ₱{order.deliveryFee.toLocaleString()}
+                    </span>
                   </div>
                 )}
                 <Separator />
@@ -706,13 +767,18 @@ export default function SellerOrderDetailPage() {
                 {/* Vehicle Selection */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-foreground">Select Vehicle Type</h4>
+                    <h4 className="font-semibold text-foreground">
+                      Select Vehicle Type
+                    </h4>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {LALAMOVE_VEHICLES.map((vehicle) => {
                       const isSelected = selectedVehicle === vehicle.id;
-                      const estimate = calculateEstimate(vehicle.id, estimatedDistance);
+                      const estimate = calculateEstimate(
+                        vehicle.id,
+                        estimatedDistance,
+                      );
 
                       return (
                         <TooltipProvider key={vehicle.id}>
@@ -730,7 +796,9 @@ export default function SellerOrderDetailPage() {
                                 `}
                               >
                                 <div className="flex items-start gap-3">
-                                  <span className="text-3xl">{vehicle.image}</span>
+                                  <span className="text-3xl">
+                                    {vehicle.image}
+                                  </span>
                                   <div className="flex-1 min-w-0">
                                     <h5 className="font-semibold text-sm truncate">
                                       {vehicle.name}
@@ -753,14 +821,40 @@ export default function SellerOrderDetailPage() {
                                 <p className="font-semibold">{vehicle.name}</p>
                                 <p>{vehicle.description}</p>
                                 <div className="space-y-1 pt-2 border-t">
-                                  <p><span className="font-medium">Base Fare:</span> ₱{vehicle.baseFare}</p>
-                                  <p><span className="font-medium">Per KM:</span> {vehicle.pricePerKm}</p>
-                                  <p><span className="font-medium">Add Stop:</span> ₱{vehicle.addStopFee}</p>
-                                  <p><span className="font-medium">Weight Limit:</span> {vehicle.weightLimit}kg</p>
-                                  <p><span className="font-medium">Size Limit:</span> {vehicle.sizeLimit}</p>
+                                  <p>
+                                    <span className="font-medium">
+                                      Base Fare:
+                                    </span>{" "}
+                                    ₱{vehicle.baseFare}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">Per KM:</span>{" "}
+                                    {vehicle.pricePerKm}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">
+                                      Add Stop:
+                                    </span>{" "}
+                                    ₱{vehicle.addStopFee}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">
+                                      Weight Limit:
+                                    </span>{" "}
+                                    {vehicle.weightLimit}kg
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">
+                                      Size Limit:
+                                    </span>{" "}
+                                    {vehicle.sizeLimit}
+                                  </p>
                                   {vehicle.longDistanceFare && (
                                     <p className="pt-1 border-t">
-                                      <span className="font-medium">Long Distance:</span> {vehicle.longDistanceFare}
+                                      <span className="font-medium">
+                                        Long Distance:
+                                      </span>{" "}
+                                      {vehicle.longDistanceFare}
                                     </p>
                                   )}
                                 </div>
@@ -777,9 +871,16 @@ export default function SellerOrderDetailPage() {
                       <div className="flex items-start gap-2">
                         <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <div className="space-y-1">
-                          <p className="font-medium">{selectedVehicleData.name} - Estimated ₱{estimatedCost.toLocaleString()}</p>
-                          <p className="text-xs">{selectedVehicleData.description}</p>
-                          <p className="text-xs italic mt-2">{selectedVehicleData.surcharge}</p>
+                          <p className="font-medium">
+                            {selectedVehicleData.name} - Estimated ₱
+                            {estimatedCost.toLocaleString()}
+                          </p>
+                          <p className="text-xs">
+                            {selectedVehicleData.description}
+                          </p>
+                          <p className="text-xs italic mt-2">
+                            {selectedVehicleData.surcharge}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -835,7 +936,10 @@ export default function SellerOrderDetailPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <p>Customer will visit the farm/store to collect their order</p>
+                      <p>
+                        Customer will visit the farm/store to collect their
+                        order
+                      </p>
                     </div>
                     <div className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -861,13 +965,17 @@ export default function SellerOrderDetailPage() {
                   </h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                      <span className="text-sm text-muted-foreground">Name</span>
+                      <span className="text-sm text-muted-foreground">
+                        Name
+                      </span>
                       <span className="font-medium">{order.userName}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                      <span className="text-sm text-muted-foreground">Phone</span>
-                      <a 
-                        href={`tel:${order.userPhone}`} 
+                      <span className="text-sm text-muted-foreground">
+                        Phone
+                      </span>
+                      <a
+                        href={`tel:${order.userPhone}`}
                         className="font-medium text-primary hover:underline flex items-center gap-1"
                       >
                         <Phone className="h-3 w-3" />
@@ -884,8 +992,9 @@ export default function SellerOrderDetailPage() {
                     <div className="text-sm text-blue-900">
                       <p className="font-medium mb-1">When Order is Ready</p>
                       <p className="text-xs">
-                        Mark as "Ready for Pickup" to notify the customer. They will receive 
-                        a notification to collect their order at the pickup location above.
+                        Mark as "Ready for Pickup" to notify the customer. They
+                        will receive a notification to collect their order at
+                        the pickup location above.
                       </p>
                     </div>
                   </div>
@@ -897,11 +1006,14 @@ export default function SellerOrderDetailPage() {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="h-5 w-5 text-yellow-700 mt-0.5 flex-shrink-0" />
                       <div className="text-sm text-yellow-900">
-                        <p className="font-semibold mb-1">⚠️ Data Inconsistency Detected</p>
+                        <p className="font-semibold mb-1">
+                          ⚠️ Data Inconsistency Detected
+                        </p>
                         <p className="text-xs">
-                          This pickup order has Lalamove tracking data. This should not happen. 
-                          Pickup orders should not create Lalamove deliveries. Please contact 
-                          technical support if this persists.
+                          This pickup order has Lalamove tracking data. This
+                          should not happen. Pickup orders should not create
+                          Lalamove deliveries. Please contact technical support
+                          if this persists.
                         </p>
                       </div>
                     </div>
@@ -935,16 +1047,23 @@ export default function SellerOrderDetailPage() {
                           {entry.status.replace(/_/g, " ").toUpperCase()}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {format(entry.timestamp.toDate(), "MMM dd, yyyy 'at' hh:mm a")}
+                          {format(
+                            entry.timestamp.toDate(),
+                            "MMM dd, yyyy 'at' hh:mm a",
+                          )}
                         </p>
                         {entry.note && (
-                          <p className="text-sm text-muted-foreground mt-1">{entry.note}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {entry.note}
+                          </p>
                         )}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No timeline available</p>
+                  <p className="text-sm text-muted-foreground">
+                    No timeline available
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -974,7 +1093,10 @@ export default function SellerOrderDetailPage() {
                 <p className="text-sm text-muted-foreground">Email</p>
                 <p className="font-medium flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <a href={`mailto:${order.userEmail}`} className="text-primary hover:underline">
+                  <a
+                    href={`mailto:${order.userEmail}`}
+                    className="text-primary hover:underline"
+                  >
                     {order.userEmail}
                   </a>
                 </p>
@@ -985,7 +1107,10 @@ export default function SellerOrderDetailPage() {
                   <p className="text-sm text-muted-foreground">Phone</p>
                   <p className="font-medium flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <a href={`tel:${order.userPhone}`} className="text-primary hover:underline">
+                    <a
+                      href={`tel:${order.userPhone}`}
+                      className="text-primary hover:underline"
+                    >
                       {order.userPhone}
                     </a>
                   </p>
@@ -1049,7 +1174,9 @@ export default function SellerOrderDetailPage() {
                 <Button
                   onClick={() =>
                     handleUpdateStatus(
-                      order.deliveryMethod === "pickup" ? "ready_for_pickup" : "shipped"
+                      order.deliveryMethod === "pickup"
+                        ? "ready_for_pickup"
+                        : "shipped",
                     )
                   }
                   disabled={actioning}
@@ -1062,11 +1189,14 @@ export default function SellerOrderDetailPage() {
                   ) : (
                     <Truck className="h-4 w-4 mr-2" />
                   )}
-                  {order.deliveryMethod === "pickup" ? "Ready for Pickup" : "Mark as Shipped"}
+                  {order.deliveryMethod === "pickup"
+                    ? "Ready for Pickup"
+                    : "Mark as Shipped"}
                 </Button>
               )}
 
-              {(order.status === "shipped" || order.status === "ready_for_pickup") && (
+              {(order.status === "shipped" ||
+                order.status === "ready_for_pickup") && (
                 <Button
                   onClick={() => handleUpdateStatus("delivered")}
                   disabled={actioning}
@@ -1106,7 +1236,9 @@ export default function SellerOrderDetailPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Method</p>
-                <p className="font-medium uppercase">{order.paymentMethod.replace("_", " ")}</p>
+                <p className="font-medium uppercase">
+                  {order.paymentMethod.replace("_", " ")}
+                </p>
               </div>
               <Separator />
               <div className="space-y-2">
@@ -1116,8 +1248,8 @@ export default function SellerOrderDetailPage() {
                     order.paymentStatus === "paid"
                       ? "default"
                       : order.paymentStatus === "pending"
-                      ? "secondary"
-                      : "destructive"
+                        ? "secondary"
+                        : "destructive"
                   }
                 >
                   {order.paymentStatus}
@@ -1140,7 +1272,10 @@ export default function SellerOrderDetailPage() {
               <div className="space-y-2">
                 <p className="text-muted-foreground">Placed On</p>
                 <p className="font-medium">
-                  {format(order.createdAt?.toDate() || new Date(), "MMM dd, yyyy 'at' hh:mm a")}
+                  {format(
+                    order.createdAt?.toDate() || new Date(),
+                    "MMM dd, yyyy 'at' hh:mm a",
+                  )}
                 </p>
               </div>
               {order.updatedAt && (
@@ -1149,7 +1284,10 @@ export default function SellerOrderDetailPage() {
                   <div className="space-y-2">
                     <p className="text-muted-foreground">Last Updated</p>
                     <p className="font-medium">
-                      {format(order.updatedAt.toDate(), "MMM dd, yyyy 'at' hh:mm a")}
+                      {format(
+                        order.updatedAt.toDate(),
+                        "MMM dd, yyyy 'at' hh:mm a",
+                      )}
                     </p>
                   </div>
                 </>
@@ -1158,6 +1296,17 @@ export default function SellerOrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Order Rejection Modal */}
+      {order && (
+        <OrderRejectionModal
+          open={showRejectDialog}
+          onClose={() => setShowRejectDialog(false)}
+          onConfirm={handleRejectConfirm}
+          orderNumber={order.orderNumber}
+          loading={actioning}
+        />
+      )}
     </div>
   );
 }

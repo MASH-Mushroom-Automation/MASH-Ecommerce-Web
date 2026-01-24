@@ -30,6 +30,7 @@ import { FirestoreOrder, OrderStatus } from "@/lib/firebase/orders";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { OrderRejectionModal } from "@/components/orders/OrderRejectionModal";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -105,6 +106,10 @@ export default function SellerOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actioningOrderId, setActioningOrderId] = useState<string | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [orderToReject, setOrderToReject] = useState<FirestoreOrder | null>(
+    null,
+  );
 
   // Fetch Firebase orders
   const { orders, stats, loading, error, approveOrder, rejectOrder } =
@@ -123,7 +128,7 @@ export default function SellerOrdersPage() {
         order.id.toLowerCase().includes(query) ||
         order.userEmail?.toLowerCase().includes(query) ||
         order.userName?.toLowerCase().includes(query) ||
-        order.userPhone?.includes(query)
+        order.userPhone?.includes(query),
     );
   }, [orders, searchQuery]);
 
@@ -144,15 +149,23 @@ export default function SellerOrdersPage() {
   };
 
   const handleRejectOrder = async (orderId: string) => {
-    setActioningOrderId(orderId);
-    try {
-      const reason = prompt("Please provide a reason for rejection:");
-      if (!reason) {
-        setActioningOrderId(null);
-        return;
-      }
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      setOrderToReject(order);
+      setShowRejectDialog(true);
+    }
+  };
 
-      const success = await rejectOrder(orderId, user?.id || "seller-admin", reason);
+  const handleRejectConfirm = async (reason: string) => {
+    if (!orderToReject) return;
+
+    setActioningOrderId(orderToReject.id);
+    try {
+      const success = await rejectOrder(
+        orderToReject.id,
+        user?.id || "seller-admin",
+        reason,
+      );
       if (success) {
         toast.success("Order rejected");
       } else {
@@ -162,6 +175,8 @@ export default function SellerOrdersPage() {
       toast.error("Error rejecting order");
     } finally {
       setActioningOrderId(null);
+      setShowRejectDialog(false);
+      setOrderToReject(null);
     }
   };
 
@@ -271,10 +286,14 @@ export default function SellerOrdersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Orders</SelectItem>
-                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                <SelectItem value="pending_approval">
+                  Pending Approval
+                </SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+                <SelectItem value="ready_for_pickup">
+                  Ready for Pickup
+                </SelectItem>
                 <SelectItem value="shipped">Shipped</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -340,7 +359,7 @@ export default function SellerOrdersPage() {
                           <p className="text-sm text-muted-foreground">
                             {format(
                               order.createdAt?.toDate() || new Date(),
-                              "MMM dd, yyyy 'at' hh:mm a"
+                              "MMM dd, yyyy 'at' hh:mm a",
                             )}
                           </p>
                         </div>
@@ -351,7 +370,9 @@ export default function SellerOrdersPage() {
                       {/* Customer Info */}
                       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Customer: </span>
+                          <span className="text-muted-foreground">
+                            Customer:{" "}
+                          </span>
                           <span className="font-medium">{order.userName}</span>
                         </div>
                         <div>
@@ -360,8 +381,12 @@ export default function SellerOrdersPage() {
                         </div>
                         {order.userPhone && (
                           <div>
-                            <span className="text-muted-foreground">Phone: </span>
-                            <span className="font-medium">{order.userPhone}</span>
+                            <span className="text-muted-foreground">
+                              Phone:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {order.userPhone}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -381,7 +406,9 @@ export default function SellerOrdersPage() {
                               />
                             </div>
                             <span className="font-medium">{item.name}</span>
-                            <span className="text-muted-foreground">×{item.quantity}</span>
+                            <span className="text-muted-foreground">
+                              ×{item.quantity}
+                            </span>
                           </div>
                         ))}
                         {order.items.length > 3 && (
@@ -396,12 +423,16 @@ export default function SellerOrdersPage() {
                         {order.deliveryMethod === "lalamove" ? (
                           <>
                             <Truck className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Lalamove Delivery</span>
+                            <span className="text-muted-foreground">
+                              Lalamove Delivery
+                            </span>
                           </>
                         ) : (
                           <>
                             <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Pickup</span>
+                            <span className="text-muted-foreground">
+                              Pickup
+                            </span>
                           </>
                         )}
                       </div>
@@ -410,14 +441,19 @@ export default function SellerOrdersPage() {
                     {/* Actions & Total */}
                     <div className="flex flex-col items-end justify-between gap-4 min-w-[200px]">
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Total Amount</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total Amount
+                        </p>
                         <p className="text-2xl font-bold text-foreground">
                           ₱{order.total.toLocaleString()}
                         </p>
                       </div>
 
                       {order.status === "pending_approval" && (
-                        <div className="flex gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex gap-2 w-full"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button
                             size="sm"
                             variant="outline"
@@ -452,6 +488,20 @@ export default function SellerOrdersPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Order Rejection Modal */}
+      {orderToReject && (
+        <OrderRejectionModal
+          open={showRejectDialog}
+          onClose={() => {
+            setShowRejectDialog(false);
+            setOrderToReject(null);
+          }}
+          onConfirm={handleRejectConfirm}
+          orderNumber={orderToReject.orderNumber}
+          loading={actioningOrderId === orderToReject.id}
+        />
       )}
     </div>
   );

@@ -1,22 +1,56 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight, Globe, Facebook, Instagram } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight, Globe, Facebook, Instagram, Calendar } from "lucide-react";
 import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { GoogleMap } from "@/components/maps/GoogleMap";
 import { TikTokIcon } from "@/components/ui/tiktok-icon";
+import { CalendlyButton } from "@/components/appointments";
+import type { GrowerCalendlyData } from "@/components/appointments";
+import { sanityClient } from "@/lib/sanity/client";
 
 export default function GrowerDetailPage() {
   const params = useParams<{ id: string }>();
   const slug = params?.id; // Now expecting slug instead of ID
   const { grower, loading, error } = useSanityGrower(slug);
   const { products, loading: loadingProducts } = useSanityGrowerProducts(grower?.id || '', 12);
+  
+  // Calendly data for booking button
+  const [calendlyData, setCalendlyData] = useState<GrowerCalendlyData | null>(null);
+  
+  // Fetch Calendly settings
+  useEffect(() => {
+    async function fetchCalendlyData() {
+      if (!slug) return;
+      try {
+        const query = `*[_type == "grower" && slug.current == $slug][0] {
+          calendlyEnabled,
+          calendlyUsername,
+          calendlyDefaultEvent,
+          appointmentTypes[] {
+            name,
+            eventSlug,
+            duration,
+            meetingType,
+            description,
+            isDefault
+          },
+          appointmentNotes
+        }`;
+        const data = await sanityClient.fetch<GrowerCalendlyData>(query, { slug });
+        setCalendlyData(data);
+      } catch (err) {
+        console.error("Error fetching Calendly data:", err);
+      }
+    }
+    fetchCalendlyData();
+  }, [slug]);
 
   if (loading) {
     return (
@@ -66,26 +100,43 @@ export default function GrowerDetailPage() {
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Growers
           </Link>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white/20">
-              <Image
-                src={grower.image || "/placeholder.png"}
-                alt={grower.name}
-                fill
-                className="object-cover"
-              />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white/20">
+                <Image
+                  src={grower.image || "/placeholder.png"}
+                  alt={grower.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                  {grower.name}
+                </h1>
+                {grower.tagline && (
+                  <p className="text-white/90 mt-1">{grower.tagline}</p>
+                )}
+                {grower.location && (
+                  <p className="text-white/80 text-sm mt-1">{grower.location}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                {grower.name}
-              </h1>
-              {grower.tagline && (
-                <p className="text-white/90 mt-1">{grower.tagline}</p>
-              )}
-              {grower.location && (
-                <p className="text-white/80 text-sm mt-1">{grower.location}</p>
-              )}
-            </div>
+            
+            {/* Book Appointment Button */}
+            {calendlyData?.calendlyEnabled && (
+              <div className="flex items-center gap-3">
+                <CalendlyButton
+                  growerSlug={slug || ""}
+                  growerName={grower.name}
+                  calendlyEnabled={calendlyData.calendlyEnabled}
+                  appointmentTypes={calendlyData.appointmentTypes}
+                  variant="secondary"
+                  size="lg"
+                  className="shadow-lg"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -291,6 +342,38 @@ export default function GrowerDetailPage() {
                 </div>
               )}
             </div>
+            
+            {/* Book Appointment Card */}
+            {calendlyData?.calendlyEnabled && (
+              <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-5 shadow-sm mt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-full bg-primary/20">
+                    <Calendar className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      Book an Appointment
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Schedule a meeting with {grower.name}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Interested in our products? Book a consultation to discuss bulk orders, 
+                  custom requests, or schedule a farm visit.
+                </p>
+                <CalendlyButton
+                  growerSlug={slug || ""}
+                  growerName={grower.name}
+                  calendlyEnabled={calendlyData.calendlyEnabled}
+                  appointmentTypes={calendlyData.appointmentTypes}
+                  variant="default"
+                  size="default"
+                  className="w-full"
+                />
+              </div>
+            )}
             
             {/* Find At Stores Section */}
             {grower.availableAtStores && grower.availableAtStores.length > 0 && (

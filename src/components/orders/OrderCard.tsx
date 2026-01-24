@@ -5,14 +5,17 @@
 
 "use client";
 
-import React from "react";
-import { Package, MapPin, CreditCard, Truck, Calendar, User, Phone, Mail, AlertCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Package, MapPin, CreditCard, Truck, Calendar, User, Phone, Mail, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Order } from "@/hooks/useSanityOrders";
+import { OrdersApi } from "@/lib/api/orders";
+import { OrderRejectionModal } from "./OrderRejectionModal";
 
 interface OrderCardProps {
   order: Order;
@@ -21,6 +24,7 @@ interface OrderCardProps {
   onUpdateStatus?: (orderId: string) => void;
   onAddTracking?: (orderId: string) => void;
   onPrintInvoice?: (orderId: string) => void;
+  onOrderUpdated?: () => void; // Callback to refresh order list
   className?: string;
 }
 
@@ -28,13 +32,15 @@ interface OrderCardProps {
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "pending":
-      return "bg-gray-500";
+      return "bg-yellow-500";
     case "confirmed":
+    case "to_ship":
+    case "approved":
       return "bg-blue-500";
     case "processing":
-      return "bg-yellow-500";
-    case "shipped":
       return "bg-purple-500";
+    case "shipped":
+      return "bg-indigo-500";
     case "delivered":
       return "bg-green-500";
     case "cancelled":
@@ -88,11 +94,80 @@ export function OrderCard({
   onUpdateStatus,
   onAddTracking,
   onPrintInvoice,
+  onOrderUpdated,
   className,
 }: OrderCardProps) {
+  // State for approval/rejection
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [localStatus, setLocalStatus] = useState(order.status);
+
   if (variant === "compact") {
     return <CompactOrderCard order={order} onViewDetails={onViewDetails} className={className} />;
   }
+
+  // Check if order is pending
+  const isPending = localStatus.toLowerCase() === "pending";
+
+  // Handle approve action
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const response = await OrdersApi.updateOrderStatus(order.id, "TO_SHIP");
+      
+      if (response.success) {
+        toast.success("Order Approved!", {
+          description: `Order ${order.orderNumber} has been approved and is ready to ship.`,
+        });
+        setLocalStatus("TO_SHIP");
+        onOrderUpdated?.(); // Refresh the order list
+      } else {
+        toast.error("Failed to approve order", {
+          description: response.message || "Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error approving order:", error);
+      toast.error("Error", {
+        description: "Failed to approve order. Please try again.",
+      });
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  // Handle reject action
+  const handleRejectClick = () => {
+    setShowRejectModal(true);
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    setIsRejecting(true);
+    try {
+      const response = await OrdersApi.updateOrderStatus(order.id, "CANCELLED", reason);
+      
+      if (response.success) {
+        toast.success("Order Cancelled", {
+          description: `Order ${order.orderNumber} has been cancelled. Customer will be notified.`,
+        });
+        setLocalStatus("CANCELLED");
+        setShowRejectModal(false);
+        onOrderUpdated?.(); // Refresh the order list
+      } else {
+        toast.error("Failed to cancel order", {
+          description: response.message || "Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error("Error", {
+        description: "Failed to cancel order. Please try again.",
+      });
+    } finally {
+      setIsRejecting(false);
+    }
+  };
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -110,7 +185,7 @@ export function OrderCard({
             </p>
           </div>
           <div className="flex gap-2">
-            <Badge className={cn("text-white", getStatusColor(order.status))}>{order.status.toUpperCase()}</Badge>
+            <Badge className={cn("text-white", getStatusColor(localStatus))}>{localStatus.toUpperCase()}</Badge>
             <Badge className={cn("text-white", getPaymentColor(order.paymentStatus))}>
               {order.paymentStatus.toUpperCase()}
             </Badge>
@@ -274,29 +349,73 @@ export function OrderCard({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-4">
-          {onViewDetails && (
-            <Button variant="outline" onClick={() => onViewDetails(order.id)} className="flex-1">
-              View Details
-            </Button>
+        <div className="space-y-3 pt-4">
+          {/* Approve/Reject Buttons (Only for PENDING orders) */}
+          {isPending && (
+            <div className="flex gap-2">
+              <Button
+                onClick={handleApprove}
+                disabled={isApproving || isRejecting}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isApproving ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Accept Order
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={handleRejectClick}
+                disabled={isApproving || isRejecting}
+                variant="destructive"
+                className="flex-1"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Decline Order
+              </Button>
+            </div>
           )}
-          {onUpdateStatus && (
-            <Button variant="default" onClick={() => onUpdateStatus(order.id)} className="flex-1 bg-[#6A994E]">
-              Update Status
-            </Button>
-          )}
-          {onAddTracking && order.status === "shipped" && !order.trackingNumber && (
-            <Button variant="outline" onClick={() => onAddTracking(order.id)}>
-              Add Tracking
-            </Button>
-          )}
-          {onPrintInvoice && (
-            <Button variant="ghost" onClick={() => onPrintInvoice(order.id)}>
-              Print Invoice
-            </Button>
-          )}
+
+          {/* Other Action Buttons */}
+          <div className="flex gap-2">
+            {onViewDetails && (
+              <Button variant="outline" onClick={() => onViewDetails(order.id)} className="flex-1">
+                View Details
+              </Button>
+            )}
+            {onUpdateStatus && !isPending && (
+              <Button variant="default" onClick={() => onUpdateStatus(order.id)} className="flex-1 bg-[#6A994E]">
+                Update Status
+              </Button>
+            )}
+            {onAddTracking && order.status === "shipped" && !order.trackingNumber && (
+              <Button variant="outline" onClick={() => onAddTracking(order.id)}>
+                Add Tracking
+              </Button>
+            )}
+            {onPrintInvoice && (
+              <Button variant="ghost" onClick={() => onPrintInvoice(order.id)}>
+                Print Invoice
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
+
+      {/* Rejection Modal */}
+      <OrderRejectionModal
+        open={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleRejectConfirm}
+        orderNumber={order.orderNumber}
+        loading={isRejecting}
+      />
     </Card>
   );
 }
@@ -353,6 +472,7 @@ export function OrderList({
   onUpdateStatus,
   onAddTracking,
   onPrintInvoice,
+  onOrderUpdated,
   className,
 }: {
   orders: Order[];
@@ -361,6 +481,7 @@ export function OrderList({
   onUpdateStatus?: (orderId: string) => void;
   onAddTracking?: (orderId: string) => void;
   onPrintInvoice?: (orderId: string) => void;
+  onOrderUpdated?: () => void;
   className?: string;
 }) {
   if (orders.length === 0) {
@@ -386,6 +507,7 @@ export function OrderList({
           onUpdateStatus={onUpdateStatus}
           onAddTracking={onAddTracking}
           onPrintInvoice={onPrintInvoice}
+          onOrderUpdated={onOrderUpdated}
         />
       ))}
     </div>

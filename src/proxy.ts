@@ -3,13 +3,13 @@ import type { NextRequest } from "next/server";
 
 /**
  * Authentication Proxy (Next.js 16)
- * 
+ *
  * Protects routes based on authentication status.
- * 
+ *
  * Authentication Methods Supported:
  * - Google OAuth: Firebase Auth (token in sessionStorage on client)
  * - Email/Password: Backend JWT (token in auth-token cookie)
- * 
+ *
  * Note: For Firebase-only Google auth, client-side protection in AuthContext
  * handles most auth flows. This proxy provides server-side route protection
  * for backend-authenticated users.
@@ -46,20 +46,27 @@ const publicRoutes = [
   "/terms",
   "/shipping-info",
   "/returns-policy",
+  // Auth routes are public (anyone can access them)
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/verify-otp",
+  "/reset-password",
 ];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check for authentication
-  // - Backend users: auth-token cookie (JWT)
-  // - Firebase Google users: Client-side only (checked in AuthContext)
+  // - Backend users: auth-token cookie (JWT from email/password login)
+  // - Firebase Google users: firebase-auth cookie (set by AuthContext)
   const authToken = request.cookies.get("auth-token")?.value;
-  const isAuthenticated = !!authToken;
+  const firebaseAuth = request.cookies.get("firebase-auth")?.value;
+  const isAuthenticated = !!authToken || !!firebaseAuth;
 
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   // Check if the current path is an auth route
@@ -67,7 +74,7 @@ export function proxy(request: NextRequest) {
 
   // Check if the current path is public
   const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   // Redirect unauthenticated users trying to access protected routes
@@ -77,10 +84,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect authenticated users trying to access auth routes
-  if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/shop", request.url));
-  }
+  // Note: We no longer redirect authenticated users from auth routes here.
+  // This is handled client-side in the login page useEffect to avoid cookie timing issues.
 
   // Allow access to public routes
   if (isPublicRoute) {

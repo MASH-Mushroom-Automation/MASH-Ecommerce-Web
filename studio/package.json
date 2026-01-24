@@ -36,6 +36,7 @@
   "devDependencies": {
     "@sanity/eslint-config-studio": "^5.0.2",
     "@types/react": "^19.1.11",
+    "p-timeout": "^7.0.1",
     "typescript": "^5.9.2"
   }
 }
