@@ -590,6 +590,16 @@ describe('WishlistContext', () => {
   });
 
   describe('Cookie Change Handling (Cross-Tab Sync)', () => {
+    beforeEach(() => {
+      // Allow polling to run in these tests
+      (global as any).__ENABLE_COOKIE_POLLING_IN_TESTS = true;
+    });
+
+    afterEach(() => {
+      delete (global as any).__ENABLE_COOKIE_POLLING_IN_TESTS;
+      jest.useRealTimers();
+    });
+
     it('should sync wishlist when cookie updated from another tab', async () => {
       jest.useFakeTimers();
       

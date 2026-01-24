@@ -16,7 +16,10 @@ import Cookies from 'js-cookie';
 // ============================================================================
 
 interface CookieOptions {
+  // `expires` follows js-cookie and accepts number (days) or Date
   expires?: number | Date;
+  // `maxAge` is accepted for convenience (seconds) and will be converted to `expires` (days)
+  maxAge?: number;
   path?: string;
   domain?: string;
   secure?: boolean;
@@ -50,8 +53,15 @@ export function setCookie(
   options: CookieOptions = {}
 ): void {
   const stringValue = typeof value === 'object' ? JSON.stringify(value) : value;
-  const cookieOptions = { ...getDefaultOptions(), ...options };
-  
+  const cookieOptions: any = { ...getDefaultOptions(), ...options };
+
+  // Convert `maxAge` (seconds) to `expires` (days) for js-cookie compatibility
+  if (typeof options.maxAge === 'number') {
+    cookieOptions.expires = options.maxAge / (60 * 60 * 24);
+    // Remove maxAge from final options so js-cookie doesn't try to process it as a string
+    delete cookieOptions.maxAge;
+  }
+
   Cookies.set(name, stringValue, cookieOptions);
 }
 

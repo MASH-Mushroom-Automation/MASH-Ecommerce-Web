@@ -60,6 +60,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for cookie changes across tabs
   useEffect(() => {
+    // In test environment, polling is disabled unless tests explicitly opt in by setting global.__ENABLE_COOKIE_POLLING_IN_TESTS = true
+    if (process.env.NODE_ENV === 'test' && !(globalThis as any).__ENABLE_COOKIE_POLLING_IN_TESTS) return;
+
     const handleCookieChange = () => {
       const savedWishlist = getWishlistCookie();
       if (!savedWishlist) {

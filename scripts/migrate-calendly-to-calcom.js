@@ -93,7 +93,8 @@ const targetGrowerId = growerIdArg ? growerIdArg.split("=")[1] : null;
 // Initialize Sanity Client
 // ============================================================================
 
-if (!SANITY_CONFIG.token) {
+// Only require a write token when performing a LIVE run. Dry-run does not need a token.
+if (!isDryRun && !SANITY_CONFIG.token) {
   console.error("❌ Error: SANITY_API_WRITE_TOKEN environment variable not set.");
   console.error("   Set it in your .env file or export it:");
   console.error('   export SANITY_API_WRITE_TOKEN="sk..."');

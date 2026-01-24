@@ -581,6 +581,7 @@
       "status": "In Progress",
       "passes": false,
       "startedAt": "2026-01-24T23:30:00Z",
+      "inProgressAt": "2026-01-24T23:45:00Z",
       "acceptanceCriteria": [
         "Find and migrate remaining localStorage usages or document exceptions",
         "Ensure all tests pass consistently (fix flaky AuthContext tests)",
@@ -588,6 +589,7 @@
         "Update PRD with final status and test/build artifacts",
         "Prepare migration run plan for Sanity (non-dry-run)"
       ],
+      "notes": "Active work: Stabilizing failing AuthContext tests (several assertions failing related to redirect handling and profile sync) and completing final sweep for remaining localStorage usages. Next steps: iterate on AuthContext tests and handlers, re-run full test suite, run build, then perform single-grower live migration upon approval.",
       "filesChanged": [
         "src/contexts/AuthContext.tsx",
         "src/lib/cookies.ts",

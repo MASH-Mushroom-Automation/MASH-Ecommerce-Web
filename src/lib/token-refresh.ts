@@ -121,6 +121,12 @@ export async function ensureValidToken(): Promise<boolean> {
  * Instead, we rely on API interceptors to handle 401 responses
  */
 export function startTokenRefreshCheck(): void {
+  // Avoid starting background interval in test environment - causes open handles/leaks
+  if (process.env.NODE_ENV === 'test') {
+    console.log("[TokenRefresh] Skipping token check in test environment");
+    return;
+  }
+
   if (tokenCheckInterval) {
     console.log("[TokenRefresh] Token check already running");
     return;

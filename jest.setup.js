@@ -35,7 +35,7 @@ global.fetch = jest.fn(() =>
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props) => {
-    const { src, alt, ...rest } = props;
+    const { src, alt, fill, priority, ...rest } = props; // remove non-DOM props
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img src={src} alt={alt} {...rest} />;
   },
@@ -210,13 +210,17 @@ Object.defineProperty(window, 'matchMedia', {
 global.scrollTo = jest.fn();
 
 // ============================================================================
-// CONSOLE ERROR SUPPRESSION
+// CONSOLE ERROR & VERBOSE LOG SUPPRESSION
 // ============================================================================
 
 const originalError = console.error;
 const originalWarn = console.warn;
+const originalLog = console.log;
+const originalInfo = console.info;
 
 beforeAll(() => {
+  const enableTestLogs = process.env.ENABLE_TEST_LOGS === 'true';
+
   // Suppress specific console errors
   console.error = (...args) => {
     if (
@@ -240,9 +244,17 @@ beforeAll(() => {
     }
     originalWarn.call(console, ...args);
   };
+
+  // Silence verbose logs/info in test runs unless explicitly enabled
+  if (!enableTestLogs) {
+    console.log = () => {};
+    console.info = () => {};
+  }
 });
 
 afterAll(() => {
   console.error = originalError;
   console.warn = originalWarn;
+  console.log = originalLog;
+  console.info = originalInfo;
 });
