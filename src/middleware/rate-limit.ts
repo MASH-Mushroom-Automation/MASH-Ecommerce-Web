@@ -26,14 +26,17 @@ interface RequestRecord {
 const requestStore = new Map<string, RequestRecord>();
 
 // Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of requestStore.entries()) {
-    if (now > record.resetAt) {
-      requestStore.delete(key);
+// Avoid starting background interval during tests which can cause open handles and OOM
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of requestStore.entries()) {
+      if (now > record.resetAt) {
+        requestStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  }, 5 * 60 * 1000);
+}
 
 /**
  * Rate limiting configurations for different endpoint categories
