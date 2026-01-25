@@ -57,16 +57,26 @@ export async function POST(request: NextRequest) {
     }
     
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (err) {
+      // Malformed JSON
+      return NextResponse.json(
+        { success: false, error: 'Malformed JSON' },
+        { status: 400 }
+      );
+    }
+
     const { message, history = [] } = body;
-    
+
     // Validate message
     const validation = validateMessage(message);
-    if (!validation.valid) {
+    if (!validation || !validation.valid) {
       return NextResponse.json(
         {
           success: false,
-          error: validation.error,
+          error: (validation && validation.error) || 'Invalid message',
         },
         { status: 400 }
       );
@@ -108,6 +118,9 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     endpoint: '/api/chatbot/message',
+    status: 'online',
+    version: process.env.npm_package_version || 'dev',
+    features: ['product-recommendations', 'rag-search'],
     methods: ['POST'],
     description: 'Send a message to the MASH AI chatbot',
     usage: {

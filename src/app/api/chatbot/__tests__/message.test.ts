@@ -17,6 +17,15 @@ jest.mock('@/services/chatbot/gemini-service');
 jest.mock('@/lib/ai/rate-limiter');
 
 describe('Chatbot API Route', () => {
+  // Helper to create mock request objects compatible with the route handler
+  function makeMockRequest(body, headers = { 'Content-Type': 'application/json' }, ip = '127.0.0.1') {
+    return {
+      headers: new Headers(headers),
+      json: async () => body,
+      ip,
+    };
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -49,15 +58,9 @@ describe('Chatbot API Route', () => {
       (geminiService.sendMessage as jest.Mock).mockResolvedValueOnce(mockResponse);
       
       // Create request
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: 'Hello',
-          history: [],
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const request = makeMockRequest({
+        message: 'Hello',
+        history: [],
       });
       
       // Call endpoint
@@ -83,14 +86,8 @@ describe('Chatbot API Route', () => {
       (rateLimiter.getResetTime as jest.Mock).mockReturnValueOnce(45);
       
       // Create request
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: 'Hello',
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const request = makeMockRequest({
+        message: 'Hello',
       });
       
       // Call endpoint
@@ -119,15 +116,7 @@ describe('Chatbot API Route', () => {
       });
       
       // Create request
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: 'a'.repeat(501),
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const request = makeMockRequest({ message: 'a'.repeat(501) });
       
       // Call endpoint
       const response = await POST(request);
@@ -161,16 +150,7 @@ describe('Chatbot API Route', () => {
       );
       
       // Create request
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: 'Hello',
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
+      const request = makeMockRequest({ message: 'Hello' });
       // Call endpoint
       const response = await POST(request);
       const data = await response.json();
@@ -183,12 +163,8 @@ describe('Chatbot API Route', () => {
   
   describe('GET /api/chatbot/message', () => {
     it('should return API documentation', async () => {
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'GET',
-      });
-      
       const response = await GET();
-      const data = await response.json();
+      const data = typeof response.json === 'function' ? await response.json() : response;
       
       expect(response.status).toBe(200);
       expect(data.endpoint).toBe('/api/chatbot/message');

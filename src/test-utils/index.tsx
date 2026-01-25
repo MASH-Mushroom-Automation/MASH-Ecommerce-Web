@@ -6,6 +6,9 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WishlistProvider } from '@/contexts/WishlistContext';
+import { CartProvider } from '@/contexts/CartContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 /**
  * Create a test QueryClient with disabled retries and caching
@@ -38,7 +41,13 @@ function AllProviders({ children, queryClient }: AllProvidersProps) {
 
   return (
     <QueryClientProvider client={client}>
-      {children}
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            {children}
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

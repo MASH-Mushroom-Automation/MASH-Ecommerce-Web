@@ -112,40 +112,57 @@ export async function logout(): Promise<void> {
   console.log("🔴 [Auth] logout called");
   
   try {
-<<<<<<< HEAD
-    // Clear HTTP-only cookies via API
-    const response = await fetch("/api/auth/clear-tokens", {
-      method: "POST",
-      credentials: "include",
-=======
-    // Clear all auth-related storage
-    console.log("🔴 [Auth] Clearing localStorage and sessionStorage");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("pendingVerificationEmail");
-    sessionStorage.removeItem("resetPasswordEmail");
+    // Attempt to clear HTTP-only cookies server-side
+    try {
+      const response = await fetch("/api/auth/clear-tokens", {
+        method: "POST",
+        credentials: "include",
+      });
 
-    // Optional: clear cached user data
-    sessionStorage.removeItem("user");
+      if (!response.ok) {
+        console.warn(
+          "⚠️ [Auth] Failed to clear tokens via API (status: " + response.status + "), continuing with client cleanup"
+        );
+      } else {
+        console.log("🔴 [Auth] Auth tokens cleared via API");
+      }
+    } catch (err) {
+      console.warn("[Auth] Error calling /api/auth/clear-tokens, proceeding with client cleanup:", err);
+    }
 
-    // Clear user profile cache
-    UserApi.clearCache();
+    // Clear client-side state: localStorage/sessionStorage and cached user state
+    try {
+      console.log("🔴 [Auth] Clearing localStorage and sessionStorage");
 
-    // Proactively clear client-side persisted app state
-    localStorage.removeItem("mash-wishlist");
-    localStorage.removeItem("cart");
-    localStorage.removeItem("mash-cart"); // Current cart key
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("pendingVerificationEmail");
+      sessionStorage.removeItem("resetPasswordEmail");
+      sessionStorage.removeItem("user");
 
-    // Clear Google auth redirect markers
-    localStorage.removeItem("google_auth_redirect");
-    sessionStorage.removeItem("google_auth_redirect");
+      // Clear user profile cache
+      try { UserApi.clearCache(); } catch (e) { console.warn("UserApi.clearCache failed:", e); }
 
-    // Also sign out from Firebase if user was authenticated via Google
-    console.log("🔴 [Auth] Signing out from Firebase");
-    signOutFirebase().catch((err) => {
+      // Clear persisted app state
+      localStorage.removeItem("mash-wishlist");
+      localStorage.removeItem("cart");
+      localStorage.removeItem("mash-cart");
+
+      // Clear Google auth redirect markers
+      localStorage.removeItem("google_auth_redirect");
+      sessionStorage.removeItem("google_auth_redirect");
+    } catch (e) {
+      console.warn("[Auth] Error clearing client storage:", e);
+    }
+
+    // Also sign out from Firebase if available
+    try {
+      console.log("🔴 [Auth] Signing out from Firebase");
+      await signOutFirebase();
+    } catch (err) {
       console.warn("Firebase sign out failed:", err);
->>>>>>> origin/main
-    });
+    }
+
 
     if (!response.ok) {
       console.warn("⚠️ [Auth] Failed to clear tokens via API, clearing client state anyway");
@@ -189,14 +206,8 @@ export async function logout(): Promise<void> {
  *
  * This function:
  * 1. Calls backend to invalidate all refresh tokens
-<<<<<<< HEAD
- * 2. Clears local auth state via logout()
- * 
-=======
- * 2. Clears local auth state
- * 3. Signs out from Firebase
- *
->>>>>>> origin/main
+ * 2. Clears local auth state and signs out from Firebase (where applicable)
+ 
  * @returns Promise<boolean> - True if backend logout succeeded
  */
 export async function logoutEverywhere(): Promise<boolean> {
@@ -204,18 +215,14 @@ export async function logoutEverywhere(): Promise<boolean> {
 
   // Try to call backend logout endpoint (requires auth token in cookie)
   let backendLogoutSuccess = false;
-<<<<<<< HEAD
-  
   try {
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include", // Send auth cookies
-      body: JSON.stringify({
-        logoutAll: true, // Invalidate all sessions
-      }),
+      credentials: "include",
+      body: JSON.stringify({ logoutAll: true }),
     });
 
     if (response.ok) {
@@ -223,34 +230,10 @@ export async function logoutEverywhere(): Promise<boolean> {
       backendLogoutSuccess = true;
     } else {
       console.warn("⚠️ [Auth] Backend logout failed:", response.status);
-=======
-
-  if (token || refreshToken) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          refreshToken: refreshToken || undefined,
-          logoutAll: true, // Invalidate all sessions
-        }),
-      });
-
-      if (response.ok) {
-        console.log(
-          "🟢 [Auth] Backend logout successful - all sessions invalidated"
-        );
-        backendLogoutSuccess = true;
-      } else {
-        console.warn("⚠️ [Auth] Backend logout failed:", response.status);
-      }
-    } catch (error) {
-      console.error("❌ [Auth] Backend logout error:", error);
-      // Continue with local logout even if backend fails
     }
+  } catch (error) {
+    console.error("❌ [Auth] Backend logout error:", error);
+    // Continue with local logout even if backend fails
   }
 
   // Always clear local state

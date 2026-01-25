@@ -721,7 +721,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      try {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        } else if (unsubscribe && typeof (unsubscribe as any).unsubscribe === 'function') {
+          (unsubscribe as any).unsubscribe();
+        }
+      } catch (e) {
+        // swallow any unsubscribe errors in test environment
+      }
+    };
   }, [
     migrateOldUserData,
     profileToAuthUser,

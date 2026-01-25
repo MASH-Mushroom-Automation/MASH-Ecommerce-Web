@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/test-utils';
 import { ChatDialog } from '../ChatDialog';
 import type { Message } from '@/types/chatbot';
 import type { ProductCardData } from '@/lib/ai/context-builder';

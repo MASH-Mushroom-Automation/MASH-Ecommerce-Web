@@ -16,7 +16,39 @@ if (typeof TextEncoder === 'undefined') {
 if (typeof Request === 'undefined') {
   global.Request = class Request {};
   global.Response = class Response {};
-  global.Headers = class Headers {};
+
+  // Minimal Headers polyfill used by Next's RequestCookies in tests
+  global.Headers = class Headers {
+    constructor(init = {}) {
+      this._map = new Map();
+      if (init instanceof Headers) {
+        for (const [k, v] of init._map) this._map.set(k, v);
+      } else if (typeof init === 'object' && init !== null) {
+        Object.entries(init).forEach(([k, v]) => this._map.set(String(k).toLowerCase(), String(v)));
+      }
+    }
+    get(name) {
+      return this._map.get(String(name).toLowerCase()) || null;
+    }
+    set(name, value) {
+      this._map.set(String(name).toLowerCase(), String(value));
+    }
+    has(name) {
+      return this._map.has(String(name).toLowerCase());
+    }
+    forEach(fn) {
+      for (const [k, v] of this._map) fn(v, k, this);
+    }
+    entries() {
+      return this._map.entries();
+    }
+    keys() {
+      return this._map.keys();
+    }
+    values() {
+      return this._map.values();
+    }
+  };
 }
 
 // Mock Firebase/Firestore for analytics
@@ -52,11 +84,35 @@ jest.mock('@/lib/analytics/chatbot-analytics', () => ({
   getTopClickedProducts: jest.fn(() => Promise.resolve([])),
   logError: jest.fn(() => Promise.resolve()),
   getErrorStats: jest.fn(() => Promise.resolve({ totalErrors: 0, errorsByType: {} })),
-  getDailyStats: jest.fn(() => Promise.resolve({})),
+  getDailyStats: jest.fn(() => Promise.resolve({
+    date: new Date().toISOString().split('T')[0],
+    conversationsStarted: 0,
+    totalMessages: 0,
+    uniqueUsers: 0,
+    avgMessagesPerConversation: 0,
+    productCardsShown: 0,
+    productCardsClicked: 0,
+    clickThroughRate: 0,
+    conversionsCount: 0,
+    conversionRate: 0,
+    avgResponseTime: 0,
+    errorCount: 0,
+    topQueries: [],
+    topProducts: [],
+  })),
   getWeeklyStats: jest.fn(() => Promise.resolve([])),
   exportToCSV: jest.fn(() => ''),
   downloadCSV: jest.fn(),
 }));
+
+// Simple runtime check that the analytics mock is available
+try {
+  const analyticsMockCheck = require('@/lib/analytics/chatbot-analytics');
+  global.__MOCK_ANALYTICS_PRESENT = {
+    startConversation: typeof analyticsMockCheck.startConversation === 'function',
+    getDailyStats: typeof analyticsMockCheck.getDailyStats === 'function',
+  };
+} catch (e) {}
 
 // ============================================================================
 // ENVIRONMENT SETUP
@@ -171,8 +227,30 @@ jest.mock('next/navigation', () => ({
   useParams: () => ({}),
 }));
 
+// Polyfill NextResponse.json for tests to return a Response-like object
+try {
+  const nextServer = require('next/server');
+  if (nextServer && nextServer.NextResponse && !nextServer.NextResponse.json.__isPatched) {
+    nextServer.NextResponse.json = function (data, init) {
+      const status = (init && init.status) || 200;
+      return {
+        status,
+        json: async () => data,
+        // provide direct body for convenience
+        body: data,
+      };
+    };
+    // Mark as patched to avoid double patching
+    nextServer.NextResponse.json.__isPatched = true;
+  }
+} catch (e) {
+  // ignore if next/server not available in this environment
+}
+
+
+
 // ============================================================================
-// FIREBASE MOCKS
+// FIREBASE MOCKS (Consolidated for analytics + auth tests)
 // ============================================================================
 
 jest.mock('firebase/app', () => ({
@@ -203,16 +281,23 @@ jest.mock('firebase/auth', () => ({
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => ({})),
   collection: jest.fn(),
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  getDocs: jest.fn(),
-  setDoc: jest.fn(),
-  updateDoc: jest.fn(),
-  deleteDoc: jest.fn(),
+  addDoc: jest.fn(() => Promise.resolve({ id: 'mock-id' })),
   query: jest.fn(),
   where: jest.fn(),
+  getDocs: jest.fn(() => Promise.resolve({ docs: [] })),
   orderBy: jest.fn(),
   limit: jest.fn(),
+  Timestamp: {
+    now: jest.fn(() => ({ seconds: Date.now() / 1000 })),
+    fromDate: jest.fn((date) => ({ seconds: date.getTime() / 1000 })),
+  },
+  serverTimestamp: jest.fn(() => ({ _methodName: 'serverTimestamp' })),
+  updateDoc: jest.fn(() => Promise.resolve()),
+  doc: jest.fn(),
+  increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
+  getDoc: jest.fn(() => Promise.resolve({ exists: () => false })),
+  setDoc: jest.fn(() => Promise.resolve()),
+  deleteDoc: jest.fn(() => Promise.resolve()),
   onSnapshot: jest.fn(),
 }));
 
@@ -323,12 +408,9 @@ const originalLog = console.log;
 const originalInfo = console.info;
 
 beforeAll(() => {
-<<<<<<< HEAD
   const enableTestLogs = process.env.ENABLE_TEST_LOGS === 'true';
 
   // Suppress specific console errors
-=======
->>>>>>> origin/main
   console.error = (...args) => {
     if (
       typeof args[0] === 'string' &&
