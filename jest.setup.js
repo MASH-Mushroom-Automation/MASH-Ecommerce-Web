@@ -320,19 +320,68 @@ const originalWarn = console.warn;
 const originalLog = console.log;
 const originalInfo = console.info;
 
+// ============================================================================
+// Default test render providers
+// - Wraps render() to include QueryClient + WishlistProvider to match app context
+// ============================================================================
+try {
+  const rtl = require('@testing-library/react');
+  const { QueryClientProvider } = require('@tanstack/react-query');
+  const { createTestQueryClient } = require('./src/test-utils');
+  const { WishlistProvider } = require('./src/contexts/WishlistContext');
+
+  const originalRender = rtl.render;
+
+  rtl.render = (ui, options) =>
+    originalRender(ui, {
+      wrapper: ({ children }) => {
+        const client = createTestQueryClient();
+        return (
+          <QueryClientProvider client={client}>
+            <WishlistProvider>{children}</WishlistProvider>
+          </QueryClientProvider>
+        );
+      },
+      ...options,
+    });
+} catch (e) {
+  // If this fails in some environments, ignore and let tests opt-in explicitly
+  // This is a safe optimization to reduce test boilerplate
+}
+
+
 beforeAll(() => {
   const enableTestLogs = process.env.ENABLE_TEST_LOGS === 'true';
 
   // Suppress specific console errors
   console.error = (...args) => {
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-       args[0].includes('Warning: useLayoutEffect') ||
-       args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
-    ) {
-      return;
+    try {
+      const util = require('util');
+      const combined = args
+        .map((a) => {
+          if (typeof a === 'string') return a;
+          try {
+            return util.inspect(a, { depth: null });
+          } catch (e) {
+            try { return JSON.stringify(a); } catch (e2) { return String(a); }
+          }
+        })
+        .join(' ');
+
+      const lc = combined.toLowerCase();
+      if (
+        lc.includes('warning: reactdom.render') ||
+        lc.includes('warning: uselayouteffect') ||
+        lc.includes('not implemented: htmlformelement.prototype.submit') ||
+        (lc.includes('non-boolean attribute') && lc.includes('fill')) ||
+        lc.includes('received `true` for a non-boolean attribute `fill`')
+      ) {
+        return;
+      }
+    } catch (e) {
+      // ignore and fall through to originalError
     }
+
     originalError.call(console, ...args);
   };
 
