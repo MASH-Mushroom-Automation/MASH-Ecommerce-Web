@@ -16,6 +16,55 @@ process.env.NEXT_PUBLIC_SANITY_DATASET = 'production';
 process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'test-api-key';
 process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'mash-test';
 
+// Prevent Next.js's unhandledRejection handler from causing recursion/stack overflows in tests.
+// Install a single, idempotent handler that deduplicates repeated rejection messages and defers
+// logging to avoid reentrancy with Next's internal handlers. This prevents flooding the process
+// with repeated logs and eventual stack overflows / worker crashes.
+try {
+  // Remove any existing listeners to prevent Next.js from installing a handler
+  // that may throw and cause recursion during tests. Attach a single safe handler.
+  try {
+    const oldListeners = process.listeners && process.listeners('unhandledRejection');
+    if (oldListeners && oldListeners.length) {
+      try { process.removeAllListeners && process.removeAllListeners('unhandledRejection'); } catch (e) {}
+    }
+  } catch (e) {}
+
+  if (!process.__MASH_TEST_UNHANDLED_REJECTION_ATTACHED) {
+    process.__MASH_TEST_UNHANDLED_REJECTION_ATTACHED = true;
+    process.__MASH_TEST_SEEN_REJECTIONS = new Set();
+
+    process.on('unhandledRejection', (reason) => {
+      try {
+        // Deduplicate and limit length to avoid flooding logs
+        const key =
+          reason && (reason.message || reason.stack)
+            ? String(reason.message || reason.stack).slice(0, 1000)
+            : String(reason);
+
+        if (process.__MASH_TEST_SEEN_REJECTIONS.has(key)) return;
+        process.__MASH_TEST_SEEN_REJECTIONS.add(key);
+
+        // Log synchronously (no setImmediate) to avoid interplay with Next's internal handlers
+        try {
+          if (reason && reason.stack) {
+            const full = String(reason.stack).slice(0, 2000);
+            /* eslint-disable no-console */
+            console.error('[TEST] unhandledRejection (origin stack):', full);
+          } else {
+            /* eslint-disable no-console */
+            console.error('[TEST] unhandledRejection:', String(reason));
+          }
+        } catch (e) {
+          // swallow
+        }
+      } catch (e) {
+        // swallow
+      }
+    });
+  }
+} catch (e) {}
+
 // Mock global fetch API (for tests that use fetch directly)
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -257,4 +306,35 @@ afterAll(() => {
   console.warn = originalWarn;
   console.log = originalLog;
   console.info = originalInfo;
+});
+
+// ============================================================================
+// GLOBAL TEST CLEANUP
+// ============================================================================
+
+afterEach(() => {
+  // Restore timers to real timers and clear any pending timers
+  try {
+    jest.useRealTimers();
+    jest.clearAllTimers();
+  } catch (e) {
+    // jest may not expose timer functions in some environments
+  }
+
+  // Clear mocks to avoid cumulative memory usage across tests
+  try {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  } catch (e) {}
+
+  // Attempt to detect and clear intervals created by well-known singletons
+  try {
+    // Websocket client, token refresh, realtime subscriptions, wishlist polling
+    // call their stop/cleanup functions if available on globalThis for tests
+    if (globalThis.__TEST_CLEANUP_FUNCTIONS) {
+      globalThis.__TEST_CLEANUP_FUNCTIONS.forEach((fn) => {
+        try { fn(); } catch (e) {}
+      });
+    }
+  } catch (e) {}
 });

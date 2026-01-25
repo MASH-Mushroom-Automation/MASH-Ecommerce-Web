@@ -50,31 +50,48 @@ export function CalComEmbed({
 
   useEffect(() => {
     (async function () {
-      const cal = await getCalApi();
-      
-      // Configure Cal.com embed
-      cal("ui", {
-        theme: "light",
-        styles: {
-          branding: {
-            brandColor: "#16a34a", // MASH green
-          },
-        },
-        hideEventTypeDetails: false,
-        layout: "month_view",
-      });
+      try {
+        const cal = await getCalApi();
 
-      // Pre-fill user data if logged in
-      if (user?.email || user?.displayName) {
-        cal("preload", {
-          email: user?.email || "",
-          name: user?.displayName || "",
-          metadata: productId
-            ? {
-                productId: productId, // Track which product they're interested in
-              }
-            : undefined,
+        // If the returned API is not a callable function, try common shapes or bail
+        const callCal =
+          typeof cal === 'function'
+            ? cal
+            : (cal && (cal.cal || cal.default || cal.getCal)) || null;
+
+        if (!callCal) {
+          /* eslint-disable no-console */
+          console.warn('[CalComEmbed] getCalApi did not return a callable function, skipping UI/preload configuration');
+          return;
+        }
+
+        // Configure Cal.com embed
+        callCal('ui', {
+          theme: 'light',
+          styles: {
+            branding: {
+              brandColor: '#16a34a', // MASH green
+            },
+          },
+          hideEventTypeDetails: false,
+          layout: 'month_view',
         });
+
+        // Pre-fill user data if logged in
+        if (user?.email || user?.displayName) {
+          callCal('preload', {
+            email: user?.email || '',
+            name: user?.displayName || '',
+            metadata: productId
+              ? {
+                  productId: productId, // Track which product they're interested in
+                }
+              : undefined,
+          });
+        }
+      } catch (err) {
+        /* eslint-disable no-console */
+        console.error('[CalComEmbed] Error initializing Cal API:', err);
       }
     })();
   }, [user, productId]);
