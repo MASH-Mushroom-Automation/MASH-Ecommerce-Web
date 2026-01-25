@@ -1,5 +1,6 @@
 import { apiRequest } from "../api-client";
 import { setAuthToken, logout } from "../auth";
+import { setCookie } from "@/lib/cookies";
 
 // Types
 export interface RegisterRequest {
@@ -242,7 +243,25 @@ export const AuthApi = {
     // Store tokens in HTTP-only cookies via API
     // rememberMe determines cookie expiry: true = 30 days, false = 7 days
     if (accessToken) {
+      // Use the server-side API helper to set HTTP-only cookies for tokens
       await setAuthToken(accessToken, refreshToken, data.rememberMe || false);
+    }
+
+    // Persist user info in a client-accessible cookie (used by UI for instant hydration)
+    const user = response.data?.user || response.user;
+    if (user) {
+      const userWithProvider = {
+        ...user,
+        provider: "email",
+        emailVerified: user.emailVerified ?? true,
+      };
+
+      try {
+        // 30 days expiry
+        setCookie("user", userWithProvider, { maxAge: 60 * 60 * 24 * 30 });
+      } catch (e) {
+        console.warn("[AuthApi] Failed to persist user cookie:", e);
+      }
     }
 
     return response;

@@ -682,19 +682,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // No Firebase user, check for traditional auth via cookie
         // Don't clear user if they logged in with email/password
         try {
-          const storedUser = getCookieJSON<any>("user");
-          if (storedUser) {
-            if (storedUser.provider === "email") {
-              setUser(storedUser);
+          const cookieUser = getCookieJSON<any>("user");
+          const hasAuthToken = typeof document !== 'undefined' && document.cookie.includes("auth-token=");
+          let restored = false;
+
+          if (cookieUser) {
+            // Restore if cookie indicates an email user or an auth-token exists (backend login)
+            if (cookieUser.provider === "email" || hasAuthToken) {
+              if (!cookieUser.provider) cookieUser.provider = "email";
+              setUser(cookieUser);
+              restored = true;
             } else {
-              // Firebase user logged out, clear state
+              // If cookie exists but is not usable for restoration, clear it
               setUser(null);
-              removeCookie("user");
+              try { removeCookie("user"); } catch (e) {}
             }
-          } else {
+          } else if (typeof localStorage !== "undefined") {
+            const stored = localStorage.getItem("user");
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.provider === "email" || hasAuthToken) {
+                if (!parsed.provider) parsed.provider = "email";
+                setUser(parsed);
+                restored = true;
+              }
+            }
+          }
+
+          if (!restored) {
             setUser(null);
           }
-        } catch {
+        } catch (e) {
+          console.warn("[Auth Context] Error restoring user from cookies/local:", e);
           setUser(null);
         }
       }

@@ -37,14 +37,7 @@ import { AuthApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth";
 import { toast } from "sonner";
 
-const getPasswordRequirements = (password: string) => {
-  return {
-    minLength: password.length >= 6,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
-    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
-  };
-};
+// Password requirements are not needed for login
 
 const getEmailStatus = (email: string) => {
   if (!email) {

@@ -1,7 +1,9 @@
 import { signOutFirebase } from "@/lib/firebase";
+import { UserApi } from "@/lib/api/user";
 
 // API Base URL for backend calls
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 
 /**
  * Check if user is authenticated by verifying HTTP-only cookie existence
@@ -110,10 +112,39 @@ export async function logout(): Promise<void> {
   console.log("🔴 [Auth] logout called");
   
   try {
+<<<<<<< HEAD
     // Clear HTTP-only cookies via API
     const response = await fetch("/api/auth/clear-tokens", {
       method: "POST",
       credentials: "include",
+=======
+    // Clear all auth-related storage
+    console.log("🔴 [Auth] Clearing localStorage and sessionStorage");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("pendingVerificationEmail");
+    sessionStorage.removeItem("resetPasswordEmail");
+
+    // Optional: clear cached user data
+    sessionStorage.removeItem("user");
+
+    // Clear user profile cache
+    UserApi.clearCache();
+
+    // Proactively clear client-side persisted app state
+    localStorage.removeItem("mash-wishlist");
+    localStorage.removeItem("cart");
+    localStorage.removeItem("mash-cart"); // Current cart key
+
+    // Clear Google auth redirect markers
+    localStorage.removeItem("google_auth_redirect");
+    sessionStorage.removeItem("google_auth_redirect");
+
+    // Also sign out from Firebase if user was authenticated via Google
+    console.log("🔴 [Auth] Signing out from Firebase");
+    signOutFirebase().catch((err) => {
+      console.warn("Firebase sign out failed:", err);
+>>>>>>> origin/main
     });
 
     if (!response.ok) {
@@ -153,13 +184,19 @@ export async function logout(): Promise<void> {
 
 /**
  * Logout from all devices/sessions
- * 
+ *
  * Phase 5: Session Management & Security
- * 
+ *
  * This function:
  * 1. Calls backend to invalidate all refresh tokens
+<<<<<<< HEAD
  * 2. Clears local auth state via logout()
  * 
+=======
+ * 2. Clears local auth state
+ * 3. Signs out from Firebase
+ *
+>>>>>>> origin/main
  * @returns Promise<boolean> - True if backend logout succeeded
  */
 export async function logoutEverywhere(): Promise<boolean> {
@@ -167,6 +204,7 @@ export async function logoutEverywhere(): Promise<boolean> {
 
   // Try to call backend logout endpoint (requires auth token in cookie)
   let backendLogoutSuccess = false;
+<<<<<<< HEAD
   
   try {
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
@@ -185,10 +223,34 @@ export async function logoutEverywhere(): Promise<boolean> {
       backendLogoutSuccess = true;
     } else {
       console.warn("⚠️ [Auth] Backend logout failed:", response.status);
+=======
+
+  if (token || refreshToken) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          refreshToken: refreshToken || undefined,
+          logoutAll: true, // Invalidate all sessions
+        }),
+      });
+
+      if (response.ok) {
+        console.log(
+          "🟢 [Auth] Backend logout successful - all sessions invalidated"
+        );
+        backendLogoutSuccess = true;
+      } else {
+        console.warn("⚠️ [Auth] Backend logout failed:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ [Auth] Backend logout error:", error);
+      // Continue with local logout even if backend fails
     }
-  } catch (error) {
-    console.error("❌ [Auth] Backend logout error:", error);
-    // Continue with local logout even if backend fails
   }
 
   // Always clear local state
@@ -200,7 +262,7 @@ export async function logoutEverywhere(): Promise<boolean> {
 /**
  * Refresh the access token using the refresh token from HTTP-only cookie
  * Tokens are managed server-side for security
- * 
+ *
  * @returns Promise<boolean> - True if refresh succeeded
  */
 export async function refreshToken(): Promise<boolean> {
