@@ -242,6 +242,7 @@ export const AuthApi = {
     // Store tokens in HTTP-only cookies via API
     // rememberMe determines cookie expiry: true = 30 days, false = 7 days
     if (accessToken) {
+      // Ensure tokens are set via secure API route
       await setAuthToken(accessToken, refreshToken, data.rememberMe || false);
     }
 

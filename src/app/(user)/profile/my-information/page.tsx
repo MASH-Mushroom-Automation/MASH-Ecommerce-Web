@@ -3,29 +3,82 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Loader2, Star, Trash2, Plus, User, Mail, Camera, Lock, Edit, AlertTriangle, Shield, Key, CheckCircle2, Info, Phone } from "lucide-react";
-import { useFirebaseAddresses, type AddressInput, type FirestoreAddress } from "@/hooks/useFirebaseAddresses";
+import {
+  MapPin,
+  Loader2,
+  Star,
+  Trash2,
+  Plus,
+  User,
+  Mail,
+  Camera,
+  Lock,
+  Edit,
+  AlertTriangle,
+  Shield,
+  Key,
+  CheckCircle2,
+  Info,
+  Phone,
+} from "lucide-react";
+import {
+  useFirebaseAddresses,
+  type AddressInput,
+  type FirestoreAddress,
+} from "@/hooks/useFirebaseAddresses";
 import { toast } from "sonner";
-import { AddressPicker, type SelectedAddress } from "@/components/checkout/AddressPicker";
+import {
+  AddressPicker,
+  type SelectedAddress,
+} from "@/components/checkout/AddressPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
-import { 
-  getAuth, 
-  updatePassword, 
-  reauthenticateWithCredential, 
+import {
+  getAuth,
+  updatePassword,
+  reauthenticateWithCredential,
   EmailAuthProvider,
   linkWithCredential,
 } from "firebase/auth";
 import { FirebaseUserService } from "@/lib/firebase";
+import { UserApi } from "@/lib/api/user";
 
 export default function MyInformationPage() {
-  const { user, isAuthenticated, updateUserProfile } = useAuth();
+  const { user: authUser, isAuthenticated, updateUserProfile } = useAuth();
+
+  // Fallback: get user from localStorage if AuthContext doesn't have it yet
+  const [localUser, setLocalUser] = useState<typeof authUser>(null);
+
+  useEffect(() => {
+    if (!authUser) {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          setLocalUser(parsed);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }, [authUser]);
+
+  // Use authUser from context, or fallback to localStorage
+  const user = authUser || localUser;
+
   const {
     addresses: savedAddresses,
     loading: addressesLoading,
@@ -35,22 +88,36 @@ export default function MyInformationPage() {
     updateAddress,
     mutating: addressMutating,
   } = useFirebaseAddresses();
-  
+
   // Auth provider detection
-  const [authProvider, setAuthProvider] = useState<'google' | 'email' | 'unknown'>('unknown');
+  const [authProvider, setAuthProvider] = useState<
+    "google" | "email" | "unknown"
+  >("unknown");
   const [hasPassword, setHasPassword] = useState(false);
-  
+
   // Phone number state
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
-  
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Backend profile data
+  const [backendProfile, setBackendProfile] = useState<{
+    phoneNumber?: string;
+    phone?: string; // Legacy fallback
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  } | null>(null);
+
   // Address states
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [addressLabel, setAddressLabel] = useState("Home");
   const [landmark, setLandmark] = useState("");
-  const [editingAddress, setEditingAddress] = useState<FirestoreAddress | null>(null);
-  
+  const [editingAddress, setEditingAddress] = useState<FirestoreAddress | null>(
+    null
+  );
+
   // Confirmation dialogs
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -80,13 +147,55 @@ export default function MyInformationPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   /**
-   * Initialize phone number from user profile
+   * Fetch user profile from backend API (with caching)
    */
   useEffect(() => {
-    if (user?.phone) {
+    const fetchBackendProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const response = await UserApi.getProfile();
+
+        if (response.success && response.data) {
+          console.log("[Profile] Fetched from backend:", response.data);
+          setBackendProfile(response.data);
+
+          // Update phone number from backend - prefer phoneNumber, fallback to phone
+          const phone = response.data.phoneNumber || response.data.phone;
+          if (phone) {
+            setPhoneNumber(phone);
+          }
+        }
+      } catch (error) {
+        console.error("[Profile] Failed to fetch backend profile:", error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    // Only fetch if user is authenticated (has auth-token)
+    const hasAuthToken = document.cookie.includes("auth-token=");
+    if (hasAuthToken) {
+      fetchBackendProfile();
+    } else {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  /**
+   * Initialize phone number from user profile (fallback to context/localStorage if backend didn't have it)
+   */
+  useEffect(() => {
+    // Only set from context/localStorage if backend didn't provide phone number
+    const backendPhone = backendProfile?.phoneNumber || backendProfile?.phone;
+    if (!backendPhone && user?.phone && !phoneNumber) {
       setPhoneNumber(user.phone);
     }
-  }, [user?.phone]);
+  }, [
+    user?.phone,
+    backendProfile?.phoneNumber,
+    backendProfile?.phone,
+    phoneNumber,
+  ]);
 
   /**
    * Detect authentication provider on mount
@@ -97,46 +206,46 @@ export default function MyInformationPage() {
       const currentUser = auth.currentUser;
 
       if (!currentUser) {
-        setAuthProvider('unknown');
+        setAuthProvider("unknown");
         return;
       }
 
       try {
         const providerData = currentUser.providerData;
-        
+
         if (providerData.length === 0) {
-          setAuthProvider('unknown');
+          setAuthProvider("unknown");
           return;
         }
 
         const hasGoogleProvider = providerData.some(
-          (provider) => provider.providerId === 'google.com'
+          (provider) => provider.providerId === "google.com"
         );
 
         const hasEmailProvider = providerData.some(
-          (provider) => provider.providerId === 'password'
+          (provider) => provider.providerId === "password"
         );
 
         if (hasGoogleProvider && !hasEmailProvider) {
-          setAuthProvider('google');
+          setAuthProvider("google");
           setHasPassword(false);
         } else if (hasEmailProvider) {
-          setAuthProvider('email');
+          setAuthProvider("email");
           setHasPassword(true);
         } else if (hasGoogleProvider && hasEmailProvider) {
-          setAuthProvider('google');
+          setAuthProvider("google");
           setHasPassword(true);
         } else {
-          setAuthProvider('unknown');
+          setAuthProvider("unknown");
         }
 
-        console.log('[Profile] Auth provider:', { 
-          detected: hasGoogleProvider ? 'google' : 'email',
+        console.log("[Profile] Auth provider:", {
+          detected: hasGoogleProvider ? "google" : "email",
           hasPassword: hasEmailProvider,
-          providerData 
+          providerData,
         });
       } catch (error) {
-        console.error('[Profile] Error detecting auth provider:', error);
+        console.error("[Profile] Error detecting auth provider:", error);
       }
     };
 
@@ -150,8 +259,8 @@ export default function MyInformationPage() {
    */
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow numbers
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    
+    const value = e.target.value.replace(/[^0-9]/g, "");
+
     // Limit to 11 digits (Philippine format: 09XXXXXXXXX)
     if (value.length <= 11) {
       setPhoneNumber(value);
@@ -166,23 +275,18 @@ export default function MyInformationPage() {
     if (phone.length !== 11) {
       return false;
     }
-    
-    if (!phone.startsWith('09')) {
+
+    if (!phone.startsWith("09")) {
       return false;
     }
-    
+
     return true;
   };
 
   /**
-   * Handle phone number update
+   * Handle phone number update - saves to backend API
    */
   const handleSavePhone = async () => {
-    if (!user?.id) {
-      toast.error("No user signed in");
-      return;
-    }
-
     // Trim whitespace
     const cleanPhone = phoneNumber.trim();
 
@@ -193,25 +297,52 @@ export default function MyInformationPage() {
     }
 
     if (!validatePhilippinePhone(cleanPhone)) {
-      toast.error("Please enter a valid Philippine phone number (e.g., 09171234567)");
+      toast.error(
+        "Please enter a valid Philippine phone number (e.g., 09171234567)"
+      );
       return;
     }
 
     setPhoneLoading(true);
 
     try {
-      // Update Firestore profile
-      await FirebaseUserService.updateProfile(user.id, {
-        phone: cleanPhone,
+      // Update via backend API using phoneNumber field
+      const response = await UserApi.updateProfile({
+        phoneNumber: cleanPhone,
       });
 
-      // Update local auth context
-      await updateUserProfile({ phone: cleanPhone });
+      if (response.success) {
+        // Update local state
+        setBackendProfile((prev) =>
+          prev
+            ? { ...prev, phoneNumber: cleanPhone }
+            : { phoneNumber: cleanPhone }
+        );
 
-      toast.success("Phone number updated successfully!");
-      setIsEditingPhone(false);
+        // Update auth context if available
+        if (updateUserProfile) {
+          await updateUserProfile({ phone: cleanPhone });
+        }
+
+        // Also update localStorage user
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            parsed.phone = cleanPhone;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          }
+        } catch {
+          // Ignore localStorage errors
+        }
+
+        toast.success("Phone number updated successfully!");
+        setIsEditingPhone(false);
+      } else {
+        toast.error("Failed to update phone number");
+      }
     } catch (error) {
-      console.error('[Profile] Error updating phone:', error);
+      console.error("[Profile] Error updating phone:", error);
       toast.error("Failed to update phone number");
     } finally {
       setPhoneLoading(false);
@@ -230,12 +361,15 @@ export default function MyInformationPage() {
     try {
       const addressData: AddressInput = {
         label: addressLabel || "Home",
-        street: selectedAddress.components.street || selectedAddress.formattedAddress.split(',')[0] || '',
-        addressLine2: '',
-        city: selectedAddress.components.city || '',
-        stateProvince: selectedAddress.components.state || '',
-        zipPostal: selectedAddress.components.zipCode || '',
-        landmark: landmark || '',
+        street:
+          selectedAddress.components.street ||
+          selectedAddress.formattedAddress.split(",")[0] ||
+          "",
+        addressLine2: "",
+        city: selectedAddress.components.city || "",
+        stateProvince: selectedAddress.components.state || "",
+        zipPostal: selectedAddress.components.zipCode || "",
+        landmark: landmark || "",
         coordinates: {
           lat: selectedAddress.lat,
           lng: selectedAddress.lng,
@@ -267,8 +401,10 @@ export default function MyInformationPage() {
         }
       }
     } catch (error) {
-      console.error('[Profile] Error saving address:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to save address");
+      console.error("[Profile] Error saving address:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save address"
+      );
     }
   };
 
@@ -286,7 +422,7 @@ export default function MyInformationPage() {
    * Handle delete address with confirmation
    */
   const handleDeleteAddressClick = (addressId: string) => {
-    const address = savedAddresses.find(a => a.id === addressId);
+    const address = savedAddresses.find((a) => a.id === addressId);
     setConfirmDialog({
       open: true,
       title: "Delete Address",
@@ -312,7 +448,7 @@ export default function MyInformationPage() {
    * Handle set default with confirmation
    */
   const handleSetDefaultClick = (addressId: string) => {
-    const address = savedAddresses.find(a => a.id === addressId);
+    const address = savedAddresses.find((a) => a.id === addressId);
     setConfirmDialog({
       open: true,
       title: "Change Default Address",
@@ -338,7 +474,11 @@ export default function MyInformationPage() {
    * Handle password change for email/password users
    */
   const handleChangePassword = async () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       toast.error("Please fill in all password fields");
       return;
     }
@@ -379,14 +519,20 @@ export default function MyInformationPage() {
 
       toast.success("Password updated successfully!");
       setShowPasswordDialog(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (error: any) {
-      console.error('[Profile] Password change error:', error);
-      
-      if (error.code === 'auth/wrong-password') {
+      console.error("[Profile] Password change error:", error);
+
+      if (error.code === "auth/wrong-password") {
         toast.error("Current password is incorrect");
-      } else if (error.code === 'auth/requires-recent-login') {
-        toast.error("Please sign out and sign in again before changing password");
+      } else if (error.code === "auth/requires-recent-login") {
+        toast.error(
+          "Please sign out and sign in again before changing password"
+        );
       } else {
         toast.error(error.message || "Failed to change password");
       }
@@ -433,20 +579,24 @@ export default function MyInformationPage() {
       await linkWithCredential(currentUser, credential);
 
       setHasPassword(true);
-      setAuthProvider('google');
+      setAuthProvider("google");
 
-      toast.success("Password added successfully! You can now sign in with email/password.");
+      toast.success(
+        "Password added successfully! You can now sign in with email/password."
+      );
       setShowLinkPasswordDialog(false);
       setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      console.error('[Profile] Link password error:', error);
-      
-      if (error.code === 'auth/email-already-in-use') {
-        toast.error("This email already has a password. Try signing in with email/password instead.");
-      } else if (error.code === 'auth/provider-already-linked') {
+      console.error("[Profile] Link password error:", error);
+
+      if (error.code === "auth/email-already-in-use") {
+        toast.error(
+          "This email already has a password. Try signing in with email/password instead."
+        );
+      } else if (error.code === "auth/provider-already-linked") {
         toast.error("A password is already linked to this account");
         setHasPassword(true);
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.code === "auth/weak-password") {
         toast.error("Password is too weak. Please use a stronger password.");
       } else {
         toast.error(error.message || "Failed to link password");
@@ -457,7 +607,7 @@ export default function MyInformationPage() {
   };
 
   const renderPasswordSection = () => {
-    if (authProvider === 'email') {
+    if (authProvider === "email") {
       return (
         <div className="flex items-center gap-3">
           <Button
@@ -472,16 +622,19 @@ export default function MyInformationPage() {
       );
     }
 
-    if (authProvider === 'google' && !hasPassword) {
+    if (authProvider === "google" && !hasPassword) {
       return (
         <Alert className="bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-900">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium mb-1">Enhance Your Account Security</p>
+                <p className="font-medium mb-1">
+                  Enhance Your Account Security
+                </p>
                 <p className="text-sm text-blue-800">
-                  Add a password to your Google account so you can also sign in with email/password
+                  Add a password to your Google account so you can also sign in
+                  with email/password
                 </p>
               </div>
               <Button
@@ -498,15 +651,16 @@ export default function MyInformationPage() {
       );
     }
 
-    if (authProvider === 'google' && hasPassword) {
+    if (authProvider === "google" && hasPassword) {
       return (
         <div className="space-y-3">
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-900">
               <p className="text-sm">
-                Your account is secured with both Google Sign-In and email/password authentication.
-                You can sign in using either method.
+                Your account is secured with both Google Sign-In and
+                email/password authentication. You can sign in using either
+                method.
               </p>
             </AlertDescription>
           </Alert>
@@ -550,7 +704,7 @@ export default function MyInformationPage() {
               <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
                 <Image
                   src={getProfileAvatar(user)}
-                  alt={`${user?.firstName || 'User'} ${user?.lastName || ''}`}
+                  alt={`${user?.firstName || "User"} ${user?.lastName || ""}`}
                   width={96}
                   height={96}
                   className="object-cover"
@@ -566,24 +720,36 @@ export default function MyInformationPage() {
             <div className="flex-1 space-y-4">
               {/* Auth Provider Badge */}
               <div className="flex items-center gap-2 flex-wrap">
-                {authProvider === 'google' && (
+                {authProvider === "google" && (
                   <Badge className="bg-blue-500 text-white flex items-center gap-1">
                     <svg className="h-3 w-3" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      <path
+                        fill="currentColor"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
                     </svg>
                     Google Account
                   </Badge>
                 )}
-                {authProvider === 'email' && (
+                {authProvider === "email" && (
                   <Badge className="bg-green-500 text-white flex items-center gap-1">
                     <Mail className="h-3 w-3" />
                     Email/Password
                   </Badge>
                 )}
-                {hasPassword && authProvider === 'google' && (
+                {hasPassword && authProvider === "google" && (
                   <Badge className="bg-purple-500 text-white flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Password Linked
@@ -594,30 +760,51 @@ export default function MyInformationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Name */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Full Name
+                  </Label>
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-900">
-                      {user?.firstName || 'N/A'} {user?.lastName || ''}
+                      {profileLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      ) : (
+                        <>
+                          {backendProfile?.firstName ||
+                            user?.firstName ||
+                            "N/A"}{" "}
+                          {backendProfile?.lastName || user?.lastName || ""}
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
 
                 {/* Email */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </Label>
                   <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-gray-900 truncate">{user?.email || 'N/A'}</span>
+                    <span className="text-gray-900 truncate">
+                      {profileLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      ) : (
+                        backendProfile?.email || user?.email || "N/A"
+                      )}
+                    </span>
                   </div>
                 </div>
 
                 {/* Phone Number */}
                 <div className="md:col-span-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    Phone Number 
+                    Phone Number
                     <span className="text-red-500 ml-1">*</span>
-                    <span className="text-xs text-gray-500 ml-2">(Required for delivery)</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Required for delivery)
+                    </span>
                   </Label>
                   {isEditingPhone ? (
                     <div className="mt-1 space-y-2">
@@ -657,11 +844,12 @@ export default function MyInformationPage() {
                           Cancel
                         </Button>
                       </div>
-                      
+
                       {/* Real-time validation feedback */}
                       {phoneNumber && (
                         <div className="text-xs">
-                          {phoneNumber.length === 11 && phoneNumber.startsWith('09') ? (
+                          {phoneNumber.length === 11 &&
+                          phoneNumber.startsWith("09") ? (
                             <p className="text-green-600 flex items-center gap-1">
                               <CheckCircle2 className="h-3 w-3" />
                               Valid Philippine phone number
@@ -673,7 +861,8 @@ export default function MyInformationPage() {
                                 Must be 11 digits starting with 09
                               </p>
                               <p className="text-gray-500">
-                                Format: 09XXXXXXXXX ({phoneNumber.length}/11 digits)
+                                Format: 09XXXXXXXXX ({phoneNumber.length}/11
+                                digits)
                               </p>
                             </div>
                           )}
@@ -685,7 +874,7 @@ export default function MyInformationPage() {
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-900">
-                          {phoneNumber || 'No phone number set'}
+                          {phoneNumber || "No phone number set"}
                         </span>
                       </div>
                       <Button
@@ -701,7 +890,8 @@ export default function MyInformationPage() {
                   {!phoneNumber && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
-                      Phone number is required for Lalamove delivery coordination
+                      Phone number is required for Lalamove delivery
+                      coordination
                     </p>
                   )}
                 </div>
@@ -795,21 +985,26 @@ export default function MyInformationPage() {
                     </h3>
 
                     {/* Address */}
-                    <p className="text-gray-700 mb-1">{addr.formattedAddress}</p>
-                    
+                    <p className="text-gray-700 mb-1">
+                      {addr.formattedAddress}
+                    </p>
+
                     {/* Landmark */}
                     {addr.landmark && (
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
                         <p className="text-sm font-medium text-amber-900">
                           📍 Delivery Instructions:
                         </p>
-                        <p className="text-sm text-amber-800">{addr.landmark}</p>
+                        <p className="text-sm text-amber-800">
+                          {addr.landmark}
+                        </p>
                       </div>
                     )}
 
                     {/* Coordinates */}
                     <p className="text-xs text-gray-500 mt-2">
-                      Coordinates: {addr.coordinates.lat.toFixed(6)}, {addr.coordinates.lng.toFixed(6)}
+                      Coordinates: {addr.coordinates.lat.toFixed(6)},{" "}
+                      {addr.coordinates.lng.toFixed(6)}
                     </p>
                   </div>
 
@@ -865,8 +1060,10 @@ export default function MyInformationPage() {
                 Delivery Instructions Help Riders Find You
               </h4>
               <p className="text-sm text-blue-800">
-                Add landmarks like "in front of 7/11" or "beside the church" to help Lalamove riders 
-                deliver your mushrooms quickly and accurately. Click "Edit" to update the map location and instructions.
+                Add landmarks like "in front of 7/11" or "beside the church" to
+                help Lalamove riders deliver your mushrooms quickly and
+                accurately. Click "Edit" to update the map location and
+                instructions.
               </p>
             </div>
           </div>
@@ -874,24 +1071,28 @@ export default function MyInformationPage() {
       </Card>
 
       {/* Address Picker Dialog */}
-      <Dialog open={showMapPicker} onOpenChange={(open) => {
-        setShowMapPicker(open);
-        if (!open) {
-          setEditingAddress(null);
-          setAddressLabel("Home");
-          setLandmark("");
-        }
-      }}>
+      <Dialog
+        open={showMapPicker}
+        onOpenChange={(open) => {
+          setShowMapPicker(open);
+          if (!open) {
+            setEditingAddress(null);
+            setAddressLabel("Home");
+            setLandmark("");
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingAddress ? `Edit Address: ${editingAddress.label}` : "Add New Address"}
+              {editingAddress
+                ? `Edit Address: ${editingAddress.label}`
+                : "Add New Address"}
             </DialogTitle>
             <DialogDescription>
-              {editingAddress 
+              {editingAddress
                 ? "Update the address details and use the map to select the exact location"
-                : "Search for your address or click on the map to select your location"
-              }
+                : "Search for your address or click on the map to select your location"}
             </DialogDescription>
           </DialogHeader>
 
@@ -930,8 +1131,9 @@ export default function MyInformationPage() {
                 <Info className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-900">
                   <p className="text-sm">
-                    Current location: {editingAddress.formattedAddress}. 
-                    You can search for a new address or drag the marker to update the exact location.
+                    Current location: {editingAddress.formattedAddress}. You can
+                    search for a new address or drag the marker to update the
+                    exact location.
                   </p>
                 </AlertDescription>
               </Alert>
@@ -948,43 +1150,74 @@ export default function MyInformationPage() {
       </Dialog>
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => {
-        if (!open) setConfirmDialog({ open: false, title: "", description: "", action: null });
-      }}>
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open)
+            setConfirmDialog({
+              open: false,
+              title: "",
+              description: "",
+              action: null,
+            });
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
               {confirmDialog.title}
             </DialogTitle>
-            <DialogDescription>
-              {confirmDialog.description}
-            </DialogDescription>
+            <DialogDescription>{confirmDialog.description}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setConfirmDialog({ open: false, title: "", description: "", action: null })}
+              onClick={() =>
+                setConfirmDialog({
+                  open: false,
+                  title: "",
+                  description: "",
+                  action: null,
+                })
+              }
             >
               Cancel
             </Button>
             <Button
-              onClick={confirmDialog.action === "delete" ? handleConfirmDelete : handleConfirmSetDefault}
-              className={confirmDialog.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-[#1E392A] hover:bg-[#2d5a42]"}
+              onClick={
+                confirmDialog.action === "delete"
+                  ? handleConfirmDelete
+                  : handleConfirmSetDefault
+              }
+              className={
+                confirmDialog.action === "delete"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-[#1E392A] hover:bg-[#2d5a42]"
+              }
             >
-              {confirmDialog.action === "delete" ? "Delete Address" : "Set as Default"}
+              {confirmDialog.action === "delete"
+                ? "Delete Address"
+                : "Set as Default"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Change Password Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={(open) => {
-        setShowPasswordDialog(open);
-        if (!open) {
-          setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-        }
-      }}>
+      <Dialog
+        open={showPasswordDialog}
+        onOpenChange={(open) => {
+          setShowPasswordDialog(open);
+          if (!open) {
+            setPasswordForm({
+              currentPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            });
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1003,7 +1236,12 @@ export default function MyInformationPage() {
                 id="current-password"
                 type="password"
                 value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    currentPassword: e.target.value,
+                  }))
+                }
                 placeholder="Enter current password"
                 className="mt-1"
                 required
@@ -1016,7 +1254,12 @@ export default function MyInformationPage() {
                 id="new-password"
                 type="password"
                 value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    newPassword: e.target.value,
+                  }))
+                }
                 placeholder="Enter new password (min 6 characters)"
                 className="mt-1"
                 required
@@ -1029,27 +1272,37 @@ export default function MyInformationPage() {
                 id="confirm-password"
                 type="password"
                 value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                }
                 placeholder="Re-enter new password"
                 className="mt-1"
                 required
               />
             </div>
 
-            {passwordForm.newPassword && passwordForm.confirmPassword && 
-             passwordForm.newPassword !== passwordForm.confirmPassword && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Passwords do not match</AlertDescription>
-              </Alert>
-            )}
+            {passwordForm.newPassword &&
+              passwordForm.confirmPassword &&
+              passwordForm.newPassword !== passwordForm.confirmPassword && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>Passwords do not match</AlertDescription>
+                </Alert>
+              )}
 
-            {passwordForm.newPassword && passwordForm.newPassword.length > 0 && passwordForm.newPassword.length < 6 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Password must be at least 6 characters</AlertDescription>
-              </Alert>
-            )}
+            {passwordForm.newPassword &&
+              passwordForm.newPassword.length > 0 &&
+              passwordForm.newPassword.length < 6 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Password must be at least 6 characters
+                  </AlertDescription>
+                </Alert>
+              )}
           </div>
 
           <DialogFooter>
@@ -1057,7 +1310,11 @@ export default function MyInformationPage() {
               variant="outline"
               onClick={() => {
                 setShowPasswordDialog(false);
-                setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                setPasswordForm({
+                  currentPassword: "",
+                  newPassword: "",
+                  confirmPassword: "",
+                });
               }}
               disabled={passwordLoading}
             >
@@ -1082,12 +1339,15 @@ export default function MyInformationPage() {
       </Dialog>
 
       {/* Link Password Dialog */}
-      <Dialog open={showLinkPasswordDialog} onOpenChange={(open) => {
-        setShowLinkPasswordDialog(open);
-        if (!open) {
-          setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
-        }
-      }}>
+      <Dialog
+        open={showLinkPasswordDialog}
+        onOpenChange={(open) => {
+          setShowLinkPasswordDialog(open);
+          if (!open) {
+            setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1095,7 +1355,8 @@ export default function MyInformationPage() {
               Add Password to Your Account
             </DialogTitle>
             <DialogDescription>
-              Create a password so you can also sign in with email/password in addition to Google
+              Create a password so you can also sign in with email/password in
+              addition to Google
             </DialogDescription>
           </DialogHeader>
 
@@ -1118,7 +1379,12 @@ export default function MyInformationPage() {
                 id="link-new-password"
                 type="password"
                 value={linkPasswordForm.newPassword}
-                onChange={(e) => setLinkPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                onChange={(e) =>
+                  setLinkPasswordForm((prev) => ({
+                    ...prev,
+                    newPassword: e.target.value,
+                  }))
+                }
                 placeholder="Enter password (min 6 characters)"
                 className="mt-1"
                 required
@@ -1131,27 +1397,38 @@ export default function MyInformationPage() {
                 id="link-confirm-password"
                 type="password"
                 value={linkPasswordForm.confirmPassword}
-                onChange={(e) => setLinkPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                onChange={(e) =>
+                  setLinkPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                }
                 placeholder="Re-enter password"
                 className="mt-1"
                 required
               />
             </div>
 
-            {linkPasswordForm.newPassword && linkPasswordForm.confirmPassword && 
-             linkPasswordForm.newPassword !== linkPasswordForm.confirmPassword && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Passwords do not match</AlertDescription>
-              </Alert>
-            )}
+            {linkPasswordForm.newPassword &&
+              linkPasswordForm.confirmPassword &&
+              linkPasswordForm.newPassword !==
+                linkPasswordForm.confirmPassword && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>Passwords do not match</AlertDescription>
+                </Alert>
+              )}
 
-            {linkPasswordForm.newPassword && linkPasswordForm.newPassword.length > 0 && linkPasswordForm.newPassword.length < 6 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Password must be at least 6 characters</AlertDescription>
-              </Alert>
-            )}
+            {linkPasswordForm.newPassword &&
+              linkPasswordForm.newPassword.length > 0 &&
+              linkPasswordForm.newPassword.length < 6 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Password must be at least 6 characters
+                  </AlertDescription>
+                </Alert>
+              )}
           </div>
 
           <DialogFooter>

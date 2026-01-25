@@ -82,8 +82,9 @@ service cloud.firestore {
       // Only admins can delete orders
       allow delete: if isAdmin();
       
-      // Allow sellers to list all orders
-      allow list: if isAdmin();
+      // TEMPORARY: Allow all authenticated users to list orders
+      // TODO: Implement proper role-based access control
+      allow list: if isSignedIn();
     }
     
     
@@ -169,6 +170,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    
+    // ========================================
+    // CHATBOT ANALYTICS COLLECTIONS
+    // ========================================
+    
+    // Chatbot conversations - users can write their own, admins can read all
+    match /chatbot_conversations/{conversationId} {
+      allow create: if isSignedIn();
+      allow update: if isOwner(resource.data.userId);
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+    }
+    
+    // Chatbot queries - users can write their own, admins can read all
+    match /chatbot_queries/{queryId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+    
+    // Product clicks - users can write their own, admins can read all
+    match /chatbot_product_clicks/{clickId} {
+      allow create: if isSignedIn();
+      allow update: if isOwner(resource.data.userId);
+      allow read: if isAdmin();
+    }
+    
+    // Error logs - anyone can write (for guest users too), admins can read
+    match /chatbot_errors/{errorId} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
     
     // ========================================
     // ANALYTICS COLLECTION (Admin Only)

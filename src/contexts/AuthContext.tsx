@@ -679,22 +679,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
         }
       } else {
-        // No Firebase user, check for traditional auth via cookie
+        // No Firebase user, check for traditional auth via cookie/localStorage
         // Don't clear user if they logged in with email/password
         try {
-          const storedUser = getCookieJSON<any>("user");
-          if (storedUser) {
-            if (storedUser.provider === "email") {
-              setUser(storedUser);
-            } else {
-              // Firebase user logged out, clear state
-              setUser(null);
-              removeCookie("user");
-            }
+          // Prefer cookie-based user (modern format)
+          const storedCookieUser = getCookieJSON<any>("user");
+
+          if (storedCookieUser && storedCookieUser.provider === "email") {
+            setUser(storedCookieUser);
           } else {
-            setUser(null);
+            // Fallback to legacy localStorage + auth-token check for backward compatibility
+            const raw = typeof window !== 'undefined' ? localStorage.getItem("user") : null;
+            const hasAuthToken = typeof document !== 'undefined' && document.cookie.includes("auth-token=");
+
+            if (raw) {
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed.provider === "email" || hasAuthToken) {
+                  if (!parsed.provider) parsed.provider = "email";
+                  setUser(parsed);
+                } else {
+                  setUser(null);
+                  removeCookie("user");
+                }
+              } catch (e) {
+                setUser(null);
+              }
+            } else {
+              setUser(null);
+            }
           }
-        } catch {
+        } catch (err) {
+          console.warn('[Auth Context] Error while restoring traditional auth user:', err);
           setUser(null);
         }
       }

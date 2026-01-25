@@ -26,7 +26,9 @@ const HeroSection: React.FC = () => {
 
 const WhyMASHSection: React.FC = () => {
   // Phase 4: Use Sanity CMS for feature sections
-  const { features, loading, error } = useSanityFeatures({ homepageOnly: true });
+  const { features, loading, error } = useSanityFeatures({
+    homepageOnly: true,
+  });
 
   if (loading) {
     return (
@@ -41,7 +43,9 @@ const WhyMASHSection: React.FC = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-muted-foreground">Preparing your experience...</p>
+              <p className="text-muted-foreground">
+                Preparing your experience...
+              </p>
             </div>
           </div>
         </div>
@@ -54,7 +58,9 @@ const WhyMASHSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error: {error?.message || 'Failed to load features'}</p>
+            <p className="text-red-600 mb-4">
+              Error: {error?.message || "Failed to load features"}
+            </p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -111,7 +117,9 @@ const FeaturedProductsSection: React.FC = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">No featured products available yet.</p>
+            <p className="text-muted-foreground mb-4">
+              No featured products available yet.
+            </p>
             <Link href="/shop">
               <Button>Browse All Products</Button>
             </Link>
@@ -152,7 +160,10 @@ const FeaturedProductsSection: React.FC = () => {
 
         <div className="text-center mt-8 sm:mt-12">
           <Link href="/shop">
-            <Button variant="outline" className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200">
+            <Button
+              variant="outline"
+              className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200"
+            >
               View More Products
             </Button>
           </Link>
@@ -171,7 +182,7 @@ const CategoryCard: React.FC<{
 }> = ({ name, slug, image, productCount }) => {
   return (
     <Link href={`/shop?category=${slug}`}>
-      <div className="group relative overflow-hidden rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300">
+      <div className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-md hover:shadow-xl transition-all duration-300">
         {image ? (
           <div className="aspect-square overflow-hidden">
             <Image
@@ -188,10 +199,10 @@ const CategoryCard: React.FC<{
           </div>
         )}
         <div className="p-4 text-center">
-          <h3 className="font-bold text-lg text-gray-800">{name}</h3>
+          <h3 className="font-bold text-lg text-gray-foreground">{name}</h3>
           {productCount !== undefined && (
             <p className="text-sm text-muted-foreground">
-              {productCount} {productCount === 1 ? 'product' : 'products'}
+              {productCount} {productCount === 1 ? "product" : "products"}
             </p>
           )}
         </div>
@@ -201,20 +212,22 @@ const CategoryCard: React.FC<{
 };
 
 const FeaturedCategoriesSection: React.FC = () => {
-  const { categories, loading, error } = useSanityCategories({ includeProductCount: true });
+  const { categories, loading, error } = useSanityCategories({
+    includeProductCount: true,
+  });
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 lg:py-20 bg-white">
+      <section className="py-12 md:py-16 lg:py-20 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground">
             Shop by Category
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="animate-pulse">
-                <div className="aspect-square bg-gray-200 rounded-xl mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                <div className="aspect-square bg-muted rounded-xl mb-2"></div>
+                <div className="h-4 bg-muted rounded w-3/4 mx-auto"></div>
               </div>
             ))}
           </div>
@@ -225,10 +238,12 @@ const FeaturedCategoriesSection: React.FC = () => {
 
   if (error) {
     return (
-      <section className="py-12 md:py-16 lg:py-20 bg-white">
+      <section className="py-12 md:py-16 lg:py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error loading categories: {error.message}</p>
+            <p className="text-destructive mb-4">
+              Error loading categories: {error.message}
+            </p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
         </div>
@@ -237,16 +252,16 @@ const FeaturedCategoriesSection: React.FC = () => {
   }
 
   // Only show parent categories (no parent)
-  const parentCategories = categories.filter(cat => !cat.parentId);
+  const parentCategories = categories.filter((cat) => !cat.parentId);
 
   if (parentCategories.length === 0) {
     return null;
   }
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-white">
+    <section className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground">
           Shop by Category
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -319,14 +334,19 @@ const GrowerCard: React.FC<{
             {grower.name}
           </h3>
           {grower.isVerified && (
-            <span title="Verified Seller" className="text-primary">✓</span>
+            <span title="Verified Seller" className="text-primary">
+              ✓
+            </span>
           )}
         </div>
         <p className="text-muted-foreground text-sm mb-3">
           {grower.location || "Location not specified"}
         </p>
         <p className="text-muted-foreground text-sm italic">
-          &ldquo;{grower.tagline || grower.bio || "Quality mushrooms from local growers"}
+          &ldquo;
+          {grower.tagline ||
+            grower.bio ||
+            "Quality mushrooms from local growers"}
           &rdquo;
         </p>
       </div>
@@ -351,7 +371,10 @@ const GrowerCard: React.FC<{
 
 const FeaturedGrowersSection: React.FC = () => {
   // Phase 1: Use Sanity CMS for growers (replaces useHomePageData)
-  const { growers, loading, error } = useSanityGrowers({ isActive: true, limit: 6 });
+  const { growers, loading, error } = useSanityGrowers({
+    isActive: true,
+    limit: 6,
+  });
 
   if (loading) {
     return (
@@ -397,7 +420,10 @@ const FeaturedGrowersSection: React.FC = () => {
 
         <div className="text-center mt-8 sm:mt-12">
           <Link href="/grower">
-            <Button variant="outline" className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200">
+            <Button
+              variant="outline"
+              className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200"
+            >
               View All Growers
             </Button>
           </Link>
