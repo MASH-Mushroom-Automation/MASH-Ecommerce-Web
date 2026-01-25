@@ -35,7 +35,13 @@ jobs:
         run: npm test -- --coverage --ci --maxWorkers=2
         env:
           CI: true
-      
+
+      - name: Run open-handle detection (PRs only)
+        if: github.event_name == 'pull_request'
+        run: npx jest --runInBand --detectOpenHandles --logHeapUsage --ci
+        env:
+          CI: true
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
