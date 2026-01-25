@@ -87,8 +87,8 @@ const customJestConfig = {
   // Verbose output
   verbose: true,
 
-  // Maximum workers (optimize for CI/CD)
-  maxWorkers: '50%',
+  // Maximum workers (reduce concurrency to avoid OOM on CI)
+  maxWorkers: '25%',
 
   // Clear mocks between tests
   clearMocks: true,

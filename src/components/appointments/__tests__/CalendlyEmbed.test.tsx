@@ -34,6 +34,12 @@ jest.mock('@calcom/embed-react', () => ({
 }));
 
 describe('CalComEmbed Component', () => {
+  // Ensure tests clean up properly to prevent Jest worker memory growth
+  afterEach(() => {
+    try { require('@testing-library/react').cleanup(); } catch (e) {}
+    try { jest.clearAllTimers(); jest.useRealTimers(); } catch (e) {}
+    try { jest.clearAllMocks(); } catch (e) {}
+  });
   const defaultProps = {
     username: 'mash-mushroom',
     eventSlug: '30min',
