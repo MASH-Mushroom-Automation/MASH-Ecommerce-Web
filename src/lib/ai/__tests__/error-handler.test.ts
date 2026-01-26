@@ -142,6 +142,8 @@ describe('Error Handler', () => {
       
       expect(result.success).toBe(false);
       expect(result.content).toBe(getFallbackMessage());
+      // Fallback message should not contain emojis
+      expect(getFallbackMessage()).not.toMatch(/🍄|😔/);
     });
   });
   
