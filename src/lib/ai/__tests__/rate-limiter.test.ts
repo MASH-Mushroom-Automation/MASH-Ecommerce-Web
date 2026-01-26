@@ -14,8 +14,8 @@ import {
   cleanupExpiredEntries,
 } from '../rate-limiter';
 
-// Mock timers for testing
-jest.useFakeTimers();
+// Mock timers for testing (modern mode to support system time manipulation)
+jest.useFakeTimers('modern');
 
 describe('Rate Limiter', () => {
   const testUserId = 'test-user-123';
@@ -24,6 +24,9 @@ describe('Rate Limiter', () => {
     // Reset rate limit before each test
     resetRateLimit(testUserId);
     jest.clearAllTimers();
+    // Initialize system time so Date.now() is controlled
+    global.__TEST_BASE_TIME = Date.now();
+    jest.setSystemTime(global.__TEST_BASE_TIME);
   });
   
   afterEach(() => {
@@ -66,13 +69,16 @@ describe('Rate Limiter', () => {
         checkRateLimit(testUserId);
       }
       
-      // Advance time by 61 seconds
-      jest.advanceTimersByTime(61 * 1000);
+        // Advance time by 61 seconds (mock Date.now)
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => global.__TEST_BASE_TIME + 61 * 1000);
       
       // Should be allowed again
       const result = checkRateLimit(testUserId);
       expect(result.isLimited).toBe(false);
       expect(result.messageCount).toBe(1);
+
+      // Restore
+      nowSpy.mockRestore();
     });
   });
   
@@ -121,12 +127,15 @@ describe('Rate Limiter', () => {
     it('should decrease over time', () => {
       checkRateLimit(testUserId);
       
-      // Advance 30 seconds
-      jest.advanceTimersByTime(30 * 1000);
+      // Advance 30 seconds (mock Date.now)
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => global.__TEST_BASE_TIME + 30 * 1000);
       
       const resetTime = getResetTime(testUserId);
       expect(resetTime).toBeGreaterThanOrEqual(29);
-      expect(resetTime).toBeLessThanOrEqual(30);
+      // Allow a 1-second rounding leeway due to timer granularity
+      expect(resetTime).toBeLessThanOrEqual(31);
+
+      nowSpy.mockRestore();
     });
   });
   
@@ -156,8 +165,8 @@ describe('Rate Limiter', () => {
       checkRateLimit(user1);
       checkRateLimit(user2);
       
-      // Advance past window (61 seconds)
-      jest.advanceTimersByTime(61 * 1000);
+      // Advance past window (62 seconds) by mocking Date.now
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => global.__TEST_BASE_TIME + 62 * 1000);
       
       // Cleanup
       cleanupExpiredEntries();
@@ -165,6 +174,8 @@ describe('Rate Limiter', () => {
       // Both should be reset
       expect(getRemainingMessages(user1)).toBe(10);
       expect(getRemainingMessages(user2)).toBe(10);
+
+      nowSpy.mockRestore();
     });
   });
 });

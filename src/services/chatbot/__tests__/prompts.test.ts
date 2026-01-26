@@ -18,9 +18,11 @@ import {
 
 describe('Prompts', () => {
   describe('Prompt Constants', () => {
-    it('should have intro prompt', () => {
+    it('should have intro prompt and logo', () => {
       expect(INTRO_PROMPT).toContain('MASH AI Assistant');
       expect(INTRO_PROMPT).toContain('mushroom');
+      expect(INTRO_PROMPT).toContain('/logo.png');
+      expect(INTRO_PROMPT).not.toMatch(/🍄/);
     });
     
     it('should have product recommendation prompt', () => {

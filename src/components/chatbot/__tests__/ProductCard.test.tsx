@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/test-utils';
 import { useRouter } from 'next/navigation';
 import { ProductCard } from '../ProductCard';
 import type { ProductCardData } from '@/lib/ai/context-builder';

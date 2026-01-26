@@ -1,24 +1,40 @@
-import { dirname } from "path";
+import path from "path";
 import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+const __dirname = path.dirname(__filename);
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/public/**",
+      "**/.github/**",
+      "**/scripts/**",
+      "**/studio/**",
+      "**/*.test.{ts,tsx,js}",
+      "**/__tests__/**",
+      "**/__mocks__/**",
+      "jest.setup.js",
+      "jest.config.js",
+      "jest.calendly.config.js",
       "next-env.d.ts",
     ],
+  },
+  // Use simplified config to avoid circular dependency issues
+  {
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
+    rules: {
+      "no-unused-vars": "warn",
+      "no-console": "off",
+    },
   },
 ];
 

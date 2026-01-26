@@ -12,10 +12,13 @@
  * Professional styling with MASH branding (logo via ChatDialog component)
  */
 export const INTRO_PROMPT = `<div class="space-y-4">
-  <h3 class="font-semibold text-lg">Welcome to MASH AI Assistant</h3>
-  
-  <p>I can help you find the perfect mushrooms for your recipes, provide cooking tips, and answer questions about our products.</p>
-  
+  <div class="flex items-center gap-3">
+    <img src="/logo.png" alt="MASH logo" class="w-8 h-8 inline-block" />
+    <h3 class="font-semibold text-lg">MASH AI Assistant</h3>
+  </div>
+
+  <p>I can help you find the right mushrooms for your recipes, provide cooking tips, and answer questions about our products.</p>
+
   <div class="space-y-2">
     <p class="font-medium">Try asking:</p>
     <ul class="list-disc list-inside space-y-1 ml-2">
@@ -24,7 +27,7 @@ export const INTRO_PROMPT = `<div class="space-y-4">
       <li>"How do I cook king oyster mushrooms?"</li>
     </ul>
   </div>
-  
+
   <p class="font-medium">How can I help you today?</p>
 </div>`;
 

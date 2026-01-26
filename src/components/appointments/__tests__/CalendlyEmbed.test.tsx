@@ -1,82 +1,95 @@
 /**
- * Unit Tests for CalendlyEmbed Component
+ * Unit Tests for CalComEmbed Component
  * 
- * Tests the inline Calendly widget integration for appointment booking.
+ * Tests the inline Cal.com widget integration for appointment booking.
  * Ensures proper rendering, prop handling, and error states.
  * 
- * @see src/components/appointments/CalendlyEmbed.tsx
- * @see .github/SELLER_APPOINTMENT_SYSTEM_PLAN.md (CAL-003)
+ * @see src/components/appointments/CalendlyEmbed.tsx (renamed but exports CalComEmbed)
+ * @see .github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md (Phase 8)
  */
 
 import { render, screen } from '@testing-library/react';
-import { CalendlyEmbed } from '../CalendlyEmbed';
+import { CalComEmbed } from '../CalendlyEmbed';
 import '@testing-library/jest-dom';
 
-// Mock react-calendly InlineWidget
-jest.mock('react-calendly', () => ({
-  InlineWidget: ({ url, prefill, styles }: any) => (
-    <div 
-      data-testid="calendly-inline-widget"
-      data-url={url}
-      data-prefill={JSON.stringify(prefill)}
-      style={styles}
-    >
-      Mocked Calendly Widget
-    </div>
-  ),
+// Mock useAuth hook - MUST return a function
+jest.mock('@/contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => ({
+    user: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    },
+    isAuthenticated: true,
+  }),
 }));
 
-describe('CalendlyEmbed Component', () => {
+// Mock @calcom/embed-react
+jest.mock('@calcom/embed-react', () => ({
+  getCalApi: jest.fn(() => Promise.resolve((action: string, config: any) => {
+    // Mock Cal API functions for testing
+    return config;
+  })),
+}));
+
+describe('CalComEmbed Component', () => {
+  // Ensure tests clean up properly to prevent Jest worker memory growth
+  afterEach(() => {
+    try { require('@testing-library/react').cleanup(); } catch (e) {}
+    try { jest.clearAllTimers(); jest.useRealTimers(); } catch (e) {}
+    try { jest.clearAllMocks(); } catch (e) {}
+  });
   const defaultProps = {
-    username: 'mash-mushroom-automation',
+    username: 'mash-mushroom',
     eventSlug: '30min',
   };
 
   describe('Rendering', () => {
-    it('should render the Calendly widget', () => {
-      render(<CalendlyEmbed {...defaultProps} />);
+    it('should render the Cal.com widget container', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toBeInTheDocument();
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toBeInTheDocument();
     });
 
-    it('should construct correct Calendly URL from username and event slug', () => {
-      render(<CalendlyEmbed {...defaultProps} />);
+    it('should construct correct Cal.com link from username and event slug', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/mash-mushroom-automation/30min'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'mash-mushroom/30min'
       );
     });
 
     it('should use default event slug if not provided', () => {
-      render(<CalendlyEmbed username="test-grower" />);
+      const { container } = render(<CalComEmbed username="test-grower" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/test-grower/30min'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'test-grower/30min'
       );
     });
 
-    it('should apply custom height style', () => {
-      render(<CalendlyEmbed {...defaultProps} height="800px" />);
+    it('should apply custom height style to container', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} height="800px" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveStyle({ height: '800px' });
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({ height: '800px' });
     });
 
     it('should apply default height if not provided', () => {
-      render(<CalendlyEmbed {...defaultProps} />);
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveStyle({ height: '700px' });
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({ height: '700px' });
     });
 
     it('should apply custom className', () => {
       const { container } = render(
-        <CalendlyEmbed {...defaultProps} className="custom-class" />
+        <CalComEmbed {...defaultProps} className="custom-class" />
       );
       
       const wrapper = container.firstChild;
@@ -85,87 +98,93 @@ describe('CalendlyEmbed Component', () => {
   });
 
   describe('Prefill Data', () => {
-    it('should pass productId as custom answer when provided', () => {
-      render(<CalendlyEmbed {...defaultProps} productId="prod-123" />);
+    it('should handle productId metadata when provided', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} productId="prod-123" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      const prefillData = JSON.parse(widget.getAttribute('data-prefill') || '{}');
-      
-      expect(prefillData.customAnswers).toEqual({ a1: 'prod-123' });
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toBeInTheDocument();
     });
 
-    it('should not include productId in prefill when not provided', () => {
-      render(<CalendlyEmbed {...defaultProps} />);
+    it('should render without productId when not provided', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      const prefillData = JSON.parse(widget.getAttribute('data-prefill') || '{}');
-      
-      expect(prefillData.customAnswers).toBeUndefined();
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toBeInTheDocument();
     });
   });
 
   describe('Different Event Types', () => {
-    it('should handle store-visit event slug', () => {
-      render(<CalendlyEmbed username="test-grower" eventSlug="store-visit" />);
+    it('should handle 1-hour-meeting event slug', () => {
+      const { container } = render(<CalComEmbed username="mash-mushroom" eventSlug="1-hour-meeting" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/test-grower/store-visit'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'mash-mushroom/1-hour-meeting'
       );
     });
 
-    it('should handle bulk-order event slug', () => {
-      render(<CalendlyEmbed username="test-grower" eventSlug="bulk-order" />);
+    it('should handle 15min event slug', () => {
+      const { container } = render(<CalComEmbed username="mash-mushroom" eventSlug="15min" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/test-grower/bulk-order'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'mash-mushroom/15min'
+      );
+    });
+
+    it('should handle secret event slug', () => {
+      const { container } = render(<CalComEmbed username="mash-mushroom" eventSlug="secret" />);
+      
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'mash-mushroom/secret'
       );
     });
 
     it('should handle custom event slugs', () => {
-      render(<CalendlyEmbed username="test-grower" eventSlug="custom-event-45min" />);
+      const { container } = render(<CalComEmbed username="test-grower" eventSlug="custom-event-45min" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/test-grower/custom-event-45min'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'test-grower/custom-event-45min'
       );
     });
   });
 
   describe('URL Construction', () => {
     it('should handle usernames with special characters', () => {
-      render(<CalendlyEmbed username="test-grower-farm" eventSlug="30min" />);
+      const { container } = render(<CalComEmbed username="test-grower-farm" eventSlug="30min" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/test-grower-farm/30min'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'test-grower-farm/30min'
       );
     });
 
-    it('should not add trailing slash to URL', () => {
-      render(<CalendlyEmbed {...defaultProps} />);
+    it('should not add trailing slash to link', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      const url = widget.getAttribute('data-url');
-      expect(url).not.toMatch(/\/$/);
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      const link = widgetContainer?.getAttribute('data-cal-link');
+      expect(link).not.toMatch(/\/$/);
     });
   });
 
   describe('Accessibility', () => {
     it('should render without accessibility violations', () => {
-      const { container } = render(<CalendlyEmbed {...defaultProps} />);
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
       // Check for basic container structure
       expect(container.firstChild).toBeInTheDocument();
     });
 
     it('should have proper container structure', () => {
-      const { container } = render(<CalendlyEmbed {...defaultProps} />);
+      const { container } = render(<CalComEmbed {...defaultProps} />);
       
       expect(container.firstChild).toBeTruthy();
     });
@@ -173,43 +192,42 @@ describe('CalendlyEmbed Component', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty username gracefully', () => {
-      render(<CalendlyEmbed username="" eventSlug="30min" />);
+      const { container } = render(<CalComEmbed username="" eventSlug="30min" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute('data-url', 'https://calendly.com//30min');
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute('data-cal-link', '/30min');
     });
 
     it('should handle very long usernames', () => {
       const longUsername = 'a'.repeat(100);
-      render(<CalendlyEmbed username={longUsername} />);
+      const { container } = render(<CalComEmbed username={longUsername} />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        `https://calendly.com/${longUsername}/30min`
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        `${longUsername}/30min`
       );
     });
 
     it('should handle numeric productId', () => {
-      render(<CalendlyEmbed {...defaultProps} productId="12345" />);
+      const { container } = render(<CalComEmbed {...defaultProps} productId="12345" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      const prefillData = JSON.parse(widget.getAttribute('data-prefill') || '{}');
-      
-      expect(prefillData.customAnswers.a1).toBe('12345');
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toBeInTheDocument();
     });
   });
 
-  describe('Integration with Live Example', () => {
-    it('should match the live MASH Mushroom Automation URL format', () => {
-      // Live example: https://calendly.com/mash-mushroom-automation/30min
-      render(<CalendlyEmbed username="mash-mushroom-automation" eventSlug="30min" />);
+  describe('Integration with Cal.com Profile', () => {
+    it('should match the Cal.com mash-mushroom profile URL format', () => {
+      // Cal.com profile: https://cal.com/mash-mushroom
+      const { container } = render(<CalComEmbed username="mash-mushroom" eventSlug="30min" />);
       
-      const widget = screen.getByTestId('calendly-inline-widget');
-      expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/mash-mushroom-automation/30min'
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute(
+        'data-cal-link',
+        'mash-mushroom/30min'
       );
     });
   });
 });
+

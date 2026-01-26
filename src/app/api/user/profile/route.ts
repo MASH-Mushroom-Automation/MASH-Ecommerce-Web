@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiRequest } from "@/lib/api-client";
 import { cookies } from "next/headers";
 import type { ApiResponse, UserProfile } from "@/types/api";
+import { FirebaseUserService } from "@/lib/firebase";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
@@ -21,6 +22,41 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token")?.value;
+
+    // If there's no backend JWT token, but there is a Firebase session cookie, return profile from Firestore
+    const firebaseUidCookie = cookieStore.get('firebase-uid')?.value;
+
+    if (!token && firebaseUidCookie) {
+      try {
+        // Fetch profile from Firestore for Google-auth users
+        const profile = await FirebaseUserService.getProfile(firebaseUidCookie);
+        if (profile) {
+          return NextResponse.json(
+            {
+              success: true,
+              data: profile,
+              timestamp: new Date().toISOString(),
+              requestId: `req_${Date.now()}`,
+            },
+            { status: 200 }
+          );
+        }
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Profile not found in Firestore' },
+          },
+          { status: 404 }
+        );
+      } catch (err) {
+        console.error('[Profile API] Failed to get Firestore profile:', err);
+        return NextResponse.json(
+          { success: false, error: { code: 'FETCH_ERROR', message: 'Failed to fetch profile from Firestore' } },
+          { status: 500 }
+        );
+      }
+    }
 
     if (!token) {
       return NextResponse.json(

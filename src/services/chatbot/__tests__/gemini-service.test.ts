@@ -154,6 +154,8 @@ describe('Gemini Service', () => {
       const intro = getIntroMessage();
       expect(intro.content).toContain('MASH');
       expect(intro.content).toContain('mushroom');
+      expect(intro.content).toContain('/logo.png');
+      expect(intro.content).not.toMatch(/🍄/);
       expect(intro.success).toBe(true);
     });
   });

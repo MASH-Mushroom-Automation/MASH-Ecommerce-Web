@@ -46,13 +46,22 @@ interface RealtimeModeProviderProps {
 export function RealtimeModeProvider({ 
   children, 
   defaultEnabled = false 
-}: RealtimeModeProviderProps) {
+}: Readonly<RealtimeModeProviderProps>) {
   const [isRealtimeEnabled, setIsRealtimeEnabled] = useState(defaultEnabled);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // Update subscription count periodically
   useEffect(() => {
+    // Avoid starting the interval during tests unless explicitly enabled.
+    // Tests can opt-in by setting `global.__ENABLE_REALTIME_IN_TESTS = true`.
+    const isTestEnv = typeof process !== "undefined" && process?.env?.NODE_ENV === "test";
+    const optIn = (globalThis as any).__ENABLE_REALTIME_IN_TESTS === true;
+    if (isTestEnv && !optIn) {
+      // Do not start interval in test environment to avoid leaking timers and OOM.
+      return;
+    }
+
     const interval = setInterval(() => {
       setActiveSubscriptions(subscriptionManager.getActiveCount());
     }, 1000);
@@ -89,18 +98,27 @@ export function RealtimeModeProvider({
     setLastSyncTime(new Date());
   }, []);
 
+  // Memoize the value object so it doesn't change every render
+  const value = React.useMemo(() => ({
+    isRealtimeEnabled,
+    toggleRealtimeMode,
+    enableRealtime,
+    disableRealtime,
+    activeSubscriptions,
+    lastSyncTime,
+    updateLastSyncTime,
+  }), [
+    isRealtimeEnabled,
+    toggleRealtimeMode,
+    enableRealtime,
+    disableRealtime,
+    activeSubscriptions,
+    lastSyncTime,
+    updateLastSyncTime,
+  ]);
+
   return (
-    <RealtimeModeContext.Provider
-      value={{
-        isRealtimeEnabled,
-        toggleRealtimeMode,
-        enableRealtime,
-        disableRealtime,
-        activeSubscriptions,
-        lastSyncTime,
-        updateLastSyncTime,
-      }}
-    >
+    <RealtimeModeContext.Provider value={value}>
       {children}
     </RealtimeModeContext.Provider>
   );

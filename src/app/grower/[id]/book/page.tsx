@@ -254,9 +254,9 @@ export default function GrowerBookingPage() {
                   Select Appointment Type
                 </h2>
                 <div className="space-y-3">
-                  {appointmentTypes.map((apt) => (
+                  {appointmentTypes.map((apt, index) => (
                     <AppointmentTypeCard
-                      key={apt.eventSlug}
+                      key={`${apt.eventSlug}-${index}`}
                       appointment={apt}
                       isSelected={selectedType === apt.eventSlug}
                       onSelect={() => setSelectedType(apt.eventSlug)}

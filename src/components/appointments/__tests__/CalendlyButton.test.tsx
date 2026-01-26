@@ -63,11 +63,15 @@ describe('CalendlyButton Component', () => {
       expect(screen.getByText(/book appointment/i)).toBeInTheDocument();
     });
 
-    it('should show compact text in compact mode', () => {
+    it('should render as icon-only in compact mode', () => {
       render(<CalendlyButton {...defaultProps} compact={true} />);
       
-      expect(screen.getByText(/book/i)).toBeInTheDocument();
-      expect(screen.queryByText(/appointment/i)).toBeInTheDocument();
+      // In compact mode, renders as icon button with title attribute
+      const button = screen.getByRole('button');
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveAttribute('title', 'Book appointment with Shroomarket');
+      // No visible text in compact mode
+      expect(screen.queryByText('Book Appointment')).not.toBeInTheDocument();
     });
   });
 
@@ -88,17 +92,15 @@ describe('CalendlyButton Component', () => {
   });
 
   describe('Navigation', () => {
-    it('should navigate to booking page when clicked', () => {
-      render(<CalendlyButton {...defaultProps} />);
+    it('should have correct booking page link', () => {
+      const { container } = render(<CalendlyButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/shroomarket/book');
+      const link = container.querySelector('a[href="/grower/shroomarket/book"]');
+      expect(link).toBeInTheDocument();
     });
 
     it('should construct correct URL with different grower slugs', () => {
-      render(
+      const { container } = render(
         <CalendlyButton
           growerSlug="fungi-fresh-farms"
           growerName="Fungi Fresh Farms"
@@ -106,25 +108,21 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/fungi-fresh-farms/book');
+      const link = container.querySelector('a[href="/grower/fungi-fresh-farms/book"]');
+      expect(link).toBeInTheDocument();
     });
 
     it('should handle slugs with special characters', () => {
-      render(
+      const { container } = render(
         <CalendlyButton
           growerSlug="the-mushroom-patch-bukidnon"
-          growerName="The Mushroom Patch Bukidnon"
+          growerName="The Mushroom Patch (Bukidnon)"
           calendlyEnabled={true}
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
-      fireEvent.click(button);
-      
-      expect(mockPush).toHaveBeenCalledWith('/grower/the-mushroom-patch-bukidnon/book');
+      const link = container.querySelector('a[href="/grower/the-mushroom-patch-bukidnon/book"]');
+      expect(link).toBeInTheDocument();
     });
   });
 
@@ -258,11 +256,14 @@ describe('CalendlyButton Component', () => {
   });
 
   describe('Accessibility', () => {
-    it('should have proper button role', () => {
-      render(<CalendlyButton {...defaultProps} />);
+    it('should be rendered as a link with button styling', () => {
+      const { container } = render(<CalendlyButton {...defaultProps} />);
       
       const button = screen.getByRole('button', { name: /book appointment/i });
-      expect(button).toHaveAttribute('type', 'button');
+      expect(button).toBeInTheDocument();
+      // Wrapped in Link component
+      const link = container.querySelector('a');
+      expect(link).toBeInTheDocument();
     });
 
     it('should be keyboard accessible', () => {
@@ -345,24 +346,24 @@ describe('AppointmentTypeCard Component', () => {
   });
 
   describe('Meeting Type Labels', () => {
-    it('should display "Online (Google Meet)" for online type', () => {
+    it('should display "Online Meeting" for online type', () => {
       render(
         <AppointmentTypeCard
           appointment={{ ...defaultAppointment, meetingType: 'online' }}
         />
       );
       
-      expect(screen.getByText(/online \(google meet\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/online meeting/i)).toBeInTheDocument();
     });
 
-    it('should display "In-Person Visit" for in-person type', () => {
+    it('should display "Store Visit" for in-person type', () => {
       render(
         <AppointmentTypeCard
           appointment={{ ...defaultAppointment, meetingType: 'in-person' }}
         />
       );
       
-      expect(screen.getByText(/in-person visit/i)).toBeInTheDocument();
+      expect(screen.getByText(/store visit/i)).toBeInTheDocument();
     });
 
     it('should display "Phone Call" for phone type', () => {

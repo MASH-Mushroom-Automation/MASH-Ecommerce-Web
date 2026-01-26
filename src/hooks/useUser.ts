@@ -3,14 +3,16 @@ import { useState, useEffect, useCallback } from "react";
 import { UserApi } from "@/lib/api/user";
 import { UserProfile, UserOnboardingData } from "@/types/api";
 
+import { getCookieJSON, setCookie, getCookie } from "@/lib/cookies";
+
 // Profile hooks
 export function useUserProfile() {
-  // Try to hydrate profile from storage for instant UI update after login
+  // Try to hydrate profile from cookie for instant UI update
   const getStoredUser = (): UserProfile | null => {
     try {
       if (typeof globalThis.window !== "undefined") {
-        const s = sessionStorage.getItem("user") || localStorage.getItem("user");
-        if (s) return JSON.parse(s) as UserProfile;
+        const u = getCookieJSON<UserProfile>("user");
+        if (u) return u;
       }
     } catch {
       // ignore parse errors
@@ -36,18 +38,18 @@ export function useUserProfile() {
     try {
       // Check if user is Firebase-authenticated (Google OAuth)
       // Firebase users don't have backend JWT tokens
-      // Check for Firebase token in sessionStorage or localStorage
-      const hasFirebaseToken = 
-        (typeof globalThis.window !== "undefined" && 
-         (sessionStorage.getItem("firebase-token") || 
-          localStorage.getItem("firebase-token")));
-      
       const storedUser = getStoredUser();
-      
+
+      // Determine Firebase user by either an ephemeral session token or the stored profile provider
+      const hasFirebaseToken = (typeof globalThis.window !== "undefined") && (
+        !!sessionStorage.getItem("firebase-token") ||
+        (storedUser && (storedUser as any).authProvider === "FIREBASE_GOOGLE")
+      );
+
       if (hasFirebaseToken && storedUser) {
-        // For Firebase users, data is already in localStorage from AuthContext
+        // For Firebase users, data is already in cookie storage from AuthContext
         // No need to call backend API (which would return 401)
-        console.log('[useUserProfile] Firebase user detected, using localStorage data');
+        console.log('[useUserProfile] Firebase user detected, using cookie-stored profile');
         setProfile(storedUser);
         setLoading(false);
         return;
@@ -61,11 +63,10 @@ export function useUserProfile() {
       }
       const data = json?.data ?? json;
       setProfile(data);
-      // Update storage with fresh data
+      // Update cookie with fresh data (30 day expiry)
       try {
         if (typeof globalThis.window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify(data));
-          sessionStorage.setItem("user", JSON.stringify(data));
+          setCookie("user", data, { maxAge: 60 * 60 * 24 * 30 });
         }
       } catch {}
     } catch (err) {
@@ -89,10 +90,9 @@ export function useUserProfile() {
         if (!res.ok) throw new Error(json?.error || "Failed to update profile");
         const data = json?.data ?? json;
         setProfile(data);
-        // update storage
+        // update cookie
         try {
-          localStorage.setItem("user", JSON.stringify(data));
-          sessionStorage.setItem("user", JSON.stringify(data));
+          setCookie("user", data, { maxAge: 60 * 60 * 24 * 30 });
         } catch {}
         return { data, success: true };
       } catch (err) {
@@ -130,24 +130,13 @@ export function useUserProfile() {
     fetchProfile();
   }, [fetchProfile]);
 
-  // Listen for storage changes (e.g., logout clears localStorage)
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      // If user data was removed (logged out), clear profile
-      if (e.key === "user" && e.newValue === null) {
-        clearProfile();
-      }
-    };
-
-    globalThis.window.addEventListener("storage", handleStorageChange);
-    return () => globalThis.window.removeEventListener("storage", handleStorageChange);
-  }, [clearProfile]);
+  // We rely on cookie-based auth and visibility checks to detect logout (cookies have no storage events)
 
   // Also check auth cookie periodically to detect logout
   useEffect(() => {
     const checkAuth = () => {
       const hasAuthCookie = document.cookie.includes("auth-token=");
-      const hasStoredUser = !!localStorage.getItem("user");
+      const hasStoredUser = !!getCookie("user");
       
       // If no auth cookie and no stored user, clear profile
       if (!hasAuthCookie && !hasStoredUser && profile) {
