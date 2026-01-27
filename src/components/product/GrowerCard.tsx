@@ -21,7 +21,7 @@ interface GrowerCardProps {
 }
 
 export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps) {
-  const { name, rating = 0, location, calcomUsername, contactEmail } = grower;
+  const { name, rating = 0, location, calcomUsername, contactEmail, calcomButtonText } = grower;
 
   return (
     <div className={cn("bg-card rounded-xl p-4 border", "border-border") } data-testid="grower-card">
@@ -49,18 +49,17 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
             >
-              Book Appointment
+              {calcomButtonText || 'Schedule with Grower'}
             </a>
           ) : (
-            <a data-testid="mailto-link" href={`mailto:${contactEmail || ""}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
+            <a data-testid="mailto-link" href={`mailto:${contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
           )}
 
           <button
-            type="button"
             onClick={() => {
               if (onQuickChat) return onQuickChat();
               // Fallback behaviour: open mailto if no handler
-              window.location.href = `mailto:${contactEmail || ""}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
+              window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
             }}
             data-testid="contact-chat-btn"
             className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
@@ -107,19 +106,18 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
                     >
-                      Book Appointment
+                      {calcomButtonText || 'Schedule with Grower'}
                     </a>
                   ) : (
                     <a data-testid="mailto-link-empty" href={`mailto:${contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
                   )}
 
                   <button
-                    type="button"
-                    data-testid="contact-chat-btn-empty"
                     onClick={() => {
                       if (onQuickChat) return onQuickChat();
                       window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
                     }}
+                    data-testid="contact-chat-btn-empty"
                     className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
                   >
                     Quick Chat

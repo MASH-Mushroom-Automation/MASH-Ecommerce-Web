@@ -408,6 +408,17 @@ export const grower = defineType({
         ],
       },
     }),
+
+    // Editor-customizable CTA text for Cal.com appointment buttons
+    defineField({
+      name: 'calcomButtonText',
+      title: 'Cal.com Button Text',
+      type: 'string',
+      group: 'appointments',
+      description: 'Custom label for the appointment CTA shown on product and grower pages. Defaults to "Schedule with Grower".',
+      initialValue: 'Schedule with Grower',
+      validation: (Rule) => Rule.max(40),
+    }),
     defineField({
       name: 'appointmentTypes',
       title: 'Available Appointment Types',

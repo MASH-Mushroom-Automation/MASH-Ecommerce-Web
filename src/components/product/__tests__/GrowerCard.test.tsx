@@ -57,6 +57,9 @@ describe('GrowerCard', () => {
     const calcom = screen.getByTestId('calcom-btn-empty') as HTMLAnchorElement;
     expect(calcom.href).toContain('https://cal.com/noloc');
 
+    // Should show default CTA label when calcomButtonText not set
+    expect(calcom).toHaveTextContent('Schedule with Grower');
+
     expect(screen.getByTestId('contact-chat-btn-empty')).toBeInTheDocument();
   });
 });

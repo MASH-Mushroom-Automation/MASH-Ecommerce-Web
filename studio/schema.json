@@ -6873,6 +6873,13 @@
         },
         "optional": true
       },
+      "suggestedProductsEnabled": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "boolean"
+        },
+        "optional": true
+      },
       "productTags": {
         "type": "objectAttribute",
         "value": {
@@ -9127,6 +9134,13 @@
         },
         "optional": true
       },
+      "rating": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
+      },
       "story": {
         "type": "objectAttribute",
         "value": {
@@ -9523,6 +9537,177 @@
         "type": "objectAttribute",
         "value": {
           "type": "boolean"
+        },
+        "optional": true
+      },
+      "calendlyEnabled": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "boolean"
+        },
+        "optional": true
+      },
+      "calendlyUsername": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
+      "calcomUsername": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
+      "defaultEventSlug": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
+      "isHighlyRatedBadgeThreshold": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
+      },
+      "calendlyDefaultEvent": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "union",
+          "of": [
+            {
+              "type": "string",
+              "value": "15min"
+            },
+            {
+              "type": "string",
+              "value": "30min"
+            },
+            {
+              "type": "string",
+              "value": "1-hour-meeting"
+            },
+            {
+              "type": "string",
+              "value": "secret"
+            }
+          ]
+        },
+        "optional": true
+      },
+      "appointmentTypes": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "array",
+          "of": {
+            "type": "object",
+            "attributes": {
+              "name": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "string"
+                },
+                "optional": false
+              },
+              "eventSlug": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "union",
+                  "of": [
+                    {
+                      "type": "string",
+                      "value": "15min"
+                    },
+                    {
+                      "type": "string",
+                      "value": "30min"
+                    },
+                    {
+                      "type": "string",
+                      "value": "1-hour-meeting"
+                    },
+                    {
+                      "type": "string",
+                      "value": "secret"
+                    }
+                  ]
+                },
+                "optional": false
+              },
+              "duration": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "number"
+                },
+                "optional": false
+              },
+              "meetingType": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "union",
+                  "of": [
+                    {
+                      "type": "string",
+                      "value": "online"
+                    },
+                    {
+                      "type": "string",
+                      "value": "in-person"
+                    },
+                    {
+                      "type": "string",
+                      "value": "phone"
+                    }
+                  ]
+                },
+                "optional": true
+              },
+              "description": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "string"
+                },
+                "optional": true
+              },
+              "isDefault": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "boolean"
+                },
+                "optional": true
+              },
+              "_type": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "string",
+                  "value": "appointmentType"
+                }
+              }
+            },
+            "rest": {
+              "type": "object",
+              "attributes": {
+                "_key": {
+                  "type": "objectAttribute",
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "optional": true
+      },
+      "appointmentNotes": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
         },
         "optional": true
       },
