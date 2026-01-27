@@ -148,3 +148,18 @@
 
 **Tests Passing:** [PASS] Local unit tests
 ---
+
+## [2026-01-28 15:30] - CHORE-PROD-LOC-001
+**Completed:** Add explicit empty-location UI in `GrowerCard` and test coverage.
+**Files Changed:**
+- `src/components/product/GrowerCard.tsx` (show clear empty-state when grower `location` missing; includes `data-testid` markers)
+- `src/components/product/__tests__/GrowerCard.test.tsx` (unit test for empty-location state)
+- `e2e/tests/product-location-empty.spec.ts` (Playwright test mocking product with grower missing location)
+
+**Implementation Notes:**
+- When the grower does not provide a `location`, the storefront shows a clear message: **"Location not provided"** with guidance and contact options (Cal.com or Mailto) and a Quick Chat CTA.
+- Map/iframe (`data-testid="grower-map"`) still appears when `location` is present and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is configured; fallback to Google Maps link (`data-testid="grower-map-link"`) when API key missing.
+- Tests added: unit + e2e (mocked Sanity response). Playwright and Jest runs are green locally.
+
+**Tests Passing:** [PASS] Unit tests | [PASS] Playwright e2e (local)
+---
