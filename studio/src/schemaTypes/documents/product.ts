@@ -431,17 +431,17 @@ export const product = defineType({
     // Product Variants (Phase 9)
     defineField({
       name: 'hasVariants',
-      title: 'Has Variants',
+      title: 'Has Variants (Seller-managed, deprecated on storefront)',
       type: 'boolean',
       initialValue: false,
-      description: 'Does this product have size/color/weight variants?',
+      description: 'Does this product have size/color/weight variants? ⚠️ Deprecated for storefront display - variants are hidden from buyers. Manage variants only in Seller Studio.',
     }),
     defineField({
       name: 'variants',
-      title: 'Product Variants',
+      title: 'Product Variants (Seller-managed, deprecated on storefront)',
       type: 'array',
       of: [{type: 'reference', to: [{type: 'productVariant'}]}],
-      description: 'Add product variants (size, color, weight options)',
+      description: 'Add product variants (size, color, weight options). ⚠️ Note: variants are deprecated for buyer storefront; keep for backward compatibility and seller-managed use.',
       hidden: ({document}) => !document?.hasVariants,
     }),
     
@@ -456,10 +456,10 @@ export const product = defineType({
     }),
     defineField({
       name: 'relatedBundles',
-      title: 'Related Bundles',
+      title: 'Related Bundles (Deprecated on storefront)',
       type: 'array',
       of: [{type: 'reference', to: [{type: 'productBundle'}]}],
-      description: 'Bundles that include this product or similar products',
+      description: 'Bundles that include this product or similar products. ⚠️ Deprecated on storefront - bundles are no longer displayed to buyers. Keep for data compatibility in Seller Studio.',
       validation: (Rule) => Rule.max(4),
     }),
 
@@ -481,6 +481,15 @@ export const product = defineType({
       options: {
         layout: 'grid',
       },
+    }),
+
+    // New flag to allow editors to opt-out of auto-suggestions on a per-product basis
+    defineField({
+      name: 'suggestedProductsEnabled',
+      title: 'Suggested Products Enabled',
+      type: 'boolean',
+      initialValue: true,
+      description: 'When true (default), the storefront will auto-generate suggested products. Editors can set this to false to disable automatic suggestions for this product.',
     }),
     defineField({
       name: 'productTags',

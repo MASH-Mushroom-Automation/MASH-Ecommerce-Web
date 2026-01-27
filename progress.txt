@@ -82,3 +82,16 @@
 - Unit tests added and passing locally.
 **Tests Passing:** [PASS] Unit tests (local)
 ---
+
+## [2026-01-28 12:58] - STORY-PROD-003
+**Completed:** Sanity non-destructive schema updates + backfill script
+**Files Changed:**
+- `studio/src/schemaTypes/documents/product.ts` (added `suggestedProductsEnabled`; clarified deprecation notes for `variants` and `relatedBundles`)
+- `studio/src/schemaTypes/documents/grower.ts` (added `rating`, `calcomUsername` alias, `defaultEventSlug` alias, and `isHighlyRatedBadgeThreshold`)
+- `scripts/migrate-deprecate-bundles-variants.js` (backfill script to set defaults and copy Calendly -> Cal.com fields)
+**Implementation Notes:**
+- Changes are non-destructive and keep legacy fields for backward compatibility.
+- Added `suggestedProductsEnabled` (default true) so editors can opt out of auto-suggestions per product.
+- Added backfill script that copies existing Cal.com/Calendly fields for compatibility and sets defaults; it requires `SANITY_API_WRITE_TOKEN` to run.
+**Tests Passing:** [PASS] Unit tests (local)
+---

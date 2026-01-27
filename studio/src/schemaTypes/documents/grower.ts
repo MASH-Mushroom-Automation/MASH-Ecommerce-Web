@@ -113,6 +113,15 @@ export const grower = defineType({
       description: 'Detailed description of the farm and their mushroom growing practices',
     }),
     defineField({
+      name: 'rating',
+      title: 'Rating',
+      type: 'number',
+      group: 'basic',
+      description: 'Aggregate rating for the grower (1.0 - 5.0). This is computed from product reviews; editors can set initial values here.',
+      initialValue: 0,
+      validation: (Rule) => Rule.min(0).max(5),
+    }),
+    defineField({
       name: 'story',
       title: 'Grower Story',
       type: 'array',
@@ -337,7 +346,7 @@ export const grower = defineType({
     }),
     defineField({
       name: 'calendlyUsername',
-      title: 'Cal.com Username',
+      title: 'Cal.com Username (Canonical)',
       type: 'string',
       group: 'appointments',
       description: 'Your Cal.com username (e.g., mash-mushroom). Find it in your Cal.com URL: cal.com/YOUR-USERNAME',
@@ -354,6 +363,32 @@ export const grower = defineType({
           }
           return true
         }),
+    }),
+    // Backwards-compatible Cal.com fields (optional alias for older content and scripts)
+    defineField({
+      name: 'calcomUsername',
+      title: 'Cal.com Username (Alias, optional)',
+      type: 'string',
+      group: 'appointments',
+      description: 'Alias for `calendlyUsername`. Added for compatibility with storefront code that references `calcomUsername`. Editors should prefer `Cal.com Username (Canonical)`.',
+      hidden: true,
+    }),
+    defineField({
+      name: 'defaultEventSlug',
+      title: 'Default Event Slug (Alias)',
+      type: 'string',
+      group: 'appointments',
+      description: 'Alias for `calendlyDefaultEvent`. Optional compatibility field for older code paths.',
+      hidden: true,
+    }),
+    defineField({
+      name: 'isHighlyRatedBadgeThreshold',
+      title: 'Highly Rated Badge Threshold',
+      type: 'number',
+      group: 'settings',
+      initialValue: 4.5,
+      description: 'Threshold rating above which the grower shows the "Highly rated on Marketplace" badge (default 4.5).',
+      validation: (Rule) => Rule.min(0).max(5),
     }),
     defineField({
       name: 'calendlyDefaultEvent',

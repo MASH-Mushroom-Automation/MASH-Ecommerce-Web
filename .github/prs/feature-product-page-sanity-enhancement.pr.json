@@ -136,7 +136,7 @@
 
   "progress": {
     "status": "in-progress",
-    "updatedAt": "2026-01-28T12:34:00Z",
+    "updatedAt": "2026-01-28T12:58:00Z",
     "entries": [
       {
         "id": "STORY-PROD-001",
@@ -156,10 +156,11 @@
       {
         "id": "STORY-PROD-003",
         "title": "Sanity schema non-destructive changes",
-        "status": "in-progress",
-        "notes": "Add new fields to product and grower schemas (media, freshnessInfo, deliveryOptions); mark variants/bundles deprecated in Studio with UI hint. Plan backfill script.",
-        "files_planned": ["studio/src/schemaTypes/documents/product.ts", "studio/src/schemaTypes/documents/grower.ts", "scripts/migrate-deprecate-bundles-variants.js"]
+        "status": "completed",
+        "notes": "Added `suggestedProductsEnabled`, updated product variant/bundle deprecation notes, added grower rating and Cal.com alias fields, and added non-destructive backfill script.",
+        "files_changed": ["studio/src/schemaTypes/documents/product.ts", "studio/src/schemaTypes/documents/grower.ts", "scripts/migrate-deprecate-bundles-variants.js"]
       },
+      
       {
         "id": "STORY-PROD-004",
         "title": "Stock sync & add-to-cart dynamic behavior",
