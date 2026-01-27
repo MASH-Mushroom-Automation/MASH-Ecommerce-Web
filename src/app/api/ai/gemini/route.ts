@@ -20,10 +20,15 @@ export async function POST(request: NextRequest) {
       // server-side; no timeout controller for simplicity
     });
 
-    const text = await response.text();
-    return new Response(text, { status: response.status, headers: { 'Content-Type': 'application/json' } });
+    const jsonBody = await response.json().catch(() => ({}));
+    return NextResponse.json(jsonBody, { status: response.status });
   } catch (error) {
     console.error('[API][Gemini] Proxy error:', error);
     return NextResponse.json({ error: 'Proxy error' }, { status: 500 });
   }
+}
+
+// Health check for local debugging and CI readiness
+export async function GET() {
+  return NextResponse.json({ ok: true }, { status: 200 });
 }
