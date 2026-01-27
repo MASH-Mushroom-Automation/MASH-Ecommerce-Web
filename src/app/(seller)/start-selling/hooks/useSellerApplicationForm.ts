@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import {
   useSellerApplicationMutation,
   useDocumentUploadMutation,
+  useSellerVerificationStatus,
   SellerApplicationPayload,
+  SellerVerificationStatus,
 } from "@/hooks/useSellerApplication";
 import { sellerApplicationSchema, SellerApplicationForm } from "../schema";
 
@@ -21,6 +23,9 @@ const mapBusinessType = (type: string): string => {
 export function useSellerApplicationForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(0); // 0 = hero, 1 = form
+
+  // TanStack Query - Check verification status first
+  const verificationStatusQuery = useSellerVerificationStatus();
 
   // TanStack Query mutations
   const documentUploadMutation = useDocumentUploadMutation();
@@ -103,6 +108,14 @@ export function useSellerApplicationForm() {
   const isSubmitting =
     documentUploadMutation.isPending || sellerApplicationMutation.isPending;
 
+  // Verification status helpers
+  const verificationStatus: SellerVerificationStatus | undefined =
+    verificationStatusQuery.data;
+  const isCheckingStatus = verificationStatusQuery.isLoading;
+  const hasPendingApplication =
+    verificationStatus?.hasApplication &&
+    verificationStatus?.status === "PENDING";
+
   // Navigation handlers
   const goToForm = () => setCurrentStep(1);
   const goToHero = () => setCurrentStep(0);
@@ -118,12 +131,18 @@ export function useSellerApplicationForm() {
     showSuccessModal,
     isSubmitting,
 
+    // Verification status
+    verificationStatus,
+    isCheckingStatus,
+    hasPendingApplication,
+
     // Navigation
     goToForm,
     goToHero,
     closeSuccessModal,
 
-    // Mutations (exposed for advanced use cases)
+    // Queries & Mutations (exposed for advanced use cases)
+    verificationStatusQuery,
     documentUploadMutation,
     sellerApplicationMutation,
   };

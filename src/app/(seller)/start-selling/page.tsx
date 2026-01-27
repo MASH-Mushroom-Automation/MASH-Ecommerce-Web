@@ -7,7 +7,9 @@ import { isAuthenticated } from "@/lib/auth";
 import { HeroSection } from "./components/HeroSection";
 import { ApplicationForm } from "./components/ApplicationForm";
 import { SuccessModal } from "./components/SuccessModal";
+import { PendingApplicationModal } from "./components/PendingApplicationModal";
 import { useSellerApplicationForm } from "./hooks/useSellerApplicationForm";
+import { Loader2 } from "lucide-react";
 
 // Re-export schema and types for components that need them
 export { sellerApplicationSchema, type SellerApplicationForm } from "./schema";
@@ -22,6 +24,9 @@ export default function StartSellingPage() {
     currentStep,
     showSuccessModal,
     isSubmitting,
+    verificationStatus,
+    isCheckingStatus,
+    hasPendingApplication,
     goToForm,
     goToHero,
   } = useSellerApplicationForm();
@@ -33,6 +38,30 @@ export default function StartSellingPage() {
       router.push("/login?redirect=/start-selling");
     }
   }, [router]);
+
+  // Show loading state while checking verification status
+  if (isCheckingStatus) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center px-4 py-12">
+        <div className="bg-background rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12 max-w-md w-full text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            Checking application status...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show pending application modal if user already has a pending application
+  if (hasPendingApplication) {
+    return (
+      <PendingApplicationModal
+        onClose={() => router.push("/")}
+        verificationStatus={verificationStatus}
+      />
+    );
+  }
 
   if (showSuccessModal) {
     return <SuccessModal onClose={() => router.push("/")} />;
