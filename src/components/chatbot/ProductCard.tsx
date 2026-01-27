@@ -35,7 +35,7 @@ interface ProductCardProps {
 export function ProductCard({ product, className, onAddToCart, conversationId, messageId }: ProductCardProps) {
   const router = useRouter();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { addItem } = useCart();
+  const { addToCart } = useCart();
   const inWishlist = isInWishlist(product.id);
 
   const handleCardClick = async () => {
@@ -75,14 +75,24 @@ export function ProductCard({ product, className, onAddToCart, conversationId, m
       }
       
       // Add to cart using CartContext
-      await addItem({
-        productId: product.id,
-        quantity: 1,
-        variantId: undefined,
-      });
-      
+      const added = addToCart(
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          slug: product.slug,
+          stock: product.inStock ? 1 : 0,
+        },
+        1
+      );
+
+      if (!added) {
+        throw new Error('Failed to add to cart');
+      }
+
       toast.success(`${product.name} added to cart!`);
-      
+
       if (onAddToCart) {
         onAddToCart(product.id);
       }

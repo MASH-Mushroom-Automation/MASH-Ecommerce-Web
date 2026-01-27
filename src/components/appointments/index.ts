@@ -1,16 +1,16 @@
 /**
  * Appointments Components
  * 
- * Components for Calendly integration allowing buyers to book
+ * Components for Cal.com integration allowing buyers to book
  * appointments with growers/sellers.
  * 
- * Live Example: https://calendly.com/mash-mushroom-automation/30min
+ * Cal.com Profile: https://cal.com/mash-mushroom
  * 
- * @see .github/SELLER_APPOINTMENT_SYSTEM_PLAN.md
+ * @see .github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md
  */
 
-export { CalendlyEmbed } from "./CalendlyEmbed";
-export { CalendlyButton, AppointmentTypeCard } from "./CalendlyButton";
+export { CalendlyEmbed, CalComEmbed } from "./CalendlyEmbed";
+export { CalendlyButton, CalComButton, AppointmentTypeCard } from "./CalendlyButton";
 
 // Types
 export interface AppointmentType {

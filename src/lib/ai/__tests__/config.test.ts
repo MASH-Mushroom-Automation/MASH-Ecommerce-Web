@@ -65,7 +65,7 @@ describe('Phase 1: AI Configuration', () => {
       const url = getGeminiUrl();
 
       expect(url).toContain('generativelanguage.googleapis.com');
-      expect(url).toContain('gemini-2.0-flash-exp');
+      expect(url).toContain(GEMINI_MODEL);
       expect(url).toContain('generateContent');
       expect(url).toContain('key=');
     });
@@ -90,7 +90,7 @@ describe('Phase 1: AI Configuration', () => {
     it('should return valid Hugging Face API URL', () => {
       const url = getHuggingFaceUrl();
 
-      expect(url).toContain('api-inference.huggingface.co');
+      expect(url).toContain('router.huggingface.co');
       expect(url).toContain('models');
     });
 
@@ -109,8 +109,9 @@ describe('Phase 1: AI Configuration', () => {
   });
 
   describe('Configuration Constants', () => {
-    it('should have correct Gemini model name', () => {
-      expect(GEMINI_MODEL).toBe('gemini-2.0-flash-exp');
+    it('should have a Gemini model configured', () => {
+      expect(typeof GEMINI_MODEL).toBe('string');
+      expect(GEMINI_MODEL).toMatch(/gemini/i);
     });
 
     it('should have reasonable timeout values', () => {

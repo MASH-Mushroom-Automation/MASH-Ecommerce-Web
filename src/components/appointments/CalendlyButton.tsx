@@ -15,7 +15,7 @@ interface AppointmentType {
   isDefault?: boolean;
 }
 
-interface CalendlyButtonProps {
+interface CalComButtonProps {
   /** Grower's slug for the booking page URL */
   growerSlug: string;
   /** Grower's display name */
@@ -35,21 +35,21 @@ interface CalendlyButtonProps {
 }
 
 /**
- * CalendlyButton - Button to navigate to grower's booking page
+ * CalComButton - Button to navigate to grower's booking page
  * 
  * Use this on grower profile pages and product pages to allow
  * buyers to book appointments with growers.
  * 
  * @example
  * ```tsx
- * <CalendlyButton 
+ * <CalComButton 
  *   growerSlug="mushroom-automation"
  *   growerName="MASH Mushroom Automation"
  *   calendlyEnabled={true}
  * />
  * ```
  */
-export function CalendlyButton({
+export function CalComButton({
   growerSlug,
   growerName,
   calendlyEnabled = false,
@@ -58,7 +58,7 @@ export function CalendlyButton({
   size = "default",
   className = "",
   compact = false,
-}: CalendlyButtonProps) {
+}: CalComButtonProps) {
   // Don't render if appointments not enabled
   if (!calendlyEnabled) {
     return null;
@@ -190,4 +190,6 @@ export function AppointmentTypeCard({
   );
 }
 
-export default CalendlyButton;
+// Export as CalComButton for new naming convention
+export { CalComButton as CalendlyButton };
+export default CalComButton;

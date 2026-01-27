@@ -1,0 +1,48 @@
+## Codebase Patterns
+- **Cart Format:** Always use Cart v2 format with `{ version: 2, items: [], updatedAt: string }`
+- **Sanity Images:** Use `coalesce(mainImage.asset->url, image.asset->url)` in GROQ queries
+- **Backend Enums:** UPPERCASE only (`USER`, `BUYER`, `GROWER`, `ADMIN`)
+- **Auth Tokens:** `setAuthToken()` is client-side only - check for SSR before calling
+- **Route Protection:** Use `src/proxy.ts` (Next.js 16 renamed from middleware.ts)
+- **API Routing:** Email endpoints route based on `NEXT_PUBLIC_EMAIL_SERVICE_ENV`
+- **Test Guards:** Long-running intervals should be disabled in test environment by default. Use opt-in flags: `global.__ENABLE_COOKIE_POLLING_IN_TESTS` and `global.__ENABLE_REALTIME_IN_TESTS`.
+
+---
+
+## [2026-01-24 12:10] - STORY-TEST-021
+**Completed:** Prevented test environment OOM by disabling background interval in `RealtimeModeProvider` and added unit tests.
+**Files Changed:**
+- `src/contexts/RealtimeModeContext.tsx` (guard interval in test env; memoize context value)
+- `src/contexts/__tests__/RealtimeModeContext.test.tsx` (tests: interval disabled by default; opt-in behavior)
+- `.github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md` (documented test guards)
+
+**Implementation Notes:**
+- Tests will no longer leak timers from the real-time subscription interval.
+- Tests that require polling can opt-in by setting `global.__ENABLE_REALTIME_IN_TESTS = true`.
+- This change, combined with disabling cookie polling by default, reduces open handles and prevents Jest runs from exhausting memory.
+
+**Tests Passing:** [WIP] Full test suite re-run in progress (local runs show passing Realtime tests; full suite needs re-run to confirm no OOM).
+---
+
+## [2026-01-24 23:45] - STORY-TEST-021
+**In Progress:** Stabilizing `AuthContext` unit tests and completing final cookie migration sweep.
+**Files Changed / Under Investigation:**
+- `src/contexts/AuthContext.tsx` (investigating redirect and profile sync flows; edge cases when using cookies)
+- `src/contexts/__tests__/AuthContext.test.tsx` (failing cases: redirect restoration, profile creation assertions, specific error-handling cases)
+- `src/lib/cookies.ts` (validated JSON parsing fallback & maxAge handling)
+- `src/lib/__tests__/cookies.test.ts` (cookie parse tests)
+
+**Current Findings:**
+- Several `AuthContext` tests fail due to differences in redirect handling (sessionStorage), profile sync ordering, and how thrown errors are surfaced from async handlers. Some tests assume synchronous throws which React's event system may swallow—tests or handlers may need to be adapted.
+- Cookie parsing now has a robust decode fallback and `maxAge` support; real-time and cookie polling guards are in place to avoid OOM during full runs.
+
+**Next Steps:**
+1. Iterate on `AuthContext` failing tests (fix code & tests as appropriate), run them in isolation.
+2. Re-run full Jest suite with polling disabled by default and re-enable opt-in flags for targeted tests only.
+3. Fix any remaining failures and OOMs, then run `npm run build` and `npm run lint`.
+4. After green build/tests, schedule single-grower live migration and verify in Sanity Studio upon approval.
+
+**Notes:**
+- Running full test suite may require multiple iterations to stabilize flaky tests; I will proceed with focused test fixes now.
+
+---

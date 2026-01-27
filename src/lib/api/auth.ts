@@ -1,5 +1,6 @@
 import { apiRequest } from "../api-client";
 import { setAuthToken, logout } from "../auth";
+import { setCookie } from "@/lib/cookies";
 
 // Types
 export interface RegisterRequest {
@@ -158,20 +159,13 @@ export const AuthApi = {
       body: JSON.stringify(data),
     });
 
-    // Store tokens automatically
+    // Store tokens in HTTP-only cookies via API
     if (response.data?.tokens?.accessToken) {
-      setAuthToken(response.data.tokens.accessToken, true);
-    }
-
-    // Store refresh token
-    if (response.data?.tokens?.refreshToken) {
-      localStorage.setItem("refreshToken", response.data.tokens.refreshToken);
-    }
-
-    // Store user data
-    if (response.data?.user || response.user) {
-      const user = response.data?.user || response.user;
-      localStorage.setItem("user", JSON.stringify(user));
+      await setAuthToken(
+        response.data.tokens.accessToken,
+        response.data?.tokens?.refreshToken,
+        true
+      );
     }
 
     return response;
@@ -204,14 +198,9 @@ export const AuthApi = {
       }
     );
 
-    // Store token automatically
+    // Store token in HTTP-only cookie via API
     if (response.data?.token) {
-      setAuthToken(response.data.token, true);
-    }
-
-    // Store user data
-    if (response.data?.user) {
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      await setAuthToken(response.data.token, undefined, true);
     }
 
     return response;
@@ -250,27 +239,29 @@ export const AuthApi = {
     // Handle both response formats (nested data or direct)
     const accessToken = response.data?.accessToken || response.accessToken;
     const refreshToken = response.data?.refreshToken || response.refreshToken;
-    const user = response.data?.user || response.user;
 
-    // Use rememberMe for client-side cookie expiry only
-    // rememberMe=true → 7 days cookie
-    // rememberMe=false → session cookie (expires on browser close)
+    // Store tokens in HTTP-only cookies via API
+    // rememberMe determines cookie expiry: true = 30 days, false = 7 days
     if (accessToken) {
-      setAuthToken(accessToken, data.rememberMe || false);
+      // Use the server-side API helper to set HTTP-only cookies for tokens
+      await setAuthToken(accessToken, refreshToken, data.rememberMe || false);
     }
 
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    }
-
-    // Store user data with provider field for AuthContext compatibility
+    // Persist user info in a client-accessible cookie (used by UI for instant hydration)
+    const user = response.data?.user || response.user;
     if (user) {
       const userWithProvider = {
         ...user,
-        provider: "email", // Mark as email/password login for AuthContext
-        emailVerified: user.emailVerified ?? true, // Default to true if not provided (backend validated)
+        provider: "email",
+        emailVerified: user.emailVerified ?? true,
       };
-      localStorage.setItem("user", JSON.stringify(userWithProvider));
+
+      try {
+        // 30 days expiry
+        setCookie("user", userWithProvider, { maxAge: 60 * 60 * 24 * 30 });
+      } catch (e) {
+        console.warn("[AuthApi] Failed to persist user cookie:", e);
+      }
     }
 
     return response;
@@ -312,18 +303,20 @@ export const AuthApi = {
   },
 
   /**
-   * Get current user from localStorage
-   * @returns User object or null
+   * Get current user from auth context
+   * Note: User data should be retrieved from AuthContext, not localStorage
+   * @deprecated Use useAuth() hook instead
+   * @returns null (always - use AuthContext)
    */
   getCurrentUser: () => {
-    if (typeof window === "undefined") return null;
-    const userStr = localStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
+    console.warn("[AuthApi] getCurrentUser is deprecated - use useAuth() hook instead");
+    return null;
   },
 
   /**
-   * Check if user is authenticated
+   * Check if user is authenticated (synchronous cookie check)
    * @returns boolean
+   * @deprecated Use useAuth() hook for reliable auth state
    */
   isAuthenticated: () => {
     if (typeof document === "undefined") return false;
