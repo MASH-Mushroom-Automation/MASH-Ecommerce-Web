@@ -1,7 +1,7 @@
-// Sanity Studio PostCSS configuration
-// This file is needed to prevent conflicts with parent project's PostCSS config
+// Sanity Studio PostCSS configuration (ESM)
+// Converted to ESM because studio package.json sets "type": "module"
 
-module.exports = {
+export default {
   plugins: {
     // Empty plugins - Sanity handles its own CSS processing
   },
