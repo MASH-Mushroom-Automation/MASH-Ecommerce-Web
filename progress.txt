@@ -9,6 +9,28 @@
 
 ---
 
+## [2026-01-27 15:40] - STORY-PROD-005
+**Completed:** Product detail page redesign — removed extra info panels and surfaced Grower/Seller contact with embedded map and Cal.com appointment link.
+**Files Changed:**
+- `src/components/product/ProductDetailsSections.tsx` (simplified: only From the Seller block)
+- `src/components/product/GrowerCard.tsx` (Cal.com external link, embedded Google Maps iframe when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` present, improved Quick Chat behavior)
+- `src/app/(shop)/product/[slug]/page.tsx` (removed Nutritional Highlights & Frequently Bought Together sections; wired `onQuickChat`)
+- `src/app/(shop)/product/__tests__/product-page.test.tsx` (updated to unit-test details section and expectations)
+- `src/components/product/__tests__/ProductDetailsSections.test.tsx` (updated)
+- `src/components/product/__tests__/GrowerCard.test.tsx` (updated to assert map iframe when API key present)
+- `e2e/tests/product-contact.spec.ts` (robust assertions for map iframe/link + quick chat)
+- `e2e/tests/product-details.spec.ts` (updated to assert removed sections are absent)
+- `e2e/tests/cart-stock-queue-persistence.spec.ts` (stabilized timeouts)
+
+**Implementation Notes:**
+- Removed the following UI sections from the storefront: *Freshness & Quality*, *Cooking Guide*, *Delivery Options*, *Nutritional Highlights*, and *Frequently Bought Together* (bundles).
+- Kept *Product Tags* displayed as subtle chips and ensured suggestion section remains as "You May Also Like".
+- Grower card shows seller name, rating (with "Highly rated" badge when >=4.5), contact CTA (Cal.com external link), Quick Chat (opens site chatbot), and embedded Google Maps iframe when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is configured; otherwise falls back to an external Google Maps link.
+
+**Tests Passing:** [PASS] Unit tests (Jest) | [PASS] Playwright e2e (local)
+
+---
+
 ## [2026-01-24 12:10] - STORY-TEST-021
 **Completed:** Prevented test environment OOM by disabling background interval in `RealtimeModeProvider` and added unit tests.
 **Files Changed:**

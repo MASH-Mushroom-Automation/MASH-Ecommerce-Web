@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { FirebaseCartService } from "@/lib/firebase/cart";
 import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
+import { stockSync } from "@/lib/product/stock-sync";
 
 interface CartContextType {
   items: CartItem[];
@@ -181,32 +182,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    setItems((prev) => {
-      console.log("[CartContext] setItems called, prev items:", prev.length);
-      const existingItem = prev.find((item) => item.productId === product.id);
+    // Check existing item in current state
+    const existingItem = items.find((item) => item.productId === product.id);
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > product.stock) {
+        toast.error(`Cannot add more items`, {
+          description: `Only ${product.stock} available, you have ${existingItem.quantity} in cart`,
+        });
+        return false;
+      }
+    }
 
-      if (existingItem) {
-        console.log("[CartContext] Item already in cart, updating quantity");
-        // Check if combined quantity exceeds stock
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          toast.error(`Cannot add more items`, {
-            description: `Only ${product.stock} available, you have ${existingItem.quantity} in cart`,
-          });
-          return prev;
-        }
-        
-        // Update existing item quantity
-        const updated = prev.map((item) =>
+    setItems((prev) => {
+      // Re-check existing in prev state (in case of race, though unlikely here)
+      const currentExisting = prev.find((item) => item.productId === product.id);
+      
+      if (currentExisting) {
+        return prev.map((item) =>
           item.productId === product.id
-            ? { ...item, quantity: newQuantity }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
-        console.log("[CartContext] Updated cart:", updated.length);
-        return updated;
       }
 
-      // Add new item with full product details (sanitize optional fields)
+      // Add new item with full product details
       const newItem: CartItem = {
         productId: product.id,
         name: product.name,
@@ -215,24 +215,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         slug: product.slug,
         stock: product.stock,
         quantity,
+        grower: product.grower,
+        unit: product.unit,
+        comparePrice: product.comparePrice,
       };
 
-      // Only include optional fields if they have values
-      if (product.grower !== undefined && product.grower !== null) {
-        newItem.grower = product.grower;
-      }
-      if (product.unit !== undefined && product.unit !== null) {
-        newItem.unit = product.unit;
-      }
-      if (product.comparePrice !== undefined && product.comparePrice !== null) {
-        newItem.comparePrice = product.comparePrice;
-      }
-
-      console.log("[CartContext] Adding new item:", newItem);
-      const newCart = [...prev, newItem];
-      console.log("[CartContext] New cart size:", newCart.length);
-      return newCart;
+      return [...prev, newItem];
     });
+
+    // Optimistically decrement visible stock immediately
+    try {
+      stockSync.adjustLocalStock(product.id, -quantity);
+      stockSync.enqueue(product.id, -quantity);
+    } catch (e) {
+      console.warn("[CartContext] stockSync adjust/enqueue failed", e);
+    }
 
     toast.success(`${product.name} added to cart!`, {
       description: `${quantity} ${product.unit || "item"}(s) added`,
