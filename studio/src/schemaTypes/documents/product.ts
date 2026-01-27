@@ -429,11 +429,13 @@ export const product = defineType({
     }),
     
     // Product Variants (Phase 9)
+    // Deprecated for storefront: hide from editors to avoid accidental usage
     defineField({
       name: 'hasVariants',
       title: 'Has Variants (Seller-managed, deprecated on storefront)',
       type: 'boolean',
       initialValue: false,
+      hidden: true,
       description: 'Does this product have size/color/weight variants? ⚠️ Deprecated for storefront display - variants are hidden from buyers. Manage variants only in Seller Studio.',
     }),
     defineField({
@@ -442,7 +444,7 @@ export const product = defineType({
       type: 'array',
       of: [{type: 'reference', to: [{type: 'productVariant'}]}],
       description: 'Add product variants (size, color, weight options). ⚠️ Note: variants are deprecated for buyer storefront; keep for backward compatibility and seller-managed use.',
-      hidden: ({document}) => !document?.hasVariants,
+      hidden: true,
     }),
     
     // Related Products & Bundles (Phase 9)
@@ -461,6 +463,7 @@ export const product = defineType({
       of: [{type: 'reference', to: [{type: 'productBundle'}]}],
       description: 'Bundles that include this product or similar products. ⚠️ Deprecated on storefront - bundles are no longer displayed to buyers. Keep for data compatibility in Seller Studio.',
       validation: (Rule) => Rule.max(4),
+      hidden: true,
     }),
 
     // ========================================
@@ -513,16 +516,18 @@ export const product = defineType({
           filter: '_type == "product" && _id != ^._id', // Don't suggest itself
         },
       }],
-      description: 'Products often purchased with this item (shows in cart and product page)',
+      description: 'Products often purchased with this item (shows in cart and product page). ⚠️ Deprecated on storefront; use auto-generated suggestions instead.',
       validation: (Rule) => Rule.max(4),
+      hidden: true,
     }),
 
-    // Mushroom-Specific Freshness & Quality
+    // Mushroom-Specific Freshness & Quality (Hidden from Studio - deprecated on storefront)
     defineField({
       name: 'freshnessInfo',
       title: 'Freshness Information',
       type: 'object',
-      description: 'Critical for fresh mushrooms - harvest to delivery tracking',
+      hidden: true,
+      description: 'Critical for fresh mushrooms - harvest to delivery tracking (Hidden: deprecated for storefront display)',
       fields: [
         {
           name: 'harvestWindow',
@@ -570,12 +575,13 @@ export const product = defineType({
       ],
     }),
 
-    // Preparation & Cooking Information
+    // Preparation & Cooking Information (Hidden from Studio - deprecated on storefront)
     defineField({
       name: 'preparationInfo',
       title: 'Preparation & Cooking',
       type: 'object',
-      description: 'Help customers prepare and cook mushrooms correctly',
+      hidden: true,
+      description: 'Help customers prepare and cook mushrooms correctly (Hidden: deprecated for storefront display)',
       fields: [
         {
           name: 'difficultyLevel',
@@ -613,12 +619,13 @@ export const product = defineType({
       ],
     }),
 
-    // Same-Day Delivery Options (Lalamove Integration)
+    // Same-Day Delivery Options (Lalamove Integration) (Hidden from Studio - deprecated on storefront)
     defineField({
       name: 'deliveryOptions',
       title: 'Delivery Options',
       type: 'object',
-      description: 'Configure same-day delivery via Lalamove for fresh mushrooms',
+      hidden: true,
+      description: 'Configure same-day delivery via Lalamove for fresh mushrooms (Hidden: deprecated for storefront display)',
       fields: [
         {
           name: 'sameDayDeliveryEligible',
@@ -723,8 +730,9 @@ export const product = defineType({
       name: 'nutritionalHighlights',
       title: 'Nutritional Highlights',
       type: 'array',
+      hidden: true,
       of: [{type: 'string'}],
-      description: 'Key health benefits to display on product cards',
+      description: 'Key health benefits to display on product cards (Hidden: deprecated for storefront display)',
       options: {
         list: [
           {title: '🌟 High in Vitamin D', value: 'vitamin-d'},
