@@ -11,8 +11,9 @@ import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
 import { useSanityProduct, useSanitySuggestedProducts } from "@/hooks/useSanityProducts";
-import { useSanityVariants } from "@/hooks/useSanityVariants";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
+import { CalComButton } from "@/components/appointments/CalendlyButton"; // For grower appointment link
+
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import { ProductCard } from "@/components/product";
 import type { MediaItem } from "@/types/sanity";
@@ -77,14 +78,8 @@ export default function ProductDetailPage({ params }: Props) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
 
-  // Variants hook - only fetch when product is loaded
-  const { 
-    variants, 
-    summary: variantSummary, 
-    selectedVariant, 
-    selectVariant,
-    loading: variantsLoading 
-  } = useSanityVariants(product?.id || '');
+  // Variants are disabled on the storefront (managed in Seller Studio)
+  // NOTE: we intentionally do not call useSanityVariants here to avoid showing variant selection to buyers.
 
   // Reviews hook - only fetch when product is loaded
   const { 
@@ -473,121 +468,7 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Variant Selector */}
-            {!variantsLoading && variants.length > 0 && (
-              <div className="space-y-4 border border-border rounded-lg p-4 bg-muted/20">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  📦 Select Option
-                  {variantSummary && (
-                    <span className="text-xs font-normal text-muted-foreground">
-                      ({variantSummary.totalVariants} options available)
-                    </span>
-                  )}
-                </h3>
-
-                {/* Size Options */}
-                {variantSummary?.sizes && variantSummary.sizes.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Size</label>
-                    <div className="flex flex-wrap gap-2">
-                      {variantSummary.sizes.map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => selectVariant({ size })}
-                          className={cn(
-                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
-                            selectedVariant?.size === size
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-primary/50 bg-background"
-                          )}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Weight Options */}
-                {variantSummary?.weights && variantSummary.weights.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Weight</label>
-                    <div className="flex flex-wrap gap-2">
-                      {variantSummary.weights.map((weight) => (
-                        <button
-                          key={weight}
-                          onClick={() => selectVariant({ weight })}
-                          className={cn(
-                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
-                            selectedVariant?.weight === weight
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-primary/50 bg-background"
-                          )}
-                        >
-                          {weight}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Color Options */}
-                {variantSummary?.colors && variantSummary.colors.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Color</label>
-                    <div className="flex flex-wrap gap-2">
-                      {variantSummary.colors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => selectVariant({ color })}
-                          className={cn(
-                            "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
-                            selectedVariant?.color === color
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-primary/50 bg-background"
-                          )}
-                        >
-                          {color}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Selected Variant Info */}
-                {selectedVariant && (
-                  <div className="pt-2 border-t border-border text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Selected:</span>
-                      <span className="font-semibold text-foreground">{selectedVariant.variantName}</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-muted-foreground">Price:</span>
-                      <span className="font-bold text-primary">₱{selectedVariant.price.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-muted-foreground">Stock:</span>
-                      <span className={cn(
-                        "font-medium",
-                        selectedVariant.stockQuantity > 10 ? "text-green-600" :
-                        selectedVariant.stockQuantity > 0 ? "text-yellow-600" : "text-red-600"
-                      )}>
-                        {selectedVariant.stockQuantity > 0 
-                          ? `${selectedVariant.stockQuantity} available` 
-                          : "Out of stock"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Price Range Display */}
-                {variantSummary?.priceRange && !selectedVariant && (
-                  <div className="text-sm text-muted-foreground">
-                    Price range: <span className="font-semibold text-primary">{variantSummary.priceRange}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Variant selection has been removed from the storefront - variants are managed in Seller Studio only */}
 
             {/* Quantity Selector */}
             <div className="space-y-2">
@@ -914,65 +795,26 @@ export default function ProductDetailPage({ params }: Props) {
             </div>
           )}
           
-          {/* Grower / Farm Information Card */}
+          {/* Grower / Farm Information Card (simplified for stability) */}
           {product.grower && (
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-6 border border-amber-100 dark:border-amber-800">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
-                  <Store className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="rounded-xl p-4 border bg-amber-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center">
+                    <Store className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">{product.grower.name}</div>
+                    <div className="text-sm text-muted-foreground">{product.grower.location}</div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">From the Grower</h3>
-              </div>
-              
-              <div className="space-y-4">
-                {/* Grower Profile */}
-                <Link 
-                  href={`/grower/${product.grower.slug}`}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 transition-colors group"
-                >
-                  {product.grower.image ? (
-                    <Image
-                      src={product.grower.image}
-                      alt={product.grower.name}
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-amber-200 dark:border-amber-700"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center">
-                      <Store className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground truncate">{product.grower.name}</span>
-                      {product.grower.isVerified && (
-                        <BadgeCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      )}
-                    </div>
-                    {product.grower.tagline && (
-                      <p className="text-sm text-muted-foreground truncate">{product.grower.tagline}</p>
-                    )}
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                </Link>
-                
-                {/* Location */}
-                {product.grower.location && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4 text-amber-600" />
-                    <span>{product.grower.location}</span>
-                  </div>
+
+                {/* Simplified contact */}
+                {product.grower.calcomUsername ? (
+                  <CalComButton username={product.grower.calcomUsername} eventSlug={product.grower.defaultEventSlug} />
+                ) : (
+                  <a href={`mailto:${product.grower.contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
                 )}
-                
-                {/* Visit Profile Link */}
-                <Link 
-                  href={`/grower/${product.grower.slug}`}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
-                >
-                  View all products from this grower
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
               </div>
             </div>
           )}
@@ -1087,70 +929,9 @@ export default function ProductDetailPage({ params }: Props) {
               ))}
             </div>
             
-            {/* Bundle Total with Savings */}
-            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-4 gap-4">
-              <div>
-                {/* Calculate bundle savings (10% discount) */}
-                {(() => {
-                  const regularTotal = product.price + (product.complementaryProducts?.reduce((sum, p) => sum + p.price, 0) || 0);
-                  const bundleDiscount = 0.10; // 10% bundle discount
-                  const savings = regularTotal * bundleDiscount;
-                  const bundlePrice = regularTotal - savings;
-                  
-                  return (
-                    <>
-                      <p className="text-sm text-muted-foreground">Bundle Price:</p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-bold text-primary">
-                          ₱{bundlePrice.toFixed(2)}
-                        </p>
-                        <p className="text-lg text-muted-foreground line-through">
-                          ₱{regularTotal.toFixed(2)}
-                        </p>
-                      </div>
-                      <p className="text-sm text-green-600 font-medium">
-                        🎉 Save ₱{savings.toFixed(2)} (10% bundle discount!)
-                      </p>
-                    </>
-                  );
-                })()}
-              </div>
-              <Button 
-                onClick={() => {
-                  // Add all products to cart (main product + complementary products)
-                  const mainProductImage = product.images?.[0] || product.image || '';
-                  addToCart({
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    image: mainProductImage,
-                    slug: product.slug,
-                    stock: product.stock || 100,
-                    grower: product.grower,
-                    unit: product.unit,
-                  }, 1);
-                  
-                  product.complementaryProducts?.forEach((p) => {
-                    addToCart({
-                      id: p.id,
-                      name: p.name,
-                      price: p.price,
-                      image: p.image || '',
-                      slug: p.slug,
-                      stock: p.stock || 100,
-                      grower: p.grower,
-                      unit: p.unit,
-                    }, 1);
-                  });
-                  toast.success('Bundle added to cart! You saved 10%');
-                }}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Add Bundle to Cart
-              </Button>
-            </div>
-          </section>
-        )}
+            {/* Bundles removed from storefront as per product policy - bundles are no longer offered */}
+            </section>
+          )}
 
         {/* You May Also Like Section - Automatically from Same Grower */}
         {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (

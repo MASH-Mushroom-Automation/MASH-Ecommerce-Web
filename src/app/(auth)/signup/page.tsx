@@ -24,6 +24,7 @@ import { AuthApi } from "@/lib/api/auth";
 import { generateUsername, generateUniqueUsername } from "@/lib/utils/username";
 import { getDiceBearAvatar } from "@/lib/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPasswordRequirements } from '@/lib/auth/password';
 
 const signupSchema = z
   .object({
@@ -45,16 +46,6 @@ const signupSchema = z
   });
 
 type SignupForm = z.infer<typeof signupSchema>;
-
-// Password requirements checker
-const getPasswordRequirements = (password: string) => {
-  return {
-    minLength: password.length >= 6,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
-    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
-  };
-};
 
 export default function SignupPage() {
   const router = useRouter();

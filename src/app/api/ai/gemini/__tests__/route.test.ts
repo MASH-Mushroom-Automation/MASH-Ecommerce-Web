@@ -34,4 +34,20 @@ describe('Gemini proxy route', () => {
     expect((global as any).fetch).toHaveBeenCalled();
     expect(text).toContain('Hello');
   });
+
+  test('POST falls back to Hugging Face when Gemini returns 404', async () => {
+    // First fetch (Gemini) returns 404
+    (global as any).fetch
+      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => 'models/gemini-3-flash-preview is not found' })
+      // Second fetch (HF) returns assistant text
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ([{ generated_text: 'Assistant: Hello from HF fallback' }]) });
+
+    const req = makeReq({ model: 'gemini-3-flash-preview', contents: [{ role: 'user', parts: [{ text: 'Hello' }] }] });
+    const res = await POST(req as any);
+
+    expect(res).toBeDefined();
+    const json = await (res as any).json();
+    expect(json.candidates).toBeDefined();
+    expect(json.candidates[0].content.parts[0].text).toContain('Hello from HF fallback');
+  });
 });
