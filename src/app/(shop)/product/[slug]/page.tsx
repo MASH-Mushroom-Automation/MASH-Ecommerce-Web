@@ -21,6 +21,8 @@ import { ProductCard } from "@/components/product";
 import { useChat } from '@/contexts/ChatContext';
 import type { MediaItem } from "@/types/sanity";
 
+import { useStockSync } from "@/hooks/useStockSync";
+
 // Placeholder image for products without images
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -80,6 +82,7 @@ export default function ProductDetailPage({ params }: Props) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const dynamicStock = useStockSync(product?.id || '', product?.stock || product?.quantityInStock || 0);
 
   // Variants are disabled on the storefront (managed in Seller Studio)
   // NOTE: we intentionally do not call useSanityVariants here to avoid showing variant selection to buyers.
@@ -440,11 +443,11 @@ export default function ProductDetailPage({ params }: Props) {
 
             {/* Stock Status */}
             <div>
-              {product.stock > 0 ? (
+              {dynamicStock > 0 ? (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                   <span className="text-foreground">
-                    In Stock ({product.stock} available)
+                    In Stock ({dynamicStock} available)
                   </span>
                 </div>
               ) : (
@@ -527,7 +530,7 @@ export default function ProductDetailPage({ params }: Props) {
                 size="lg"
                 className="flex-1"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={dynamicStock === 0}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 Add to Cart
@@ -572,10 +575,10 @@ export default function ProductDetailPage({ params }: Props) {
                 <span
                   className={cn(
                     "font-medium",
-                    product.stock > 0 ? "text-green-600" : "text-red-600"
+                    dynamicStock > 0 ? "text-green-600" : "text-red-600"
                   )}
                 >
-                  {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                  {dynamicStock > 0 ? "In Stock" : "Out of Stock"}
                 </span>
               </div>
             </div>
@@ -583,121 +586,26 @@ export default function ProductDetailPage({ params }: Props) {
         </div>
 
         {/* Enhanced Product Information Sections (extracted) */}
-        <ProductDetailsSections product={product} />
+<ProductDetailsSections product={product} onQuickChat={() => openChat(true)} />
 
-        {/* Nutritional Highlights & Product Tags */}
-        {/* Nutritional Highlights & Product Tags */}
-        {((product.nutritionalHighlights && product.nutritionalHighlights.length > 0) || 
-          (product.productTags && product.productTags.length > 0)) && (
-          <div className="mt-8 p-6 bg-muted/30 rounded-xl">
-            <div className="flex flex-wrap gap-6">
-              {/* Nutritional Highlights */}
-              {product.nutritionalHighlights && product.nutritionalHighlights.length > 0 && (
-                <div className="flex-1 min-w-[200px]">
-                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    Nutritional Highlights
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.nutritionalHighlights.map((highlight, idx) => (
-                      <span 
-                        key={idx} 
-                        className="inline-flex items-center gap-1 text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium"
-                      >
-                        {highlight === 'high-protein' && '💪 '}
-                        {highlight === 'low-calorie' && '🔥 '}
-                        {highlight === 'vitamin-d' && '☀️ '}
-                        {highlight === 'antioxidants' && '🛡️ '}
-                        {highlight === 'fiber-rich' && '🌾 '}
-                        {highlight === 'immune-support' && '💪 '}
-                        {highlight === 'b-vitamins' && '⚡ '}
-                        {highlight === 'minerals' && '💎 '}
-                        {highlight.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Product Tags */}
-              {product.productTags && product.productTags.length > 0 && (
-                <div className="flex-1 min-w-[200px]">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Product Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.productTags.map((tag, idx) => (
-                      <span 
-                        key={idx} 
-                        className="text-sm bg-muted text-muted-foreground px-3 py-1.5 rounded-full"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+        {/* Product Tags (kept, simplified styling) */}
+        {product.productTags && product.productTags.length > 0 && (
+          <div className="mt-8 p-6 rounded-xl bg-muted/10">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Product Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {product.productTags.map((tag, idx) => (
+                <span 
+                  key={idx} 
+                  className="text-sm bg-muted text-muted-foreground px-3 py-1 rounded-full border"
+                >
+                  #{tag}
+                </span>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Frequently Bought Together Section */}
-        {product.complementaryProducts && product.complementaryProducts.length > 0 && (
-          <section className="mt-12 bg-muted/30 p-6 rounded-lg">
-            <h2 className="text-xl font-bold text-foreground mb-4">
-              ⚡ Frequently Bought Together
-            </h2>
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Current Product */}
-              <div className="flex items-center gap-4 p-3 bg-background rounded-lg border">
-                <div className="relative w-16 h-16">
-                  {product.image && (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover rounded"
-                    />
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium line-clamp-1">{product.name}</p>
-                  <p className="text-primary font-semibold">₱{product.price.toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <span className="text-2xl text-muted-foreground">+</span>
-              
-              {/* Complementary Products */}
-              {product.complementaryProducts.slice(0, 2).map((item, idx) => (
-                <React.Fragment key={item.id}>
-                  <Link
-                    href={`/product/${item.slug}`}
-                    className="flex items-center gap-4 p-3 bg-background rounded-lg border hover:border-primary transition-colors"
-                  >
-                    <div className="relative w-16 h-16">
-                      {item.image && (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover rounded"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium line-clamp-1">{item.name}</p>
-                      <p className="text-primary font-semibold">₱{item.price.toFixed(2)}</p>
-                    </div>
-                  </Link>
-                  {idx < Math.min(product.complementaryProducts!.length - 1, 1) && (
-                    <span className="text-2xl text-muted-foreground">+</span>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            
-            {/* Bundles removed from storefront as per product policy - bundles are no longer offered */}
-            </section>
-          )}
+        {/* Frequently Bought Together and Nutritional Highlights removed for cleaner UX */}
 
         {/* You May Also Like Section - Automatically from Same Grower */}
         {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (

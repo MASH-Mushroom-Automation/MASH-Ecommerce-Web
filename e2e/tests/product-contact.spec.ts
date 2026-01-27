@@ -11,8 +11,13 @@ test('product page grower contact and quick chat works', async ({ page }) => {
   await page.waitForSelector('text=Add to Cart', { timeout: 60_000 });
 
   // Ensure Grower card elements present
-  await expect(page.locator('text=View on Google Maps')).toHaveCount(1);
+  // Map may be an embedded iframe or a link (if API key is missing)
+  const hasMapIframe = await page.locator('[data-testid="grower-map"]').count();
+  const hasMapLink = await page.locator('text=View on Google Maps').count();
+  expect(hasMapIframe + hasMapLink).toBeGreaterThan(0);
+
   await expect(page.locator('[data-testid="contact-chat-btn"]')).toHaveCount(1);
+
   // Cal.com button may be present or fallback to mailto
   const hasCalcom = await page.locator('[data-testid="calcom-btn"]').first().count();
   const hasMailto = await page.locator('a[href^="mailto:"]').count();

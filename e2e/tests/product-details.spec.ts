@@ -8,14 +8,16 @@ test('product page shows details sections and suggested products', async ({ page
 
   await page.waitForSelector('text=Add to Cart', { timeout: 60_000 });
 
-  // Sections
-  await expect(page.locator('text=Freshness & Quality')).toHaveCount(1);
-  await expect(page.locator('text=Cooking Guide')).toHaveCount(1);
-  await expect(page.locator('text=Delivery Options')).toHaveCount(1);
-  // Grower details should be present (name or contact link)
-  const hasMaps = await page.locator('text=View on Google Maps').count();
+  // The detailed sections (Freshness, Cooking, Delivery) were removed intentionally
+  await expect(page.locator('text=Freshness & Quality')).toHaveCount(0);
+  await expect(page.locator('text=Cooking Guide')).toHaveCount(0);
+  await expect(page.locator('text=Delivery Options')).toHaveCount(0);
+
+  // Grower details should be present (either embedded map or external link / contact link)
+  const hasMapIframe = await page.locator('[data-testid="grower-map"]').count();
+  const hasMapsLink = await page.locator('text=View on Google Maps').count();
   const hasContact = await page.locator('text=Contact seller').count();
-  expect(hasMaps + hasContact).toBeGreaterThan(0);
+  expect(hasMapIframe + hasMapsLink + hasContact).toBeGreaterThan(0);
 
   // Suggested products (if present, there should be product cards)
   const suggestionsCount = await page.locator('text=You May Also Like').count();

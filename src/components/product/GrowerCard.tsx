@@ -42,7 +42,15 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
 
         <div className="flex flex-col items-end gap-2">
           {calcomUsername ? (
-            <Button data-testid="calcom-btn" size="sm">Book: {calcomUsername}</Button>
+            <a
+              data-testid="calcom-btn"
+              href={`https://cal.com/${calcomUsername}${calcomUsername && grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
+            >
+              Book Appointment
+            </a>
           ) : (
             <a data-testid="mailto-link" href={`mailto:${contactEmail || ""}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
           )}
@@ -61,15 +69,30 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
           </button>
 
           {location && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-1"
-            >
-              <MapPin className="w-4 h-4" />
-              View on Google Maps
-            </a>
+            <div className="mt-2 w-full">
+              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+                <div className="w-full h-40 rounded overflow-hidden border">
+                  <iframe
+                    data-testid="grower-map"
+                    title="Seller location"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(location)}`}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              ) : (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-1"
+                >
+                  <MapPin className="w-4 h-4" />
+                  View on Google Maps
+                </a>
+              )}
+            </div>
           )}
         </div>
       </div>
