@@ -5,6 +5,13 @@
   "description": "This PR implements Phase A: frontend + content model plan to make product pages focused on: high-quality media, consolidated product details, and direct grower contact. Variants and bundles will no longer be displayed on the storefront; they are treated as deprecated (no destructive Sanity schema removal in phase A). The PR includes unit and Playwright e2e tests to validate the UX and AI/chat behaviors, and documentation + migration steps for later schema migration (non-destructive, with backfill script example).",
   "motivation": "Connect growers directly with buyers via better product details, immediate contact (bookings + quick chat), auto-suggested complementary products, and accurate dynamic stock display. Simplify storefront by removing variant/bundle complexity for buyers.",
 
+  "screenshots": [
+    "docs/screenshots/product-page-before.png",
+    "docs/screenshots/product-page-after.png"
+  ],
+
+  "changelog": "docs/changelog/2026-01-27-product-page-redesign.md",
+
   "files_to_create_or_modify": [
     "src/app/(shop)/product/[slug]/page.tsx  # Update UI: remove variant & bundle UI, add compact sections, GrowerCard usage",
     "src/components/product/GrowerCard.tsx  # New: Grower UI with Google Maps link, rating + badge, Cal.com book button (mailto fallback), Quick Chat button that opens ChatContext",
