@@ -102,13 +102,11 @@ export async function generateResponse(
       console.log('[Gemini] Request:', requestBody);
     }
 
-    const response = await fetch(getGeminiUrl(), {
+    // Proxy the request through our server-side endpoint to avoid exposing keys and CSP issues
+    const response = await fetch('/api/ai/gemini', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(GEMINI_TIMEOUT),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...requestBody, model: GEMINI_MODEL }),
     });
 
     if (!response.ok) {

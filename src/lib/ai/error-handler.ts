@@ -36,21 +36,11 @@ export async function sendToHuggingFace(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), HF_TIMEOUT);
     
-    const response = await fetch(getHuggingFaceUrl(), {
+    // Call server-side proxy to avoid CSP/connect-src issues and hide API keys
+    const response = await fetch('/api/ai/hf', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.7,
-          top_p: 0.95,
-          do_sample: true,
-        },
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: undefined, inputs: prompt, parameters: { max_new_tokens: 500, temperature: 0.7, top_p: 0.95, do_sample: true } }),
       signal: controller.signal,
     });
     

@@ -124,6 +124,12 @@ export async function startConversation(
       createdAt: serverTimestamp(),
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('Missing or insufficient permissions')) {
+      // Firestore security rules prevent anonymous writes in some environments — warn and continue
+      console.warn('[Analytics] Permission denied when starting conversation. Analytics disabled for this session.');
+      return;
+    }
     console.error('[Analytics] Failed to start conversation:', error);
   }
 }
