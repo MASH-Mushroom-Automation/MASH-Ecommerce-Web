@@ -24,6 +24,8 @@ interface CalComButtonProps {
   calendlyEnabled?: boolean;
   /** Available appointment types */
   appointmentTypes?: AppointmentType[];
+  /** Custom button label (per-grower) */
+  buttonText?: string;
   /** Button variant */
   variant?: "default" | "outline" | "secondary" | "ghost";
   /** Button size */
@@ -32,7 +34,7 @@ interface CalComButtonProps {
   className?: string;
   /** Show full button or compact icon */
   compact?: boolean;
-}
+} 
 
 /**
  * CalComButton - Button to navigate to grower's booking page
@@ -54,6 +56,7 @@ export function CalComButton({
   growerName,
   calendlyEnabled = false,
   appointmentTypes = [],
+  buttonText,
   variant = "default",
   size = "default",
   className = "",
@@ -88,7 +91,7 @@ export function CalComButton({
           variant={variant}
           size="icon"
           className={cn("rounded-full", className)}
-          title={`Book appointment with ${growerName}`}
+          title={`${buttonText || 'Schedule with Grower'} with ${growerName}`}
         >
           <Calendar className="w-4 h-4" />
         </Button>
@@ -100,7 +103,7 @@ export function CalComButton({
     <Link href={`/grower/${growerSlug}/book`}>
       <Button variant={variant} size={size} className={cn("gap-2", className)}>
         {getMeetingIcon(defaultAppointment?.meetingType)}
-        <span>Book Appointment</span>
+        <span>{buttonText || 'Schedule with Grower'}</span>
         {defaultAppointment && (
           <span className="text-xs opacity-80">
             ({defaultAppointment.duration} min)

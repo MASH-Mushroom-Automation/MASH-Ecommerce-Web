@@ -19,7 +19,8 @@ if (!PROJECT_ID) {
   console.error('SANITY project ID not configured. Set SANITY_STUDIO_PROJECT_ID or NEXT_PUBLIC_SANITY_PROJECT_ID.');
   process.exit(1);
 }
-if (!TOKEN) {
+const DRY_RUN = process.argv.includes('--dry-run');
+if (!TOKEN && !DRY_RUN) {
   console.error('SANITY_API_WRITE_TOKEN not set. Cannot run migrations without write access.');
   process.exit(1);
 }
@@ -74,6 +75,8 @@ async function mutate(mutations) {
       const set = {};
       if (!g.calcomUsername && g.calendlyUsername) set.calcomUsername = g.calendlyUsername;
       if (!g.defaultEventSlug && g.calendlyDefaultEvent) set.defaultEventSlug = g.calendlyDefaultEvent;
+      // Set default CTA text for growers if missing
+      if (!g.calcomButtonText) set.calcomButtonText = 'Schedule with Grower';
       if (g.rating === undefined || g.rating === null) set.rating = 0;
       if (g.isHighlyRatedBadgeThreshold === undefined || g.isHighlyRatedBadgeThreshold === null) set.isHighlyRatedBadgeThreshold = 4.5;
       if (Object.keys(set).length > 0) {
@@ -86,6 +89,16 @@ async function mutate(mutations) {
     const allMutations = [...productMutations, ...growerMutations];
     if (allMutations.length === 0) {
       console.log('[migrate] Nothing to do. All docs up-to-date.');
+      return;
+    }
+
+    console.log(`[migrate] Prepared ${allMutations.length} mutations.`);
+
+    const DRY_RUN = process.argv.includes('--dry-run');
+    if (DRY_RUN) {
+      console.log('[migrate] Dry run mode - not sending mutations. Sample mutations below:');
+      console.log(JSON.stringify(allMutations.slice(0, 10), null, 2));
+      console.log('[migrate] (Use --dry-run to preview; omit to apply changes)');
       return;
     }
 

@@ -47,7 +47,7 @@ describe('CalendlyButton Component', () => {
     it('should render button when Calendly is enabled', () => {
       render(<CalendlyButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -57,10 +57,16 @@ describe('CalendlyButton Component', () => {
       expect(screen.getByTestId('calendar-icon')).toBeInTheDocument();
     });
 
-    it('should show "Book Appointment" text by default', () => {
+    it('should show "Schedule with Grower" text by default', () => {
       render(<CalendlyButton {...defaultProps} />);
       
-      expect(screen.getByText(/book appointment/i)).toBeInTheDocument();
+      expect(screen.getByText(/schedule with grower/i)).toBeInTheDocument();
+    });
+
+    it('uses custom buttonText when provided', () => {
+      render(<CalendlyButton {...defaultProps} buttonText={"Let's Talk"} />);
+      
+      expect(screen.getByText(/let's talk/i)).toBeInTheDocument();
     });
 
     it('should render as icon-only in compact mode', () => {
@@ -69,9 +75,9 @@ describe('CalendlyButton Component', () => {
       // In compact mode, renders as icon button with title attribute
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
-      expect(button).toHaveAttribute('title', 'Book appointment with Shroomarket');
+      expect(button).toHaveAttribute('title', 'Schedule with Grower with Shroomarket');
       // No visible text in compact mode
-      expect(screen.queryByText('Book Appointment')).not.toBeInTheDocument();
+      expect(screen.queryByText('Schedule with Grower')).not.toBeInTheDocument();
     });
   });
 
@@ -79,14 +85,14 @@ describe('CalendlyButton Component', () => {
     it('should not render when Calendly is disabled', () => {
       render(<CalendlyButton {...defaultProps} calendlyEnabled={false} />);
       
-      const button = screen.queryByRole('button', { name: /book appointment/i });
+      const button = screen.queryByRole('button', { name: /schedule with grower/i });
       expect(button).not.toBeInTheDocument();
     });
 
     it('should not render when calendlyEnabled is undefined', () => {
       render(<CalendlyButton {...defaultProps} calendlyEnabled={undefined} />);
       
-      const button = screen.queryByRole('button', { name: /book appointment/i });
+      const button = screen.queryByRole('button', { name: /schedule with grower/i });
       expect(button).not.toBeInTheDocument();
     });
   });
@@ -130,21 +136,21 @@ describe('CalendlyButton Component', () => {
     it('should apply default variant styling', () => {
       render(<CalendlyButton {...defaultProps} variant="default" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
     it('should apply outline variant styling', () => {
       render(<CalendlyButton {...defaultProps} variant="outline" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
     it('should apply ghost variant styling', () => {
       render(<CalendlyButton {...defaultProps} variant="ghost" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
   });
@@ -153,21 +159,21 @@ describe('CalendlyButton Component', () => {
     it('should apply default size', () => {
       render(<CalendlyButton {...defaultProps} size="default" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
     it('should apply small size', () => {
       render(<CalendlyButton {...defaultProps} size="sm" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
     it('should apply large size', () => {
       render(<CalendlyButton {...defaultProps} size="lg" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
   });
@@ -176,7 +182,7 @@ describe('CalendlyButton Component', () => {
     it('should apply custom className', () => {
       render(<CalendlyButton {...defaultProps} className="custom-class" />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toHaveClass('custom-class');
     });
   });
@@ -223,7 +229,7 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -237,7 +243,7 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -250,7 +256,7 @@ describe('CalendlyButton Component', () => {
         />
       );
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
     });
   });
@@ -259,7 +265,7 @@ describe('CalendlyButton Component', () => {
     it('should be rendered as a link with button styling', () => {
       const { container } = render(<CalendlyButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       expect(button).toBeInTheDocument();
       // Wrapped in Link component
       const link = container.querySelector('a');
@@ -269,7 +275,7 @@ describe('CalendlyButton Component', () => {
     it('should be keyboard accessible', () => {
       render(<CalendlyButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /book appointment/i });
+      const button = screen.getByRole('button', { name: /schedule with grower/i });
       button.focus();
       
       expect(document.activeElement).toBe(button);

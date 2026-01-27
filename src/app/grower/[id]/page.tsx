@@ -33,6 +33,7 @@ export default function GrowerDetailPage() {
           calendlyEnabled,
           calendlyUsername,
           calendlyDefaultEvent,
+          calcomButtonText,
           appointmentTypes[] {
             name,
             eventSlug,
@@ -131,6 +132,7 @@ export default function GrowerDetailPage() {
                   growerName={grower.name}
                   calendlyEnabled={calendlyData.calendlyEnabled}
                   appointmentTypes={calendlyData.appointmentTypes}
+                  buttonText={calendlyData?.calcomButtonText || grower.calcomButtonText}
                   variant="secondary"
                   size="lg"
                   className="shadow-lg"
@@ -368,6 +370,7 @@ export default function GrowerDetailPage() {
                   growerName={grower.name}
                   calendlyEnabled={calendlyData.calendlyEnabled}
                   appointmentTypes={calendlyData.appointmentTypes}
+                  buttonText={calendlyData?.calcomButtonText || grower.calcomButtonText}
                   variant="default"
                   size="default"
                   className="w-full"
