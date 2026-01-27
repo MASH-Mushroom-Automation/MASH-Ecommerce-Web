@@ -12,9 +12,19 @@ test('product page grower contact and quick chat works', async ({ page }) => {
 
   // Ensure Grower card elements present
   // Map may be an embedded iframe or a link (if API key is missing)
-  const hasMapIframe = await page.locator('[data-testid="grower-map"]').count();
-  const hasMapLink = await page.locator('text=View on Google Maps').count();
-  expect(hasMapIframe + hasMapLink).toBeGreaterThan(0);
+  const iframeLocator = page.locator('[data-testid="grower-map"]').first();
+  const linkLocator = page.locator('text=View on Google Maps').first();
+  const iframeCount = await iframeLocator.count();
+  const linkCount = await linkLocator.count();
+  expect(iframeCount + linkCount).toBeGreaterThan(0);
+
+  // If iframe is present, validate its src contains the embed endpoint
+  if (iframeCount > 0) {
+    const src = await iframeLocator.getAttribute('src');
+    expect(src).toContain('https://www.google.com/maps/embed/v1/place');
+    // Also assert it includes either 'key=' (API key present) OR query-based embed
+    expect(src).toMatch(/key=|q=/);
+  }
 
   await expect(page.locator('[data-testid="contact-chat-btn"]')).toHaveCount(1);
 
