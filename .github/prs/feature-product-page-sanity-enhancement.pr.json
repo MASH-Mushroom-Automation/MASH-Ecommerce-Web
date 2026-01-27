@@ -136,7 +136,7 @@
 
   "progress": {
     "status": "in-progress",
-    "updatedAt": "2026-01-28T12:58:00Z",
+    "updatedAt": "2026-01-28T14:20:00Z",
     "entries": [
       {
         "id": "STORY-PROD-001",
@@ -164,9 +164,10 @@
       {
         "id": "STORY-PROD-004",
         "title": "Stock sync & add-to-cart dynamic behavior",
-        "status": "in-progress",
-        "notes": "Implementation plan approved: optimistic UI decrement + background reconciliation. Unit tests and e2e spec planned (cart-stock-dynamic.spec.ts).",
-        "files_planned": ["src/lib/product/stock-sync.ts", "src/app/(shop)/product/[slug]/page.tsx", "e2e/tests/cart-stock-dynamic.spec.ts"]
+        "status": "completed",
+        "notes": "Implemented optimistic UI decrement on Add to Cart, persistent background reconciliation queue with retry/backoff and conflict handling. Added `src/lib/product/stock-sync.ts`, `src/hooks/useStockSync.ts`, wired into `CartContext` and product page UI, and added unit tests and Playwright e2e tests (single-tab & multi-tab). Tests pass locally.",
+        "files_changed": ["src/lib/product/stock-sync.ts", "src/hooks/useStockSync.ts", "src/contexts/CartContext.tsx", "src/app/(shop)/product/[slug]/page.tsx", "src/lib/product/__tests__/stock-sync.test.ts", "e2e/tests/cart-stock-dynamic.spec.ts", "e2e/tests/cart-stock-multitab.spec.ts"],
+        "completedAt": "2026-01-28T14:20:00Z"
       },
       {
         "id": "STORY-PROD-005",

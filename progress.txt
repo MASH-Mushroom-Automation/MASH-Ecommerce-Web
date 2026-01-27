@@ -95,3 +95,22 @@
 - Added backfill script that copies existing Cal.com/Calendly fields for compatibility and sets defaults; it requires `SANITY_API_WRITE_TOKEN` to run.
 **Tests Passing:** [PASS] Unit tests (local)
 ---
+
+## [2026-01-28 14:20] - STORY-PROD-004
+**Completed:** Stock sync & add-to-cart dynamic behavior
+**Files Changed:**
+- `src/lib/product/stock-sync.ts`
+- `src/hooks/useStockSync.ts`
+- `src/contexts/CartContext.tsx`
+- `src/app/(shop)/product/[slug]/page.tsx`
+- `src/lib/product/__tests__/stock-sync.test.ts`
+- `e2e/tests/cart-stock-dynamic.spec.ts`
+- `e2e/tests/cart-stock-multitab.spec.ts`
+
+**Implementation Notes:**
+- Optimistic local stock decrement applied on Add to Cart (client-side).
+- Background reconciliation queue persisted to `localStorage`, retries with exponential backoff, and drops after max retries.
+- Multi-tab sync via `storage` events and subscription model in `stockSync`.
+
+**Tests Passing:** [PASS] Unit tests | [PASS] Playwright e2e (single-tab & multi-tab)
+---
