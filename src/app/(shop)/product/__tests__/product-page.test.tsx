@@ -15,22 +15,54 @@ jest.mock('@/hooks/useSanityProducts', () => ({
       stock: 10,
       category: 'Mushrooms',
       description: 'Tasty mushrooms',
-      freshnessInfo: {},
-      preparationInfo: {},
-      deliveryOptions: {},
+      freshnessInfo: {
+        harvestWindow: 'Harvested within 24-48 hours',
+        shelfLife: 'Keep refrigerated, 5-7 days',
+        storageInstructions: 'Store in breathable paper bag',
+        qualityIndicators: ['Firm texture', 'Bright caps'],
+      },
+      preparationInfo: {
+        difficultyLevel: 'beginner',
+        cookingTime: '10-15 mins',
+        preparationTips: ['Rinse lightly', 'Pat dry'],
+        recipeIdeas: ['Sautéed with garlic', 'Grilled skewers'],
+      },
+      deliveryOptions: {
+        sameDayDeliveryEligible: true,
+        deliveryZones: ['Metro Manila'],
+        perishable: true,
+        deliveryNotes: 'Delivered chilled via cold transport',
+      },
       grower: {
         slug: 'grower-1',
         name: 'Good Grower',
         location: 'Quezon City, Philippines',
         rating: 4.8,
-        calcomUsername: 'mash-mushroom'
+        calcomUsername: 'mash-mushroom',
+        image: 'https://example.com/grower.jpg'
       },
       complementaryProducts: [],
     },
     loading: false,
     error: null,
   }),
-  useSanitySuggestedProducts: () => ({ suggestedProducts: [], loading: false })
+  useSanitySuggestedProducts: () => ({ suggestedProducts: [
+    { id: 's1', name: 'Suggested A', slug: 'suggested-a', price: 80, image: '/s1.png', isAvailable: true },
+    { id: 's2', name: 'Suggested B', slug: 'suggested-b', price: 90, image: '/s2.png', isAvailable: true },
+  ], loading: false })
+}));
+
+// Mock ChatContext for Quick Chat button
+jest.mock('@/contexts/ChatContext', () => ({
+  useChat: () => ({ setIsOpen: jest.fn(), sendMessage: jest.fn() }),
+}));
+
+// Mock Cart and Wishlist hooks used by the page
+jest.mock('@/contexts/WishlistContext', () => ({
+  useWishlist: () => ({ isInWishlist: jest.fn(() => false), addToWishlist: jest.fn(), removeFromWishlist: jest.fn() }),
+}));
+jest.mock('@/contexts/CartContext', () => ({
+  useCart: () => ({ addToCart: jest.fn() }),
 }));
 
 jest.mock('@/hooks/useSanityReviews', () => ({
@@ -45,7 +77,7 @@ jest.mock('@/components/appointments/CalendlyButton', () => ({
 // Product page import is lazy-required inside the test to avoid module-parsing at test load time
 
 describe('ProductDetailPage (storefront)', () => {
-  test.skip('does not render variant selector nor bundle UI, shows grower contact & rating', () => {
+  test.skip('does not render variant selector nor bundle UI, shows grower contact & rating', async () => {
     // Lazy-import the page to avoid module parsing at test load
     const ProductDetailPage = require('../[slug]/page').default;
 
@@ -58,10 +90,36 @@ describe('ProductDetailPage (storefront)', () => {
     // Bundle UI should not be present (no "Add Bundle to Cart" button)
     expect(screen.queryByText(/Add Bundle to Cart/i)).toBeNull();
 
-    // Grower rating should be visible
-    expect(screen.getByText('4.8')).toBeInTheDocument();
+    // Grower rating should be visible (may be rendered inside a composed element)
+    expect(await screen.findByText(/4\.8|4.8/)).toBeInTheDocument();
+
+    // Highly rated badge (4.5+) should be visible
+    expect(await screen.findByText(/Highly rated/i)).toBeInTheDocument();
 
     // Cal.com contact button should be present
-    expect(screen.getByTestId('calcom-btn')).toBeInTheDocument();
+    expect(await screen.findByTestId('calcom-btn')).toBeInTheDocument();
+
+    // Google Maps link should be present
+    expect(await screen.findByText(/View on Google Maps/i)).toBeInTheDocument();
+
+    // Quick Chat button should be present
+    expect(await screen.findByTestId('contact-chat-btn')).toBeInTheDocument();
+
+    // Freshness & Quality section
+    expect(await screen.findByText(/Freshness & Quality/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Harvest Window/i)).toBeInTheDocument();
+
+    // Cooking Guide section
+    expect(await screen.findByText(/Cooking Guide/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Preparation Tips/i)).toBeInTheDocument();
+
+    // Delivery Options section
+    expect(await screen.findByText(/Delivery Options/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Same-Day Delivery Available|Same-Day Delivery/i)).toBeInTheDocument();
+
+    // Suggested products appear
+    expect(await screen.findByText(/You May Also Like/i)).toBeInTheDocument();
+    expect(await screen.findByText('Suggested A')).toBeInTheDocument();
+    expect(await screen.findByText('Suggested B')).toBeInTheDocument();
   });
 });

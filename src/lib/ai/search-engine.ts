@@ -242,9 +242,10 @@ export function findProductsByCategory(
   const categoryLower = category.toLowerCase();
   
   return products
-    .filter((product) => 
-      product.category.toLowerCase().includes(categoryLower)
-    )
+    .filter((product) => {
+      const category = (product && product.category) ? String(product.category) : undefined;
+      return !!category && category.toLowerCase().includes(categoryLower);
+    })
     .slice(0, maxResults);
 }
 
@@ -265,9 +266,10 @@ export function findProductsByGrower(
   const growerLower = growerName.toLowerCase();
   
   return products
-    .filter((product) => 
-      product.grower?.name.toLowerCase().includes(growerLower)
-    )
+    .filter((product) => {
+      const growerName = product?.grower?.name ? String(product.grower.name) : undefined;
+      return !!growerName && growerName.toLowerCase().includes(growerLower);
+    })
     .slice(0, maxResults);
 }
 

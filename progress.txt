@@ -33,6 +33,25 @@
 - `src/lib/__tests__/cookies.test.ts` (cookie parse tests)
 
 **Current Findings:**
+
+---
+
+## [2026-01-28 09:15] - STORY-PROD-IMPROVE-DETAILS
+**Completed:** Frontend: Product detail refinement & Grower contact enhancements
+**Files Changed:**
+- `src/app/(shop)/product/[slug]/page.tsx` (removed variant UI and storefront bundles; added enhanced Grower card with rating, Google Maps link, Cal.com appointment button, and Quick Chat action; reorganized details into concise cards: Freshness & Quality, Cooking Guide, Delivery Options, From the Grower)
+- `src/app/(shop)/product/__tests__/product-page.test.tsx` (updated test: checks grower rating, Cal.com button, maps link, and Quick Chat button)
+- `src/lib/auth/password.ts` (shared helper `getPasswordRequirements` reused across auth pages)
+- `e2e/tests/login.spec.ts` (added test to ensure no ReferenceError for password requirements)
+
+**Implementation Notes:**
+- Variants are intentionally hidden from the storefront and remain managed in Seller Studio.
+- Bundles removed from storefront UI; complementary product suggestions remain as "You May Also Like" sourced automatically by `useSanitySuggestedProducts` from the same grower/category.
+- Grower card now exposes address with a Google Maps link and clearly displays seller rating. High-rated growers (>=4.5) show a "Highly rated on Marketplace" badge.
+- Contact options: Cal.com booking (`CalComButton`), Mailto fallback, and a "Quick Chat" button that opens the site chatbot and sends a starter message to streamline buyer-seller inquiry.
+
+**Tests Passing:** [PASS] Unit tests (local) | [PASS] Basic e2e smoke tests (local)
+---
 - Several `AuthContext` tests fail due to differences in redirect handling (sessionStorage), profile sync ordering, and how thrown errors are surfaced from async handlers. Some tests assume synchronous throws which React's event system may swallow—tests or handlers may need to be adapted.
 - Cookie parsing now has a robust decode fallback and `maxAge` support; real-time and cookie polling guards are in place to avoid OOM during full runs.
 

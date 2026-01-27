@@ -16,6 +16,7 @@ import { CalComButton } from "@/components/appointments/CalendlyButton"; // For 
 
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import { ProductCard } from "@/components/product";
+import { useChat } from '@/contexts/ChatContext';
 import type { MediaItem } from "@/types/sanity";
 
 // Placeholder image for products without images
@@ -109,6 +110,9 @@ export default function ProductDetailPage({ params }: Props) {
       });
     }
   }, [product]);
+
+  // Chat context for Quick Chat with seller
+  const { setIsOpen: openChat, sendMessage: sendChatMessage } = useChat();
 
   if (loading) {
     return (
@@ -795,26 +799,80 @@ export default function ProductDetailPage({ params }: Props) {
             </div>
           )}
           
-          {/* Grower / Farm Information Card (simplified for stability) */}
+          {/* Grower / Seller Information Card - enhanced with rating, maps, and contact options */}
           {product.grower && (
             <div className="rounded-xl p-4 border bg-amber-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center">
-                    <Store className="w-5 h-5 text-amber-600" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-md bg-amber-200 flex items-center justify-center overflow-hidden">
+                    {product.grower.image ? (
+                      <Image src={product.grower.image} alt={product.grower.name} width={48} height={48} className="object-cover rounded-md" />
+                    ) : (
+                      <Store className="w-6 h-6 text-amber-600" />
+                    )}
                   </div>
                   <div>
                     <div className="font-semibold">{product.grower.name}</div>
                     <div className="text-sm text-muted-foreground">{product.grower.location}</div>
+                    {/* Rating */}
+                    {product.grower.rating && (
+                      <div className="mt-1 flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400" />
+                          <span className="font-medium">{product.grower.rating.toFixed(1)}</span>
+                        </div>
+                        {product.grower.rating >= 4.5 && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Highly rated on Marketplace</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Map link */}
+                    {product.grower.location && (
+                      <div className="mt-2">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(product.grower.location)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          View on Google Maps
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Simplified contact */}
-                {product.grower.calcomUsername ? (
-                  <CalComButton username={product.grower.calcomUsername} eventSlug={product.grower.defaultEventSlug} />
-                ) : (
-                  <a href={`mailto:${product.grower.contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
-                )}
+                {/* Contact actions */}
+                <div className="flex flex-col items-end gap-2">
+                  {product.grower.calcomUsername ? (
+                    <CalComButton username={product.grower.calcomUsername} eventSlug={product.grower.defaultEventSlug} />
+                  ) : (
+                    <a href={`mailto:${product.grower.contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
+                  )}
+
+                  {/* Quick Chat (uses AI assistant as quick contact helper) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        // Open chat and send initial message
+                        openChat(true);
+                        setTimeout(() => {
+                          sendChatMessage(`Hi, I'm interested in ${product.name} from ${product.grower.name}. Are they available for pickup or same-day delivery?`);
+                        }, 200);
+                      } catch (e) {
+                        // If Chat context isn't available, fallback to mailto
+                        window.location.href = `mailto:${product.grower.contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + product.name)}`;
+                      }
+                    }}
+                    data-testid="contact-chat-btn"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
+                  >
+                    Quick Chat
+                  </button>
+                </div>
               </div>
             </div>
           )}

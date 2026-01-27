@@ -366,6 +366,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         console.log("[Auth] Request body:", requestBody);
+
+        // If no backend URL configured, skip backend sync quietly (useful in local/dev)
+        if (!process.env.NEXT_PUBLIC_API_URL) {
+          console.info(
+            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured"
+          );
+          return null;
+        }
+
         console.log(
           "[Auth] Sending to:",
           `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`
@@ -386,11 +395,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               body: JSON.stringify(requestBody),
             }
           );
-        } catch (err) {
+        } catch (err: any) {
           // Likely a network/CORS error — handle gracefully and provide guidance
-          console.error(
-            "[Auth] Network error syncing to backend. Check NEXT_PUBLIC_API_URL and backend CORS settings:",
-            err
+          console.warn(
+            "[Auth] Network error syncing to backend. Backend may be unreachable; continuing with Firebase-only auth. Error:",
+            err?.message || err
           );
           // Don't block login: allow Firebase-only auth to continue
           return null;
