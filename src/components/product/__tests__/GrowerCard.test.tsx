@@ -14,11 +14,16 @@ describe('GrowerCard', () => {
       calcomUsername: 'testfarm',
       defaultEventSlug: '30min',
       contactEmail: 'hello@testfarm.com',
+      image: 'https://via.placeholder.com/80',
     };
 
     render(<GrowerCard grower={grower} productName="Blue Oyster" />);
 
-    expect(screen.getByText('Test Farm')).toBeInTheDocument();
+    // Avatar should be shown when image present
+    const avatar = screen.getByAltText('Seller: Test Farm') as HTMLImageElement;
+    expect(avatar).toBeInTheDocument();
+    expect(avatar.src).toContain('https://via.placeholder.com/80');
+
     expect(screen.getByText(/4.8/)).toBeInTheDocument();
 
     // Cal.com button should be an external link to cal.com
@@ -29,7 +34,12 @@ describe('GrowerCard', () => {
     expect(screen.getByTestId('contact-chat-btn')).toBeInTheDocument();
 
     // Map iframe should be present when API key provided
-    expect(screen.getByTestId('grower-map')).toBeInTheDocument();
+    const mapIframe = screen.getByTestId('grower-map') as HTMLIFrameElement;
+    expect(mapIframe).toBeInTheDocument();
+    // src should include Google Maps embed endpoint with provided key and location
+    expect(mapIframe.getAttribute('src')).toContain('https://www.google.com/maps/embed/v1/place');
+    expect(mapIframe.getAttribute('src')).toContain('key=fake-key');
+    expect(mapIframe.getAttribute('src')).toContain(encodeURIComponent(grower.location));
   });
 
   test('falls back to mailto link when calcom missing', () => {
@@ -61,5 +71,10 @@ describe('GrowerCard', () => {
     expect(calcom).toHaveTextContent('Schedule with Grower');
 
     expect(screen.getByTestId('contact-chat-btn-empty')).toBeInTheDocument();
+
+    // Placeholder map block should be visible when location is missing
+    const placeholder = screen.getByTestId('grower-map-placeholder');
+    expect(placeholder).toBeInTheDocument();
+    expect(placeholder).toHaveTextContent(/No map available/i);
   });
 });

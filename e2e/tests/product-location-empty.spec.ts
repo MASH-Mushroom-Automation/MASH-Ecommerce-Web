@@ -45,6 +45,9 @@ test('product page shows clear empty location state and contact options when gro
   // Check for empty location state
   await expect(page.locator('[data-testid="grower-location-empty"]')).toBeVisible();
 
+  // Placeholder map block should be visible for empty locations
+  await expect(page.locator('[data-testid="grower-map-placeholder"]')).toBeVisible();
+
   // Accept either the top calcom button or the empty-state calcom/mailto fallback
   const hasCal = (await page.locator('[data-testid="calcom-btn"]').count()) + (await page.locator('[data-testid="calcom-btn-empty"]').count()) + (await page.locator('[data-testid="mailto-link"]').count()) + (await page.locator('[data-testid="mailto-link-empty"]').count());
   expect(hasCal).toBeGreaterThan(0);
