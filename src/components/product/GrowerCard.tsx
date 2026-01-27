@@ -68,9 +68,9 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
             Quick Chat
           </button>
 
-          {location && (
-            <div className="mt-2 w-full">
-              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+          <div className="mt-2 w-full">
+            {location ? (
+              process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
                 <div className="w-full h-40 rounded overflow-hidden border">
                   <iframe
                     data-testid="grower-map"
@@ -83,6 +83,7 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
                 </div>
               ) : (
                 <a
+                  data-testid="grower-map-link"
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -91,9 +92,42 @@ export function GrowerCard({ grower, productName, onQuickChat }: GrowerCardProps
                   <MapPin className="w-4 h-4" />
                   View on Google Maps
                 </a>
-              )}
-            </div>
-          )}
+              )
+            ) : (
+              <div data-testid="grower-location-empty" className="p-3 border rounded bg-muted text-sm text-muted-foreground">
+                <div className="font-medium text-foreground">Location not provided</div>
+                <div className="text-sm mt-1">This seller has not shared a precise location. You can contact the seller using the appointment button or Quick Chat below.</div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  {calcomUsername ? (
+                    <a
+                      data-testid="calcom-btn-empty"
+                      href={`https://cal.com/${calcomUsername}${calcomUsername && grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
+                    >
+                      Book Appointment
+                    </a>
+                  ) : (
+                    <a data-testid="mailto-link-empty" href={`mailto:${contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
+                  )}
+
+                  <button
+                    type="button"
+                    data-testid="contact-chat-btn-empty"
+                    onClick={() => {
+                      if (onQuickChat) return onQuickChat();
+                      window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
+                  >
+                    Quick Chat
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

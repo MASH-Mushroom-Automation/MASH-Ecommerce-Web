@@ -37,4 +37,26 @@ describe('GrowerCard', () => {
     render(<GrowerCard grower={grower} />);
     expect(screen.getByTestId('mailto-link')).toBeInTheDocument();
   });
+
+  test('shows empty location state and contact options when location missing', () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'fake-key';
+
+    const grower = {
+      name: 'No Location Farm',
+      rating: 4.2,
+      calcomUsername: 'noloc',
+      contactEmail: 'hello@noloc.com',
+      // location intentionally omitted
+    };
+
+    render(<GrowerCard grower={grower} productName="Blue Oyster" />);
+
+    expect(screen.getByTestId('grower-location-empty')).toBeInTheDocument();
+    expect(screen.getByText(/Location not provided/i)).toBeInTheDocument();
+
+    const calcom = screen.getByTestId('calcom-btn-empty') as HTMLAnchorElement;
+    expect(calcom.href).toContain('https://cal.com/noloc');
+
+    expect(screen.getByTestId('contact-chat-btn-empty')).toBeInTheDocument();
+  });
 });
