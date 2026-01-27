@@ -129,4 +129,6 @@ describe('ProductDetailPage (storefront)', () => {
     // Bundle UI should not be present (no "Add Bundle to Cart" button)
     expect(screen.queryByText(/Add Bundle to Cart/i)).toBeNull();
   });
+
+
 });

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useSanityProduct, useSanitySuggestedProducts } from "@/hooks/useSanityProducts";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { CalComButton } from "@/components/appointments/CalendlyButton"; // For grower appointment link
-import ProductDetailsSections from "@/components/product/ProductDetailsSections";
+import GrowerCard from "@/components/product/GrowerCard";
 import MediaGallery from "@/components/product/MediaGallery";
 
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
@@ -583,10 +583,14 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Enhanced Product Information Sections (extracted) */}
-<ProductDetailsSections product={product} onQuickChat={() => openChat(true)} />
+          {/* Seller / Grower Card (prominent, placed in the top-right column) */}
+          {product.grower && (
+            <div className="mt-6">
+              <GrowerCard grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
+            </div>
+          )}
+        </div>
 
         {/* Product Tags (kept, simplified styling) */}
         {product.productTags && product.productTags.length > 0 && (
