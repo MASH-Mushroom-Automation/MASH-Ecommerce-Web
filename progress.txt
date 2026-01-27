@@ -65,3 +65,20 @@
 - Running full test suite may require multiple iterations to stabilize flaky tests; I will proceed with focused test fixes now.
 
 ---
+
+## [2026-01-28 12:34] - STORY-PROD-002
+**Completed:** GrowerCard, MediaGallery, ProductDetailsSections scaffolding and unit tests
+**Files Changed:**
+- `src/components/product/GrowerCard.tsx`
+- `src/components/product/MediaGallery.tsx`
+- `src/components/product/ProductDetailsSections.tsx`
+- `src/components/product/__tests__/GrowerCard.test.tsx`
+- `src/components/product/__tests__/MediaGallery.test.tsx`
+- `src/components/product/__tests__/ProductDetailsSections.test.tsx`
+- `src/app/(shop)/product/[slug]/page.tsx` (wired ProductDetailsSections)
+**Implementation Notes:**
+- Extracted product details, grower contact, and media into reusable components.
+- Product page now uses `ProductDetailsSections` to render Freshness & Quality, Cooking Guide, Delivery Options, and the From the Grower block (GrowerCard).
+- Unit tests added and passing locally.
+**Tests Passing:** [PASS] Unit tests (local)
+---
