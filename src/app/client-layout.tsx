@@ -14,6 +14,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { getThemeCookie, setThemeCookie } from "@/lib/cookies";
 import { usePathname } from "next/navigation";
 import { initGA, logPageView } from "@/lib/analytics";
 import { SanityVisualEditing } from "@/components/sanity/VisualEditing";
@@ -58,11 +59,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
   }, [pathname]);
 
+  const isDev = process.env.NODE_ENV === "development";
+
+  useEffect(() => {
+    if (isDev && !getThemeCookie()) {
+      setThemeCookie("light");
+    }
+  }, [isDev]);
+
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme={isDev ? "light" : "system"}
+      enableSystem={!isDev}
       disableTransitionOnChange
     >
       <QueryProvider>
