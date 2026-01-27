@@ -39,14 +39,24 @@ export default function StartSellingPage() {
     }
   }, [router]);
 
-  // Show loading state while checking verification status
-  if (isCheckingStatus) {
+  // Redirect to seller dashboard if application is approved
+  React.useEffect(() => {
+    if (verificationStatus?.status === "APPROVED") {
+      toast.success("Your seller application has been approved!");
+      router.push("/seller/dashboard");
+    }
+  }, [verificationStatus, router]);
+
+  // Show loading state while checking verification status or redirecting approved users
+  if (isCheckingStatus || verificationStatus?.status === "APPROVED") {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center px-4 py-12">
         <div className="bg-background rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12 max-w-md w-full text-center">
           <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">
-            Checking application status...
+            {verificationStatus?.status === "APPROVED"
+              ? "Redirecting to seller dashboard..."
+              : "Checking application status..."}
           </p>
         </div>
       </div>
