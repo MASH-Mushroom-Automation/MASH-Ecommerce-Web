@@ -25,39 +25,17 @@ export function Footer() {
                 <img
                   src={settings.logo}
                   alt={settings?.companyName || "MASH Market"}
-                  className="h-auto w-auto max-w-[180px] max-h-[60px] object-contain"
+                  className="h-auto w-auto max-w-[260px] max-h-[90px] object-contain"
                 />
               ) : (
                 <Image
                   src="/Logo  v6 - Market.png"
                   alt="MASH Market"
-                  width={180}
-                  height={60}
-                  className="h-auto w-auto max-w-[180px]"
+                  width={260}
+                  height={90}
+                  className="h-auto w-auto max-w-[260px]"
                 />
               )}
-            </div>
-
-            {/* Accepted Payments Section */}
-            {/* This will be updated to CMS */}
-            <h4 className="text-sm luz font-light mb-3 text-muted-foreground">
-              Accepted Payments:
-            </h4>
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
-              <Image
-                src="/payment-logos/gcash-logo.png"
-                alt="GCash"
-                width={50}
-                height={50}
-                className="h-7 w-7 object-contain"
-              />
-              <Image
-                src="/payment-logos/Maya_Logo.svg"
-                alt="Maya"
-                width={50}
-                height={50}
-                className="h-8 w-12 object-contain"
-              />
             </div>
 
             {/* Social Media - Real-time from Sanity CMS */}
