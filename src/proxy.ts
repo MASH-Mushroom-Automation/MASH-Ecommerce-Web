@@ -97,12 +97,7 @@ export function proxy(request: NextRequest) {
   // Note: We no longer redirect authenticated users from auth routes here.
   // This is handled client-side in the login page useEffect to avoid cookie timing issues.
 
-  // Allow access to public routes
-  if (isPublicRoute) {
-    return addSecurityHeaders(NextResponse.next());
-  }
-
-  return addSecurityHeaders(NextResponse.next());
+  return NextResponse.next();
 }
 
 /**
@@ -110,40 +105,6 @@ export function proxy(request: NextRequest) {
  * Implements STORY-TEST-013: Security Audit & Fixes
  */
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  // Content Security Policy (CSP) - Prevents XSS attacks
-  const cspHeader = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://cdn.sanity.io",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https: blob:",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' http://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io",
-    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-  ].join("; ");
-
-  response.headers.set("Content-Security-Policy", cspHeader);
-
-  // Prevent clickjacking attacks
-  response.headers.set("X-Frame-Options", "DENY");
-
-  // Prevent MIME type sniffing
-  response.headers.set("X-Content-Type-Options", "nosniff");
-
-  // Enable browser XSS filter (legacy support)
-  response.headers.set("X-XSS-Protection", "1; mode=block");
-
-  // Control referrer information leakage
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-
-  // Restrict browser features
-  response.headers.set(
-    "Permissions-Policy",
-    "geolocation=(self), camera=(), microphone=()",
-  );
-
   return response;
 }
 
