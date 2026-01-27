@@ -373,26 +373,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Call backend API with Firebase ID token in request body
         // Backend will verify this token with Firebase Admin SDK
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Important for receiving HTTP-only cookies
-            body: JSON.stringify(requestBody),
-          }
-        );
+        let response: Response | undefined;
+        try {
+          response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include", // Important for receiving HTTP-only cookies
+              body: JSON.stringify(requestBody),
+            }
+          );
+        } catch (err) {
+          // Likely a network/CORS error — handle gracefully and provide guidance
+          console.error(
+            "[Auth] Network error syncing to backend. Check NEXT_PUBLIC_API_URL and backend CORS settings:",
+            err
+          );
+          // Don't block login: allow Firebase-only auth to continue
+          return null;
+        }
 
         console.log("[Auth] Backend response status:", response.status);
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
           console.error("[Auth] Backend Firebase sync failed:", data);
-          throw new Error(data.message || "Failed to sync user to backend");
+          // Don't throw here - avoid surfacing uncaught exceptions in UI. Return null to indicate no backend sync.
+          return null;
         }
 
         console.log("[Auth] Backend Firebase sync successful:", {

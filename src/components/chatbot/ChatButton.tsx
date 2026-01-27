@@ -33,6 +33,7 @@ export function ChatButton({ isOpen, onClick, className }: ChatButtonProps) {
         className
       )}
       aria-label={isOpen ? 'Close chatbot' : 'Open chatbot'}
+      data-open={isOpen}
       data-testid="chat-button"
     >
       {isOpen ? (
