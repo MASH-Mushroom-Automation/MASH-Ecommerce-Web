@@ -349,6 +349,246 @@ describe('AuthContext', () => {
       });
     });
 
+    it('should handle Google sign-in operation not allowed error', async () => {
+      const error = { code: 'auth/operation-not-allowed', message: 'Operation not allowed' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'This sign-in method is not enabled. Please contact support.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in requires recent login error', async () => {
+      const error = { code: 'auth/requires-recent-login', message: 'Requires recent login' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Please sign in again to complete this action.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in user disabled error', async () => {
+      const error = { code: 'auth/user-disabled', message: 'User disabled' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'This account has been disabled. Please contact support.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in invalid credential error', async () => {
+      const error = { code: 'auth/invalid-credential', message: 'Invalid credential' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Invalid email or password. If you signed up with Google or Email Link, please use that method instead.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in internal error', async () => {
+      const error = { code: 'auth/internal-error', message: 'Internal error' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'An internal error occurred. Please try again later.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in cancelled popup request error', async () => {
+      const error = { code: 'auth/cancelled-popup-request', message: 'Cancelled popup request' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Sign-in was cancelled. Please try again.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in cancelled popup request error', async () => {
+      const error = { code: 'auth/cancelled-popup-request', message: 'Popup request cancelled' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Sign-in was cancelled. Please try again.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in internal error', async () => {
+      const error = { code: 'auth/internal-error', message: 'Internal error' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'An internal error occurred. Please try again later.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in operation not allowed error', async () => {
+      const error = { code: 'auth/operation-not-allowed', message: 'Operation not allowed' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'This sign-in method is not enabled. Please contact support.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in requires recent login error', async () => {
+      const error = { code: 'auth/requires-recent-login', message: 'Requires recent login' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Please sign in again to complete this action.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in user disabled error', async () => {
+      const error = { code: 'auth/user-disabled', message: 'User disabled' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'This account has been disabled. Please contact support.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in invalid credential error', async () => {
+      const error = { code: 'auth/invalid-credential', message: 'Invalid credential' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Invalid email or password. If you signed up with Google or Email Link, please use that method instead.',
+        });
+      });
+    });
+
     it('should sync Google user to backend and store JWT token', async () => {
       const mockBackendResponse = {
         user: {

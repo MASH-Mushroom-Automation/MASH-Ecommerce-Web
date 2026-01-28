@@ -880,6 +880,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("❌ [Auth] Sign-in error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
       toast.error("Sign-in failed", { description: errorMessage });
+      // Re-throw to allow calling components to reset their loading states
+      throw error;
     }
   };
 
