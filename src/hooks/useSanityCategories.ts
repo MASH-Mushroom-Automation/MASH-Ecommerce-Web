@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 import type { SanityCategory, SanityProduct } from '@/types/sanity';
 
 /**
@@ -127,8 +127,7 @@ export function useSanityCategories(filters?: CategoryFilters) {
       query += ` [0...${filters.limit}]`;
     }
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
         console.log('📡 Categories mutation event received:', update.type);
         
@@ -305,8 +304,7 @@ export function useSanityParentCategories() {
     
     const query = `*[_type == "category" && !defined(parent) && !(_id in path("drafts.**"))]`;
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
         console.log('📡 Parent categories mutation event received:', update.type);
         
@@ -392,8 +390,7 @@ export function useSanitySubcategories(parentId: string) {
     
     const query = `*[_type == "category" && parent._ref == $parentId && !(_id in path("drafts.**"))]`;
 
-    const subscription = sanityClient
-      .listen(query, { parentId })
+    const subscription = listenSafe(query, { parentId })
       .subscribe((update) => {
         console.log(`📡 Subcategories for parent "${parentId}" mutation event received:`, update.type);
         
@@ -500,8 +497,7 @@ export function useSanityProductsByCategory(categorySlug: string, limit?: number
       query += ` [0...${limit}]`;
     }
 
-    const subscription = sanityClient
-      .listen(query, { categorySlug })
+    const subscription = listenSafe(query, { categorySlug })
       .subscribe((update) => {
         console.log(`📡 Products in category "${categorySlug}" mutation event received:`, update.type);
         

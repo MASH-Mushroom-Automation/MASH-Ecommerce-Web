@@ -10,6 +10,24 @@
 ---
 
 ## [2026-01-27 15:40] - STORY-PROD-005
+
+## [2026-01-28 09:45] - MAPS-001
+**Completed:** Fix Grower map embedding and add tests
+**Files Changed:**
+- src/components/product/GrowerCard.tsx (coords fallback + resolver fallback to coords)
+- src/components/product/__tests__/GrowerCard.test.tsx (added multiple embed/fallback tests)
+- e2e/tests/grower-booking.spec.ts (e2e test for lat/lng embed + adjustments)
+- scripts/patch-grower-google-embed.js (utility to patch grower doc in Sanity)
+
+**Implementation Notes:**
+- Prefer resolved pb/embed -> provided embed -> coords embed -> Embed API v1 (if API key) -> fallback link
+- Resolved maps.app short links now fall back to coords when resolver returns null
+- Added tests for pb-style embed, resolver success, resolver null fallback to coords, and referrerPolicy/loading attributes
+- Patched grower `fungi-fresh-farms` in Sanity to set `googleMapsEmbedUrl` to coords-based embed: `https://www.google.com/maps?q=14.7583,121.0453&z=15&output=embed`
+
+**Tests:** [PASS] Unit (Jest) | [PASS] Build | [PASS] Playwright (targeted)
+
+---
 **Completed:** Product detail page redesign — removed extra info panels and surfaced Grower/Seller contact with embedded map and Cal.com appointment link.
 **Files Changed:**
 - `src/components/product/ProductDetailsSections.tsx` (simplified: only From the Seller block)
@@ -135,6 +153,20 @@
 - Multi-tab sync via `storage` events and subscription model in `stockSync`.
 
 **Tests Passing:** [PASS] Unit tests | [PASS] Playwright e2e (single-tab & multi-tab)
+---
+
+## [2026-01-28 16:10] - CHORE-PROD-005
+**Completed:** Reduce stock-sync noise, add telemetry event and tests; make Sanity real-time subscriptions opt-in with `listenSafe()`.
+**Files Changed:**
+- `src/lib/product/stock-sync.ts` (use `console.warn`, dispatch `stock-sync:drop` event, backoff scheduling)
+- `src/lib/product/__tests__/stock-sync.test.ts` (added tests for drop event, warn vs error, single warn)
+- Multiple hooks: replaced direct `.listen()` with `listenSafe()` to avoid noisy SSE in free/CORS-constrained projects: `src/hooks/useSanitySiteSettings.ts`, `src/hooks/useSanityProducts.ts`, `src/hooks/useSanityInventory.ts`, `src/hooks/useSanityGrowers.ts`, `src/hooks/useSanityCategories.ts`, `src/hooks/useSanityBlogPosts.ts`, `src/hooks/useSanityHero.ts`, `src/hooks/useSanityVariants.ts`, and others.
+
+**Implementation Notes:**
+- Dropped queue items no longer use `console.error`; use concise `console.warn` and dispatch a `stock-sync:drop` event for telemetry.
+- Real-time subscriptions default to a no-op unless `NEXT_PUBLIC_ENABLE_SANITY_LISTEN=true`, preventing noisy SSE/CORS messages in developer environments and CI.
+
+**Tests Passing:** [PASS] Unit tests (local)
 ---
 
 ## [2026-01-28 15:10] - CHORE-STUDIO-001

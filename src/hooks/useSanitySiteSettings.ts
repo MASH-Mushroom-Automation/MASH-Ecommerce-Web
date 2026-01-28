@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 /**
  * Sanity Site Settings Interface
@@ -446,8 +446,7 @@ export function useSanitySiteSettings() {
     // Listen to both siteSettings and legacy settings
     const query = `*[_type in ["siteSettings", "settings"]][0]`;
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
         console.log('📡 Site settings mutation event received:', update.type);
         
@@ -678,8 +677,7 @@ export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
     
     const query = `*[_type == "navigation" && menuType == $menuType]`;
 
-    const subscription = sanityClient
-      .listen(query, { menuType })
+    const subscription = listenSafe(query, { menuType })
       .subscribe((update) => {
         console.log(`📡 ${menuType} navigation mutation event received:`, update.type);
         
@@ -774,8 +772,7 @@ export function useSanityAllNavigations() {
     
     const query = `*[_type == "navigation"]`;
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
         console.log('📡 Navigation mutation event received:', update.type);
         

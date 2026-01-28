@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 import type { SanityPost } from '@/types/sanity';
 
 /**
@@ -160,8 +160,7 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
     
     console.log('🔌 Setting up blog posts real-time subscription');
     
-    const subscription = sanityClient
-      .listen(query, {}, { includeResult: true })
+    const subscription = listenSafe(query, {}, { includeResult: true })
       .subscribe((update) => {
         console.log('📡 Blog posts mutation event received:', update.type);
         
@@ -267,8 +266,7 @@ export function useSanityBlogPost(slug: string) {
     
     console.log(`🔌 Setting up real-time subscription for blog post: ${slug}`);
     
-    const subscription = sanityClient
-      .listen(query, { slug }, { includeResult: true })
+    const subscription = listenSafe(query, { slug }, { includeResult: true })
       .subscribe((update) => {
         console.log(`📡 Blog post "${slug}" mutation event:`, update.type);
         
@@ -360,8 +358,7 @@ export function useSanityFeaturedBlogPosts(limit: number = 3) {
     
     console.log('🔌 Setting up featured blog posts real-time subscription');
     
-    const subscription = sanityClient
-      .listen(featuredQuery, {}, { includeResult: true })
+    const subscription = listenSafe(featuredQuery, {}, { includeResult: true })
       .subscribe((update) => {
         console.log('📡 Featured blog posts mutation event:', update.type);
         

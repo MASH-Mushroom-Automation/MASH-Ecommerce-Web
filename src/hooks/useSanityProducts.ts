@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
 
 // Memory cache to prevent duplicate API calls (1 minute TTL)
@@ -530,8 +530,7 @@ export function useSanityProduct(slug: string) {
         }
       }`;
 
-      const subscription = sanityClient
-        .listen(query, {}, { includeResult: true })
+      const subscription = listenSafe(query, {}, { includeResult: true })
         .subscribe(async (update) => {
           if (update.type === 'mutation' && 'result' in update && update.result) {
             const data = update.result as unknown as SanityProduct;
@@ -745,8 +744,7 @@ export function useSanityFeaturedProducts(limit: number = 8) {
     // Set up real-time listener for featuredProducts singleton
     const singletonListenQuery = `*[_type == "featuredProducts"]`;
 
-    const subscription = sanityClient
-      .listen(singletonListenQuery, {}, { includeResult: true })
+    const subscription = listenSafe(singletonListenQuery, {}, { includeResult: true })
       .subscribe(async () => {
         // Refetch when featuredProducts singleton changes
         console.log('🔄 Featured products singleton changed, refetching...');

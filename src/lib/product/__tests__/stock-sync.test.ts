@@ -68,7 +68,9 @@ describe("StockSync", () => {
     const queue = JSON.parse(localStorage.getItem("mash-stock-sync-queue") || "[]");
     expect(queue).toHaveLength(1);
     expect(queue[0].retries).toBe(1);
-    expect(queue[0].createdAt).toBeGreaterThan(now); // pushed to future
+    // should set nextAttempt into the future
+    expect(queue[0].nextAttempt).toBeDefined();
+    expect(queue[0].nextAttempt).toBeGreaterThan(now);
   });
 
   test("processQueue drops item after max retries", async () => {
@@ -81,5 +83,55 @@ describe("StockSync", () => {
 
     const queue = JSON.parse(localStorage.getItem("mash-stock-sync-queue") || "[]");
     expect(queue).toHaveLength(0);
+  });
+
+  test("drops item emits event and logs warn, not error", async () => {
+    const item = { id: "p2", delta: -1, retries: 5, createdAt: Date.now() };
+    (stockSync as any).queue = [item];
+
+    (InventoryApi.getInventory as jest.Mock).mockRejectedValue(new Error("Backend unreachable"));
+
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const events: any[] = [];
+    window.addEventListener('stock-sync:drop', (e: any) => events.push(e.detail));
+
+    await stockSync.processQueue();
+
+    expect(warnSpy).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ id: 'p2' });
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  test("drop logs only once even if processQueue called repeatedly", async () => {
+    const item = { id: "p3", delta: -1, retries: 5, createdAt: Date.now() };
+    (stockSync as any).queue = [item];
+
+    (InventoryApi.getInventory as jest.Mock).mockRejectedValue(new Error("Backend unreachable"));
+
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const events: any[] = [];
+    window.addEventListener('stock-sync:drop', (e: any) => events.push(e.detail));
+
+    // First call should drop and emit
+    await stockSync.processQueue();
+
+    // Second call should be no-op and not emit or warn again
+    await stockSync.processQueue();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ id: 'p3' });
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

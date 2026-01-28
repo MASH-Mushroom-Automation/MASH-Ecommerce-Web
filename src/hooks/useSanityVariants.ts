@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { sanityClient } from "@/lib/sanity/client";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 // Raw Sanity response type (has _id from Sanity)
 interface SanityVariantResponse {
@@ -198,8 +198,7 @@ export function useSanityVariants(productId: string) {
     fetchVariants();
 
     // Subscribe to real-time updates
-    const subscription = sanityClient
-      .listen(`*[_type == "productVariant" && product._ref == "${productId}"]`)
+    const subscription = listenSafe(`*[_type == "productVariant" && product._ref == "${productId}"]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [VARIANTS] Variant updated in real-time!");

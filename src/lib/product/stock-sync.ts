@@ -4,7 +4,8 @@ type QueueItem = {
   id: string; // productId
   delta: number; // negative for decrement
   retries?: number;
-  createdAt: number;
+  createdAt: number; // original enqueue time
+  nextAttempt?: number; // timestamp when item is eligible for re-processing
 };
 
 const QUEUE_KEY = "mash-stock-sync-queue";
@@ -82,7 +83,8 @@ class StockSync {
   }
 
   enqueue(productId: string, delta: number) {
-    const item: QueueItem = { id: productId, delta, retries: 0, createdAt: Date.now() };
+    const now = Date.now();
+    const item: QueueItem = { id: productId, delta, retries: 0, createdAt: now, nextAttempt: now };
     this.queue.push(item);
     this.persistQueue();
   }
@@ -121,14 +123,16 @@ class StockSync {
     if (this.processing) return;
     if (this.queue.length === 0) return;
 
+    // Find first item whose nextAttempt (or createdAt) is <= now
+    const now = Date.now();
+    const idx = this.queue.findIndex((it) => (it.nextAttempt ?? it.createdAt) <= now);
+    if (idx === -1) return; // nothing scheduled yet
+
     this.processing = true;
 
-    const item = this.queue[0];
+    const item = this.queue[idx];
 
     try {
-      // Attempt to decrement on backend (server expects positive new quantity or delta depending on API)
-      // We'll call InventoryApi.updateStock with the delta applied to current stock. To be conservative, request backend to decrement by -delta.
-      const current = this.getLocalStock(item.id) ?? null;
       const desiredDelta = item.delta;
       // Backend API expects total quantity, so get current backend level first
       const backend = await InventoryApi.getInventory(item.id).catch(() => null);
@@ -146,28 +150,43 @@ class StockSync {
         if (res && res.data) {
           this.setLocalStock(item.id, res.data.quantity);
         }
+
+        // Remove processed item
+        this.queue.splice(idx, 1);
+        this.persistQueue();
       } else {
         // If we couldn't fetch backend (offline), keep item queued for retry
         throw new Error("Backend unreachable");
       }
-
-      // Remove processed item
-      this.queue.shift();
-      this.persistQueue();
     } catch (error) {
       // Retry with backoff
       item.retries = (item.retries || 0) + 1;
       const maxRetries = 5;
       if (item.retries > maxRetries) {
-        // Give up and remove, but log
-        console.error("[stock-sync] failed after retries, dropping item", item, error);
-        this.queue.shift();
+        // Give up and remove, but warn with details (less noisy than console.error stack)
+        console.warn(
+          "[stock-sync] dropping item after max retries",
+          { id: item.id, retries: item.retries, delta: item.delta, reason: (error && (error as any).message) || String(error) }
+        );
+
+        // Dispatch an event so other parts can react (optional)
+        try {
+          if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('stock-sync:drop', { detail: { id: item.id } }));
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        this.queue.splice(idx, 1);
         this.persistQueue();
       } else {
-        // Exponential backoff: move item to end and set delay by updating createdAt
-        item.createdAt = Date.now() + Math.pow(2, item.retries) * 1000;
-        // rotate
-        this.queue.push(this.queue.shift() as QueueItem);
+        // Exponential backoff: schedule next attempt and move item to end
+        const delay = Math.pow(2, item.retries) * 1000;
+        item.nextAttempt = Date.now() + delay;
+        // rotate item to end to avoid busy-looping on other items
+        this.queue.splice(idx, 1);
+        this.queue.push(item);
         this.persistQueue();
       }
     } finally {
