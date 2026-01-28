@@ -14,7 +14,6 @@
     "test": "jest --testPathIgnorePatterns=./e2e/",
     "test:watch": "jest --watch --testPathIgnorePatterns=./e2e/",
     "test:coverage": "jest --coverage --testPathIgnorePatterns=./e2e/",
-
     "test:calendly": "jest --config jest.calendly.config.js",
     "test:calendly:watch": "jest --config jest.calendly.config.js --watch",
     "test:calendly:coverage": "jest --config jest.calendly.config.js --coverage",
@@ -79,6 +78,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.6.0",
+    "focus-trap-react": "^11.0.6",
     "framer-motion": "^12.23.23",
     "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",

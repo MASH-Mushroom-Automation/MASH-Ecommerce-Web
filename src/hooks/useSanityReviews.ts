@@ -162,18 +162,18 @@ export function useSanityReviews(
     fetchReviews();
 
     // 🔄 Real-time subscription for review updates
-    console.log('🧹 [REVIEWS] Setting up real-time subscription...');
+    console.debug('🧹 [REVIEWS] Setting up real-time subscription...');
     
     const subscription = listenSafe(`*[_type == "review" && product._ref == "${productId}"]`)
       .subscribe((update) => {
         if (update.type === 'mutation') {
-          console.log('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
+          console.debug('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
           fetchReviews();
         }
       });
 
     return () => {
-      console.log('🧹 [REVIEWS] Cleaning up subscription');
+      console.debug('🧹 [REVIEWS] Cleaning up subscription');
       subscription.unsubscribe();
     };
   }, [fetchReviews, productId]);
@@ -196,7 +196,7 @@ export function useAllReviews() {
 
   const fetchAllReviews = useCallback(async () => {
     try {
-      console.log('⭐ [REVIEWS] Fetching all reviews...');
+      console.debug('⭐ [REVIEWS] Fetching all reviews...');
       
       const query = `*[_type == "review"] | order(reviewDate desc) {
         _id,
@@ -236,7 +236,7 @@ export function useAllReviews() {
       setLoading(false);
       setError(null);
 
-      console.log('📊 [REVIEWS] All reviews loaded:', transformedReviews.length);
+      console.info('📊 [REVIEWS] All reviews loaded:', transformedReviews.length);
 
     } catch (err) {
       console.error('❌ [REVIEWS] Error fetching all reviews:', err);

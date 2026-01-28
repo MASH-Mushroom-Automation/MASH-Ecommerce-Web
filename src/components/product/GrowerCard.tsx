@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import FocusTrap from 'focus-trap-react';
 import { Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -267,17 +268,19 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
       {/* Expanded map modal */}
       {showMapModal && embedSrc && (
         <div data-testid="grower-map-modal" role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-lg w-[95%] md:w-[80%] h-[85%] md:h-[80%] overflow-hidden relative">
-            <button ref={closeBtnRef} aria-label="Close map" onClick={() => setShowMapModal(false)} className="absolute top-3 right-3 z-10 px-3 py-1 bg-white rounded">×</button>
-            <iframe
-              data-testid="grower-map-large"
-              title="Seller location large"
-              src={embedSrc}
-              className="w-full h-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
+          <FocusTrap active={showMapModal} focusTrapOptions={{ clickOutsideDeactivates: true }}>
+            <div className="bg-white rounded-lg w-[95%] md:w-[80%] h-[85%] md:h-[80%] overflow-hidden relative">
+              <button ref={closeBtnRef} aria-label="Close map" onClick={() => setShowMapModal(false)} className="absolute top-3 right-3 z-10 px-3 py-1 bg-white rounded">×</button>
+              <iframe
+                data-testid="grower-map-large"
+                title="Seller location large"
+                src={embedSrc}
+                className="w-full h-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </FocusTrap>
         </div>
       )}
     </div>

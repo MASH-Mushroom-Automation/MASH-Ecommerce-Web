@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { useSanityReviews } from '../useSanityReviews';
 import { sanityClient } from '@/lib/sanity/client';
 
@@ -39,8 +39,8 @@ describe('useSanityReviews', () => {
 
     const { unmount } = render(<TestComponent productId="p1" />);
 
-    // Wait a tick for effects
-    await Promise.resolve();
+    // Wait for fetch and state updates to complete
+    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('loaded'));
 
     // Unmount to trigger cleanup
     unmount();
