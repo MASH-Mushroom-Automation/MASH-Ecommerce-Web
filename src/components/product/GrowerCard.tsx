@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -79,19 +79,42 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
   };
 
   const [showMapModal, setShowMapModal] = useState(false);
+  const expandBtnRef = useRef<HTMLButtonElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const embedSrc = getEmbedSrc();
 
+  useEffect(() => {
+    if (!showMapModal) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMapModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Focus the modal close button when opened
+    setTimeout(() => closeBtnRef.current?.focus(), 0);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      // Return focus to the expand button when closed
+      expandBtnRef.current?.focus();
+    };
+  }, [showMapModal]);
+
   return (
     <div className={cn("bg-card rounded-xl p-5 border shadow-sm", "border-border")} data-testid="grower-card">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+        <div className="flex-1">
           <div className="text-sm text-muted-foreground">Seller</div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {grower.image ? (
-              <img src={grower.image} alt={`Seller: ${name}`} className="w-12 h-12 rounded-full object-cover" />
+              <img src={grower.image} alt={`Seller: ${name}`} className="w-14 h-14 rounded-full object-cover" />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">{name.split(' ').map(s => s[0]).slice(0,2).join('')}</div>
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-sm text-muted-foreground">{name.split(' ').map(s => s[0]).slice(0,2).join('')}</div>
             )}
 
             <div>
@@ -108,7 +131,7 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="w-full lg:w-1/3 flex flex-col items-end gap-3">
           {calcomUsername ? (
             <a
               data-testid="calcom-btn"
@@ -137,9 +160,9 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
 
           <div className="mt-2 w-full">
             {location ? (
-              // Use unified embed source and render a larger responsive map with expand CTA
+              // Use unified embed source and render a much larger responsive map with expand CTA
               embedSrc ? (
-                <div role="region" aria-label={`Seller location`} className="w-full h-56 md:h-72 rounded overflow-hidden border relative">
+                <div role="region" aria-label={`Seller location`} className="w-full h-64 sm:h-72 md:h-96 lg:h-[28rem] xl:h-[34rem] rounded overflow-hidden border relative">
                   <iframe
                     data-testid={renderTestIds ? "grower-map" : undefined}
                     title="Seller location"
@@ -153,9 +176,10 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
                   />
 
                   <button
+                    ref={expandBtnRef}
                     data-testid="grower-map-expand"
                     onClick={() => setShowMapModal(true)}
-                    className="absolute right-2 bottom-2 inline-flex items-center gap-2 bg-white/90 px-3 py-1 rounded-md text-sm shadow-sm hover:opacity-95"
+                    className="absolute right-3 bottom-3 inline-flex items-center gap-2 bg-white/90 px-3 py-1 rounded-md text-sm shadow-sm hover:opacity-95"
                   >
                     View larger map
                   </button>
@@ -242,9 +266,9 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
 
       {/* Expanded map modal */}
       {showMapModal && embedSrc && (
-        <div data-testid="grower-map-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-lg w-[90%] md:w-[70%] h-[80%] overflow-hidden relative">
-            <button aria-label="Close map" onClick={() => setShowMapModal(false)} className="absolute top-3 right-3 z-10 px-3 py-1 bg-white rounded">×</button>
+        <div data-testid="grower-map-modal" role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-lg w-[95%] md:w-[80%] h-[85%] md:h-[80%] overflow-hidden relative">
+            <button ref={closeBtnRef} aria-label="Close map" onClick={() => setShowMapModal(false)} className="absolute top-3 right-3 z-10 px-3 py-1 bg-white rounded">×</button>
             <iframe
               data-testid="grower-map-large"
               title="Seller location large"

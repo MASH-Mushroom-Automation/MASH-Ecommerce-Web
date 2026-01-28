@@ -673,7 +673,7 @@ export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
     fetchMenu();
 
     // Set up REAL-TIME subscription for navigation
-    console.log(`🔌 Setting up ${menuType} navigation real-time subscription`);
+    console.debug(`🔌 Setting up ${menuType} navigation real-time subscription`);
     
     const query = `*[_type == "navigation" && menuType == $menuType]`;
 
@@ -768,7 +768,7 @@ export function useSanityAllNavigations() {
     fetchNavigations();
 
     // Set up REAL-TIME subscription for all navigations
-    console.log('🔌 Setting up all navigations real-time subscription');
+    console.debug('🔌 Setting up all navigations real-time subscription');
     
     const query = `*[_type == "navigation"]`;
 

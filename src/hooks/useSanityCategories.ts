@@ -300,7 +300,7 @@ export function useSanityParentCategories() {
     fetchParentCategories();
 
     // Set up REAL-TIME subscription
-    console.log('🔌 Setting up parent categories real-time subscription');
+    console.debug('🔌 Setting up parent categories real-time subscription');
     
     const query = `*[_type == "category" && !defined(parent) && !(_id in path("drafts.**"))]`;
 
@@ -386,7 +386,7 @@ export function useSanitySubcategories(parentId: string) {
     fetchSubcategories();
 
     // Set up REAL-TIME subscription
-    console.log(`🔌 Setting up subcategories real-time subscription for parent "${parentId}"`);
+    console.debug(`🔌 Setting up subcategories real-time subscription for parent "${parentId}"`);
     
     const query = `*[_type == "category" && parent._ref == $parentId && !(_id in path("drafts.**"))]`;
 

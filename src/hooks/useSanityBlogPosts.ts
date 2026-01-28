@@ -356,7 +356,7 @@ export function useSanityFeaturedBlogPosts(limit: number = 3) {
     const featuredQuery = `*[_type == "post" && !(_id in path("drafts.**")) && publishedAt < now()] 
       | order(publishedAt desc) [0...${limit}]`;
     
-    console.log('🔌 Setting up featured blog posts real-time subscription');
+    console.debug('🔌 Setting up featured blog posts real-time subscription');
     
     const subscription = listenSafe(featuredQuery, {}, { includeResult: true })
       .subscribe((update) => {

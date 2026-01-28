@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import GrowerCard from '../GrowerCard';
 
 describe('GrowerCard', () => {
@@ -304,10 +304,37 @@ describe('GrowerCard', () => {
 
     expect(largeIframe.getAttribute('src')).toBe(smallIframe.getAttribute('src'));
 
-    // Close modal
+    // Close modal using close button
     const closeBtn = modal.querySelector('button[aria-label="Close map"]') as HTMLButtonElement;
     fireEvent.click(closeBtn);
 
     expect(screen.queryByTestId('grower-map-modal')).toBeNull();
+  });
+
+  test('closes modal on Escape key and restores focus', async () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'fake-key';
+
+    const grower = {
+      name: 'Escape Farm',
+      rating: 4.2,
+      location: 'Escape Place',
+      contactEmail: 'escape@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} productName="Test Product" />);
+
+    const expandBtn = await screen.findByTestId('grower-map-expand');
+    fireEvent.click(expandBtn);
+
+    const modal = await screen.findByTestId('grower-map-modal');
+    expect(modal).toBeInTheDocument();
+
+    // Press Escape to close
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+
+    expect(screen.queryByTestId('grower-map-modal')).toBeNull();
+
+    // Focus should be restored to the expand button
+    expect(document.activeElement).toBe(expandBtn);
   });
 });

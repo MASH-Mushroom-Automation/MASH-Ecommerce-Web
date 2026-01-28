@@ -68,7 +68,7 @@ export function useSanityReviews(
 
   const fetchReviews = useCallback(async () => {
     try {
-      console.log('⭐ [REVIEWS] Fetching reviews for product:', productId);
+      console.debug('⭐ [REVIEWS] Fetching reviews for product:', productId);
       
       const statusFilter = includeAll ? '' : `&& status == "approved"`;
       
@@ -144,7 +144,7 @@ export function useSanityReviews(
       setLoading(false);
       setError(null);
 
-      console.log('📊 [REVIEWS] Reviews loaded:', {
+      console.info('📊 [REVIEWS] Reviews loaded:', {
         count: transformedReviews.length,
         avgRating: avgRating.toFixed(1),
         verified: verifiedCount,
