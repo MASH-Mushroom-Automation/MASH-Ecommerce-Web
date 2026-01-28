@@ -164,8 +164,7 @@ export function useSanityReviews(
     // 🔄 Real-time subscription for review updates
     console.log('🧹 [REVIEWS] Setting up real-time subscription...');
     
-    const subscription = sanityClient
-      listenSafe(`*[_type == "review" && product._ref == "${productId}"]`)
+    const subscription = listenSafe(`*[_type == "review" && product._ref == "${productId}"]`)
       .subscribe((update) => {
         if (update.type === 'mutation') {
           console.log('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
@@ -250,8 +249,7 @@ export function useAllReviews() {
     fetchAllReviews();
 
     // Real-time subscription for all reviews
-    const subscription = sanityClient
-      listenSafe('*[_type == "review"]')
+    const subscription = listenSafe('*[_type == "review"]')
       .subscribe((update) => {
         if (update.type === 'mutation') {
           console.log('🔄 [REVIEWS] Reviews updated in real-time!');

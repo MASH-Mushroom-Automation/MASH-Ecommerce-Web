@@ -380,8 +380,7 @@ export function useSanityOrder(orderIdentifier: string) {
     fetchOrder();
 
     // Subscribe to real-time updates for this specific order
-    const subscription = sanityClient
-      listenSafe(`*[_type == "order" && (_id == "${orderIdentifier}" || orderNumber == "${orderIdentifier}")]`)
+    const subscription = listenSafe(`*[_type == "order" && (_id == "${orderIdentifier}" || orderNumber == "${orderIdentifier}")]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [ORDER] Order updated in real-time!");

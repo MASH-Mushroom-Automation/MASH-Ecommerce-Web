@@ -228,8 +228,7 @@ export function useSanityPromotion(slug: string) {
     };
 
     fetchPromotion();
-    const subscription = sanityClient
-      listenSafe(`*[_type == "promotion" && slug.current == "${slug}"]`)
+    const subscription = listenSafe(`*[_type == "promotion" && slug.current == "${slug}"]`)
       .subscribe((update) => {
         if (update.type === "mutation") fetchPromotion();
       });
