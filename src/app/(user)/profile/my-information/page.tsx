@@ -115,7 +115,7 @@ export default function MyInformationPage() {
   const [addressLabel, setAddressLabel] = useState("Home");
   const [landmark, setLandmark] = useState("");
   const [editingAddress, setEditingAddress] = useState<FirestoreAddress | null>(
-    null
+    null,
   );
 
   // Confirmation dialogs
@@ -219,11 +219,11 @@ export default function MyInformationPage() {
         }
 
         const hasGoogleProvider = providerData.some(
-          (provider) => provider.providerId === "google.com"
+          (provider) => provider.providerId === "google.com",
         );
 
         const hasEmailProvider = providerData.some(
-          (provider) => provider.providerId === "password"
+          (provider) => provider.providerId === "password",
         );
 
         if (hasGoogleProvider && !hasEmailProvider) {
@@ -298,7 +298,7 @@ export default function MyInformationPage() {
 
     if (!validatePhilippinePhone(cleanPhone)) {
       toast.error(
-        "Please enter a valid Philippine phone number (e.g., 09171234567)"
+        "Please enter a valid Philippine phone number (e.g., 09171234567)",
       );
       return;
     }
@@ -316,7 +316,7 @@ export default function MyInformationPage() {
         setBackendProfile((prev) =>
           prev
             ? { ...prev, phoneNumber: cleanPhone }
-            : { phoneNumber: cleanPhone }
+            : { phoneNumber: cleanPhone },
         );
 
         // Update auth context if available
@@ -403,7 +403,7 @@ export default function MyInformationPage() {
     } catch (error) {
       console.error("[Profile] Error saving address:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to save address"
+        error instanceof Error ? error.message : "Failed to save address",
       );
     }
   };
@@ -511,7 +511,7 @@ export default function MyInformationPage() {
 
       const credential = EmailAuthProvider.credential(
         currentUser.email,
-        passwordForm.currentPassword
+        passwordForm.currentPassword,
       );
 
       await reauthenticateWithCredential(currentUser, credential);
@@ -531,7 +531,7 @@ export default function MyInformationPage() {
         toast.error("Current password is incorrect");
       } else if (error.code === "auth/requires-recent-login") {
         toast.error(
-          "Please sign out and sign in again before changing password"
+          "Please sign out and sign in again before changing password",
         );
       } else {
         toast.error(error.message || "Failed to change password");
@@ -573,7 +573,7 @@ export default function MyInformationPage() {
 
       const credential = EmailAuthProvider.credential(
         currentUser.email,
-        linkPasswordForm.newPassword
+        linkPasswordForm.newPassword,
       );
 
       await linkWithCredential(currentUser, credential);
@@ -582,7 +582,7 @@ export default function MyInformationPage() {
       setAuthProvider("google");
 
       toast.success(
-        "Password added successfully! You can now sign in with email/password."
+        "Password added successfully! You can now sign in with email/password.",
       );
       setShowLinkPasswordDialog(false);
       setLinkPasswordForm({ newPassword: "", confirmPassword: "" });
@@ -591,7 +591,7 @@ export default function MyInformationPage() {
 
       if (error.code === "auth/email-already-in-use") {
         toast.error(
-          "This email already has a password. Try signing in with email/password instead."
+          "This email already has a password. Try signing in with email/password instead.",
         );
       } else if (error.code === "auth/provider-already-linked") {
         toast.error("A password is already linked to this account");
@@ -711,7 +711,10 @@ export default function MyInformationPage() {
                   unoptimized={isDiceBearAvatar(getProfileAvatar(user))}
                 />
               </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg">
+              <button
+                className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg"
+                suppressHydrationWarning
+              >
                 <Camera className="h-4 w-4" />
               </button>
             </div>

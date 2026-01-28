@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, History, TrendingUp, Clock, Loader2, Tag, Grid3X3 } from "lucide-react";
+import {
+  Search,
+  X,
+  History,
+  TrendingUp,
+  Clock,
+  Loader2,
+  Tag,
+  Grid3X3,
+} from "lucide-react";
 import { sanityClient } from "@/lib/sanity/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -68,7 +77,9 @@ export function SearchAutocomplete({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [categorySuggestions, setCategorySuggestions] = useState<CategorySuggestion[]>([]);
+  const [categorySuggestions, setCategorySuggestions] = useState<
+    CategorySuggestion[]
+  >([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
@@ -108,7 +119,7 @@ export function SearchAutocomplete({
       setIsLoading(true);
       try {
         const searchTerm = debouncedQuery.toLowerCase();
-        
+
         // Fetch products and categories in parallel
         const [products, categories] = await Promise.all([
           // Product search
@@ -137,9 +148,9 @@ export function SearchAutocomplete({
               "slug": slug.current,
               "productCount": count(*[_type == "product" && references(^._id) && isAvailable == true])
             }
-          `)
+          `),
         ]);
-        
+
         setSuggestions(products);
         setCategorySuggestions(categories);
         setHighlightedIndex(-1);
@@ -156,17 +167,22 @@ export function SearchAutocomplete({
   }, [debouncedQuery]);
 
   // Save search to history
-  const saveToHistory = useCallback((searchTerm: string) => {
-    if (!searchTerm.trim() || typeof window === "undefined") return;
+  const saveToHistory = useCallback(
+    (searchTerm: string) => {
+      if (!searchTerm.trim() || typeof window === "undefined") return;
 
-    const newHistory = [
-      searchTerm.trim(),
-      ...recentSearches.filter((s) => s.toLowerCase() !== searchTerm.toLowerCase()),
-    ].slice(0, MAX_HISTORY_ITEMS);
+      const newHistory = [
+        searchTerm.trim(),
+        ...recentSearches.filter(
+          (s) => s.toLowerCase() !== searchTerm.toLowerCase(),
+        ),
+      ].slice(0, MAX_HISTORY_ITEMS);
 
-    setRecentSearches(newHistory);
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
-  }, [recentSearches]);
+      setRecentSearches(newHistory);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    },
+    [recentSearches],
+  );
 
   // Clear search history
   const clearHistory = useCallback(() => {
@@ -175,38 +191,50 @@ export function SearchAutocomplete({
   }, []);
 
   // Handle search submission
-  const handleSearch = useCallback((searchTerm: string) => {
-    if (!searchTerm.trim()) return;
+  const handleSearch = useCallback(
+    (searchTerm: string) => {
+      if (!searchTerm.trim()) return;
 
-    saveToHistory(searchTerm);
-    setIsOpen(false);
+      saveToHistory(searchTerm);
+      setIsOpen(false);
 
-    if (onSearch) {
-      onSearch(searchTerm);
-    } else {
-      // Navigate to shop page with search query
-      router.push(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  }, [onSearch, router, saveToHistory]);
+      if (onSearch) {
+        onSearch(searchTerm);
+      } else {
+        // Navigate to shop page with search query
+        router.push(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
+      }
+    },
+    [onSearch, router, saveToHistory],
+  );
 
   // Handle product click
-  const handleProductClick = useCallback((slug: string, name: string) => {
-    saveToHistory(name);
-    setIsOpen(false);
-    router.push(`/product/${slug}`);
-  }, [router, saveToHistory]);
+  const handleProductClick = useCallback(
+    (slug: string, name: string) => {
+      saveToHistory(name);
+      setIsOpen(false);
+      router.push(`/product/${slug}`);
+    },
+    [router, saveToHistory],
+  );
 
   // Handle category click
-  const handleCategoryClick = useCallback((slug: string, name: string) => {
-    saveToHistory(name);
-    setIsOpen(false);
-    router.push(`/shop?category=${slug}`);
-  }, [router, saveToHistory]);
+  const handleCategoryClick = useCallback(
+    (slug: string, name: string) => {
+      saveToHistory(name);
+      setIsOpen(false);
+      router.push(`/shop?category=${slug}`);
+    },
+    [router, saveToHistory],
+  );
 
   // Handle click outside to close
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -239,20 +267,18 @@ export function SearchAutocomplete({
       inputRef.current?.blur();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlightedIndex(prev => 
-        prev < totalItems - 1 ? prev + 1 : prev
-      );
+      setHighlightedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
     }
   };
 
-  const showDropdown = isOpen && (
-    query.length >= 2 || 
-    (showRecent && recentSearches.length > 0) ||
-    showTrending
-  );
+  const showDropdown =
+    isOpen &&
+    (query.length >= 2 ||
+      (showRecent && recentSearches.length > 0) ||
+      showTrending);
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -271,6 +297,7 @@ export function SearchAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="w-full pl-10 pr-10 py-3 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          suppressHydrationWarning
         />
         {query && (
           <button
@@ -294,7 +321,9 @@ export function SearchAutocomplete({
           {isLoading && query.length >= 2 && (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                Searching...
+              </span>
             </div>
           )}
 
@@ -308,12 +337,14 @@ export function SearchAutocomplete({
               {categorySuggestions.map((category, index) => (
                 <button
                   key={category._id}
-                  onClick={() => handleCategoryClick(category.slug, category.name)}
+                  onClick={() =>
+                    handleCategoryClick(category.slug, category.name)
+                  }
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 transition-colors text-left",
-                    highlightedIndex === index 
-                      ? "bg-primary/10" 
-                      : "hover:bg-muted/50"
+                    highlightedIndex === index
+                      ? "bg-primary/10"
+                      : "hover:bg-muted/50",
                   )}
                 >
                   <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -325,7 +356,8 @@ export function SearchAutocomplete({
                     </div>
                     {category.productCount !== undefined && (
                       <div className="text-xs text-muted-foreground">
-                        {category.productCount} product{category.productCount !== 1 ? 's' : ''}
+                        {category.productCount} product
+                        {category.productCount !== 1 ? "s" : ""}
                       </div>
                     )}
                   </div>
@@ -345,12 +377,14 @@ export function SearchAutocomplete({
                 return (
                   <button
                     key={product._id}
-                    onClick={() => handleProductClick(product.slug, product.name)}
+                    onClick={() =>
+                      handleProductClick(product.slug, product.name)
+                    }
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2 transition-colors",
-                      highlightedIndex === itemIndex 
-                        ? "bg-primary/10" 
-                        : "hover:bg-muted/50"
+                      highlightedIndex === itemIndex
+                        ? "bg-primary/10"
+                        : "hover:bg-muted/50",
                     )}
                   >
                     {/* Product Image */}
@@ -362,7 +396,9 @@ export function SearchAutocomplete({
                         height={40}
                         className={cn(
                           "w-full h-full",
-                          product.mainImage ? "object-cover" : "object-contain p-1"
+                          product.mainImage
+                            ? "object-cover"
+                            : "object-contain p-1",
                         )}
                       />
                     </div>
@@ -397,22 +433,25 @@ export function SearchAutocomplete({
           )}
 
           {/* No Results */}
-          {!isLoading && query.length >= 2 && suggestions.length === 0 && categorySuggestions.length === 0 && (
-            <div className="py-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                No products found for &ldquo;{query}&rdquo;
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Try a different search term
-              </p>
-              <button
-                onClick={() => handleSearch(query)}
-                className="mt-3 text-sm text-primary hover:underline"
-              >
-                Search anyway →
-              </button>
-            </div>
-          )}
+          {!isLoading &&
+            query.length >= 2 &&
+            suggestions.length === 0 &&
+            categorySuggestions.length === 0 && (
+              <div className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No products found for &ldquo;{query}&rdquo;
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Try a different search term
+                </p>
+                <button
+                  onClick={() => handleSearch(query)}
+                  className="mt-3 text-sm text-primary hover:underline"
+                >
+                  Search anyway →
+                </button>
+              </div>
+            )}
 
           {/* Recent Searches */}
           {showRecent && recentSearches.length > 0 && query.length < 2 && (
