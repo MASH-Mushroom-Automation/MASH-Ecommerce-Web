@@ -263,7 +263,89 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Failed to start sign-in. Please try again.');
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Sign-in was cancelled. Please try again.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in popup blocked error', async () => {
+      const error = { code: 'auth/popup-blocked', message: 'Popup blocked' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Sign-in popup was blocked. Please allow popups for this site.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in network error', async () => {
+      const error = { code: 'auth/network-request-failed', message: 'Network error' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'Network error. Please check your internet connection and try again.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in with unknown error code', async () => {
+      const error = { code: 'auth/unknown-error', message: 'Unknown error' };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'An error occurred. Please try again.',
+        });
+      });
+    });
+
+    it('should handle Google sign-in with non-Firebase error', async () => {
+      const error = new Error('Generic error');
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockRejectedValue(error);
+      
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Sign-in failed', {
+          description: 'An error occurred. Please try again.',
+        });
       });
     });
 
