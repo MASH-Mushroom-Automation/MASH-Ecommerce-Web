@@ -9,7 +9,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 /**
  * Feature Item Interface (nested in Feature Section)
@@ -189,7 +189,7 @@ export function useSanityFeatures(options?: { homepageOnly?: boolean }) {
       homepageOnly ? ' && showOnHomepage == true' : ''
     }]`;
     
-    const subscription = sanityClient.listen(query).subscribe({
+    const subscription = listenSafe(query).subscribe({
       next: () => {
         console.log('🔄 Feature section updated, refetching...');
         featureCache.delete(cacheKey);

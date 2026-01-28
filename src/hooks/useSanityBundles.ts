@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { sanityClient } from "@/lib/sanity/client";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 // TypeScript interfaces
 export interface BundleProduct {
@@ -220,7 +220,7 @@ export function useSanityBundles(productId?: string) {
 
     // Subscribe to real-time updates
     const subscription = sanityClient
-      .listen(`*[_type == "productBundle"]`)
+      .listenSafe ? .listenSafe(`*[_type == "productBundle"]`) : listenSafe(`*[_type == "productBundle"]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [BUNDLES] Bundle updated in real-time!");
@@ -356,7 +356,7 @@ export function useSanityBundle(slug: string) {
 
     // Subscribe to real-time updates for this specific bundle
     const subscription = sanityClient
-      .listen(`*[_type == "productBundle" && slug.current == "${slug}"]`)
+      .listenSafe ? .listenSafe(`*[_type == "productBundle" && slug.current == "${slug}"]`) : listenSafe(`*[_type == "productBundle" && slug.current == "${slug}"]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [BUNDLE] Bundle updated in real-time!");

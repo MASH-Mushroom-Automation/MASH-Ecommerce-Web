@@ -77,4 +77,204 @@ describe('GrowerCard', () => {
     expect(placeholder).toBeInTheDocument();
     expect(placeholder).toHaveTextContent(/No map available/i);
   });
+
+  test('uses custom calcomButtonText when provided', () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'fake-key';
+
+    const grower = {
+      name: 'Label Farm',
+      rating: 4.7,
+      location: '1 Label Rd, Town',
+      calcomUsername: 'labelfarm',
+      defaultEventSlug: '30min',
+      contactEmail: 'label@farm.com',
+      calcomButtonText: 'Book a Session with Us',
+    };
+
+    render(<GrowerCard grower={grower} productName="Blue Oyster" />);
+
+    const calcom = screen.getByTestId('calcom-btn') as HTMLAnchorElement;
+    expect(calcom).toBeInTheDocument();
+    expect(calcom).toHaveTextContent('Book a Session with Us');
+  });
+
+  test('uses provided googleMapsEmbedUrl when available', () => {
+    const embedUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3858.4999720683213!2d121.00202618539326!3d14.740839036932998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1';
+
+    const grower = {
+      name: 'Embed Farm',
+      rating: 4.9,
+      location: 'Embed Place',
+      googleMapsEmbedUrl: embedUrl,
+      contactEmail: 'embed@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} productName="Blue Oyster" />);
+
+    const iframe = screen.getByTestId('grower-map') as HTMLIFrameElement;
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.getAttribute('src')).toBe(embedUrl);
+  });
+
+  test('resolves maps.app short URL via server API and uses resolved embed', async () => {
+    const shortUrl = 'https://maps.app.goo.gl/24sJHcTm4r4wVvG5A';
+    const resolved = 'https://www.google.com/maps/embed?pb=!1m18!resolved';
+
+    // Ensure API key fallback is disabled so component uses the resolved embed
+    const originalKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = '';
+
+    (global as any).fetch = jest.fn(async (input: any, opts: any) => {
+      // Respond to our resolve API
+      if (typeof input === 'string' && input.endsWith('/api/maps/resolve')) {
+        return { ok: true, json: async () => ({ embedUrl: resolved }) } as any;
+      }
+      return { ok: false, json: async () => ({}) } as any;
+    });
+
+
+    const grower = {
+      name: 'Short Link Farm',
+      rating: 4.0,
+      location: 'Short Link Place',
+      googleMapsEmbedUrl: shortUrl,
+      contactEmail: 'short@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} productName="Blue Oyster" />);
+
+    const iframe = await screen.findByTestId('grower-map');
+    expect(iframe).toBeInTheDocument();
+    expect((iframe as HTMLIFrameElement).getAttribute('src')).toBe(resolved);
+
+    // Restore env
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
+  });
+
+  test('uses latitude/longitude fallback embed when provided and no API key', async () => {
+    const originalKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = '';
+
+    const lat = 14.7583;
+    const lng = 121.0453;
+
+    const grower = {
+      name: 'Coords Farm',
+      rating: 4.1,
+      location: 'Caloocan City, Metro Manila',
+      latitude: lat,
+      longitude: lng,
+      contactEmail: 'coords@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} />);
+
+    const iframe = await screen.findByTestId('grower-map');
+    expect(iframe).toBeInTheDocument();
+    const src = (iframe as HTMLIFrameElement).getAttribute('src') || '';
+    expect(src).toContain('https://www.google.com/maps?q=' + encodeURIComponent(`${lat},${lng}`));
+
+    // restore env
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
+  });
+
+  test('prefers provided pb-style embed when available', () => {
+    const embedUrl = 'https://www.google.com/maps/embed?pb=!1m18!example_pb_string';
+    const grower = {
+      name: 'PB Farm',
+      rating: 4.6,
+      location: 'PB Place',
+      googleMapsEmbedUrl: embedUrl,
+      contactEmail: 'pb@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} />);
+    const iframe = screen.getByTestId('grower-map') as HTMLIFrameElement;
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.getAttribute('src')).toBe(embedUrl);
+    expect(iframe.getAttribute('loading')).toBe('lazy');
+    expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer-when-downgrade');
+  });
+
+  test('resolver returns null then falls back to coords when available', async () => {
+    const originalKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    // Ensure API key is not present so coords fallback is used
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = '';
+
+    const shortUrl = 'https://maps.app.goo.gl/whatever';
+
+    // Mock fetch to first call the resolver and return embedUrl: null
+    (global as any).fetch = jest.fn(async (input: any, opts: any) => {
+      if (typeof input === 'string' && input.endsWith('/api/maps/resolve')) {
+        return { ok: true, json: async () => ({ embedUrl: null }) } as any;
+      }
+      return { ok: false, json: async () => ({}) } as any;
+    });
+
+    const grower = {
+      name: 'Resolver Fallback Farm',
+      rating: 4.2,
+      location: 'Resolver Town',
+      googleMapsEmbedUrl: shortUrl,
+      latitude: 14.7583,
+      longitude: 121.0453,
+      contactEmail: 'rf@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} />);
+
+    const iframe = await screen.findByTestId('grower-map');
+    expect(iframe).toBeInTheDocument();
+    const src = (iframe as HTMLIFrameElement).getAttribute('src') || '';
+    expect(src).toContain('https://www.google.com/maps?q=' + encodeURIComponent('14.7583,121.0453'));
+
+    // restore env
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
+  });
+
+  test('resolver returns a /maps/embed url and it is used', async () => {
+    const shortUrl = 'https://maps.app.goo.gl/short';
+    const resolved = 'https://www.google.com/maps/embed?pb=!1m18!resolved_pb';
+
+    (global as any).fetch = jest.fn(async (input: any, opts: any) => {
+      if (typeof input === 'string' && input.endsWith('/api/maps/resolve')) {
+        return { ok: true, json: async () => ({ embedUrl: resolved }) } as any;
+      }
+      return { ok: false, json: async () => ({}) } as any;
+    });
+
+    const grower = {
+      name: 'Resolved Farm',
+      rating: 4.3,
+      location: 'Resolved Town',
+      googleMapsEmbedUrl: shortUrl,
+      contactEmail: 'resolved@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} />);
+
+    const iframe = await screen.findByTestId('grower-map');
+    expect(iframe).toBeInTheDocument();
+    expect((iframe as HTMLIFrameElement).getAttribute('src')).toBe(resolved);
+  });
+
+  test('when no embed and no API key and no coords shows View on Google Maps link', () => {
+    const originalKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = '';
+
+    const grower = {
+      name: 'No Map Farm',
+      rating: 3.9,
+      location: 'Unknown Place',
+      contactEmail: 'nomap@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} />);
+
+    const link = screen.getByTestId('grower-map-link') as HTMLAnchorElement;
+    expect(link).toBeInTheDocument();
+    expect(link.href).toContain('https://www.google.com/maps/search/?api=1&query=');
+
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
+  });
 });

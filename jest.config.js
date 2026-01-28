@@ -61,6 +61,7 @@ const customJestConfig = {
     '/studio/',
     '/coverage/',
     '/scripts/',
+    '/e2e/',
   ],
 
   // Transform files

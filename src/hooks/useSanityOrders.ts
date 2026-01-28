@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { sanityClient } from "@/lib/sanity/client";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 // TypeScript interfaces
 export interface OrderItem {
@@ -235,7 +235,7 @@ export function useSanityOrders(filters?: OrderFilters) {
     fetchOrders();
 
     // Subscribe to real-time updates
-    const subscription = sanityClient.listen(`*[_type == "order"]`).subscribe((update) => {
+    const subscription = listenSafe(`*[_type == "order"]`).subscribe((update: any) => {
       if (update.type === "mutation") {
         console.log("🔄 [ORDERS] Order updated in real-time!");
         fetchOrders();
@@ -381,7 +381,7 @@ export function useSanityOrder(orderIdentifier: string) {
 
     // Subscribe to real-time updates for this specific order
     const subscription = sanityClient
-      .listen(`*[_type == "order" && (_id == "${orderIdentifier}" || orderNumber == "${orderIdentifier}")]`)
+      listenSafe(`*[_type == "order" && (_id == "${orderIdentifier}" || orderNumber == "${orderIdentifier}")]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [ORDER] Order updated in real-time!");

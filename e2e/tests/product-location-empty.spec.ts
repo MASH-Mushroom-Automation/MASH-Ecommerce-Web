@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('product page shows clear empty location state and contact options when grower has no location', async ({ page }) => {
+  // Force a mobile viewport so the inline grower card (with test ids) is visible during this test
+  await page.setViewportSize({ width: 390, height: 844 });
   // Mock inventory endpoints
   await page.route('**/api/products/*/inventory', async (route) => {
     if (route.request().method() === 'GET') {

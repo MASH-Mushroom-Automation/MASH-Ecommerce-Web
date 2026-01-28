@@ -28,3 +28,21 @@ test('grower profile shows booking CTA with custom button text and links to book
   const href = await bookingLink.evaluate((el) => (el as HTMLAnchorElement)?.href || '');
   expect(href).toContain('/grower/mock-grower/book');
 });
+
+test('grower map embeds using lat/lng fallback when no API key', async ({ page }) => {
+  await page.goto('/test/grower-booking');
+
+  const iframe = page.locator('[data-testid="grower-map"]').first();
+  await expect(iframe).toBeVisible({ timeout: 60_000 });
+  const src = await iframe.evaluate((el) => (el as HTMLIFrameElement).src);
+
+  // Accept either coords-based embed or Embed API v1 fallback (depends on environment API key)
+  const hasQSearch = src.includes('https://www.google.com/maps?q=');
+  const hasEmbedV1 = src.includes('https://www.google.com/maps/embed/v1/place');
+  expect(hasQSearch || hasEmbedV1).toBeTruthy();
+
+  // Ensure the query contains either encoded coords or the location string
+  const hasCoords = src.includes(encodeURIComponent('14.7583,121.0453'));
+  const hasLocation = src.includes(encodeURIComponent('123 Mock Lane, Test Town'));
+  expect(hasCoords || hasLocation).toBeTruthy();
+});

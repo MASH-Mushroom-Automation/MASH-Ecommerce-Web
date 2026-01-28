@@ -551,7 +551,19 @@ export default function ProductDetailPage({ params }: Props) {
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
+          {/* Seller / Grower Card (prominent) */}
+          {product.grower && (
+            <aside className="sticky top-24 mt-4 hidden lg:block" aria-label="Seller card">
+              <GrowerCard renderTestIds={false} grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
+            </aside>
+          )}
 
+          {/* Mobile: show grower card inline below details */}
+          {product.grower && (
+            <div className="lg:hidden mt-6">
+              <GrowerCard grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
+            </div>
+          )}
             {/* Product Meta */}
             <div className="border-t border-border pt-6 space-y-3 text-sm">
               {product.sku && (
@@ -584,12 +596,7 @@ export default function ProductDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Seller / Grower Card (prominent, placed in the top-right column) */}
-          {product.grower && (
-            <div className="mt-6">
-              <GrowerCard grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
-            </div>
-          )}
+
         </div>
 
         {/* Product Tags (kept, simplified styling) */}

@@ -13,6 +13,8 @@ export default function TestGrowerBookingPage() {
     defaultEventSlug: '30min',
     contactEmail: 'hello@mockgrower.test',
     image: null,
+    latitude: 14.7583,
+    longitude: 121.0453,
     calcomButtonText: 'Schedule with Grower',
   } as any;
 

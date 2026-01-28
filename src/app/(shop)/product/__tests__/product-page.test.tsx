@@ -99,6 +99,9 @@ describe('ProductDetailPage (storefront)', () => {
     // Grower name should be visible
     expect(await screen.findByText(/Good Grower/)).toBeInTheDocument();
 
+    // Grower card should be rendered
+    expect(screen.getByTestId('grower-card')).toBeInTheDocument();
+
     // Highly rated badge (4.5+) should be visible
     expect(await screen.findByText(/Highly rated/i)).toBeInTheDocument();
 

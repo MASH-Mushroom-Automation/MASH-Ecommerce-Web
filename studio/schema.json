@@ -9600,6 +9600,13 @@
         },
         "optional": true
       },
+      "calcomButtonText": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
       "appointmentTypes": {
         "type": "objectAttribute",
         "value": {

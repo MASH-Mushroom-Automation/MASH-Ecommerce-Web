@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { sanityClient } from "@/lib/sanity/client";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 export interface AnalyticsReport {
   _id: string;
@@ -87,9 +87,9 @@ export function useSanityAnalytics(reportType?: string) {
 
   useEffect(() => {
     fetchReports();
-    const subscription = sanityClient.listen(`*[_type == "analytics"]`).subscribe((update) => {
-      if (update.type === "mutation") {
-        console.log("🔄 [ANALYTICS] Real-time update!");
+    const subscription = listenSafe(`*[_type == "analytics"]`).subscribe((update: any) => {
+      if (update?.type === "mutation") {
+        console.debug("🔄 [ANALYTICS] Real-time update!");
         fetchReports();
       }
     });
@@ -145,9 +145,9 @@ export function useDashboardMetrics() {
 
     fetchMetrics();
 
-    const subscription = sanityClient.listen(`*[_type == "analytics"]`).subscribe((update) => {
-      if (update.type === "mutation") {
-        console.log("🔄 [DASHBOARD] Real-time update!");
+    const subscription = listenSafe(`*[_type == "analytics"]`).subscribe((update: any) => {
+      if (update?.type === "mutation") {
+        console.debug("🔄 [DASHBOARD] Real-time update!");
         fetchMetrics();
       }
     });

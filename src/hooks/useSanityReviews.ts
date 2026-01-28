@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 export interface Review {
   id: string;
@@ -165,7 +165,7 @@ export function useSanityReviews(
     console.log('🧹 [REVIEWS] Setting up real-time subscription...');
     
     const subscription = sanityClient
-      .listen(`*[_type == "review" && product._ref == "${productId}"]`)
+      listenSafe(`*[_type == "review" && product._ref == "${productId}"]`)
       .subscribe((update) => {
         if (update.type === 'mutation') {
           console.log('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
@@ -251,7 +251,7 @@ export function useAllReviews() {
 
     // Real-time subscription for all reviews
     const subscription = sanityClient
-      .listen('*[_type == "review"]')
+      listenSafe('*[_type == "review"]')
       .subscribe((update) => {
         if (update.type === 'mutation') {
           console.log('🔄 [REVIEWS] Reviews updated in real-time!');

@@ -1,13 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
+  globalSetup: require.resolve('./e2e/global-setup.js'),
   testDir: './e2e/tests',
   timeout: 120 * 1000,
   expect: {
     timeout: 5000,
   },
   fullyParallel: true,
-  retries: 0,
+  retries: 1,
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:3000',

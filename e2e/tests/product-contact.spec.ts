@@ -21,12 +21,16 @@ test('product page grower contact and quick chat works', async ({ page }) => {
   // If iframe is present, validate its src contains the embed endpoint
   if (iframeCount > 0) {
     const src = await iframeLocator.getAttribute('src');
-    expect(src).toContain('https://www.google.com/maps/embed/v1/place');
-    // Also assert it includes either 'key=' (API key present) OR query-based embed
-    expect(src).toMatch(/key=|q=/);
+    expect(src).toBeTruthy();
+    // Accept either Maps Embed API (embed/v1/place?key=...) or the shared embed (embed?pb=...)
+    expect(src).toMatch(/maps\/embed(\/v1\/place)?|(embed\?pb=)/);
+    // If it's v1, it should include a key or q param; if pb-style, it should include pb token
+    expect(src).toMatch(/key=|q=|pb=/);
   }
 
-  await expect(page.locator('[data-testid="contact-chat-btn"]')).toHaveCount(1);
+  // There may be more than one quick chat button on the page (header + grower card). Just assert at least one exists.
+  const chatBtnCount = await page.locator('[data-testid="contact-chat-btn"]').count();
+  expect(chatBtnCount).toBeGreaterThan(0);
 
   // Cal.com button may be present or fallback to mailto
   const hasCalcom = await page.locator('[data-testid="calcom-btn"]').first().count();
