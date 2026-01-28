@@ -6,6 +6,7 @@
 - **Route Protection:** Use `src/proxy.ts` (Next.js 16 renamed from middleware.ts)
 - **API Routing:** Email endpoints route based on `NEXT_PUBLIC_EMAIL_SERVICE_ENV`
 - **Test Guards:** Long-running intervals should be disabled in test environment by default. Use opt-in flags: `global.__ENABLE_COOKIE_POLLING_IN_TESTS` and `global.__ENABLE_REALTIME_IN_TESTS`.
+- **Hero Carousel Heights:** Use reduced heights for better UX - loading/error: h-[300px] md:h-[350px] lg:h-[400px], content: min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
 
 ---
 
@@ -48,6 +49,32 @@
 **Tests Passing:** [PASS] Unit tests (Jest) | [PASS] Playwright e2e (local)
 
 ---
+
+## [2026-01-28 10:30] - HERO-001
+**Completed:** Reduce homepage hero carousel height for better UI/UX
+**Files Changed:**
+- src/components/hero/SanityHeroCarousel.tsx (reduced heights across all states)
+- src/components/hero/__tests__/SanityHeroCarousel.test.tsx (new comprehensive test suite)
+
+**Implementation Notes:**
+- Loading/error/no slides states: reduced from h-[400px] md:h-[500px] lg:h-[600px] to h-[300px] md:h-[350px] lg:h-[400px] (33% reduction)
+- Single slide: reduced from min-h-[700px] md:min-h-[800px] lg:min-h-screen to min-h-[400px] md:min-h-[500px] lg:min-h-[600px] (43% reduction)
+- Multiple slides: same reduction as single slide
+- Adjusted content padding from py-20 to py-12 md:py-16 for better proportion
+- Reduced text sizes: h1 from text-4xl sm:text-5xl md:text-6xl lg:text-7xl to text-3xl sm:text-4xl md:text-5xl lg:text-6xl
+- Reduced subtitle from text-lg sm:text-xl md:text-2xl to text-base sm:text-lg md:text-xl
+- Reduced button padding from px-8 py-6 to px-6 py-4
+- Adjusted spacing from space-y-8 to space-y-6
+- Moved navigation dots from bottom-8 to bottom-6
+- Added data-testid for loading spinner to enable proper testing
+
+**Learnings for Future Iterations:**
+- Hero carousel height significantly impacts perceived page load speed and user engagement
+- Content spacing and typography should scale proportionally with height changes
+- Navigation elements (dots, arrows) positioning needs adjustment when height changes
+- Comprehensive test coverage is essential for UI component changes
+
+**Tests Passing:** [PASS] Unit (17/17 tests) | [PASS] Build | [PASS] Full Test Suite (694/696 tests)
 
 ## [2026-01-24 12:10] - STORY-TEST-021
 **Completed:** Prevented test environment OOM by disabling background interval in `RealtimeModeProvider` and added unit tests.
