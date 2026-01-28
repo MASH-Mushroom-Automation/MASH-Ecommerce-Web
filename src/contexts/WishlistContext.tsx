@@ -22,19 +22,19 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   // Load wishlist from cookie on mount
   useEffect(() => {
-    console.log("[WishlistContext] Loading wishlist from cookie...");
+    console.debug("[WishlistContext] Loading wishlist from cookie...");
     const savedWishlist = getWishlistCookie();
-    console.log("[WishlistContext] savedWishlist:", savedWishlist ? "found" : "not found");
+    console.debug("[WishlistContext] savedWishlist:", savedWishlist ? "found" : "not found");
     if (savedWishlist) {
       try {
-        console.log("[WishlistContext] Parsed wishlist:", savedWishlist);
+        console.debug("[WishlistContext] Parsed wishlist:", savedWishlist);
         // Check version for migration
         if (savedWishlist.version === 2 && Array.isArray(savedWishlist.items)) {
-          console.log("[WishlistContext] Loading", savedWishlist.items.length, "items");
+          console.debug("[WishlistContext] Loading", savedWishlist.items.length, "items");
           setWishlistIds(savedWishlist.items);
         } else {
           // Old wishlist format - clear it
-          console.log("[WishlistContext] Old wishlist format detected, clearing wishlist");
+          console.debug("[WishlistContext] Old wishlist format detected, clearing wishlist");
           clearWishlistCookie();
         }
       } catch (error) {
@@ -42,19 +42,19 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
-    console.log("[WishlistContext] Wishlist loaded, isLoaded set to true");
+    console.debug("[WishlistContext] Wishlist loaded, isLoaded set to true");
   }, []);
 
   // Save wishlist to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.log("[WishlistContext] Saving to cookie, items:", wishlistIds.length);
+      console.debug("[WishlistContext] Saving to cookie, items:", wishlistIds.length);
       setWishlistCookie({
         version: 2,
         items: wishlistIds,
         updatedAt: new Date().toISOString(),
       });
-      console.log("[WishlistContext] Saved to cookie");
+      console.debug("[WishlistContext] Saved to cookie");
     }
   }, [wishlistIds, isLoaded]);
 

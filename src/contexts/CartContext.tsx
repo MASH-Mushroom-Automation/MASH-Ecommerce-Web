@@ -41,19 +41,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from cookie on mount
   useEffect(() => {
-    console.log("[CartContext] Loading cart from cookie...");
+    console.debug("[CartContext] Loading cart from cookie...");
     const savedCart = getCartCookie();
-    console.log("[CartContext] savedCart:", savedCart ? "found" : "not found");
+    console.debug("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
-        console.log("[CartContext] Parsed cart:", savedCart);
+        console.debug("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
         if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
-          console.log("[CartContext] Loading", savedCart.items.length, "items");
+          console.debug("[CartContext] Loading", savedCart.items.length, "items");
           setItems(savedCart.items);
         } else {
           // Old cart format - clear it
-          console.log("Old cart format detected, clearing cart");
+          console.debug("Old cart format detected, clearing cart");
           clearCartCookie();
         }
       } catch (error) {
@@ -61,19 +61,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
-    console.log("[CartContext] Cart loaded, isLoaded set to true");
+    console.debug("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.log("[CartContext] Saving to cookie, items:", items.length);
+      console.debug("[CartContext] Saving to cookie, items:", items.length);
       setCartCookie({
         version: 2,
         items,
         updatedAt: new Date().toISOString(),
       });
-      console.log("[CartContext] Saved to cookie");
+      console.debug("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
@@ -172,7 +172,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-    console.log("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
+    console.debug("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
     
     // Validate stock
     if (product.stock < quantity) {

@@ -252,7 +252,7 @@ export function useAllReviews() {
     const subscription = listenSafe('*[_type == "review"]')
       .subscribe((update) => {
         if (update.type === 'mutation') {
-          console.log('🔄 [REVIEWS] Reviews updated in real-time!');
+          console.debug('🔄 [REVIEWS] Reviews updated in real-time!');
           fetchAllReviews();
         }
       });

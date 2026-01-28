@@ -367,7 +367,7 @@ export function useSanitySiteSettings() {
         }
       }`;
 
-      console.log('📦 Fetching site settings from Sanity (siteSettings)...');
+      console.debug('📦 Fetching site settings from Sanity (siteSettings)...');
       const data = await sanityClient.fetch<SanitySiteSettings | null>(query);
       
       if (data) {

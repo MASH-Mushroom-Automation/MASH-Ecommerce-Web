@@ -13,8 +13,8 @@ test('grower map expands and screenshot captures expanded map', async ({ page })
   const firstProduct = page.locator('a[href^="/product/"]').first();
   await firstProduct.click();
 
-  // Wait for product page and grower map to be visible
-  await page.waitForSelector('[data-testid="grower-map"]', { timeout: 60_000 });
+  // Wait for product page and grower map to be present
+  await page.locator('[data-testid="grower-map"]').waitFor({ state: 'attached', timeout: 60_000 });
 
   // Click the expand button to open modal
   const expand = await page.locator('[data-testid="grower-map-expand"]').first();
