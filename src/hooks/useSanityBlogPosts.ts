@@ -158,11 +158,11 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
     // Set up real-time subscription
     const query = buildQuery();
     
-    console.log('🔌 Setting up blog posts real-time subscription');
+    console.debug('🔌 Setting up blog posts real-time subscription');
     
     const subscription = listenSafe(query, {}, { includeResult: true })
       .subscribe((update) => {
-        console.log('📡 Blog posts mutation event received:', update.type);
+        console.debug('📡 Blog posts mutation event received:', update.type);
         
         if (update.type === 'mutation' && update.result) {
           const data = update.result as unknown as SanityPost | SanityPost[];
@@ -172,14 +172,14 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
           const transformedPosts = postsArray.map(transformBlogPost);
           setPosts(transformedPosts);
           
-          console.log(`🔄 Blog posts updated in real-time! Count: ${transformedPosts.length}`);
+          console.info(`🔄 Blog posts updated in real-time! Count: ${transformedPosts.length}`);
         }
       });
 
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Blog posts subscription cleaned up');
+      console.debug('🧹 Blog posts subscription cleaned up');
     };
   }, [fetchPosts, buildQuery]);
 

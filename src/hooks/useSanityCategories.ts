@@ -119,7 +119,7 @@ export function useSanityCategories(filters?: CategoryFilters) {
     fetchCategories();
 
     // Set up REAL-TIME subscription
-    console.log('🔌 Setting up categories real-time subscription');
+    console.debug('🔌 Setting up categories real-time subscription');
     
     let query = `*[_type == "category" && !(_id in path("drafts.**"))] | order(name asc)`;
     
@@ -129,12 +129,12 @@ export function useSanityCategories(filters?: CategoryFilters) {
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.log('📡 Categories mutation event received:', update.type);
+        console.debug('📡 Categories mutation event received:', update.type);
         
         if (update.type === 'mutation') {
           // Re-fetch to get fresh data with product counts
           fetchCategories();
-          console.log('🔄 Categories updated in real-time!');
+          console.info('🔄 Categories updated in real-time!');
         }
       });
 

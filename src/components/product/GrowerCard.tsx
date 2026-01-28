@@ -69,16 +69,29 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
     embedCandidate = googleMapsEmbedUrl ?? coordsEmbed ?? undefined;
   }
 
+  // Unified embed src helper for both the inline map and the expanded modal
+  const getEmbedSrc = () => {
+    if (embedCandidate) return embedCandidate;
+    if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && location) {
+      return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(location)}`;
+    }
+    return coordsEmbed ?? null;
+  };
+
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  const embedSrc = getEmbedSrc();
+
   return (
-    <div className={cn("bg-card rounded-xl p-4 border", "border-border") } data-testid="grower-card">
+    <div className={cn("bg-card rounded-xl p-5 border shadow-sm", "border-border")} data-testid="grower-card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm text-muted-foreground">Seller</div>
           <div className="flex items-center gap-2">
             {grower.image ? (
-              <img src={grower.image} alt={`Seller: ${name}`} className="w-10 h-10 rounded-full object-cover" />
+              <img src={grower.image} alt={`Seller: ${name}`} className="w-12 h-12 rounded-full object-cover" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">{name.split(' ').map(s => s[0]).slice(0,2).join('')}</div>
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">{name.split(' ').map(s => s[0]).slice(0,2).join('')}</div>
             )}
 
             <div>
@@ -102,7 +115,7 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
               href={`https://cal.com/${calcomUsername}${calcomUsername && grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
             >
               {calcomButtonText || 'Schedule with Grower'}
             </a>
@@ -117,20 +130,20 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
               window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
             }}
             data-testid="contact-chat-btn"
-            className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
           >
             Quick Chat
           </button>
 
           <div className="mt-2 w-full">
             {location ? (
-              // Prefer full embed URL if provided (does not need API key)
-              embedCandidate ? (
-                <div role="region" aria-label={`Seller location`} className="w-full h-40 rounded overflow-hidden border">
+              // Use unified embed source and render a larger responsive map with expand CTA
+              embedSrc ? (
+                <div role="region" aria-label={`Seller location`} className="w-full h-56 md:h-72 rounded overflow-hidden border relative">
                   <iframe
                     data-testid={renderTestIds ? "grower-map" : undefined}
                     title="Seller location"
-                    src={embedCandidate}
+                    src={embedSrc}
                     className="w-full h-full border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
@@ -138,20 +151,14 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
                     onError={() => setMapError(true)}
                     aria-hidden={false}
                   />
-                </div>
-              ) : process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-                <div role="region" aria-label={`Seller location: ${location}`} className="w-full h-40 rounded overflow-hidden border">
-                  <iframe
-                    data-testid={renderTestIds ? "grower-map" : undefined}
-                    title="Seller location"
-                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(location)}`}
-                    className="w-full h-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    onLoad={() => setMapLoaded(true)}
-                    onError={() => setMapError(true)}
-                    aria-hidden={false}
-                  />
+
+                  <button
+                    data-testid="grower-map-expand"
+                    onClick={() => setShowMapModal(true)}
+                    className="absolute right-2 bottom-2 inline-flex items-center gap-2 bg-white/90 px-3 py-1 rounded-md text-sm shadow-sm hover:opacity-95"
+                  >
+                    View larger map
+                  </button>
                 </div>
               ) : (
                 <div>
@@ -232,6 +239,23 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
           </div>
         </div>
       </div>
+
+      {/* Expanded map modal */}
+      {showMapModal && embedSrc && (
+        <div data-testid="grower-map-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-lg w-[90%] md:w-[70%] h-[80%] overflow-hidden relative">
+            <button aria-label="Close map" onClick={() => setShowMapModal(false)} className="absolute top-3 right-3 z-10 px-3 py-1 bg-white rounded">×</button>
+            <iframe
+              data-testid="grower-map-large"
+              title="Seller location large"
+              src={embedSrc}
+              className="w-full h-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

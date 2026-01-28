@@ -300,7 +300,7 @@ export function useSanityGrowers(filters?: GrowerFilters) {
     fetchGrowers();
 
     // Set up REAL-TIME subscription
-    console.log('🔌 Setting up growers real-time subscription');
+    console.debug('🔌 Setting up growers real-time subscription');
     
     let query = `*[_type == "grower" && !(_id in path("drafts.**"))`;
     

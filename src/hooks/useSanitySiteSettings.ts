@@ -441,25 +441,25 @@ export function useSanitySiteSettings() {
     fetchSettings();
 
     // Set up REAL-TIME subscription for site settings
-    console.log('🔌 Setting up site settings real-time subscription');
+    console.debug('🔌 Setting up site settings real-time subscription');
     
     // Listen to both siteSettings and legacy settings
     const query = `*[_type in ["siteSettings", "settings"]][0]`;
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.log('📡 Site settings mutation event received:', update.type);
+        console.debug('📡 Site settings mutation event received:', update.type);
         
         if (update.type === 'mutation') {
           // Re-fetch to get fresh data with image URLs
           fetchSettings();
-          console.log('🔄 Site settings updated in real-time!');
+          console.info('🔄 Site settings updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Site settings subscription cleaned up');
+      console.debug('🧹 Site settings subscription cleaned up');
     };
   }, [fetchSettings]);
 

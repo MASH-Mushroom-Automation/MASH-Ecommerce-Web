@@ -277,4 +277,37 @@ describe('GrowerCard', () => {
 
     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = originalKey;
   });
+
+  test('expands map in a modal when clicking the view larger map button', async () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'fake-key';
+
+    const grower = {
+      name: 'Modal Farm',
+      rating: 4.5,
+      location: 'Modal Place',
+      contactEmail: 'modal@farm.com',
+    } as any;
+
+    render(<GrowerCard grower={grower} productName="Test Product" />);
+
+    const expandBtn = await screen.findByTestId('grower-map-expand');
+    expect(expandBtn).toBeInTheDocument();
+
+    // Click to open modal
+    fireEvent.click(expandBtn);
+
+    const modal = await screen.findByTestId('grower-map-modal');
+    expect(modal).toBeInTheDocument();
+
+    const smallIframe = screen.getByTestId('grower-map') as HTMLIFrameElement;
+    const largeIframe = screen.getByTestId('grower-map-large') as HTMLIFrameElement;
+
+    expect(largeIframe.getAttribute('src')).toBe(smallIframe.getAttribute('src'));
+
+    // Close modal
+    const closeBtn = modal.querySelector('button[aria-label="Close map"]') as HTMLButtonElement;
+    fireEvent.click(closeBtn);
+
+    expect(screen.queryByTestId('grower-map-modal')).toBeNull();
+  });
 });
