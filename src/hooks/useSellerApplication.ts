@@ -10,11 +10,13 @@ import { uploadToCloudinary } from "@/lib/cloudinary";
 // Types for seller verification status
 export interface SellerVerificationStatus {
   hasApplication: boolean;
-  status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "FAILED" | null;
   applicationId?: string;
   submittedAt?: string;
   reviewedAt?: string;
   rejectionReason?: string;
+  adminNotes?: string;
+  rejectedAt?: string;
   businessInfo?: {
     businessName: string;
     businessType: string;
@@ -213,5 +215,54 @@ export function useSellerVerificationStatus(
     enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,
+  });
+}
+
+// API function to resubmit seller verification documents
+async function resubmitDocuments(
+  payload: ResubmitDocumentsPayload,
+): Promise<ResubmitDocumentsResponse> {
+  const response = await fetch("/api/seller/resubmit-documents", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.error?.message || data.message || "Failed to resubmit documents",
+    );
+  }
+
+  return data;
+}
+
+/**
+ * TanStack Query mutation hook for resubmitting documents
+ *
+ * @example
+ * const { mutateAsync, isPending } = useResubmitDocumentsMutation();
+ *
+ * const handleResubmit = async (documents) => {
+ *   await mutateAsync(documents);
+ * };
+ */
+export function useResubmitDocumentsMutation(): UseMutationResult<
+  ResubmitDocumentsResponse,
+  Error,
+  ResubmitDocumentsPayload
+> {
+  return useMutation<
+    ResubmitDocumentsResponse,
+    Error,
+    ResubmitDocumentsPayload
+  >({
+    mutationKey: ["resubmit-documents"],
+    mutationFn: resubmitDocuments,
   });
 }

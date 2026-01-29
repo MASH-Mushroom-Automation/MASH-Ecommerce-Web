@@ -8,6 +8,7 @@ import { HeroSection } from "./components/HeroSection";
 import { ApplicationForm } from "./components/ApplicationForm";
 import { SuccessModal } from "./components/SuccessModal";
 import { PendingApplicationModal } from "./components/PendingApplicationModal";
+import { FailedApplicationModal } from "./components/FailedApplicationModal";
 import { useSellerApplicationForm } from "./hooks/useSellerApplicationForm";
 import { Loader2 } from "lucide-react";
 
@@ -27,6 +28,8 @@ export default function StartSellingPage() {
     verificationStatus,
     isCheckingStatus,
     hasPendingApplication,
+    hasFailedApplication,
+    startResubmission,
     goToForm,
     goToHero,
   } = useSellerApplicationForm();
@@ -69,6 +72,17 @@ export default function StartSellingPage() {
       <PendingApplicationModal
         onClose={() => router.push("/")}
         verificationStatus={verificationStatus}
+      />
+    );
+  }
+
+  // Show failed application modal if application was rejected/failed
+  if (hasFailedApplication) {
+    return (
+      <FailedApplicationModal
+        onClose={() => router.push("/")}
+        verificationStatus={verificationStatus}
+        onStartResubmission={startResubmission}
       />
     );
   }

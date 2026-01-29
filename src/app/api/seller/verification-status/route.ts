@@ -91,6 +91,8 @@ export async function GET(request: NextRequest) {
         submittedAt: applicationData.submittedAt || applicationData.createdAt,
         reviewedAt: applicationData.processedAt || applicationData.reviewedAt,
         rejectionReason: applicationData.rejectionReason,
+        adminNotes: applicationData.adminNotes,
+        rejectedAt: applicationData.rejectedAt,
         businessInfo: applicationData.businessInfo,
         progressPercentage: applicationData.progressPercentage,
         nextSteps: applicationData.nextSteps,

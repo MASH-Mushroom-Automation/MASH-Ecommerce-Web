@@ -20,9 +20,20 @@ const mapBusinessType = (type: string): string => {
   return mapping[type] || type;
 };
 
+// Reverse map business type from API format to form format
+const reverseMapBusinessType = (type: string): "individual" | "company" => {
+  const mapping: Record<string, "individual" | "company"> = {
+    "Sole Proprietor": "individual",
+    Corporation: "company",
+  };
+  return mapping[type] || "individual"; // Default to individual if mapping not found
+};
+
 export function useSellerApplicationForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(0); // 0 = hero, 1 = form
+  const [showFailedApplicationModal, setShowFailedApplicationModal] =
+    useState(true);
 
   // TanStack Query - Check verification status first
   const verificationStatusQuery = useSellerVerificationStatus();
@@ -115,6 +126,28 @@ export function useSellerApplicationForm() {
   const hasPendingApplication =
     verificationStatus?.hasApplication &&
     verificationStatus?.status === "PENDING";
+  const hasFailedApplication =
+    verificationStatus?.hasApplication &&
+    (verificationStatus?.status === "FAILED" ||
+      verificationStatus?.status === "REJECTED");
+  const startResubmission = () => {
+    if (verificationStatus?.businessInfo) {
+      form.reset({
+        ...form.getValues(), // Keep existing values for fields not being reset
+        businessName: verificationStatus.businessInfo.businessName,
+        businessType: reverseMapBusinessType(
+          verificationStatus.businessInfo.businessType,
+        ),
+        city: verificationStatus.businessInfo.city,
+        region: verificationStatus.businessInfo.region,
+        // TODO: Pre-fill more fields once the API returns them
+        // For now, other fields will retain their default or last-entered values
+      });
+    }
+
+    setShowFailedApplicationModal(false);
+    setCurrentStep(1);
+  };
 
   // Navigation handlers
   const goToForm = () => setCurrentStep(1);
@@ -135,6 +168,10 @@ export function useSellerApplicationForm() {
     verificationStatus,
     isCheckingStatus,
     hasPendingApplication,
+    hasFailedApplication: hasFailedApplication && showFailedApplicationModal,
+
+    // Resubmission
+    startResubmission,
 
     // Navigation
     goToForm,
