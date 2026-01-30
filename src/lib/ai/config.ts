@@ -25,11 +25,11 @@ export const MAX_MESSAGES_PER_MINUTE = parseInt(
 export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta';
 export const HF_API_ENDPOINT = 'https://router.huggingface.co/models';
 
-// Model Configuration - Using Gemini 2.0 Flash (Latest stable - Jan 2026)
+// Model Configuration - Configurable via environment variables
 // See: https://ai.google.dev/gemini-api/docs/models/gemini
 // Available models: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash, gemini-2.0-flash-exp
-export const GEMINI_MODEL = 'gemini-2.0-flash';
-export const HF_FALLBACK_MODEL = 'mistralai/Mixtral-8x7B-Instruct-v0.1';
+export const GEMINI_MODEL = process.env.NEXT_PUBLIC_GEMINI_MODEL || 'gemini-2.0-flash';
+export const HF_FALLBACK_MODEL = process.env.NEXT_PUBLIC_HF_FALLBACK_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1';
 
 // Request Timeouts (milliseconds)
 export const GEMINI_TIMEOUT = 30000; // 30 seconds

@@ -20,6 +20,35 @@ if (typeof Request === 'undefined') {
   global.Headers = class Headers {};
 }
 
+// Mock Firebase Auth to prevent initialization errors in tests
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  GoogleAuthProvider: jest.fn(() => ({})),
+  signInWithPopup: jest.fn(() => Promise.resolve({})),
+  signOut: jest.fn(() => Promise.resolve()),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    callback(null); // No user by default
+    return jest.fn(); // Return unsubscribe function
+  }),
+  setPersistence: jest.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
+  createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  sendEmailVerification: jest.fn(() => Promise.resolve()),
+  sendSignInLinkToEmail: jest.fn(() => Promise.resolve()),
+  isSignInWithEmailLink: jest.fn(() => false),
+  signInWithEmailLink: jest.fn(() => Promise.resolve({ user: {} })),
+  sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
+  updateProfile: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock Firebase App
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(() => ({})),
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(() => ({})),
+}));
+
 // Mock Firebase/Firestore for analytics
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => ({})),
