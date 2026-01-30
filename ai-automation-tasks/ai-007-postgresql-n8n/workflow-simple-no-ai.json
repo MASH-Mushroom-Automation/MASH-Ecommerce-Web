@@ -1,0 +1,295 @@
+{
+  "name": "MASH Appointments - Simple (No AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "mash-appointments",
+        "options": {},
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-node-001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "mash-appointments"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "find_sellers",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "find_sellers"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "get_availability",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_availability"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "set_appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "set_appointment"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-router-001",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Find sellers matching product type\nSELECT \n  g.user_uid,\n  g.name,\n  g.email,\n  g.phone,\n  g.specialty,\n  g.location,\n  g.capacity_kg,\n  g.rating,\n  COUNT(DISTINCT a.id) as available_slots_count\nFROM growers g\nLEFT JOIN availability_slots a \n  ON g.user_uid = a.seller_uid \n  AND a.is_available = TRUE\n  AND a.available_date >= CURRENT_DATE\nWHERE g.role = 'SELLER'\n  AND g.specialty ILIKE '%{{ $json.body.productType }}%'\nGROUP BY g.user_uid, g.name, g.email, g.phone, g.specialty, g.location, g.capacity_kg, g.rating\nHAVING COUNT(DISTINCT a.id) > 0\nORDER BY g.rating DESC, g.capacity_kg DESC\nLIMIT 3;",
+        "additionalFields": {}
+      },
+      "id": "postgres-find-sellers",
+      "name": "Find Sellers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [400, 200],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get available slots for each seller\nSELECT \n  a.id as slot_id,\n  a.seller_uid,\n  a.available_date,\n  a.start_time,\n  a.end_time,\n  a.duration_minutes,\n  a.is_available\nFROM availability_slots a\nWHERE a.seller_uid IN (\n  SELECT g.user_uid \n  FROM growers g\n  WHERE g.role = 'SELLER'\n    AND g.specialty ILIKE '%{{ $json.body.productType }}%'\n  LIMIT 3\n)\nAND a.is_available = TRUE\nAND a.available_date >= CURRENT_DATE\nORDER BY a.seller_uid, a.available_date ASC, a.start_time ASC;",
+        "additionalFields": {}
+      },
+      "id": "postgres-get-slots",
+      "name": "Get Available Slots",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [600, 200],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format sellers with their available slots\nconst sellers = $input.first().json;\nconst slots = $input.last().json;\n\n// Group slots by seller_uid\nconst slotsBySeller = {};\nfor (const slot of slots) {\n  if (!slotsBySeller[slot.seller_uid]) {\n    slotsBySeller[slot.seller_uid] = [];\n  }\n  slotsBySeller[slot.seller_uid].push({\n    date: slot.available_date,\n    time: slot.start_time,\n    available: slot.is_available,\n    slotId: slot.slot_id\n  });\n}\n\n// Format response\nconst formattedSellers = sellers.map(seller => ({\n  id: seller.user_uid,\n  uid: seller.user_uid,\n  name: seller.name,\n  email: seller.email,\n  phone: seller.phone,\n  specialty: seller.specialty.split(',').map(s => s.trim()),\n  location: {\n    address: seller.location,\n    city: seller.location.split(',')[0].trim()\n  },\n  rating: seller.rating || 5.0,\n  capacity: seller.capacity_kg || 100,\n  availableSlots: slotsBySeller[seller.user_uid] || []\n}));\n\nreturn { \n  json: {\n    success: true,\n    sellers: formattedSellers,\n    total: formattedSellers.length\n  }\n};"
+      },
+      "id": "code-format-sellers",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-find-sellers",
+      "name": "Respond Find Sellers",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get availability for specific seller\nSELECT \n  a.id as slot_id,\n  a.seller_uid,\n  a.available_date,\n  a.start_time,\n  a.end_time,\n  a.duration_minutes,\n  a.is_available,\n  g.name as seller_name\nFROM availability_slots a\nJOIN growers g ON a.seller_uid = g.user_uid\nWHERE a.seller_uid = '{{ $json.body.sellerId }}'\n  AND a.is_available = TRUE\n  AND a.available_date >= CURRENT_DATE\nORDER BY a.available_date ASC, a.start_time ASC\nLIMIT 50;",
+        "additionalFields": {}
+      },
+      "id": "postgres-get-availability",
+      "name": "Get Availability",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [400, 300],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-get-availability",
+      "name": "Respond Get Availability",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Check slot availability\nSELECT id, seller_uid, is_available \nFROM availability_slots \nWHERE id = '{{ $json.body.slotId }}'::UUID\nAND is_available = TRUE;",
+        "additionalFields": {}
+      },
+      "id": "postgres-check-slot",
+      "name": "Check Slot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [400, 400],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create appointment\nINSERT INTO appointments (\n  buyer_uid, buyer_name, buyer_email, buyer_phone,\n  seller_uid, seller_name,\n  product_type, quantity_kg,\n  scheduled_time, location, status, meeting_type, notes\n) VALUES (\n  '{{ $json.body.buyerUid }}',\n  '{{ $json.body.buyerName }}',\n  '{{ $json.body.buyerEmail }}',\n  '{{ $json.body.buyerPhone }}',\n  '{{ $json.body.sellerUid }}',\n  '{{ $json.body.sellerName }}',\n  '{{ $json.body.productType }}',\n  {{ $json.body.quantity }},\n  '{{ $json.body.scheduledTime }}'::TIMESTAMP,\n  '{{ $json.body.location }}',\n  'pending',\n  '{{ $json.body.meetingType || \"consultation\" }}',\n  '{{ $json.body.notes || \"\" }}'\n)\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-create-appointment",
+      "name": "Create Appointment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [600, 400],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Mark slot as booked\nUPDATE availability_slots \nSET \n  is_available = FALSE,\n  booked_by = '{{ $json.body.buyerUid }}',\n  appointment_id = '{{ $('Create Appointment').item.json.id }}'::UUID,\n  updated_at = CURRENT_TIMESTAMP\nWHERE id = '{{ $json.body.slotId }}'::UUID\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "postgres-mark-booked",
+      "name": "Mark Slot Booked",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [800, 400],
+      "credentials": {
+        "postgres": {
+          "id": "CREDENTIAL_ID_PLACEHOLDER",
+          "name": "Neon PostgreSQL - MASH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-set-appointment",
+      "name": "Respond Appointment Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [1000, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Action Router", "type": "main", "index": 0}]]
+    },
+    "Action Router": {
+      "main": [
+        [{"node": "Find Sellers", "type": "main", "index": 0}],
+        [{"node": "Get Availability", "type": "main", "index": 0}],
+        [{"node": "Check Slot", "type": "main", "index": 0}]
+      ]
+    },
+    "Find Sellers": {
+      "main": [[{"node": "Get Available Slots", "type": "main", "index": 0}]]
+    },
+    "Get Available Slots": {
+      "main": [[{"node": "Format Response", "type": "main", "index": 0}]]
+    },
+    "Format Response": {
+      "main": [[{"node": "Respond Find Sellers", "type": "main", "index": 0}]]
+    },
+    "Get Availability": {
+      "main": [[{"node": "Respond Get Availability", "type": "main", "index": 0}]]
+    },
+    "Check Slot": {
+      "main": [[{"node": "Create Appointment", "type": "main", "index": 0}]]
+    },
+    "Create Appointment": {
+      "main": [[{"node": "Mark Slot Booked", "type": "main", "index": 0}]]
+    },
+    "Mark Slot Booked": {
+      "main": [[{"node": "Respond Appointment Created", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "mash-simple-appointments"
+  },
+  "id": "mash-appointments-simple",
+  "tags": []
+}
