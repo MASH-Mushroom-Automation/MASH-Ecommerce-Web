@@ -1,69 +1,8 @@
 // Early mocks - run before modules are loaded
-// Mock WishlistContext so tests importing providers don't import the real module
-jest.mock('@/contexts/WishlistContext', () => ({
-  __esModule: true,
-  useWishlist: jest.fn(() => ({
-    items: [],
-    isInWishlist: jest.fn(() => false),
-    addToWishlist: jest.fn(),
-    removeFromWishlist: jest.fn(),
-    clearWishlist: jest.fn(),
-    moveToCart: jest.fn(),
-  })),
-  WishlistProvider: ({ children }) => children,
-}));
 
-// Mock CartContext early too
-jest.mock('@/contexts/CartContext', () => ({
-  __esModule: true,
-  useCart: jest.fn(() => ({
-    items: [],
-    itemCount: 0,
-    addItem: jest.fn(() => Promise.resolve()),
-    addToCart: jest.fn(),
-    removeFromCart: jest.fn(),
-    updateQuantity: jest.fn(),
-    clearCart: jest.fn(),
-    getItemQuantity: jest.fn(() => 0),
-  })),
-  CartProvider: ({ children }) => children,
-}));
 
-// Also mock the resolved filesystem paths (useful if moduleNameMapper isn't applied yet)
-try {
-  const wishlistPath = require.resolve('./src/contexts/WishlistContext');
-  const cartPath = require.resolve('./src/contexts/CartContext');
-  jest.mock(wishlistPath, () => ({
-    __esModule: true,
-    useWishlist: jest.fn(() => ({
-      items: [],
-      isInWishlist: jest.fn(() => false),
-      addToWishlist: jest.fn(),
-      removeFromWishlist: jest.fn(),
-      clearWishlist: jest.fn(),
-      moveToCart: jest.fn(),
-    })),
-    WishlistProvider: ({ children }) => children,
-  }));
 
-  jest.mock(cartPath, () => ({
-    __esModule: true,
-    useCart: jest.fn(() => ({
-      items: [],
-      itemCount: 0,
-      addItem: jest.fn(() => Promise.resolve()),
-      addToCart: jest.fn(),
-      removeFromCart: jest.fn(),
-      updateQuantity: jest.fn(),
-      clearCart: jest.fn(),
-      getItemQuantity: jest.fn(() => 0),
-    })),
-    CartProvider: ({ children }) => children,
-  }));
-} catch (e) {
-  // eslint-disable-next-line no-console
-  console.warn('[jest.setupMocks] could not require.resolve provider paths', e.message);
-}
+
 
 // Mock RequestCookies to be resilient to plain header objects (NextRequest in tests)
 try {
@@ -87,26 +26,41 @@ try {
   console.warn('[jest.setupMocks] failed to mock RequestCookies', e.message);
 }
 
-// Mock Gemini service used by chatbot tests
-try {
-  jest.mock('@/services/chatbot/gemini-service', () => ({
-    sendMessage: jest.fn(),
-    validateMessage: jest.fn(() => ({ valid: true })),
-    getIntroMessage: jest.fn(() => ({ content: 'Hello' })),
-  }));
-} catch (e) {
-  // eslint-disable-next-line no-console
-  console.warn('[jest.setupMocks] failed to mock gemini-service', e.message);
-}
 
-// Mock RAG service used by product search tests
+
+// Use the real RAG service implementation but mock its dependencies (sanity / search / context builder / gemini client)
 try {
-  jest.mock('@/lib/ai/rag-service', () => ({
-    ragSearch: jest.fn(() => []),
+  // Ensure the rag-service isn't mocked so we can exercise its logic
+  try { jest.unmock('@/lib/ai/rag-service'); } catch (e) {}
+
+  // Mock Sanity data source to return deterministic products
+  jest.mock('@/lib/ai/sanity-rag', () => ({
+    getAllRAGData: jest.fn(async () => ({
+      products: [
+        {
+          _id: 'prod-1',
+          name: 'King Oyster Mushroom',
+          slug: 'king-oyster-mushroom',
+          description: 'Delicious king oyster mushrooms',
+          price: 120,
+          image: 'https://example.com/king.jpg',
+          category: 'Oyster',
+          inStock: true,
+          grower: { name: 'Farm A', id: 'grower-1' },
+          tags: ['oyster'],
+          benefits: ['tasty'],
+        },
+      ],
+      categories: [],
+      recipes: [],
+      growers: [],
+    })),
   }));
+
+
 } catch (e) {
   // eslint-disable-next-line no-console
-  console.warn('[jest.setupMocks] failed to mock rag-service', e.message);
+  console.warn('[jest.setupMocks] failed to set up RAG dependencies', e.message);
 }
 
 // Sanity check that mocks are present

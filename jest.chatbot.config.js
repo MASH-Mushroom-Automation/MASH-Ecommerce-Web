@@ -19,7 +19,9 @@ require('dotenv').config({ path: '.env.test' });
 module.exports = {
   displayName: 'AI Chatbot System',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  // Run chatbot-specific early mocks before modules load
+  setupFiles: ['<rootDir>/jest.chatbot.setupMocks.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],'}
   testMatch: [
     // Phase 1: Foundation
     '**/lib/ai/__tests__/config.test.ts',

@@ -170,34 +170,7 @@ jest.mock('next-sanity', () => ({
   createImageUrlBuilder: () => ({ url: () => '' }),
 }));
 
-// Mock WishlistContext to fix component test failures
-jest.mock('@/contexts/WishlistContext', () => ({
-  __esModule: true,
-  useWishlist: jest.fn(() => ({
-    items: [],
-    isInWishlist: jest.fn(() => false),
-    addToWishlist: jest.fn(),
-    removeFromWishlist: jest.fn(),
-    clearWishlist: jest.fn(),
-    moveToCart: jest.fn(),
-  })),
-  WishlistProvider: ({ children }) => children,
-}));
 
-// Mock CartContext to fix component test failures
-jest.mock('@/contexts/CartContext', () => ({
-  useCart: jest.fn(() => ({
-    items: [],
-    itemCount: 0,
-    addItem: jest.fn(() => Promise.resolve()),  // Correct function name
-    addToCart: jest.fn(),
-    removeFromCart: jest.fn(),
-    updateQuantity: jest.fn(),
-    clearCart: jest.fn(),
-    getItemQuantity: jest.fn(() => 0),
-  })),
-  CartProvider: ({ children }) => children,
-}));
 
 // Simple runtime check that the analytics mock is available
 try {
