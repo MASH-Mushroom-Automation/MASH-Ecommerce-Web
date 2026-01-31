@@ -366,6 +366,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         console.log("[Auth] Request body:", requestBody);
+
+        // If no backend URL configured, skip backend sync quietly (useful in local/dev)
+        if (!process.env.NEXT_PUBLIC_API_URL) {
+          console.info(
+            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured"
+          );
+          return null;
+        }
+
         console.log(
           "[Auth] Sending to:",
           `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`
@@ -373,26 +382,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Call backend API with Firebase ID token in request body
         // Backend will verify this token with Firebase Admin SDK
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Important for receiving HTTP-only cookies
-            body: JSON.stringify(requestBody),
-          }
-        );
+        let response: Response | undefined;
+        try {
+          response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include", // Important for receiving HTTP-only cookies
+              body: JSON.stringify(requestBody),
+            }
+          );
+        } catch (err: any) {
+          // Likely a network/CORS error — handle gracefully and provide guidance
+          console.warn(
+            "[Auth] Network error syncing to backend. Backend may be unreachable; continuing with Firebase-only auth. Error:",
+            err?.message || err
+          );
+          // Don't block login: allow Firebase-only auth to continue
+          return null;
+        }
 
         console.log("[Auth] Backend response status:", response.status);
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
           console.error("[Auth] Backend Firebase sync failed:", data);
-          throw new Error(data.message || "Failed to sync user to backend");
+          // Don't throw here - avoid surfacing uncaught exceptions in UI. Return null to indicate no backend sync.
+          return null;
         }
 
         console.log("[Auth] Backend Firebase sync successful:", {
@@ -857,7 +878,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       setLoading(false);
       console.error("❌ [Auth] Sign-in error:", error);
-      toast.error("Failed to start sign-in. Please try again.");
+      const errorMessage = getFirebaseErrorMessage(error);
+      toast.error("Sign-in failed", { description: errorMessage });
+      // Re-throw to allow calling components to reset their loading states
+      throw error;
     }
   };
 

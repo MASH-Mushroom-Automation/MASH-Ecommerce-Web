@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 import type { SanityPost } from '@/types/sanity';
 
 /**
@@ -158,12 +158,11 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
     // Set up real-time subscription
     const query = buildQuery();
     
-    console.log('🔌 Setting up blog posts real-time subscription');
+    console.debug('🔌 Setting up blog posts real-time subscription');
     
-    const subscription = sanityClient
-      .listen(query, {}, { includeResult: true })
+    const subscription = listenSafe(query, {}, { includeResult: true })
       .subscribe((update) => {
-        console.log('📡 Blog posts mutation event received:', update.type);
+        console.debug('📡 Blog posts mutation event received:', update.type);
         
         if (update.type === 'mutation' && update.result) {
           const data = update.result as unknown as SanityPost | SanityPost[];
@@ -173,14 +172,14 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
           const transformedPosts = postsArray.map(transformBlogPost);
           setPosts(transformedPosts);
           
-          console.log(`🔄 Blog posts updated in real-time! Count: ${transformedPosts.length}`);
+          console.info(`🔄 Blog posts updated in real-time! Count: ${transformedPosts.length}`);
         }
       });
 
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Blog posts subscription cleaned up');
+      console.debug('🧹 Blog posts subscription cleaned up');
     };
   }, [fetchPosts, buildQuery]);
 
@@ -267,8 +266,7 @@ export function useSanityBlogPost(slug: string) {
     
     console.log(`🔌 Setting up real-time subscription for blog post: ${slug}`);
     
-    const subscription = sanityClient
-      .listen(query, { slug }, { includeResult: true })
+    const subscription = listenSafe(query, { slug }, { includeResult: true })
       .subscribe((update) => {
         console.log(`📡 Blog post "${slug}" mutation event:`, update.type);
         
@@ -358,10 +356,9 @@ export function useSanityFeaturedBlogPosts(limit: number = 3) {
     const featuredQuery = `*[_type == "post" && !(_id in path("drafts.**")) && publishedAt < now()] 
       | order(publishedAt desc) [0...${limit}]`;
     
-    console.log('🔌 Setting up featured blog posts real-time subscription');
+    console.debug('🔌 Setting up featured blog posts real-time subscription');
     
-    const subscription = sanityClient
-      .listen(featuredQuery, {}, { includeResult: true })
+    const subscription = listenSafe(featuredQuery, {}, { includeResult: true })
       .subscribe((update) => {
         console.log('📡 Featured blog posts mutation event:', update.type);
         

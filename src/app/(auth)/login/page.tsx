@@ -35,6 +35,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth";
+import { getPasswordRequirements } from '@/lib/auth/password';
 import { toast } from "sonner";
 
 // Password requirements are not needed for login

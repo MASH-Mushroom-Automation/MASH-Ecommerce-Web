@@ -124,3 +124,29 @@ export function getImageUrl(
 export function isSanityConfigured(): boolean {
   return !!(projectId && dataset && projectId !== "your-projectID");
 }
+
+/**
+ * Safe listen wrapper for real-time subscriptions.
+ * By default this is disabled to avoid noisy console output when
+ * the Sanity project does not support listen (free projects / CORS issues).
+ *
+ * Enable by setting NEXT_PUBLIC_ENABLE_SANITY_LISTEN=true in your env.
+ */
+export function listenSafe(query: string, params?: Record<string, any>, options?: any) {
+  const enabled = process.env.NEXT_PUBLIC_ENABLE_SANITY_LISTEN === 'true';
+  if (!enabled) {
+    // return a no-op subscription object matching Sanity's API
+    return {
+      subscribe: (observerOrCb: any) => ({ unsubscribe: () => {} }),
+    } as any;
+  }
+
+  try {
+    return sanityClient.listen(query, params || {}, options || {});
+  } catch (err) {
+    console.warn('[sanity] listen() failed, real-time subscriptions are disabled for this query', err?.message || err);
+    return {
+      subscribe: (observerOrCb: any) => ({ unsubscribe: () => {} }),
+    } as any;
+  }
+}

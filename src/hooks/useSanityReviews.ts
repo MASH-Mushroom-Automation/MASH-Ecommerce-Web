@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 export interface Review {
   id: string;
@@ -68,7 +68,7 @@ export function useSanityReviews(
 
   const fetchReviews = useCallback(async () => {
     try {
-      console.log('⭐ [REVIEWS] Fetching reviews for product:', productId);
+      console.debug('⭐ [REVIEWS] Fetching reviews for product:', productId);
       
       const statusFilter = includeAll ? '' : `&& status == "approved"`;
       
@@ -144,7 +144,7 @@ export function useSanityReviews(
       setLoading(false);
       setError(null);
 
-      console.log('📊 [REVIEWS] Reviews loaded:', {
+      console.info('📊 [REVIEWS] Reviews loaded:', {
         count: transformedReviews.length,
         avgRating: avgRating.toFixed(1),
         verified: verifiedCount,
@@ -162,19 +162,18 @@ export function useSanityReviews(
     fetchReviews();
 
     // 🔄 Real-time subscription for review updates
-    console.log('🧹 [REVIEWS] Setting up real-time subscription...');
+    console.debug('🧹 [REVIEWS] Setting up real-time subscription...');
     
-    const subscription = sanityClient
-      .listen(`*[_type == "review" && product._ref == "${productId}"]`)
+    const subscription = listenSafe(`*[_type == "review" && product._ref == "${productId}"]`)
       .subscribe((update) => {
         if (update.type === 'mutation') {
-          console.log('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
+          console.debug('🔄 [REVIEWS] Review updated in real-time! Refreshing...');
           fetchReviews();
         }
       });
 
     return () => {
-      console.log('🧹 [REVIEWS] Cleaning up subscription');
+      console.debug('🧹 [REVIEWS] Cleaning up subscription');
       subscription.unsubscribe();
     };
   }, [fetchReviews, productId]);
@@ -197,7 +196,7 @@ export function useAllReviews() {
 
   const fetchAllReviews = useCallback(async () => {
     try {
-      console.log('⭐ [REVIEWS] Fetching all reviews...');
+      console.debug('⭐ [REVIEWS] Fetching all reviews...');
       
       const query = `*[_type == "review"] | order(reviewDate desc) {
         _id,
@@ -237,7 +236,7 @@ export function useAllReviews() {
       setLoading(false);
       setError(null);
 
-      console.log('📊 [REVIEWS] All reviews loaded:', transformedReviews.length);
+      console.info('📊 [REVIEWS] All reviews loaded:', transformedReviews.length);
 
     } catch (err) {
       console.error('❌ [REVIEWS] Error fetching all reviews:', err);
@@ -250,11 +249,10 @@ export function useAllReviews() {
     fetchAllReviews();
 
     // Real-time subscription for all reviews
-    const subscription = sanityClient
-      .listen('*[_type == "review"]')
+    const subscription = listenSafe('*[_type == "review"]')
       .subscribe((update) => {
         if (update.type === 'mutation') {
-          console.log('🔄 [REVIEWS] Reviews updated in real-time!');
+          console.debug('🔄 [REVIEWS] Reviews updated in real-time!');
           fetchAllReviews();
         }
       });

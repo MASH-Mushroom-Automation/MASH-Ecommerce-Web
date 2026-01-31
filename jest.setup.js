@@ -12,6 +12,17 @@ if (typeof TextEncoder === 'undefined') {
   global.TextDecoder = util.TextDecoder;
 }
 
+// Polyfill TransformStream for environments (Playwright, Node < 20) that expect web streams
+if (typeof TransformStream === 'undefined') {
+  try {
+    // Node 16+/20+ exposes web streams in 'stream/web'
+    global.TransformStream = require('stream/web').TransformStream;
+    console.log('[jest.setup] Polyfilled TransformStream from stream/web');
+  } catch (err) {
+    // Ignore - some environments may not expose stream/web
+  }
+}
+
 // Mock Next.js Request/Response for API route tests
 if (typeof Request === 'undefined') {
   global.Request = class Request {};

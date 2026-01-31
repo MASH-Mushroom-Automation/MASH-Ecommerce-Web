@@ -256,6 +256,18 @@ describe('TF-IDF Search Engine', () => {
       const results = findProductsByCategory('Oyster', mockProducts, 1);
       expect(results.length).toBe(1);
     });
+
+    it('should not throw when some products lack category and still return matches', () => {
+      const productsWithMissing = [
+        ...mockProducts,
+        { _id: 'x', name: 'No Category', category: null as any },
+        { _id: 'y', name: 'Missing Category' },
+      ] as any;
+
+      expect(() => findProductsByCategory('oyster', productsWithMissing)).not.toThrow();
+      const results = findProductsByCategory('oyster', productsWithMissing);
+      expect(results.length).toBeGreaterThan(0);
+    });
   });
 
   describe('findProductsByGrower', () => {

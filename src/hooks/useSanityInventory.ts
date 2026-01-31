@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 
 export interface InventoryStatus {
   productId: string;
@@ -101,8 +101,7 @@ export function useSanityInventory(): UseSanityInventoryReturn {
     // 🔄 Real-time subscription for inventory updates
     console.log('🧹 [INVENTORY] Setting up real-time subscription...');
     
-    const subscription = sanityClient
-      .listen('*[_type == "product"]')
+    const subscription = listenSafe('*[_type == "product"]')
       .subscribe((update) => {
         if (update.type === 'mutation') {
           console.log('🔄 [INVENTORY] Product updated in real-time! Refreshing inventory...');

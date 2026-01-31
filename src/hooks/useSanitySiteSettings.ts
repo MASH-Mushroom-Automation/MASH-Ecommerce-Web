@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 /**
  * Sanity Site Settings Interface
@@ -367,7 +367,7 @@ export function useSanitySiteSettings() {
         }
       }`;
 
-      console.log('📦 Fetching site settings from Sanity (siteSettings)...');
+      console.debug('📦 Fetching site settings from Sanity (siteSettings)...');
       const data = await sanityClient.fetch<SanitySiteSettings | null>(query);
       
       if (data) {
@@ -441,26 +441,25 @@ export function useSanitySiteSettings() {
     fetchSettings();
 
     // Set up REAL-TIME subscription for site settings
-    console.log('🔌 Setting up site settings real-time subscription');
+    console.debug('🔌 Setting up site settings real-time subscription');
     
     // Listen to both siteSettings and legacy settings
     const query = `*[_type in ["siteSettings", "settings"]][0]`;
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.log('📡 Site settings mutation event received:', update.type);
+        console.debug('📡 Site settings mutation event received:', update.type);
         
         if (update.type === 'mutation') {
           // Re-fetch to get fresh data with image URLs
           fetchSettings();
-          console.log('🔄 Site settings updated in real-time!');
+          console.info('🔄 Site settings updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Site settings subscription cleaned up');
+      console.debug('🧹 Site settings subscription cleaned up');
     };
   }, [fetchSettings]);
 
@@ -674,12 +673,11 @@ export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
     fetchMenu();
 
     // Set up REAL-TIME subscription for navigation
-    console.log(`🔌 Setting up ${menuType} navigation real-time subscription`);
+    console.debug(`🔌 Setting up ${menuType} navigation real-time subscription`);
     
     const query = `*[_type == "navigation" && menuType == $menuType]`;
 
-    const subscription = sanityClient
-      .listen(query, { menuType })
+    const subscription = listenSafe(query, { menuType })
       .subscribe((update) => {
         console.log(`📡 ${menuType} navigation mutation event received:`, update.type);
         
@@ -770,12 +768,11 @@ export function useSanityAllNavigations() {
     fetchNavigations();
 
     // Set up REAL-TIME subscription for all navigations
-    console.log('🔌 Setting up all navigations real-time subscription');
+    console.debug('🔌 Setting up all navigations real-time subscription');
     
     const query = `*[_type == "navigation"]`;
 
-    const subscription = sanityClient
-      .listen(query)
+    const subscription = listenSafe(query)
       .subscribe((update) => {
         console.log('📡 Navigation mutation event received:', update.type);
         

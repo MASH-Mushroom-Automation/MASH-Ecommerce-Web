@@ -1,0 +1,198 @@
+{
+  "title": "feat: PRODUCT-PAGE - Sanity product enhancements + storefront simplification",
+  "branch": "feature/product-page-sanity-enhancement",
+  "summary": "Improve product detail experience: show images/videos + consolidated details sections (Freshness & Quality, Cooking Guide, Delivery Options, From the Grower). Remove product variant and bundle UI from storefront (deprecate schema but keep non-destructive server-side). Add seller contact (Cal.com appointment + Quick Chat), Google Maps link, ratings badge, suggested products auto-generation, and dynamic stock decrement when buyer adds to cart.",
+  "description": "This PR implements Phase A: frontend + content model plan to make product pages focused on: high-quality media, consolidated product details, and direct grower contact. Variants and bundles will no longer be displayed on the storefront; they are treated as deprecated (no destructive Sanity schema removal in phase A). The PR includes unit and Playwright e2e tests to validate the UX and AI/chat behaviors, and documentation + migration steps for later schema migration (non-destructive, with backfill script example).",
+  "motivation": "Connect growers directly with buyers via better product details, immediate contact (bookings + quick chat), auto-suggested complementary products, and accurate dynamic stock display. Simplify storefront by removing variant/bundle complexity for buyers.",
+
+  "screenshots": [
+    "docs/screenshots/product-page-before.png",
+    "docs/screenshots/product-page-after.png"
+  ],
+
+  "changelog": "docs/changelog/2026-01-27-product-page-redesign.md",
+
+  "files_to_create_or_modify": [
+    "src/app/(shop)/product/[slug]/page.tsx  # Update UI: remove variant & bundle UI, add compact sections, GrowerCard usage",
+    "src/components/product/GrowerCard.tsx  # New: Grower UI with Google Maps link, rating + badge, Cal.com book button (mailto fallback), Quick Chat button that opens ChatContext",
+    "src/components/product/ProductDetailsSections.tsx # New: Freshness & Quality, Cooking Guide, Delivery Options sections",
+    "src/components/product/MediaGallery.tsx  # New/Simplified: display images + YouTube/Vimeo/embed videos; fallback placeholder",
+    "src/hooks/useAutoSuggestedProducts.ts  # New: server-side or Sanity-driven suggested products logic",
+    "src/lib/product/stock-sync.ts  # New: helper to adjust product stock locally and emit Firebase/backend sync events",
+    "src/lib/ai/rag-service.ts  # Update: ensure suggested products and grower context used by RAG (if applicable)",
+    "src/lib/analytics/chatbot-analytics.ts  # Update: log Quick Chat opens and booking clicks",
+    "src/app/api/ai/gemini/route.ts  # No change or small update: ensure Chat Quick-Open remains proxied through existing API",
+    "src/app/(shop)/product/__tests__/GrowerCard.test.tsx  # New unit tests (Jest + React Testing Library)",
+    "src/app/(shop)/product/__tests__/MediaGallery.test.tsx  # New unit tests",
+    "src/app/(shop)/product/__tests__/suggested-products.test.tsx  # New unit tests",
+    "e2e/tests/product-contact.spec.ts  # Update: ensure Cal.com + Quick Chat are validated",
+    "e2e/tests/product-details.spec.ts  # New e2e tests verifying sections & suggested products",
+    "docs/PRODUCT-PAGE-ENHANCEMENT.md  # New: design and developer notes + Sanity migration plan",
+    "scripts/migrate-deprecate-bundles-variants.js  # Optional: script to mark bundle/variant fields as deprecated in Sanity (non-destructive)",
+    "progress.txt  # Update entry describing work and tests added"
+  ],
+
+  "sanity_schema_recommendations": {
+    "principles": "Non-destructive changes first. Add new fields where needed and mark legacy fields as deprecated instead of removing them in Phase A. Provide migration script and data backfill plan for Phase B when ready to fully remove fields.",
+    "product_document": {
+      "keep": ["productVariant (deprecated)", "productBundle (deprecated)"],
+      "add": {
+        "media": "array of image/video objects { type: 'image'|'video', url, thumbnail, provider (youtube|vimeo|file) } - canonical for storefront media",
+        "freshnessInfo": "object { harvestWindow, shelfLife, storageInstructions, qualityIndicators: string[] }",
+        "preparationInfo": "object { difficultyLevel, cookingTime, preparationTips: string[], recipeIdeas: string[] }",
+        "deliveryOptions": "object { sameDayDeliveryEligible: boolean, deliveryZones: string[], perishable: boolean, deliveryNotes: string }",
+        "growerRef": "reference to grower doc (existing) - ensures grower contact details available for storefront",
+        "suggestedProductsEnabled": "boolean (default true) - allows auto suggestions or curated list override"
+      },
+      "indexes": ["growerRef", "category", "isAvailable"]
+    },
+    "grower_document": {
+      "add_or_ensure": {
+        "location": "structured address (formattedAddress, lat, lng)",
+        "calcomUsername": "string (optional)",
+        "googleMapsQuery": "computed during ingest or used to build link client-side",
+        "rating": "number (float) - aggregate from reviews",
+        "isHighlyRatedBadgeThreshold": ">= 4.5 shows 'Highly rated on Marketplace' badge"
+      }
+    }
+  },
+
+  "migration_plan": [
+    "Phase A (non-destructive): Add new fields (media, freshnessInfo, preparationInfo, deliveryOptions) to Sanity product documents. Do NOT remove variant/bundle schemas yet; mark them in studio UI as deprecated using field-level 'readOnly' / 'hidden' UI hints and add documentation to explain deprecation.",
+    "Phase-staging: Run a small backfill script that copies primary images to new 'media' array for important products and sets 'suggestedProductsEnabled=true' for those products.",
+    "Phase B (destructive, optional, follow-up PR): After content is migrated and all UIs switched to new fields, run a migration to remove variant and bundle references from product queries and delete productBundle/productVariant schema files and data.",
+    "Rollback: Migration is reversible while we keep deprecated fields. Keep backup export of affected documents before any destructive removal (Sanity export)."
+  ],
+
+  "testing_plan": {
+    "unit_tests": [
+      "GrowerCard.test.tsx - renders name, rating, 'Highly rated' badge, Google Maps link, Cal.com button (when calcomUsername present) and mailto fallback; mocks ChatContext and assert Quick Chat opens and sends starter message.",
+      "MediaGallery.test.tsx - renders images + youtube/vimeo handling, fallback placeholder, and keyboard accessibility tests",
+      "suggested-products.test.tsx - validates useAutoSuggestedProducts logic and server-side fallback when empty",
+      "stock-sync.test.ts - verifies adding to cart triggers local stock decrease and queuing of backend sync; mocks network failure and ensures UI remains consistent"
+    ],
+    "e2e_tests (Playwright)": [
+      "product-contact.spec.ts - existing: ensure Cal.com or mailto fallback present (already present), ensure Quick Chat opens the chat dialog",
+      "product-details.spec.ts - new: verify Freshness & Quality, Cooking Guide, Delivery Options, From the Grower sections render; suggested products visible",
+      "cart-stock-dynamic.spec.ts - new: add item to cart repeatedly and verify product stock shown reduces accordingly on product page and cart, including when in multiple tabs (local sync)."
+    ],
+    "api_integration": [
+      "Verify server-side suggested products endpoint (if added) returns consistent deterministic results for e2e tests",
+      "Verify websocket/firestore sync for stock events (mocked in tests)"
+    ],
+    "test_coverage_goal": "All new code covered by unit tests; e2e covers user flow end-to-end. Maintain current coverage thresholds defined in Jest config."
+  },
+
+  "acceptance_criteria": [
+    "Product page only shows media (images/videos), descriptive sections, and grower contact UI; variants & bundles are not shown to buyers.",
+    "GrowerCard displays name, address (link to Google Maps), rating, and 'Highly rated' badge when rating >= 4.5.",
+    "Cal.com booking button opens external Cal.com URL; mailto fallback present when username missing.",
+    "Quick Chat button opens site chatbot and sends a starter message referencing the product.",
+    "Suggested products appear and are auto-generated when not explicitly overridden.",
+    "Adding items to cart reduces displayed stock on product page dynamically; local state syncs with backend/firestore where available (graceful failure when backend unreachable).",
+    "Unit tests and Playwright e2e tests pass locally and on CI, and `npm run build` succeeds with zero build-errors."
+  ],
+
+  "docs_and_communication": {
+    "files_to_add": [
+      "docs/PRODUCT-PAGE-ENHANCEMENT.md - includes UX rationale, design mockups, Sanity schema changes, migration plan, developer notes",
+      ".github/GH-SANITY-MIGRATION.md - step-by-step guide for running backfill/migration scripts and required Sanity tokens",
+      "progress.txt update - add entry with story ID and short changelog"
+    ],
+    "PR_description_template": "Use title + summary + acceptance criteria (copy from this JSON). Link to docs and test run screenshots/traces. Mention not to auto-commit and request review from product & backend teams."
+  },
+
+  "implementation_notes": [
+    "Do not delete productVariant / productBundle schemas during Phase A; mark deprecated in studio and hide on storefront.",
+    "Keep Sanity queries backward-compatible by preferring new 'media' array if present, otherwise fallback to legacy image fields (coalesce pattern already used in codebase).",
+    "Stock UI: Use optimistic UI decrement on add-to-cart with background sync to Firestore or backend. On conflict, re-sync and show appropriate toast (success/error).",
+    "Suggested products: Prefer server-side TF-IDF / RAG lookup (existing rag-service) for determinism; add client cache for UX responsiveness.",
+    "Cal.com embed: Use `@calcom/embed-react` with safe fallback to `mailto:` link when username missing or embed unsupported.",
+    "Quick Chat: reuse existing ChatContext; send a short starter message like `Hi, I have a question about <product name> (slug: <slug>)` when opening the chat.",
+    "Add feature flag `NEXT_PUBLIC_PRODUCT_USE_NEW_DETAILS=true` so we can gate rollout and revert if needed."
+  ],
+
+  "tasks_checklist": [
+    "Add components: MediaGallery, ProductDetailsSections, GrowerCard",
+    "Wire components into `src/app/(shop)/product/[slug]/page.tsx` and remove variant/bundle UI references",
+    "Add Sanity fields (non-destructive) and update GROQ queries to use `media` and `growerRef`",
+    "Add unit tests for new components and update existing tests to mock new hooks/context",
+    "Add Playwright e2e tests (product-details.spec.ts, cart-stock-dynamic.spec.ts)",
+    "Add docs and progress entry",
+    "Run `npm run build` and `npm run test` and fix any issues until green",
+    "Open PR and request code review and Sanity content editor review"
+  ],
+
+  "risks_and_mitigation": [
+    "Risk: Removing variants/bundles too early may break sellers who still rely on them. Mitigation: Phase A = hide on storefront + mark deprecated; Phase B = full removal after stakeholder signoff.",
+    "Risk: Cal.com vs mailto behavior differs across browsers. Mitigation: tests accept either in e2e and we show both in studio preview for editors.",
+    "Risk: Stock race conditions when multiple users buy concurrently. Mitigation: perform final authoritative decrement on backend and show optimistic UI with re-sync/backoff on conflict."
+  ],
+
+  "show_on_product_page_requirements": {
+    "media": "Display product images and videos (YouTube/Vimeo/embed). If no media available, show placeholder image.",
+    "formatted_sections": ["Freshness & Quality", "Cooking Guide", "Delivery Options", "From the Grower"],
+    "grower_block": {
+      "fields": ["name", "location (formatted address)", "google maps link", "rating", "calcom username", "image"],
+      "actions": ["Cal.com appointment (embed or external link)", "mailto fallback", "Quick Chat (opens site chatbot and sends starter message)"]
+    },
+    "no_variants_or_bundles": "Do not render variant selectors or bundle purchase UI on storefront product pages (deprecated and hidden).",
+    "dynamic_stock": "Stock count on product page updates optimistically when items are added to cart and syncs to backend/firestore (with reconciliation on conflict).",
+    "suggested_products": "Automatically generate 'You May Also Like' suggestions using existing RAG/TF-IDF service, with optional manual overrides in Sanity when editors prefer curated lists."
+  },
+
+  "progress": {
+    "status": "in-progress",
+    "updatedAt": "2026-01-28T14:20:00Z",
+    "entries": [
+      {
+        "id": "STORY-PROD-001",
+        "title": "Design & component scaffolding",
+        "status": "completed",
+        "notes": "Added PR JSON plan, created e2e tests for product contact and chatbot, added unit safety tests for search engine and auth sync handling.",
+        "files_changed": [".github/prs/feature-product-page-sanity-enhancement.pr.json", "src/app/(shop)/product/__tests__/product-page.test.tsx", "src/lib/ai/__tests__/search-engine.test.ts", "src/contexts/AuthContext.tsx"]
+      },
+      {
+        "id": "STORY-PROD-002",
+        "title": "GrowerCard & MediaGallery components",
+        "status": "completed",
+        "notes": "Scaffolded `GrowerCard`, `MediaGallery`, and `ProductDetailsSections`. Added unit tests and wired `ProductDetailsSections` into product page. Tests passing locally.",
+        "files_changed": ["src/components/product/GrowerCard.tsx", "src/components/product/MediaGallery.tsx", "src/components/product/ProductDetailsSections.tsx", "src/components/product/__tests__/GrowerCard.test.tsx", "src/components/product/__tests__/MediaGallery.test.tsx", "src/components/product/__tests__/ProductDetailsSections.test.tsx", "src/app/(shop)/product/[slug]/page.tsx"]
+      },
+      
+      {
+        "id": "STORY-PROD-003",
+        "title": "Sanity schema non-destructive changes",
+        "status": "completed",
+        "notes": "Added `suggestedProductsEnabled`, updated product variant/bundle deprecation notes, added grower rating and Cal.com alias fields, and added non-destructive backfill script.",
+        "files_changed": ["studio/src/schemaTypes/documents/product.ts", "studio/src/schemaTypes/documents/grower.ts", "scripts/migrate-deprecate-bundles-variants.js"]
+      },
+      
+      {
+        "id": "STORY-PROD-004",
+        "title": "Stock sync & add-to-cart dynamic behavior",
+        "status": "completed",
+        "notes": "Implemented optimistic UI decrement on Add to Cart, persistent background reconciliation queue with retry/backoff and conflict handling. Added `src/lib/product/stock-sync.ts`, `src/hooks/useStockSync.ts`, wired into `CartContext` and product page UI, and added unit tests and Playwright e2e tests (single-tab & multi-tab). Tests pass locally.",
+        "files_changed": ["src/lib/product/stock-sync.ts", "src/hooks/useStockSync.ts", "src/contexts/CartContext.tsx", "src/app/(shop)/product/[slug]/page.tsx", "src/lib/product/__tests__/stock-sync.test.ts", "e2e/tests/cart-stock-dynamic.spec.ts", "e2e/tests/cart-stock-multitab.spec.ts"],
+        "completedAt": "2026-01-28T14:20:00Z"
+      },
+      {
+        "id": "STORY-PROD-005",
+        "title": "Suggested products auto-generation",
+        "status": "not-started",
+        "notes": "Use existing RAG/TF-IDF pipeline to populate suggested products; add hook useAutoSuggestedProducts and tests; allow Sanity override.",
+        "files_planned": ["src/hooks/useAutoSuggestedProducts.ts", "src/lib/ai/rag-service.ts"]
+      },
+      {
+        "id": "STORY-PROD-006",
+        "title": "Scaffold unit + e2e tests and CI integration",
+        "status": "in-progress",
+        "notes": "Add unit test skeletons for new components and Playwright e2e specs to run on CI. Prepare playwright workflow adjustments and artifact upload on failure.",
+        "files_planned": ["src/components/product/__tests__/GrowerCard.test.tsx", "src/components/product/__tests__/MediaGallery.test.tsx", ".github/workflows/playwright-e2e.yml"]
+      }
+    ]
+  },
+
+  "next_steps_guide": "1) Scaffold components: create `GrowerCard`, `MediaGallery`, `ProductDetailsSections` with basic props and accessibility attributes; add unit test skeletons and run `npm run test` to confirm tests discover the files.\n2) Wire components into `src/app/(shop)/product/[slug]/page.tsx`: replace variant & bundle UI with new sections and hide deprecated fields; toggle with feature flag `NEXT_PUBLIC_PRODUCT_USE_NEW_DETAILS=true`.\n3) Implement stock-sync helper: optimistic decrement on add-to-cart, enqueue backend sync, add unit tests for network error handling.\n4) Add Sanity fields (non-destructive) for `media`, `freshnessInfo`, `deliveryOptions` and update GROQ queries to use `coalesce` fallback pattern; create a small backfill script to copy primary images into `media` for priority SKUs.\n5) Implement `useAutoSuggestedProducts` hooking into `rag-service` (server-side deterministic results), add unit tests and e2e checks verifying suggestions appear.\n6) Add Playwright e2e tests: `product-details.spec.ts` (sections + suggestions), `cart-stock-dynamic.spec.ts` (stock decrement); run `npx playwright test` locally and fix flakiness.\n7) Update docs: `docs/PRODUCT-PAGE-ENHANCEMENT.md`, `.github/GH-SANITY-MIGRATION.md`, and append a `progress.txt` entry after each completed story.\n8) Prepare PR draft on branch `feature/product-page-sanity-enhancement`, include screenshots and Playwright traces if available; request reviews from product, backend, and content editor teams.\n\nCopy-paste this guide as the single canonical next-steps block for the iteration; update `progress.updatedAt` and story statuses after each step completes.",
+
+}

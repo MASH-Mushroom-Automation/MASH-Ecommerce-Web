@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, listenSafe } from '@/lib/sanity/client';
 
 export interface SanityHeroSlide {
   title: string;
@@ -137,8 +137,7 @@ export function useSanityHero(): UseSanityHeroReturn {
     }`;
 
     // Subscribe to changes (Sanity's live updates)
-    const subscription = sanityClient
-      .listen(query, {}, { includeResult: true })
+    const subscription = listenSafe(query, {}, { includeResult: true })
       .subscribe((update) => {
         // Check if this is a mutation event with result
         if (update.type === 'mutation' && 'result' in update && update.result) {

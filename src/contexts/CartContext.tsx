@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { FirebaseCartService } from "@/lib/firebase/cart";
 import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
+import { stockSync } from "@/lib/product/stock-sync";
 
 interface CartContextType {
   items: CartItem[];
@@ -40,19 +41,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from cookie on mount
   useEffect(() => {
-    console.log("[CartContext] Loading cart from cookie...");
+    console.debug("[CartContext] Loading cart from cookie...");
     const savedCart = getCartCookie();
-    console.log("[CartContext] savedCart:", savedCart ? "found" : "not found");
+    console.debug("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
-        console.log("[CartContext] Parsed cart:", savedCart);
+        console.debug("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
         if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
-          console.log("[CartContext] Loading", savedCart.items.length, "items");
+          console.debug("[CartContext] Loading", savedCart.items.length, "items");
           setItems(savedCart.items);
         } else {
           // Old cart format - clear it
-          console.log("Old cart format detected, clearing cart");
+          console.debug("Old cart format detected, clearing cart");
           clearCartCookie();
         }
       } catch (error) {
@@ -60,19 +61,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
-    console.log("[CartContext] Cart loaded, isLoaded set to true");
+    console.debug("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.log("[CartContext] Saving to cookie, items:", items.length);
+      console.debug("[CartContext] Saving to cookie, items:", items.length);
       setCartCookie({
         version: 2,
         items,
         updatedAt: new Date().toISOString(),
       });
-      console.log("[CartContext] Saved to cookie");
+      console.debug("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
@@ -171,7 +172,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-    console.log("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
+    console.debug("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
     
     // Validate stock
     if (product.stock < quantity) {
@@ -181,32 +182,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    setItems((prev) => {
-      console.log("[CartContext] setItems called, prev items:", prev.length);
-      const existingItem = prev.find((item) => item.productId === product.id);
+    // Check existing item in current state
+    const existingItem = items.find((item) => item.productId === product.id);
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > product.stock) {
+        toast.error(`Cannot add more items`, {
+          description: `Only ${product.stock} available, you have ${existingItem.quantity} in cart`,
+        });
+        return false;
+      }
+    }
 
-      if (existingItem) {
-        console.log("[CartContext] Item already in cart, updating quantity");
-        // Check if combined quantity exceeds stock
-        const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          toast.error(`Cannot add more items`, {
-            description: `Only ${product.stock} available, you have ${existingItem.quantity} in cart`,
-          });
-          return prev;
-        }
-        
-        // Update existing item quantity
-        const updated = prev.map((item) =>
+    setItems((prev) => {
+      // Re-check existing in prev state (in case of race, though unlikely here)
+      const currentExisting = prev.find((item) => item.productId === product.id);
+      
+      if (currentExisting) {
+        return prev.map((item) =>
           item.productId === product.id
-            ? { ...item, quantity: newQuantity }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
-        console.log("[CartContext] Updated cart:", updated.length);
-        return updated;
       }
 
-      // Add new item with full product details (sanitize optional fields)
+      // Add new item with full product details
       const newItem: CartItem = {
         productId: product.id,
         name: product.name,
@@ -215,24 +215,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         slug: product.slug,
         stock: product.stock,
         quantity,
+        grower: product.grower,
+        unit: product.unit,
+        comparePrice: product.comparePrice,
       };
 
-      // Only include optional fields if they have values
-      if (product.grower !== undefined && product.grower !== null) {
-        newItem.grower = product.grower;
-      }
-      if (product.unit !== undefined && product.unit !== null) {
-        newItem.unit = product.unit;
-      }
-      if (product.comparePrice !== undefined && product.comparePrice !== null) {
-        newItem.comparePrice = product.comparePrice;
-      }
-
-      console.log("[CartContext] Adding new item:", newItem);
-      const newCart = [...prev, newItem];
-      console.log("[CartContext] New cart size:", newCart.length);
-      return newCart;
+      return [...prev, newItem];
     });
+
+    // Optimistically decrement visible stock immediately
+    try {
+      stockSync.adjustLocalStock(product.id, -quantity);
+      stockSync.enqueue(product.id, -quantity);
+    } catch (e) {
+      console.warn("[CartContext] stockSync adjust/enqueue failed", e);
+    }
 
     toast.success(`${product.name} added to cart!`, {
       description: `${quantity} ${product.unit || "item"}(s) added`,

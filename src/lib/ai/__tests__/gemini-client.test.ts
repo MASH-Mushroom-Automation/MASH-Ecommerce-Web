@@ -97,7 +97,7 @@ describe('Phase 1: Gemini API Client', () => {
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('generateContent'),
+        expect.stringContaining('/api/ai/gemini'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('Hello'),

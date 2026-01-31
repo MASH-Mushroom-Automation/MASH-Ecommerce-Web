@@ -19,15 +19,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { AuthApi } from "@/lib/api/auth";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-
-// Password requirements checker
-const getPasswordRequirements = (password: string) => {
-  return {
-    minLength: password.length >= 6,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
-  };
-};
+import { getPasswordRequirements } from '@/lib/auth/password';
 
 const ResetSchema = z
   .object({

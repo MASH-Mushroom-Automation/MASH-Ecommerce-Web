@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { sanityClient } from "@/lib/sanity/client";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
 
 // ============================================================================
 // COUPON HOOKS
@@ -72,7 +72,7 @@ export function useSanityCoupons(filters?: { isActive?: boolean; isPublic?: bool
 
   useEffect(() => {
     fetchCoupons();
-    const subscription = sanityClient.listen(`*[_type == "coupon"]`).subscribe((update) => {
+    const subscription = listenSafe(`*[_type == "coupon"]`).subscribe((update: any) => {
       if (update.type === "mutation") {
         console.log("🔄 [COUPONS] Real-time update!");
         fetchCoupons();
@@ -175,7 +175,7 @@ export function useSanityPromotions(filters?: { isActive?: boolean; isFeatured?:
 
   useEffect(() => {
     fetchPromotions();
-    const subscription = sanityClient.listen(`*[_type == "promotion"]`).subscribe((update) => {
+    const subscription = listenSafe(`*[_type == "promotion"]`).subscribe((update: any) => {
       if (update.type === "mutation") {
         console.log("🔄 [PROMOTIONS] Real-time update!");
         fetchPromotions();
@@ -228,8 +228,7 @@ export function useSanityPromotion(slug: string) {
     };
 
     fetchPromotion();
-    const subscription = sanityClient
-      .listen(`*[_type == "promotion" && slug.current == "${slug}"]`)
+    const subscription = listenSafe(`*[_type == "promotion" && slug.current == "${slug}"]`)
       .subscribe((update) => {
         if (update.type === "mutation") fetchPromotion();
       });
@@ -297,7 +296,7 @@ export function useSanityEmailCampaigns(filters?: { status?: string }) {
 
   useEffect(() => {
     fetchCampaigns();
-    const subscription = sanityClient.listen(`*[_type == "emailCampaign"]`).subscribe((update) => {
+    const subscription = listenSafe(`*[_type == "emailCampaign"]`).subscribe((update: any) => {
       if (update.type === "mutation") {
         console.log("🔄 [EMAIL CAMPAIGNS] Real-time update!");
         fetchCampaigns();

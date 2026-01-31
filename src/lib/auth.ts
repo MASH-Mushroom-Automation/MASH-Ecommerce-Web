@@ -1,5 +1,6 @@
 import { signOutFirebase } from "@/lib/firebase";
 import { UserApi } from "@/lib/api/user";
+import { removeCookie } from "@/lib/cookies";
 
 // API Base URL for backend calls
 const API_BASE_URL =
@@ -130,12 +131,12 @@ export async function logout(): Promise<void> {
       console.warn("[Auth] Error calling /api/auth/clear-tokens, proceeding with client cleanup:", err);
     }
 
-    // Clear client-side state: localStorage/sessionStorage and cached user state
+    // Clear client-side state: cookies/sessionStorage and cached user state
     try {
-      console.log("🔴 [Auth] Clearing localStorage and sessionStorage");
+      console.log("🔴 [Auth] Clearing cookies and sessionStorage");
 
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
+      removeCookie("refreshToken");
+      removeCookie("user");
       sessionStorage.removeItem("pendingVerificationEmail");
       sessionStorage.removeItem("resetPasswordEmail");
       sessionStorage.removeItem("user");
@@ -144,12 +145,12 @@ export async function logout(): Promise<void> {
       try { UserApi.clearCache(); } catch (e) { console.warn("UserApi.clearCache failed:", e); }
 
       // Clear persisted app state
-      localStorage.removeItem("mash-wishlist");
-      localStorage.removeItem("cart");
-      localStorage.removeItem("mash-cart");
+      removeCookie("mash-wishlist");
+      removeCookie("cart");
+      removeCookie("mash-cart");
 
       // Clear Google auth redirect markers
-      localStorage.removeItem("google_auth_redirect");
+      removeCookie("google_auth_redirect");
       sessionStorage.removeItem("google_auth_redirect");
     } catch (e) {
       console.warn("[Auth] Error clearing client storage:", e);
@@ -161,13 +162,6 @@ export async function logout(): Promise<void> {
       await signOutFirebase();
     } catch (err) {
       console.warn("Firebase sign out failed:", err);
-    }
-
-
-    if (!response.ok) {
-      console.warn("⚠️ [Auth] Failed to clear tokens via API, clearing client state anyway");
-    } else {
-      console.log("🔴 [Auth] Auth tokens cleared via API");
     }
   } catch (error) {
     console.error("❌ [Auth] Error clearing tokens via API:", error);
