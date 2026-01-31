@@ -162,8 +162,17 @@ jest.mock('@/lib/analytics/chatbot-analytics', () => ({
   downloadCSV: jest.fn(),
 }));
 
+// Mock next-sanity to avoid ESM parsing errors in Jest
+jest.mock('next-sanity', () => ({
+  createClient: () => ({
+    fetch: jest.fn(() => Promise.resolve([])),
+  }),
+  createImageUrlBuilder: () => ({ url: () => '' }),
+}));
+
 // Mock WishlistContext to fix component test failures
 jest.mock('@/contexts/WishlistContext', () => ({
+  __esModule: true,
   useWishlist: jest.fn(() => ({
     items: [],
     isInWishlist: jest.fn(() => false),
