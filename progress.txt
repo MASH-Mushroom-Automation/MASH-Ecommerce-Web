@@ -12,7 +12,38 @@
 - **Jest Config:** Use `clearMocks: true`, `resetMocks: false`, `restoreMocks: false` to allow persistent mock setup while clearing call history between tests.
 - **AI API Calls:** Server-side AI functions (gemini-client.ts, error-handler.ts) must call external APIs directly, NOT through proxy routes. Proxy routes (/api/ai/*) are for client-side use only.
 - **Chatbot UI Tests:** When updating chatbot UI, ensure tests match new aria-labels, text content, and class structures (e.g., `aria-label="Open MASH AI Assistant"`, loading text, wrapper positioning).
+- **VPN Network Issues:** When Radmin VPN or similar VPN is active, fetch() may fail in Turbopack/Next.js dev environment. Use native Node.js https module as fallback (gemini-native.ts). Force IPv4 with `family: 4` option.
+- **AI Client Retry Logic:** Use custom AbortController-based timeout instead of AbortSignal.timeout() for better compatibility. Implement 2-retry logic with exponential backoff for network resilience.
+- **HuggingFace API:** Use OpenAI-compatible chat completions endpoint (`/v1/chat/completions`) with `{model, messages}` format.
 
+---
+
+## [2026-02-01 18:30] - CHATBOT-NETWORK-FIX
+**Completed:** Fixed AI Chatbot Network Connectivity Issues
+**Files Changed:**
+- src/lib/ai/gemini-client.ts (added retry logic, native HTTPS fallback, custom timeout controller)
+- src/lib/ai/gemini-native.ts (NEW - Native Node.js https module fallback for VPN environments)
+- src/lib/ai/error-handler.ts (updated HF to OpenAI-compatible format, added retry logic)
+- src/lib/ai/config.ts (updated HF endpoint to v1 chat completions)
+- src/lib/ai/__tests__/config.test.ts (updated tests for new HF URL format)
+- src/lib/ai/__tests__/error-handler.test.ts (updated tests for OpenAI-compatible response format)
+- src/lib/ai/__tests__/error-handler-proxy.test.ts (updated mock response format)
+
+**Implementation Notes:**
+- Root cause: Radmin VPN (26.224.154.151) interferes with DNS resolution in Turbopack/Next.js dev environment
+- Direct Node.js fetch works fine, but Next.js server-side fetch times out
+- Solution: Added native Node.js https module fallback that forces IPv4 connection
+- HuggingFace API updated from old text generation format to OpenAI-compatible chat completions
+- Added 2-retry logic with exponential backoff (1s, 2s delays)
+- Custom AbortController-based timeout for better cross-environment compatibility
+
+**Learnings for Future Iterations:**
+- VPN software can interfere with Node.js networking within Turbopack runtime
+- AbortSignal.timeout() may not work reliably in all Next.js environments
+- Native https module with `family: 4` option forces IPv4 and bypasses IPv6/VPN issues
+- HuggingFace router API changed from `/models/{model}` to `/v1/chat/completions` (OpenAI format)
+
+**Tests Passing:** [PASS] Build | [PASS] Tests (729/731) | [PASS] Chatbot Tests (216/216)
 ---
 
 ## [2026-02-01 12:00] - CHATBOT-UX-001

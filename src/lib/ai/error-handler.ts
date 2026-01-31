@@ -11,6 +11,27 @@ import { HF_API_KEY, getHuggingFaceUrl, HF_TIMEOUT, HF_FALLBACK_MODEL } from './
 import { ChatbotError } from '@/types/chatbot';
 import type { Message, AIResponse } from '@/types/chatbot';
 
+// Retry configuration
+const MAX_RETRIES = 1;
+const RETRY_DELAY = 500;
+
+/**
+ * Creates an AbortController with timeout
+ */
+function createTimeoutController(timeoutMs: number): AbortController {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  controller.signal.addEventListener('abort', () => clearTimeout(timeoutId));
+  return controller;
+}
+
+/**
+ * Delay helper for retries
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Sends a message to Hugging Face Inference API using OpenAI-compatible chat completions
  * Used as fallback when Gemini API fails
@@ -23,85 +44,105 @@ export async function sendToHuggingFace(
   message: string,
   history: Message[] = []
 ): Promise<AIResponse> {
-  try {
-    // Build messages array in OpenAI format
-    const messages: Array<{ role: string; content: string }> = [
-      {
-        role: 'system',
-        content: 'You are MASH AI Assistant, a helpful assistant for the MASH e-commerce platform. Help users find products, answer questions about mushroom growing kits and supplies, and provide excellent customer support. Be friendly, concise, and helpful.'
-      }
-    ];
-    
-    // Add conversation history
-    for (const msg of history) {
-      messages.push({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      });
+  // Build messages array in OpenAI format
+  const messages: Array<{ role: string; content: string }> = [
+    {
+      role: 'system',
+      content: 'You are MASH AI Assistant, a helpful assistant for the MASH e-commerce platform. Help users find products, answer questions about mushroom growing kits and supplies, and provide excellent customer support. Be friendly, concise, and helpful.'
     }
-    
-    // Add current user message
+  ];
+  
+  // Add conversation history
+  for (const msg of history) {
     messages.push({
-      role: 'user',
-      content: message
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
     });
-    
-    // Call Hugging Face API using OpenAI-compatible chat completions
-    const apiUrl = getHuggingFaceUrl();
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${HF_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: HF_FALLBACK_MODEL,
-        messages: messages,
-        max_tokens: 500,
-        temperature: 0.7,
-        top_p: 0.95,
-        stream: false
-      }),
-      signal: AbortSignal.timeout(HF_TIMEOUT),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || errorData.error || `Hugging Face API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // OpenAI-compatible response format
-    const assistantResponse = data.choices?.[0]?.message?.content?.trim() 
-      || 'Sorry, I could not generate a response.';
-    
-    return {
-      success: true,
-      content: assistantResponse,
-      source: 'huggingface',
-      metadata: {
-        model: HF_FALLBACK_MODEL,
-        tokensUsed: data.usage?.total_tokens || 0,
-        timestamp: new Date().toISOString(),
-      },
-    };
-    
-  } catch (error) {
-    // Log detailed error information for debugging
-    console.error('[Hugging Face] API call failed:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      cause: error instanceof Error && 'cause' in error ? (error.cause as Error)?.message : undefined,
-      code: error instanceof Error && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined,
-    });
-    
-    return {
-      success: false,
-      content: '',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      source: 'huggingface',
-    };
   }
+  
+  // Add current user message
+  messages.push({
+    role: 'user',
+    content: message
+  });
+  
+  const apiUrl = getHuggingFaceUrl();
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[Hugging Face] Retry attempt ${attempt}/${MAX_RETRIES}...`);
+        await delay(RETRY_DELAY * attempt);
+      }
+      
+      const controller = createTimeoutController(HF_TIMEOUT);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${HF_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: HF_FALLBACK_MODEL,
+          messages: messages,
+          max_tokens: 500,
+          temperature: 0.7,
+          top_p: 0.95,
+          stream: false
+        }),
+        signal: controller.signal,
+        // @ts-expect-error - Next.js specific cache options
+        cache: 'no-store',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || errorData.error || `Hugging Face API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // OpenAI-compatible response format
+      const assistantResponse = data.choices?.[0]?.message?.content?.trim() 
+        || 'Sorry, I could not generate a response.';
+      
+      return {
+        success: true,
+        content: assistantResponse,
+        source: 'huggingface',
+        metadata: {
+          model: HF_FALLBACK_MODEL,
+          tokensUsed: data.usage?.total_tokens || 0,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      const isRetryable = 
+        lastError.name === 'AbortError' ||
+        lastError.message.includes('fetch failed') ||
+        lastError.message.includes('ConnectTimeoutError');
+      
+      if (!isRetryable || attempt === MAX_RETRIES) {
+        break;
+      }
+      
+      console.warn(`[Hugging Face] Attempt ${attempt + 1} failed:`, lastError.message);
+    }
+  }
+  
+  // Log detailed error information for debugging
+  console.error('[Hugging Face] Error:', lastError);
+  
+  return {
+    success: false,
+    content: '',
+    error: lastError?.message || 'Unknown error',
+    source: 'huggingface',
+  };
 }
 
 /**
