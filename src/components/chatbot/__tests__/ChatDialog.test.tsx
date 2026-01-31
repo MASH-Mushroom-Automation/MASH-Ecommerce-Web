@@ -147,7 +147,7 @@ describe('ChatDialog', () => {
     render(<ChatDialog {...defaultProps} loading={true} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.getByText('Thinking...')).toBeInTheDocument();
+    expect(screen.getByText('Finding the best mushrooms for you...')).toBeInTheDocument();
   });
 
   it('should disable input when loading', () => {

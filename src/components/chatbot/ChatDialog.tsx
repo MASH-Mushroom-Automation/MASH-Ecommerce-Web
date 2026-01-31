@@ -127,13 +127,20 @@ export function ChatDialog({
             {/* Loading indicator */}
             {loading && (
               <div className="flex gap-3 mb-4" data-testid="loading-indicator">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white border-2 border-secondary flex items-center justify-center overflow-hidden">
+                  <img src="/logo.png" alt="MASH" className="h-5 w-5 object-contain" />
                 </div>
-                <div className="bg-secondary rounded-lg px-4 py-2">
-                  <p className="text-sm text-secondary-foreground">
-                    Thinking...
-                  </p>
+                <div className="bg-secondary rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex space-x-1">
+                      <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <p className="text-sm text-muted-foreground ml-2">
+                      Finding the best mushrooms for you...
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

@@ -82,12 +82,20 @@ export function Message({
           )}
         >
           <div 
-            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:my-1 [&_p]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2"
+            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:my-1 [&_p]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_strong]:font-semibold"
             dangerouslySetInnerHTML={{ 
               __html: message.content
+                // Bold text
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Convert markdown links to HTML links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
+                // Convert product links with checkmarks
+                .replace(/✅\s*\[([^\]]+)\]\(([^)]+)\)\s*-\s*(₱[\d,]+)/g, 
+                  '<div class="flex items-center gap-2 my-1"><span class="text-green-500">✓</span><a href="$2" class="text-primary hover:underline font-medium">$1</a><span class="text-muted-foreground">$3</span></div>')
+                // Newlines to breaks
                 .replace(/\n/g, '<br/>')
-                .replace(/•/g, '<span class="inline-block w-4">•</span>')
+                // Bullet points with proper spacing
+                .replace(/•\s*/g, '<span class="inline-flex w-5 justify-center text-muted-foreground">•</span>')
             }}
           />
 

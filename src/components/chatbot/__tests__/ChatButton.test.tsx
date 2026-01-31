@@ -16,7 +16,7 @@ describe('ChatButton', () => {
     
     const button = screen.getByTestId('chat-button');
     expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute('aria-label', 'Open chatbot');
+    expect(button).toHaveAttribute('aria-label', 'Open MASH AI Assistant');
   });
 
   it('should render with X icon when open', () => {
@@ -46,7 +46,8 @@ describe('ChatButton', () => {
   it('should have fixed positioning styles', () => {
     const { container } = render(<ChatButton isOpen={false} onClick={() => {}} />);
     
-    const button = container.querySelector('button');
-    expect(button).toHaveClass('fixed', 'bottom-6', 'right-6');
+    // Fixed positioning is on the wrapper div, button has animation styles
+    const wrapper = container.firstChild;
+    expect(wrapper).toHaveClass('fixed', 'bottom-6', 'right-6');
   });
 });

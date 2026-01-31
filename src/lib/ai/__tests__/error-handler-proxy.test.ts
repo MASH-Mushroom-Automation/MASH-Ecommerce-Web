@@ -1,14 +1,22 @@
 import { sendToHuggingFace } from '../error-handler';
 
-describe('Hugging Face proxy', () => {
+describe('Hugging Face API', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  test('calls server-side HF proxy and returns assistant text', async () => {
+  test('calls Hugging Face API directly and returns assistant text', async () => {
     const mockBody = JSON.stringify([{ generated_text: 'Assistant: Hi there' }]);
     (global as any).fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: async () => JSON.parse(mockBody), text: async () => mockBody });
 
     const res = await sendToHuggingFace('hello');
-    expect((global as any).fetch).toHaveBeenCalledWith('/api/ai/hf', expect.any(Object));
+    expect((global as any).fetch).toHaveBeenCalledWith(
+      expect.stringContaining('huggingface.co'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Authorization': expect.stringContaining('Bearer'),
+        }),
+      })
+    );
     expect(res.success).toBe(true);
     expect(res.content).toContain('Hi there');
   });

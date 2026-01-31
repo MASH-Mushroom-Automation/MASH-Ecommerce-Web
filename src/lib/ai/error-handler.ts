@@ -33,18 +33,25 @@ export async function sendToHuggingFace(
       ? `${conversationContext}\nUser: ${message}\nAssistant:`
       : `User: ${message}\nAssistant:`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), HF_TIMEOUT);
-    
-    // Call server-side proxy to avoid CSP/connect-src issues and hide API keys
-    const response = await fetch('/api/ai/hf', {
+    // Call Hugging Face API directly (this function runs server-side in API routes)
+    const apiUrl = getHuggingFaceUrl();
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: undefined, inputs: prompt, parameters: { max_new_tokens: 500, temperature: 0.7, top_p: 0.95, do_sample: true } }),
-      signal: controller.signal,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${HF_API_KEY}`,
+      },
+      body: JSON.stringify({ 
+        inputs: prompt, 
+        parameters: { 
+          max_new_tokens: 500, 
+          temperature: 0.7, 
+          top_p: 0.95, 
+          do_sample: true 
+        } 
+      }),
+      signal: AbortSignal.timeout(HF_TIMEOUT),
     });
-    
-    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

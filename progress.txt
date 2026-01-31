@@ -9,6 +9,77 @@
 - **Hero Carousel Heights:** Use reduced heights for better UX - loading/error: h-[300px] md:h-[350px] lg:h-[400px], content: min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
 - **Cookie Mock Pattern:** Global mock in `jest.setupMocks.js` via `global.__mockCookies`. Tests access same instance as source code. For cookies.test.ts that tests real implementation, use `jest.unmock('@/lib/cookies')`.
 - **HTTP Status Codes:** Malformed JSON should return 400 (Bad Request), not 500. Client errors = 4xx, Server errors = 5xx.
+- **Jest Config:** Use `clearMocks: true`, `resetMocks: false`, `restoreMocks: false` to allow persistent mock setup while clearing call history between tests.
+- **AI API Calls:** Server-side AI functions (gemini-client.ts, error-handler.ts) must call external APIs directly, NOT through proxy routes. Proxy routes (/api/ai/*) are for client-side use only.
+- **Chatbot UI Tests:** When updating chatbot UI, ensure tests match new aria-labels, text content, and class structures (e.g., `aria-label="Open MASH AI Assistant"`, loading text, wrapper positioning).
+
+---
+
+## [2026-02-01 12:00] - CHATBOT-UX-001
+**Completed:** Enhanced Chatbot UI/UX Design
+**Files Changed:**
+- src/components/chatbot/Message.tsx (enhanced markdown rendering, product link styling)
+- src/components/chatbot/ChatDialog.tsx (improved loading indicator with bouncing dots animation)
+- src/components/chatbot/ChatButton.tsx (pulse animation, sparkles icon, tooltip on hover)
+- src/app/globals.css (added animate-subtle-bounce keyframe animation)
+- src/components/chatbot/__tests__/ChatButton.test.tsx (updated aria-label and positioning tests)
+- src/components/chatbot/__tests__/ChatDialog.test.tsx (updated loading text expectation)
+
+**Implementation Notes:**
+- ChatButton: Added Sparkles icon, pulse animation ring, subtle bounce animation, tooltip on hover
+- ChatDialog: Loading indicator now shows "Finding the best mushrooms for you..." with bouncing dots
+- Message: Enhanced markdown rendering with better link styling and product link conversion
+- All UI improvements maintain accessibility and mobile responsiveness
+
+**Learnings for Future Iterations:**
+- Test expectations must be updated when changing UI text, aria-labels, or class structures
+- Fixed positioning can be on wrapper div rather than button itself for better animation control
+- Custom animations defined in globals.css with @keyframes for reusability
+
+**Tests Passing:** [PASS] Build | [PASS] 729/731 Tests | [PASS] TypeCheck
+
+---
+
+## [2026-02-01 11:00] - CHATBOT-FIX-001
+**Completed:** Fix Chatbot API URL Error - Server-side calls to external AI APIs
+**Root Cause:** AI client functions (gemini-client.ts, error-handler.ts) used relative URLs (`/api/ai/hf`, `/api/ai/gemini`) which fail when called from server-side API routes because relative URLs have no base URL on server.
+**Solution:** Changed AI client functions to call external APIs directly using `getGeminiUrl()` and `getHuggingFaceUrl()` with proper authorization headers.
+
+**Files Changed:**
+- src/lib/ai/gemini-client.ts (call Gemini API directly with API key)
+- src/lib/ai/error-handler.ts (call Hugging Face API directly with Bearer token)
+- src/lib/ai/__tests__/error-handler-proxy.test.ts (update tests for direct API calls)
+- src/lib/ai/__tests__/gemini-client.test.ts (update tests for direct API calls)
+
+**Implementation Notes:**
+- Changed `fetch('/api/ai/gemini')` to `fetch(getGeminiUrl(GEMINI_MODEL))` with timeout signal
+- Changed `fetch('/api/ai/hf')` to `fetch(getHuggingFaceUrl())` with Authorization header
+- Proxy routes (/api/ai/gemini, /api/ai/hf) are still available for client-side use if needed
+- Updated tests to expect direct API URLs instead of proxy URLs
+
+**Learnings for Future Iterations:**
+- Server-side code cannot use relative URLs with fetch() - must use absolute URLs
+- AI proxy routes are designed for CLIENT-side calls to hide API keys from browser
+- Server-side AI calls should call external APIs directly since keys are already hidden
+
+**Tests Passing:** [PASS] Build | [PASS] 729/731 Tests | [PASS] TypeCheck
+
+---
+
+## [2026-02-01 10:00] - SESSION-VERIFICATION
+**Completed:** Full test suite and build verification
+**Summary:**
+- Verified all 729/731 tests passing (2 intentionally skipped)
+- Build passes with no errors
+- All cookie mock isolation issues resolved from prior session
+- System is stable and ready for PRD development
+
+**Test Metrics:**
+- Test Suites: 49 passed, 1 skipped, 50 total
+- Tests: 729 passed, 2 skipped, 731 total
+- Pass Rate: 99.7%
+
+**Tests Passing:** [PASS] Build | [PASS] TypeCheck | [PASS] 729/731 Tests
 
 ---
 
