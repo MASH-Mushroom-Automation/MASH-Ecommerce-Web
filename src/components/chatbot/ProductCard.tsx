@@ -53,7 +53,7 @@ export function ProductCard({ product, className, onAddToCart, conversationId, m
       });
     }
     
-    router.push(`/products/${product.slug}`);
+    router.push(`/product/${product.slug}`);
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {

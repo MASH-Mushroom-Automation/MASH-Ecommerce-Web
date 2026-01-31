@@ -85,7 +85,7 @@ describe('ProductCard', () => {
     const card = screen.getByTestId('product-card');
     fireEvent.click(card);
 
-    expect(mockPush).toHaveBeenCalledWith('/products/fresh-oyster-mushrooms');
+    expect(mockPush).toHaveBeenCalledWith('/product/fresh-oyster-mushrooms');
   });
 
   it('should call onAddToCart when Add to Cart button clicked', async () => {
