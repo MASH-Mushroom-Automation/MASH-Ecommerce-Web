@@ -19,12 +19,10 @@ try {
     CartProvider: ({ children }) => children,
   }));
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn('[jest.chatbot.setupMocks] failed to mock CartContext', e.message);
 }
 
 // DISABLED: Mock Gemini service - conflicts with unit tests
-// If integration tests need this, they should use manual mocks instead
 /*
 try {
   jest.mock('@/services/chatbot/gemini-service', () => ({

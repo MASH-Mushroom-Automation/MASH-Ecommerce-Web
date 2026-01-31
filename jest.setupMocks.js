@@ -22,7 +22,6 @@ try {
     }
   }));
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn('[jest.setupMocks] failed to mock RequestCookies', e.message);
 }
 
@@ -37,7 +36,6 @@ try {
     remove: jest.fn(),
   }));
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn('[jest.setupMocks] failed to mock js-cookie', e.message);
 }
 
@@ -71,7 +69,6 @@ try {
 
 
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn('[jest.setupMocks] failed to set up RAG dependencies', e.message);
 }
 
@@ -82,10 +79,8 @@ try {
   global.__MOCK_WISHLIST_PRESENT = !!(wc && wc.useWishlist);
   global.__MOCK_CART_PRESENT = !!(cc && cc.useCart);
   // Log to help debugging in CI/test output
-  // eslint-disable-next-line no-console
   console.log('[jest.setupMocks] wishlist mock present=', global.__MOCK_WISHLIST_PRESENT, 'cart mock present=', global.__MOCK_CART_PRESENT);
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.error('[jest.setupMocks] failed to validate mocks', e);
 }
 
