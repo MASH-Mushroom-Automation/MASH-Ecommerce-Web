@@ -153,7 +153,7 @@ export async function handleWithFallback(
  * Returns a friendly error message when all APIs fail
  */
 export function getFallbackMessage(): string {
-  return `I'm having trouble connecting right now. 😔 Please try again in a moment, or browse our products directly at /shop.`;
+  return `I'm having trouble connecting right now. Please try again in a moment, or browse our products directly at /shop.`;
 }
 
 /**

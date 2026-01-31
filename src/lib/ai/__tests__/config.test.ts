@@ -90,7 +90,7 @@ describe('Phase 1: AI Configuration', () => {
     it('should return valid Hugging Face API URL', () => {
       const url = getHuggingFaceUrl();
 
-      expect(url).toContain('huggingface.co');
+      expect(url).toContain('router.huggingface.co');
       expect(url).toContain('models');
     });
 

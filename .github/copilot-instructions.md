@@ -361,7 +361,7 @@ npm run dev
 | **E-Commerce Dev** | https://beta.mashmarket.app | Railway |
 | **Admin Panel** | https://zen.mashmarket.app | Railway |
 | **Landing Page** | https://join.mashmarket.app (tentative) | Railway |
-| **Backend API** | https://mash-backend-production.up.railway.app | Railway |
+| **Backend API** | https://api.mashmarket.app | Railway |
 | **Firebase** | - | https://console.firebase.google.com/u/7/project/mash-ddf8d/ |
 | **Sanity CMS** | https://ppnamias.sanity.studio | https://www.sanity.io/organizations/oBQP4vpxm/project/gerattrr/ |
 
@@ -369,7 +369,7 @@ npm run dev
 - **.env** file contains **production** configuration with Railway backend URL
 - Frontend domains: www.mashmarket.app (production), beta.mashmarket.app (dev)
 - Admin panel: zen.mashmarket.app for order management and seller operations
-- Backend API: https://mash-backend-production.up.railway.app/api/v1
+- Backend API: https://api.mashmarket.app/api/v1
 - Firebase Google Auth is **enabled and configured**
 - Never use `localhost` URLs in production `.env` file
 
@@ -453,7 +453,7 @@ npm run dev
          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Backend (NestJS - Railway Production)                          │
-│  https://mash-backend-production.up.railway.app/api/v1         │
+│  https://api.mashmarket.app/api/v1                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -490,7 +490,7 @@ cd studio && npm install && npm run dev
 npm run start:dev
 ```
 
-**Production Backend URL:** `https://mash-backend-production.up.railway.app/api/v1`
+**Production Backend URL:** `https://api.mashmarket.app/api/v1`
 
 ## Data Fetching Patterns
 
@@ -659,7 +659,7 @@ toast.error("Failed to process order");
 ### Production Configuration (.env)
 ```env
 # Backend API - PRODUCTION (Railway)
-NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=https://api.mashmarket.app/api/v1
 
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
@@ -682,7 +682,7 @@ NEXT_PUBLIC_ENABLE_API_LOGGING=true  # Logs API routing decisions
 Copy from `.env.production` template and replace placeholders:
 ```env
 # Backend API - PRODUCTION ONLY
-NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1
+NEXT_PUBLIC_API_URL=https://api.mashmarket.app/api/v1
 
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=gerattrr
@@ -756,7 +756,7 @@ npm run import-iot-tasks       # Import GitHub tasks (IOT)
 - **`auth-token` not set**: Check `setAuthToken()` in `src/lib/auth.ts` - runs client-side only
 - **Sanity quota exceeded**: CDN is enabled; manually refresh if changes don't appear
 - **Proxy not protecting routes**: File must be `src/proxy.ts` with `export function proxy()` (Next.js 16)
-- **Backend 404**: Ensure `NEXT_PUBLIC_API_URL` points to production: `https://mash-backend-production.up.railway.app/api/v1`
+- **Backend 404**: Ensure `NEXT_PUBLIC_API_URL` points to production: `https://api.mashmarket.app/api/v1`
 
 ### API Logging
 Enable `NEXT_PUBLIC_ENABLE_API_LOGGING=true` to see:
@@ -823,7 +823,7 @@ Critical scripts in `scripts/` folder - run with: `node scripts/<script-name>.js
 # E-Commerce Dev: https://beta.mashmarket.app
 # Admin Panel:    https://zen.mashmarket.app
 # Landing Page:   https://join.mashmarket.app (tentative)
-# Backend API:    https://mash-backend-production.up.railway.app
+# Backend API:    https://api.mashmarket.app
 ```
 
 **Pre-deployment checklist:**
@@ -955,7 +955,7 @@ try {
 
 **4. "Backend connection errors"**
 - **Cause**: Wrong API URL (localhost instead of production)
-- **Fix**: Ensure `NEXT_PUBLIC_API_URL=https://mash-backend-production.up.railway.app/api/v1`
+- **Fix**: Ensure `NEXT_PUBLIC_API_URL=https://api.mashmarket.app/api/v1`
 - **Note**: Never use localhost URLs in production deployments
 
 **5. "Cart items disappearing on refresh"**

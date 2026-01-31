@@ -148,6 +148,9 @@ class WebSocketClient {
   }
 
   private startHeartbeat() {
+    // Don't start heartbeat during test runs to avoid open handles
+    if (process.env.NODE_ENV === 'test') return;
+
     this.heartbeatInterval = setInterval(() => {
       this.send("heartbeat", { timestamp: new Date().toISOString() });
     }, 30000); // Every 30 seconds

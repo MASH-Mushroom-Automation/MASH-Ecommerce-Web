@@ -1,10 +1,10 @@
 /**
- * Integration Tests for Calendly Appointment Booking Flow
+ * Integration Tests for Cal.com Appointment Booking Flow
  * 
  * Tests the complete end-to-end booking experience from grower profile
- * to booking page navigation and Calendly embed rendering.
+ * to booking page navigation and Cal.com embed rendering.
  * 
- * @see .github/SELLER_APPOINTMENT_SYSTEM_PLAN.md (CAL-009)
+ * @see .github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md (Phase 8)
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -17,30 +17,41 @@ jest.mock('next/navigation', () => ({
   useParams: jest.fn(),
 }));
 
+// Mock useAuth hook - MUST return a function
+jest.mock('@/contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => ({
+    user: {
+      uid: 'test-user-123',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    },
+    isAuthenticated: true,
+  }),
+}));
+
 // Mock Sanity client
 jest.mock('@/hooks/useSanityGrowers', () => ({
   useSanityGrower: jest.fn(),
 }));
 
-// Mock react-calendly
-jest.mock('react-calendly', () => ({
-  InlineWidget: ({ url }: any) => (
-    <div data-testid="calendly-widget" data-url={url}>
-      Calendly Widget
-    </div>
-  ),
+// Mock @calcom/embed-react
+jest.mock('@calcom/embed-react', () => ({
+  getCalApi: jest.fn(() => Promise.resolve((action: string, config: any) => {
+    return config;
+  })),
 }));
 
 import { useSanityGrower } from '@/hooks/useSanityGrowers';
 
-describe('Calendly Booking Flow Integration', () => {
+describe('Cal.com Booking Flow Integration', () => {
   const mockPush = jest.fn();
   const mockGrower = {
     _id: 'grower-123',
     name: 'Shroomarket',
     slug: { current: 'shroomarket' },
     calendlyEnabled: true,
-    calendlyUsername: 'mash-mushroom-automation',
+    calendlyUsername: 'mash-mushroom',
     calendlyDefaultEvent: '30min',
     appointmentTypes: [
       {
@@ -63,7 +74,7 @@ describe('Calendly Booking Flow Integration', () => {
   });
 
   describe('Grower Profile to Booking Page Flow', () => {
-    it('should show booking button on grower profile when Calendly is enabled', () => {
+    it('should show booking button on grower profile when appointments are enabled', () => {
       (useSanityGrower as jest.Mock).mockReturnValue({
         grower: mockGrower,
         loading: false,
@@ -85,12 +96,12 @@ describe('Calendly Booking Flow Integration', () => {
       expect(bookingUrl).toBe(expectedUrl);
     });
 
-    it('should construct Calendly URL correctly for booking page', () => {
-      const username = 'mash-mushroom-automation';
+    it('should construct Cal.com link correctly for booking page', () => {
+      const username = 'mash-mushroom';
       const eventSlug = '30min';
-      const expectedCalendlyUrl = `https://calendly.com/${username}/${eventSlug}`;
+      const expectedCalLink = `${username}/${eventSlug}`;
       
-      expect(expectedCalendlyUrl).toBe('https://calendly.com/mash-mushroom-automation/30min');
+      expect(expectedCalLink).toBe('mash-mushroom/30min');
     });
   });
 
@@ -174,33 +185,33 @@ describe('Calendly Booking Flow Integration', () => {
 
     it('should construct correct Calendly URL for each appointment type', () => {
       const appointmentType = mockGrower.appointmentTypes[0];
-      const url = `https://calendly.com/${mockGrower.calendlyUsername}/${appointmentType.eventSlug}`;
+      const calLink = `${mockGrower.calendlyUsername}/${appointmentType.eventSlug}`;
       
-      expect(url).toBe('https://calendly.com/mash-mushroom-automation/30min');
+      expect(calLink).toBe('mash-mushroom/30min');
     });
   });
 
   describe('Calendly Widget Integration', () => {
-    it('should render Calendly widget with correct URL', () => {
+    it('should render Cal.com widget with correct link', () => {
       const username = mockGrower.calendlyUsername;
       const eventSlug = mockGrower.calendlyDefaultEvent;
       
-      const CalendlyEmbed = require('@/components/appointments').CalendlyEmbed;
+      const CalComEmbed = require('@/components/appointments').CalComEmbed;
       
-      const { getByTestId } = render(
-        <CalendlyEmbed username={username} eventSlug={eventSlug} />
+      const { container } = render(
+        <CalComEmbed username={username} eventSlug={eventSlug} />
       );
       
-      const widget = getByTestId('calendly-widget');
+      const widget = container.querySelector('[data-cal-link]');
       expect(widget).toHaveAttribute(
-        'data-url',
-        'https://calendly.com/mash-mushroom-automation/30min'
+        'data-cal-link',
+        'mash-mushroom/30min'
       );
     });
   });
 
   describe('Disabled State Handling', () => {
-    it('should not show booking option when Calendly is disabled', () => {
+    it('should not show booking option when appointments are disabled', () => {
       const disabledGrower = {
         ...mockGrower,
         calendlyEnabled: false,
@@ -256,19 +267,19 @@ describe('Calendly Booking Flow Integration', () => {
       ]);
     });
 
-    it('should support same Calendly account for all growers', () => {
-      const sharedUsername = 'mash-mushroom-automation';
+    it('should support same Cal.com account for all growers', () => {
+      const sharedUsername = 'mash-mushroom';
       const sharedEvent = '30min';
       
       growers.forEach((slug) => {
-        const calendlyUrl = `https://calendly.com/${sharedUsername}/${sharedEvent}`;
-        expect(calendlyUrl).toBe('https://calendly.com/mash-mushroom-automation/30min');
+        const calLink = `${sharedUsername}/${sharedEvent}`;
+        expect(calLink).toBe('mash-mushroom/30min');
       });
     });
   });
 
   describe('URL Parameter Passing', () => {
-    it('should support passing product ID to Calendly', () => {
+    it('should support passing product ID to Cal.com', () => {
       const productId = 'prod-oyster-mushroom-1kg';
       const prefillData = {
         customAnswers: {
@@ -328,10 +339,10 @@ describe('Calendly Booking Flow Integration', () => {
     });
 
     it('should use live Calendly account', () => {
-      const liveCalendlyUrl = 'https://calendly.com/mash-mushroom-automation/30min';
-      const constructedUrl = `https://calendly.com/${mockGrower.calendlyUsername}/${mockGrower.calendlyDefaultEvent}`;
+      const liveCalLink = 'mash-mushroom/30min';
+      const constructedLink = `${mockGrower.calendlyUsername}/${mockGrower.calendlyDefaultEvent}`;
       
-      expect(constructedUrl).toBe(liveCalendlyUrl);
+      expect(constructedLink).toBe(liveCalLink);
     });
   });
 });
@@ -339,22 +350,22 @@ describe('Calendly Booking Flow Integration', () => {
 describe('Booking Page Component Structure', () => {
   describe('Required Sections', () => {
     it('should have grower information header', () => {
-      const sections = ['growerHeader', 'appointmentTypes', 'calendlyEmbed', 'contactInfo'];
+      const sections = ['growerHeader', 'appointmentTypes', 'calComEmbed', 'contactInfo'];
       expect(sections).toContain('growerHeader');
     });
 
     it('should have appointment type selection', () => {
-      const sections = ['growerHeader', 'appointmentTypes', 'calendlyEmbed', 'contactInfo'];
+      const sections = ['growerHeader', 'appointmentTypes', 'calComEmbed', 'contactInfo'];
       expect(sections).toContain('appointmentTypes');
     });
 
-    it('should have Calendly embed widget', () => {
-      const sections = ['growerHeader', 'appointmentTypes', 'calendlyEmbed', 'contactInfo'];
-      expect(sections).toContain('calendlyEmbed');
+    it('should have Cal.com embed widget', () => {
+      const sections = ['growerHeader', 'appointmentTypes', 'calComEmbed', 'contactInfo'];
+      expect(sections).toContain('calComEmbed');
     });
 
     it('should have contact information sidebar', () => {
-      const sections = ['growerHeader', 'appointmentTypes', 'calendlyEmbed', 'contactInfo'];
+      const sections = ['growerHeader', 'appointmentTypes', 'calComEmbed', 'contactInfo'];
       expect(sections).toContain('contactInfo');
     });
   });
