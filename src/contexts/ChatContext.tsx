@@ -155,6 +155,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
         const response = await apiResponse.json();
         const responseTime = Date.now() - startTime;
 
+        console.log('[ChatContext] API Response received:', {
+          hasContent: !!response.content,
+          productCardCount: response.productCards?.length || 0,
+          source: response.source,
+        });
+
         // Create assistant message
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
@@ -170,10 +176,17 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
         // CRITICAL: Store product cards for this message
         if (response.productCards && response.productCards.length > 0) {
+          console.log('[ChatContext] Storing product cards:', {
+            messageId: assistantMessage.id,
+            cardCount: response.productCards.length,
+            firstCard: response.productCards[0]?.name,
+          });
           setProductCardsByMessageId((prev) => ({
             ...prev,
             [assistantMessage.id]: response.productCards,
           }));
+        } else {
+          console.log('[ChatContext] No product cards in response');
         }
 
         // Track query analytics

@@ -76,10 +76,17 @@ export async function POST(request: NextRequest) {
     
     // Use RAG search for product recommendations
     // This will search Sanity products and embed relevant product cards
+    console.log('[Chatbot API] Starting RAG search for:', message);
     const response = await ragSearch(message, history, {
       maxProducts: 5,
       includeOutOfStock: false,
       minRelevanceScore: 0.1,
+    });
+    
+    console.log('[Chatbot API] RAG response:', {
+      hasContent: !!response.content,
+      productCardCount: response.productCards?.length || 0,
+      source: response.source,
     });
     
     // Return response with rate limit info and product cards
