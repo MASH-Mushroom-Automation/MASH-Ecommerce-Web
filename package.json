@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "prebuild_disabled": "node scripts/validate-env.js",
     "build": "next build",
+    "prebuild": "node ./scripts/ensure-types.js",
     "postinstall": "node -e \"try{console.log('postinstall typescript@'+require('typescript/package.json').version)}catch(e){console.log('postinstall: typescript NOT found')}; try{console.log('@types/react@'+require('@types/react/package.json').version)}catch(e){console.log('postinstall: @types/react NOT found')}\"",
     "start": "next start -H 0.0.0.0",
     "validate-env": "node scripts/validate-env.js",
