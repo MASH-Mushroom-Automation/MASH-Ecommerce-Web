@@ -1,5 +1,6 @@
 // Chatbot-specific early mocks (only used by chatbot test config)
 // These mocks prevent network calls and stabilize AI behavior for integration tests
+// NOTE: gemini-service mock disabled to allow unit tests to run properly
 
 // Mock CartContext for chatbot tests
 try {
@@ -9,7 +10,7 @@ try {
       items: [],
       itemCount: 0,
       addItem: jest.fn(() => Promise.resolve()),
-      addToCart: jest.fn(),
+      addToCart: jest.fn(() => true), // Return true to indicate successful addition
       removeFromCart: jest.fn(),
       updateQuantity: jest.fn(),
       clearCart: jest.fn(),
@@ -22,7 +23,9 @@ try {
   console.warn('[jest.chatbot.setupMocks] failed to mock CartContext', e.message);
 }
 
-// Mock Gemini service used by chatbot integration tests
+// DISABLED: Mock Gemini service - conflicts with unit tests
+// If integration tests need this, they should use manual mocks instead
+/*
 try {
   jest.mock('@/services/chatbot/gemini-service', () => ({
     sendMessage: jest.fn(async (message, history = []) => ({
@@ -44,3 +47,4 @@ try {
   // eslint-disable-next-line no-console
   console.warn('[jest.chatbot.setupMocks] failed to mock gemini-service', e.message);
 }
+*/
