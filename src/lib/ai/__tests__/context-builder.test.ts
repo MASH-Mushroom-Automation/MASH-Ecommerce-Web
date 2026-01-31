@@ -113,7 +113,7 @@ describe('Context Builder', () => {
       const links = generateProductLinks([cardData]);
       
       expect(links[0]).toContain('[Fresh Oyster Mushrooms]');
-      expect(links[0]).toContain('/products/fresh-oyster-mushrooms');
+      expect(links[0]).toContain('/product/fresh-oyster-mushrooms');
       expect(links[0]).toContain('₱150');
       expect(links[0]).toContain('✅');
     });

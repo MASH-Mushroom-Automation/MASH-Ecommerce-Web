@@ -136,18 +136,30 @@ export function ChatProvider({ children }: ChatProviderProps) {
       const startTime = Date.now();
 
       try {
-        // CRITICAL: Use smartRAGSearch to get response with product cards
-        const response: RAGResponse = await smartRAGSearch(
-          content,
-          messages, // Pass conversation history for context
-          {
-            maxProducts: 5,
-            includeOutOfStock: false,
-            minRelevanceScore: 0.3,
-          }
-        );
+        // Call API route that uses RAG search
+        const apiResponse = await fetch('/api/chatbot/message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: content.trim(),
+            history: messages,
+          }),
+        });
 
+        if (!apiResponse.ok) {
+          throw new Error('API request failed');
+        }
+
+        const response = await apiResponse.json();
         const responseTime = Date.now() - startTime;
+
+        console.log('[ChatContext] API Response received:', {
+          hasContent: !!response.content,
+          productCardCount: response.productCards?.length || 0,
+          source: response.source,
+        });
 
         // Create assistant message
         const assistantMessage: Message = {
@@ -156,7 +168,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
           content: response.content,
           timestamp: Date.now(),
           metadata: {
-            source: response.source,
+            source: response.source || 'rag',
           },
         };
 
@@ -164,10 +176,17 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
         // CRITICAL: Store product cards for this message
         if (response.productCards && response.productCards.length > 0) {
+          console.log('[ChatContext] Storing product cards:', {
+            messageId: assistantMessage.id,
+            cardCount: response.productCards.length,
+            firstCard: response.productCards[0]?.name,
+          });
           setProductCardsByMessageId((prev) => ({
             ...prev,
-            [assistantMessage.id]: response.productCards!,
+            [assistantMessage.id]: response.productCards,
           }));
+        } else {
+          console.log('[ChatContext] No product cards in response');
         }
 
         // Track query analytics

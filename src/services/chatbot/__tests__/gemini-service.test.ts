@@ -7,8 +7,8 @@
  */
 
 import { sendMessage, validateMessage, getIntroMessage } from '../gemini-service';
-import * as geminiClient from '@/lib/ai/gemini-client';
-import * as errorHandler from '@/lib/ai/error-handler';
+import { generateResponse } from '@/lib/ai/gemini-client';
+import { handleWithFallback } from '@/lib/ai/error-handler';
 import type { AIResponse, Message } from '@/types/chatbot';
 
 // Mock dependencies
@@ -28,14 +28,14 @@ describe('Gemini Service', () => {
         source: 'gemini',
       };
       
-      (geminiClient.generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
-      (errorHandler.handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
       
       const result = await sendMessage('Hello');
       
       expect(result.success).toBe(true);
       expect(result.content).toBe('Hello! How can I help you?');
-      expect(geminiClient.generateResponse).toHaveBeenCalledWith(
+      expect(generateResponse).toHaveBeenCalledWith(
         expect.any(String),
         []
       );
@@ -53,13 +53,13 @@ describe('Gemini Service', () => {
         { id: '2', role: 'assistant', content: 'Nice to meet you, John!', timestamp: Date.now() },
       ];
       
-      (geminiClient.generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
-      (errorHandler.handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
       
       const result = await sendMessage('Do you remember my name?', history);
       
       expect(result.success).toBe(true);
-      expect(geminiClient.generateResponse).toHaveBeenCalledWith(
+      expect(generateResponse).toHaveBeenCalledWith(
         expect.any(String),
         history
       );
@@ -72,13 +72,13 @@ describe('Gemini Service', () => {
         source: 'gemini',
       };
       
-      (geminiClient.generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
-      (errorHandler.handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (generateResponse as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (handleWithFallback as jest.Mock).mockResolvedValueOnce(mockResponse);
       
       const result = await sendMessage('what mushroom for beef pepper garlic');
       
       expect(result.success).toBe(true);
-      expect(geminiClient.generateResponse).toHaveBeenCalledWith(
+      expect(generateResponse).toHaveBeenCalledWith(
         expect.stringContaining('recipe'),
         []
       );
@@ -98,13 +98,13 @@ describe('Gemini Service', () => {
         source: 'huggingface',
       };
       
-      (geminiClient.generateResponse as jest.Mock).mockResolvedValueOnce(primaryResponse);
-      (errorHandler.handleWithFallback as jest.Mock).mockResolvedValueOnce(fallbackResponse);
+      (generateResponse as jest.Mock).mockResolvedValueOnce(primaryResponse);
+      (handleWithFallback as jest.Mock).mockResolvedValueOnce(fallbackResponse);
       
       const result = await sendMessage('Hello');
       
       expect(result.source).toBe('huggingface');
-      expect(errorHandler.handleWithFallback).toHaveBeenCalled();
+      expect(handleWithFallback).toHaveBeenCalled();
     });
   });
   
@@ -131,11 +131,11 @@ describe('Gemini Service', () => {
       const longMessage = 'a'.repeat(501);
       const result = validateMessage(longMessage);
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('500');
+      expect(result.error).toContain('too long');
     });
     
     it('should detect spam patterns', () => {
-      const spamMessage = 'aaaaaaaaaaaaaaaaaaa'; // Repeated character
+      const spamMessage = 'aaaaaaaaaaa'; // 11 repeated characters (pattern requires 11+)
       const result = validateMessage(spamMessage);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid');

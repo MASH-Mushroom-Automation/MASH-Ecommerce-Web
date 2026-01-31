@@ -143,7 +143,7 @@ export function buildProductContext(results: SearchResult[]): ProductContext {
 export function generateProductLinks(products: ProductCardData[]): string[] {
   return products.map((product) => {
     const stockStatus = product.inStock ? '✅' : '❌';
-    return `${stockStatus} [${product.name}](/products/${product.slug}) - ₱${product.price}`;
+    return `${stockStatus} [${product.name}](/product/${product.slug}) - ₱${product.price}`;
   });
 }
 

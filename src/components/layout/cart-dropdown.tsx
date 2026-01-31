@@ -33,7 +33,8 @@ const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 export function CartDropdown() {
   const cartData = useCart();
-  const { items, summary, updateQuantity, removeFromCart, clearCart } = cartData;
+  const { items, summary, updateQuantity, removeFromCart, clearCart } =
+    cartData;
   // TEMPORARILY DISABLED: Backend API not ready, cart items should already have product details
   // const { products } = useProducts({ limit: 100 });
   const [prevItemCount, setPrevItemCount] = useState(0);
@@ -57,7 +58,10 @@ export function CartDropdown() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="relative flex items-center hover:text-accent transition-colors group">
+        <button
+          className="relative flex items-center hover:text-accent transition-colors group"
+          suppressHydrationWarning
+        >
           <ShoppingCart size={24} className="group-hover:text-accent" />
           <span className="text-sm ml-1 hidden sm:block">Cart</span>
           {totalItems > 0 && (
@@ -118,9 +122,12 @@ export function CartDropdown() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remove item from cart?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            Remove item from cart?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will remove "{item.name}" from your cart. You can always add it back later.
+                            This will remove "{item.name}" from your cart. You
+                            can always add it back later.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -136,7 +143,10 @@ export function CartDropdown() {
                     </AlertDialog>
 
                     <div className="flex gap-4">
-                      <Link href={`/product/${item.slug}`} className="flex-shrink-0">
+                      <Link
+                        href={`/product/${item.slug}`}
+                        className="flex-shrink-0"
+                      >
                         <Image
                           src={item.image || PLACEHOLDER_IMAGE}
                           alt={item.name}
@@ -144,7 +154,9 @@ export function CartDropdown() {
                           height={120}
                           className={cn(
                             "w-[120px] h-[120px] rounded-lg",
-                            item.image ? "object-cover" : "object-contain bg-muted p-2"
+                            item.image
+                              ? "object-cover"
+                              : "object-contain bg-muted p-2",
                           )}
                         />
                       </Link>
@@ -156,7 +168,9 @@ export function CartDropdown() {
                           </h4>
                         </Link>
 
-                        <p className="text-sm text-accent mb-3">Sold by: @{item.grower || "MASH"}</p>
+                        <p className="text-sm text-accent mb-3">
+                          Sold by: @{item.grower || "MASH"}
+                        </p>
 
                         <div className="flex items-center justify-between mt-auto">
                           <p className="text-lg font-bold text-foreground">
@@ -169,7 +183,10 @@ export function CartDropdown() {
                               onClick={() => {
                                 // Only decrease quantity if it is greater than 1
                                 if (item.quantity > 1) {
-                                  updateQuantity(item.productId, item.quantity - 1);
+                                  updateQuantity(
+                                    item.productId,
+                                    item.quantity - 1,
+                                  );
                                 }
                               }}
                               // Disable button when quantity is 1
@@ -190,7 +207,10 @@ export function CartDropdown() {
 
                             <button
                               onClick={() =>
-                                updateQuantity(item.productId, item.quantity + 1)
+                                updateQuantity(
+                                  item.productId,
+                                  item.quantity + 1,
+                                )
                               }
                               className="w-8 h-8 flex items-center justify-center hover:bg-muted/80 rounded transition-colors"
                               aria-label="Increase quantity"
@@ -233,7 +253,8 @@ export function CartDropdown() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Clear all items?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will remove all products from your cart. You can always add them again from the catalog.
+                        This will remove all products from your cart. You can
+                        always add them again from the catalog.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

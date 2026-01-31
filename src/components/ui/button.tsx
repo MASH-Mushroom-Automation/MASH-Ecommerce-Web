@@ -43,7 +43,7 @@ const buttonVariants = cva(
       size: "default",
       rounded: "default",
     },
-  }
+  },
 );
 
 function Button({
@@ -63,6 +63,7 @@ function Button({
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, rounded, className }))}
+      suppressHydrationWarning
       {...props}
     />
   );

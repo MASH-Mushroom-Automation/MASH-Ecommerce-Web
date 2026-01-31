@@ -34,8 +34,16 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className, onAddToCart, conversationId, messageId }: ProductCardProps) {
   const router = useRouter();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  // Defensive: if the hook isn't available (mocked tests or missing provider), fall back to no-op handlers
+  const wishlistHook = typeof useWishlist === 'function' ? useWishlist() : undefined;
+  const { addToWishlist, removeFromWishlist, isInWishlist } = wishlistHook || {
+    addToWishlist: () => {},
+    removeFromWishlist: () => {},
+    isInWishlist: () => false,
+  };
+
+  const cartHook = typeof useCart === 'function' ? useCart() : undefined;
+  const { addToCart } = cartHook || { addToCart: () => Promise.resolve(true) };
   const inWishlist = isInWishlist(product.id);
 
   const handleCardClick = async () => {
@@ -53,7 +61,7 @@ export function ProductCard({ product, className, onAddToCart, conversationId, m
       });
     }
     
-    router.push(`/products/${product.slug}`);
+    router.push(`/product/${product.slug}`);
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {

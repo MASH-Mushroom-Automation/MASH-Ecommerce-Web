@@ -10,12 +10,16 @@ const createJestConfig = nextJest({
   dir: './',
 });
 
+// Run early mocks before modules are loaded
+const setupFiles = ['<rootDir>/jest.setupMocks.js'];
+
 /** @type {import('jest').Config} */
 const customJestConfig = {
   // Use jsdom for DOM APIs
   testEnvironment: 'jest-environment-jsdom',
 
   // Setup files
+  setupFiles: ['<rootDir>/jest.setupMocks.js'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 
   // Module paths
@@ -62,6 +66,11 @@ const customJestConfig = {
     '/coverage/',
     '/scripts/',
     '/e2e/',
+  ],
+
+  // Transform ignore patterns: allow transforming ESM packages that ship untranspiled code
+  transformIgnorePatterns: [
+    '/node_modules/(?!(next-sanity|@sanity|groq)/)'
   ],
 
   // Transform files
