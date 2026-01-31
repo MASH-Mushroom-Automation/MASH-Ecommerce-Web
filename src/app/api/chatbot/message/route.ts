@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
     // This will search Sanity products and embed relevant product cards
     console.log('[Chatbot API] Starting RAG search for:', message);
     const response = await ragSearch(message, history, {
-      maxProducts: 5,
-      includeOutOfStock: false,
-      minRelevanceScore: 0.1,
+      maxProducts: 3, // Show 1-3 products as requested
+      includeOutOfStock: true, // TEMPORARY: Include all products since stock data needs updating
+      minRelevanceScore: 0.001, // Very low threshold to ensure matches
     });
     
     console.log('[Chatbot API] RAG response:', {
