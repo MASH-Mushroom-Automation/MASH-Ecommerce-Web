@@ -102,8 +102,11 @@ const customJestConfig = {
 
   // Clear mocks between tests
   clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
+  // Note: resetMocks and restoreMocks were disabled because they cause
+  // issues with shared mock instances across module boundaries.
+  // Tests should call jest.resetAllMocks() explicitly if needed.
+  resetMocks: false,
+  restoreMocks: false,
 };
 
 // Export config

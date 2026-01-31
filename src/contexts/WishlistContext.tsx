@@ -22,19 +22,14 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   // Load wishlist from cookie on mount
   useEffect(() => {
-    console.debug("[WishlistContext] Loading wishlist from cookie...");
     const savedWishlist = getWishlistCookie();
-    console.debug("[WishlistContext] savedWishlist:", savedWishlist ? "found" : "not found");
     if (savedWishlist) {
       try {
-        console.debug("[WishlistContext] Parsed wishlist:", savedWishlist);
         // Check version for migration
         if (savedWishlist.version === 2 && Array.isArray(savedWishlist.items)) {
-          console.debug("[WishlistContext] Loading", savedWishlist.items.length, "items");
           setWishlistIds(savedWishlist.items);
         } else {
           // Old wishlist format - clear it
-          console.debug("[WishlistContext] Old wishlist format detected, clearing wishlist");
           clearWishlistCookie();
         }
       } catch (error) {
@@ -42,7 +37,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
-    console.debug("[WishlistContext] Wishlist loaded, isLoaded set to true");
   }, []);
 
   // Save wishlist to cookie whenever it changes

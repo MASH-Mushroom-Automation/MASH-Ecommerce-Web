@@ -7,6 +7,37 @@
 - **API Routing:** Email endpoints route based on `NEXT_PUBLIC_EMAIL_SERVICE_ENV`
 - **Test Guards:** Long-running intervals should be disabled in test environment by default. Use opt-in flags: `global.__ENABLE_COOKIE_POLLING_IN_TESTS` and `global.__ENABLE_REALTIME_IN_TESTS`.
 - **Hero Carousel Heights:** Use reduced heights for better UX - loading/error: h-[300px] md:h-[350px] lg:h-[400px], content: min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
+- **Cookie Mock Pattern:** Global mock in `jest.setupMocks.js` via `global.__mockCookies`. Tests access same instance as source code. For cookies.test.ts that tests real implementation, use `jest.unmock('@/lib/cookies')`.
+- **HTTP Status Codes:** Malformed JSON should return 400 (Bad Request), not 500. Client errors = 4xx, Server errors = 5xx.
+
+---
+
+## [2026-01-31 17:30] - STORY-TEST-FIX-COOKIES
+**Completed:** Fix Jest mock isolation issue for @/lib/cookies module
+**Files Changed:**
+- jest.setupMocks.js (added global.__mockCookies with jest.mock at module level)
+- src/contexts/__tests__/WishlistContext.test.tsx (use global mock, removed casts)
+- src/contexts/__tests__/AuthContext.test.tsx (use global mock, use getCookieJSON.mockReturnValue)
+- src/lib/__tests__/cookies.test.ts (added jest.unmock to test real implementation)
+- src/contexts/WishlistContext.tsx (removed temp debug logging)
+- src/app/api/chatbot/message/route.ts (fixed: malformed JSON returns 400 not 500)
+- src/__tests__/chatbot-integration.test.ts (fixed: expect 400 for malformed JSON)
+
+**Implementation Notes:**
+- Root cause: Jest module isolation gave test file and source module different mock instances
+- Solution: Create global mock object (`global.__mockCookies`) in jest.setupMocks.js BEFORE any imports
+- `jest.mock('@/lib/cookies', () => global.__mockCookies)` ensures all modules share same mock
+- Tests access mock via `const mockCookies = global.__mockCookies as {...}` instead of importing
+- For cookies.test.ts that needs REAL implementation, add `jest.unmock('@/lib/cookies')` at top
+- Fixed HTTP status: malformed JSON is client error = 400 (Bad Request), not 500
+
+**Learnings for Future Iterations:**
+- Jest `jest.mock()` in test files only affects that file's imports, not transitive dependencies
+- Use jest.setupMocks.js for mocks that need to be shared across module boundaries
+- Store mock functions on `global` object for test file access
+- `jest.unmock()` can restore real implementation for specific test files
+
+**Tests Passing:** [PASS] 729/731 tests (2 skipped) | [PASS] Build | [PASS] TypeCheck
 
 ---
 

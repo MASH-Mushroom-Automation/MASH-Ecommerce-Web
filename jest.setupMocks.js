@@ -1,8 +1,29 @@
 // Early mocks - run before modules are loaded
 
+// CRITICAL: Mock @/lib/cookies BEFORE any module imports it
+// This ensures WishlistContext, CartContext, etc. all get the mock
+// The mock functions are stored globally so tests can configure them
+global.__mockCookies = {
+  setCookie: jest.fn(),
+  getCookie: jest.fn(),
+  getCookieJSON: jest.fn(),
+  removeCookie: jest.fn(),
+  setSecureCookie: jest.fn(),
+  clearSecureCookie: jest.fn(),
+  getCartCookie: jest.fn(),
+  setCartCookie: jest.fn(),
+  getWishlistCookie: jest.fn(),
+  setWishlistCookie: jest.fn(),
+  clearCartCookie: jest.fn(),
+  clearWishlistCookie: jest.fn(),
+  getThemeCookie: jest.fn(),
+  setThemeCookie: jest.fn(),
+  getLanguageCookie: jest.fn(),
+  setLanguageCookie: jest.fn(),
+  clearAllCookies: jest.fn(),
+};
 
-
-
+jest.mock('@/lib/cookies', () => global.__mockCookies);
 
 // Mock RequestCookies to be resilient to plain header objects (NextRequest in tests)
 try {
@@ -27,17 +48,8 @@ try {
 
 
 
-// Mock common browser-only modules early
-try {
-  // Mock js-cookie globally so modules that import it during setup get a mock
-  jest.mock('js-cookie', () => ({
-    set: jest.fn(),
-    get: jest.fn(),
-    remove: jest.fn(),
-  }));
-} catch (e) {
-  console.warn('[jest.setupMocks] failed to mock js-cookie', e.message);
-}
+// NOTE: js-cookie mock is handled by __mocks__/js-cookie.js manual mock file
+// That mock uses an in-memory store and exposes it via __cookieStore for debugging
 
 // Use the real RAG service implementation but mock its dependencies (sanity / search / context builder / gemini client)
 try {

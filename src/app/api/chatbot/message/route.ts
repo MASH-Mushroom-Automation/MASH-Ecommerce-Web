@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
         body = {};
       }
     } catch (err) {
-      // Malformed JSON
+      // Malformed JSON - client error, return 400
       return NextResponse.json(
         { success: false, error: 'Malformed JSON' },
-        { status: 500 }
+        { status: 400 }
       );
     }
 

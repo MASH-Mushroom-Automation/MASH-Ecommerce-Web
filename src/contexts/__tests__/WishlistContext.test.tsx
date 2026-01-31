@@ -19,10 +19,19 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WishlistProvider, useWishlist } from '../WishlistContext';
-import { getWishlistCookie, setWishlistCookie, clearWishlistCookie } from '@/lib/cookies';
 
-// Mock cookie functions
-jest.mock('@/lib/cookies');
+// Access the SAME mock instance that WishlistContext uses
+// This is set up in jest.setupMocks.js BEFORE any module imports
+const mockCookies = global.__mockCookies as {
+  getWishlistCookie: jest.Mock;
+  setWishlistCookie: jest.Mock;
+  clearWishlistCookie: jest.Mock;
+};
+
+// Type alias for cleaner access
+const getWishlistCookie = mockCookies.getWishlistCookie;
+const setWishlistCookie = mockCookies.setWishlistCookie;
+const clearWishlistCookie = mockCookies.clearWishlistCookie;
 
 // Test component to access wishlist context
 function TestComponent() {
@@ -68,10 +77,10 @@ describe('WishlistContext', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
-    // Default mock implementations
-    (getWishlistCookie as jest.Mock).mockReturnValue(null);
-    (setWishlistCookie as jest.Mock).mockImplementation(() => {});
-    (clearWishlistCookie as jest.Mock).mockImplementation(() => {});
+    // Default mock implementations - no cast needed, these are already jest.Mock
+    getWishlistCookie.mockReturnValue(null);
+    setWishlistCookie.mockImplementation(() => {});
+    clearWishlistCookie.mockImplementation(() => {});
   });
 
   describe('Context Provider', () => {
@@ -116,7 +125,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2', 'product-3'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -133,7 +142,7 @@ describe('WishlistContext', () => {
 
     it('should handle corrupted cookie data gracefully', () => {
       // Mock invalid wishlist structure
-      (getWishlistCookie as jest.Mock).mockReturnValue({ invalid: 'data' });
+      getWishlistCookie.mockReturnValue({ invalid: 'data' });
 
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -250,7 +259,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -290,7 +299,7 @@ describe('WishlistContext', () => {
         items: ['product-1'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -316,7 +325,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2', 'product-3'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -339,7 +348,7 @@ describe('WishlistContext', () => {
         items: ['product-1'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -406,7 +415,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -432,7 +441,7 @@ describe('WishlistContext', () => {
         items: ['product-1'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -478,8 +487,8 @@ describe('WishlistContext', () => {
       };
 
       // Mock cookie to persist data
-      (getWishlistCookie as jest.Mock).mockImplementation(() => savedWishlist);
-      (setWishlistCookie as jest.Mock).mockImplementation((wishlist) => {
+      getWishlistCookie.mockImplementation(() => savedWishlist);
+      setWishlistCookie.mockImplementation((wishlist) => {
         savedWishlist = wishlist;
       });
 
@@ -527,7 +536,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -556,8 +565,8 @@ describe('WishlistContext', () => {
       };
 
       // Mock cookie to persist data
-      (getWishlistCookie as jest.Mock).mockImplementation(() => savedWishlist);
-      (setWishlistCookie as jest.Mock).mockImplementation((wishlist) => {
+      getWishlistCookie.mockImplementation(() => savedWishlist);
+      setWishlistCookie.mockImplementation((wishlist) => {
         savedWishlist = wishlist;
       });
 
@@ -604,7 +613,7 @@ describe('WishlistContext', () => {
       jest.useFakeTimers();
       
       // Start with empty wishlist
-      (getWishlistCookie as jest.Mock).mockReturnValue(null);
+      getWishlistCookie.mockReturnValue(null);
 
       render(
         <WishlistProvider>
@@ -620,7 +629,7 @@ describe('WishlistContext', () => {
         items: ['product-1', 'product-2'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(updatedWishlist);
+      getWishlistCookie.mockReturnValue(updatedWishlist);
 
       // Fast-forward timer to trigger cookie polling
       await act(async () => {
@@ -645,7 +654,7 @@ describe('WishlistContext', () => {
         items: ['product-1'],
         updatedAt: new Date().toISOString(),
       };
-      (getWishlistCookie as jest.Mock).mockReturnValue(savedWishlist);
+      getWishlistCookie.mockReturnValue(savedWishlist);
 
       render(
         <WishlistProvider>
@@ -656,7 +665,7 @@ describe('WishlistContext', () => {
       expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
 
       // Simulate cookie cleared from another tab
-      (getWishlistCookie as jest.Mock).mockReturnValue(null);
+      getWishlistCookie.mockReturnValue(null);
 
       // Fast-forward timer
       await act(async () => {
@@ -680,7 +689,7 @@ describe('WishlistContext', () => {
       );
 
       // Simulate corrupted cookie data
-      (getWishlistCookie as jest.Mock).mockReturnValue({ invalid: 'data' });
+      getWishlistCookie.mockReturnValue({ invalid: 'data' });
 
       await act(async () => {
         jest.advanceTimersByTime(2000);

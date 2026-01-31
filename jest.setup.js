@@ -114,30 +114,23 @@ jest.mock('firebase/firestore', () => ({
   increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
 }));
 
-// Mock js-cookie for cookie management
-jest.mock('js-cookie', () => ({
-  default: {
-    get: jest.fn((name) => {
-      // Return mock values for common cookies
-      const mockCookies = {
-        'auth-token': 'mock-auth-token',
-        'refreshToken': 'mock-refresh-token',
-      };
-      return mockCookies[name] || null;
-    }),
-    set: jest.fn(),
-    remove: jest.fn(),
-  },
-  get: jest.fn((name) => {
-    const mockCookies = {
-      'auth-token': 'mock-auth-token',
-      'refreshToken': 'mock-refresh-token',
-    };
-    return mockCookies[name] || null;
-  }),
-  set: jest.fn(),
-  remove: jest.fn(),
-}));
+// NOTE: js-cookie is mocked via __mocks__/js-cookie.js manual mock file
+// That mock uses an in-memory store and exposes it via __cookieStore
+
+// Global beforeEach to clear cookie store between tests and restore mock implementations
+// IMPORTANT: Jest's resetMocks:true runs BEFORE our beforeEach, so we need to restore implementations here
+beforeEach(() => {
+  // Restore js-cookie mock implementations (cleared by Jest's resetMocks:true)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const jsCookie = require('js-cookie');
+  if (jsCookie.restoreImplementations) {
+    jsCookie.restoreImplementations();
+  }
+  // Clear the cookie store for test isolation
+  if (jsCookie.clearStore) {
+    jsCookie.clearStore();
+  }
+});
 
 // Mock analytics module
 jest.mock('@/lib/analytics/chatbot-analytics', () => ({
@@ -548,7 +541,13 @@ afterEach(() => {
   // Clear mocks to avoid cumulative memory usage across tests
   try {
     jest.clearAllMocks();
-    jest.restoreAllMocks();
+    // Note: restoreAllMocks() was removed because it clears implementations
+    // on mocks created with jest.fn() inline, which breaks our js-cookie mock
+  } catch (e) {}
+  
+  // Clear the in-memory cookie store to avoid cross-test pollution
+  try {
+    cookieStore.clear();
   } catch (e) {}
 
   // Attempt to detect and clear intervals created by well-known singletons

@@ -14,6 +14,8 @@ import Cookies from 'js-cookie';
 // Support both ESM default import and CommonJS mock exports in tests
 const cookieLib: any = (Cookies as any).default || Cookies;
 
+
+
 // ============================================================================
 // COOKIE CONFIGURATION
 // ============================================================================
@@ -73,9 +75,6 @@ export function setCookie(
  */
 export function getCookie(name: string): string | null {
   const val = cookieLib.get(name);
-  // For debugging tests, log presence
-  // eslint-disable-next-line no-console
-  console.debug('[cookies] getCookie', name, '->', val);
   return (val as string | undefined) || null;
 }
 
