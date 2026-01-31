@@ -118,7 +118,7 @@ describe('Cookie Management System', () => {
 
     it('should set and retrieve cart cookie', () => {
       const cartV2 = {
-        version: 2,
+        version: 2 as const,
         items: [{ _id: '1', name: 'Test Product', quantity: 2, price: 100 }],
         updatedAt: '2026-01-22T00:00:00Z',
       };
@@ -136,7 +136,7 @@ describe('Cookie Management System', () => {
 
     it('should clear cart cookie', () => {
       const cartV2 = {
-        version: 2,
+        version: 2 as const,
         items: [],
         updatedAt: '2026-01-22T00:00:00Z',
       };
@@ -164,7 +164,7 @@ describe('Cookie Management System', () => {
 
     it('should set and retrieve wishlist cookie', () => {
       const wishlistV2 = {
-        version: 2,
+        version: 2 as const,
         items: ['product-1', 'product-2', 'product-3'],
         updatedAt: '2026-01-22T00:00:00Z',
       };
@@ -182,7 +182,7 @@ describe('Cookie Management System', () => {
 
     it('should clear wishlist cookie', () => {
       const wishlistV2 = {
-        version: 2,
+        version: 2 as const,
         items: ['product-1'],
         updatedAt: '2026-01-22T00:00:00Z',
       };

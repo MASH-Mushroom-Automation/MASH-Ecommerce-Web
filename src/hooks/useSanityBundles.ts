@@ -218,9 +218,9 @@ export function useSanityBundles(productId?: string) {
   useEffect(() => {
     fetchBundles();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates using the safe listen method
     const subscription = sanityClient
-      .listenSafe ? .listenSafe(`*[_type == "productBundle"]`) : listenSafe(`*[_type == "productBundle"]`)
+      .listen(`*[_type == "productBundle"]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [BUNDLES] Bundle updated in real-time!");
@@ -356,7 +356,7 @@ export function useSanityBundle(slug: string) {
 
     // Subscribe to real-time updates for this specific bundle
     const subscription = sanityClient
-      .listenSafe ? .listenSafe(`*[_type == "productBundle" && slug.current == "${slug}"]`) : listenSafe(`*[_type == "productBundle" && slug.current == "${slug}"]`)
+      .listen(`*[_type == "productBundle" && slug.current == "${slug}"]`)
       .subscribe((update) => {
         if (update.type === "mutation") {
           console.log("🔄 [BUNDLE] Bundle updated in real-time!");

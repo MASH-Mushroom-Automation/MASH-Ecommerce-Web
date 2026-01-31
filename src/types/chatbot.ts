@@ -70,11 +70,14 @@ export interface AIResponse {
   content: string;
   success: boolean;
   error?: string;
-  source: 'gemini' | 'huggingface' | 'fallback';
+  source: 'gemini' | 'huggingface' | 'fallback' | 'rag';
   metadata?: {
     tokensUsed?: number;
     model?: string;
     processingTime?: number;
+    timestamp?: string;
+    fallbackUsed?: boolean;
+    primaryError?: string;
   };
 }
 

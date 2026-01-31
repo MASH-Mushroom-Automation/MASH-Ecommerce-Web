@@ -24,17 +24,19 @@ export const MAX_MESSAGES_PER_MINUTE = parseInt(
 // API Endpoints
 // Use the stable v1 Gemini endpoint (recommended)
 export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1';
-export const HF_API_ENDPOINT = 'https://router.huggingface.co/models';
+// Use the HuggingFace Inference Providers router (OpenAI-compatible)
+export const HF_API_ENDPOINT = 'https://router.huggingface.co/v1';
 
 // Model Configuration - Configurable via environment variables
 // See: https://ai.google.dev/gemini-api/docs/models/gemini
 // Available models: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash, gemini-2.0-flash-exp
 export const GEMINI_MODEL = process.env.NEXT_PUBLIC_GEMINI_MODEL || 'gemini-2.0-flash';
-export const HF_FALLBACK_MODEL = process.env.NEXT_PUBLIC_HF_FALLBACK_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1';
+// HuggingFace model for chat completions (OpenAI-compatible API)
+export const HF_FALLBACK_MODEL = process.env.NEXT_PUBLIC_HF_FALLBACK_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
 
 // Request Timeouts (milliseconds)
 export const GEMINI_TIMEOUT = 30000; // 30 seconds
-export const HF_TIMEOUT = 30000; // 30 seconds
+export const HF_TIMEOUT = 45000; // 45 seconds (increased for reliability)
 
 // Chat Configuration
 export const MAX_MESSAGE_LENGTH = 500;
@@ -78,10 +80,10 @@ export function getGeminiUrl(model: string = GEMINI_MODEL): string {
 }
 
 /**
- * Gets the Hugging Face API URL for a specific model
- * @param model - The HF model to use
- * @returns Full API URL
+ * Gets the Hugging Face API URL for chat completions
+ * Uses OpenAI-compatible chat completions endpoint
+ * @returns Full API URL for chat completions
  */
-export function getHuggingFaceUrl(model: string = HF_FALLBACK_MODEL): string {
-  return `${HF_API_ENDPOINT}/${model}`;
+export function getHuggingFaceUrl(): string {
+  return `${HF_API_ENDPOINT}/chat/completions`;
 }

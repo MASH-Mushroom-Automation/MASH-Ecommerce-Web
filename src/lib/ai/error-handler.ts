@@ -7,12 +7,12 @@
  * @see .github/AI_CHATBOT_MASTER_PLAN.md - Phase 2, Task 2.5
  */
 
-import { HF_API_KEY, getHuggingFaceUrl, HF_TIMEOUT } from './config';
+import { HF_API_KEY, getHuggingFaceUrl, HF_TIMEOUT, HF_FALLBACK_MODEL } from './config';
 import { ChatbotError } from '@/types/chatbot';
 import type { Message, AIResponse } from '@/types/chatbot';
 
 /**
- * Sends a message to Hugging Face Inference API (Mixtral-8x7B)
+ * Sends a message to Hugging Face Inference API using OpenAI-compatible chat completions
  * Used as fallback when Gemini API fails
  * 
  * @param message - User message
@@ -24,16 +24,29 @@ export async function sendToHuggingFace(
   history: Message[] = []
 ): Promise<AIResponse> {
   try {
-    // Build conversation context for Hugging Face
-    const conversationContext = history
-      .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-      .join('\n');
+    // Build messages array in OpenAI format
+    const messages: Array<{ role: string; content: string }> = [
+      {
+        role: 'system',
+        content: 'You are MASH AI Assistant, a helpful assistant for the MASH e-commerce platform. Help users find products, answer questions about mushroom growing kits and supplies, and provide excellent customer support. Be friendly, concise, and helpful.'
+      }
+    ];
     
-    const prompt = conversationContext 
-      ? `${conversationContext}\nUser: ${message}\nAssistant:`
-      : `User: ${message}\nAssistant:`;
+    // Add conversation history
+    for (const msg of history) {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      });
+    }
     
-    // Call Hugging Face API directly (this function runs server-side in API routes)
+    // Add current user message
+    messages.push({
+      role: 'user',
+      content: message
+    });
+    
+    // Call Hugging Face API using OpenAI-compatible chat completions
     const apiUrl = getHuggingFaceUrl();
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -41,41 +54,35 @@ export async function sendToHuggingFace(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${HF_API_KEY}`,
       },
-      body: JSON.stringify({ 
-        inputs: prompt, 
-        parameters: { 
-          max_new_tokens: 500, 
-          temperature: 0.7, 
-          top_p: 0.95, 
-          do_sample: true 
-        } 
+      body: JSON.stringify({
+        model: HF_FALLBACK_MODEL,
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.95,
+        stream: false
       }),
       signal: AbortSignal.timeout(HF_TIMEOUT),
     });
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Hugging Face API error: ${response.status}`);
+      throw new Error(errorData.error?.message || errorData.error || `Hugging Face API error: ${response.status}`);
     }
     
     const data = await response.json();
     
-    // Hugging Face returns array with generated_text
-    const generatedText = data[0]?.generated_text || '';
-    
-    // Extract only the assistant's response (remove prompt)
-    const assistantResponse = generatedText
-      .split('Assistant:')
-      .pop()
-      ?.trim() || 'Sorry, I could not generate a response.';
+    // OpenAI-compatible response format
+    const assistantResponse = data.choices?.[0]?.message?.content?.trim() 
+      || 'Sorry, I could not generate a response.';
     
     return {
       success: true,
       content: assistantResponse,
       source: 'huggingface',
       metadata: {
-        model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        tokensUsed: generatedText.length, // Approximate
+        model: HF_FALLBACK_MODEL,
+        tokensUsed: data.usage?.total_tokens || 0,
         timestamp: new Date().toISOString(),
       },
     };

@@ -33,18 +33,19 @@ describe('Chatbot Integration Tests', () => {
   /**
    * Helper to create mock request objects compatible with the route handler.
    * NextRequest in jsdom doesn't properly handle body parsing, so we use this helper.
+   * The returned object is cast as NextRequest for test purposes only.
    */
   function makeMockRequest(
     body: Record<string, unknown>,
     headers: Record<string, string> = { 'Content-Type': 'application/json' },
     ip = '127.0.0.1'
-  ) {
+  ): NextRequest {
     return {
       headers: new Headers(headers),
       json: async () => body,
       text: async () => JSON.stringify(body),
       ip,
-    };
+    } as unknown as NextRequest;
   }
 
   beforeEach(() => {
