@@ -52,10 +52,14 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+// Mock fetch API
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
 describe('ChatContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.clear();
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
   });
 
   it('should throw error when useChat is called outside provider', () => {
@@ -85,9 +89,9 @@ describe('ChatContext', () => {
 
   it('should send message and update state', async () => {
     const mockResponse = {
+      success: true,
       content: 'Here are some oyster mushrooms!',
-      source: 'gemini',
-      tokensUsed: 100,
+      source: 'rag',
       productCards: [
         {
           id: '1',
@@ -105,7 +109,11 @@ describe('ChatContext', () => {
       ],
     };
 
-    (ragService.smartRAGSearch as jest.Mock).mockResolvedValue(mockResponse);
+    // Mock fetch API call
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      ok: true,
+      json: async () => mockResponse,
+    } as Response);
 
     const { result } = renderHook(() => useChat(), {
       wrapper: ChatProvider,
@@ -132,7 +140,8 @@ describe('ChatContext', () => {
   });
 
   it('should handle RAG service errors', async () => {
-    (ragService.smartRAGSearch as jest.Mock).mockRejectedValue(
+    // Mock fetch to reject with error
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(
       new Error('API timeout')
     );
 
@@ -262,15 +271,20 @@ describe('ChatContext', () => {
     const mockResponse = {
       content: 'Response',
       success: true,
-      source: 'gemini',
+      source: 'rag',
       productCards: [],
     };
 
     let resolveFirstMessage: ((value: any) => void) | null = null;
-    (ragService.smartRAGSearch as jest.Mock).mockImplementation(
+    
+    // Mock fetch to delay response
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockImplementation(
       () =>
         new Promise((resolve) => {
-          resolveFirstMessage = resolve;
+          resolveFirstMessage = () => resolve({
+            ok: true,
+            json: async () => mockResponse,
+          } as Response);
         })
     );
 
@@ -286,7 +300,7 @@ describe('ChatContext', () => {
     // Wait for loading state
     await waitFor(() => {
       expect(result.current.loading).toBe(true);
-    });
+    }, { timeout: 3000 });
 
     // Try to send second message while first is loading (should be ignored)
     act(() => {
@@ -295,7 +309,7 @@ describe('ChatContext', () => {
 
     // Resolve first message
     act(() => {
-      resolveFirstMessage?.(mockResponse);
+      resolveFirstMessage?.();
     });
 
     // Wait for first message to complete
@@ -303,7 +317,7 @@ describe('ChatContext', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Should only have called RAG service once (second was prevented)
-    expect(ragService.smartRAGSearch).toHaveBeenCalledTimes(1);
+    // Should only have called fetch once (second was prevented)
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
