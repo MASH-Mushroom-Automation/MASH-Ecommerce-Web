@@ -23,6 +23,7 @@ import type { AIResponse } from '@/types/chatbot';
 // Mock dependencies
 jest.mock('@/services/chatbot/gemini-service');
 jest.mock('@/lib/ai/rate-limiter');
+jest.mock('@/lib/ai/rag-service');
 
 describe('Chatbot Integration Tests', () => {
   const mockUserId = 'test-user-123';
@@ -557,6 +558,214 @@ describe('Chatbot Integration Tests', () => {
 
       // Should respond quickly with mocked service
       expect(responseTime).toBeLessThan(1000);
+    });
+  });
+
+  // ========================================
+  // Product Search & RAG Tests (NEW)
+  // ========================================
+  describe('Product Search with RAG', () => {
+    const { ragSearch } = require('@/lib/ai/rag-service');
+
+    beforeEach(() => {
+      // Mock RAG service to return product cards
+      (ragSearch as jest.Mock).mockResolvedValue({
+        content: 'Here are some mushrooms for cooking...',
+        success: true,
+        productCards: [
+          {
+            id: '1',
+            name: 'Fresh Oyster Mushrooms',
+            slug: 'fresh-oyster-mushrooms',
+            description: 'Perfect for stir-fry',
+            price: 350,
+            image: 'https://cdn.sanity.io/images/gerattrr/production/oyster.jpg',
+            category: 'Fresh Mushrooms',
+            inStock: true,
+            tags: ['fresh', 'oyster'],
+            relevanceScore: 0.95,
+            matchedFields: ['name', 'category'],
+          },
+          {
+            id: '2',
+            name: 'Fresh Shiitake Mushrooms',
+            slug: 'fresh-shiitake-mushrooms',
+            description: 'Great for soups',
+            price: 400,
+            image: 'https://cdn.sanity.io/images/gerattrr/production/shiitake.jpg',
+            category: 'Fresh Mushrooms',
+            inStock: true,
+            tags: ['fresh', 'shiitake'],
+            relevanceScore: 0.87,
+            matchedFields: ['name', 'tags'],
+          },
+        ],
+        source: 'rag',
+      });
+    });
+
+    it('should return product cards for product queries', async () => {
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'Show me oyster mushrooms',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.success).toBe(true);
+      expect(data.productCards).toBeDefined();
+      expect(Array.isArray(data.productCards)).toBe(true);
+      expect(data.productCards.length).toBeGreaterThan(0);
+    });
+
+    it('should include product card data with add to cart info', async () => {
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'What mushrooms are good for cooking?',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.productCards).toBeDefined();
+      const firstProduct = data.productCards[0];
+
+      // Verify product card has all required fields
+      expect(firstProduct).toHaveProperty('id');
+      expect(firstProduct).toHaveProperty('name');
+      expect(firstProduct).toHaveProperty('slug');
+      expect(firstProduct).toHaveProperty('price');
+      expect(firstProduct).toHaveProperty('image');
+      expect(firstProduct).toHaveProperty('inStock');
+      expect(firstProduct.inStock).toBe(true);
+    });
+
+    it('should search products from Sanity CMS', async () => {
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'king oyster mushroom',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      await POST(request);
+
+      // Verify RAG search was called
+      expect(ragSearch).toHaveBeenCalledWith(
+        'king oyster mushroom',
+        [],
+        expect.objectContaining({
+          maxProducts: 5,
+          includeOutOfStock: false,
+          minRelevanceScore: 0.1,
+        })
+      );
+    });
+
+    it('should limit product results to 5', async () => {
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'show me all mushrooms',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      await POST(request);
+
+      expect(ragSearch).toHaveBeenCalledWith(
+        'show me all mushrooms',
+        [],
+        expect.objectContaining({
+          maxProducts: 5,
+        })
+      );
+    });
+
+    it('should exclude out of stock products', async () => {
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'fresh mushrooms',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      await POST(request);
+
+      expect(ragSearch).toHaveBeenCalledWith(
+        'fresh mushrooms',
+        [],
+        expect.objectContaining({
+          includeOutOfStock: false,
+        })
+      );
+    });
+
+    it('should pass conversation history to RAG', async () => {
+      const history = [
+        { role: 'user', content: 'What are oyster mushrooms?', timestamp: Date.now() },
+        { role: 'assistant', content: 'Oyster mushrooms are...', timestamp: Date.now() },
+      ];
+
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'Show me some',
+          history,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      await POST(request);
+
+      expect(ragSearch).toHaveBeenCalledWith(
+        'Show me some',
+        history,
+        expect.any(Object)
+      );
+    });
+
+    it('should handle product search errors gracefully', async () => {
+      // Mock RAG to throw error
+      (ragSearch as jest.Mock).mockRejectedValue(new Error('Sanity connection failed'));
+
+      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: 'show me products',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBeDefined();
     });
   });
 });

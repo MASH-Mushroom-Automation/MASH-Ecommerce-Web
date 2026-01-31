@@ -23,7 +23,10 @@ if (typeof Request === 'undefined') {
 // Mock Firebase Auth to prevent initialization errors in tests
 jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({})),
-  GoogleAuthProvider: jest.fn(() => ({})),
+  GoogleAuthProvider: jest.fn(() => ({
+    addScope: jest.fn(),
+    setCustomParameters: jest.fn(),
+  })),
   signInWithPopup: jest.fn(() => Promise.resolve({})),
   signOut: jest.fn(() => Promise.resolve()),
   onAuthStateChanged: jest.fn((auth, callback) => {
@@ -86,6 +89,34 @@ jest.mock('@/lib/analytics/chatbot-analytics', () => ({
   getWeeklyStats: jest.fn(() => Promise.resolve([])),
   exportToCSV: jest.fn(() => ''),
   downloadCSV: jest.fn(),
+}));
+
+// Mock WishlistContext to fix component test failures
+jest.mock('@/contexts/WishlistContext', () => ({
+  useWishlist: jest.fn(() => ({
+    items: [],
+    isInWishlist: jest.fn(() => false),
+    addToWishlist: jest.fn(),
+    removeFromWishlist: jest.fn(),
+    clearWishlist: jest.fn(),
+    moveToCart: jest.fn(),
+  })),
+  WishlistProvider: ({ children }) => children,
+}));
+
+// Mock CartContext to fix component test failures
+jest.mock('@/contexts/CartContext', () => ({
+  useCart: jest.fn(() => ({
+    items: [],
+    itemCount: 0,
+    addItem: jest.fn(() => Promise.resolve()),  // Correct function name
+    addToCart: jest.fn(),
+    removeFromCart: jest.fn(),
+    updateQuantity: jest.fn(),
+    clearCart: jest.fn(),
+    getItemQuantity: jest.fn(() => 0),
+  })),
+  CartProvider: ({ children }) => children,
 }));
 
 // Mock Next.js Image component

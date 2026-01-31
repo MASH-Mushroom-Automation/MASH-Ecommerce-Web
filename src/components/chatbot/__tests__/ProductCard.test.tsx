@@ -88,12 +88,15 @@ describe('ProductCard', () => {
     expect(mockPush).toHaveBeenCalledWith('/products/fresh-oyster-mushrooms');
   });
 
-  it('should call onAddToCart when Add to Cart button clicked', () => {
+  it('should call onAddToCart when Add to Cart button clicked', async () => {
     const handleAddToCart = jest.fn();
     render(<ProductCard product={mockProduct} onAddToCart={handleAddToCart} />);
 
     const addButton = screen.getByText('Add to Cart');
     fireEvent.click(addButton);
+
+    // Wait for async addItem to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(handleAddToCart).toHaveBeenCalledWith('1');
     // Should not navigate when Add to Cart is clicked
