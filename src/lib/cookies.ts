@@ -11,6 +11,9 @@
 
 import Cookies from 'js-cookie';
 
+// Support both ESM default import and CommonJS mock exports in tests
+const cookieLib: any = (Cookies as any).default || Cookies;
+
 // ============================================================================
 // COOKIE CONFIGURATION
 // ============================================================================
@@ -62,14 +65,18 @@ export function setCookie(
     delete cookieOptions.maxAge;
   }
 
-  Cookies.set(name, stringValue, cookieOptions);
+  cookieLib.set(name, stringValue, cookieOptions);
 }
 
 /**
  * Get a client-accessible cookie
  */
 export function getCookie(name: string): string | null {
-  return Cookies.get(name) || null;
+  const val = cookieLib.get(name);
+  // For debugging tests, log presence
+  // eslint-disable-next-line no-console
+  console.debug('[cookies] getCookie', name, '->', val);
+  return (val as string | undefined) || null;
 }
 
 /**
@@ -96,7 +103,7 @@ export function getCookieJSON<T>(name: string): T | null {
  * Remove a client-accessible cookie
  */
 export function removeCookie(name: string): void {
-  Cookies.remove(name, { path: '/' });
+  cookieLib.remove(name, { path: '/' });
 }
 
 // ============================================================================

@@ -28,10 +28,22 @@ try {
 
 
 
+// Mock common browser-only modules early
+try {
+  // Mock js-cookie globally so modules that import it during setup get a mock
+  jest.mock('js-cookie', () => ({
+    set: jest.fn(),
+    get: jest.fn(),
+    remove: jest.fn(),
+  }));
+} catch (e) {
+  // eslint-disable-next-line no-console
+  console.warn('[jest.setupMocks] failed to mock js-cookie', e.message);
+}
+
 // Use the real RAG service implementation but mock its dependencies (sanity / search / context builder / gemini client)
 try {
-  // Ensure the rag-service isn't mocked so we can exercise its logic
-  try { jest.unmock('@/lib/ai/rag-service'); } catch (e) {}
+
 
   // Mock Sanity data source to return deterministic products
   jest.mock('@/lib/ai/sanity-rag', () => ({

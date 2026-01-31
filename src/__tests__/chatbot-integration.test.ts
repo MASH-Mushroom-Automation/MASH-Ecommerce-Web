@@ -271,8 +271,10 @@ describe('Chatbot Integration Tests', () => {
     });
 
     it('should accept valid messages', async () => {
-      const validation = geminiService.validateMessage(testMessage);
-      
+      // Use actual implementation for validation
+      const actualGemini = jest.requireActual('@/services/chatbot/gemini-service');
+      const validation = actualGemini.validateMessage(testMessage);
+
       expect(validation.valid).toBe(true);
       expect(validation.error).toBeUndefined();
     });
@@ -427,9 +429,12 @@ describe('Chatbot Integration Tests', () => {
   // Service Layer Tests
   // ========================================
   describe('Gemini Service', () => {
+    // Use the real implementation here because the module is mocked globally for other tests
+    const actualGemini = jest.requireActual('@/services/chatbot/gemini-service');
+
     it('should provide intro message', () => {
-      const intro = geminiService.getIntroMessage();
-      
+      const intro = actualGemini.getIntroMessage();
+
       expect(intro).toBeDefined();
       expect(intro.content).toBeTruthy();
       expect(intro.content.length).toBeGreaterThan(0);
@@ -438,10 +443,10 @@ describe('Chatbot Integration Tests', () => {
     it('should validate message length', () => {
       const shortMessage = 'Hello';
       const longMessage = 'a'.repeat(501);
-      
-      const validResult = geminiService.validateMessage(shortMessage);
-      const invalidResult = geminiService.validateMessage(longMessage);
-      
+
+      const validResult = actualGemini.validateMessage(shortMessage);
+      const invalidResult = actualGemini.validateMessage(longMessage);
+
       expect(validResult.valid).toBe(true);
       expect(invalidResult.valid).toBe(false);
       expect(invalidResult.error).toContain('too long');
@@ -449,9 +454,9 @@ describe('Chatbot Integration Tests', () => {
 
     it('should validate empty messages', () => {
       const emptyMessage = '   ';
-      
-      const result = geminiService.validateMessage(emptyMessage);
-      
+
+      const result = actualGemini.validateMessage(emptyMessage);
+
       expect(result.valid).toBe(false);
       expect(result.error).toContain('empty');
     });
