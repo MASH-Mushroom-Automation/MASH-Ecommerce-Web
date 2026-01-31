@@ -51,6 +51,38 @@ if (typeof Request === 'undefined') {
   };
 }
 
+// Mock Firebase Auth to prevent initialization errors in tests
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  GoogleAuthProvider: jest.fn(() => ({
+    addScope: jest.fn(),
+    setCustomParameters: jest.fn(),
+  })),
+  signInWithPopup: jest.fn(() => Promise.resolve({})),
+  signOut: jest.fn(() => Promise.resolve()),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    callback(null); // No user by default
+    return jest.fn(); // Return unsubscribe function
+  }),
+  setPersistence: jest.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
+  createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  sendEmailVerification: jest.fn(() => Promise.resolve()),
+  sendSignInLinkToEmail: jest.fn(() => Promise.resolve()),
+  isSignInWithEmailLink: jest.fn(() => false),
+  signInWithEmailLink: jest.fn(() => Promise.resolve({ user: {} })),
+  sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
+  updateProfile: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock Firebase App
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(() => ({})),
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(() => ({})),
+}));
+
 // Mock Firebase/Firestore for analytics
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => ({})),
@@ -69,6 +101,31 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(() => Promise.resolve()),
   doc: jest.fn(),
   increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
+}));
+
+// Mock js-cookie for cookie management
+jest.mock('js-cookie', () => ({
+  default: {
+    get: jest.fn((name) => {
+      // Return mock values for common cookies
+      const mockCookies = {
+        'auth-token': 'mock-auth-token',
+        'refreshToken': 'mock-refresh-token',
+      };
+      return mockCookies[name] || null;
+    }),
+    set: jest.fn(),
+    remove: jest.fn(),
+  },
+  get: jest.fn((name) => {
+    const mockCookies = {
+      'auth-token': 'mock-auth-token',
+      'refreshToken': 'mock-refresh-token',
+    };
+    return mockCookies[name] || null;
+  }),
+  set: jest.fn(),
+  remove: jest.fn(),
 }));
 
 // Mock analytics module
@@ -103,6 +160,34 @@ jest.mock('@/lib/analytics/chatbot-analytics', () => ({
   getWeeklyStats: jest.fn(() => Promise.resolve([])),
   exportToCSV: jest.fn(() => ''),
   downloadCSV: jest.fn(),
+}));
+
+// Mock WishlistContext to fix component test failures
+jest.mock('@/contexts/WishlistContext', () => ({
+  useWishlist: jest.fn(() => ({
+    items: [],
+    isInWishlist: jest.fn(() => false),
+    addToWishlist: jest.fn(),
+    removeFromWishlist: jest.fn(),
+    clearWishlist: jest.fn(),
+    moveToCart: jest.fn(),
+  })),
+  WishlistProvider: ({ children }) => children,
+}));
+
+// Mock CartContext to fix component test failures
+jest.mock('@/contexts/CartContext', () => ({
+  useCart: jest.fn(() => ({
+    items: [],
+    itemCount: 0,
+    addItem: jest.fn(() => Promise.resolve()),  // Correct function name
+    addToCart: jest.fn(),
+    removeFromCart: jest.fn(),
+    updateQuantity: jest.fn(),
+    clearCart: jest.fn(),
+    getItemQuantity: jest.fn(() => 0),
+  })),
+  CartProvider: ({ children }) => children,
 }));
 
 // Simple runtime check that the analytics mock is available
@@ -196,7 +281,8 @@ jest.mock('next/image', () => ({
     // Remove Next.js-only props that aren't valid on DOM <img>
     const { src, alt, fill, priority, ...rest } = props;
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img src={src} alt={alt} {...rest} />;
+    const React = require('react');
+    return React.createElement('img', { src, alt, ...rest });
   },
 }));
 
@@ -205,7 +291,8 @@ jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ children, href, ...props }) => {
     // Render a simple <a> element for tests
-    return <a href={href} {...props}>{children}</a>;
+    const React = require('react');
+    return React.createElement('a', { href, ...props }, children);
   },
 }));
 
@@ -333,15 +420,19 @@ jest.mock('sonner', () => ({
   },
 }));
 
-// Mock Cal.com Embed React
-jest.mock('@calcom/embed-react', () => ({
-  getCalApi: jest.fn(() => Promise.resolve((action, config) => {
-    // Mock Cal API functions
-    if (action === 'ui') return config;
-    if (action === 'preload') return config;
-    return null;
-  })),
-}));
+// Mock Cal.com Embed React (only if package exists)
+try {
+  jest.mock('@calcom/embed-react', () => ({
+    getCalApi: jest.fn(() => Promise.resolve((action, config) => {
+      // Mock Cal API functions
+      if (action === 'ui') return config;
+      if (action === 'preload') return config;
+      return null;
+    })),
+  }));
+} catch (e) {
+  // Package not installed, skip mock
+}
 
 // Mock Google Maps
 global.google = {

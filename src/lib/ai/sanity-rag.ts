@@ -359,17 +359,29 @@ export const ragCache = new SanityRAGCache();
  * @returns Complete RAG data for search and context building
  */
 export async function getAllRAGData() {
-  const [products, categories, recipes, growers] = await Promise.all([
-    ragCache.getProducts(),
-    ragCache.getCategories(),
-    ragCache.getRecipes(),
-    ragCache.getGrowers(),
-  ]);
+  try {
+    const [products, categories, recipes, growers] = await Promise.all([
+      ragCache.getProducts(),
+      ragCache.getCategories(),
+      ragCache.getRecipes(),
+      ragCache.getGrowers(),
+    ]);
 
-  return {
-    products,
-    categories,
-    recipes,
-    growers,
-  };
+    console.log('[Sanity RAG] Successfully fetched data:', {
+      products: products.length,
+      categories: categories.length,
+      recipes: recipes.length,
+      growers: growers.length,
+    });
+
+    return {
+      products,
+      categories,
+      recipes,
+      growers,
+    };
+  } catch (error) {
+    console.error('[Sanity RAG] Error fetching data:', error);
+    throw error;
+  }
 }

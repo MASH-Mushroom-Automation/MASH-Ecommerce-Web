@@ -56,32 +56,57 @@ export async function ragSearch(
   const {
     maxProducts = 5,
     includeOutOfStock = false,
-    minRelevanceScore = 0.01,
+    minRelevanceScore = 0.001, // Much lower threshold to show more results
   } = options;
 
   try {
+    console.log('[RAG Service] Starting search with options:', { maxProducts, minRelevanceScore });
+    
     // Step 1: Fetch all RAG data from Sanity CMS
     const { products } = await getAllRAGData();
+    console.log('[RAG Service] Fetched products:', products.length);
 
     if (products.length === 0) {
+      console.warn('[RAG Service] No products available from Sanity');
       // No products available - return basic response
       return {
         content: 'I apologize, but I couldn\'t load product data. Please try again in a moment.',
         timestamp: new Date().toISOString(),
         processingTime: 0,
+        source: 'rag',
+        productCards: [],
       };
     }
 
     // Step 2: Search products using TF-IDF
     let searchResults = hybridSearch(userMessage, products, {
-      maxResults: maxProducts,
+      maxResults: maxProducts * 2, // Search for more, filter later
       minScore: minRelevanceScore,
     });
+    
+    console.log('[RAG Service] Initial search results:', searchResults.length);
 
     // Step 3: Filter out-of-stock if needed
     if (!includeOutOfStock) {
+      const beforeFilter = searchResults.length;
       searchResults = searchResults.filter((r) => r.product.inStock);
+      console.log('[RAG Service] After stock filter:', searchResults.length, 'of', beforeFilter);
     }
+
+    // If no results, use top 3 random in-stock products as fallback
+    if (searchResults.length === 0) {
+      console.warn('[RAG Service] No search results, using fallback products');
+      const inStockProducts = products.filter(p => p.inStock).slice(0, 3);
+      searchResults = inStockProducts.map(product => ({
+        product,
+        score: 0.5,
+        matchedFields: ['fallback'],
+      }));
+    }
+
+    // Limit to maxProducts
+    searchResults = searchResults.slice(0, maxProducts);
+    console.log('[RAG Service] Final results to return:', searchResults.length);
 
     // Step 4: Build enhanced context
     const enhancedContext = buildEnhancedContext(searchResults, userMessage);
@@ -117,22 +142,56 @@ User's question: ${userMessage}`;
     );
 
     // Step 9: Return enhanced response with product cards
+    const productCards = enhancedContext.productContext.products;
+    console.log('[RAG Service] Returning response with', productCards.length, 'product cards');
+    
     return {
       ...finalResponse,
-      productCards: enhancedContext.productContext.products,
+      productCards,
       searchResults,
       context: contextText,
       processingTime,
+      source: 'rag', // Force RAG source
     };
   } catch (error) {
     console.error('[RAG Service] Error:', error);
     
-    // Fallback to basic AI response without RAG
-    const fallbackResponse = await generateResponse(userMessage, conversationHistory);
-    return {
-      ...fallbackResponse,
-      content: fallbackResponse.content || 'I\'m having trouble accessing product data. Please try again.',
-    };
+    // CRITICAL: Even on error, try to return some products
+    try {
+      const { products } = await getAllRAGData();
+      const fallbackProducts = products.filter(p => p.inStock).slice(0, 3);
+      const productCards = fallbackProducts.map(p => ({
+        id: p._id,
+        name: p.name,
+        slug: p.slug,
+        price: p.price,
+        image: p.mainImage || '',
+        category: p.category,
+        inStock: p.inStock,
+        description: p.description || '',
+        tags: p.tags || [],
+        relevanceScore: 0.5,
+        matchedFields: ['fallback'],
+      }));
+      
+      return {
+        content: `I found some popular mushroom products for you. Here are ${fallbackProducts.length} options:`,
+        timestamp: new Date().toISOString(),
+        processingTime: 0,
+        source: 'rag',
+        productCards,
+      };
+    } catch (innerError) {
+      console.error('[RAG Service] Fallback also failed:', innerError);
+      // Last resort: basic response
+      const fallbackResponse = await generateResponse(userMessage, conversationHistory);
+      return {
+        ...fallbackResponse,
+        content: fallbackResponse.content || 'I\'m having trouble accessing product data. Please try again.',
+        source: 'gemini', // Only use gemini source on complete failure
+        productCards: [],
+      };
+    }
   }
 }
 

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendMessage, validateMessage } from '@/services/chatbot/gemini-service';
+import { ragSearch } from '@/lib/ai/rag-service';
 import { checkRateLimit, getRemainingMessages, getResetTime } from '@/lib/ai/rate-limiter';
 import type { Message } from '@/types/chatbot';
 
@@ -25,6 +26,7 @@ import type { Message } from '@/types/chatbot';
  * {
  *   success: boolean,
  *   content?: string,
+ *   productCards?: ProductCardData[],
  *   error?: string,
  *   rateLimit?: {
  *     remaining: number,
@@ -82,16 +84,29 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Send message to chatbot
-    const response = await sendMessage(message, history);
+    // Use RAG search for product recommendations
+    // This will search Sanity products and embed relevant product cards
+    console.log('[Chatbot API] Starting RAG search for:', message);
+    const response = await ragSearch(message, history, {
+      maxProducts: 3, // Show 1-3 products as requested
+      includeOutOfStock: true, // TEMPORARY: Include all products since stock data needs updating
+      minRelevanceScore: 0.001, // Very low threshold to ensure matches
+    });
     
-    // Return response with rate limit info
+    console.log('[Chatbot API] RAG response:', {
+      hasContent: !!response.content,
+      productCardCount: response.productCards?.length || 0,
+      source: response.source,
+    });
+    
+    // Return response with rate limit info and product cards
     return NextResponse.json({
-      success: response.success,
+      success: response.success !== false,
       content: response.content,
       error: response.error,
-      source: response.source,
+      source: response.source || 'rag',
       metadata: response.metadata,
+      productCards: response.productCards || [],
       rateLimit: {
         remaining: getRemainingMessages(userId),
         resetTime: getResetTime(userId),
@@ -132,6 +147,7 @@ export async function GET() {
       response: {
         success: 'boolean',
         content: 'string (AI response)',
+        productCards: 'ProductCardData[] (recommended products with add to cart/wishlist)',
         error: 'string (if error occurred)',
         rateLimit: {
           remaining: 'number (messages remaining)',
