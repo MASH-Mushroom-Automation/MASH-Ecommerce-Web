@@ -91,20 +91,19 @@ describe('Phase 1: AI Configuration', () => {
       const url = getHuggingFaceUrl();
 
       expect(url).toContain('router.huggingface.co');
-      expect(url).toContain('models');
+      expect(url).toContain('chat/completions');
     });
 
-    it('should accept custom model name', () => {
-      const customModel = 'mistralai/Mistral-7B-Instruct-v0.1';
-      const url = getHuggingFaceUrl(customModel);
-
-      expect(url).toContain(customModel);
-    });
-
-    it('should use default fallback model', () => {
+    it('should return OpenAI-compatible chat completions endpoint', () => {
       const url = getHuggingFaceUrl();
 
-      expect(url).toContain('mistralai/Mixtral-8x7B-Instruct');
+      expect(url).toBe('https://router.huggingface.co/v1/chat/completions');
+    });
+
+    it('should be a fixed endpoint (model specified in request body)', () => {
+      const url = getHuggingFaceUrl();
+      // Model is now specified in the request body, not the URL
+      expect(url).not.toContain('mistralai');
     });
   });
 

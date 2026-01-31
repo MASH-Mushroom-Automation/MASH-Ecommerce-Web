@@ -145,10 +145,14 @@ export async function generateResponse(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
-
-    if (CHATBOT_DEBUG) {
-      console.error('[Gemini] Error:', errorMessage);
-    }
+    
+    // Log detailed error information for debugging
+    console.error('[Gemini] API call failed:', {
+      error: errorMessage,
+      cause: error instanceof Error && 'cause' in error ? (error.cause as Error)?.message : undefined,
+      code: error instanceof Error && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined,
+      processingTime: Date.now() - startTime,
+    });
 
     return {
       content: '',

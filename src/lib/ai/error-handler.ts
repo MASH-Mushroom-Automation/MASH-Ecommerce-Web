@@ -88,7 +88,12 @@ export async function sendToHuggingFace(
     };
     
   } catch (error) {
-    console.error('[Hugging Face] Error:', error);
+    // Log detailed error information for debugging
+    console.error('[Hugging Face] API call failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      cause: error instanceof Error && 'cause' in error ? (error.cause as Error)?.message : undefined,
+      code: error instanceof Error && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined,
+    });
     
     return {
       success: false,

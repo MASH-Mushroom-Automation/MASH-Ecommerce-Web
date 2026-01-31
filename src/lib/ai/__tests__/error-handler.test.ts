@@ -26,11 +26,17 @@ describe('Error Handler', () => {
   
   describe('sendToHuggingFace', () => {
     it('should send message to Hugging Face API', async () => {
+      // OpenAI-compatible chat completions response format
       const mockResponse = {
         ok: true,
-        json: async () => [{
-          generated_text: 'User: Hello\nAssistant: Hi there! How can I help you?'
-        }],
+        json: async () => ({
+          choices: [{
+            message: {
+              content: 'Hi there! How can I help you?'
+            }
+          }],
+          usage: { total_tokens: 50 }
+        }),
       };
       
       (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
@@ -57,12 +63,17 @@ describe('Error Handler', () => {
       expect(result.error).toContain('Internal Server Error');
     });
     
-    it('should include conversation history', async () => {
+    it('should include conversation history in OpenAI format', async () => {
+      // OpenAI-compatible chat completions response format
       const mockResponse = {
         ok: true,
-        json: async () => [{
-          generated_text: 'User: Hi\nAssistant: Hello\nUser: How are you?\nAssistant: I am doing well!'
-        }],
+        json: async () => ({
+          choices: [{
+            message: {
+              content: 'I am doing well!'
+            }
+          }]
+        }),
       };
       
       (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
@@ -75,10 +86,11 @@ describe('Error Handler', () => {
       const result = await sendToHuggingFace('How are you?', history);
       
       expect(result.success).toBe(true);
+      // OpenAI format uses messages array in body
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: expect.stringContaining('User: Hi'),
+          body: expect.stringContaining('"messages"'),
         })
       );
     });
@@ -106,11 +118,16 @@ describe('Error Handler', () => {
         source: 'gemini',
       };
       
+      // OpenAI-compatible chat completions response format
       const mockFallback = {
         ok: true,
-        json: async () => [{
-          generated_text: 'User: Hello\nAssistant: Fallback response'
-        }],
+        json: async () => ({
+          choices: [{
+            message: {
+              content: 'Fallback response'
+            }
+          }]
+        }),
       };
       
       (global.fetch as jest.Mock).mockResolvedValueOnce(mockFallback);

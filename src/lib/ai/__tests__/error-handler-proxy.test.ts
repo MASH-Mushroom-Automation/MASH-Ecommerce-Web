@@ -4,7 +4,15 @@ describe('Hugging Face API', () => {
   afterEach(() => jest.restoreAllMocks());
 
   test('calls Hugging Face API directly and returns assistant text', async () => {
-    const mockBody = JSON.stringify([{ generated_text: 'Assistant: Hi there' }]);
+    // OpenAI-compatible chat completions response format
+    const mockBody = JSON.stringify({
+      choices: [{
+        message: {
+          content: 'Hi there! How can I help you?'
+        }
+      }],
+      usage: { total_tokens: 25 }
+    });
     (global as any).fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: async () => JSON.parse(mockBody), text: async () => mockBody });
 
     const res = await sendToHuggingFace('hello');
