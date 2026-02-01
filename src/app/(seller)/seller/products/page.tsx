@@ -370,24 +370,25 @@ interface ProductCardProps {
   product: any; // SanityProduct from product-search.ts
 }
 
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
+
 const ProductCard = React.memo<ProductCardProps>(({ product }) => {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <CardContent className="p-0">
         {/* Product Image */}
         <div className="relative h-48 bg-muted">
-          {product.mainImage ? (
-            <Image
-              src={product.mainImage}
-              alt={product.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No Image
-            </div>
-          )}
+          <Image
+            src={product.mainImage || PLACEHOLDER_IMAGE}
+            alt={product.name || 'Product Image'}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              // Fallback to placeholder on error
+              (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+            }}
+          />
           {product.isOnPromo && (
             <Badge className="absolute top-2 right-2 bg-red-500">
               {product.promoType === 'percentage'
@@ -459,7 +460,7 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/shop/products/${product.slug?.current ?? product._id}`}>
+              <Link href={`/product/${product.slug?.current ?? product._id}`}>
                 View
               </Link>
             </Button>
