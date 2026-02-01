@@ -170,11 +170,14 @@ export interface CategoryInventory {
   /** Products in this category (optional, for expanded view) */
   products?: Array<{
     _id: string;
+    _updatedAt?: string;
     name: string;
     sku?: string;
-    stockQuantity: number;
+    slug?: string;
+    currentStock: number;
+    lowStockThreshold: number;
+    restockLevel?: number;
     price: number;
-    stockStatus: InventoryStockStatus;
     mainImage?: string;
   }>;
 }

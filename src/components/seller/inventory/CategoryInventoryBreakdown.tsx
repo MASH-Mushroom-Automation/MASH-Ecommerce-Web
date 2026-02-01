@@ -217,12 +217,12 @@ export const CategoryInventoryBreakdown = React.memo<CategoryInventoryBreakdownP
 
       switch (sortBy) {
         case 'total':
-          return sorted.sort((a, b) => b.totalProducts - a.totalProducts);
+          return sorted.sort((a, b) => (b.totalProducts ?? 0) - (a.totalProducts ?? 0));
         case 'stock-value':
-          return sorted.sort((a, b) => b.totalStockValue - a.totalStockValue);
+          return sorted.sort((a, b) => (b.totalValue ?? 0) - (a.totalValue ?? 0));
         case 'name':
         default:
-          return sorted.sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+          return sorted.sort((a, b) => (a.categoryName ?? '').localeCompare(b.categoryName ?? ''));
       }
     }, [categories, sortBy]);
 
@@ -323,7 +323,7 @@ export const CategoryInventoryBreakdown = React.memo<CategoryInventoryBreakdownP
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>
                         Value: ₱
-                        {category.totalStockValue.toLocaleString('en-PH', {
+                        {(category.totalValue ?? 0).toLocaleString('en-PH', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
