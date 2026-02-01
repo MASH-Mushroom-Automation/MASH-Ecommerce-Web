@@ -70,17 +70,17 @@ const EmptyState: React.FC = () => (
  */
 function exportToCSV(valueData: InventoryValue) {
   const headers = ['Category', 'Total Units', 'Total Value (PHP)'];
-  const rows = valueData.categoriesValue.map((cat) => [
-    cat.categoryName,
-    cat.totalUnits.toString(),
-    cat.totalValue.toFixed(2),
+  const rows = (valueData.categoriesValue ?? []).map((cat) => [
+    cat.categoryName ?? 'Unknown',
+    (cat.totalUnits ?? 0).toString(),
+    (cat.totalValue ?? 0).toFixed(2),
   ]);
 
   // Add total row
   rows.push([
     'TOTAL',
-    valueData.totalUnits.toString(),
-    valueData.totalValue.toFixed(2),
+    (valueData.totalUnits ?? 0).toString(),
+    (valueData.totalValue ?? 0).toFixed(2),
   ]);
 
   const csvContent = [
@@ -114,10 +114,10 @@ function exportToCSV(valueData: InventoryValue) {
  */
 export const StockValueCalculator = React.memo<StockValueCalculatorProps>(
   function StockValueCalculator({ valueData, isLoading = false, isError = false, className }) {
-    // Sort categories by value descending
+    // Sort categories by value descending (with null-safety)
     const sortedCategories = useMemo(() => {
-      if (!valueData) return [];
-      return [...valueData.categoriesValue].sort((a, b) => b.totalValue - a.totalValue);
+      if (!valueData || !valueData.categoriesValue) return [];
+      return [...valueData.categoriesValue].sort((a, b) => (b.totalValue ?? 0) - (a.totalValue ?? 0));
     }, [valueData]);
 
     // Error fallback
@@ -206,11 +206,11 @@ export const StockValueCalculator = React.memo<StockValueCalculatorProps>(
               Total Inventory Value
             </div>
             <div className="text-3xl font-bold text-green-700 dark:text-green-400">
-              {formatCurrency(valueData.totalValue)}
+              {formatCurrency(valueData?.totalValue ?? 0)}
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              {valueData.totalUnits.toLocaleString('en-PH')} units across{' '}
-              {valueData.categoriesValue.length} categories
+              {(valueData?.totalUnits ?? 0).toLocaleString('en-PH')} units across{' '}
+              {(valueData?.categoriesValue ?? []).length} categories
             </div>
           </div>
 
@@ -229,18 +229,21 @@ export const StockValueCalculator = React.memo<StockValueCalculatorProps>(
                 </TableHeader>
                 <TableBody>
                   {sortedCategories.map((category) => {
-                    const percentage = (category.totalValue / valueData.totalValue) * 100;
+                    const totalValue = valueData?.totalValue ?? 1;
+                    const percentage = totalValue > 0 
+                      ? ((category.totalValue ?? 0) / totalValue) * 100 
+                      : 0;
                     
                     return (
                       <TableRow key={category.categoryId}>
                         <TableCell className="font-medium">
-                          {category.categoryName}
+                          {category.categoryName ?? 'Unknown'}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                          {category.totalUnits.toLocaleString('en-PH')}
+                          {(category.totalUnits ?? 0).toLocaleString('en-PH')}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(category.totalValue)}
+                          {formatCurrency(category.totalValue ?? 0)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -272,7 +275,11 @@ export const StockValueCalculator = React.memo<StockValueCalculatorProps>(
               <div>
                 <p className="text-xs text-muted-foreground">Avg. Value per Unit</p>
                 <p className="text-sm font-semibold">
-                  {formatCurrency(valueData.totalValue / valueData.totalUnits)}
+                  {formatCurrency(
+                    (valueData?.totalUnits ?? 0) > 0 
+                      ? (valueData?.totalValue ?? 0) / (valueData?.totalUnits ?? 1) 
+                      : 0
+                  )}
                 </p>
               </div>
             </div>

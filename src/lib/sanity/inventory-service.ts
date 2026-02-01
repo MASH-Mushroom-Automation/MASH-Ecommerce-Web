@@ -129,27 +129,40 @@ export async function getStockValue(): Promise<InventoryValue> {
         lowStock: number;
         outOfStock: number;
       };
+      totalUnits: number;
       byCategory: Array<{
         _id: string;
         name: string;
         slug: string;
         value: number;
+        units: number;
         productCount: number;
       }>;
     }>(query);
 
-    // Transform to InventoryValue type
+    // Calculate total value and units
+    const totalValue = result.totalValue.total || 0;
+    const totalUnits = result.totalUnits || 0;
+
+    // Transform to InventoryValue type with categoriesValue
     return {
-      total: result.totalValue.total || 0,
-      inStock: result.totalValue.inStock || 0,
-      lowStock: result.totalValue.lowStock || 0,
-      outOfStock: result.totalValue.outOfStock || 0,
-      byCategory: result.byCategory.map((cat) => ({
-        categoryId: cat._id,
-        categoryName: cat.name,
-        value: cat.value || 0,
-        productCount: cat.productCount,
-      })),
+      totalValue,
+      totalUnits,
+      inStockValue: result.totalValue.inStock || 0,
+      lowStockValue: result.totalValue.lowStock || 0,
+      outOfStockValue: result.totalValue.outOfStock || 0,
+      currency: 'PHP',
+      categoriesValue: result.byCategory.map((cat) => {
+        const catValue = cat.value || 0;
+        const catUnits = cat.units || 0;
+        return {
+          categoryId: cat._id,
+          categoryName: cat.name,
+          totalValue: catValue,
+          totalUnits: catUnits,
+          averagePrice: catUnits > 0 ? catValue / catUnits : 0,
+        };
+      }),
     };
   } catch (error) {
     console.error('[InventoryService] Failed to fetch stock value:', error);

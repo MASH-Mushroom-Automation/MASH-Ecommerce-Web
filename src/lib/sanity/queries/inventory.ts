@@ -136,11 +136,13 @@ export function getStockValueQuery(): string {
         "lowStock": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && coalesce(stockQuantity, 0) > 0 && coalesce(stockQuantity, 0) < ${DEFAULT_LOW_STOCK_THRESHOLD}] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
         "outOfStock": 0
       },
+      "totalUnits": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true] { "v": coalesce(stockQuantity, 0) }.v),
       "byCategory": *[_type == "category"] {
         _id,
         name,
         "slug": slug.current,
         "value": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
+        "units": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)] { "v": coalesce(stockQuantity, 0) }.v),
         "productCount": count(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)])
       } | order(value desc)
     }

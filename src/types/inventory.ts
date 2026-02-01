@@ -110,11 +110,34 @@ export interface LowStockItem {
 }
 
 /**
+ * Category value breakdown item
+ */
+export interface CategoryValueItem {
+  /** Category ID */
+  categoryId: string;
+  
+  /** Category name */
+  categoryName: string;
+  
+  /** Total value for this category */
+  totalValue: number;
+  
+  /** Total units in this category */
+  totalUnits: number;
+  
+  /** Average price per unit */
+  averagePrice: number;
+}
+
+/**
  * Inventory value calculation
  */
 export interface InventoryValue {
   /** Total inventory value (sum of stockQuantity × price) */
   totalValue: number;
+  
+  /** Total number of units across all categories */
+  totalUnits: number;
   
   /** Value of in-stock products */
   inStockValue: number;
@@ -127,6 +150,9 @@ export interface InventoryValue {
   
   /** Currency code (e.g., 'PHP') */
   currency: string;
+  
+  /** Value breakdown by category */
+  categoriesValue: CategoryValueItem[];
   
   /** Optional: Value trend compared to previous period */
   trend?: {
