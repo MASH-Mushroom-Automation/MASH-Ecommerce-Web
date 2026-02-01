@@ -15,7 +15,80 @@
 - **VPN Network Issues:** When Radmin VPN or similar VPN is active, fetch() may fail in Turbopack/Next.js dev environment. Use native Node.js https module as fallback (gemini-native.ts). Force IPv4 with `family: 4` option.
 - **AI Client Retry Logic:** Use custom AbortController-based timeout instead of AbortSignal.timeout() for better compatibility. Implement 2-retry logic with exponential backoff for network resilience.
 - **HuggingFace API:** Use OpenAI-compatible chat completions endpoint (`/v1/chat/completions`) with `{model, messages}` format.
+- **Test Stability:** All 871 tests pass consistently. Test coverage expanded with Order, Search, and Common component tests.
+- **Radix UI Testing:** Radix UI Select/Dialog use portals - test UI presence/structure rather than complex async interactions. Use getAllByText/getAllByRole for multiple elements.
+- **Order Type:** Use `Order` from `@/hooks/useSanityOrders` with fields: customerName, customerEmail, customerPhone, shippingAddress (with fullAddress), items with product object.
+- **SearchDialog Mock Pattern:** Use callCount-based mockImplementation for Promise.all parallel calls (odd calls = products, even calls = categories).
 
+---
+
+## [2026-02-01 21:30] - TEST-EXPANSION-001
+**Completed:** Comprehensive Unit Test Expansion for E-Commerce Components
+**Files Changed:**
+- src/components/common/__tests__/error-boundary.test.tsx (NEW - 16 tests)
+- src/components/common/__tests__/loading-states.test.tsx (NEW - 23 tests)
+- src/components/common/__tests__/breadcrumbs.test.tsx (NEW - 20 tests)
+- src/components/orders/__tests__/OrderCard.test.tsx (NEW - 29 tests)
+- src/components/orders/__tests__/OrderRejectionModal.test.tsx (NEW - 21 tests)
+- src/components/search/__tests__/SearchComponents.test.tsx (NEW - 32 tests)
+
+**Test Results:**
+- Previous Total: 730 tests
+- New Total: 871 tests (+141 tests)
+- All Tests Passing: 871/871 (100%)
+- Build Status: PASSING
+
+**Implementation Notes:**
+- Created tests for ErrorBoundary (error catching, fallback UI, user actions)
+- Created tests for Loading states (PageLoader, Spinner, ProductSkeleton, OrderSkeleton, InventorySkeleton)
+- Created tests for Breadcrumbs (custom items, auto-generation, navigation, accessibility)
+- Created tests for OrderCard (rendering, status badges, approval/rejection flows, currency formatting)
+- Created tests for OrderRejectionModal (dialog behavior, reason selection, loading states)
+- Created tests for SearchTrigger and SearchDialog (rendering, quick actions, search results, keyboard navigation)
+
+**Learnings for Future Iterations:**
+- Radix UI components use portals - test presence rather than complex interactions
+- Use getAllByText/getAllByRole when multiple elements match
+- window.location.reload cannot be reliably mocked in JSDOM - test button presence instead
+- For Promise.all mocks, use callCount-based implementation to return correct data for each parallel call
+- Order type uses flat customerName/customerEmail fields, not nested customer object
+- Component button text like "Accept Order"/"Decline Order" must match actual component implementation
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 871 Tests
+---
+
+## [2026-02-01 19:00] - PHASE-0-VERIFICATION
+**Completed:** Phase 0: Test Stabilization - Verified Complete
+**Stories Completed:** STORY-FIX-001, STORY-FIX-002
+
+**Test Results (Verified):**
+- Total Tests: 730
+- Passing Tests: 730 (100%)
+- Skipped Tests: 2
+- Failing Tests: 0
+- Execution Time: ~30s
+
+**Build Results:**
+- Build Status: PASSING
+- Total Routes: 143
+- Static Pages: 143
+- TypeScript Errors: 0
+- ESLint Errors: 0
+
+**Implementation Notes:**
+- All 25 previously reported test failures have been resolved through prior iterations
+- AuthContext tests: All 39 tests passing (was 20 failures)
+- WishlistContext tests: All 30 tests passing (was 1 failure)
+- chatbot-integration tests: All passing (was 3 failures)
+- api-integration tests: All passing (was 1 failure)
+
+**Learnings for Future Iterations:**
+- Test failures were resolved through proper async handling with waitFor() and act()
+- Cookie mock pattern in jest.setupMocks.js provides consistent test behavior
+- Firebase mocks properly isolated test environment
+- AI API tests updated for direct API calls (not through proxy routes)
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] TypeCheck | [PASS] 730/730 Tests
 ---
 
 ## [2026-02-01 18:30] - CHATBOT-NETWORK-FIX
