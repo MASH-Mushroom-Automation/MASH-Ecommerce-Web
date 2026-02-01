@@ -17,6 +17,39 @@ export function buildProductSearchQuery(
   limit: number = 50,
   offset: number = 0
 ): string {
+  // Handle undefined or null filters - use defaults
+  if (!filters) {
+    return `
+      *[_type == "product"] | order(_updatedAt desc) [${offset}...${offset + limit}] {
+        _id,
+        _createdAt,
+        _updatedAt,
+        name,
+        slug,
+        sku,
+        description,
+        price,
+        stockQuantity,
+        "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+        category-> { _id, name, slug },
+        grower-> { _id, name, businessName },
+        tags,
+        featured,
+        archived,
+        "status": select(
+          _id in path("drafts.**") => "draft",
+          archived == true => "archived",
+          "published"
+        ),
+        "stockStatus": select(
+          stockQuantity > 10 => "in-stock",
+          stockQuantity > 0 && stockQuantity <= 10 => "low-stock",
+          "out-of-stock"
+        )
+      }
+    `.trim();
+  }
+
   const conditions: string[] = [];
 
   // Search text filter (name, SKU, description)
@@ -145,17 +178,25 @@ export function buildProductSearchQuery(
  * @returns GROQ query string
  */
 export function getProductFiltersQuery(): string {
+  // Note: Sanity GROQ doesn't support min/max on arrays directly
+  // Use order + [0] pattern to get min/max values
   return `
     {
       "categories": *[_type == "category"] {
-        _id,
+        "id": _id,
         name,
         "slug": slug.current,
         "productCount": count(*[_type == "product" && references(^._id)])
       } | order(productCount desc),
       "priceRange": {
-        "min": min(*[_type == "product" && !(_id in path("drafts.**"))].price),
-        "max": max(*[_type == "product" && !(_id in path("drafts.**"))].price)
+        "min": coalesce(
+          *[_type == "product" && !(_id in path("drafts.**")) && defined(price)] | order(price asc) [0].price,
+          0
+        ),
+        "max": coalesce(
+          *[_type == "product" && !(_id in path("drafts.**")) && defined(price)] | order(price desc) [0].price,
+          10000
+        )
       },
       "stockCounts": {
         "inStock": count(*[_type == "product" && stockQuantity > 10]),

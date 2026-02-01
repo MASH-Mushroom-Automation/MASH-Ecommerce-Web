@@ -123,10 +123,9 @@ function SellerProductsContent() {
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     categories: [],
-    priceRange: { min: 0, max: 1000 },
-    stockStatuses: ['in-stock', 'out-of-stock', 'low-stock'],
-    productStatuses: ['published', 'draft', 'archived'],
-    totalProducts: 0,
+    priceRange: { min: 0, max: 10000 },
+    stockCounts: { inStock: 0, outOfStock: 0, lowStock: 0 },
+    statusCounts: { published: 0, draft: 0, archived: 0 },
   });
 
   // Mobile filter drawer state

@@ -66,13 +66,29 @@ export interface FilterPanelProps {
  * 
  * Performance: Memoized with React.memo() to prevent unnecessary re-renders
  */
+// Default filter options to prevent undefined errors
+const DEFAULT_FILTER_OPTIONS: FilterOptions = {
+  categories: [],
+  priceRange: { min: 0, max: 10000 },
+  stockCounts: { inStock: 0, outOfStock: 0, lowStock: 0 },
+  statusCounts: { published: 0, draft: 0, archived: 0 },
+};
+
 export const FilterPanel = memo<FilterPanelProps>(function FilterPanel({
   filters,
   onFiltersChange,
-  filterOptions,
+  filterOptions: rawFilterOptions,
   className,
   showClearButton = true,
 }) {
+  // Use default filter options if not provided or incomplete
+  const filterOptions: FilterOptions = {
+    categories: rawFilterOptions?.categories ?? DEFAULT_FILTER_OPTIONS.categories,
+    priceRange: rawFilterOptions?.priceRange ?? DEFAULT_FILTER_OPTIONS.priceRange,
+    stockCounts: rawFilterOptions?.stockCounts ?? DEFAULT_FILTER_OPTIONS.stockCounts,
+    statusCounts: rawFilterOptions?.statusCounts ?? DEFAULT_FILTER_OPTIONS.statusCounts,
+  };
+
   const handleCategoryToggle = (categoryId: string) => {
     const newCategories = filters.categories.includes(categoryId)
       ? filters.categories.filter(id => id !== categoryId)

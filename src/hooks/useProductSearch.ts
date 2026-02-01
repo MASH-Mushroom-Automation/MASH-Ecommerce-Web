@@ -35,21 +35,34 @@ export interface UseProductSearchOptions {
  * - Pagination support
  * - Configurable stale time (how long data stays fresh)
  * 
- * @param options - Search options (filters, page, pageSize)
+ * @param filtersOrOptions - Filter criteria OR options object
+ * @param page - Page number (1-indexed) when using positional args
+ * @param pageSize - Number of results per page when using positional args
  * @returns React Query result with products and pagination info
  */
-export function useProductSearch({
-  filters,
-  page = 1,
-  pageSize = 50,
-  enabled = true,
-  staleTime = 5 * 60 * 1000, // 5 minutes default
-}: UseProductSearchOptions): UseQueryResult<ProductSearchResults, Error> {
+export function useProductSearch(
+  filtersOrOptions: ProductFilters | UseProductSearchOptions,
+  page?: number,
+  pageSize?: number
+): UseQueryResult<ProductSearchResults, Error> {
+  // Support both object and positional argument styles
+  const options: UseProductSearchOptions = 'search' in filtersOrOptions 
+    ? { filters: filtersOrOptions as ProductFilters, page: page ?? 1, pageSize: pageSize ?? 50 }
+    : filtersOrOptions as UseProductSearchOptions;
+  
+  const { 
+    filters, 
+    page: optionsPage = 1, 
+    pageSize: optionsPageSize = 50, 
+    enabled = true, 
+    staleTime = 5 * 60 * 1000 
+  } = options;
+
   return useQuery<ProductSearchResults, Error>({
-    queryKey: ['products', 'search', filters, page, pageSize],
-    queryFn: () => searchProducts(filters, page, pageSize),
+    queryKey: ['products', 'search', filters, optionsPage, optionsPageSize],
+    queryFn: () => searchProducts(filters, optionsPage, optionsPageSize),
     staleTime,
-    enabled,
+    enabled: enabled && !!filters,
     // Keep previous data while fetching new results (smooth UX)
     placeholderData: (previousData) => previousData,
   });

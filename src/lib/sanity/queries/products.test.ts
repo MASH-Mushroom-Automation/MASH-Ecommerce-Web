@@ -177,8 +177,9 @@ describe('getProductFiltersQuery', () => {
     expect(query).toContain('stockCounts');
     expect(query).toContain('statusCounts');
     expect(query).toContain('*[_type == "category"]');
-    expect(query).toContain('min(*[_type == "product"');
-    expect(query).toContain('max(*[_type == "product"');
+    // Uses order + [0] pattern for min/max since Sanity doesn't support standalone min/max on projections
+    expect(query).toContain('order(price asc)');
+    expect(query).toContain('order(price desc)');
   });
 
   it('should include product counts per category', () => {
