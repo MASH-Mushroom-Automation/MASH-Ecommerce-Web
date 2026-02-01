@@ -17,7 +17,7 @@ import { POST, GET } from '@/app/api/chatbot/message/route';
 import { NextRequest } from 'next/server';
 import * as geminiService from '@/services/chatbot/gemini-service';
 import * as rateLimiter from '@/lib/ai/rate-limiter';
-import { ragSearch } from '@/lib/ai/rag-service';
+import * as ragService from '@/lib/ai/rag-service';
 import { GEMINI_MODEL, GEMINI_API_KEY, CHATBOT_ENABLED } from '@/lib/ai/config';
 import type { AIResponse } from '@/types/chatbot';
 
@@ -61,6 +61,18 @@ describe('Chatbot Integration Tests', () => {
     
     (rateLimiter.getRemainingMessages as jest.Mock).mockReturnValue(9);
     (rateLimiter.getResetTime as jest.Mock).mockReturnValue(60);
+    
+    // Mock needsProductSearch - return false by default (non-product queries)
+    // Tests that need product search behavior should override this
+    (ragService.needsProductSearch as jest.Mock).mockReturnValue(false);
+    
+    // Mock ragSearch for product queries
+    (ragService.ragSearch as jest.Mock).mockResolvedValue({
+      content: 'Here are some products...',
+      success: true,
+      productCards: [],
+      source: 'rag',
+    });
   });
 
   // ========================================
@@ -204,14 +216,8 @@ describe('Chatbot Integration Tests', () => {
       
       (geminiService.sendMessage as jest.Mock).mockResolvedValue(mockResponse);
 
-      const request = new NextRequest('http://localhost:3000/api/chatbot/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: testMessage,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const request = makeMockRequest({
+        message: testMessage,
       });
 
       const response = await POST(request);
@@ -538,8 +544,11 @@ describe('Chatbot Integration Tests', () => {
         valid: true,
       });
       
+      // Product search tests need needsProductSearch to return true
+      (ragService.needsProductSearch as jest.Mock).mockReturnValue(true);
+      
       // Mock RAG service to return product cards
-      (ragSearch as jest.Mock).mockResolvedValue({
+      (ragService.ragSearch as jest.Mock).mockResolvedValue({
         content: 'Here are some mushrooms for cooking...',
         success: true,
         productCards: [
@@ -619,7 +628,7 @@ describe('Chatbot Integration Tests', () => {
       await POST(request);
 
       // Verify RAG search was called
-      expect(ragSearch).toHaveBeenCalledWith(
+      expect(ragService.ragSearch).toHaveBeenCalledWith(
         'search king oyster mushroom',
         [],
         expect.objectContaining({
@@ -637,7 +646,7 @@ describe('Chatbot Integration Tests', () => {
 
       await POST(request);
 
-      expect(ragSearch).toHaveBeenCalledWith(
+      expect(ragService.ragSearch).toHaveBeenCalledWith(
         'show me all mushrooms',
         [],
         expect.objectContaining({
@@ -654,7 +663,7 @@ describe('Chatbot Integration Tests', () => {
 
       await POST(request);
 
-      expect(ragSearch).toHaveBeenCalledWith(
+      expect(ragService.ragSearch).toHaveBeenCalledWith(
         'find fresh mushrooms',
         [],
         expect.objectContaining({
@@ -677,7 +686,7 @@ describe('Chatbot Integration Tests', () => {
 
       await POST(request);
 
-      expect(ragSearch).toHaveBeenCalledWith(
+      expect(ragService.ragSearch).toHaveBeenCalledWith(
         'Show me some fresh mushrooms',
         history,
         expect.any(Object)
@@ -686,7 +695,7 @@ describe('Chatbot Integration Tests', () => {
 
     it('should handle product search errors gracefully', async () => {
       // Mock RAG to throw error
-      (ragSearch as jest.Mock).mockRejectedValue(new Error('Sanity connection failed'));
+      (ragService.ragSearch as jest.Mock).mockRejectedValue(new Error('Sanity connection failed'));
 
       // Use a message that triggers RAG path
       const request = makeMockRequest({

@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendMessage, validateMessage } from '@/services/chatbot/gemini-service';
-import { ragSearch } from '@/lib/ai/rag-service';
+import { ragSearch, needsProductSearch } from '@/lib/ai/rag-service';
 import { checkRateLimit, getRemainingMessages, getResetTime } from '@/lib/ai/rate-limiter';
 import type { Message } from '@/types/chatbot';
 
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Decide whether to use RAG (product search) or Gemini (chat)
-    const lowerMsg = (message || '').toString().toLowerCase();
-    const isProductQuery = /(^show\b|show me|\bsearch\b|\bfind\b)/i.test(message) && /\b(mushroom|mushrooms|product|products|fresh)\b/i.test(message);
+    // Use the comprehensive needsProductSearch function from rag-service
+    const isProductQuery = needsProductSearch(message);
 
     // Debug
     console.debug('[Chatbot API] parsed body ->', body);
@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
       props: Object.getOwnPropertyNames(request as any).slice(0, 20),
     });
 
+    // ALWAYS use RAG for product queries - this returns product cards
     if (isProductQuery) {
       console.log('[Chatbot API] Starting RAG search for:', message);
       const ragResponse = await ragSearch(message, history, {

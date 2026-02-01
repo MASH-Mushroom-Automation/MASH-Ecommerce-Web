@@ -80,6 +80,7 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Generates a response from Gemini API with retry logic
+ * Uses server-side proxy first to bypass VPN/DNS issues
  * 
  * @param prompt - The user's message or system prompt
  * @param conversationHistory - Previous messages for context (optional)
@@ -126,6 +127,44 @@ export async function generateResponse(
     console.log('[Gemini] Request:', requestBody);
   }
 
+  // FIRST: Try server-side proxy (bypasses VPN/DNS issues)
+  try {
+    console.log('[Gemini] Trying server-side proxy first...');
+    
+    const proxyResponse = await fetch('/api/ai/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (proxyResponse.ok) {
+      const data: GeminiResponse = await proxyResponse.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      if (generatedText) {
+        const processingTime = Date.now() - startTime;
+        console.log('[Gemini] Server proxy succeeded in', processingTime, 'ms');
+        
+        return {
+          content: generatedText,
+          success: true,
+          source: 'gemini',
+          metadata: {
+            tokensUsed: data.usageMetadata?.totalTokenCount,
+            model: GEMINI_MODEL,
+            processingTime,
+            method: 'server-proxy',
+          },
+        };
+      }
+    }
+    
+    console.warn('[Gemini] Server proxy returned non-OK or empty response');
+  } catch (proxyError) {
+    console.warn('[Gemini] Server proxy failed:', proxyError instanceof Error ? proxyError.message : proxyError);
+  }
+
+  // SECOND: Try direct fetch with retries
   const apiUrl = getGeminiUrl(GEMINI_MODEL);
   let lastError: Error | null = null;
 

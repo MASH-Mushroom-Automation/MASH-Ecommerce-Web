@@ -53,6 +53,9 @@ module.exports = {
     '**/lib/ai/__tests__/retry-handler.test.ts',
     '**/__tests__/integration/chatbot-e2e.test.ts',
     
+    // Integration test in src/__tests__
+    '**/src/__tests__/chatbot-integration.test.ts',
+    
     // Catch-all for any chatbot tests
     '**/__tests__/**/chatbot/**/*.test.{ts,tsx}',
   ],

@@ -10,11 +10,13 @@ import { POST, GET } from '../message/route';
 import { NextRequest } from 'next/server';
 import * as geminiService from '@/services/chatbot/gemini-service';
 import * as rateLimiter from '@/lib/ai/rate-limiter';
+import * as ragService from '@/lib/ai/rag-service';
 import type { AIResponse } from '@/types/chatbot';
 
 // Mock dependencies
 jest.mock('@/services/chatbot/gemini-service');
 jest.mock('@/lib/ai/rate-limiter');
+jest.mock('@/lib/ai/rag-service');
 
 describe('Chatbot API Integration Tests', () => {
   const mockUserId = 'test-user-123';
@@ -41,6 +43,17 @@ describe('Chatbot API Integration Tests', () => {
 
     // Default validateMessage to accept valid input
     (geminiService.validateMessage as jest.Mock).mockReturnValue({ valid: true });
+    
+    // Mock needsProductSearch - return false by default (non-product queries)
+    (ragService.needsProductSearch as jest.Mock).mockReturnValue(false);
+    
+    // Mock ragSearch for product queries
+    (ragService.ragSearch as jest.Mock).mockResolvedValue({
+      content: 'Here are some products...',
+      success: true,
+      productCards: [],
+      source: 'rag',
+    });
   });
 
   describe('POST /api/chatbot/message', () => {
@@ -53,7 +66,7 @@ describe('Chatbot API Integration Tests', () => {
       (geminiService.sendMessage as jest.Mock).mockResolvedValue(mockResponse);
 
       const request = makeMockRequest({
-        message: 'What mushrooms are good for beef pepper garlic?',
+        message: 'Hello, how are you?', // Use non-product query
         userId: mockUserId,
       });
 
@@ -65,9 +78,40 @@ describe('Chatbot API Integration Tests', () => {
       expect(data.content).toBe('Test response');
       // Assert called with message and empty history (third arg optional)
       expect(geminiService.sendMessage).toHaveBeenCalledWith(
-        'What mushrooms are good for beef pepper garlic?',
+        'Hello, how are you?',
         []
       );
+    });
+
+    it('should successfully process a product query with RAG', async () => {
+      // Enable product search for this specific test
+      (ragService.needsProductSearch as jest.Mock).mockReturnValue(true);
+      
+      const mockRagResponse = {
+        content: 'Here are some great mushrooms for your dish:',
+        success: true,
+        productCards: [
+          { id: '1', name: 'King Oyster', slug: 'king-oyster', price: 150 }
+        ],
+        source: 'rag',
+      };
+      
+      (ragService.ragSearch as jest.Mock).mockResolvedValue(mockRagResponse);
+
+      const request = makeMockRequest({
+        message: 'What mushrooms are good for beef pepper garlic?',
+        userId: mockUserId,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.content).toBe('Here are some great mushrooms for your dish:');
+      expect(data.productCards).toHaveLength(1);
+      // RAG search should be called, not sendMessage
+      expect(ragService.ragSearch).toHaveBeenCalled();
     });
 
     it('should handle Gemini API errors gracefully', async () => {
