@@ -294,12 +294,14 @@ describe('quickSearchProducts', () => {
 
   it('should handle errors gracefully', async () => {
     const error = new Error('Search failed');
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     (sanityClient.fetch as jest.Mock).mockRejectedValueOnce(error);
 
     const result = await quickSearchProducts('oyster', 10);
 
     expect(result).toEqual([]);
-    expect(console.error).toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it('should limit results', async () => {
