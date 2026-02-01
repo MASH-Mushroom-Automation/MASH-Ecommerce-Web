@@ -173,9 +173,10 @@ describe('getStockValueQuery', () => {
     expect(query).toContain('"value"');
     expect(query).toContain('"productCount"');
 
-    // Check math::sum usage
+    // Check math::sum usage with projection pattern (GROQ requires projection for math::sum)
     expect(query).toContain('math::sum');
-    expect(query).toContain('stockQuantity, 0) * price');
+    expect(query).toContain('coalesce(stockQuantity, 0) * coalesce(price, 0)');
+    expect(query).toContain('}.v)'); // projection pattern
 
     // Check category ordering
     expect(query).toContain('order(value desc)');

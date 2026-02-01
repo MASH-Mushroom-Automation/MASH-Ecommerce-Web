@@ -122,22 +122,25 @@ export function getLowStockProductsQuery(
  * Calculate total inventory value grouped by category
  * Returns category-wise value breakdown and total value
  * 
+ * Note: GROQ math::sum requires projecting numeric values first.
+ * We project { "v": coalesce(stockQuantity,0) * price }.v then sum.
+ * 
  * @returns GROQ query string
  */
 export function getStockValueQuery(): string {
   return `
     {
       "totalValue": {
-        "total": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true].coalesce(stockQuantity, 0) * price),
-        "inStock": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && coalesce(stockQuantity, 0) >= ${DEFAULT_LOW_STOCK_THRESHOLD}].coalesce(stockQuantity, 0) * price),
-        "lowStock": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && coalesce(stockQuantity, 0) > 0 && coalesce(stockQuantity, 0) < ${DEFAULT_LOW_STOCK_THRESHOLD}].coalesce(stockQuantity, 0) * price),
+        "total": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
+        "inStock": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && coalesce(stockQuantity, 0) >= ${DEFAULT_LOW_STOCK_THRESHOLD}] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
+        "lowStock": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && coalesce(stockQuantity, 0) > 0 && coalesce(stockQuantity, 0) < ${DEFAULT_LOW_STOCK_THRESHOLD}] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
         "outOfStock": 0
       },
       "byCategory": *[_type == "category"] {
         _id,
         name,
         "slug": slug.current,
-        "value": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)].coalesce(stockQuantity, 0) * price),
+        "value": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
         "productCount": count(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)])
       } | order(value desc)
     }
@@ -147,6 +150,8 @@ export function getStockValueQuery(): string {
 /**
  * Get stock distribution by category
  * Returns category breakdown with stock counts and value
+ * 
+ * Note: GROQ math::sum requires projecting numeric values first.
  * 
  * @returns GROQ query string
  */
@@ -161,7 +166,7 @@ export function getCategoryInventoryQuery(): string {
       "inStock": count(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id) && coalesce(stockQuantity, 0) >= ${DEFAULT_LOW_STOCK_THRESHOLD}]),
       "lowStock": count(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id) && coalesce(stockQuantity, 0) > 0 && coalesce(stockQuantity, 0) < ${DEFAULT_LOW_STOCK_THRESHOLD}]),
       "outOfStock": count(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id) && coalesce(stockQuantity, 0) == 0]),
-      "totalValue": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)].coalesce(stockQuantity, 0) * price),
+      "totalValue": math::sum(*[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)] { "v": coalesce(stockQuantity, 0) * coalesce(price, 0) }.v),
       "products": *[_type == "product" && !(_id in path("drafts.**")) && archived != true && references(^._id)] | order(coalesce(stockQuantity, 0) asc) [0...10] {
         _id,
         name,
