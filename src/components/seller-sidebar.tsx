@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
+import { useInventoryStats } from "@/hooks/useInventoryData"
 import { getProfileAvatar, getUserInitials as getAvatarInitials } from "@/lib/avatar"
 import {
   AlertDialog,
@@ -240,6 +241,12 @@ function SellerNavUser() {
 
 function SellerNavMain() {
   const pathname = usePathname()
+  
+  // Get low stock count for inventory badge
+  const { stats } = useInventoryStats({
+    enabled: true,
+  });
+  const lowStockCount = stats?.lowStock || 0;
 
   return (
     <SidebarGroup>
@@ -247,12 +254,19 @@ function SellerNavMain() {
         <SidebarMenu>
           {sidebarLinks.map((item) => {
             const isActive = pathname === item.href
+            const showBadge = item.href === "/seller/inventory" && lowStockCount > 0
+            
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={isActive}>
                   <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
+                    {showBadge && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                        {lowStockCount}
+                      </span>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

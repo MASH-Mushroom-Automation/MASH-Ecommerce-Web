@@ -1099,3 +1099,33 @@ Copy the prompt from PHASE_6_NEXT_STEPS.md to begin Phase 6 implementation:
 
 **Tests Passing:** [PASS] Build (30.1s) | [NEW] 38 integration tests added | [PASS] TypeCheck
 ---
+
+## [2026-02-02 13:00] - SELLER-020-P7-01
+**Completed:** Add Navigation Link to Inventory Page
+**Files Changed:**
+- src/components/seller-sidebar.tsx
+
+**Implementation Notes:**
+- Added useInventoryStats hook to seller sidebar navigation
+- Inventory link badge shows low stock count (if > 0)
+- Badge styled with destructive variant (red background)
+- Badge positioned with ml-auto for right alignment
+- Link already existed at correct position (between Products and Orders)
+- Package icon already configured
+- Active state styling already implemented
+
+**Technical Implementation:**
+- Hook call: useInventoryStats({ enabled: true })
+- Badge component: Inline span with Tailwind classes
+- Badge visibility: Conditional render when lowStockCount > 0
+- Badge styling: h-5 min-w-5 rounded-full bg-destructive text-xs
+- Data flow: useInventoryStats ? stats?.lowStock ? badge display
+
+**UX Improvements:**
+- Real-time low stock count visible in navigation
+- Visual alert for inventory issues (red badge)
+- Badge only shows when action needed (lowStock > 0)
+- Badge updates automatically via React Query (5-min cache)
+
+**Tests Passing:** [PASS] Build (31.2s)
+---
