@@ -8,15 +8,24 @@ import userEvent from '@testing-library/user-event';
 import { QuickStockUpdate } from './QuickStockUpdate';
 import type { LowStockItem } from '@/types/inventory';
 import { toast } from 'sonner';
+import * as inventoryMutations from '@/lib/sanity/mutations/inventory';
 
 // Mock dependencies
-jest.mock('@/lib/sanity/client', () => ({
-  sanityClient: {
-    patch: jest.fn(() => ({
-      set: jest.fn(() => ({
-        commit: jest.fn(() => Promise.resolve()),
-      })),
-    })),
+jest.mock('@/lib/sanity/mutations/inventory', () => ({
+  updateProductStock: jest.fn(),
+  ValidationError: class ValidationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'ValidationError';
+    }
+  },
+  MutationError: class MutationError extends Error {
+    attemptNumber?: number;
+    constructor(message: string, attemptNumber?: number) {
+      super(message);
+      this.name = 'MutationError';
+      this.attemptNumber = attemptNumber;
+    }
   },
 }));
 
@@ -211,7 +220,17 @@ describe('QuickStockUpdate', () => {
 
   describe('Save Functionality', () => {
     it('should call onSuccess after successful update', async () => {
-      const { sanityClient } = require('@/lib/sanity/client');
+      const mockUpdateProductStock = inventoryMutations.updateProductStock as jest.MockedFunction<
+        typeof inventoryMutations.updateProductStock
+      >;
+      mockUpdateProductStock.mockResolvedValueOnce({
+        success: true,
+        productId: 'prod-1',
+        oldQuantity: 5,
+        newQuantity: 20,
+        updatedAt: '2026-02-02T10:00:00Z',
+      });
+
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       
@@ -223,12 +242,23 @@ describe('QuickStockUpdate', () => {
       await user.click(saveButton);
       
       await waitFor(() => {
-        expect(sanityClient.patch).toHaveBeenCalledWith('prod-1');
+        expect(mockUpdateProductStock).toHaveBeenCalledWith('prod-1', 20);
         expect(defaultProps.onSuccess).toHaveBeenCalledWith('prod-1', 20);
       });
     });
 
     it('should show success toast after update', async () => {
+      const mockUpdateProductStock = inventoryMutations.updateProductStock as jest.MockedFunction<
+        typeof inventoryMutations.updateProductStock
+      >;
+      mockUpdateProductStock.mockResolvedValueOnce({
+        success: true,
+        productId: 'prod-1',
+        oldQuantity: 5,
+        newQuantity: 20,
+        updatedAt: '2026-02-02T10:00:00Z',
+      });
+
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       
@@ -248,6 +278,17 @@ describe('QuickStockUpdate', () => {
     });
 
     it('should close modal after successful update', async () => {
+      const mockUpdateProductStock = inventoryMutations.updateProductStock as jest.MockedFunction<
+        typeof inventoryMutations.updateProductStock
+      >;
+      mockUpdateProductStock.mockResolvedValueOnce({
+        success: true,
+        productId: 'prod-1',
+        oldQuantity: 5,
+        newQuantity: 20,
+        updatedAt: '2026-02-02T10:00:00Z',
+      });
+
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       
@@ -264,12 +305,11 @@ describe('QuickStockUpdate', () => {
     });
 
     it('should show error toast on update failure', async () => {
-      const { sanityClient } = require('@/lib/sanity/client');
-      sanityClient.patch.mockReturnValueOnce({
-        set: jest.fn(() => ({
-          commit: jest.fn(() => Promise.reject(new Error('Network error'))),
-        })),
-      });
+      const mockUpdateProductStock = inventoryMutations.updateProductStock as jest.MockedFunction<
+        typeof inventoryMutations.updateProductStock
+      >;
+      const mockError = new (inventoryMutations as any).MutationError('Network error', 3);
+      mockUpdateProductStock.mockRejectedValueOnce(mockError);
 
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
@@ -283,7 +323,7 @@ describe('QuickStockUpdate', () => {
       
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          'Network error',
+          expect.stringContaining('Update failed'),
           expect.any(Object)
         );
       });
