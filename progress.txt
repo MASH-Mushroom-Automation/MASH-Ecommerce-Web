@@ -28,6 +28,36 @@
 - **Accessibility:** WCAG 2.1 AA compliance requires aria-label on all interactive elements, keyboard navigation support, and screen reader announcements for dynamic content changes.
 - **Cross-Browser Testing:** Test Chrome, Firefox, Edge, Safari on 4 responsive breakpoints (375px, 768px, 1024px, 1920px). Document acceptable visual differences (focus rings, date pickers, scrollbars).
 - **Production Deployment:** Railway auto-deploys from main branch. Verify staging (beta.mashmarket.app) before production (www.mashmarket.app). Monitor for 24 hours post-deployment.
+- **Inventory Types:** Low stock threshold defaults to 10. Urgency levels: critical (0-25%), high (26-50%), medium (51-100%). Stock status calculated as: 0 = out-of-stock, < threshold = low-stock, >= threshold = in-stock.
+
+---
+
+## [2026-02-02 23:00] - SELLER-020-P1-01
+**Completed:** Create Inventory Data Types & Interfaces
+
+**Files Changed:**
+- src/types/inventory.ts (NEW)
+
+**Implementation Notes:**
+- Created comprehensive TypeScript interfaces for inventory management dashboard
+- InventoryStats: Dashboard summary with totalSKUs, stock counts, and percentages
+- StockLevelData: Chart visualization data with colors and labels
+- LowStockItem: Product details with urgency levels (critical/high/medium)
+- InventoryValue: Total value calculations with currency formatting
+- CategoryInventory: Category-wise stock distribution and value breakdown
+- StockUpdateRequest/Response: Mutation interfaces for stock updates
+- LowStockFilters: Search, filter, and sort options for alerts
+- Implemented 8 utility functions: type guards, calculators, formatters
+- All helper functions include proper TypeScript typing
+
+**Learnings for Future Iterations:**
+- Low stock threshold defaults to 10 (configurable per product)
+- Urgency levels calculated as ratio of current stock to threshold
+- Stock status tri-state: out-of-stock (0), low-stock (1-threshold-1), in-stock (>= threshold)
+- Currency formatting uses Intl.NumberFormat with en-PH locale
+- Chart colors follow Tailwind palette: green-500 (in-stock), amber-500 (low-stock), red-500 (out-of-stock)
+
+**Tests Passing:** [PASS] Build (28.3s) | [PASS] TypeScript
 
 ---
 
