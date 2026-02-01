@@ -1,10 +1,11 @@
 /**
  * FilterPanel Component
  * Comprehensive product filtering UI with Radix primitives
+ * Optimized with React.memo() for performance
  */
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Filter, X, ChevronDown } from 'lucide-react';
 import {
   Accordion,
@@ -62,14 +63,16 @@ export interface FilterPanelProps {
  * - Date range picker
  * - Collapsible accordion sections
  * - Clear all filters button
+ * 
+ * Performance: Memoized with React.memo() to prevent unnecessary re-renders
  */
-export function FilterPanel({
+export const FilterPanel = memo<FilterPanelProps>(function FilterPanel({
   filters,
   onFiltersChange,
   filterOptions,
   className,
   showClearButton = true,
-}: FilterPanelProps) {
+}) {
   const handleCategoryToggle = (categoryId: string) => {
     const newCategories = filters.categories.includes(categoryId)
       ? filters.categories.filter(id => id !== categoryId)
@@ -396,4 +399,4 @@ export function FilterPanel({
       </Accordion>
     </div>
   );
-}
+});

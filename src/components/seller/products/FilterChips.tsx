@@ -1,10 +1,11 @@
 /**
  * FilterChips Component
  * Display and remove active filters as chips
+ * Optimized with React.memo() for performance
  */
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,14 +38,16 @@ export interface FilterChipsProps {
  * - X button to remove individual filters
  * - "Clear all" button when multiple filters active
  * - Smooth animations on add/remove
+ * 
+ * Performance: Memoized with React.memo() to prevent unnecessary re-renders
  */
-export function FilterChips({
+export const FilterChips = memo<FilterChipsProps>(function FilterChips({
   filters,
   onRemoveFilter,
   onClearAll,
   filterOptions,
   className,
-}: FilterChipsProps) {
+}) {
   // Build list of active filter chips
   const activeChips: Array<{
     key: string;
@@ -163,4 +166,4 @@ export function FilterChips({
       )}
     </div>
   );
-}
+});
