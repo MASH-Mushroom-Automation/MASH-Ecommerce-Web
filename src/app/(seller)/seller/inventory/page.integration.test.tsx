@@ -6,14 +6,6 @@
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tantml:parameter name="content">/**
- * Integration Tests for Inventory Overview Page
- * Tests full page functionality with Sanity CMS data flow
- */
-
-import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import InventoryOverviewPage from './page';
 import * as inventoryService from '@/lib/sanity/inventory-service';

@@ -123,7 +123,7 @@ export default function InventoryOverviewPage() {
     pollingInterval: 30000, // Poll every 30 seconds
   });
 
-  const invalidateInventory = useInvalidateInventory();
+  const { invalidateAll } = useInvalidateInventory();
 
   // Quick stock update modal state
   const [quickUpdateProduct, setQuickUpdateProduct] = useState<LowStockItem | null>(null);
@@ -131,7 +131,7 @@ export default function InventoryOverviewPage() {
 
   // Handle refresh button click
   const handleRefresh = () => {
-    invalidateInventory('all');
+    invalidateAll();
   };
 
   // Handle quick update from LowStockAlerts
@@ -142,7 +142,7 @@ export default function InventoryOverviewPage() {
 
   // Handle quick update success (invalidate inventory queries)
   const handleQuickUpdateSuccess = () => {
-    invalidateInventory('all');
+    invalidateAll();
   };
 
   // Loading state
@@ -211,10 +211,14 @@ export default function InventoryOverviewPage() {
             Low Stock Alerts
           </h2>
           <LowStockAlerts
-            lowStockProducts={lowStockProducts}
+            items={lowStockProducts?.items ?? []}
+            total={lowStockProducts?.total ?? 0}
+            page={1}
+            pageSize={10}
+            hasMore={lowStockProducts?.hasMore ?? false}
             isLoading={isLoading}
             isError={isError}
-            onQuickUpdate={handleQuickUpdateClick}
+            onRestockClick={handleQuickUpdateClick}
           />
         </section>
       </div>
