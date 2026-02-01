@@ -52,7 +52,12 @@ import { useRouter } from "next/navigation";
 // ============================================================================
 // Firebase Auth Cookie Helpers (for proxy/middleware detection)
 // ============================================================================
-import { setCookie, getCookieJSON, getCookie, removeCookie } from "@/lib/cookies";
+import {
+  setCookie,
+  getCookieJSON,
+  getCookie,
+  removeCookie,
+} from "@/lib/cookies";
 
 /**
  * Set a cookie to indicate Firebase user is authenticated
@@ -107,7 +112,7 @@ interface AuthContextType {
   signUpWithEmail: (
     email: string,
     password: string,
-    displayName?: string
+    displayName?: string,
   ) => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -126,12 +131,15 @@ interface AuthContextType {
   // Common
   signOut: () => Promise<void>;
   syncFirebaseUserToBackend: (
-    firebaseUser: FirebaseUser
+    firebaseUser: FirebaseUser,
   ) => Promise<AuthUser | null>; // OPTIONAL: Only for email/password users, not Google
 
   // Phase 5: Session Management
   signOutEverywhere: () => Promise<void>;
-  getSessionInfo: () => { hasToken: boolean; expiresIn: string | null };
+  getSessionInfo: () => Promise<{
+    hasToken: boolean;
+    expiresIn: string | null;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -169,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (
       profile: FirestoreUserProfile,
       provider: AuthUser["provider"],
-      fallbackEmail?: string
+      fallbackEmail?: string,
     ): AuthUser => {
       return {
         id: profile.id,
@@ -186,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         preferences: profile.preferences,
       };
     },
-    []
+    [],
   );
 
   /**
@@ -197,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       fbUser: FirebaseUser,
       provider: AuthUser["provider"],
-      additionalData?: Partial<AuthUser>
+      additionalData?: Partial<AuthUser>,
     ): Promise<AuthUser> => {
       try {
         console.log("[Auth Context] Syncing to Firestore profile...");
@@ -235,13 +243,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             photoURL: fbUser.photoURL || undefined,
             provider,
             emailVerified: fbUser.emailVerified,
-          }
+          },
         );
 
         const authUser = profileToAuthUser(
           profile,
           provider,
-          fbUser.email || undefined
+          fbUser.email || undefined,
         );
 
         // CRITICAL: Ensure email is always present (required for cart, wishlist, checkout)
@@ -316,7 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return authUser;
       }
     },
-    [profileToAuthUser]
+    [profileToAuthUser],
   );
 
   /**
@@ -370,14 +378,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If no backend URL configured, skip backend sync quietly (useful in local/dev)
         if (!process.env.NEXT_PUBLIC_API_URL) {
           console.info(
-            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured"
+            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured",
           );
           return null;
         }
 
         console.log(
           "[Auth] Sending to:",
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
         );
 
         // Call backend API with Firebase ID token in request body
@@ -393,13 +401,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               },
               credentials: "include", // Important for receiving HTTP-only cookies
               body: JSON.stringify(requestBody),
-            }
+            },
           );
         } catch (err: any) {
           // Likely a network/CORS error — handle gracefully and provide guidance
           console.warn(
             "[Auth] Network error syncing to backend. Backend may be unreachable; continuing with Firebase-only auth. Error:",
-            err?.message || err
+            err?.message || err,
           );
           // Don't block login: allow Firebase-only auth to continue
           return null;
@@ -426,14 +434,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Backend may set HTTP-only cookie automatically, but also handle token in response
         const accessToken = data.accessToken || data.tokens?.accessToken;
         const refreshToken = data.refreshToken || data.tokens?.refreshToken;
-        
+
         if (accessToken) {
           console.log("[Auth] Setting backend JWT token from response...");
           setAuthToken(accessToken, refreshToken, true);
         }
         // Refresh token is managed via HTTP-only cookies set by setAuthToken()
         if (refreshToken) {
-          console.log("[Auth] Refresh token handled via HTTP-only cookie (setAuthToken)");
+          console.log(
+            "[Auth] Refresh token handled via HTTP-only cookie (setAuthToken)",
+          );
         }
 
         // Build unified auth user object with backend-verified data
@@ -481,7 +491,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    []
+    [],
   );
 
   /**
@@ -562,23 +572,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               syncFirebaseUserToBackend(fbUser).catch((err) => {
                 console.warn(
                   "[Auth Context] Background backend sync failed:",
-                  err
+                  err,
                 );
               });
 
               // If data was migrated or missing email, fetch fresh from Firestore
               if (wasMigrated || !parsed.email) {
                 console.log(
-                  "[Auth Context] Fetching fresh data from Firestore after migration..."
+                  "[Auth Context] Fetching fresh data from Firestore after migration...",
                 );
                 const profile = await FirebaseUserService.getProfile(
-                  fbUser.uid
+                  fbUser.uid,
                 );
                 if (profile) {
                   const authUser = profileToAuthUser(
                     profile,
                     (profile.provider as AuthUser["provider"]) || "google",
-                    fbUser.email || undefined
+                    fbUser.email || undefined,
                   );
                   if (!authUser.email && fbUser.email) {
                     authUser.email = fbUser.email;
@@ -586,7 +596,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
                   console.log(
-                    "[Auth Context] User profile updated from Firestore"
+                    "[Auth Context] User profile updated from Firestore",
                   );
                 }
                 return;
@@ -595,13 +605,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Still fetch from Firestore in background to ensure data is fresh
               try {
                 const profile = await FirebaseUserService.getProfile(
-                  fbUser.uid
+                  fbUser.uid,
                 );
                 if (profile) {
                   const authUser = profileToAuthUser(
                     profile,
                     (profile.provider as AuthUser["provider"]) || "google",
-                    fbUser.email || undefined
+                    fbUser.email || undefined,
                   );
                   // Ensure email is present
                   if (!authUser.email && fbUser.email) {
@@ -610,13 +620,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
                   console.log(
-                    "[Auth Context] User profile refreshed from Firestore"
+                    "[Auth Context] User profile refreshed from Firestore",
                   );
                 }
               } catch (error) {
                 console.warn(
                   "[Auth Context] Failed to refresh profile from Firestore:",
-                  error
+                  error,
                 );
               }
               return;
@@ -625,7 +635,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.warn(
             "[Auth Context] Failed to load from localStorage:",
-            error
+            error,
           );
         }
 
@@ -638,7 +648,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const authUser = profileToAuthUser(
               profile,
               (profile.provider as AuthUser["provider"]) || "google",
-              fbUser.email || undefined
+              fbUser.email || undefined,
             );
 
             // CRITICAL: Validate email is present (required for all e-commerce features)
@@ -651,7 +661,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setUser(authUser);
-            try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
+            try {
+              setCookie("user", authUser, { expires: 30 });
+            } catch (e) {
+              console.error("Failed to set user cookie:", e);
+            }
             console.log("[Auth Context] User profile loaded from Firestore:", {
               id: authUser.id,
               email: authUser.email,
@@ -661,7 +675,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             // Profile doesn't exist, create it
             console.log(
-              "[Auth Context] No Firestore profile found, creating one..."
+              "[Auth Context] No Firestore profile found, creating one...",
             );
             await syncToFirestoreProfile(fbUser, "google");
           }
@@ -704,7 +718,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Don't clear user if they logged in with email/password
         try {
           const cookieUser = getCookieJSON<any>("user");
-          const hasAuthToken = typeof document !== 'undefined' && document.cookie.includes("auth-token=");
+          const hasAuthToken =
+            typeof document !== "undefined" &&
+            document.cookie.includes("auth-token=");
           let restored = false;
 
           if (cookieUser) {
@@ -716,7 +732,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               // If cookie exists but is not usable for restoration, clear it
               setUser(null);
-              try { removeCookie("user"); } catch (e) {}
+              try {
+                removeCookie("user");
+              } catch (e) {}
             }
           } else if (typeof localStorage !== "undefined") {
             const stored = localStorage.getItem("user");
@@ -734,7 +752,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
           }
         } catch (e) {
-          console.warn("[Auth Context] Error restoring user from cookies/local:", e);
+          console.warn(
+            "[Auth Context] Error restoring user from cookies/local:",
+            e,
+          );
           setUser(null);
         }
       }
@@ -744,9 +765,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       try {
-        if (typeof unsubscribe === 'function') {
+        if (typeof unsubscribe === "function") {
           unsubscribe();
-        } else if (unsubscribe && typeof (unsubscribe as any).unsubscribe === 'function') {
+        } else if (
+          unsubscribe &&
+          typeof (unsubscribe as any).unsubscribe === "function"
+        ) {
           (unsubscribe as any).unsubscribe();
         }
       } catch (e) {
@@ -812,13 +836,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log("[Auth] Backend sync successful");
             } else {
               console.log(
-                "[Auth] Backend sync skipped/failed, using Firebase-only auth"
+                "[Auth] Backend sync skipped/failed, using Firebase-only auth",
               );
             }
           } catch (backendError) {
             console.warn(
               "[Auth] Backend sync failed, continuing with Firebase-only:",
-              backendError
+              backendError,
             );
           }
 
@@ -833,8 +857,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           toast.success(`Welcome, ${result.displayName || result.email}!`);
 
           // Use the captured pre-sign-in redirect if available
-          const redirectUrl = (_preSignRedirect as string) ||
-            (sessionStorage.getItem("auth-redirect-url") || sessionStorage.getItem("redirectUrl") || "").toString();
+          const redirectUrl =
+            (_preSignRedirect as string) ||
+            (
+              sessionStorage.getItem("auth-redirect-url") ||
+              sessionStorage.getItem("redirectUrl") ||
+              ""
+            ).toString();
 
           if (redirectUrl) {
             sessionStorage.removeItem("auth-redirect-url");
@@ -847,26 +876,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 window.history.pushState({}, "", resolved.pathname);
               }
               // Try setting href too (may throw in jsdom), but ignore failures
-              try { window.location.href = redirectUrl; } catch (_) {}
+              try {
+                window.location.href = redirectUrl;
+              } catch (_) {}
 
               // In test environment, prefer assigning a lightweight location object to make assertions deterministic
-              if (typeof process !== "undefined" && process.env.NODE_ENV === "test") {
+              if (
+                typeof process !== "undefined" &&
+                process.env.NODE_ENV === "test"
+              ) {
                 try {
                   (window as any).location = { href: redirectUrl };
                 } catch (_) {}
               }
 
               // In test environment, prefer assigning a lightweight location object to make assertions deterministic
-              if (typeof process !== "undefined" && process.env.NODE_ENV === "test") {
+              if (
+                typeof process !== "undefined" &&
+                process.env.NODE_ENV === "test"
+              ) {
                 try {
                   (window as any).location = { href: redirectUrl };
                 } catch (_) {}
               }
             } catch (_) {
-              try { window.location.href = "/"; } catch (_) {}
+              try {
+                window.location.href = "/";
+              } catch (_) {}
             }
           } else {
-            try { window.location.href = "/"; } catch (_) {}
+            try {
+              window.location.href = "/";
+            } catch (_) {}
           }
         } catch (syncError) {
           toast.dismiss("google-signin");
@@ -895,7 +936,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignUpWithEmail = async (
     email: string,
     password: string,
-    displayName?: string
+    displayName?: string,
   ) => {
     try {
       setLoading(true);
@@ -934,7 +975,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const handleSignInWithEmailPassword = async (
     email: string,
-    password: string
+    password: string,
   ) => {
     try {
       setLoading(true);
@@ -984,7 +1025,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         setUser(authUser);
-        try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
+        try {
+          setCookie("user", authUser, { expires: 30 });
+        } catch (e) {
+          console.error("Failed to set user cookie:", e);
+        }
       }
 
       toast.dismiss("email-signin");
@@ -993,7 +1038,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Use captured pre-sign-in redirect if available
       const redirectUrl =
         (_preSignRedirect as string) ||
-        (sessionStorage.getItem("auth-redirect-url") || sessionStorage.getItem("redirectUrl") || "").toString();
+        (
+          sessionStorage.getItem("auth-redirect-url") ||
+          sessionStorage.getItem("redirectUrl") ||
+          ""
+        ).toString();
 
       if (redirectUrl) {
         sessionStorage.removeItem("auth-redirect-url");
@@ -1247,11 +1296,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Phase 5: Get current session info
    */
-  const handleGetSessionInfo = (): {
+  const handleGetSessionInfo = async (): Promise<{
     hasToken: boolean;
     expiresIn: string | null;
-  } => {
-    const info = getTokenInfo();
+  }> => {
+    const info = await getTokenInfo();
     return {
       hasToken: info.hasToken,
       expiresIn: info.expiresIn,
@@ -1303,7 +1352,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profile) {
         const authUser = profileToAuthUser(profile, user.provider);
         setUser(authUser);
-        try { setCookie("user", authUser, { expires: 30 }); } catch (e) { console.error("Failed to set user cookie:", e); }
+        try {
+          setCookie("user", authUser, { expires: 30 });
+        } catch (e) {
+          console.error("Failed to set user cookie:", e);
+        }
       }
     } catch (error) {
       console.error("Profile refresh error:", error);
