@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { sanityClient } from '@/lib/sanity/client';
+import { updateProductStock, ValidationError, MutationError } from '@/lib/sanity/mutations/inventory';
 import type { LowStockItem } from '@/types/inventory';
 import { cn } from '@/lib/utils';
 
@@ -115,32 +115,36 @@ export const QuickStockUpdate = React.memo<QuickStockUpdateProps>(
       setIsUpdating(true);
 
       try {
-        // Optimistic update via toast
+        // Show loading toast
         toast.loading(`Updating ${product.name}...`, { id: 'stock-update' });
 
-        // Sanity PATCH mutation
-        await sanityClient
-          .patch(product._id)
-          .set({ stockQuantity: newStock })
-          .commit();
+        // Use mutation helper with retry logic
+        const result = await updateProductStock(product._id, newStock);
 
-        // Success feedback
+        // Success feedback with old → new values
         toast.success(
-          `Stock updated: ${product.name} (${product.currentStock} → ${newStock})`,
+          `Stock updated: ${product.name} (${result.oldQuantity} → ${result.newQuantity})`,
           { id: 'stock-update' }
         );
 
         // Trigger callback for cache invalidation
-        onSuccess?.(product._id, newStock);
+        onSuccess?.(product._id, result.newQuantity);
 
         // Close modal
         onOpenChange(false);
       } catch (error) {
         console.error('[QuickStockUpdate] Failed to update stock:', error);
-        toast.error(
-          error instanceof Error ? error.message : 'Failed to update stock quantity',
-          { id: 'stock-update' }
-        );
+
+        // Handle different error types
+        if (error instanceof ValidationError) {
+          toast.error(`Validation error: ${error.message}`, { id: 'stock-update' });
+        } else if (error instanceof MutationError) {
+          toast.error(`Update failed: ${error.message}`, { id: 'stock-update' });
+        } else {
+          toast.error('Failed to update stock quantity. Please try again.', {
+            id: 'stock-update',
+          });
+        }
       } finally {
         setIsUpdating(false);
       }
