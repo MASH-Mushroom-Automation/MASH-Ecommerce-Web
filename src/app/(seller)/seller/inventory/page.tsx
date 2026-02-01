@@ -106,9 +106,10 @@ function DashboardError({ message, onRetry }: { message: string; onRetry: () => 
  * - Quick stock update modal for fast adjustments
  * - Responsive layout: mobile (stacked), tablet (2-col), desktop (3-col)
  * - Refresh button to invalidate all queries
+ * - Real-time polling (30s interval) with toast notifications
  */
 export default function InventoryOverviewPage() {
-  // React Query hooks for data fetching (parallel)
+  // React Query hooks for data fetching (parallel) with real-time polling
   const {
     stats,
     lowStockProducts,
@@ -117,7 +118,10 @@ export default function InventoryOverviewPage() {
     isLoading,
     isError,
     error,
-  } = useInventoryData();
+  } = useInventoryData({
+    enableRealtime: true, // Enable polling for real-time updates
+    pollingInterval: 30000, // Poll every 30 seconds
+  });
 
   const invalidateInventory = useInvalidateInventory();
 

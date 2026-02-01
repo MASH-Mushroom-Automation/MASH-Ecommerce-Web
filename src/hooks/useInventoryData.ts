@@ -1,12 +1,13 @@
 /**
  * useInventoryData Custom Hook
- * Manages inventory data fetching, caching, and real-time updates
+ * Manages inventory data fetching, caching, and real-time updates with polling
  */
 
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   getInventoryStats,
   getLowStockProducts,
@@ -175,17 +176,90 @@ export function useCategoryInventory(options: { enabled?: boolean } = {}) {
 /**
  * Hook for complete inventory dashboard data
  * Fetches all data in parallel with single loading state
+ * Includes optional real-time polling for updates
  * 
  * @param options - Hook configuration
- * @returns Combined query results
+ * @returns Combined query results with real-time capabilities
  */
-export function useInventoryData(options: { enabled?: boolean } = {}) {
-  const { enabled = true } = options;
+export function useInventoryData(options: {
+  enabled?: boolean;
+  enableRealtime?: boolean;
+  pollingInterval?: number;
+} = {}) {
+  const { enabled = true, enableRealtime = false, pollingInterval = 30000 } = options;
   const queryClient = useQueryClient();
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataHashRef = useRef<string>('');
 
   const statsQuery = useInventoryStats({ enabled });
   const stockValueQuery = useStockValue({ enabled });
   const categoryQuery = useCategoryInventory({ enabled });
+  const lowStockQuery = useLowStockProducts({
+    enabled,
+    filters: DEFAULT_LOW_STOCK_FILTERS,
+    page: 1,
+    pageSize: 10,
+  });
+
+  /**
+   * Generate hash of current data for change detection
+   */
+  const generateDataHash = useCallback(() => {
+    const data = {
+      stats: statsQuery.stats,
+      stockValue: stockValueQuery.value,
+      categories: categoryQuery.categories,
+      lowStock: lowStockQuery.products,
+    };
+    return JSON.stringify(data);
+  }, [statsQuery.stats, stockValueQuery.value, categoryQuery.categories, lowStockQuery.products]);
+
+  /**
+   * Poll for inventory changes
+   */
+  const pollForChanges = useCallback(async () => {
+    try {
+      // Silently refetch all queries
+      await queryClient.refetchQueries({ queryKey: ['inventory'], type: 'active' });
+
+      // Check if data changed
+      const newHash = generateDataHash();
+      if (lastDataHashRef.current && newHash !== lastDataHashRef.current) {
+        // Data changed - show toast notification
+        toast.success('Inventory updated', {
+          description: 'Stock levels have been refreshed',
+          duration: 3000,
+        });
+      }
+      lastDataHashRef.current = newHash;
+    } catch (error) {
+      console.error('[useInventoryData] Polling error:', error);
+      // Silently fail - don't disrupt user experience
+    }
+  }, [queryClient, generateDataHash]);
+
+  /**
+   * Set up polling interval
+   */
+  useEffect(() => {
+    if (!enableRealtime || !enabled) {
+      return;
+    }
+
+    // Initialize hash
+    lastDataHashRef.current = generateDataHash();
+
+    // Start polling
+    pollingTimerRef.current = setInterval(pollForChanges, pollingInterval);
+
+    // Cleanup on unmount
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
+  }, [enableRealtime, enabled, pollingInterval, pollForChanges, generateDataHash]);
 
   // Manual refresh function that invalidates all queries
   const refresh = useCallback(async () => {
@@ -194,22 +268,38 @@ export function useInventoryData(options: { enabled?: boolean } = {}) {
 
   // Combined loading state (all must complete)
   const isLoading =
-    statsQuery.isLoading || stockValueQuery.isLoading || categoryQuery.isLoading;
+    statsQuery.isLoading ||
+    stockValueQuery.isLoading ||
+    categoryQuery.isLoading ||
+    lowStockQuery.isLoading;
 
   // Combined error state (any error)
   const isError =
-    statsQuery.isError || stockValueQuery.isError || categoryQuery.isError;
+    statsQuery.isError ||
+    stockValueQuery.isError ||
+    categoryQuery.isError ||
+    lowStockQuery.isError;
+
+  // Get first error
+  const error = statsQuery.error || stockValueQuery.error || categoryQuery.error || lowStockQuery.error;
 
   return {
     stats: statsQuery.stats,
+    lowStockProducts: {
+      items: lowStockQuery.products,
+      total: lowStockQuery.total,
+      hasMore: lowStockQuery.hasMore,
+    },
     stockValue: stockValueQuery.value,
-    categories: categoryQuery.categories,
+    categoryInventory: categoryQuery.categories,
     isLoading,
     isError,
+    error,
     refresh,
     refetchStats: statsQuery.refetch,
     refetchValue: stockValueQuery.refetch,
     refetchCategories: categoryQuery.refetch,
+    refetchLowStock: lowStockQuery.refetch,
   };
 }
 
