@@ -413,15 +413,15 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             {product.isOnPromo && product.originalPrice ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-primary">
-                  ₱{product.price.toFixed(2)}
+                  ₱{(product.price ?? 0).toFixed(2)}
                 </span>
                 <span className="text-sm text-muted-foreground line-through">
-                  ₱{product.originalPrice.toFixed(2)}
+                  ₱{(product.originalPrice ?? 0).toFixed(2)}
                 </span>
               </div>
             ) : (
               <span className="text-lg font-bold text-primary">
-                ₱{product.price.toFixed(2)}
+                ₱{(product.price ?? 0).toFixed(2)}
               </span>
             )}
           </div>
@@ -459,7 +459,7 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/shop/products/${product.slug.current}`}>
+              <Link href={`/shop/products/${product.slug?.current ?? product._id}`}>
                 View
               </Link>
             </Button>

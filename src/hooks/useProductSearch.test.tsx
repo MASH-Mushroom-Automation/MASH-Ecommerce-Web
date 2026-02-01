@@ -5,7 +5,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
-import { useProductSearch } from '../useProductSearch';
+import { useProductSearch } from './useProductSearch';
 import { searchProducts, ProductSearchResults } from '@/lib/sanity/product-search';
 import { DEFAULT_FILTERS } from '@/types/product-filters';
 

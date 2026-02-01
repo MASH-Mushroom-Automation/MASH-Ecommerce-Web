@@ -41,12 +41,17 @@ export interface UseProductSearchOptions {
  * @returns React Query result with products and pagination info
  */
 export function useProductSearch(
-  filtersOrOptions: ProductFilters | UseProductSearchOptions,
+  filtersOrOptions: ProductFilters | UseProductSearchOptions | undefined | null,
   page?: number,
   pageSize?: number
 ): UseQueryResult<ProductSearchResults, Error> {
+  // Handle null/undefined input
+  if (!filtersOrOptions) {
+    filtersOrOptions = { search: '', categories: [], priceRange: [0, Infinity], stockStatus: 'all', productStatus: 'published', dateRange: null };
+  }
+  
   // Support both object and positional argument styles
-  const options: UseProductSearchOptions = 'search' in filtersOrOptions 
+  const options: UseProductSearchOptions = (filtersOrOptions && typeof filtersOrOptions === 'object' && 'search' in filtersOrOptions) 
     ? { filters: filtersOrOptions as ProductFilters, page: page ?? 1, pageSize: pageSize ?? 50 }
     : filtersOrOptions as UseProductSearchOptions;
   
