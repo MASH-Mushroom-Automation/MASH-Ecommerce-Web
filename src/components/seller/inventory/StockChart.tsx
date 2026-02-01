@@ -83,7 +83,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
     <div className="bg-background border rounded-lg shadow-lg p-3">
       <p className="font-semibold mb-1">{data.label}</p>
       <p className="text-sm text-muted-foreground">
-        Count: <span className="font-medium">{data.value.toLocaleString()}</span>
+        Count: <span className="font-medium">{data.count.toLocaleString()}</span>
       </p>
       <p className="text-sm text-muted-foreground">
         Percentage: <span className="font-medium">{data.percentage.toFixed(1)}%</span>
@@ -106,27 +106,31 @@ interface CustomLegendProps {
 }
 
 function CustomLegend({ payload, hiddenStatuses, onToggleStatus }: CustomLegendProps) {
-  if (!payload) {
+  if (!payload || payload.length === 0) {
     return null;
   }
   
   return (
     <ul className="flex flex-wrap justify-center gap-4 mt-4">
-      {payload.map((entry) => {
-        const isHidden = hiddenStatuses.has(entry.payload.status);
+      {payload.map((entry, index) => {
+        // Safely access payload.status with fallback to entry.value
+        const status = entry.payload?.status ?? entry.value;
+        const isHidden = hiddenStatuses.has(status);
+        // Use a combination of value and index for unique key
+        const uniqueKey = `${entry.value}-${index}`;
         
         return (
           <li
-            key={entry.value}
+            key={uniqueKey}
             className={cn(
               'flex items-center gap-2 cursor-pointer select-none transition-opacity',
               isHidden && 'opacity-50'
             )}
-            onClick={() => onToggleStatus(entry.payload.status)}
+            onClick={() => onToggleStatus(status)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onToggleStatus(entry.payload.status);
+                onToggleStatus(status);
               }
             }}
             role="button"
@@ -143,7 +147,7 @@ function CustomLegend({ payload, hiddenStatuses, onToggleStatus }: CustomLegendP
             />
             <span className="text-sm font-medium">{entry.value}</span>
             <span className="text-sm text-muted-foreground">
-              ({entry.payload.value})
+              ({entry.payload?.count ?? 0})
             </span>
           </li>
         );
@@ -205,8 +209,11 @@ export const StockChart = memo<StockChartProps>(function StockChart({
     (item) => !hiddenStatuses.has(item.status)
   );
   
-  // Handle empty data
-  if (filteredData.length === 0) {
+  // Calculate total count (sum of all counts in filtered data)
+  const totalCount = filteredData.reduce((sum, item) => sum + item.count, 0);
+  
+  // Handle empty data (no items or all counts are zero)
+  if (filteredData.length === 0 || totalCount === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -252,7 +259,7 @@ export const StockChart = memo<StockChartProps>(function StockChart({
               innerRadius={60}
               outerRadius={100}
               paddingAngle={2}
-              dataKey="value"
+              dataKey="count"
               nameKey="label"
               animationBegin={0}
               animationDuration={800}
@@ -270,12 +277,13 @@ export const StockChart = memo<StockChartProps>(function StockChart({
             </Pie>
             <Tooltip content={<CustomTooltip />} />
             <Legend
-              content={
+              content={(props) => (
                 <CustomLegend
+                  payload={props.payload}
                   hiddenStatuses={hiddenStatuses}
                   onToggleStatus={handleToggleStatus}
                 />
-              }
+              )}
               verticalAlign="bottom"
               height={60}
             />
