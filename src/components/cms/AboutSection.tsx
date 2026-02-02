@@ -331,6 +331,70 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
         </section>
       )}
 
+      {/* Mentor Section - Enhanced */}
+      {mentor?.isActive && (
+        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-muted/50 to-muted/30">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">
+                <GraduationCap className="w-3 h-3 mr-1" />
+                Academic Guidance
+              </Badge>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+                {mentor.title}
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                {mentor.subtitle}
+              </p>
+            </div>
+
+            <div className="bg-card rounded-2xl shadow-xl overflow-hidden border border-border">
+              <div className="h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500" />
+              <div className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
+                {/* Mentor Image */}
+                <div className="relative">
+                  <div className="w-36 h-36 md:w-44 md:h-44 rounded-2xl overflow-hidden shadow-lg ring-4 ring-amber-500/20">
+                    {mentor.mentor.avatar ? (
+                      <Image
+                        src={mentor.mentor.avatar}
+                        alt={mentor.mentor.name}
+                        fill
+                        className="object-cover"
+                        sizes="176px"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                        <span className="text-white text-4xl font-bold">
+                          {getInitials(mentor.mentor.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <Award className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+
+                {/* Mentor Info */}
+                <div className="text-center md:text-left flex-1">
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                    {mentor.mentor.name}
+                  </h3>
+                  <p className="text-lg text-primary font-medium mb-4">
+                    {mentor.mentor.title}
+                  </p>
+                  {mentor.mentor.bio && (
+                    <p className="text-muted-foreground leading-relaxed">
+                      {mentor.mentor.bio}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Team Section - Enhanced with proper images */}
       {team && team.length > 0 && (
         <section className="py-20 md:py-28 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-background via-muted/20 to-background">
@@ -575,70 +639,6 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                     </div>
                   );
                 })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Mentor Section - Enhanced */}
-      {mentor?.isActive && (
-        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-muted/50 to-muted/30">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-10">
-              <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">
-                <GraduationCap className="w-3 h-3 mr-1" />
-                Academic Guidance
-              </Badge>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                {mentor.title}
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                {mentor.subtitle}
-              </p>
-            </div>
-
-            <div className="bg-card rounded-2xl shadow-xl overflow-hidden border border-border">
-              <div className="h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500" />
-              <div className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
-                {/* Mentor Image */}
-                <div className="relative">
-                  <div className="w-36 h-36 md:w-44 md:h-44 rounded-2xl overflow-hidden shadow-lg ring-4 ring-amber-500/20">
-                    {mentor.mentor.avatar ? (
-                      <Image
-                        src={mentor.mentor.avatar}
-                        alt={mentor.mentor.name}
-                        fill
-                        className="object-cover"
-                        sizes="176px"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                        <span className="text-white text-4xl font-bold">
-                          {getInitials(mentor.mentor.name)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <Award className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-
-                {/* Mentor Info */}
-                <div className="text-center md:text-left flex-1">
-                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                    {mentor.mentor.name}
-                  </h3>
-                  <p className="text-lg text-primary font-medium mb-4">
-                    {mentor.mentor.title}
-                  </p>
-                  {mentor.mentor.bio && (
-                    <p className="text-muted-foreground leading-relaxed">
-                      {mentor.mentor.bio}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </section>
