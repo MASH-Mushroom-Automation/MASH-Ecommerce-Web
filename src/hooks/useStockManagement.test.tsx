@@ -22,7 +22,7 @@ import {
   usePrefetchStockHistory,
   useInvalidateStockCache,
   STOCK_QUERY_KEYS,
-} from '../useStockManagement';
+} from './useStockManagement';
 import type { StockAdjustmentResponse, StockAdjustmentHistory } from '@/types/stock-management';
 
 // ============================================================================

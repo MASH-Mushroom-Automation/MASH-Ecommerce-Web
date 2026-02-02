@@ -16,7 +16,8 @@ import {
   ChevronsUpDown,
   User,
   Bell,
-  Box
+  Box,
+  PackageSearch
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
@@ -77,6 +78,11 @@ const sidebarLinks = [
     href: "/seller/inventory",
     icon: Package,
     label: "Inventory",
+  },
+  {
+    href: "/seller/stock-management",
+    icon: PackageSearch,
+    label: "Stock Management",
   },
   {
     href: "/seller/orders",
