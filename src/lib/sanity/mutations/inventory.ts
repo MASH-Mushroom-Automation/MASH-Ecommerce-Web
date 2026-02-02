@@ -1,9 +1,12 @@
 /**
  * Sanity Inventory Mutations
  * Functions for updating product inventory data with error handling and retry logic
+ * 
+ * NOTE: Stock updates now go through /api/seller/inventory/update API route
+ * which has access to server-side SANITY_API_WRITE_TOKEN for secure mutations.
  */
 
-import { sanityClient, sanityWriteClient, isWriteConfigured } from '@/lib/sanity/client';
+import { sanityClient } from '@/lib/sanity/client';
 import { toast } from 'sonner';
 
 /**
@@ -126,11 +129,14 @@ async function getCurrentStock(productId: string): Promise<number> {
 }
 
 /**
- * Update product stock quantity with retry logic
+ * Update product stock quantity via server-side API route
+ * 
+ * Uses /api/seller/inventory/update endpoint which has access to
+ * server-side SANITY_API_WRITE_TOKEN (not exposed to client).
  * 
  * Features:
- * - Validates productId and quantity
- * - Fetches current stock for change tracking
+ * - Validates productId and quantity locally first
+ * - Calls server-side API for secure Sanity mutation
  * - Retries on failure (3 attempts with exponential backoff)
  * - Returns detailed result with old/new quantities
  * 
@@ -160,38 +166,30 @@ export async function updateProductStock(
   newQuantity: number,
   maxRetries: number = 3
 ): Promise<StockUpdateResult> {
-  // Validation
+  // Client-side validation first
   validateProductId(productId);
   validateQuantity(newQuantity);
 
-  // Fetch current stock for change tracking
-  const oldQuantity = await getCurrentStock(productId);
-
-  // Retry loop
+  // Retry loop - call server-side API route
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Check if write client is properly configured
-      if (!isWriteConfigured()) {
-        console.warn('[updateProductStock] Write token not configured, mutation may fail');
-      }
-      
-      // Execute Sanity PATCH mutation using WRITE client
-      const result = await sanityWriteClient
-        .patch(productId)
-        .set({
-          stockQuantity: newQuantity,
-          updatedAt: new Date().toISOString(),
-        })
-        .commit();
+      // Call server-side API route (has access to write token)
+      const response = await fetch('/api/seller/inventory/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId, newQuantity }),
+      });
 
-      // Success
-      return {
-        success: true,
-        productId,
-        oldQuantity,
-        newQuantity,
-        updatedAt: result._updatedAt || new Date().toISOString(),
-      };
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `HTTP ${response.status}`);
+      }
+
+      // Success - return the data from API
+      return result.data as StockUpdateResult;
     } catch (error) {
       const isLastAttempt = attempt === maxRetries;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

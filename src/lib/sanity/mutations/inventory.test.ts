@@ -1,5 +1,8 @@
 /**
  * Unit Tests for Sanity Inventory Mutations
+ * 
+ * NOTE: updateProductStock now uses fetch() to call /api/seller/inventory/update
+ * which has server-side access to SANITY_API_WRITE_TOKEN for secure mutations.
  */
 
 import {
@@ -11,19 +14,17 @@ import {
   ValidationError,
   MutationError,
 } from './inventory';
-import { sanityClient, sanityWriteClient } from '@/lib/sanity/client';
+import { sanityClient } from '@/lib/sanity/client';
 
-// Mock dependencies
+// Mock fetch globally (used by updateProductStock API calls)
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
+// Mock Sanity client (used for read operations like getCurrentStock, productExists)
 jest.mock('@/lib/sanity/client', () => ({
   sanityClient: {
     fetch: jest.fn(),
-    patch: jest.fn(),
   },
-  sanityWriteClient: {
-    fetch: jest.fn(),
-    patch: jest.fn(),
-  },
-  isWriteConfigured: jest.fn(() => true),
 }));
 
 jest.mock('sonner', () => ({
@@ -35,21 +36,25 @@ jest.mock('sonner', () => ({
 }));
 
 describe('updateProductStock', () => {
-  const mockPatch = jest.fn();
-  const mockCommit = jest.fn();
-  const mockSet = jest.fn(() => ({ commit: mockCommit }));
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 10 });
-    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
-      set: mockSet,
+    // Mock successful API response
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 10,
+          newQuantity: 50,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
     });
-    mockPatch.mockReturnValue({ set: mockSet });
-    mockCommit.mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' });
   });
 
-  it('should update stock successfully', async () => {
+  it('should update stock successfully via API route', async () => {
     const result = await updateProductStock('product-123', 50);
 
     expect(result).toEqual({
@@ -60,23 +65,21 @@ describe('updateProductStock', () => {
       updatedAt: '2026-02-02T10:00:00Z',
     });
 
-    expect(sanityWriteClient.patch).toHaveBeenCalledWith('product-123');
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stockQuantity: 50,
-        updatedAt: expect.any(String),
-      })
-    );
-    expect(mockCommit).toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledWith('/api/seller/inventory/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: 'product-123', newQuantity: 50 }),
+    });
   });
 
-  it('should fetch current stock before update', async () => {
+  it('should call API endpoint with correct payload', async () => {
     await updateProductStock('product-123', 50);
 
-    expect(sanityClient.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('*[_type == "product" && _id == $productId]'),
-      { productId: 'product-123' }
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/seller/inventory/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: 'product-123', newQuantity: 50 }),
+    });
   });
 
   it('should throw ValidationError for empty productId', async () => {
@@ -120,41 +123,82 @@ describe('updateProductStock', () => {
   });
 
   it('should retry on failure with exponential backoff', async () => {
-    mockCommit
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ _updatedAt: '2026-02-02T10:00:00Z' });
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ success: false, error: 'Network error' }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ success: false, error: 'Network error' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            productId: 'product-123',
+            oldQuantity: 10,
+            newQuantity: 50,
+            updatedAt: '2026-02-02T10:00:00Z',
+            success: true,
+          },
+        }),
+      });
 
     const result = await updateProductStock('product-123', 50);
 
     expect(result.success).toBe(true);
-    expect(mockCommit).toHaveBeenCalledTimes(3); // 2 failures + 1 success
+    expect(mockFetch).toHaveBeenCalledTimes(3); // 2 failures + 1 success
   });
 
   it('should throw MutationError after max retries', async () => {
-    mockCommit.mockRejectedValue(new Error('Network error'));
+    mockFetch.mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ success: false, error: 'Network error' }),
+    });
 
     await expect(updateProductStock('product-123', 50, 3)).rejects.toThrow(MutationError);
     
     // Reset and test again for the message check
-    mockCommit.mockClear();
-    mockCommit.mockRejectedValue(new Error('Network error'));
+    mockFetch.mockClear();
+    mockFetch.mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ success: false, error: 'Network error' }),
+    });
     
     await expect(updateProductStock('product-123', 50, 3)).rejects.toThrow(
       'Failed to update stock after 3 attempts'
     );
 
-    expect(mockCommit).toHaveBeenCalledTimes(3);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   }, 10000); // 10 second timeout for retry logic
 
-  it('should throw MutationError if product not found', async () => {
-    (sanityClient.fetch as jest.Mock).mockResolvedValue(null);
+  it('should throw MutationError if API returns product not found', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ success: false, error: 'Product not found' }),
+    });
 
     await expect(updateProductStock('product-999', 50)).rejects.toThrow(MutationError);
-    await expect(updateProductStock('product-999', 50)).rejects.toThrow('Product not found');
   });
 
   it('should allow quantity of 0', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 10,
+          newQuantity: 0,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
+    });
+
     const result = await updateProductStock('product-123', 0);
 
     expect(result.success).toBe(true);
@@ -162,6 +206,20 @@ describe('updateProductStock', () => {
   });
 
   it('should allow large valid quantities', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 10,
+          newQuantity: 999999,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
+    });
+
     const result = await updateProductStock('product-123', 999999);
 
     expect(result.success).toBe(true);
@@ -172,11 +230,19 @@ describe('updateProductStock', () => {
 describe('batchUpdateProductStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 10 });
-    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
-      set: jest.fn(() => ({
-        commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
-      })),
+    // Mock successful API response for each call
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-1',
+          oldQuantity: 10,
+          newQuantity: 50,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
     });
   });
 
@@ -191,13 +257,13 @@ describe('batchUpdateProductStock', () => {
 
     expect(results).toHaveLength(3);
     expect(results.every((r) => r.success)).toBe(true);
-    expect(sanityWriteClient.patch).toHaveBeenCalledTimes(3);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('should continue batch if one update fails', async () => {
     const updates = [
       { productId: 'product-1', newQuantity: 50 },
-      { productId: '', newQuantity: 30 }, // Invalid ID
+      { productId: '', newQuantity: 30 }, // Invalid ID - fails validation, no fetch call
       { productId: 'product-3', newQuantity: 20 },
     ];
 
@@ -219,15 +285,39 @@ describe('batchUpdateProductStock', () => {
 describe('adjustProductStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock sanityClient.fetch for getCurrentStock (returns current stock)
     (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 50 });
-    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
-      set: jest.fn(() => ({
-        commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
-      })),
+    // Mock fetch for the API call that updateProductStock makes
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 50,
+          newQuantity: 60, // Will be overridden per test
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
     });
   });
 
   it('should add units (positive delta)', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 50,
+          newQuantity: 60,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
+    });
+
     const result = await adjustProductStock('product-123', 10);
 
     expect(result.oldQuantity).toBe(50);
@@ -235,6 +325,20 @@ describe('adjustProductStock', () => {
   });
 
   it('should subtract units (negative delta)', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 50,
+          newQuantity: 30,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
+    });
+
     const result = await adjustProductStock('product-123', -20);
 
     expect(result.oldQuantity).toBe(50);
@@ -251,6 +355,20 @@ describe('adjustProductStock', () => {
   });
 
   it('should handle zero delta', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 50,
+          newQuantity: 50,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
+    });
+
     const result = await adjustProductStock('product-123', 0);
 
     expect(result.oldQuantity).toBe(50);
@@ -261,11 +379,19 @@ describe('adjustProductStock', () => {
 describe('setOutOfStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 50 });
-    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
-      set: jest.fn(() => ({
-        commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
-      })),
+    // Mock fetch for the API call
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          productId: 'product-123',
+          oldQuantity: 50,
+          newQuantity: 0,
+          updatedAt: '2026-02-02T10:00:00Z',
+          success: true,
+        },
+      }),
     });
   });
 
