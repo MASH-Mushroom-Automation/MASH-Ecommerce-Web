@@ -21,7 +21,7 @@
 - **Stock Management Types:** All stock adjustment types use Zod schemas for validation. validateStockAdjustment() checks business rules (positive/negative quantities based on type, sufficient stock, valid reason codes).
 - **Sanity Schema Validation:** Custom validation in Sanity schemas uses `Rule.custom((value, context) => {})` with access to document context. Validation can check related fields and return error messages or true. Use `readOnly: true` for immutable audit trail fields.
 - **Sanity Mutations Security:** NEVER expose SANITY_API_WRITE_TOKEN to client. All write operations go through server-side API routes with write token access. Client-side functions call API endpoints, never use write client directly.
-- **Optimistic Locking Pattern:** Use Sanity's `.patch().ifRevisionID(expectedRev)` for race condition prevention. Fetch product with `_rev` field, pass to client for validation, check on server before mutation. Returns 409 Conflict on revision mismatch.
+- **Optimistic Locking Pattern:** Use Sanity's `.patch().ifRevisionId(expectedRev)` for race condition prevention (NOTE: lowercase 'd' in `ifRevisionId`). Fetch product with `_rev` field, pass to client for validation, check on server before mutation. Returns 409 Conflict on revision mismatch.
 - **Atomic Stock Adjustments:** adjustStock() performs two operations: create immutable stockAdjustment document + update product.stockQuantity. If either fails, rollback entire operation. Include adjustmentId in error response for potential cleanup.
 - **Retry Logic Pattern:** Exponential backoff (1s, 2s, 4s), max 3 attempts. Only retry network errors (fetch failures), NOT validation/business logic errors. Use StockAdjustmentError with codes for different error types.
 - **Stock Validation Rules:** Stock-in types (received, returned) require positive quantity. Stock-out types (sold, damaged, transferred) require negative quantity. Manual adjustment allows both. New stock must be >= 0 (prevent negative inventory).
@@ -61,6 +61,28 @@ The MASH e-commerce platform has TWO product data sources:
 - Backend API (api.mashmarket.app) is for orders, auth, transactions - NOT products
 
 **Tests Passing:** [PASS] Build (135 pages) | [PASS] Lint | [PASS] Integration Tests (24/24)
+---
+
+## [2026-02-06 17:15] - SELLER-021 Bug Fix (API Route)
+**Completed:** Fix stock adjustment API 500 error
+**Files Changed:**
+- src/app/api/seller/stock/adjust/route.ts (fix method name typo)
+
+**Root Cause:** 
+Sanity client method `ifRevisionID` was misspelled - should be `ifRevisionId` (lowercase 'd').
+The method is case-sensitive in Sanity's JavaScript client.
+
+**Error Message:** `sanityWriteClient.patch(...).ifRevisionID is not a function`
+
+**Solution:**
+Changed `ifRevisionID` to `ifRevisionId` on line 95.
+
+**Critical Learning:**
+Sanity client methods are case-sensitive:
+- ✅ `.ifRevisionId(rev)` - correct
+- ❌ `.ifRevisionID(rev)` - wrong, throws "not a function" error
+
+**Tests Passing:** [PASS] Build (135 pages) | [PASS] Lint
 ---
 
 ## [2026-02-06 15:30] - SELLER-021 Bug Fix (Initial Attempt)
