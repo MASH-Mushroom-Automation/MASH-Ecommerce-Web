@@ -1268,3 +1268,31 @@ Copy the prompt from PHASE_6_NEXT_STEPS.md to begin Phase 6 implementation:
 
 **Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] TypeScript
 **Test Results:** Manual Sanity Studio validation (schema loads correctly, validation works)
+
+## [2026-02-02 02:00] - SELLER-021-P1-03
+**Completed:** Add Stock Threshold Fields to Product Schema
+**Files Changed:**
+- studio/src/schemaTypes/documents/product.ts (added threshold fields)
+- src/types/sanity.ts (updated SanityProduct interface)
+
+**Implementation Notes:**
+- Extended existing `inventory` object in product schema
+- Added `outOfStockThreshold` field (number, default: 0, must be < lowStockThreshold)
+- Added `restockLevel` field (number, optional recommended reorder quantity)
+- Custom validation via Rule.custom() with parent context access:
+  * Validates outOfStockThreshold < lowStockThreshold
+  * Returns error message when validation fails
+- All thresholds validated: >= 0, must be integers
+- Updated TypeScript SanityProduct interface with optional threshold fields
+- Fields integrated into existing inventory management system
+
+**Learnings for Future Iterations:**
+- Sanity field validation can access parent object via context.parent
+- Custom validation can compare sibling fields for cross-field rules
+- initialValue sets default for new documents (lowStock: 10, outOfStock: 0)
+- Optional fields (restockLevel) don't need initialValue
+- TypeScript interface updates should include inline comments for new features
+- Threshold fields are inside `inventory` object, not top-level product fields
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] TypeScript
+**Test Results:** Manual Sanity Studio validation (fields render, validation works)
