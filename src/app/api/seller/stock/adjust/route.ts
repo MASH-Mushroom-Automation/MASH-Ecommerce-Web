@@ -104,10 +104,10 @@ async function updateProductStock(
   expectedRev: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Use patch with ifRevisionId for optimistic locking
+    // Use patch with ifRevisionId for optimistic locking (note: lowercase 'd')
     await sanityWriteClient
       .patch(productId)
-      .ifRevisionID(expectedRev) // Race condition protection
+      .ifRevisionId(expectedRev) // Race condition protection
       .set({ stockQuantity: newStock })
       .commit();
 
