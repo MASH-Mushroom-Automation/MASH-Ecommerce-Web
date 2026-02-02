@@ -243,6 +243,9 @@ export const stockAdjustmentRequestSchema = z.object({
   adjustedBy: z.string().optional(),
 });
 
+/** Alias for stock adjustment request schema (PascalCase export for consistency) */
+export const StockAdjustmentRequestSchema = stockAdjustmentRequestSchema;
+
 /** Batch stock update request schema */
 export const batchStockUpdateRequestSchema = z.object({
   adjustments: z.array(stockAdjustmentRequestSchema).min(1, 'At least one adjustment is required'),
