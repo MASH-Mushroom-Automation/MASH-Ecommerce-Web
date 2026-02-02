@@ -134,19 +134,21 @@ export default function StockManagementPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Fetch products for the form
-  const { products, loading: productsLoading } = useProducts();
+  const { products, loading: productsLoading, error: productsError, refetch } = useProducts();
   
   const handleRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
-  }, []);
+    refetch(); // Also refetch products
+  }, [refetch]);
 
   // Transform products for the StockAdjustmentForm
+  // Note: ProductApiResponse uses 'id' (not '_id') and 'stock' (not 'stockQuantity')
   const formProducts = (products || []).map(p => ({
-    _id: p._id || p.id || '',
+    _id: p.id, // Backend uses 'id', form expects '_id'
     name: p.name || '',
     sku: p.sku || '',
-    stockQuantity: p.stockQuantity ?? p.stock ?? 0,
-    lowStockThreshold: p.lowStockThreshold ?? 10
+    stockQuantity: p.stock ?? 0, // Backend uses 'stock', form expects 'stockQuantity'
+    lowStockThreshold: p.minStock ?? 10 // Backend uses 'minStock'
   }));
 
   return (
@@ -196,6 +198,32 @@ export default function StockManagementPage() {
               {productsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Skeleton className="h-48 w-full" />
+                </div>
+              ) : productsError ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground mb-2">
+                    Failed to load products
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {productsError}
+                  </p>
+                  <button
+                    onClick={handleRefresh}
+                    className="text-sm text-primary underline hover:no-underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : formProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground mb-2">
+                    No products found
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Add products to your inventory first before making stock adjustments.
+                  </p>
                 </div>
               ) : (
                 <StockAdjustmentForm 

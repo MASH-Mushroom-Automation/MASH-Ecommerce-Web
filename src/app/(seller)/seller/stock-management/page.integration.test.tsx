@@ -33,6 +33,7 @@ jest.mock('@/hooks/useProducts', () => ({
         stockQuantity: 50,
         stock: 50,
         lowStockThreshold: 10,
+        minStock: 10,
       },
       {
         _id: 'prod-002',
@@ -42,6 +43,7 @@ jest.mock('@/hooks/useProducts', () => ({
         stockQuantity: 5,
         stock: 5,
         lowStockThreshold: 10,
+        minStock: 10,
       },
       {
         _id: 'prod-003',
@@ -51,10 +53,12 @@ jest.mock('@/hooks/useProducts', () => ({
         stockQuantity: 0,
         stock: 0,
         lowStockThreshold: 5,
+        minStock: 5,
       },
     ],
     loading: false,
     error: null,
+    refetch: jest.fn(),
   })),
 }));
 
@@ -119,6 +123,11 @@ function createWrapper() {
 describe('StockManagementPage Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+  
+  afterEach(() => {
+    // Restore mocks to their original implementation to prevent test pollution
+    jest.restoreAllMocks();
   });
 
   describe('Page Rendering', () => {
@@ -290,18 +299,39 @@ describe('StockManagementPage Integration Tests', () => {
   });
 
   describe('Loading State', () => {
-    it('should handle empty products list gracefully', () => {
+    it('should show empty state when products list is empty', () => {
       // Override mock to return empty products
       jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
         products: [],
         loading: false,
         error: null,
+        refetch: jest.fn(),
       });
       
       render(<StockManagementPage />, { wrapper: createWrapper() });
       
-      const formElement = screen.getByTestId('stock-adjustment-form');
-      expect(within(formElement).getByText('Products: 0')).toBeInTheDocument();
+      // With no products, should show empty state with helpful message
+      expect(screen.getByText('No products found')).toBeInTheDocument();
+      expect(screen.getByText(/Add products to your inventory first/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('stock-adjustment-form')).not.toBeInTheDocument();
+    });
+
+    it('should show error state when products fail to load', () => {
+      // Override mock to return error
+      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+        products: [],
+        loading: false,
+        error: 'Failed to connect to server',
+        refetch: jest.fn(),
+      });
+      
+      render(<StockManagementPage />, { wrapper: createWrapper() });
+      
+      // Should show error message
+      expect(screen.getByText('Failed to load products')).toBeInTheDocument();
+      expect(screen.getByText('Failed to connect to server')).toBeInTheDocument();
+      expect(screen.getByText('Try again')).toBeInTheDocument();
+      expect(screen.queryByTestId('stock-adjustment-form')).not.toBeInTheDocument();
     });
   });
 
@@ -328,6 +358,17 @@ describe('StockManagementPage Integration Tests', () => {
 
   describe('Refresh Functionality', () => {
     it('should trigger refresh when form success callback fires', async () => {
+      // Ensure useProducts returns products (form will be visible)
+      const mockRefetch = jest.fn();
+      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+        products: [
+          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50 },
+        ],
+        loading: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+      
       const user = userEvent.setup();
       render(<StockManagementPage />, { wrapper: createWrapper() });
       
@@ -337,9 +378,21 @@ describe('StockManagementPage Integration Tests', () => {
       // The component should re-render with incremented refreshKey
       // We verify the form still renders (key change causes re-mount)
       expect(screen.getByTestId('stock-adjustment-form')).toBeInTheDocument();
+      // Also verify refetch was called
+      expect(mockRefetch).toHaveBeenCalled();
     });
 
     it('should trigger refresh when batch upload success callback fires', async () => {
+      // Ensure useProducts returns products
+      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+        products: [
+          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50 },
+        ],
+        loading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      
       const user = userEvent.setup();
       render(<StockManagementPage />, { wrapper: createWrapper() });
       
@@ -361,42 +414,51 @@ describe('StockManagementPage Edge Cases', () => {
       products: [
         {
           _id: 'prod-incomplete',
-          // Missing name, sku, stockQuantity
+          // Missing name, sku, stockQuantity - these should get default values
+          id: 'prod-incomplete',
+          name: '', // Empty but valid
+          sku: '',
+          stock: 0,
         },
       ],
       loading: false,
       error: null,
+      refetch: jest.fn(),
     });
     
     render(<StockManagementPage />, { wrapper: createWrapper() });
     
-    // Should still render without crashing
+    // Should still render without crashing - form shows with 1 product
     expect(screen.getByTestId('stock-adjustment-form')).toBeInTheDocument();
   });
 
-  it('should handle null products', () => {
+  it('should show empty state when products is null', () => {
     jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
       products: null,
       loading: false,
       error: null,
+      refetch: jest.fn(),
     });
     
     render(<StockManagementPage />, { wrapper: createWrapper() });
     
-    const formElement = screen.getByTestId('stock-adjustment-form');
-    expect(within(formElement).getByText('Products: 0')).toBeInTheDocument();
+    // With no products, should show empty state instead of form
+    expect(screen.getByText('No products found')).toBeInTheDocument();
+    expect(screen.queryByTestId('stock-adjustment-form')).not.toBeInTheDocument();
   });
 
-  it('should handle undefined products', () => {
+  it('should show empty state when products is undefined', () => {
     jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
       products: undefined,
       loading: false,
       error: null,
+      refetch: jest.fn(),
     });
     
     render(<StockManagementPage />, { wrapper: createWrapper() });
     
-    const formElement = screen.getByTestId('stock-adjustment-form');
-    expect(within(formElement).getByText('Products: 0')).toBeInTheDocument();
+    // With no products, should show empty state instead of form
+    expect(screen.getByText('No products found')).toBeInTheDocument();
+    expect(screen.queryByTestId('stock-adjustment-form')).not.toBeInTheDocument();
   });
 });
