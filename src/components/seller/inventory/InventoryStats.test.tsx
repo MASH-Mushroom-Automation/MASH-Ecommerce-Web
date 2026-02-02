@@ -213,7 +213,9 @@ describe('InventoryStats', () => {
       
       render(<InventoryStats stats={emptyStats} />);
       
-      expect(screen.getByText('0')).toBeInTheDocument();
+      // All stat cards should show 0 (multiple elements with '0')
+      const zeroValues = screen.getAllByText('0');
+      expect(zeroValues.length).toBeGreaterThanOrEqual(4); // Total, In Stock, Low Stock, Out of Stock
       expect(screen.getAllByText('0.0% of total inventory')).toHaveLength(3);
     });
   });

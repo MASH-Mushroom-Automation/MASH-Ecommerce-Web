@@ -382,6 +382,17 @@ describe('QuickStockUpdate', () => {
     });
 
     it('should save on Enter key', async () => {
+      const mockUpdateProductStock = inventoryMutations.updateProductStock as jest.MockedFunction<
+        typeof inventoryMutations.updateProductStock
+      >;
+      mockUpdateProductStock.mockResolvedValueOnce({
+        success: true,
+        productId: 'prod-1',
+        oldQuantity: 5,
+        newQuantity: 20,
+        updatedAt: '2026-02-02T10:00:00Z',
+      });
+
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       

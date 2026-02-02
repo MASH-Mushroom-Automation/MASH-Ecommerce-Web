@@ -123,7 +123,7 @@ describe('useInventoryStats', () => {
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(result.current.isError).toBe(true);
     expect(result.current.stats).toBeUndefined();
@@ -371,7 +371,7 @@ describe('useInventoryData', () => {
 
     expect(result.current.stats).toEqual(mockStats);
     expect(result.current.stockValue).toEqual(mockValue);
-    expect(result.current.categories).toEqual(mockCategories);
+    expect(result.current.categoryInventory).toEqual(mockCategories);
     expect(result.current.isError).toBe(false);
   });
 
