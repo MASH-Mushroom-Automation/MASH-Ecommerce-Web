@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +30,16 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
-import Link from "next/link";
 import { SellerApplicationForm } from "../page";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import TermsPage from "@/app/terms/page";
+import PrivacyPolicyPage from "@/app/privacy/page";
 
 interface ApplicationFormProps {
   form: UseFormReturn<SellerApplicationForm>;
@@ -76,6 +86,8 @@ export function ApplicationForm({
 }: ApplicationFormProps) {
   // Use external isSubmitting if provided, otherwise fall back to form state
   const isFormSubmitting = isSubmitting || form.formState.isSubmitting;
+  const [openTerms, setOpenTerms] = useState(false);
+  const [openPrivacy, setOpenPrivacy] = useState(false);
   return (
     <div className="min-h-screen bg-muted">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -357,14 +369,14 @@ export function ApplicationForm({
                                         onCheckedChange={(checked) => {
                                           return checked
                                             ? field.onChange([
-                                                ...field.value,
-                                                type,
-                                              ])
+                                              ...field.value,
+                                              type,
+                                            ])
                                             : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== type
-                                                )
-                                              );
+                                              field.value?.filter(
+                                                (value) => value !== type
+                                              )
+                                            );
                                         }}
                                       />
                                     </FormControl>
@@ -688,19 +700,21 @@ export function ApplicationForm({
                       <div className="space-y-1 leading-none">
                         <FormLabel className="text-sm sm:text-base">
                           I agree to the{" "}
-                          <Link
-                            href="/terms"
+                          <button
+                            type="button"
+                            onClick={() => setOpenTerms(true)}
                             className="text-accent hover:underline"
                           >
                             Terms and Conditions
-                          </Link>{" "}
+                          </button>{" "}
                           and{" "}
-                          <Link
-                            href="/privacy"
+                          <button
+                            type="button"
+                            onClick={() => setOpenPrivacy(true)}
                             className="text-accent hover:underline"
                           >
                             Privacy Policy
-                          </Link>{" "}
+                          </button>{" "}
                           <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormMessage />
@@ -709,6 +723,31 @@ export function ApplicationForm({
                   )}
                 />
               </div>
+
+              {/* Terms / Privacy Dialogs */}
+              <Dialog open={openTerms} onOpenChange={(open) => setOpenTerms(open)}>
+                <DialogContent className="!max-w-4xl w-full p-0">
+                  <DialogHeader>
+                    <DialogTitle>Terms and Conditions</DialogTitle>
+                    <DialogDescription />
+                  </DialogHeader>
+                  <div className="w-full">
+                    <TermsPage />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={openPrivacy} onOpenChange={(open) => setOpenPrivacy(open)}>
+                <DialogContent className="!max-w-4xl w-full p-0">
+                  <DialogHeader>
+                    <DialogTitle>Privacy Policy</DialogTitle>
+                    <DialogDescription />
+                  </DialogHeader>
+                  <div className="w-full">
+                    <PrivacyPolicyPage />
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Submit Button */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
