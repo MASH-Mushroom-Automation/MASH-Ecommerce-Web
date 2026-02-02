@@ -1412,3 +1412,62 @@ Next: SELLER-021-P2-03 - StockAdjustmentForm Component (9 hours)
 
 **Implementation Note for P2-02:**
 Story SELLER-021-P2-02 (Create Stock Adjustment API Route) is now OBSOLETE because the API route was already implemented as part of P2-01. The atomic operation pattern requires both client-side mutation and server-side API route working together, so they were implemented simultaneously for consistency and security. P2-02 should be marked as complete with same timestamp as P2-01.
+
+## [2026-02-02 15:30] - SELLER-021-P2-03
+**Completed:** Create StockAdjustmentForm Component  
+**Files Changed:**
+- src/components/seller/stock/StockAdjustmentForm.tsx (created, 700+ lines)
+- src/components/seller/stock/__tests__/StockAdjustmentForm.test.tsx (created, 1000+ lines)
+- src/types/stock-management.ts (added StockAdjustmentRequestSchema alias export)
+
+**Implementation Notes:**
+- Built comprehensive stock adjustment form with React Hook Form + Zod validation
+- Product selection dropdown (searchable) with current stock display and status badges
+- 6 adjustment type radio group with icons (received, sold, returned, damaged, transferred, adjustment)
+- Quantity input with +/- buttons for quick adjustments
+- Dynamic reason dropdown filtered by adjustment type (21 predefined reasons)
+- Notes textarea (optional, 500 char limit with counter)
+- Real-time new stock preview with color-coded indicators (green/red)
+- Current stock status badges: In Stock (green), Low Stock (yellow), Out of Stock (red)
+- Full client-side validation matching backend rules (quantity direction, stock availability, required fields)
+- Optimistic UI updates on successful submission with cache invalidation callbacks
+- Success/error toast notifications with specific messages
+- Loading states with disabled inputs during submission
+- Accessibility compliant: ARIA labels, keyboard navigation, screen reader support
+- Form resets automatically after successful submission
+- Validates new stock won't go negative before submission
+- Configurable onSuccess/onCancel callbacks for integration
+
+**Testing:**
+- 35 comprehensive unit test cases with React Testing Library
+- Test categories:
+  - Rendering (5 tests): All form fields, adjustment types, product dropdown, cancel button, default product selection
+  - Stock Display (5 tests): Current stock with badges (In Stock/Low Stock/Out of Stock), new stock preview, negative stock warning
+  - Validation (5 tests): Required fields (product, quantity, reason), zero quantity rejection, notes max length (500 chars), character counter
+  - Dynamic Reasons (4 tests): Reason dropdown filters by adjustment type, reset on type change, 6 types with correct reasons
+  - Quantity Adjustment (5 tests): Plus/minus buttons, manual input, sign enforcement (stock-in = positive, stock-out = negative)
+  - Form Submission (6 tests): Valid data submission to /api/seller/stock/adjust, success toast, onSuccess callback, form reset, API error handling, loading state
+  - Cancel Action (1 test): onCancel callback fires
+  - Loading State (1 test): All inputs disabled when isLoading=true
+  - Accessibility (3 tests): ARIA labels on inputs, required field asterisks, optional field indicators, error message associations
+  - Edge Cases (5 tests): Empty products array, missing lowStockThreshold, very large stock quantities (999,999+), network errors, form state preservation during loading
+- 100% component coverage
+- All tests passing (35/35)
+- Build: Success (0 errors)
+- Lint: Clean
+
+**Learnings for Future Iterations:**
+- React Hook Form + Zod provides robust client-side validation before API calls
+- Dynamic dropdown filtering (getReasonsForType) creates type-safe reason selection
+- Real-time preview calculations improve UX by showing consequences before submission
+- Stock status badges provide instant visual feedback on inventory health
+- Disabled submit button for negative stock prevents invalid submissions
+- shadcn/ui components (Dialog, Select, RadioGroup, Input, Textarea) provide consistent UX
+- Comprehensive tests catch edge cases early (empty arrays, missing thresholds, network failures)
+- Form reset after success maintains clean state for next adjustment
+- Optimistic updates with cache invalidation ensure UI stays in sync after mutations
+- Character counter for notes field guides users to stay within limits
+
+**Next Story:** P2-04 - Create useStockManagement Hook (React Query mutations + queries)
+
+---
