@@ -53,4 +53,3 @@ studio/.env
 /.github/*.md
 *.env.test
 
-*.json

@@ -6,7 +6,7 @@
 'use client';
 
 import React, { memo, useState } from 'react';
-import { AlertTriangle, Package, ExternalLink, Plus } from 'lucide-react';
+import { AlertTriangle, Package, ExternalLink, Plus, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,8 +49,11 @@ export interface LowStockAlertsProps {
   /** Additional CSS classes */
   className?: string;
   
-  /** Callback when quick restock button is clicked */
+  /** Callback when quick restock button is clicked (simple stock update) */
   onRestockClick?: (item: LowStockItem) => void;
+  
+  /** Callback when adjust stock button is clicked (full adjustment form) */
+  onAdjustStockClick?: (item: LowStockItem) => void;
   
   /** Callback to load next page */
   onLoadMore?: () => void;
@@ -120,6 +123,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
   isError = false,
   className,
   onRestockClick,
+  onAdjustStockClick,
   onLoadMore,
 }) {
   // Show loading state
@@ -281,10 +285,23 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
                             size="sm"
                             variant="outline"
                             onClick={() => onRestockClick(item)}
-                            aria-label={`Restock ${item.name}`}
+                            aria-label={`Quick restock ${item.name}`}
+                            title="Quick stock update"
                           >
                             <Plus className="h-4 w-4 mr-1" />
                             Restock
+                          </Button>
+                        )}
+                        {onAdjustStockClick && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => onAdjustStockClick(item)}
+                            aria-label={`Adjust stock for ${item.name}`}
+                            title="Full stock adjustment (with reason codes)"
+                          >
+                            <Settings2 className="h-4 w-4 mr-1" />
+                            Adjust
                           </Button>
                         )}
                         <Button

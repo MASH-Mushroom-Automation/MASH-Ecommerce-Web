@@ -22,6 +22,10 @@ import { CategoryInventoryBreakdown } from '@/components/seller/inventory/Catego
 import { StockValueCalculator } from '@/components/seller/inventory/StockValueCalculator';
 import { QuickStockUpdate } from '@/components/seller/inventory/QuickStockUpdate';
 
+// Stock Management Components (SELLER-021 P6-03)
+import { StockAdjustmentForm } from '@/components/seller/stock/StockAdjustmentForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 // Hooks (Phase 1)
 import { useInventoryData, useInvalidateInventory } from '@/hooks/useInventoryData';
 import type { LowStockItem } from '@/types/inventory';
@@ -129,6 +133,10 @@ export default function InventoryOverviewPage() {
   const [quickUpdateProduct, setQuickUpdateProduct] = useState<LowStockItem | null>(null);
   const [isQuickUpdateOpen, setIsQuickUpdateOpen] = useState(false);
 
+  // Full stock adjustment modal state (SELLER-021 P6-03)
+  const [adjustStockProduct, setAdjustStockProduct] = useState<LowStockItem | null>(null);
+  const [isAdjustStockOpen, setIsAdjustStockOpen] = useState(false);
+
   // Handle refresh button click
   const handleRefresh = () => {
     invalidateAll();
@@ -144,6 +152,34 @@ export default function InventoryOverviewPage() {
   const handleQuickUpdateSuccess = () => {
     invalidateAll();
   };
+
+  // Handle full stock adjustment from LowStockAlerts (SELLER-021 P6-03)
+  const handleAdjustStockClick = (product: LowStockItem) => {
+    setAdjustStockProduct(product);
+    setIsAdjustStockOpen(true);
+  };
+
+  // Handle stock adjustment form success
+  const handleAdjustStockSuccess = () => {
+    invalidateAll();
+    setIsAdjustStockOpen(false);
+    setAdjustStockProduct(null);
+  };
+
+  // Handle stock adjustment form cancel
+  const handleAdjustStockCancel = () => {
+    setIsAdjustStockOpen(false);
+    setAdjustStockProduct(null);
+  };
+
+  // Convert LowStockItem to StockAdjustmentForm product format
+  const adjustmentFormProducts = adjustStockProduct ? [{
+    _id: adjustStockProduct._id,
+    name: adjustStockProduct.name,
+    sku: adjustStockProduct.sku || '',
+    stockQuantity: adjustStockProduct.currentStock,
+    lowStockThreshold: adjustStockProduct.lowStockThreshold,
+  }] : [];
 
   // Loading state
   if (isLoading) {
@@ -231,6 +267,7 @@ export default function InventoryOverviewPage() {
             isLoading={isLoading}
             isError={isError}
             onRestockClick={handleQuickUpdateClick}
+            onAdjustStockClick={handleAdjustStockClick}
           />
         </section>
       </div>
@@ -266,6 +303,33 @@ export default function InventoryOverviewPage() {
         product={quickUpdateProduct}
         onSuccess={handleQuickUpdateSuccess}
       />
+
+      {/* Full Stock Adjustment Form Modal (SELLER-021 P6-03) */}
+      <Dialog open={isAdjustStockOpen} onOpenChange={setIsAdjustStockOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Stock Adjustment
+              {adjustStockProduct && (
+                <span className="text-muted-foreground font-normal text-sm">
+                  - {adjustStockProduct.name}
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Create a detailed stock adjustment with reason codes and audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          {adjustStockProduct && (
+            <StockAdjustmentForm
+              products={adjustmentFormProducts}
+              defaultProductId={adjustStockProduct._id}
+              onSuccess={handleAdjustStockSuccess}
+              onCancel={handleAdjustStockCancel}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
