@@ -6,7 +6,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useProductFilters } from '../useProductFilters';
+import { useProductFilters } from './useProductFilters';
 import { DEFAULT_FILTERS } from '@/types/product-filters';
 
 // Mock nuqs hooks
@@ -95,7 +95,8 @@ describe('useProductFilters', () => {
     });
 
     expect(result.current.filters.categories).toEqual(['cat-1', 'cat-2']);
-    expect(result.current.activeFilterCount).toBe(1);
+    // Categories are counted individually (2 categories = 2 active filters)
+    expect(result.current.activeFilterCount).toBe(2);
   });
 
   it('should update price range filter', () => {

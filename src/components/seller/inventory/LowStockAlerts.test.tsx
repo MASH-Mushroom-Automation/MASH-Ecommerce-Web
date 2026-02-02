@@ -360,7 +360,7 @@ describe('LowStockAlerts', () => {
         />
       );
       
-      expect(screen.getByLabelText('Restock Oyster Mushroom')).toBeInTheDocument();
+      expect(screen.getByLabelText('Quick restock Oyster Mushroom')).toBeInTheDocument();
       expect(screen.getByLabelText('View details for Oyster Mushroom')).toBeInTheDocument();
     });
 

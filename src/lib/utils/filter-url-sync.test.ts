@@ -7,7 +7,7 @@ import {
   decodeFiltersFromURL,
   hasFilterParams,
   clearFilterParams,
-} from '../filter-url-sync';
+} from './filter-url-sync';
 import { ProductFilters, DEFAULT_FILTERS } from '@/types/product-filters';
 
 describe('encodeFiltersToURL', () => {
@@ -90,7 +90,7 @@ describe('encodeFiltersToURL', () => {
       categories: ['cat-1'],
       priceRange: [10, 100],
       stockStatus: 'low-stock',
-      productStatus: 'published',
+      productStatus: 'draft', // Use non-default to ensure encoding
       dateRange: {
         from: new Date('2024-01-01'),
         to: new Date('2024-01-31'),
@@ -102,9 +102,19 @@ describe('encodeFiltersToURL', () => {
     expect(params.get('minPrice')).toBe('10');
     expect(params.get('maxPrice')).toBe('100');
     expect(params.get('stock')).toBe('low-stock');
-    expect(params.get('status')).toBe('published');
+    expect(params.get('status')).toBe('draft');
     expect(params.has('fromDate')).toBe(true);
     expect(params.has('toDate')).toBe(true);
+  });
+
+  it('should not encode default productStatus (published)', () => {
+    // 'published' is the default, so it should NOT be encoded
+    const filters: ProductFilters = {
+      ...DEFAULT_FILTERS,
+      productStatus: 'published',
+    };
+    const params = encodeFiltersToURL(filters);
+    expect(params.get('status')).toBeNull();
   });
 });
 

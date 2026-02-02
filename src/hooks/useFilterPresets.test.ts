@@ -3,7 +3,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react';
-import { useFilterPresets } from '../useFilterPresets';
+import { useFilterPresets } from './useFilterPresets';
 import { ProductFilters, DEFAULT_FILTERS } from '@/types/product-filters';
 import { toast } from 'sonner';
 

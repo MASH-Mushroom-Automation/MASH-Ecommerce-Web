@@ -330,9 +330,9 @@ export function validateStockAdjustment(
     };
   }
 
-  // Check if new stock would be negative
-  const newStock = calculateNewStock(currentStock, adjustment.quantityChange);
-  if (newStock < 0) {
+  // Check if new stock would be negative (before clamping to 0)
+  const rawNewStock = currentStock + adjustment.quantityChange;
+  if (rawNewStock < 0) {
     return {
       valid: false,
       error: `Insufficient stock. Current: ${currentStock}, Requested change: ${adjustment.quantityChange}`,

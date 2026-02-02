@@ -53,7 +53,9 @@ describe('SearchBar', () => {
     render(<SearchBar value="" onChange={mockOnChange} debounceMs={300} />);
     
     const input = screen.getByRole('textbox');
-    await userEvent.type(input, 'mushroom');
+    
+    // Use fireEvent instead of userEvent for compatibility with fake timers
+    fireEvent.change(input, { target: { value: 'mushroom' } });
     
     // Should not call immediately
     expect(mockOnChange).not.toHaveBeenCalled();
@@ -62,9 +64,7 @@ describe('SearchBar', () => {
     jest.advanceTimersByTime(300);
     
     // Should call after debounce
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledWith('mushroom');
-    });
+    expect(mockOnChange).toHaveBeenCalledWith('mushroom');
   });
 
   it('should debounce multiple rapid changes', async () => {
@@ -72,8 +72,10 @@ describe('SearchBar', () => {
     
     const input = screen.getByRole('textbox');
     
-    // Type multiple characters rapidly
-    await userEvent.type(input, 'abc');
+    // Type multiple characters rapidly using fireEvent
+    fireEvent.change(input, { target: { value: 'a' } });
+    fireEvent.change(input, { target: { value: 'ab' } });
+    fireEvent.change(input, { target: { value: 'abc' } });
     
     // Should not call yet
     expect(mockOnChange).not.toHaveBeenCalled();
@@ -82,10 +84,8 @@ describe('SearchBar', () => {
     jest.advanceTimersByTime(300);
     
     // Should only call once with final value
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledTimes(1);
-      expect(mockOnChange).toHaveBeenCalledWith('abc');
-    });
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    expect(mockOnChange).toHaveBeenCalledWith('abc');
   });
 
   it('should show clear button when input has value', () => {
@@ -185,16 +185,16 @@ describe('SearchBar', () => {
     render(<SearchBar value="" onChange={mockOnChange} debounceMs={500} />);
     
     const input = screen.getByRole('textbox');
-    await userEvent.type(input, 'test');
+    
+    // Use fireEvent for compatibility with fake timers
+    fireEvent.change(input, { target: { value: 'test' } });
     
     // Should not call after 300ms
     jest.advanceTimersByTime(300);
     expect(mockOnChange).not.toHaveBeenCalled();
     
-    // Should call after 500ms
+    // Should call after 500ms total
     jest.advanceTimersByTime(200);
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledWith('test');
-    });
+    expect(mockOnChange).toHaveBeenCalledWith('test');
   });
 });

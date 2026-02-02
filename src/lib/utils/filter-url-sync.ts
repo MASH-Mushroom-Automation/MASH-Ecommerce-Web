@@ -60,7 +60,13 @@ export function encodeFiltersToURL(filters: ProductFilters): URLSearchParams {
  * @returns ProductFilters object
  */
 export function decodeFiltersFromURL(params: URLSearchParams): ProductFilters {
-  const filters: ProductFilters = { ...DEFAULT_FILTERS };
+  // Deep clone DEFAULT_FILTERS to avoid mutation issues
+  const filters: ProductFilters = {
+    ...DEFAULT_FILTERS,
+    categories: [...DEFAULT_FILTERS.categories],
+    priceRange: [...DEFAULT_FILTERS.priceRange] as [number, number],
+    dateRange: DEFAULT_FILTERS.dateRange ? { ...DEFAULT_FILTERS.dateRange } : null,
+  };
 
   // Search text
   const search = params.get('q');

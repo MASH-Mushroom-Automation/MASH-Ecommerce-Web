@@ -82,7 +82,7 @@ describe('QuickStockUpdate', () => {
     it('should display product image when available', () => {
       render(<QuickStockUpdate {...defaultProps} />);
       
-      const image = screen.getByAlt(mockProduct.name);
+      const image = screen.getByAltText(mockProduct.name);
       expect(image).toHaveAttribute('src', mockProduct.mainImage);
     });
 
@@ -98,7 +98,9 @@ describe('QuickStockUpdate', () => {
       render(<QuickStockUpdate {...defaultProps} />);
       
       expect(screen.getByText(/Current Stock:/)).toBeInTheDocument();
-      expect(screen.getByText('5')).toBeInTheDocument();
+      // Current stock is shown in the product info section
+      const currentStockText = screen.getByText(/Current Stock:/).textContent;
+      expect(currentStockText).toContain('5');
     });
   });
 
@@ -336,37 +338,54 @@ describe('QuickStockUpdate', () => {
       expect(saveButton).toBeDisabled();
     });
 
-    it('should show info toast when trying to save unchanged value', async () => {
+    it('should disable save button when value equals current stock', async () => {
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       
-      // Input value is already 5 (current stock)
+      // Input value is already 5 (current stock), button should be disabled
       const saveButton = screen.getByText('Save Changes');
       
-      // Enable button by changing and reverting
+      // Change value first to enable button
       const input = screen.getByLabelText('New stock quantity');
       await user.clear(input);
       await user.type(input, '10');
+      
+      // Button should be enabled now
+      expect(saveButton).not.toBeDisabled();
+      
+      // Revert to original value
       await user.clear(input);
       await user.type(input, '5');
       
-      await user.click(saveButton);
-      
-      expect(toast.info).toHaveBeenCalledWith('Stock quantity unchanged');
+      // Button should be disabled again since value equals current stock
+      expect(saveButton).toBeDisabled();
     });
   });
 
   describe('Validation', () => {
-    it('should show error for negative stock', async () => {
+    it('should treat empty input as 0 (valid change from current stock)', async () => {
       const user = userEvent.setup();
       render(<QuickStockUpdate {...defaultProps} />);
       
       const input = screen.getByLabelText('New stock quantity');
       await user.clear(input);
-      // Try to set negative (should be prevented, but test validation)
+      // Empty input = 0, which is different from current stock (5)
+      // So button should be enabled
       
       const saveButton = screen.getByText('Save Changes');
-      expect(saveButton).toBeDisabled();
+      expect(saveButton).not.toBeDisabled();
+    });
+
+    it('should allow setting stock to 0', async () => {
+      const user = userEvent.setup();
+      render(<QuickStockUpdate {...defaultProps} />);
+      
+      const input = screen.getByLabelText('New stock quantity');
+      await user.clear(input);
+      await user.type(input, '0');
+      
+      const saveButton = screen.getByText('Save Changes');
+      expect(saveButton).not.toBeDisabled();
     });
   });
 
