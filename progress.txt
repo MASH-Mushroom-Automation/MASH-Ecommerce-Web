@@ -1471,3 +1471,112 @@ Story SELLER-021-P2-02 (Create Stock Adjustment API Route) is now OBSOLETE becau
 **Next Story:** P2-04 - Create useStockManagement Hook (React Query mutations + queries)
 
 ---
+
+## [2026-02-02 16:30] - SELLER-021-P2-04
+**Completed:** Create Stock Management Service Hook
+
+**Files Changed:**
+- src/hooks/useStockManagement.ts (450+ lines - new hook)
+- src/hooks/useStockManagement.test.ts (850+ lines - comprehensive tests)
+
+**Implementation Notes:**
+- Created useStockAdjustment() mutation hook with optimistic UI updates
+- Created useStockHistory(productId) query hook with pagination support (30 items/page)
+- Created useRecentAdjustments() query hook for dashboard widgets (configurable limit)
+- Added usePrefetchStockHistory() for performance optimization on hover/navigation
+- Added useInvalidateStockCache() utility for manual cache control
+- Implemented optimistic updates that immediately show changes before server response
+- Automatic rollback on error to maintain data consistency
+- Comprehensive cache invalidation invalidates 6 related query keys on success:
+  * stockHistory for the specific product
+  * stockHistoryCount for pagination
+  * recentAdjustments across all products
+  * inventoryStats dashboard metrics
+  * lowStockProducts lists
+  * productStock for individual product queries
+- Toast notifications with detailed success messages (new stock level + adjustment type)
+- Toast error messages with specific error details from API
+- keepPreviousData option in queries for smooth pagination UX
+- Configurable query options: enabled, limit, page, pageSize
+- Full React Query integration with proper error handling and loading states
+
+**Testing Details:**
+- 41 comprehensive unit tests with 100% hook coverage
+- Test categories:
+  * useStockAdjustment Mutation (8 tests):
+    - Success path with API call verification
+    - API error handling with error toast
+    - Network error handling
+    - Optimistic updates with immediate cache modification
+    - Rollback on error to restore original cache state
+    - Cache invalidation of 6 query keys on success
+    - Custom onSuccess callback support
+    - Custom onError callback support
+  * useStockHistory Query (7 tests):
+    - Successful data fetching with pagination
+    - Pagination calculations (hasMore, page, pageSize)
+    - Respect for enabled option (no fetch when disabled)
+    - Empty productId handling (no fetch)
+    - Query error handling
+    - keepPreviousData behavior during page changes
+    - Refetch functionality
+  * useRecentAdjustments Query (5 tests):
+    - Successful data fetching
+    - Default limit of 20 items
+    - Custom limit support
+    - Respect for enabled option
+    - Error handling with empty array fallback
+    - Refetch functionality
+  * usePrefetchStockHistory (1 test):
+    - Cache population for performance optimization
+  * useInvalidateStockCache (4 tests):
+    - Invalidate history for specific product
+    - Invalidate recent adjustments globally
+    - Invalidate inventory stats
+    - Invalidate all stock-related caches with predicate function
+- Mocked fetch globally for API calls
+- Mocked Sanity client for query operations
+- Mocked sonner toast for notification verification
+- Created custom QueryClient with disabled retries for predictable tests
+- Created wrapper with QueryClientProvider for hook rendering
+- Used @testing-library/react renderHook and waitFor utilities
+- All tests passing with 0 failures
+
+**Quality Checks:**
+- Build: \u2705 PASS (29.1s compile, 132 routes, 0 errors)
+- Lint: \u2705 PASS (0 warnings)
+- TypeScript: \u2705 PASS (full type safety with generics)
+- Tests: \u2705 41/41 passing (useStockManagement.test.ts)
+
+**Learnings for Future Iterations:**
+- React Query's useMutation + useQuery pattern provides elegant separation of concerns
+- Optimistic updates dramatically improve perceived performance for mutations
+- onMutate hook allows pre-emptive cache updates before server response
+- onError hook with context enables precise rollback of optimistic changes
+- queryClient.invalidateQueries() with predicate function enables bulk cache invalidation
+- keepPreviousData option prevents jarring UI jumps during pagination
+- prefetchQuery is powerful for performance optimization on predictable user actions
+- Mock setup for React Query tests requires careful QueryClient configuration
+- renderHook from @testing-library/react is perfect for testing custom hooks
+- Toast notifications should include actionable details (e.g., new stock level, adjustment type)
+- Cache key consistency is critical - use exported constants (STOCK_QUERY_KEYS)
+- Generic types in hooks enable full type safety across different data shapes
+- Error boundaries at the hook level simplify error handling for consumers
+
+**Patterns Established:**
+- Mutation hooks should always include optimistic updates for instant UX
+- Always provide rollback mechanism on error (onError with context)
+- Toast notifications for both success and error states with specific messages
+- Expose loading, fetching, error states for flexible UI handling
+- Support custom callbacks (onSuccess, onError) for component-specific logic
+- Use exported query keys object for consistency and refactoring ease
+- Prefetch utilities for performance-critical user flows
+- Cache invalidation utilities for manual control when needed
+- keepPreviousData for pagination to maintain smooth transitions
+- Test hooks with renderHook + QueryClientProvider wrapper
+- Mock all external dependencies (fetch, Sanity, toast) for isolated testing
+
+**Phase 2 Status:** \u2705 COMPLETE (4/4 stories)
+**Next Up:** Phase 3 - Threshold Configuration (P3-01: ThresholdSettings Component)
+
+---
