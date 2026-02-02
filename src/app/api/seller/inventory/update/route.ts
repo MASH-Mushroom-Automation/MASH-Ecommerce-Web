@@ -28,17 +28,18 @@ const sanityWriteClient = createClient({
   apiVersion,
   useCdn: false, // Never use CDN for mutations
   token: writeToken || readToken,
-  perspective: 'published',
+  perspective: 'raw', // Access both published and draft documents
 });
 
 // Create read client for fetching current stock
+// Uses useCdn: false to get fresh data and raw perspective for draft access
 const sanityReadClient = createClient({
   projectId,
   dataset,
   apiVersion,
-  useCdn: true,
+  useCdn: false, // Don't use CDN - need fresh data for stock updates
   token: readToken,
-  perspective: 'published',
+  perspective: 'raw', // Access both published and draft documents
 });
 
 interface StockUpdateRequest {
@@ -77,14 +78,33 @@ function validateQuantity(quantity: number): boolean {
 
 /**
  * Get current stock for a product
+ * Handles both published and draft documents in Sanity
  */
-async function getCurrentStock(productId: string): Promise<number | null> {
+async function getCurrentStock(productId: string): Promise<{ stockQuantity: number; resolvedId: string } | null> {
   try {
-    const result = await sanityReadClient.fetch<{ stockQuantity: number } | null>(
-      `*[_type == "product" && _id == $productId][0]{ stockQuantity }`,
-      { productId }
+    // Try to find the product - handle both published and draft IDs
+    // Sanity stores drafts with "drafts." prefix
+    const draftId = productId.startsWith('drafts.') ? productId : `drafts.${productId}`;
+    const publishedId = productId.startsWith('drafts.') ? productId.replace('drafts.', '') : productId;
+    
+    console.log(`[API] Looking for product: ${productId}`);
+    console.log(`[API] Trying IDs: published="${publishedId}", draft="${draftId}"`);
+    
+    const result = await sanityReadClient.fetch<{ _id: string; stockQuantity: number } | null>(
+      `*[_type == "product" && (_id == $productId || _id == $draftId || _id == $publishedId)][0]{ _id, stockQuantity }`,
+      { productId, draftId, publishedId }
     );
-    return result?.stockQuantity ?? null;
+    
+    if (result) {
+      console.log(`[API] Found product: ${result._id} with stock: ${result.stockQuantity}`);
+      return { 
+        stockQuantity: result.stockQuantity ?? 0, 
+        resolvedId: result._id 
+      };
+    }
+    
+    console.log(`[API] Product not found with any ID variant`);
+    return null;
   } catch (error) {
     console.error('[API] Failed to fetch current stock:', error);
     return null;
@@ -109,6 +129,8 @@ export async function POST(request: NextRequest) {
     const body: StockUpdateRequest = await request.json();
     const { productId, newQuantity } = body;
 
+    console.log(`[API] Stock update request: productId=${productId}, newQuantity=${newQuantity}`);
+
     // Validate inputs
     if (!validateProductId(productId)) {
       return NextResponse.json(
@@ -124,18 +146,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current stock for change tracking
-    const currentStock = await getCurrentStock(productId);
-    if (currentStock === null) {
+    // Get current stock for change tracking (handles both published and draft IDs)
+    const stockInfo = await getCurrentStock(productId);
+    if (stockInfo === null) {
       return NextResponse.json(
         { success: false, error: `Product not found: ${productId}` },
         { status: 404 }
       );
     }
 
-    // Execute Sanity PATCH mutation
+    const { stockQuantity: currentStock, resolvedId } = stockInfo;
+    console.log(`[API] Updating product ${resolvedId} from ${currentStock} to ${newQuantity}`);
+
+    // Execute Sanity PATCH mutation using the resolved ID
     const result = await sanityWriteClient
-      .patch(productId)
+      .patch(resolvedId)
       .set({
         stockQuantity: newQuantity,
         updatedAt: new Date().toISOString(),
@@ -144,13 +169,13 @@ export async function POST(request: NextRequest) {
 
     const updateResult: StockUpdateResult = {
       success: true,
-      productId,
+      productId: resolvedId, // Return the resolved ID
       oldQuantity: currentStock,
       newQuantity,
       updatedAt: result._updatedAt || new Date().toISOString(),
     };
 
-    console.log(`[API] Stock updated: ${productId} (${currentStock} → ${newQuantity})`);
+    console.log(`[API] Stock updated successfully: ${resolvedId} (${currentStock} → ${newQuantity})`);
 
     return NextResponse.json({ success: true, data: updateResult });
   } catch (error) {
