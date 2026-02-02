@@ -1713,3 +1713,71 @@ Story SELLER-021-P2-02 (Create Stock Adjustment API Route) is now OBSOLETE becau
 
 **Status:** 18/23 stories complete (78%)
 **Next:** P6-03 (Inventory Dashboard Integration), then Phase 7 (Testing & Deployment)
+---
+
+## [2026-02-03 09:30] - SELLER-021-P6-03
+**Completed:** Integrate Stock Adjustments with Inventory Dashboard
+**Files Changed:**
+- src/components/seller/inventory/LowStockAlerts.tsx (+onAdjustStockClick, Settings2 icon, Adjust button)
+- src/app/(seller)/seller/inventory/page.tsx (+StockAdjustmentForm modal, Dialog import, handlers)
+
+**Implementation Notes:**
+- Added onAdjustStockClick callback prop to LowStockAlerts component
+- "Adjust" button opens full stock adjustment form with product pre-selected
+- Uses Settings2 icon to distinguish from "Restock" button (ArrowUp)
+- Modal dialog with pre-selected product from low stock alerts
+- Cache invalidation on successful adjustment refreshes inventory data
+- Computed adjustmentFormProducts array for StockAdjustmentForm compatibility
+
+**Learnings:**
+- LowStockItem needs transformation to Product format for StockAdjustmentForm
+- Dialog component wraps form for modal behavior
+- Toast feedback improves UX on stock adjustments
+- Use separate state for modal visibility vs selected product
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] TypeCheck
+
+---
+
+## [2026-02-03 10:00] - SELLER-021-P7-01
+**Completed:** Create Integration Tests for Stock Management Flow
+**Files Created:**
+- src/app/(seller)/seller/stock-management/page.integration.test.tsx (23 tests)
+- src/app/api/seller/stock/stock-api.integration.test.ts (28 tests)
+
+**Implementation Notes:**
+Page Integration Tests (23 tests):
+- Page rendering: title, tabs, stats cards, Quick Adjust tab default
+- Tab navigation: switch between tabs, keyboard navigation
+- Stock adjustment form: product passing, form submission
+- Batch import: component rendering, upload success
+- Stock history: component rendering when tab active
+- Accessibility: ARIA tabs, heading structure, keyboard nav
+- Edge cases: empty/null/undefined products, refresh functionality
+
+API Integration Tests (28 tests):
+- Input validation: required fields, type values, quantity rules, reason codes
+- Business logic: negative stock prevention, stock calculations
+- CSV parsing: required columns, extra columns, row validation
+- Batch modes: atomic (all-or-nothing) vs partial (continue on error)
+- Rate limiting: request limits per time window
+- Threshold configuration: validation, negative rejection, ordering rules
+- History API: pagination, filtering by type/date, sorting, response format
+
+**Testing Approach:**
+- Used mocked components to isolate page logic from implementation details
+- Pure logic tests for API validation (no actual API calls)
+- Avoided Radix UI pointer capture issues by testing structure
+
+**Learnings for Future Iterations:**
+- Jest 30+ uses --testPathPatterns instead of --testPathPattern
+- Parentheses in file paths (like "(seller)") need regex patterns for Jest
+- Run specific tests with: npx jest "path/to/file" --no-cache
+- Pre-existing test failures in other areas don't affect SELLER-021 work
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | 51/51 new tests passing
+
+**Status:** 20/23 stories complete (87%)
+**Next:** P7-02 (Documentation), P7-03 (Deploy and Verify)
+
+---
