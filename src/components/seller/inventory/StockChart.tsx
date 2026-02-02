@@ -246,18 +246,18 @@ export const StockChart = memo<StockChartProps>(function StockChart({
   
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle>Stock Level Distribution</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Stock Level Distribution</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-4">
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Pie
               data={filteredData}
               cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
+              cy="45%"
+              innerRadius={height > 250 ? 60 : 40}
+              outerRadius={height > 250 ? 100 : 70}
               paddingAngle={2}
               dataKey="count"
               nameKey="label"
@@ -285,7 +285,7 @@ export const StockChart = memo<StockChartProps>(function StockChart({
                 />
               )}
               verticalAlign="bottom"
-              height={60}
+              height={50}
             />
           </PieChart>
         </ResponsiveContainer>

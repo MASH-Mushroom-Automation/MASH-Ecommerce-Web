@@ -3,7 +3,7 @@
  * Executes inventory queries with error handling and caching
  */
 
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, sanityFreshClient } from '@/lib/sanity/client';
 import {
   getInventoryStatsQuery,
   getLowStockProductsQuery,
@@ -32,18 +32,30 @@ export interface LowStockProductsResult {
 }
 
 /**
+ * Get the appropriate Sanity client
+ * @param skipCache - If true, use fresh client that bypasses CDN cache
+ */
+function getClient(skipCache: boolean = false) {
+  return skipCache ? sanityFreshClient : sanityClient;
+}
+
+/**
  * Get inventory statistics summary
  * Returns total SKUs, stock counts, and percentages
  * 
  * @param lowStockThreshold - Threshold for low stock alerts (default: 10)
+ * @param options - Optional settings (skipCache for fresh data)
  * @returns Inventory statistics
  */
 export async function getInventoryStats(
-  lowStockThreshold: number = 10
+  lowStockThreshold: number = 10,
+  options: { skipCache?: boolean } = {}
 ): Promise<InventoryStats> {
+  const client = getClient(options.skipCache);
+  
   try {
     const query = getInventoryStatsQuery(lowStockThreshold);
-    const result = await sanityClient.fetch<{
+    const result = await client.fetch<{
       totalSKUs: number;
       inStock: number;
       lowStock: number;
@@ -79,22 +91,26 @@ export async function getInventoryStats(
  * @param filters - Filter criteria
  * @param page - Page number (1-indexed)
  * @param pageSize - Items per page
+ * @param options - Optional settings (skipCache for fresh data)
  * @returns Low stock products with pagination
  */
 export async function getLowStockProducts(
   filters: LowStockFilters,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  options: { skipCache?: boolean } = {}
 ): Promise<LowStockProductsResult> {
+  const client = getClient(options.skipCache);
+  
   try {
     const offset = (page - 1) * pageSize;
 
     // Fetch products and total count in parallel
     const [items, total] = await Promise.all([
-      sanityClient.fetch<LowStockItem[]>(
+      client.fetch<LowStockItem[]>(
         getLowStockProductsQuery(filters, pageSize, offset)
       ),
-      sanityClient.fetch<number>(countLowStockProductsQuery(filters)),
+      client.fetch<number>(countLowStockProductsQuery(filters)),
     ]);
 
     const hasMore = offset + items.length < total;
@@ -117,12 +133,17 @@ export async function getLowStockProducts(
  * Get total inventory value by category
  * Calculates monetary value of current stock
  * 
+ * @param options - Optional settings (skipCache for fresh data)
  * @returns Inventory value breakdown
  */
-export async function getStockValue(): Promise<InventoryValue> {
+export async function getStockValue(
+  options: { skipCache?: boolean } = {}
+): Promise<InventoryValue> {
+  const client = getClient(options.skipCache);
+  
   try {
     const query = getStockValueQuery();
-    const result = await sanityClient.fetch<{
+    const result = await client.fetch<{
       totalValue: {
         total: number;
         inStock: number;
@@ -175,12 +196,17 @@ export async function getStockValue(): Promise<InventoryValue> {
  * Get stock distribution by category
  * Returns category-wise inventory breakdown with products
  * 
+ * @param options - Optional settings (skipCache for fresh data)
  * @returns Array of category inventories
  */
-export async function getCategoryInventoryDistribution(): Promise<CategoryInventory[]> {
+export async function getCategoryInventoryDistribution(
+  options: { skipCache?: boolean } = {}
+): Promise<CategoryInventory[]> {
+  const client = getClient(options.skipCache);
+  
   try {
     const query = getCategoryInventoryQuery();
-    const result = await sanityClient.fetch<Array<{
+    const result = await client.fetch<Array<{
       _id: string;
       name: string;
       slug: string;
@@ -234,17 +260,18 @@ export async function getCategoryInventoryDistribution(): Promise<CategoryInvent
 }
 
 /**
- * Refresh all inventory data
- * Useful for manual refresh button
+ * Refresh all inventory data (bypasses CDN cache)
+ * Useful for manual refresh button or after stock updates
  * 
- * @returns Object with all inventory data
+ * @returns Object with all fresh inventory data
  */
 export async function refreshInventoryData() {
   try {
+    // Use skipCache: true for guaranteed fresh data
     const [stats, stockValue, categoryDistribution] = await Promise.all([
-      getInventoryStats(),
-      getStockValue(),
-      getCategoryInventoryDistribution(),
+      getInventoryStats(10, { skipCache: true }),
+      getStockValue({ skipCache: true }),
+      getCategoryInventoryDistribution({ skipCache: true }),
     ]);
 
     return {

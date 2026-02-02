@@ -100,29 +100,29 @@ const StatCard = memo<{
         )}
       />
       
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-4 px-4">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {data.title}
         </CardTitle>
         <div
           className={cn(
-            'rounded-full p-2',
+            'rounded-full p-1.5',
             data.bgColor,
             'bg-opacity-10'
           )}
         >
-          <Icon className={cn('h-5 w-5', data.iconColor)} />
+          <Icon className={cn('h-4 w-4', data.iconColor)} />
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pb-4 px-4">
         <div className="flex items-baseline gap-2">
-          <div className={cn('text-3xl font-bold', data.textColor)}>
+          <div className={cn('text-2xl font-bold', data.textColor)}>
             {data.value.toLocaleString()}
           </div>
         </div>
         
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground">
           {data.percentage.toFixed(1)}% of total inventory
         </p>
       </CardContent>

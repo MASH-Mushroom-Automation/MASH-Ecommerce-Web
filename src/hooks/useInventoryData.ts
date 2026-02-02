@@ -6,7 +6,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   getInventoryStats,
@@ -307,20 +307,59 @@ export function useInventoryData(options: {
  * Hook for invalidating all inventory queries
  * Useful after stock updates
  * 
- * @returns Invalidation function
+ * @returns Invalidation functions
  */
 export function useInvalidateInventory() {
   const queryClient = useQueryClient();
 
+  /**
+   * Invalidate all inventory queries and force fresh data fetch
+   * Uses skipCache: true to bypass CDN cache after mutations
+   */
   const invalidateAll = useCallback(async () => {
+    // Remove existing cached data to ensure fresh fetch
+    await queryClient.removeQueries({ queryKey: ['inventory'] });
+    
+    // Refetch with fresh data (bypasses CDN)
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.inventoryStats,
+      queryFn: () => getInventoryStats(10, { skipCache: true }),
+    });
+    
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.stockValue,
+      queryFn: () => getStockValue({ skipCache: true }),
+    });
+    
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.categoryDistribution,
+      queryFn: () => getCategoryInventoryDistribution({ skipCache: true }),
+    });
+    
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.lowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1),
+      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 10, { skipCache: true }),
+    });
+    
+    // Invalidate to trigger component re-renders
     await queryClient.invalidateQueries({ queryKey: ['inventory'] });
   }, [queryClient]);
 
   const invalidateStats = useCallback(async () => {
+    await queryClient.removeQueries({ queryKey: QUERY_KEYS.inventoryStats });
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.inventoryStats,
+      queryFn: () => getInventoryStats(10, { skipCache: true }),
+    });
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventoryStats });
   }, [queryClient]);
 
   const invalidateLowStock = useCallback(async () => {
+    await queryClient.removeQueries({ queryKey: ['inventory', 'lowStock'] });
+    await queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.lowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1),
+      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 10, { skipCache: true }),
+    });
     await queryClient.invalidateQueries({ queryKey: ['inventory', 'lowStock'] });
   }, [queryClient]);
 

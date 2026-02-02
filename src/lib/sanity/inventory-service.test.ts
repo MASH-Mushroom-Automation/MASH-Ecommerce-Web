@@ -9,13 +9,16 @@ import {
   getCategoryInventoryDistribution,
   refreshInventoryData,
 } from './inventory-service';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, sanityFreshClient } from '@/lib/sanity/client';
 import { DEFAULT_LOW_STOCK_FILTERS } from '@/types/inventory';
 import type { LowStockFilters } from '@/types/inventory';
 
 // Mock dependencies
 jest.mock('@/lib/sanity/client', () => ({
   sanityClient: {
+    fetch: jest.fn(),
+  },
+  sanityFreshClient: {
     fetch: jest.fn(),
   },
 }));
@@ -28,6 +31,7 @@ jest.mock('sonner', () => ({
 }));
 
 const mockFetch = sanityClient.fetch as jest.MockedFunction<typeof sanityClient.fetch>;
+const mockFreshFetch = sanityFreshClient.fetch as jest.MockedFunction<typeof sanityFreshClient.fetch>;
 
 describe('getInventoryStats', () => {
   beforeEach(() => {
@@ -55,6 +59,31 @@ describe('getInventoryStats', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFreshFetch).not.toHaveBeenCalled();
+  });
+
+  it('should use fresh client when skipCache is true', async () => {
+    mockFreshFetch.mockResolvedValueOnce({
+      totalSKUs: 100,
+      inStock: 70,
+      lowStock: 20,
+      outOfStock: 10,
+    });
+
+    const result = await getInventoryStats(10, { skipCache: true });
+
+    expect(result).toEqual({
+      totalSKUs: 100,
+      inStock: 70,
+      lowStock: 20,
+      outOfStock: 10,
+      inStockPercentage: 70,
+      lowStockPercentage: 20,
+      outOfStockPercentage: 10,
+    });
+
+    expect(mockFreshFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('should handle zero SKUs gracefully', async () => {
@@ -117,20 +146,34 @@ describe('getLowStockProducts', () => {
     ];
 
     mockFetch
-      .mockResolvedValueOnce(mockProducts) // Products
-      .mockResolvedValueOnce(10); // Total count
+      .mockResolvedValueOnce(mockProducts) // Products (1 item returned)
+      .mockResolvedValueOnce(1); // Total count = 1 item
 
     const result = await getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 20);
 
     expect(result).toEqual({
       items: mockProducts,
-      total: 10,
-      hasMore: false,
+      total: 1,
+      hasMore: false, // hasMore = offset(0) + items(1) < total(1) = false
       page: 1,
       pageSize: 20,
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should use fresh client when skipCache is true', async () => {
+    const mockProducts = [{ _id: 'prod-1', name: 'Product 1' }];
+
+    mockFreshFetch
+      .mockResolvedValueOnce(mockProducts) // Products
+      .mockResolvedValueOnce(1); // Total count
+
+    const result = await getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 20, { skipCache: true });
+
+    expect(result.items).toEqual(mockProducts);
+    expect(mockFreshFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('should calculate hasMore correctly', async () => {
@@ -190,6 +233,19 @@ describe('getStockValue', () => {
     jest.clearAllMocks();
   });
 
+  it('should use fresh client when skipCache is true', async () => {
+    mockFreshFetch.mockResolvedValueOnce({
+      totalValue: { total: 1000, inStock: 800, lowStock: 150, outOfStock: 0 },
+      totalUnits: 100,
+      byCategory: [],
+    });
+
+    await getStockValue({ skipCache: true });
+
+    expect(mockFreshFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it('should fetch and transform stock value', async () => {
     mockFetch.mockResolvedValueOnce({
       totalValue: {
@@ -198,12 +254,14 @@ describe('getStockValue', () => {
         lowStock: 10000,
         outOfStock: 0,
       },
+      totalUnits: 100,
       byCategory: [
         {
           _id: 'cat-1',
           name: 'Category 1',
           slug: 'category-1',
           value: 30000,
+          units: 50,
           productCount: 10,
         },
       ],
@@ -211,17 +269,21 @@ describe('getStockValue', () => {
 
     const result = await getStockValue();
 
+    // Updated to match the new InventoryValue type format
     expect(result).toEqual({
-      total: 50000,
-      inStock: 35000,
-      lowStock: 10000,
-      outOfStock: 0,
-      byCategory: [
+      totalValue: 50000,
+      totalUnits: 100,
+      inStockValue: 35000,
+      lowStockValue: 10000,
+      outOfStockValue: 0,
+      currency: 'PHP',
+      categoriesValue: [
         {
           categoryId: 'cat-1',
           categoryName: 'Category 1',
-          value: 30000,
-          productCount: 10,
+          totalValue: 30000,
+          totalUnits: 50,
+          averagePrice: 600, // 30000 / 50
         },
       ],
     });
@@ -235,12 +297,14 @@ describe('getStockValue', () => {
         lowStock: null,
         outOfStock: null,
       },
+      totalUnits: null,
       byCategory: [
         {
           _id: 'cat-1',
           name: 'Category 1',
           slug: 'category-1',
           value: null,
+          units: 0,
           productCount: 0,
         },
       ],
@@ -248,9 +312,10 @@ describe('getStockValue', () => {
 
     const result = await getStockValue();
 
-    expect(result.total).toBe(0);
-    expect(result.inStock).toBe(0);
-    expect(result.byCategory[0].value).toBe(0);
+    // Updated to match the new InventoryValue type format
+    expect(result.totalValue).toBe(0);
+    expect(result.inStockValue).toBe(0);
+    expect(result.categoriesValue[0].totalValue).toBe(0);
   });
 
   it('should handle errors', async () => {
@@ -344,33 +409,52 @@ describe('refreshInventoryData', () => {
     jest.clearAllMocks();
   });
 
-  it('should fetch all inventory data in parallel', async () => {
-    // Mock all three calls
-    mockFetch
+  it('should fetch all inventory data using fresh client (skipCache: true)', async () => {
+    // refreshInventoryData uses skipCache: true, so it should use sanityFreshClient
+    mockFreshFetch
       .mockResolvedValueOnce({
         totalSKUs: 100,
         inStock: 70,
         lowStock: 20,
         outOfStock: 10,
-      }) // getInventoryStats
+      }) // getInventoryStats with skipCache
       .mockResolvedValueOnce({
         totalValue: { total: 50000, inStock: 35000, lowStock: 10000, outOfStock: 0 },
+        totalUnits: 500,
         byCategory: [],
-      }) // getStockValue
-      .mockResolvedValueOnce([]); // getCategoryInventoryDistribution
+      }) // getStockValue with skipCache
+      .mockResolvedValueOnce([]); // getCategoryInventoryDistribution with skipCache
 
     const result = await refreshInventoryData();
 
     expect(result).toHaveProperty('stats');
     expect(result).toHaveProperty('stockValue');
     expect(result).toHaveProperty('categoryDistribution');
-    expect(mockFetch).toHaveBeenCalledTimes(3);
+    
+    // Should use fresh client for all calls (bypasses CDN cache)
+    expect(mockFreshFetch).toHaveBeenCalledTimes(3);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('should handle errors', async () => {
     const error = new Error('Refresh failed');
-    mockFetch.mockRejectedValueOnce(error);
+    mockFreshFetch.mockRejectedValueOnce(error);
 
     await expect(refreshInventoryData()).rejects.toThrow(error);
+  });
+});
+
+describe('getCategoryInventoryDistribution with skipCache', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should use fresh client when skipCache is true', async () => {
+    mockFreshFetch.mockResolvedValueOnce([]);
+
+    await getCategoryInventoryDistribution({ skipCache: true });
+
+    expect(mockFreshFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

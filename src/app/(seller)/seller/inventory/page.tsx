@@ -167,18 +167,19 @@ export default function InventoryOverviewPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Page Header */}
+    <div className="flex flex-col gap-4 p-4 md:p-6 max-w-7xl mx-auto">
+      {/* Page Header - Compact */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Overview</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight">Inventory Overview</h1>
+          <p className="text-sm text-muted-foreground">
             Comprehensive inventory analytics and management
           </p>
         </div>
         <Button
           onClick={handleRefresh}
           variant="outline"
+          size="sm"
           className="w-full sm:w-auto"
           aria-label="Refresh inventory data"
         >
@@ -189,7 +190,7 @@ export default function InventoryOverviewPage() {
 
       <Separator />
 
-      {/* Inventory Stats - Full width, 4 cards */}
+      {/* Inventory Stats - Full width, 4 cards - Compact */}
       <section aria-labelledby="inventory-stats-heading">
         <h2 id="inventory-stats-heading" className="sr-only">
           Inventory Statistics
@@ -197,16 +198,27 @@ export default function InventoryOverviewPage() {
         <InventoryStats stats={stats} isLoading={isLoading} isError={isError} />
       </section>
 
-      {/* Stock Chart + Low Stock Alerts - Two column on desktop */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <section aria-labelledby="stock-distribution-heading">
+      {/* Stock Chart (smaller) + Low Stock Alerts - Two column on desktop */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
+        <section 
+          aria-labelledby="stock-distribution-heading"
+          className="lg:col-span-2"
+        >
           <h2 id="stock-distribution-heading" className="sr-only">
             Stock Distribution Chart
           </h2>
-          <StockChart stats={stats} isLoading={isLoading} isError={isError} />
+          <StockChart 
+            stats={stats} 
+            isLoading={isLoading} 
+            isError={isError} 
+            height={220}
+          />
         </section>
 
-        <section aria-labelledby="low-stock-alerts-heading">
+        <section 
+          aria-labelledby="low-stock-alerts-heading"
+          className="lg:col-span-3"
+        >
           <h2 id="low-stock-alerts-heading" className="sr-only">
             Low Stock Alerts
           </h2>
@@ -235,7 +247,7 @@ export default function InventoryOverviewPage() {
         />
       </section>
 
-      {/* Stock Value Calculator - Full width, expandable section */}
+      {/* Stock Value Calculator - Full width */}
       <section aria-labelledby="inventory-value-heading">
         <h2 id="inventory-value-heading" className="sr-only">
           Inventory Value Calculator

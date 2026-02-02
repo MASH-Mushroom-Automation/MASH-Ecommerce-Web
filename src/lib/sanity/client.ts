@@ -70,6 +70,29 @@ export const sanityWriteClient = createClient({
 });
 
 /**
+ * Create the Sanity client for FRESH reads (bypasses CDN cache)
+ * 
+ * Use this client when you need guaranteed fresh data, such as:
+ * - Immediately after a mutation to show updated values
+ * - Real-time inventory updates
+ * - Any scenario where stale data is unacceptable
+ * 
+ * WARNING: Use sparingly - this bypasses CDN and uses more API quota.
+ */
+export const sanityFreshClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false, // Bypass CDN for fresh data
+  token: readToken,
+  perspective: "raw", // See both published and draft documents
+  stega: {
+    enabled: false,
+  },
+  resultSourceMap: false,
+});
+
+/**
  * Check if write operations are properly configured
  * @returns true if write token is available
  */
