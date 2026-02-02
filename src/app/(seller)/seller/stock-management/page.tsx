@@ -23,7 +23,7 @@ import {
 import { StockAdjustmentForm } from '@/components/seller/stock/StockAdjustmentForm';
 import { BatchStockUpdate } from '@/components/seller/stock/BatchStockUpdate';
 import { StockHistoryLog } from '@/components/seller/stock/StockHistoryLog';
-import { useProducts } from '@/hooks/useProducts';
+import { useSanityProducts } from '@/hooks/useSanityProducts';
 
 /**
  * Stats card component
@@ -133,22 +133,23 @@ function StockOverviewStats() {
 export default function StockManagementPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Fetch products for the form
-  const { products, loading: productsLoading, error: productsError, refetch } = useProducts();
+  // Fetch products from Sanity CMS (not backend API)
+  // useSanityProducts fetches products with: id, name, stock, sku, etc.
+  const { products, loading: productsLoading, error: productsError, refetch } = useSanityProducts();
   
   const handleRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
     refetch(); // Also refetch products
   }, [refetch]);
 
-  // Transform products for the StockAdjustmentForm
-  // Note: ProductApiResponse uses 'id' (not '_id') and 'stock' (not 'stockQuantity')
+  // Transform Sanity products for the StockAdjustmentForm
+  // TransformedProduct uses 'id' and 'stock', form expects '_id' and 'stockQuantity'
   const formProducts = (products || []).map(p => ({
-    _id: p.id, // Backend uses 'id', form expects '_id'
+    _id: p.id, // Sanity uses 'id', form expects '_id'
     name: p.name || '',
     sku: p.sku || '',
-    stockQuantity: p.stock ?? 0, // Backend uses 'stock', form expects 'stockQuantity'
-    lowStockThreshold: p.minStock ?? 10 // Backend uses 'minStock'
+    stockQuantity: p.stock ?? 0, // Sanity uses 'stock', form expects 'stockQuantity'
+    lowStockThreshold: 10 // Default threshold (Sanity products don't have this field yet)
   }));
 
   return (
@@ -206,7 +207,7 @@ export default function StockManagementPage() {
                     Failed to load products
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {productsError}
+                    {productsError.message || 'An error occurred while fetching products'}
                   </p>
                   <button
                     onClick={handleRefresh}

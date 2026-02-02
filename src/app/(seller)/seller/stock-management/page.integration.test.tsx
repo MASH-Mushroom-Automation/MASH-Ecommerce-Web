@@ -21,39 +21,42 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Component under test
 import StockManagementPage from './page';
 
-// Mock dependencies
-jest.mock('@/hooks/useProducts', () => ({
-  useProducts: jest.fn(() => ({
+// Mock dependencies - useSanityProducts for Sanity CMS data
+jest.mock('@/hooks/useSanityProducts', () => ({
+  useSanityProducts: jest.fn(() => ({
     products: [
       {
-        _id: 'prod-001',
         id: 'prod-001',
         name: 'Blue Oyster Mushroom',
         sku: 'BOM-001',
-        stockQuantity: 50,
         stock: 50,
-        lowStockThreshold: 10,
-        minStock: 10,
+        slug: 'blue-oyster-mushroom',
+        price: 150,
+        isAvailable: true,
+        isFeatured: false,
+        isPromo: false,
       },
       {
-        _id: 'prod-002',
         id: 'prod-002',
         name: 'Pink Oyster Mushroom',
         sku: 'POM-002',
-        stockQuantity: 5,
         stock: 5,
-        lowStockThreshold: 10,
-        minStock: 10,
+        slug: 'pink-oyster-mushroom',
+        price: 140,
+        isAvailable: true,
+        isFeatured: false,
+        isPromo: false,
       },
       {
-        _id: 'prod-003',
         id: 'prod-003',
         name: 'Lions Mane Mushroom',
         sku: 'LMM-003',
-        stockQuantity: 0,
         stock: 0,
-        lowStockThreshold: 5,
-        minStock: 5,
+        slug: 'lions-mane-mushroom',
+        price: 200,
+        isAvailable: true,
+        isFeatured: true,
+        isPromo: false,
       },
     ],
     loading: false,
@@ -301,7 +304,7 @@ describe('StockManagementPage Integration Tests', () => {
   describe('Loading State', () => {
     it('should show empty state when products list is empty', () => {
       // Override mock to return empty products
-      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+      jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
         products: [],
         loading: false,
         error: null,
@@ -317,11 +320,11 @@ describe('StockManagementPage Integration Tests', () => {
     });
 
     it('should show error state when products fail to load', () => {
-      // Override mock to return error
-      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+      // Override mock to return error (useSanityProducts returns Error object)
+      jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
         products: [],
         loading: false,
-        error: 'Failed to connect to server',
+        error: new Error('Failed to connect to server'),
         refetch: jest.fn(),
       });
       
@@ -358,11 +361,11 @@ describe('StockManagementPage Integration Tests', () => {
 
   describe('Refresh Functionality', () => {
     it('should trigger refresh when form success callback fires', async () => {
-      // Ensure useProducts returns products (form will be visible)
+      // Ensure useSanityProducts returns products (form will be visible)
       const mockRefetch = jest.fn();
-      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+      jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
         products: [
-          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50 },
+          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50, slug: 'test', price: 100, isAvailable: true, isFeatured: false, isPromo: false },
         ],
         loading: false,
         error: null,
@@ -383,10 +386,10 @@ describe('StockManagementPage Integration Tests', () => {
     });
 
     it('should trigger refresh when batch upload success callback fires', async () => {
-      // Ensure useProducts returns products
-      jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+      // Ensure useSanityProducts returns products
+      jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
         products: [
-          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50 },
+          { id: 'prod-001', name: 'Test Product', sku: 'TST-001', stock: 50, slug: 'test', price: 100, isAvailable: true, isFeatured: false, isPromo: false },
         ],
         loading: false,
         error: null,
@@ -410,15 +413,19 @@ describe('StockManagementPage Integration Tests', () => {
 
 describe('StockManagementPage Edge Cases', () => {
   it('should handle products with missing fields', () => {
-    jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+    jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
       products: [
         {
-          _id: 'prod-incomplete',
-          // Missing name, sku, stockQuantity - these should get default values
+          // Missing name, sku - these should get default values
           id: 'prod-incomplete',
           name: '', // Empty but valid
           sku: '',
           stock: 0,
+          slug: 'incomplete',
+          price: 0,
+          isAvailable: true,
+          isFeatured: false,
+          isPromo: false,
         },
       ],
       loading: false,
@@ -433,7 +440,7 @@ describe('StockManagementPage Edge Cases', () => {
   });
 
   it('should show empty state when products is null', () => {
-    jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+    jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
       products: null,
       loading: false,
       error: null,
@@ -448,7 +455,7 @@ describe('StockManagementPage Edge Cases', () => {
   });
 
   it('should show empty state when products is undefined', () => {
-    jest.spyOn(require('@/hooks/useProducts'), 'useProducts').mockReturnValue({
+    jest.spyOn(require('@/hooks/useSanityProducts'), 'useSanityProducts').mockReturnValue({
       products: undefined,
       loading: false,
       error: null,
