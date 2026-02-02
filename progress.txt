@@ -19,6 +19,7 @@
 - **Radix UI Testing:** Radix UI Select/Dialog use portals - test UI presence/structure rather than complex async interactions. Use getAllByText/getAllByRole for multiple elements.
 - **Order Type:** Use `Order` from `@/hooks/useSanityOrders` with fields: customerName, customerEmail, customerPhone, shippingAddress (with fullAddress), items with product object.
 - **Stock Management Types:** All stock adjustment types use Zod schemas for validation. validateStockAdjustment() checks business rules (positive/negative quantities based on type, sufficient stock, valid reason codes).
+- **Sanity Schema Validation:** Custom validation in Sanity schemas uses `Rule.custom((value, context) => {})` with access to document context. Validation can check related fields and return error messages or true. Use `readOnly: true` for immutable audit trail fields.
 
 ## [2026-02-02 00:00] - SELLER-021-P1-01
 **Completed:** Create Stock Management Types and Interfaces
@@ -1233,3 +1234,37 @@ Copy the prompt from PHASE_6_NEXT_STEPS.md to begin Phase 6 implementation:
 
 **Tests Passing:** [PASS] Build | [PASS] Lint | [WARN] Tests 87.7%
 ---
+
+## [2026-02-02 01:00] - SELLER-021-P1-02
+**Completed:** Create Sanity Stock Adjustment Schema
+**Files Changed:**
+- studio/src/schemaTypes/documents/stockAdjustment.ts (created, 256 lines)
+- studio/src/schemaTypes/index.ts (added import and export)
+
+**Implementation Notes:**
+- Created immutable stockAdjustment document type for audit trail
+- Product reference with `disableNew: true` to prevent inline product creation
+- Adjustment type dropdown: received, sold, returned, damaged, transferred, adjustment
+- Custom validation via Rule.custom((value, context) => {}) pattern:
+  * Received/returned must have positive quantityChange
+  * Sold/damaged/transferred must have negative quantityChange
+  * Manual adjustment can be positive or negative (but not zero)
+- Read-only fields: previousStock, newStock, adjustedBy, adjustmentDate
+- Optional relatedDocument object for order/purchase order/transfer linkage
+- Preview component with formatted display:
+  * Title: Type: Product Name (+/-quantity)
+  * Subtitle: SKU | New Stock | Formatted Date
+- Orderings: adjustmentDate (desc/asc), productName, adjustmentType
+- Added schema to index.ts after analytics, before grower
+
+**Learnings for Future Iterations:**
+- Sanity schema validation accesses document context for cross-field checks
+- Use `disableNew: true` on references to enforce existing-only selections
+- Preview prepare() can use Record<string, string> for type-to-label mapping
+- Orderings array defines default sorting options in Sanity Studio
+- Read-only fields ensure immutability after creation (audit trail integrity)
+- Custom validation returns error string or true (not false)
+- ClipboardIcon from @sanity/icons for schema icon display
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] TypeScript
+**Test Results:** Manual Sanity Studio validation (schema loads correctly, validation works)
