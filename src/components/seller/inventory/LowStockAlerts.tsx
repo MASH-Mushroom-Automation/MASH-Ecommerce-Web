@@ -293,7 +293,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
                           asChild
                         >
                           <Link
-                            href={`/seller/products/${item.slug}`}
+                            href={`/product/${item.slug || item._id}`}
                             aria-label={`View details for ${item.name}`}
                           >
                             <ExternalLink className="h-4 w-4" />

@@ -119,10 +119,10 @@ const CategoryStockBar: React.FC<{
 /**
  * Product list within expanded category
  */
-const ProductList: React.FC<{ products: CategoryInventory['products'] }> = ({
+const ProductList: React.FC<{ products?: CategoryInventory['products'] }> = ({
   products,
 }) => {
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
         No products in this category
@@ -183,7 +183,7 @@ const ProductList: React.FC<{ products: CategoryInventory['products'] }> = ({
               )}
               <Button size="sm" variant="ghost" asChild>
                 <Link
-                  href={`/seller/products/${product.slug}`}
+                  href={`/product/${product.slug || product._id}`}
                   aria-label={`View details for ${product.name}`}
                 >
                   <ExternalLink className="h-4 w-4" />

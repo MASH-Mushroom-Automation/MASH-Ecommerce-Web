@@ -11,7 +11,7 @@ import {
   ValidationError,
   MutationError,
 } from './inventory';
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, sanityWriteClient } from '@/lib/sanity/client';
 
 // Mock dependencies
 jest.mock('@/lib/sanity/client', () => ({
@@ -19,6 +19,11 @@ jest.mock('@/lib/sanity/client', () => ({
     fetch: jest.fn(),
     patch: jest.fn(),
   },
+  sanityWriteClient: {
+    fetch: jest.fn(),
+    patch: jest.fn(),
+  },
+  isWriteConfigured: jest.fn(() => true),
 }));
 
 jest.mock('sonner', () => ({
@@ -37,7 +42,7 @@ describe('updateProductStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 10 });
-    (sanityClient.patch as jest.Mock).mockReturnValue({
+    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
       set: mockSet,
     });
     mockPatch.mockReturnValue({ set: mockSet });
@@ -55,7 +60,7 @@ describe('updateProductStock', () => {
       updatedAt: '2026-02-02T10:00:00Z',
     });
 
-    expect(sanityClient.patch).toHaveBeenCalledWith('product-123');
+    expect(sanityWriteClient.patch).toHaveBeenCalledWith('product-123');
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
         stockQuantity: 50,
@@ -130,6 +135,11 @@ describe('updateProductStock', () => {
     mockCommit.mockRejectedValue(new Error('Network error'));
 
     await expect(updateProductStock('product-123', 50, 3)).rejects.toThrow(MutationError);
+    
+    // Reset and test again for the message check
+    mockCommit.mockClear();
+    mockCommit.mockRejectedValue(new Error('Network error'));
+    
     await expect(updateProductStock('product-123', 50, 3)).rejects.toThrow(
       'Failed to update stock after 3 attempts'
     );
@@ -163,7 +173,7 @@ describe('batchUpdateProductStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 10 });
-    (sanityClient.patch as jest.Mock).mockReturnValue({
+    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
       set: jest.fn(() => ({
         commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
       })),
@@ -181,7 +191,7 @@ describe('batchUpdateProductStock', () => {
 
     expect(results).toHaveLength(3);
     expect(results.every((r) => r.success)).toBe(true);
-    expect(sanityClient.patch).toHaveBeenCalledTimes(3);
+    expect(sanityWriteClient.patch).toHaveBeenCalledTimes(3);
   });
 
   it('should continue batch if one update fails', async () => {
@@ -210,7 +220,7 @@ describe('adjustProductStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 50 });
-    (sanityClient.patch as jest.Mock).mockReturnValue({
+    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
       set: jest.fn(() => ({
         commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
       })),
@@ -252,7 +262,7 @@ describe('setOutOfStock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (sanityClient.fetch as jest.Mock).mockResolvedValue({ stockQuantity: 50 });
-    (sanityClient.patch as jest.Mock).mockReturnValue({
+    (sanityWriteClient.patch as jest.Mock).mockReturnValue({
       set: jest.fn(() => ({
         commit: jest.fn().mockResolvedValue({ _updatedAt: '2026-02-02T10:00:00Z' }),
       })),

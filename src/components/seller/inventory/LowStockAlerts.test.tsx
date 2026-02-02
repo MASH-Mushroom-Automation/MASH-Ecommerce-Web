@@ -300,8 +300,8 @@ describe('LowStockAlerts', () => {
       
       const links = screen.getAllByRole('link');
       expect(links).toHaveLength(2);
-      expect(links[0]).toHaveAttribute('href', '/seller/products/oyster-mushroom');
-      expect(links[1]).toHaveAttribute('href', '/seller/products/shiitake-mushroom');
+      expect(links[0]).toHaveAttribute('href', '/product/oyster-mushroom');
+      expect(links[1]).toHaveAttribute('href', '/product/shiitake-mushroom');
     });
   });
 

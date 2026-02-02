@@ -358,7 +358,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       });
 
       const productLink = screen.getByText('Oyster Mushroom');
-      expect(productLink).toHaveAttribute('href', '/seller/products/oyster-mushroom');
+      expect(productLink).toHaveAttribute('href', '/product/oyster-mushroom');
     });
   });
 

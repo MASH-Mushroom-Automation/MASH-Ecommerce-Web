@@ -273,8 +273,8 @@ describe('CategoryInventoryBreakdown', () => {
       await user.click(screen.getByText('Fresh Mushrooms'));
       
       const links = screen.getAllByRole('link');
-      expect(links[0]).toHaveAttribute('href', '/seller/products/oyster-mushroom');
-      expect(links[1]).toHaveAttribute('href', '/seller/products/shiitake-mushroom');
+      expect(links[0]).toHaveAttribute('href', '/product/oyster-mushroom');
+      expect(links[1]).toHaveAttribute('href', '/product/shiitake-mushroom');
     });
 
     it('should show empty state when category has no products', async () => {

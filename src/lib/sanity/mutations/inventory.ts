@@ -3,7 +3,7 @@
  * Functions for updating product inventory data with error handling and retry logic
  */
 
-import { sanityClient } from '@/lib/sanity/client';
+import { sanityClient, sanityWriteClient, isWriteConfigured } from '@/lib/sanity/client';
 import { toast } from 'sonner';
 
 /**
@@ -170,8 +170,13 @@ export async function updateProductStock(
   // Retry loop
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Execute Sanity PATCH mutation
-      const result = await sanityClient
+      // Check if write client is properly configured
+      if (!isWriteConfigured()) {
+        console.warn('[updateProductStock] Write token not configured, mutation may fail');
+      }
+      
+      // Execute Sanity PATCH mutation using WRITE client
+      const result = await sanityWriteClient
         .patch(productId)
         .set({
           stockQuantity: newQuantity,
