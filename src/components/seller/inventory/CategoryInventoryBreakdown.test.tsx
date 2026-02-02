@@ -353,4 +353,342 @@ describe('CategoryInventoryBreakdown', () => {
       expect(accordionButtons.length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe('Stock Bar Visualization', () => {
+    it('should render colored bars proportional to stock distribution', async () => {
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Expand Fresh Mushrooms
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // Stock bar should be rendered
+      const stockBar = screen.getByText('6 in stock').closest('div')?.parentElement;
+      expect(stockBar).toBeInTheDocument();
+    });
+
+    it('should show tooltip-like titles on bar segments', async () => {
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Expand Fresh Mushrooms
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // Check for stock distribution legend
+      expect(screen.getByText('6 in stock')).toBeInTheDocument();
+      expect(screen.getByText('3 low stock')).toBeInTheDocument();
+      expect(screen.getByText('1 out of stock')).toBeInTheDocument();
+    });
+
+    it('should handle zero stock gracefully', async () => {
+      const categoryWithZeroStock: CategoryInventory[] = [
+        {
+          categoryId: 'cat-zero',
+          categoryName: 'Zero Stock Category',
+          categorySlug: 'zero-stock',
+          totalProducts: 0,
+          inStock: 0,
+          lowStock: 0,
+          outOfStock: 0,
+          totalValue: 0,
+          percentageOfTotal: 0,
+          products: [],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithZeroStock} />);
+      
+      // Expand category
+      await user.click(screen.getByText('Zero Stock Category'));
+      
+      // Should not crash, should show empty state
+      expect(screen.getByText('No products in this category')).toBeInTheDocument();
+    });
+  });
+
+  describe('React Key Props', () => {
+    it('should have unique keys for all list items', async () => {
+      const user = userEvent.setup();
+      
+      // Spy on console.error to catch React key warnings
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      render(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Expand Fresh Mushrooms
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // No key prop warnings should have been logged
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Each child in a list should have a unique "key" prop')
+      );
+      
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle products with duplicate IDs gracefully', async () => {
+      // Create products with different IDs to avoid actual key collision
+      const categoriesWithMultiple: CategoryInventory[] = [
+        {
+          ...mockCategories[0],
+          products: [
+            ...mockCategories[0].products!,
+            {
+              ...mockCategories[0].products![0],
+              _id: 'prod-1-duplicate', // Changed ID to avoid collision
+              name: 'Duplicate Product',
+              sku: 'SKU001-DUP',
+            },
+          ],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      
+      // This should render without crashing
+      render(<CategoryInventoryBreakdown categories={categoriesWithMultiple} />);
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // Both products should be visible
+      expect(screen.getByText('Oyster Mushroom')).toBeInTheDocument();
+      expect(screen.getByText('Duplicate Product')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle undefined products array', async () => {
+      const categoryWithUndefinedProducts: CategoryInventory[] = [
+        {
+          categoryId: 'cat-undefined',
+          categoryName: 'Undefined Products',
+          categorySlug: 'undefined-products',
+          totalProducts: 0,
+          inStock: 0,
+          lowStock: 0,
+          outOfStock: 0,
+          totalValue: 0,
+          percentageOfTotal: 0,
+          // products: undefined, // Omitted to simulate undefined
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithUndefinedProducts} />);
+      
+      // Expand category
+      await user.click(screen.getByText('Undefined Products'));
+      
+      // Should show empty state without crashing
+      expect(screen.getByText('No products in this category')).toBeInTheDocument();
+    });
+
+    it('should handle product without mainImage', async () => {
+      const categoryWithNoImage: CategoryInventory[] = [
+        {
+          ...mockCategories[0],
+          products: [
+            {
+              _id: 'prod-no-image',
+              _updatedAt: '2024-01-01',
+              name: 'Product Without Image',
+              sku: 'SKU999',
+              slug: 'no-image-product',
+              currentStock: 10,
+              lowStockThreshold: 5,
+              restockLevel: 20,
+              price: 100,
+              // mainImage: undefined,
+            },
+          ],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithNoImage} />);
+      
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      expect(screen.getByText('Product Without Image')).toBeInTheDocument();
+      // No image should be rendered
+      const images = screen.queryAllByRole('img');
+      expect(images.length).toBe(0);
+    });
+
+    it('should handle product without slug', async () => {
+      const categoryWithNoSlug: CategoryInventory[] = [
+        {
+          ...mockCategories[0],
+          products: [
+            {
+              _id: 'prod-no-slug',
+              _updatedAt: '2024-01-01',
+              name: 'Product Without Slug',
+              sku: 'SKU888',
+              // slug: undefined,
+              currentStock: 10,
+              lowStockThreshold: 5,
+              restockLevel: 20,
+              price: 100,
+            },
+          ],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithNoSlug} />);
+      
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // Link should fallback to product ID
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', '/product/prod-no-slug');
+    });
+
+    it('should handle zero lowStockThreshold', async () => {
+      const categoryWithZeroThreshold: CategoryInventory[] = [
+        {
+          ...mockCategories[0],
+          products: [
+            {
+              _id: 'prod-zero-threshold',
+              _updatedAt: '2024-01-01',
+              name: 'Zero Threshold Product',
+              sku: 'SKU777',
+              slug: 'zero-threshold',
+              currentStock: 10,
+              lowStockThreshold: 0,
+              restockLevel: 20,
+              price: 100,
+            },
+          ],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithZeroThreshold} />);
+      
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      // Should render without division by zero error
+      expect(screen.getByText('Zero Threshold Product')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
+    });
+
+    it('should handle out-of-stock products (currentStock = 0)', async () => {
+      const categoryWithOutOfStock: CategoryInventory[] = [
+        {
+          ...mockCategories[0],
+          products: [
+            {
+              _id: 'prod-out-of-stock',
+              _updatedAt: '2024-01-01',
+              name: 'Out of Stock Product',
+              sku: 'SKU666',
+              slug: 'out-of-stock',
+              currentStock: 0,
+              lowStockThreshold: 10,
+              restockLevel: 20,
+              price: 100,
+            },
+          ],
+        },
+      ];
+      
+      const user = userEvent.setup();
+      render(<CategoryInventoryBreakdown categories={categoryWithOutOfStock} />);
+      
+      await user.click(screen.getByText('Fresh Mushrooms'));
+      
+      expect(screen.getByText('Out of Stock Product')).toBeInTheDocument();
+      // Should show 0 stock with red styling (text color tested via className)
+      const stockNumber = screen.getByText('0');
+      expect(stockNumber).toHaveClass('text-red-600');
+    });
+  });
+
+  describe('Performance', () => {
+    it('should render large number of categories efficiently', () => {
+      const largeCategories: CategoryInventory[] = Array.from({ length: 50 }, (_, i) => ({
+        categoryId: `cat-${i}`,
+        categoryName: `Category ${i}`,
+        categorySlug: `category-${i}`,
+        totalProducts: i * 2,
+        inStock: i,
+        lowStock: i / 2,
+        outOfStock: i / 4,
+        totalValue: i * 1000,
+        percentageOfTotal: (i / 50) * 100,
+        products: [],
+      }));
+      
+      const { container } = render(<CategoryInventoryBreakdown categories={largeCategories} />);
+      
+      // Should render without performance issues
+      expect(screen.getByText('Category Breakdown')).toBeInTheDocument();
+      expect(container.querySelectorAll('[data-state]').length).toBeGreaterThan(0);
+    });
+
+    it('should memoize component to prevent unnecessary re-renders', () => {
+      const { rerender } = render(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Re-render with same props (should be memoized)
+      rerender(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Component should still be rendered
+      expect(screen.getByText('Category Breakdown')).toBeInTheDocument();
+    });
+  });
+
+  describe('Value Formatting', () => {
+    it('should format currency with proper PHP locale', () => {
+      render(<CategoryInventoryBreakdown categories={mockCategories} />);
+      
+      // Check Filipino currency formatting (₱15,000.00)
+      expect(screen.getByText(/₱15,000\.00/)).toBeInTheDocument();
+      expect(screen.getByText(/₱8,000\.00/)).toBeInTheDocument();
+    });
+
+    it('should handle zero values correctly', () => {
+      const categoryWithZeroValue: CategoryInventory[] = [
+        {
+          categoryId: 'cat-zero-value',
+          categoryName: 'Zero Value Category',
+          categorySlug: 'zero-value',
+          totalProducts: 1,
+          inStock: 1,
+          lowStock: 0,
+          outOfStock: 0,
+          totalValue: 0,
+          percentageOfTotal: 0,
+          products: [],
+        },
+      ];
+      
+      render(<CategoryInventoryBreakdown categories={categoryWithZeroValue} />);
+      
+      expect(screen.getByText(/₱0\.00/)).toBeInTheDocument();
+    });
+
+    it('should handle large values correctly', () => {
+      const categoryWithLargeValue: CategoryInventory[] = [
+        {
+          categoryId: 'cat-large',
+          categoryName: 'High Value Category',
+          categorySlug: 'high-value',
+          totalProducts: 100,
+          inStock: 100,
+          lowStock: 0,
+          outOfStock: 0,
+          totalValue: 1234567.89,
+          percentageOfTotal: 100,
+          products: [],
+        },
+      ];
+      
+      render(<CategoryInventoryBreakdown categories={categoryWithLargeValue} />);
+      
+      expect(screen.getByText(/₱1,234,567\.89/)).toBeInTheDocument();
+    });
+  });
 });

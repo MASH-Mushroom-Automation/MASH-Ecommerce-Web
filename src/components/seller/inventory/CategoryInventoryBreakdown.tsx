@@ -142,7 +142,7 @@ const ProductList: React.FC<{ products?: CategoryInventory['products'] }> = ({
 
         return (
           <div
-            key={product._id}
+            key={`product-${product._id}`}
             className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
           >
             <div className="flex items-center gap-3 flex-1">
