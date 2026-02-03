@@ -32,6 +32,37 @@
 - **Filter URL Sync:** Always deep clone DEFAULT_FILTERS in decodeFiltersFromURL to prevent mutation across tests. Use spread for arrays: `priceRange: [...DEFAULT_FILTERS.priceRange] as [number, number]`.
 - **HTML5 Input Constraints:** `<input type="number" min={0}>` prevents negative values in UI. Cannot test negative input validation via userEvent.type() - test with relationship validations instead.
 - **Integration Test Firebase Issues:** Full page tests requiring Firebase/AuthContext fail during Jest setup ("fetch is not defined"). Skip these tests with `.skip()` and verify via e2e testing instead.
+- **Cal.com Integration:** Use centralized config from `@/lib/calcom`. Theme prop supports 'auto'|'light'|'dark'. Username: mash-mushroom. Events: 1-hour-meeting, 30min (default), 15min, secret.
+
+## [2025-06-XX XX:XX] - Cal.com Integration Complete
+**Completed:** Full Cal.com integration with dark/light mode theme support
+**Files Changed:**
+- src/lib/calcom/config.ts (NEW - centralized configuration)
+- src/lib/calcom/index.ts (NEW - exports)
+- src/lib/calcom/__tests__/config.test.ts (NEW - 40 tests)
+- src/components/appointments/CalendlyEmbed.tsx (theme support)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (theme tests)
+- src/components/appointments/index.ts (re-export CalComTheme types)
+- src/app/grower/[id]/book/page.tsx (theme from Sanity)
+- studio/src/schemaTypes/documents/grower.ts (calcomTheme field)
+
+**Implementation Notes:**
+- Cal.com username: mash-mushroom
+- Event types: 1-hour-meeting (60m), 30min (30m, default), 15min (15m), secret (15m)
+- Theme: useTheme() from next-themes for system theme detection
+- Auto theme follows user's dark/light mode preference
+- Brand colors: #16a34a (light), #22c55e (dark - brighter for dark backgrounds)
+- Config utilities: getCalComThemeConfig, getEventTypeBySlug, formatDuration
+
+**Learnings for Future Iterations:**
+- Cal.com embed uses data-cal-config JSON for theme/layout settings
+- Theme changes require re-initializing Cal API with new config
+- Sanity calcomTheme field allows per-grower theme customization
+- Use `mounted` state to avoid hydration mismatch with useTheme()
+- Re-export types from index.ts for cleaner imports
+
+**Tests Passing:** 136 (config: 40, CalComEmbed: 28, CalendlyButton: 44, integration: 24)
+---
 
 ## [2025-06-XX XX:XX] - QA Automation Test Fixes
 **Completed:** Fixed 42 failing tests across 4 test suites
