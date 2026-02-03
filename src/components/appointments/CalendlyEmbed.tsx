@@ -120,91 +120,112 @@ export function CalComEmbed({
     }
 
     const embedId = embedIdRef.current;
-    initAttemptedRef.current = true;
-
-    console.log(`[CalComEmbed] Initializing embed for #${embedId}`);
-
-    try {
-      // Official Cal.com IIFE snippet - this creates a queue that stores calls
-      // until the script loads, then processes them
-      (function (C: Window & { Cal?: any }, A: string, L: string) {
-        const p = function (a: any, ar: any) { a.q.push(ar); };
-        const d = C.document;
-        C.Cal = C.Cal || function () {
-          const cal = C.Cal;
-          const ar = arguments;
-          if (!cal.loaded) {
-            cal.ns = {};
-            cal.q = cal.q || [];
-            d.head.appendChild(d.createElement("script")).src = A;
-            cal.loaded = true;
-          }
-          if (ar[0] === L) {
-            const api = function () { p(api, arguments); };
-            const namespace = ar[1];
-            api.q = api.q || [];
-            if (typeof namespace === "string") {
-              cal.ns[namespace] = api;
-              p(api, ar);
-            } else {
-              p(cal, ar);
-            }
-            return;
-          }
-          p(cal, ar);
-        };
-      })(window as any, CAL_EMBED_SCRIPT_URL, "init");
-
-      const Cal = (window as any).Cal;
-
-      // These calls are QUEUED and execute when script loads
-      Cal("init", { origin: CALCOM_BASE_URL });
-
-      // Configure UI with theme
-      const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
-      Cal("ui", {
-        ...themeConfig,
-        cssVarsPerTheme: {
-          light: { "cal-brand": brandColor },
-          dark: { "cal-brand": brandColor },
-        },
-        hideEventTypeDetails: true,
-        layout: "month_view",
-      });
-
-      // Create the inline embed
-      Cal("inline", {
-        elementOrSelector: `#${embedId}`,
-        calLink: calLink,
-        layout: "month_view",
-        config: {
-          theme: currentTheme,
-          ...(productId && { metadata: { productId } }),
-        },
-      });
-
-      // Pre-fill user data if logged in
-      if (user?.email || user?.displayName) {
-        Cal("preload", {
-          calLink: calLink,
-        });
+    
+    // CRITICAL: Wait for the DOM element to exist before initializing
+    // The element is rendered in the same component, so we need a microtask delay
+    const initializeCalEmbed = () => {
+      const embedElement = document.getElementById(embedId);
+      if (!embedElement) {
+        console.warn(`[CalComEmbed] Element #${embedId} not found yet, retrying...`);
+        // Retry after a short delay
+        setTimeout(initializeCalEmbed, 100);
+        return;
       }
 
-      console.log("[CalComEmbed] Queued Cal.com initialization calls");
+      if (initAttemptedRef.current) {
+        return; // Already initialized
+      }
       
-      // Mark as loaded - Cal.com handles the rest via its queue
-      setLoadingState({
-        status: "loaded",
-        message: "Calendar loaded successfully",
-      });
+      initAttemptedRef.current = true;
+      console.log(`[CalComEmbed] Initializing embed for #${embedId}`);
 
-    } catch (err) {
-      console.error("[CalComEmbed] Initialization error:", err);
-      setLoadingState({
-        status: "error",
-        message: err instanceof Error ? err.message : "Failed to load booking calendar",
-      });
-    }
+      try {
+        // Official Cal.com IIFE snippet - this creates a queue that stores calls
+        // until the script loads, then processes them
+        (function (C: Window & { Cal?: any }, A: string, L: string) {
+          const p = function (a: any, ar: any) { a.q.push(ar); };
+          const d = C.document;
+          C.Cal = C.Cal || function () {
+            const cal = C.Cal;
+            const ar = arguments;
+            if (!cal.loaded) {
+              cal.ns = {};
+              cal.q = cal.q || [];
+              d.head.appendChild(d.createElement("script")).src = A;
+              cal.loaded = true;
+            }
+            if (ar[0] === L) {
+              const api = function () { p(api, arguments); };
+              const namespace = ar[1];
+              api.q = api.q || [];
+              if (typeof namespace === "string") {
+                cal.ns[namespace] = api;
+                p(api, ar);
+              } else {
+                p(cal, ar);
+              }
+              return;
+            }
+            p(cal, ar);
+          };
+        })(window as any, CAL_EMBED_SCRIPT_URL, "init");
+
+        const Cal = (window as any).Cal;
+
+        // These calls are QUEUED and execute when script loads
+        Cal("init", { origin: CALCOM_BASE_URL });
+
+        // Configure UI with theme
+        const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
+        Cal("ui", {
+          ...themeConfig,
+          cssVarsPerTheme: {
+            light: { "cal-brand": brandColor },
+            dark: { "cal-brand": brandColor },
+          },
+          hideEventTypeDetails: true,
+          layout: "month_view",
+        });
+
+        // Create the inline embed - element is guaranteed to exist now
+        Cal("inline", {
+          elementOrSelector: `#${embedId}`,
+          calLink: calLink,
+          layout: "month_view",
+          config: {
+            theme: currentTheme,
+            ...(productId && { metadata: { productId } }),
+          },
+        });
+
+        // Pre-fill user data if logged in
+        if (user?.email || user?.displayName) {
+          Cal("preload", {
+            calLink: calLink,
+          });
+        }
+
+        console.log("[CalComEmbed] Cal.com initialization complete");
+        
+        // Mark as loaded - Cal.com handles the rest via its queue
+        setLoadingState({
+          status: "loaded",
+          message: "Calendar loaded successfully",
+        });
+      } catch (err) {
+        console.error("[CalComEmbed] Initialization error:", err);
+        setLoadingState({
+          status: "error",
+          message: err instanceof Error ? err.message : "Failed to load booking calendar",
+        });
+      }
+    };
+
+    // Start initialization after a microtask to ensure DOM is ready
+    // Use requestAnimationFrame for better timing with React's render cycle
+    requestAnimationFrame(() => {
+      initializeCalEmbed();
+    });
   }, [mounted, calLink, currentTheme, themeProp, resolvedTheme, brandColor, productId, user]);
 
   // Update theme when it changes (if already loaded)
@@ -260,29 +281,59 @@ export function CalComEmbed({
   if (loadingState.status === "loading") {
     return (
       <div 
+        ref={containerRef}
         className={cn(
-          "cal-embed-container flex flex-col items-center justify-center rounded-xl border",
-          currentTheme === "dark" 
-            ? "bg-zinc-900/50 border-zinc-800" 
-            : "bg-slate-50/50 border-slate-200",
+          "cal-embed-container rounded-xl overflow-hidden relative",
+          currentTheme === "dark" ? "bg-zinc-900" : "bg-white",
           className
         )}
-        style={{ width: "100%", height, minWidth: "320px" }}
+        style={{ 
+          width: "100%", 
+          height, 
+          minWidth: "320px",
+        }}
+        data-theme={currentTheme}
         data-testid="calcom-loading"
       >
-        <div className="relative">
-          <div className={cn(
-            "absolute inset-0 rounded-full blur-xl opacity-20",
-            currentTheme === "dark" ? "bg-primary" : "bg-primary/50"
-          )} />
-          <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+        {/* Cal.com inline embed container - always render for DOM availability */}
+        <div
+          id={embedIdRef.current}
+          data-cal-link={calLink}
+          data-cal-namespace="booking"
+          data-cal-config={JSON.stringify({ 
+            layout: "month_view", 
+            theme: currentTheme,
+            ...(productId && { metadata: { productId } }),
+          })}
+          className={cn(
+            "cal-inline-embed absolute inset-0",
+            currentTheme === "dark" ? "[&_*]:!bg-zinc-900" : ""
+          )}
+          style={{ 
+            width: "100%", 
+            height: "100%",
+            minHeight: "600px",
+            overflow: "auto",
+            opacity: 0, // Hidden while loading
+          }}
+        />
+        
+        {/* Loading overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+          <div className="relative">
+            <div className={cn(
+              "absolute inset-0 rounded-full blur-xl opacity-20",
+              currentTheme === "dark" ? "bg-primary" : "bg-primary/50"
+            )} />
+            <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+          </div>
+          <p className={cn(
+            "text-sm mt-4 animate-pulse",
+            currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
+          )}>
+            {loadingState.message}
+          </p>
         </div>
-        <p className={cn(
-          "text-sm mt-4 animate-pulse",
-          currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
-        )}>
-          {loadingState.message}
-        </p>
       </div>
     );
   }

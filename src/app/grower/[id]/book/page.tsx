@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -10,7 +10,6 @@ import {
   Clock,
   Video,
   MapPin,
-  Phone,
   CheckCircle,
   Info,
   Mail,
@@ -18,6 +17,7 @@ import {
   Star,
   Shield,
   MessageCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useSanityGrower } from "@/hooks/useSanityGrowers";
 import { CalendlyEmbed } from "@/components/appointments";
@@ -25,7 +25,6 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { sanityClient } from "@/lib/sanity/client";
 import { cn } from "@/lib/utils";
 import type { CalComTheme } from "@/lib/calcom";
@@ -40,32 +39,66 @@ interface GrowerWithCalendly {
     name: string;
     eventSlug: string;
     duration: number;
-    meetingType: "online" | "in-person" | "phone";
+    meetingType: "online" | "in-person" | "email";
     description?: string;
     isDefault?: boolean;
   }>;
   appointmentNotes?: string;
 }
 
-// Meeting type configuration
+// Default appointment types (fallback if not configured in Sanity)
+const DEFAULT_APPOINTMENT_TYPES: GrowerWithCalendly["appointmentTypes"] = [
+  {
+    name: "15 Min Quick Chat",
+    eventSlug: "15min",
+    duration: 15,
+    meetingType: "email",
+    description: "Quick questions about products or availability",
+    isDefault: false,
+  },
+  {
+    name: "30 Min Meeting",
+    eventSlug: "30min",
+    duration: 30,
+    meetingType: "online",
+    description: "Online consultation to discuss mushroom products",
+    isDefault: true,
+  },
+  {
+    name: "1 Hour Meeting",
+    eventSlug: "1-hour-meeting",
+    duration: 60,
+    meetingType: "in-person",
+    description: "In-person farm tour or detailed consultation",
+    isDefault: false,
+  },
+];
+
+// Meeting type configuration (no phone - only email, online, in-person)
 const MEETING_TYPE_CONFIG = {
   online: {
     icon: Video,
     label: "Online Meeting",
+    sublabel: "Via Google Meet",
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-950/50",
+    borderColor: "border-blue-200 dark:border-blue-800",
   },
   "in-person": {
     icon: MapPin,
-    label: "Store Visit",
+    label: "Farm Visit",
+    sublabel: "In-person tour",
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-950/50",
+    borderColor: "border-green-200 dark:border-green-800",
   },
-  phone: {
-    icon: Phone,
-    label: "Phone Call",
-    color: "text-orange-600 dark:text-orange-400",
-    bgColor: "bg-orange-50 dark:bg-orange-950/50",
+  email: {
+    icon: MessageSquare,
+    label: "Quick Chat",
+    sublabel: "Brief consultation",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-950/50",
+    borderColor: "border-purple-200 dark:border-purple-800",
   },
 };
 
@@ -93,32 +126,43 @@ function AppointmentTypeCard({
         "w-full text-left p-4 rounded-xl border-2 transition-all duration-200",
         "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50",
         isSelected
-          ? "border-primary bg-primary/5 shadow-sm"
+          ? "border-primary bg-primary/5 shadow-md ring-1 ring-primary/20"
           : "border-border hover:border-primary/50 bg-card"
       )}
+      aria-pressed={isSelected}
     >
       <div className="flex items-start gap-3">
-        <div className={cn("p-2 rounded-lg", config.bgColor)}>
-          <Icon className={cn("w-5 h-5", config.color)} />
+        <div className={cn(
+          "p-2.5 rounded-xl transition-colors",
+          isSelected ? "bg-primary/10" : config.bgColor
+        )}>
+          <Icon className={cn(
+            "w-5 h-5 transition-colors",
+            isSelected ? "text-primary" : config.color
+          )} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-foreground truncate">
+            <h3 className={cn(
+              "font-semibold truncate transition-colors",
+              isSelected ? "text-primary" : "text-foreground"
+            )}>
               {appointment.name}
             </h3>
             {appointment.isDefault && (
-              <Badge variant="secondary" className="shrink-0 text-xs">
+              <Badge 
+                variant={isSelected ? "default" : "secondary"} 
+                className="shrink-0 text-xs"
+              >
                 Recommended
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {appointment.duration} minutes
-            </span>
-            <span>•</span>
-            <span>{config.label}</span>
+          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{appointment.duration} min</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{config.sublabel || config.label}</span>
           </div>
           {appointment.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
@@ -126,9 +170,16 @@ function AppointmentTypeCard({
             </p>
           )}
         </div>
-        {isSelected && (
-          <CheckCircle className="w-5 h-5 text-primary shrink-0" />
-        )}
+        <div className={cn(
+          "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+          isSelected 
+            ? "border-primary bg-primary" 
+            : "border-muted-foreground/30"
+        )}>
+          {isSelected && (
+            <CheckCircle className="w-4 h-4 text-white" />
+          )}
+        </div>
       </div>
     </button>
   );
@@ -153,8 +204,11 @@ export default function GrowerBookingPage() {
   const [calendlyData, setCalendlyData] = useState<GrowerWithCalendly | null>(null);
   const [loadingCalendly, setLoadingCalendly] = useState(true);
   
-  // Selected appointment type
+  // Selected appointment type slug
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  
+  // Key to force re-render of CalendlyEmbed when appointment type changes
+  const [embedKey, setEmbedKey] = useState(0);
 
   // Fetch Calendly data separately (includes new fields)
   useEffect(() => {
@@ -181,13 +235,14 @@ export default function GrowerBookingPage() {
         const data = await sanityClient.fetch<GrowerWithCalendly>(query, { slug });
         setCalendlyData(data);
         
+        // Use configured types or fallback to defaults
+        const types = data?.appointmentTypes?.length 
+          ? data.appointmentTypes 
+          : DEFAULT_APPOINTMENT_TYPES;
+        
         // Set default selected type
-        if (data?.appointmentTypes?.length) {
-          const defaultType = data.appointmentTypes.find(t => t.isDefault) || data.appointmentTypes[0];
-          setSelectedType(defaultType.eventSlug);
-        } else if (data?.calendlyDefaultEvent) {
-          setSelectedType(data.calendlyDefaultEvent);
-        }
+        const defaultType = types.find(t => t.isDefault) || types[0];
+        setSelectedType(defaultType?.eventSlug || "30min");
       } catch (err) {
         console.error("Error fetching Calendly data:", err);
       } finally {
@@ -197,6 +252,26 @@ export default function GrowerBookingPage() {
     
     fetchCalendlyData();
   }, [slug]);
+
+  // Handle appointment type change - force new embed
+  const handleSelectType = (eventSlug: string) => {
+    if (eventSlug !== selectedType) {
+      setSelectedType(eventSlug);
+      setEmbedKey(prev => prev + 1); // Force re-render of CalendlyEmbed
+    }
+  };
+
+  // Get appointment types (from Sanity or defaults)
+  const appointmentTypes = useMemo(() => {
+    return calendlyData?.appointmentTypes?.length 
+      ? calendlyData.appointmentTypes 
+      : DEFAULT_APPOINTMENT_TYPES;
+  }, [calendlyData?.appointmentTypes]);
+
+  // Get selected appointment details
+  const selectedAppointment = useMemo(() => {
+    return appointmentTypes?.find(t => t.eventSlug === selectedType);
+  }, [appointmentTypes, selectedType]);
 
   const loading = growerLoading || loadingCalendly;
 
@@ -270,15 +345,7 @@ export default function GrowerBookingPage() {
                   <a href={`mailto:${grower.contactEmail}`}>
                     <Button variant="outline" className="gap-2">
                       <Mail className="w-4 h-4" />
-                      Email
-                    </Button>
-                  </a>
-                )}
-                {grower.contactPhone && (
-                  <a href={`tel:${grower.contactPhone}`}>
-                    <Button variant="outline" className="gap-2">
-                      <Phone className="w-4 h-4" />
-                      Call
+                      Send Email
                     </Button>
                   </a>
                 )}
@@ -296,9 +363,7 @@ export default function GrowerBookingPage() {
     );
   }
 
-  const appointmentTypes = calendlyData.appointmentTypes || [];
   const currentEventSlug = selectedType || calendlyData.calendlyDefaultEvent || "30min";
-  const selectedAppointment = appointmentTypes.find(t => t.eventSlug === currentEventSlug);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -344,26 +409,24 @@ export default function GrowerBookingPage() {
           {/* Left Column: Appointment Types & Info */}
           <div className="lg:col-span-4 space-y-6">
             {/* Appointment Type Selection */}
-            {appointmentTypes.length > 0 && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <h2 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    Select Appointment Type
-                  </h2>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {appointmentTypes.map((apt, index) => (
-                    <AppointmentTypeCard
-                      key={`${apt.eventSlug}-${index}`}
-                      appointment={apt}
-                      isSelected={selectedType === apt.eventSlug}
-                      onSelect={() => setSelectedType(apt.eventSlug)}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <h2 className="font-semibold text-base text-foreground flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Select Appointment Type
+                </h2>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                {appointmentTypes?.map((apt, index) => (
+                  <AppointmentTypeCard
+                    key={`${apt.eventSlug}-${index}`}
+                    appointment={apt}
+                    isSelected={selectedType === apt.eventSlug}
+                    onSelect={() => handleSelectType(apt.eventSlug)}
+                  />
+                ))}
+              </CardContent>
+            </Card>
 
             {/* Appointment Notes */}
             {calendlyData.appointmentNotes && (
@@ -392,23 +455,23 @@ export default function GrowerBookingPage() {
             )}
 
             {/* What to Expect */}
-            <Card>
-              <CardHeader className="pb-4">
-                <h2 className="font-semibold text-lg text-foreground">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <h2 className="font-semibold text-base text-foreground">
                   What to Expect
                 </h2>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
+              <CardContent className="pt-0">
+                <ul className="space-y-2.5">
                   {[
                     { text: "Select a convenient time from the calendar", icon: Calendar },
                     { text: "Receive instant confirmation via email", icon: Mail },
                     { text: "Google Calendar invite with meeting link", icon: Video },
                     { text: "Easy rescheduling if plans change", icon: Clock },
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                    <li key={i} className="flex items-start gap-2.5">
+                      <div className="p-1 rounded-full bg-green-100 dark:bg-green-900/50 mt-0.5">
+                        <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {item.text}
@@ -419,10 +482,9 @@ export default function GrowerBookingPage() {
 
                 {/* Selected Meeting Type Info */}
                 {selectedAppointment && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
                         {(() => {
                           const config = MEETING_TYPE_CONFIG[selectedAppointment.meetingType];
                           const Icon = config?.icon || Video;
@@ -434,24 +496,24 @@ export default function GrowerBookingPage() {
                           );
                         })()}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Clock className="w-4 h-4" />
                         <span>{selectedAppointment.duration} minutes</span>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Grower Contact Info */}
-            <Card>
-              <CardHeader className="pb-4">
-                <h2 className="font-semibold text-lg text-foreground">
+            {/* Contact Info - Email Only (No Phone) */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <h2 className="font-semibold text-base text-foreground">
                   Contact Information
                 </h2>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2.5 pt-0">
                 {grower.contactEmail && (
                   <a 
                     href={`mailto:${grower.contactEmail}`}
@@ -463,17 +525,6 @@ export default function GrowerBookingPage() {
                     <span className="truncate">{grower.contactEmail}</span>
                   </a>
                 )}
-                {grower.contactPhone && (
-                  <a 
-                    href={`tel:${grower.contactPhone}`}
-                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group"
-                  >
-                    <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <span>{grower.contactPhone}</span>
-                  </a>
-                )}
                 {grower.location && (
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="p-2 rounded-lg bg-muted">
@@ -483,62 +534,52 @@ export default function GrowerBookingPage() {
                   </div>
                 )}
                 
-                {grower.isVerified && (
-                  <div className="pt-2">
-                    <Badge variant="secondary" className="gap-1.5">
+                <div className="flex items-center gap-2 pt-2">
+                  {grower.isVerified && (
+                    <Badge variant="secondary" className="gap-1 text-xs">
                       <Shield className="w-3 h-3" />
-                      Verified Seller
+                      Verified
                     </Badge>
-                  </div>
-                )}
-
-                {grower.rating && grower.rating > 0 && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-medium">{grower.rating.toFixed(1)}</span>
-                    <span className="text-sm text-muted-foreground">rating</span>
-                  </div>
-                )}
+                  )}
+                  {grower.rating && grower.rating > 0 && (
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                      {grower.rating.toFixed(1)}
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Quick Contact */}
-            <Card className="bg-muted/50">
-              <CardContent className="pt-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold">Need Help?</h3>
+            {/* Need Help - Email Only */}
+            <Card className="bg-muted/50 shadow-sm">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Need Help?</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Have questions before booking? Reach out directly.
+                <p className="text-xs text-muted-foreground mb-3">
+                  Have questions before booking? Send us an email.
                 </p>
-                <div className="flex gap-2">
-                  {grower.contactEmail && (
-                    <Button variant="outline" size="sm" asChild className="flex-1">
-                      <a href={`mailto:${grower.contactEmail}`}>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Email
-                      </a>
-                    </Button>
-                  )}
-                  {grower.contactPhone && (
-                    <Button variant="outline" size="sm" asChild className="flex-1">
-                      <a href={`tel:${grower.contactPhone}`}>
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call
-                      </a>
-                    </Button>
-                  )}
-                </div>
+                {grower.contactEmail && (
+                  <Button variant="outline" size="sm" asChild className="w-full">
+                    <a href={`mailto:${grower.contactEmail}`}>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Email
+                    </a>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column: Cal.com Embed - Cleaner UI */}
+          {/* Right Column: Cal.com Embed */}
           <div className="lg:col-span-8">
             <Card className="overflow-hidden shadow-sm">
               <CardContent className="p-0">
+                {/* Key forces re-render when appointment type changes */}
                 <CalendlyEmbed
+                  key={`cal-embed-${embedKey}-${currentEventSlug}`}
                   username={calendlyData.calendlyUsername}
                   eventSlug={currentEventSlug}
                   height="650px"
@@ -548,12 +589,12 @@ export default function GrowerBookingPage() {
             </Card>
 
             {/* Powered by Cal.com - Subtle footer */}
-            <div className="text-center mt-3">
+            <div className="text-center mt-2">
               <a
                 href="https://cal.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground/60 hover:text-muted-foreground inline-flex items-center gap-1 transition-colors"
+                className="text-xs text-muted-foreground/50 hover:text-muted-foreground inline-flex items-center gap-1 transition-colors"
               >
                 Powered by Cal.com
                 <ExternalLink className="w-3 h-3" />
