@@ -33,6 +33,37 @@
 - **HTML5 Input Constraints:** `<input type="number" min={0}>` prevents negative values in UI. Cannot test negative input validation via userEvent.type() - test with relationship validations instead.
 - **Integration Test Firebase Issues:** Full page tests requiring Firebase/AuthContext fail during Jest setup ("fetch is not defined"). Skip these tests with `.skip()` and verify via e2e testing instead.
 - **Cal.com Integration:** Use centralized config from `@/lib/calcom`. Theme prop supports 'auto'|'light'|'dark'. Username: mash-mushroom. Events: 1-hour-meeting, 30min (default), 15min, secret.
+- **Cal.com Embed URL:** MUST use `https://cal.com/embed/embed.js` (NOT app.cal.com). Script deduplication needed for components that may mount multiple times.
+- **Cal.com Component States:** CalendlyEmbed has 3 states: loading (spinner), error (retry button + fallback link), loaded (embed widget). Tests must mock these states separately.
+- **Component Async Testing:** For components with async script loading, use mock-based state control rather than waiting for real async operations. Control mock state via refs that tests can modify.
+
+## [2025-06-XX XX:XX] - Cal.com Bug Fix and UI/UX Improvements
+**Completed:** Fixed Cal.com embed URL and improved booking page UI/UX
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (URL fix, loading/error states)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (complete rewrite)
+- src/app/grower/[id]/book/page.tsx (UI/UX improvements)
+- progress.txt (documentation)
+
+**Implementation Notes:**
+- Cal.com embed script URL changed from `app.cal.com` to `cal.com` (the correct URL)
+- Added comprehensive loading state with spinner and loading message
+- Added error state with retry button and fallback "Book on Cal.com" link
+- Script deduplication logic to prevent multiple script loads
+- useRef for container and init tracking
+- Booking page redesigned with Card components and gradient backgrounds
+- MEETING_TYPE_CONFIG for consistent meeting type styling (online/in-person/phone)
+- Added "Need Help?" quick contact section
+- Added external "Open in Cal.com" button for fallback
+
+**Learnings for Future Iterations:**
+- Cal.com embed script URL: always `https://cal.com/embed/embed.js` (NOT app.cal.com)
+- Components with external script loading need loading/error states for good UX
+- Mock-based state control is better for testing async components than fake timers
+- Test file mocking pattern: mock component to control rendering state, test each state separately
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 131 Cal.com Tests
+---
 
 ## [2025-06-XX XX:XX] - Cal.com Integration Complete
 **Completed:** Full Cal.com integration with dark/light mode theme support
