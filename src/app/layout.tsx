@@ -7,15 +7,18 @@ import { getSiteSettingsForMetadata } from "@/lib/sanity/siteSettings";
 /**
  * Content Security Policy for the application
  * This ensures Cal.com embed works properly in development and production
+ * 
+ * IMPORTANT: This meta tag is the PRIMARY CSP source since Turbopack
+ * doesn't reliably apply headers() from next.config.js in dev mode.
  */
 const cspContent = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://cdn.sanity.io https://cal.com https://*.cal.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cal.com https://*.cal.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://cdn.sanity.io https://cal.com https://*.cal.com https://app.cal.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cal.com https://*.cal.com https://app.cal.com",
   "img-src 'self' data: https: blob:",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' http://localhost:* ws://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://cal.com https://*.cal.com https://generativelanguage.googleapis.com",
-  "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com",
+  "font-src 'self' data: https://fonts.gstatic.com https://cal.com https://*.cal.com",
+  "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://cal.com https://*.cal.com https://app.cal.com https://generativelanguage.googleapis.com",
+  "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com https://app.cal.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -107,8 +107,20 @@ export function CalComEmbed({
   const containerRef = useRef<HTMLDivElement>(null);
   const initAttempted = useRef(false);
   const scriptLoadPromise = useRef<Promise<void> | null>(null);
+
+  // Determine the current theme FIRST (needed for brandColor calculation)
+  const currentTheme = themeProp === "auto" 
+    ? (resolvedTheme === "dark" ? "dark" : "light") 
+    : themeProp;
+
+  // Get theme-aware brand color (must be before refs that use it)
+  const brandColor = currentTheme === "dark" ? CALCOM_BRAND_COLOR_DARK : CALCOM_BRAND_COLOR;
+
+  // Construct the Cal.com booking link (must be before refs that use it)
+  const calLink = `${username}/${eventSlug}`;
+  const calUrl = `${CALCOM_BASE_URL}/${calLink}`;
   
-  // Store props in refs for stable callback references
+  // Store props in refs for stable callback references (AFTER values are defined)
   const themeRef = useRef(themeProp);
   const resolvedThemeRef = useRef(resolvedTheme);
   const brandColorRef = useRef(brandColor);
@@ -128,18 +140,6 @@ export function CalComEmbed({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Determine the current theme
-  const currentTheme = themeProp === "auto" 
-    ? (resolvedTheme === "dark" ? "dark" : "light") 
-    : themeProp;
-
-  // Get theme-aware brand color
-  const brandColor = currentTheme === "dark" ? CALCOM_BRAND_COLOR_DARK : CALCOM_BRAND_COLOR;
-
-  // Construct the Cal.com booking link
-  const calLink = `${username}/${eventSlug}`;
-  const calUrl = `${CALCOM_BASE_URL}/${calLink}`;
 
   // Load Cal.com embed script with retry logic
   const loadCalScript = useCallback(async (): Promise<void> => {
