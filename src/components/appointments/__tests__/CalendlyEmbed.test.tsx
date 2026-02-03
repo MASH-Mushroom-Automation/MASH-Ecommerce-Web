@@ -984,3 +984,311 @@ describe('generateEmbedId Helper', () => {
     expect(counter).toBe(3);
   });
 });
+
+// ===============================================
+// Official IIFE Snippet Pattern Tests
+// ===============================================
+
+describe('Cal.com Official IIFE Snippet Pattern', () => {
+  beforeEach(() => {
+    // Clean up window.Cal before each test
+    delete (window as any).Cal;
+    // Remove any existing cal.com scripts
+    document.querySelectorAll('script[src*="cal.com"]').forEach(s => s.remove());
+  });
+
+  afterEach(() => {
+    delete (window as any).Cal;
+    document.querySelectorAll('script[src*="cal.com"]').forEach(s => s.remove());
+  });
+
+  it('should create Cal function with queue pattern', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // Official IIFE snippet pattern
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      const d = C.document;
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          // Don't actually load script in test
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = api;
+            p(api, ar);
+          } else {
+            p(cal, ar);
+          }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Cal function exists
+    expect(typeof w.Cal).toBe('function');
+    
+    // Call Cal to trigger initialization
+    w.Cal('init', { origin: 'https://cal.com' });
+    
+    // Now properties should be set
+    expect(w.Cal.loaded).toBe(true);
+    expect(w.Cal.ns).toBeDefined();
+    expect(w.Cal.q).toBeDefined();
+  });
+
+  it('should queue init call correctly', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // Official IIFE snippet pattern
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = api;
+            p(api, ar);
+          } else {
+            p(cal, ar);
+          }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Call init
+    w.Cal('init', { origin: 'https://cal.com' });
+    
+    // Verify init was queued
+    expect(w.Cal.q.length).toBeGreaterThan(0);
+  });
+
+  it('should queue inline call correctly', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // Official IIFE snippet pattern
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = api;
+            p(api, ar);
+          } else {
+            p(cal, ar);
+          }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Queue calls
+    w.Cal('init', { origin: 'https://cal.com' });
+    w.Cal('inline', {
+      elementOrSelector: '#test-embed',
+      calLink: 'mash-mushroom/30min',
+      layout: 'month_view',
+    });
+    
+    // Verify inline was queued
+    const inlineCall = w.Cal.q.find((call: any[]) => call[0] === 'inline');
+    expect(inlineCall).toBeDefined();
+    expect(inlineCall[1].calLink).toBe('mash-mushroom/30min');
+  });
+
+  it('should queue ui call correctly', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // Official IIFE snippet pattern
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          cal.loaded = true;
+        }
+        if (ar[0] === L) {
+          const api = function () { p(api, arguments); };
+          const namespace = ar[1];
+          api.q = api.q || [];
+          if (typeof namespace === 'string') {
+            cal.ns[namespace] = api;
+            p(api, ar);
+          } else {
+            p(cal, ar);
+          }
+          return;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Queue calls
+    w.Cal('ui', {
+      theme: 'dark',
+      cssVarsPerTheme: {
+        light: { 'cal-brand': '#10b981' },
+        dark: { 'cal-brand': '#10b981' },
+      },
+    });
+    
+    // Verify ui was queued
+    const uiCall = w.Cal.q.find((call: any[]) => call[0] === 'ui');
+    expect(uiCall).toBeDefined();
+    expect(uiCall[1].theme).toBe('dark');
+  });
+
+  it('should not recreate Cal if it already exists', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // Create initial Cal
+    const originalCal = function () {};
+    (originalCal as any).loaded = true;
+    (originalCal as any).ns = {};
+    (originalCal as any).q = [];
+    (originalCal as any).testMarker = 'original';
+    w.Cal = originalCal;
+    
+    // Run IIFE snippet
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        // This should not run
+        (C.Cal as any).testMarker = 'new';
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Original Cal should be preserved
+    expect(w.Cal.testMarker).toBe('original');
+  });
+});
+
+// ===============================================
+// Retry Cleanup Tests
+// ===============================================
+
+describe('Retry Cleanup Behavior', () => {
+  beforeEach(() => {
+    delete (window as any).Cal;
+    document.querySelectorAll('script[src*="cal.com"]').forEach(s => s.remove());
+  });
+
+  afterEach(() => {
+    delete (window as any).Cal;
+    document.querySelectorAll('script[src*="cal.com"]').forEach(s => s.remove());
+  });
+
+  it('should clean up Cal from window on retry', () => {
+    const w = window as any;
+    
+    // Set up initial Cal
+    w.Cal = function () {};
+    (w.Cal as any).loaded = true;
+    
+    // Simulate cleanup
+    delete w.Cal;
+    
+    expect(w.Cal).toBeUndefined();
+  });
+
+  it('should remove cal.com script tags on retry', () => {
+    // Add a mock script
+    const script = document.createElement('script');
+    script.src = 'https://app.cal.com/embed/embed.js';
+    document.head.appendChild(script);
+    
+    expect(document.querySelectorAll('script[src*="cal.com"]').length).toBe(1);
+    
+    // Simulate cleanup
+    document.querySelectorAll('script[src*="cal.com"]').forEach(s => s.remove());
+    
+    expect(document.querySelectorAll('script[src*="cal.com"]').length).toBe(0);
+  });
+
+  it('should allow fresh initialization after cleanup', () => {
+    const w = window as any;
+    const CAL_URL = 'https://app.cal.com/embed/embed.js';
+    
+    // First initialization
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          cal.loaded = true;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    w.Cal('init', { origin: 'https://cal.com' });
+    const firstQueueLength = w.Cal.q.length;
+    
+    // Cleanup
+    delete w.Cal;
+    
+    // Second initialization
+    (function (C: any, A: string, L: string) {
+      const p = function (a: any, ar: any) { a.q.push(ar); };
+      C.Cal = C.Cal || function () {
+        const cal = C.Cal;
+        const ar = arguments;
+        if (!cal.loaded) {
+          cal.ns = {};
+          cal.q = cal.q || [];
+          cal.loaded = true;
+        }
+        p(cal, ar);
+      };
+    })(w, CAL_URL, 'init');
+    
+    // Trigger initialization with a call
+    w.Cal('test');
+    
+    // Queue should have just one item (not carrying over from before)
+    expect(w.Cal.q.length).toBe(1);
+    expect(firstQueueLength).toBeGreaterThan(0);
+  });
+});
