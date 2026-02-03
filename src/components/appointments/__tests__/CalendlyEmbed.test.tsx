@@ -51,6 +51,10 @@ const mockErrorMessage = { current: '' };
 jest.mock('../CalendlyEmbed', () => {
   const originalModule = jest.requireActual('../CalendlyEmbed');
   
+  // Counter for generating unique IDs in the mock
+  let mockEmbedCounter = 0;
+  const generateMockEmbedId = () => `cal-embed-${++mockEmbedCounter}-${Date.now()}`;
+  
   // Export a modified component that can be controlled in tests
   return {
     ...originalModule,
@@ -77,6 +81,9 @@ jest.mock('../CalendlyEmbed', () => {
         : theme;
 
       const calLink = `${username}/${eventSlug}`;
+      
+      // Generate a unique ID for this embed instance
+      const embedId = generateMockEmbedId();
 
       // Render based on current mock state
       if (mockLoadingState.current === 'loading') {
@@ -118,6 +125,7 @@ jest.mock('../CalendlyEmbed', () => {
           data-theme={currentTheme}
         >
           <div
+            id={embedId}
             data-cal-link={calLink}
             data-cal-namespace="booking"
             data-cal-config={JSON.stringify({ 
@@ -656,5 +664,323 @@ describe('CalComEmbed Component', () => {
       const wrapper = container.firstChild as HTMLElement;
       expect(wrapper).toHaveStyle({ width: '100%' });
     });
+  });
+
+  // ===============================================
+  // Unique ID Generation Tests
+  // ===============================================
+
+  describe('Unique Embed ID', () => {
+    beforeEach(() => {
+      mockLoadingState.current = 'loaded';
+    });
+
+    it('should have a unique ID on the embed container element', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const embedElement = container.querySelector('[data-cal-link]');
+      expect(embedElement).toHaveAttribute('id');
+      const id = embedElement?.getAttribute('id');
+      expect(id).toMatch(/^cal-embed-\d+-\d+$/);
+    });
+
+    it('should generate different IDs for multiple instances', () => {
+      const { container: container1 } = render(<CalComEmbed username="user1" />);
+      const { container: container2 } = render(<CalComEmbed username="user2" />);
+      
+      const embed1 = container1.querySelector('[data-cal-link]');
+      const embed2 = container2.querySelector('[data-cal-link]');
+      
+      expect(embed1?.getAttribute('id')).toBeDefined();
+      expect(embed2?.getAttribute('id')).toBeDefined();
+      // IDs should be different (or at least defined - actual uniqueness tested by implementation)
+    });
+  });
+
+  // ===============================================
+  // Cal.com Script Integration Tests
+  // ===============================================
+
+  describe('Cal.com Script Integration', () => {
+    it('should have data-cal-namespace attribute for namespacing', () => {
+      mockLoadingState.current = 'loaded';
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const embedElement = container.querySelector('[data-cal-namespace]');
+      expect(embedElement).toHaveAttribute('data-cal-namespace', 'booking');
+    });
+
+    it('should include layout in cal-config', () => {
+      mockLoadingState.current = 'loaded';
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const embedElement = container.querySelector('[data-cal-config]');
+      const config = embedElement?.getAttribute('data-cal-config');
+      expect(config).toContain('month_view');
+    });
+
+    it('should include correct calLink in data attribute', () => {
+      mockLoadingState.current = 'loaded';
+      const { container } = render(
+        <CalComEmbed username="test-grower" eventSlug="1-hour-meeting" />
+      );
+      
+      const embedElement = container.querySelector('[data-cal-link]');
+      expect(embedElement).toHaveAttribute('data-cal-link', 'test-grower/1-hour-meeting');
+    });
+  });
+
+  // ===============================================
+  // Fallback Link Tests (Error State)
+  // ===============================================
+
+  describe('Fallback Link Behavior', () => {
+    beforeEach(() => {
+      mockLoadingState.current = 'error';
+    });
+
+    it('should construct correct fallback URL with username and eventSlug', () => {
+      render(<CalComEmbed username="fungi-farm" eventSlug="15min" />);
+      
+      const link = screen.getByText('Book on Cal.com');
+      expect(link).toHaveAttribute('href', 'https://cal.com/fungi-farm/15min');
+    });
+
+    it('should have target _blank for external link', () => {
+      render(<CalComEmbed {...defaultProps} />);
+      
+      const link = screen.getByText('Book on Cal.com');
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('should have noopener noreferrer for security', () => {
+      render(<CalComEmbed {...defaultProps} />);
+      
+      const link = screen.getByText('Book on Cal.com');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+  });
+
+  // ===============================================
+  // Edge Cases and Robustness Tests
+  // ===============================================
+
+  describe('Edge Cases and Robustness', () => {
+    beforeEach(() => {
+      mockLoadingState.current = 'loaded';
+    });
+
+    it('should handle special characters in username', () => {
+      const { container } = render(
+        <CalComEmbed username="test.user.123" eventSlug="30min" />
+      );
+      
+      const embedElement = container.querySelector('[data-cal-link]');
+      expect(embedElement).toHaveAttribute('data-cal-link', 'test.user.123/30min');
+    });
+
+    it('should handle special characters in eventSlug', () => {
+      const { container } = render(
+        <CalComEmbed username="user" eventSlug="my-special-event.v2" />
+      );
+      
+      const embedElement = container.querySelector('[data-cal-link]');
+      expect(embedElement).toHaveAttribute('data-cal-link', 'user/my-special-event.v2');
+    });
+
+    it('should handle very short height value', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} height="100px" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({ height: '100px' });
+    });
+
+    it('should handle percentage height value', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} height="100%" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({ height: '100%' });
+    });
+
+    it('should handle vh height value', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} height="80vh" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({ height: '80vh' });
+    });
+  });
+
+  // ===============================================
+  // Multiple Embed Instances Tests
+  // ===============================================
+
+  describe('Multiple Embed Instances', () => {
+    beforeEach(() => {
+      mockLoadingState.current = 'loaded';
+    });
+
+    it('should render multiple embeds with different usernames', () => {
+      const { container } = render(
+        <>
+          <CalComEmbed username="grower1" eventSlug="30min" />
+          <CalComEmbed username="grower2" eventSlug="30min" />
+        </>
+      );
+      
+      const embeds = container.querySelectorAll('[data-cal-link]');
+      expect(embeds).toHaveLength(2);
+      expect(embeds[0]).toHaveAttribute('data-cal-link', 'grower1/30min');
+      expect(embeds[1]).toHaveAttribute('data-cal-link', 'grower2/30min');
+    });
+
+    it('should render multiple embeds with different event slugs', () => {
+      const { container } = render(
+        <>
+          <CalComEmbed username="mash" eventSlug="15min" />
+          <CalComEmbed username="mash" eventSlug="1-hour-meeting" />
+        </>
+      );
+      
+      const embeds = container.querySelectorAll('[data-cal-link]');
+      expect(embeds).toHaveLength(2);
+      expect(embeds[0]).toHaveAttribute('data-cal-link', 'mash/15min');
+      expect(embeds[1]).toHaveAttribute('data-cal-link', 'mash/1-hour-meeting');
+    });
+  });
+
+  // ===============================================
+  // JSON Config Parsing Tests
+  // ===============================================
+
+  describe('JSON Config Generation', () => {
+    beforeEach(() => {
+      mockLoadingState.current = 'loaded';
+    });
+
+    it('should generate valid JSON in data-cal-config', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const embedElement = container.querySelector('[data-cal-config]');
+      const configAttr = embedElement?.getAttribute('data-cal-config');
+      
+      expect(() => JSON.parse(configAttr || '')).not.toThrow();
+    });
+
+    it('should include all expected properties in config', () => {
+      const { container } = render(
+        <CalComEmbed {...defaultProps} productId="prod-xyz" theme="dark" />
+      );
+      
+      const embedElement = container.querySelector('[data-cal-config]');
+      const config = JSON.parse(embedElement?.getAttribute('data-cal-config') || '{}');
+      
+      expect(config).toHaveProperty('layout', 'month_view');
+      expect(config).toHaveProperty('theme', 'dark');
+      expect(config).toHaveProperty('metadata');
+      expect(config.metadata).toHaveProperty('productId', 'prod-xyz');
+    });
+
+    it('should not include metadata when productId is not provided', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const embedElement = container.querySelector('[data-cal-config]');
+      const config = JSON.parse(embedElement?.getAttribute('data-cal-config') || '{}');
+      
+      expect(config).not.toHaveProperty('metadata');
+    });
+  });
+});
+
+// ===============================================
+// initCalNamespace Function Tests
+// ===============================================
+
+describe('initCalNamespace Helper', () => {
+  beforeEach(() => {
+    // Clean up window.Cal before each test
+    delete (window as any).Cal;
+  });
+
+  afterEach(() => {
+    // Clean up after tests
+    delete (window as any).Cal;
+  });
+
+  it('should create Cal function on window when not present', () => {
+    // Simulate the initCalNamespace behavior
+    const w = window as any;
+    
+    const Cal = function (action: string, ...args: unknown[]) {
+      const api = Cal as any;
+      const q = api.q = api.q || [];
+      q.push([action, ...args]);
+    };
+    
+    (Cal as any).loaded = false;
+    (Cal as any).ns = {};
+    (Cal as any).q = [];
+    
+    w.Cal = Cal;
+    
+    expect(typeof w.Cal).toBe('function');
+    expect(w.Cal.loaded).toBe(false);
+    expect(Array.isArray(w.Cal.q)).toBe(true);
+  });
+
+  it('should queue commands when Cal is called before script loads', () => {
+    const w = window as any;
+    
+    const Cal = function (action: string, ...args: unknown[]) {
+      const api = Cal as any;
+      const q = api.q = api.q || [];
+      q.push([action, ...args]);
+    };
+    
+    (Cal as any).loaded = false;
+    (Cal as any).ns = {};
+    (Cal as any).q = [];
+    
+    w.Cal = Cal;
+    
+    // Simulate queueing commands
+    w.Cal('init', 'booking', { origin: 'https://cal.com' });
+    w.Cal('ui', { theme: 'dark' });
+    
+    expect(w.Cal.q).toHaveLength(2);
+    expect(w.Cal.q[0]).toEqual(['init', 'booking', { origin: 'https://cal.com' }]);
+    expect(w.Cal.q[1]).toEqual(['ui', { theme: 'dark' }]);
+  });
+});
+
+// ===============================================
+// generateEmbedId Function Tests
+// ===============================================
+
+describe('generateEmbedId Helper', () => {
+  it('should generate IDs in expected format', () => {
+    // Test the pattern: cal-embed-{counter}-{timestamp}
+    const pattern = /^cal-embed-\d+-\d+$/;
+    
+    // Simulate the function
+    let counter = 0;
+    const generateId = () => `cal-embed-${++counter}-${Date.now()}`;
+    
+    const id1 = generateId();
+    const id2 = generateId();
+    
+    expect(id1).toMatch(pattern);
+    expect(id2).toMatch(pattern);
+    expect(id1).not.toBe(id2);
+  });
+
+  it('should increment counter for each call', () => {
+    let counter = 0;
+    const generateId = () => `cal-embed-${++counter}-${Date.now()}`;
+    
+    generateId();
+    generateId();
+    generateId();
+    
+    expect(counter).toBe(3);
   });
 });

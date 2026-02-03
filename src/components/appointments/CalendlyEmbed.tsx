@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useId } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import {
@@ -15,12 +15,46 @@ import { Loader2, Calendar, RefreshCw, AlertCircle, ExternalLink, Clock, Video, 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Cal.com embed script URL (correct URL without 'app' subdomain)
-const CAL_EMBED_SCRIPT_URL = "https://cal.com/embed/embed.js";
+// Cal.com embed script URL - official embed script
+// Note: Cal.com's embed.js sets up window.Cal internally
+const CAL_EMBED_SCRIPT_URL = "https://app.cal.com/embed/embed.js";
 
 // Max retries for script loading
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1500;
+const RETRY_DELAY = 2000;
+
+// Generate a unique ID for each embed instance
+let embedCounter = 0;
+const generateEmbedId = () => `cal-embed-${++embedCounter}-${Date.now()}`;
+
+// Initialize Cal.com namespace - this follows the official Cal.com embed pattern
+// The embed.js script will pick up this namespace and process queued commands
+const initCalNamespace = (): void => {
+  if (typeof window === "undefined") return;
+  
+  const w = window as any;
+  
+  // Check if already properly initialized by embed.js
+  if (w.Cal && typeof w.Cal === "function" && (w.Cal.loaded === true || w.Cal.__css)) {
+    console.log("[CalComEmbed] Cal already initialized by embed.js");
+    return;
+  }
+  
+  // Create the Cal function that queues calls until the script loads
+  // This matches the official Cal.com embed snippet pattern
+  const Cal = function (action: string, ...args: unknown[]) {
+    const api = Cal as any;
+    const q = api.q = api.q || [];
+    q.push([action, ...args]);
+  };
+  
+  // Initialize properties that embed.js expects
+  (Cal as any).loaded = false;
+  (Cal as any).ns = {};
+  (Cal as any).q = [];
+  
+  w.Cal = Cal;
+};
 
 interface CalComEmbedProps {
   /** Cal.com username (e.g., "mash-mushroom") */
@@ -105,8 +139,12 @@ export function CalComEmbed({
     retryCount: 0,
   });
   const containerRef = useRef<HTMLDivElement>(null);
+  const embedElementRef = useRef<HTMLDivElement>(null);
   const initAttempted = useRef(false);
   const scriptLoadPromise = useRef<Promise<void> | null>(null);
+  
+  // Generate a unique ID for this embed instance
+  const embedIdRef = useRef<string>(generateEmbedId());
 
   // Determine the current theme FIRST (needed for brandColor calculation)
   const currentTheme = themeProp === "auto" 
@@ -142,17 +180,18 @@ export function CalComEmbed({
   }, []);
 
   // Wait for Cal global to be available with polling
-  const waitForCal = useCallback((maxWaitMs = 5000, pollIntervalMs = 100): Promise<void> => {
+  const waitForCal = useCallback((maxWaitMs = 10000, pollIntervalMs = 100): Promise<void> => {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       
       const checkCal = () => {
-        // Cal.com uses a queue pattern: window.Cal might be a function or undefined
         const Cal = (window as any).Cal;
         
-        // Cal is available if it's a function (the main API)
-        if (typeof Cal === "function") {
-          console.log("[CalComEmbed] Cal.com API ready");
+        // Cal is ready when:
+        // 1. It's a function AND
+        // 2. Either marked as loaded by embed.js OR has __css property (embed.js sets this)
+        if (typeof Cal === "function" && (Cal.loaded === true || Cal.__css)) {
+          console.log("[CalComEmbed] Cal.com fully initialized");
           resolve();
           return;
         }
@@ -171,6 +210,32 @@ export function CalComEmbed({
     });
   }, []);
 
+  // Wait for the embed element to exist in DOM
+  const waitForElement = useCallback((elementId: string, maxWaitMs = 5000, pollIntervalMs = 50): Promise<HTMLElement> => {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      
+      const checkElement = () => {
+        const element = document.getElementById(elementId);
+        
+        if (element) {
+          console.log(`[CalComEmbed] Element #${elementId} found in DOM`);
+          resolve(element);
+          return;
+        }
+        
+        if (Date.now() - startTime > maxWaitMs) {
+          reject(new Error(`Element #${elementId} not found in DOM after ${maxWaitMs}ms`));
+          return;
+        }
+        
+        setTimeout(checkElement, pollIntervalMs);
+      };
+      
+      checkElement();
+    });
+  }, []);
+
   // Load Cal.com embed script with retry logic
   const loadCalScript = useCallback(async (): Promise<void> => {
     // If we have a pending promise, return it
@@ -178,44 +243,42 @@ export function CalComEmbed({
       return scriptLoadPromise.current;
     }
 
-    // Check if Cal is already available and functional
-    if (typeof window !== "undefined" && typeof (window as any).Cal === "function") {
-      console.log("[CalComEmbed] Cal.com already loaded and ready");
-      return Promise.resolve();
+    // Check if Cal is already fully loaded
+    if (typeof window !== "undefined") {
+      const Cal = (window as any).Cal;
+      if (typeof Cal === "function" && (Cal.loaded === true || Cal.__css)) {
+        console.log("[CalComEmbed] Cal.com already fully loaded");
+        return Promise.resolve();
+      }
     }
 
     // Create the load promise
     scriptLoadPromise.current = new Promise<void>((resolve, reject) => {
+      // Initialize Cal namespace BEFORE checking for existing script
+      initCalNamespace();
+      
       // Check for existing script
       const existingScript = document.querySelector(`script[src="${CAL_EMBED_SCRIPT_URL}"]`);
       
       if (existingScript) {
-        console.log("[CalComEmbed] Using existing script, waiting for Cal...");
-        // Wait for Cal to become available
+        console.log("[CalComEmbed] Using existing script, waiting for initialization...");
+        // Wait for Cal to become fully available
         waitForCal()
           .then(resolve)
           .catch(reject);
         return;
       }
 
-      // Initialize Cal queue before loading script
-      // Cal.com uses a queue pattern where commands can be queued before script loads
-      (window as any).Cal = (window as any).Cal || function(...args: unknown[]) {
-        const cal = (window as any).Cal;
-        cal.q = cal.q || [];
-        cal.q.push(args);
-      };
-      (window as any).Cal.q = (window as any).Cal.q || [];
-
       // Create new script element
       const script = document.createElement("script");
       script.src = CAL_EMBED_SCRIPT_URL;
       script.async = true;
-      script.crossOrigin = "anonymous";
+      script.type = "text/javascript";
+      // Don't use crossOrigin for Cal.com embed to avoid CORS issues
       
       script.onload = () => {
-        console.log("[CalComEmbed] Script loaded, waiting for Cal initialization...");
-        // Wait for Cal to fully initialize (the queue gets processed)
+        console.log("[CalComEmbed] Script loaded successfully");
+        // Wait for Cal to fully initialize
         waitForCal()
           .then(resolve)
           .catch(reject);
@@ -226,8 +289,6 @@ export function CalComEmbed({
         // Remove failed script so we can retry
         script.remove();
         scriptLoadPromise.current = null;
-        // Clean up the queue
-        delete (window as any).Cal;
         reject(new Error("Failed to load Cal.com booking system. Please check your internet connection."));
       };
 
@@ -241,6 +302,8 @@ export function CalComEmbed({
   const initializeEmbed = useCallback(async (retryCount = 0) => {
     if (!mounted || typeof window === "undefined") return;
     
+    const embedId = embedIdRef.current;
+    
     setLoadingState({
       status: "loading",
       message: retryCount > 0 
@@ -250,6 +313,7 @@ export function CalComEmbed({
     });
 
     try {
+      // Step 1: Load the Cal.com script
       await loadCalScript();
 
       const Cal = (window as any).Cal;
@@ -257,17 +321,21 @@ export function CalComEmbed({
         throw new Error("Cal.com not available after script load");
       }
 
-      // Initialize Cal with namespace using proper pattern
-      // This creates Cal.ns.booking namespace for this embed
+      // Step 2: Wait for the target element to exist in DOM
+      // This is critical - the element must exist before calling Cal("inline", ...)
+      console.log(`[CalComEmbed] Waiting for element #${embedId}...`);
+      await waitForElement(embedId);
+
+      // Step 3: Initialize Cal with namespace using proper pattern
+      // The namespace allows multiple embeds on the same page
       Cal("init", "booking", { 
         origin: CALCOM_BASE_URL,
-        debug: false, // Set to true for debugging Cal.com issues
       });
 
-      // Wait a tick for initialization to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Step 4: Wait a bit for Cal initialization to settle
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Configure UI with theme - use refs for current values
+      // Step 5: Configure UI with theme - use refs for current values
       const themeConfig = getCalComThemeConfig(themeRef.current, resolvedThemeRef.current);
       Cal("ui", {
         ...themeConfig,
@@ -279,7 +347,24 @@ export function CalComEmbed({
         layout: "month_view",
       });
 
-      // Pre-fill user data if logged in - use ref for current user
+      // Step 6: Create the inline embed using element ID (more reliable than attribute selector)
+      // CRITICAL: Use #elementId selector for reliability
+      const currentTheme = themeRef.current === "auto" 
+        ? (resolvedThemeRef.current === "dark" ? "dark" : "light")
+        : themeRef.current;
+      
+      console.log(`[CalComEmbed] Creating inline embed for #${embedId} with calLink: ${calLinkRef.current}`);
+      
+      Cal("inline", {
+        elementOrSelector: `#${embedId}`,
+        calLink: calLinkRef.current,
+        layout: "month_view",
+        config: {
+          theme: currentTheme,
+        },
+      });
+
+      // Step 7: Pre-fill user data if logged in - use ref for current user
       const currentUser = userRef.current;
       if (currentUser?.email || currentUser?.displayName) {
         Cal("preload", {
@@ -315,7 +400,7 @@ export function CalComEmbed({
         });
       }
     }
-  }, [mounted, loadCalScript]); // Reduced dependencies - use refs for dynamic values
+  }, [mounted, loadCalScript, waitForElement]); // Reduced dependencies - use refs for dynamic values
 
   // Initialize on mount
   useEffect(() => {
@@ -349,6 +434,12 @@ export function CalComEmbed({
   const handleRetry = () => {
     initAttempted.current = false;
     scriptLoadPromise.current = null;
+    // Generate a new embed ID for fresh retry
+    embedIdRef.current = generateEmbedId();
+    // Re-initialize Cal namespace for fresh retry
+    if (typeof window !== "undefined") {
+      delete (window as any).Cal;
+    }
     initializeEmbed();
   };
 
@@ -542,8 +633,10 @@ export function CalComEmbed({
         </div>
       )}
 
-      {/* Cal.com inline embed using data attributes */}
+      {/* Cal.com inline embed container - uses unique ID for reliable targeting */}
       <div
+        id={embedIdRef.current}
+        ref={embedElementRef}
         data-cal-link={calLink}
         data-cal-namespace="booking"
         data-cal-config={JSON.stringify({ 
