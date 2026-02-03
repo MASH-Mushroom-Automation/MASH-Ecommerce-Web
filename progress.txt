@@ -41,6 +41,30 @@
 - **CSP Meta Tag for Dev Mode:** Turbopack dev server may not apply next.config.js headers. Add CSP meta tag in layout.tsx as fallback for development.
 - **Cal.com Callback Stability:** Store dynamic props in refs to prevent infinite loops in useCallback. Update refs via separate useEffect.
 
+- **Cal.com Variable Order:** In CalendlyEmbed.tsx, define currentTheme, brandColor, and calLink BEFORE useRefs that reference them. Otherwise you get "can't access lexical declaration before initialization".
+
+## [2026-02-03 15:30] - Cal.com brandColor Initialization Fix
+**Completed:** Fixed ReferenceError in CalendlyEmbed.tsx
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (reordered variable declarations)
+- src/app/layout.tsx (added app.cal.com and font-src for Cal.com)
+- next.config.js (synchronized CSP with layout.tsx)
+
+**Implementation Notes:**
+- Root cause: brandColor and calLink variables were being used in useRef() before they were defined
+- Fixed by moving currentTheme, brandColor, calLink declarations BEFORE the refs that use them
+- Added app.cal.com to CSP (some Cal.com resources come from this subdomain)
+- Added wss://localhost:* to connect-src for HMR websockets in dev mode
+- Added font-src for Cal.com (embeds may load fonts)
+
+**Learnings for Future Iterations:**
+- In React components, useRef initializers execute at component initialization time
+- Variable order matters - refs using variables must come AFTER those variables are defined
+- CSP should include all possible Cal.com subdomains: cal.com, *.cal.com, app.cal.com
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 159 Cal.com Tests
+---
+
 ## [2026-02-03 14:00] - Complete Cal.com Integration Fix
 **Completed:** Fixed CSP blocking + improved UI/UX + updated Sanity grower data
 **Files Changed:**
