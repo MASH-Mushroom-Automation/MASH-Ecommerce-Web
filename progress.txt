@@ -48,6 +48,63 @@
 - **Cal.com Queue Initialization:** Cal.com embed uses a queue pattern - initialize `window.Cal` as a queue function BEFORE loading the script. The script processes queued commands on load. Wait for Cal to be a proper function (typeof Cal === "function") before using it, not just truthy.
 - **Cal.com Inline Embed:** CRITICAL: After calling Cal("init") and Cal("ui"), you MUST call Cal("inline", {...}) to render the calendar. Use `Cal("inline", {...})` directly - NOT `Cal.ns.booking("inline")` which causes "calNs is not a function" error. The elementOrSelector should target the div with `data-cal-namespace="booking"`.
 - **Cal.com Element Targeting:** Use unique ID selectors (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace]`). The element MUST exist in DOM before calling Cal("inline", {...}). Add a `waitForElement()` function that polls for element existence.
+- **Cal.com Official Snippet Pattern:** CRITICAL: Use the OFFICIAL Cal.com IIFE snippet pattern for initialization. Do NOT pre-create a custom `window.Cal` function that conflicts with embed.js. The snippet uses `C.Cal = C.Cal || function...` pattern to only create Cal if it doesn't exist, and properly handles script loading internally.
+
+## [2026-02-03 20:30] - Cal.com Official Snippet Pattern Fix
+**Completed:** Replaced custom initCalNamespace() with official Cal.com IIFE embed snippet pattern
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (rewrote to use official pattern)
+
+**Root Cause Identified:**
+Our custom `initCalNamespace()` function was PRE-CREATING a `window.Cal` function with custom implementation. When embed.js loaded, it detected our Cal existed and assumed it was fully initialized, but our implementation was incomplete/incompatible. This caused:
+- "Cal is not defined. This shouldn't happen" - embed.js internal error
+- "calNs is not a function" - namespace wasn't properly created
+- "Element not found" - Cal commands weren't being processed correctly
+
+**Key Fix - Official Cal.com IIFE Pattern:**
+```typescript
+// OLD (BROKEN): Custom init that conflicted with embed.js
+const initCalNamespace = (): void => {
+  const Cal = function (action: string, ...args: unknown[]) {
+    const api = Cal as any;
+    const q = api.q = api.q || [];
+    q.push([action, ...args]);
+  };
+  (Cal as any).loaded = false; // ← embed.js expected this to be true
+  w.Cal = Cal;
+};
+
+// NEW (CORRECT): Official Cal.com IIFE snippet
+const initCalWithOfficialSnippet = (scriptUrl: string): void => {
+  (function (C: Window & { Cal?: any }, A: string, L: string) {
+    const p = function (a: any, ar: any) { a.q.push(ar); };
+    const d = C.document;
+    C.Cal = C.Cal || function (...args: any[]) {  // ← Only create if not exists
+      const cal = C.Cal;
+      const ar = args;
+      if (!cal.loaded) {
+        cal.ns = {};
+        cal.q = cal.q || [];
+        const scriptEl = d.createElement("script");
+        scriptEl.src = A;
+        scriptEl.async = true;
+        d.head.appendChild(scriptEl);
+        cal.loaded = true;  // ← Script handles setting this
+      }
+      // ... handles "init" namespace creation
+    };
+  })(window as any, scriptUrl, "init");
+};
+```
+
+**Other Changes:**
+- Simplified loadCalScript() - official snippet handles script loading internally
+- Updated waitForCal() timeout to 15s for slow connections
+- Changed Cal("init") call - no namespace arg (simpler pattern)
+- Changed Cal("preload") to Cal("prefill") for user data
+
+**Tests Passing:** [PASS] Build (135 routes) | [PASS] Lint | [PASS] 142 Cal.com Tests
+---
 
 ## [2026-02-03 19:15] - Cal.com "Element not found" & "Cal is not defined" Fix
 **Completed:** Fixed Cal.com embed initialization errors - "Element not found" and "Cal is not defined"
