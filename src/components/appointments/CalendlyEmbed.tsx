@@ -9,12 +9,18 @@ import {
   CALCOM_DEFAULT_EVENT_SLUG,
   CALCOM_BRAND_COLOR,
   CALCOM_BRAND_COLOR_DARK,
+  CALCOM_BASE_URL,
 } from "@/lib/calcom";
-import { Loader2, Calendar, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Calendar, RefreshCw, AlertCircle, ExternalLink, Clock, Video, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Cal.com embed script URL (correct URL without 'app' subdomain)
 const CAL_EMBED_SCRIPT_URL = "https://cal.com/embed/embed.js";
+
+// Max retries for script loading
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1500;
 
 interface CalComEmbedProps {
   /** Cal.com username (e.g., "mash-mushroom") */
@@ -29,6 +35,18 @@ interface CalComEmbedProps {
   className?: string;
   /** Theme override: "light", "dark", or "auto" (follows system theme) */
   theme?: CalComTheme;
+  /** Event duration in minutes (for display) */
+  duration?: number;
+  /** Event title (for display) */
+  eventTitle?: string;
+  /** Show quick event selector */
+  showEventSelector?: boolean;
+}
+
+interface LoadingState {
+  status: "loading" | "loaded" | "error";
+  message: string;
+  retryCount: number;
 }
 
 /**
@@ -49,8 +67,8 @@ interface CalComEmbedProps {
  * - Automatic dark/light mode adaptation
  * - Pre-fills user data when authenticated
  * - Product tracking via metadata
- * - Loading and error states
- * - Retry functionality
+ * - Loading and error states with retry
+ * - Graceful fallback to direct Cal.com link
  * 
  * @example
  * ```tsx
@@ -75,15 +93,36 @@ export function CalComEmbed({
   height = "700px",
   className = "",
   theme: themeProp = "auto",
+  duration,
+  eventTitle,
 }: CalComEmbedProps) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    status: "loading",
+    message: "Preparing booking calendar...",
+    retryCount: 0,
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const initAttempted = useRef(false);
+  const scriptLoadPromise = useRef<Promise<void> | null>(null);
+  
+  // Store props in refs for stable callback references
+  const themeRef = useRef(themeProp);
+  const resolvedThemeRef = useRef(resolvedTheme);
+  const brandColorRef = useRef(brandColor);
+  const userRef = useRef(user);
+  const calLinkRef = useRef(calLink);
+  
+  // Update refs when values change
+  useEffect(() => {
+    themeRef.current = themeProp;
+    resolvedThemeRef.current = resolvedTheme;
+    brandColorRef.current = brandColor;
+    userRef.current = user;
+    calLinkRef.current = calLink;
+  }, [themeProp, resolvedTheme, brandColor, user, calLink]);
 
   // Avoid hydration mismatch by waiting for mount
   useEffect(() => {
@@ -98,102 +137,156 @@ export function CalComEmbed({
   // Get theme-aware brand color
   const brandColor = currentTheme === "dark" ? CALCOM_BRAND_COLOR_DARK : CALCOM_BRAND_COLOR;
 
-  // Load Cal.com embed script
-  const loadCalScript = useCallback(() => {
-    return new Promise<void>((resolve, reject) => {
-      // Check if script already loaded
-      if (typeof window !== "undefined" && (window as any).Cal) {
-        resolve();
-        return;
-      }
+  // Construct the Cal.com booking link
+  const calLink = `${username}/${eventSlug}`;
+  const calUrl = `${CALCOM_BASE_URL}/${calLink}`;
 
-      // Check if script tag already exists
+  // Load Cal.com embed script with retry logic
+  const loadCalScript = useCallback(async (): Promise<void> => {
+    // If we have a pending promise, return it
+    if (scriptLoadPromise.current) {
+      return scriptLoadPromise.current;
+    }
+
+    // Check if Cal is already available
+    if (typeof window !== "undefined" && (window as any).Cal) {
+      console.log("[CalComEmbed] Cal.com already loaded");
+      return Promise.resolve();
+    }
+
+    // Create the load promise
+    scriptLoadPromise.current = new Promise<void>((resolve, reject) => {
+      // Check for existing script
       const existingScript = document.querySelector(`script[src="${CAL_EMBED_SCRIPT_URL}"]`);
+      
       if (existingScript) {
-        // Wait for it to load
-        existingScript.addEventListener("load", () => resolve());
-        existingScript.addEventListener("error", () => reject(new Error("Cal.com script failed to load")));
-        // If already loaded
-        if ((window as any).Cal) {
-          resolve();
-        }
+        // Wait for existing script to load
+        const checkLoaded = () => {
+          if ((window as any).Cal) {
+            resolve();
+          } else {
+            setTimeout(checkLoaded, 100);
+          }
+        };
+        checkLoaded();
         return;
       }
 
-      // Create and load script
+      // Create new script element
       const script = document.createElement("script");
       script.src = CAL_EMBED_SCRIPT_URL;
       script.async = true;
+      script.crossOrigin = "anonymous";
+      
       script.onload = () => {
-        setScriptLoaded(true);
-        resolve();
+        console.log("[CalComEmbed] Script loaded successfully");
+        // Give Cal.com some time to initialize
+        setTimeout(() => {
+          if ((window as any).Cal) {
+            resolve();
+          } else {
+            reject(new Error("Cal.com loaded but not initialized"));
+          }
+        }, 200);
       };
-      script.onerror = () => {
-        reject(new Error("Failed to load Cal.com booking system"));
+
+      script.onerror = (e) => {
+        console.error("[CalComEmbed] Script load error:", e);
+        // Remove failed script so we can retry
+        script.remove();
+        scriptLoadPromise.current = null;
+        reject(new Error("Failed to load Cal.com booking system. Please check your internet connection."));
       };
+
       document.head.appendChild(script);
     });
+
+    return scriptLoadPromise.current;
   }, []);
 
   // Initialize Cal.com embed
-  const initializeEmbed = useCallback(async () => {
+  const initializeEmbed = useCallback(async (retryCount = 0) => {
     if (!mounted || typeof window === "undefined") return;
     
-    setLoading(true);
-    setError(null);
+    setLoadingState({
+      status: "loading",
+      message: retryCount > 0 
+        ? `Retrying... (attempt ${retryCount + 1}/${MAX_RETRIES})`
+        : "Loading booking calendar...",
+      retryCount,
+    });
 
     try {
       await loadCalScript();
 
-      // Wait a bit for Cal to initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       const Cal = (window as any).Cal;
       if (!Cal) {
-        throw new Error("Cal.com not available");
+        throw new Error("Cal.com not available after script load");
       }
 
       // Initialize Cal with namespace
-      Cal("init", "booking", { origin: "https://cal.com" });
+      Cal("init", "booking", { origin: CALCOM_BASE_URL });
 
-      // Configure UI with theme
-      const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
+      // Configure UI with theme - use refs for current values
+      const themeConfig = getCalComThemeConfig(themeRef.current, resolvedThemeRef.current);
       Cal("ui", {
         ...themeConfig,
         cssVarsPerTheme: {
-          light: { "cal-brand": brandColor },
-          dark: { "cal-brand": brandColor },
+          light: { "cal-brand": brandColorRef.current },
+          dark: { "cal-brand": brandColorRef.current },
         },
+        hideEventTypeDetails: false,
+        layout: "month_view",
       });
 
-      // Pre-fill user data if logged in
-      if (user?.email || user?.displayName) {
+      // Pre-fill user data if logged in - use ref for current user
+      const currentUser = userRef.current;
+      if (currentUser?.email || currentUser?.displayName) {
         Cal("preload", {
-          calLink: `${username}/${eventSlug}`,
-          ...(user?.email && { email: user.email }),
-          ...(user?.displayName && { name: user.displayName }),
+          calLink: calLinkRef.current,
+          ...(currentUser?.email && { email: currentUser.email }),
+          ...(currentUser?.displayName && { name: currentUser.displayName }),
         });
       }
 
-      setLoading(false);
+      setLoadingState({
+        status: "loaded",
+        message: "Calendar loaded successfully",
+        retryCount,
+      });
       initAttempted.current = true;
+      console.log("[CalComEmbed] Initialized successfully");
+
     } catch (err) {
       console.error("[CalComEmbed] Initialization error:", err);
-      setError(err instanceof Error ? err.message : "Failed to load booking calendar");
-      setLoading(false);
-    }
-  }, [mounted, loadCalScript, themeProp, resolvedTheme, brandColor, user, username, eventSlug]);
+      
+      const errorMessage = err instanceof Error ? err.message : "Failed to load booking calendar";
 
-  // Initialize on mount and when dependencies change
+      // Retry logic
+      if (retryCount < MAX_RETRIES - 1) {
+        console.log(`[CalComEmbed] Retrying in ${RETRY_DELAY}ms... (${retryCount + 1}/${MAX_RETRIES})`);
+        scriptLoadPromise.current = null; // Reset for retry
+        setTimeout(() => initializeEmbed(retryCount + 1), RETRY_DELAY);
+      } else {
+        setLoadingState({
+          status: "error",
+          message: errorMessage,
+          retryCount,
+        });
+      }
+    }
+  }, [mounted, loadCalScript]); // Reduced dependencies - use refs for dynamic values
+
+  // Initialize on mount
   useEffect(() => {
     if (mounted && !initAttempted.current) {
       initializeEmbed();
     }
   }, [mounted, initializeEmbed]);
 
-  // Re-initialize when theme changes (if already loaded)
+  // Re-initialize theme when it changes (if already loaded)
   useEffect(() => {
-    if (mounted && scriptLoaded && typeof window !== "undefined" && (window as any).Cal) {
+    if (mounted && loadingState.status === "loaded" && typeof window !== "undefined" && (window as any).Cal) {
       const Cal = (window as any).Cal;
       const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
       Cal("ui", {
@@ -204,75 +297,205 @@ export function CalComEmbed({
         },
       });
     }
-  }, [currentTheme, themeProp, resolvedTheme, brandColor, mounted, scriptLoaded]);
-
-  // Construct the Cal.com booking link
-  const calLink = `${username}/${eventSlug}`;
+  }, [currentTheme, themeProp, resolvedTheme, brandColor, mounted, loadingState.status]);
 
   // Retry handler
   const handleRetry = () => {
     initAttempted.current = false;
+    scriptLoadPromise.current = null;
     initializeEmbed();
   };
 
   // Loading state
-  if (loading && !error) {
+  if (loadingState.status === "loading") {
     return (
       <div 
-        className={`cal-embed-container flex flex-col items-center justify-center bg-muted/30 rounded-lg ${className}`}
+        className={cn(
+          "cal-embed-container flex flex-col items-center justify-center rounded-xl border",
+          currentTheme === "dark" 
+            ? "bg-zinc-900/50 border-zinc-800" 
+            : "bg-slate-50/50 border-slate-200",
+          className
+        )}
         style={{ width: "100%", height, minWidth: "320px" }}
+        data-testid="calcom-loading"
       >
-        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <p className="text-sm text-muted-foreground">Loading booking calendar...</p>
+        <div className="relative">
+          <div className={cn(
+            "absolute inset-0 rounded-full blur-xl opacity-20",
+            currentTheme === "dark" ? "bg-primary" : "bg-primary/50"
+          )} />
+          <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+        </div>
+        <p className={cn(
+          "text-sm mt-4 animate-pulse",
+          currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
+        )}>
+          {loadingState.message}
+        </p>
+        {loadingState.retryCount > 0 && (
+          <p className={cn(
+            "text-xs mt-2",
+            currentTheme === "dark" ? "text-zinc-500" : "text-slate-500"
+          )}>
+            Attempt {loadingState.retryCount + 1} of {MAX_RETRIES}
+          </p>
+        )}
       </div>
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state with beautiful fallback
+  if (loadingState.status === "error") {
     return (
       <div 
-        className={`cal-embed-container flex flex-col items-center justify-center bg-muted/30 rounded-lg p-8 ${className}`}
+        className={cn(
+          "cal-embed-container flex flex-col items-center justify-center rounded-xl border p-8",
+          currentTheme === "dark" 
+            ? "bg-zinc-900/50 border-zinc-800" 
+            : "bg-slate-50/50 border-slate-200",
+          className
+        )}
         style={{ width: "100%", height, minWidth: "320px" }}
+        data-testid="calcom-error"
       >
-        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-        <h3 className="font-semibold text-foreground mb-2">Unable to Load Calendar</h3>
-        <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
-          {error}
+        <div className={cn(
+          "w-16 h-16 rounded-full flex items-center justify-center mb-4",
+          currentTheme === "dark" ? "bg-red-950/50" : "bg-red-100"
+        )}>
+          <AlertCircle className={cn(
+            "w-8 h-8",
+            currentTheme === "dark" ? "text-red-400" : "text-red-600"
+          )} />
+        </div>
+        
+        <h3 className={cn(
+          "font-semibold text-lg mb-2",
+          currentTheme === "dark" ? "text-zinc-100" : "text-slate-900"
+        )}>
+          Unable to Load Calendar
+        </h3>
+        
+        <p className={cn(
+          "text-sm text-center mb-6 max-w-md",
+          currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
+        )}>
+          {loadingState.message}. You can try again or book directly on Cal.com.
         </p>
-        <div className="flex gap-3">
-          <Button onClick={handleRetry} variant="outline" className="gap-2">
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          <Button 
+            onClick={handleRetry} 
+            variant="outline" 
+            className={cn(
+              "flex-1 gap-2",
+              currentTheme === "dark" && "border-zinc-700 hover:bg-zinc-800"
+            )}
+          >
             <RefreshCw className="w-4 h-4" />
             Try Again
           </Button>
-          <Button asChild>
+          <Button 
+            asChild 
+            className="flex-1 gap-2"
+          >
             <a 
-              href={`https://cal.com/${calLink}`} 
+              href={calUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="gap-2"
             >
-              <Calendar className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4" />
               Book on Cal.com
             </a>
           </Button>
+        </div>
+
+        {/* Quick info about available slots */}
+        <div className={cn(
+          "mt-8 p-4 rounded-lg w-full max-w-md",
+          currentTheme === "dark" ? "bg-zinc-800/50" : "bg-white"
+        )}>
+          <p className={cn(
+            "text-xs font-medium mb-3",
+            currentTheme === "dark" ? "text-zinc-300" : "text-slate-700"
+          )}>
+            Available Meeting Types:
+          </p>
+          <div className="space-y-2">
+            {[
+              { icon: Phone, label: "15 Min Quick Chat", slug: "15min" },
+              { icon: Video, label: "30 Min Meeting", slug: "30min" },
+              { icon: MapPin, label: "1 Hour Meeting", slug: "1-hour-meeting" },
+            ].map(({ icon: Icon, label, slug }) => (
+              <a
+                key={slug}
+                href={`${CALCOM_BASE_URL}/${username}/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "flex items-center gap-3 p-2 rounded-md transition-colors",
+                  currentTheme === "dark" 
+                    ? "hover:bg-zinc-700/50 text-zinc-300" 
+                    : "hover:bg-slate-100 text-slate-600"
+                )}
+              >
+                <Icon className="w-4 h-4 text-primary" />
+                <span className="text-sm">{label}</span>
+                <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
+  // Loaded state - show the embed
   return (
     <div 
       ref={containerRef}
-      className={`cal-embed-container ${className}`}
+      className={cn(
+        "cal-embed-container rounded-xl overflow-hidden",
+        currentTheme === "dark" ? "bg-zinc-900" : "bg-white",
+        className
+      )}
       style={{ 
         width: "100%", 
         height, 
-        overflow: "auto",
         minWidth: "320px",
       }}
       data-theme={currentTheme}
+      data-testid="calcom-loaded"
     >
+      {/* Event info header */}
+      {(eventTitle || duration) && (
+        <div className={cn(
+          "px-4 py-3 border-b flex items-center gap-3",
+          currentTheme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-slate-200 bg-slate-50"
+        )}>
+          <Calendar className="w-5 h-5 text-primary" />
+          <div>
+            {eventTitle && (
+              <p className={cn(
+                "font-medium",
+                currentTheme === "dark" ? "text-zinc-100" : "text-slate-900"
+              )}>
+                {eventTitle}
+              </p>
+            )}
+            {duration && (
+              <p className={cn(
+                "text-sm flex items-center gap-1",
+                currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
+              )}>
+                <Clock className="w-3.5 h-3.5" />
+                {duration} minutes
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Cal.com inline embed using data attributes */}
       <div
         data-cal-link={calLink}
@@ -282,10 +505,13 @@ export function CalComEmbed({
           theme: currentTheme,
           ...(productId && { metadata: { productId } }),
         })}
+        className={cn(
+          "cal-inline-embed",
+          currentTheme === "dark" ? "[&_*]:!bg-zinc-900" : ""
+        )}
         style={{ 
           width: "100%", 
-          height: "100%", 
-          overflow: "auto",
+          height: eventTitle || duration ? `calc(${height} - 56px)` : "100%",
           minHeight: "600px",
         }}
       />
