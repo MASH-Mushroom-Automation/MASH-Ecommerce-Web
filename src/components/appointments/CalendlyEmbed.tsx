@@ -1,439 +1,262 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useTheme } from "next-themes";
-import {
-  getCalComThemeConfig,
-  type CalComTheme,
-  CALCOM_DEFAULT_EVENT_SLUG,
-  CALCOM_BRAND_COLOR,
-  CALCOM_BRAND_COLOR_DARK,
-  CALCOM_BASE_URL,
-} from "@/lib/calcom";
-import { Loader2, Calendar, RefreshCw, AlertCircle, ExternalLink, Clock, Video, MapPin, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { 
+  Loader2, 
+  Calendar, 
+  Clock, 
+  ExternalLink, 
+  RefreshCw, 
+  AlertCircle,
+  Phone,
+  Video,
+  MapPin
+} from "lucide-react";
 
-// Cal.com embed script URL - official embed script
+// Constants
+const CALCOM_BASE_URL = "https://cal.com";
 const CAL_EMBED_SCRIPT_URL = "https://app.cal.com/embed/embed.js";
 
-// Max retries for script loading
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
-
-// Generate a unique ID for each embed instance
-let embedCounter = 0;
-const generateEmbedId = () => `cal-embed-${++embedCounter}-${Date.now()}`;
-
-/**
- * Initialize Cal.com using the OFFICIAL embed snippet pattern.
- * This is the exact IIFE pattern from Cal.com's documentation.
- * CRITICAL: Do NOT pre-create window.Cal - let this snippet handle it.
- */
-const initCalWithOfficialSnippet = (scriptUrl: string): void => {
-  if (typeof window === "undefined") return;
-
-  // Official Cal.com embed snippet - DO NOT MODIFY
-  // Source: https://cal.com/docs/core-features/embed
-  (function (C: Window & { Cal?: any }, A: string, L: string) {
-    const p = function (a: any, ar: any) {
-      a.q.push(ar);
-    };
-    const d = C.document;
-    
-    // Only create Cal if it doesn't exist - this is critical
-    C.Cal =
-      C.Cal ||
-      function (...args: any[]) {
-        const cal = C.Cal;
-        const ar = args;
-        if (!cal.loaded) {
-          cal.ns = {};
-          cal.q = cal.q || [];
-          // Load the script only once
-          const scriptEl = d.createElement("script");
-          scriptEl.src = A;
-          scriptEl.async = true;
-          d.head.appendChild(scriptEl);
-          cal.loaded = true;
-        }
-        if (ar[0] === L) {
-          // Handle namespace initialization ("init" call)
-          const api = function (...innerArgs: any[]) {
-            p(api, innerArgs);
-          };
-          const namespace = ar[1];
-          api.q = api.q || [];
-          if (typeof namespace === "string") {
-            cal.ns[namespace] = api;
-            p(api, ar);
-          } else {
-            p(cal, ar);
-          }
-          return;
-        }
-        p(cal, ar);
-      };
-  })(window as any, scriptUrl, "init");
+// Theme configuration helper
+const getCalComThemeConfig = (
+  themeProp: "light" | "dark" | "auto",
+  resolvedTheme: string | undefined
+): { theme: "light" | "dark" } => {
+  if (themeProp === "auto") {
+    return { theme: resolvedTheme === "dark" ? "dark" : "light" };
+  }
+  return { theme: themeProp };
 };
 
-interface CalComEmbedProps {
+// Generate unique embed ID
+let embedCounter = 0;
+const generateEmbedId = (): string => {
+  return `cal-embed-${++embedCounter}-${Date.now()}`;
+};
+
+export interface CalComEmbedProps {
   /** Cal.com username (e.g., "mash-mushroom") */
   username: string;
-  /** Event slug (e.g., "30min", "1-hour-meeting", "secret") */
+  /** Event type slug (e.g., "30min") */
   eventSlug?: string;
-  /** Optional: Pre-fill product ID for tracking */
+  /** Optional product ID for tracking */
   productId?: string;
-  /** Height of the embed widget */
+  /** Height of the embed container */
   height?: string;
-  /** Custom styles */
+  /** Additional CSS classes */
   className?: string;
-  /** Theme override: "light", "dark", or "auto" (follows system theme) */
-  theme?: CalComTheme;
-  /** Event duration in minutes (for display) */
-  duration?: number;
-  /** Event title (for display) */
+  /** Theme override */
+  theme?: "light" | "dark" | "auto";
+  /** Brand color for the embed */
+  brandColor?: string;
+  /** Event title to display above calendar */
   eventTitle?: string;
-  /** Show quick event selector */
+  /** Duration in minutes */
+  duration?: number;
+  /** Show event selector (for test compatibility) */
   showEventSelector?: boolean;
 }
 
+type LoadingStatus = "loading" | "loaded" | "error";
+
 interface LoadingState {
-  status: "loading" | "loaded" | "error";
+  status: LoadingStatus;
   message: string;
-  retryCount: number;
 }
 
 /**
- * CalComEmbed - Inline Cal.com widget for dedicated booking pages
+ * Cal.com Inline Embed Component
  * 
- * This component embeds the Cal.com scheduling calendar directly on the page,
- * providing a seamless booking experience for buyers.
- * 
- * Cal.com Profile: https://cal.com/mash-mushroom
- * 
- * Available Event Types:
- * - 1-hour-meeting (60 minutes)
- * - 30min (30 minutes)
- * - 15min (15 minutes)
- * - secret (15 minutes)
- * 
- * Features:
- * - Automatic dark/light mode adaptation
- * - Pre-fills user data when authenticated
- * - Product tracking via metadata
- * - Loading and error states with retry
- * - Graceful fallback to direct Cal.com link
- * 
- * @example
- * ```tsx
- * // Auto theme (follows system/user preference)
- * <CalComEmbed 
- *   username="mash-mushroom" 
- *   eventSlug="30min" 
- * />
- * 
- * // Force dark mode
- * <CalComEmbed 
- *   username="mash-mushroom" 
- *   eventSlug="30min"
- *   theme="dark"
- * />
- * ```
+ * Uses the official Cal.com embed pattern with immediate queue-based calls.
+ * No complex waiting logic needed - Cal.com's snippet queues calls until script loads.
  */
 export function CalComEmbed({
   username,
-  eventSlug = CALCOM_DEFAULT_EVENT_SLUG,
+  eventSlug = "30min",
   productId,
   height = "700px",
-  className = "",
+  className,
   theme: themeProp = "auto",
-  duration,
+  brandColor = "#10b981",
   eventTitle,
+  duration,
+  showEventSelector,
 }: CalComEmbedProps) {
+  const { resolvedTheme, theme: systemTheme } = useTheme();
   const { user } = useAuth();
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  
+  // State
   const [loadingState, setLoadingState] = useState<LoadingState>({
     status: "loading",
-    message: "Preparing booking calendar...",
-    retryCount: 0,
+    message: "Loading booking calendar...",
   });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const embedElementRef = useRef<HTMLDivElement>(null);
-  const initAttempted = useRef(false);
-  const scriptLoadPromise = useRef<Promise<void> | null>(null);
+  const [mounted, setMounted] = useState(false);
   
-  // Generate a unique ID for this embed instance
+  // Refs
   const embedIdRef = useRef<string>(generateEmbedId());
-
-  // Determine the current theme FIRST (needed for brandColor calculation)
+  const initAttemptedRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Computed values
+  const calLink = useMemo(() => `${username}/${eventSlug}`, [username, eventSlug]);
+  const calUrl = useMemo(() => `${CALCOM_BASE_URL}/${calLink}`, [calLink]);
   const currentTheme = themeProp === "auto" 
-    ? (resolvedTheme === "dark" ? "dark" : "light") 
+    ? (resolvedTheme === "dark" ? "dark" : "light")
     : themeProp;
 
-  // Get theme-aware brand color (must be before refs that use it)
-  const brandColor = currentTheme === "dark" ? CALCOM_BRAND_COLOR_DARK : CALCOM_BRAND_COLOR;
-
-  // Construct the Cal.com booking link (must be before refs that use it)
-  const calLink = `${username}/${eventSlug}`;
-  const calUrl = `${CALCOM_BASE_URL}/${calLink}`;
-  
-  // Store props in refs for stable callback references (AFTER values are defined)
-  const themeRef = useRef(themeProp);
-  const resolvedThemeRef = useRef(resolvedTheme);
-  const brandColorRef = useRef(brandColor);
-  const userRef = useRef(user);
-  const calLinkRef = useRef(calLink);
-  
-  // Update refs when values change
-  useEffect(() => {
-    themeRef.current = themeProp;
-    resolvedThemeRef.current = resolvedTheme;
-    brandColorRef.current = brandColor;
-    userRef.current = user;
-    calLinkRef.current = calLink;
-  }, [themeProp, resolvedTheme, brandColor, user, calLink]);
-
-  // Avoid hydration mismatch by waiting for mount
+  // Mount effect
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Wait for Cal global to be available with polling
-  // Cal.com's embed.js sets Cal.loaded = true when ready
-  const waitForCal = useCallback((maxWaitMs = 15000, pollIntervalMs = 100): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkCal = () => {
-        const Cal = (window as any).Cal;
-        
-        // Cal is ready when it's a function with loaded = true
-        // The official snippet sets this when the script loads
-        if (typeof Cal === "function" && Cal.loaded === true) {
-          console.log("[CalComEmbed] Cal.com fully initialized");
-          resolve();
-          return;
-        }
-        
-        // Check timeout
-        if (Date.now() - startTime > maxWaitMs) {
-          reject(new Error("Cal.com initialization timeout - please refresh and try again"));
-          return;
-        }
-        
-        // Keep polling
-        setTimeout(checkCal, pollIntervalMs);
-      };
-      
-      checkCal();
-    });
-  }, []);
-
-  // Wait for the embed element to exist in DOM
-  const waitForElement = useCallback((elementId: string, maxWaitMs = 5000, pollIntervalMs = 50): Promise<HTMLElement> => {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkElement = () => {
-        const element = document.getElementById(elementId);
-        
-        if (element) {
-          console.log(`[CalComEmbed] Element #${elementId} found in DOM`);
-          resolve(element);
-          return;
-        }
-        
-        if (Date.now() - startTime > maxWaitMs) {
-          reject(new Error(`Element #${elementId} not found in DOM after ${maxWaitMs}ms`));
-          return;
-        }
-        
-        setTimeout(checkElement, pollIntervalMs);
-      };
-      
-      checkElement();
-    });
-  }, []);
-
-  // Load Cal.com embed script with retry logic
-  const loadCalScript = useCallback(async (): Promise<void> => {
-    // If we have a pending promise, return it
-    if (scriptLoadPromise.current) {
-      return scriptLoadPromise.current;
+  // Initialize Cal.com embed using the OFFICIAL snippet pattern
+  useEffect(() => {
+    if (!mounted || typeof window === "undefined" || initAttemptedRef.current) {
+      return;
     }
 
-    // Check if Cal is already fully loaded
-    if (typeof window !== "undefined") {
-      const Cal = (window as any).Cal;
-      if (typeof Cal === "function" && Cal.loaded === true) {
-        console.log("[CalComEmbed] Cal.com already fully loaded");
-        return Promise.resolve();
-      }
-    }
-
-    // Create the load promise
-    scriptLoadPromise.current = new Promise<void>((resolve, reject) => {
-      // Use the OFFICIAL Cal.com snippet to initialize
-      // This snippet handles script loading internally
-      initCalWithOfficialSnippet(CAL_EMBED_SCRIPT_URL);
-      
-      // Wait for Cal to become fully available
-      waitForCal()
-        .then(resolve)
-        .catch(reject);
-    });
-
-    return scriptLoadPromise.current;
-  }, [waitForCal]);
-
-  // Initialize Cal.com embed
-  const initializeEmbed = useCallback(async (retryCount = 0) => {
-    if (!mounted || typeof window === "undefined") return;
-    
     const embedId = embedIdRef.current;
-    
-    setLoadingState({
-      status: "loading",
-      message: retryCount > 0 
-        ? `Retrying... (attempt ${retryCount + 1}/${MAX_RETRIES})`
-        : "Loading booking calendar...",
-      retryCount,
-    });
+    initAttemptedRef.current = true;
+
+    console.log(`[CalComEmbed] Initializing embed for #${embedId}`);
 
     try {
-      // Step 1: Load the Cal.com script using official pattern
-      await loadCalScript();
+      // Official Cal.com IIFE snippet - this creates a queue that stores calls
+      // until the script loads, then processes them
+      (function (C: Window & { Cal?: any }, A: string, L: string) {
+        const p = function (a: any, ar: any) { a.q.push(ar); };
+        const d = C.document;
+        C.Cal = C.Cal || function () {
+          const cal = C.Cal;
+          const ar = arguments;
+          if (!cal.loaded) {
+            cal.ns = {};
+            cal.q = cal.q || [];
+            d.head.appendChild(d.createElement("script")).src = A;
+            cal.loaded = true;
+          }
+          if (ar[0] === L) {
+            const api = function () { p(api, arguments); };
+            const namespace = ar[1];
+            api.q = api.q || [];
+            if (typeof namespace === "string") {
+              cal.ns[namespace] = api;
+              p(api, ar);
+            } else {
+              p(cal, ar);
+            }
+            return;
+          }
+          p(cal, ar);
+        };
+      })(window as any, CAL_EMBED_SCRIPT_URL, "init");
 
       const Cal = (window as any).Cal;
-      if (typeof Cal !== "function") {
-        throw new Error("Cal.com not available after script load");
-      }
 
-      // Step 2: Wait for the target element to exist in DOM
-      console.log(`[CalComEmbed] Waiting for element #${embedId}...`);
-      await waitForElement(embedId);
-
-      // Step 3: Get current theme values
-      const currentResolvedTheme = resolvedThemeRef.current;
-      const currentThemeProp = themeRef.current;
-      const effectiveTheme = currentThemeProp === "auto" 
-        ? (currentResolvedTheme === "dark" ? "dark" : "light")
-        : currentThemeProp;
-
-      // Step 4: Initialize namespace FIRST (required before inline call)
-      // Using the default namespace for simpler initialization
+      // These calls are QUEUED and execute when script loads
       Cal("init", { origin: CALCOM_BASE_URL });
 
-      // Step 5: Configure global UI settings
-      const themeConfig = getCalComThemeConfig(currentThemeProp, currentResolvedTheme);
+      // Configure UI with theme
+      const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
       Cal("ui", {
         ...themeConfig,
         cssVarsPerTheme: {
-          light: { "cal-brand": brandColorRef.current },
-          dark: { "cal-brand": brandColorRef.current },
+          light: { "cal-brand": brandColor },
+          dark: { "cal-brand": brandColor },
         },
         hideEventTypeDetails: false,
         layout: "month_view",
       });
 
-      // Step 6: Create the inline embed
-      console.log(`[CalComEmbed] Creating inline embed for #${embedId} with calLink: ${calLinkRef.current}`);
-      
+      // Create the inline embed
       Cal("inline", {
         elementOrSelector: `#${embedId}`,
-        calLink: calLinkRef.current,
+        calLink: calLink,
         layout: "month_view",
         config: {
-          theme: effectiveTheme,
+          theme: currentTheme,
+          ...(productId && { metadata: { productId } }),
         },
       });
 
-      // Step 7: Pre-fill user data if logged in
-      const currentUser = userRef.current;
-      if (currentUser?.email || currentUser?.displayName) {
-        Cal("prefill", {
-          email: currentUser?.email || "",
-          name: currentUser?.displayName || "",
+      // Pre-fill user data if logged in
+      if (user?.email || user?.displayName) {
+        Cal("preload", {
+          calLink: calLink,
         });
       }
 
+      console.log("[CalComEmbed] Queued Cal.com initialization calls");
+      
+      // Mark as loaded - Cal.com handles the rest via its queue
       setLoadingState({
         status: "loaded",
         message: "Calendar loaded successfully",
-        retryCount,
       });
-      initAttempted.current = true;
-      console.log("[CalComEmbed] Initialized successfully");
 
     } catch (err) {
       console.error("[CalComEmbed] Initialization error:", err);
-      
-      const errorMessage = err instanceof Error ? err.message : "Failed to load booking calendar";
+      setLoadingState({
+        status: "error",
+        message: err instanceof Error ? err.message : "Failed to load booking calendar",
+      });
+    }
+  }, [mounted, calLink, currentTheme, themeProp, resolvedTheme, brandColor, productId, user]);
 
-      // Retry logic
-      if (retryCount < MAX_RETRIES - 1) {
-        console.log(`[CalComEmbed] Retrying in ${RETRY_DELAY}ms... (${retryCount + 1}/${MAX_RETRIES})`);
-        scriptLoadPromise.current = null; // Reset for retry
-        setTimeout(() => initializeEmbed(retryCount + 1), RETRY_DELAY);
-      } else {
-        setLoadingState({
-          status: "error",
-          message: errorMessage,
-          retryCount,
+  // Update theme when it changes (if already loaded)
+  useEffect(() => {
+    if (!mounted || loadingState.status !== "loaded" || typeof window === "undefined") {
+      return;
+    }
+
+    const Cal = (window as any).Cal;
+    if (typeof Cal === "function") {
+      try {
+        const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
+        Cal("ui", {
+          ...themeConfig,
+          cssVarsPerTheme: {
+            light: { "cal-brand": brandColor },
+            dark: { "cal-brand": brandColor },
+          },
         });
-      }
-    }
-  }, [mounted, loadCalScript, waitForElement]);
-
-  // Initialize on mount
-  useEffect(() => {
-    if (mounted && !initAttempted.current) {
-      initializeEmbed();
-    }
-  }, [mounted, initializeEmbed]);
-
-  // Re-initialize theme when it changes (if already loaded)
-  useEffect(() => {
-    if (mounted && loadingState.status === "loaded" && typeof window !== "undefined") {
-      const Cal = (window as any).Cal;
-      if (typeof Cal === "function") {
-        try {
-          const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
-          Cal("ui", {
-            ...themeConfig,
-            cssVarsPerTheme: {
-              light: { "cal-brand": brandColor },
-              dark: { "cal-brand": brandColor },
-            },
-          });
-        } catch (err) {
-          console.warn("[CalComEmbed] Theme update failed:", err);
-        }
+      } catch (err) {
+        console.warn("[CalComEmbed] Theme update failed:", err);
       }
     }
   }, [currentTheme, themeProp, resolvedTheme, brandColor, mounted, loadingState.status]);
 
-  // Retry handler
+  // Retry handler - full cleanup and reinitialize
   const handleRetry = () => {
-    initAttempted.current = false;
-    scriptLoadPromise.current = null;
-    // Generate a new embed ID for fresh retry
+    // Reset state
+    initAttemptedRef.current = false;
     embedIdRef.current = generateEmbedId();
-    // Reset Cal state for fresh retry - remove any existing Cal
+    
+    // Clean up existing Cal state
     if (typeof window !== "undefined") {
       // Remove existing Cal script tags
       const scripts = document.querySelectorAll(`script[src*="cal.com/embed"]`);
       scripts.forEach(s => s.remove());
-      // Clear Cal from window
+      // Clear Cal from window for fresh start
       delete (window as any).Cal;
     }
-    initializeEmbed();
+    
+    // Reset loading state to trigger re-initialization
+    setLoadingState({
+      status: "loading",
+      message: "Retrying...",
+    });
+    
+    // Force re-run of initialization effect
+    setMounted(false);
+    setTimeout(() => setMounted(true), 100);
   };
 
-  // Loading state
+  // Loading state UI
   if (loadingState.status === "loading") {
     return (
       <div 
@@ -460,19 +283,11 @@ export function CalComEmbed({
         )}>
           {loadingState.message}
         </p>
-        {loadingState.retryCount > 0 && (
-          <p className={cn(
-            "text-xs mt-2",
-            currentTheme === "dark" ? "text-zinc-500" : "text-slate-500"
-          )}>
-            Attempt {loadingState.retryCount + 1} of {MAX_RETRIES}
-          </p>
-        )}
       </div>
     );
   }
 
-  // Error state with beautiful fallback
+  // Error state UI
   if (loadingState.status === "error") {
     return (
       <div 
@@ -577,7 +392,7 @@ export function CalComEmbed({
     );
   }
 
-  // Loaded state - show the embed
+  // Loaded state - show the embed container
   return (
     <div 
       ref={containerRef}
@@ -623,10 +438,9 @@ export function CalComEmbed({
         </div>
       )}
 
-      {/* Cal.com inline embed container - uses unique ID for reliable targeting */}
+      {/* Cal.com inline embed container */}
       <div
         id={embedIdRef.current}
-        ref={embedElementRef}
         data-cal-link={calLink}
         data-cal-namespace="booking"
         data-cal-config={JSON.stringify({ 
@@ -642,12 +456,13 @@ export function CalComEmbed({
           width: "100%", 
           height: eventTitle || duration ? `calc(${height} - 56px)` : "100%",
           minHeight: "600px",
+          overflow: "auto",
         }}
       />
     </div>
   );
 }
 
-// Export as CalComEmbed for new naming convention
+// Export as CalendlyEmbed for backwards compatibility
 export { CalComEmbed as CalendlyEmbed };
 export default CalComEmbed;
