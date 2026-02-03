@@ -141,6 +141,36 @@ export function CalComEmbed({
     setMounted(true);
   }, []);
 
+  // Wait for Cal global to be available with polling
+  const waitForCal = useCallback((maxWaitMs = 5000, pollIntervalMs = 100): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      
+      const checkCal = () => {
+        // Cal.com uses a queue pattern: window.Cal might be a function or undefined
+        const Cal = (window as any).Cal;
+        
+        // Cal is available if it's a function (the main API)
+        if (typeof Cal === "function") {
+          console.log("[CalComEmbed] Cal.com API ready");
+          resolve();
+          return;
+        }
+        
+        // Check timeout
+        if (Date.now() - startTime > maxWaitMs) {
+          reject(new Error("Cal.com initialization timeout - please refresh and try again"));
+          return;
+        }
+        
+        // Keep polling
+        setTimeout(checkCal, pollIntervalMs);
+      };
+      
+      checkCal();
+    });
+  }, []);
+
   // Load Cal.com embed script with retry logic
   const loadCalScript = useCallback(async (): Promise<void> => {
     // If we have a pending promise, return it
@@ -148,9 +178,9 @@ export function CalComEmbed({
       return scriptLoadPromise.current;
     }
 
-    // Check if Cal is already available
-    if (typeof window !== "undefined" && (window as any).Cal) {
-      console.log("[CalComEmbed] Cal.com already loaded");
+    // Check if Cal is already available and functional
+    if (typeof window !== "undefined" && typeof (window as any).Cal === "function") {
+      console.log("[CalComEmbed] Cal.com already loaded and ready");
       return Promise.resolve();
     }
 
@@ -160,17 +190,22 @@ export function CalComEmbed({
       const existingScript = document.querySelector(`script[src="${CAL_EMBED_SCRIPT_URL}"]`);
       
       if (existingScript) {
-        // Wait for existing script to load
-        const checkLoaded = () => {
-          if ((window as any).Cal) {
-            resolve();
-          } else {
-            setTimeout(checkLoaded, 100);
-          }
-        };
-        checkLoaded();
+        console.log("[CalComEmbed] Using existing script, waiting for Cal...");
+        // Wait for Cal to become available
+        waitForCal()
+          .then(resolve)
+          .catch(reject);
         return;
       }
+
+      // Initialize Cal queue before loading script
+      // Cal.com uses a queue pattern where commands can be queued before script loads
+      (window as any).Cal = (window as any).Cal || function(...args: unknown[]) {
+        const cal = (window as any).Cal;
+        cal.q = cal.q || [];
+        cal.q.push(args);
+      };
+      (window as any).Cal.q = (window as any).Cal.q || [];
 
       // Create new script element
       const script = document.createElement("script");
@@ -179,15 +214,11 @@ export function CalComEmbed({
       script.crossOrigin = "anonymous";
       
       script.onload = () => {
-        console.log("[CalComEmbed] Script loaded successfully");
-        // Give Cal.com some time to initialize
-        setTimeout(() => {
-          if ((window as any).Cal) {
-            resolve();
-          } else {
-            reject(new Error("Cal.com loaded but not initialized"));
-          }
-        }, 200);
+        console.log("[CalComEmbed] Script loaded, waiting for Cal initialization...");
+        // Wait for Cal to fully initialize (the queue gets processed)
+        waitForCal()
+          .then(resolve)
+          .catch(reject);
       };
 
       script.onerror = (e) => {
@@ -195,6 +226,8 @@ export function CalComEmbed({
         // Remove failed script so we can retry
         script.remove();
         scriptLoadPromise.current = null;
+        // Clean up the queue
+        delete (window as any).Cal;
         reject(new Error("Failed to load Cal.com booking system. Please check your internet connection."));
       };
 
@@ -202,7 +235,7 @@ export function CalComEmbed({
     });
 
     return scriptLoadPromise.current;
-  }, []);
+  }, [waitForCal]);
 
   // Initialize Cal.com embed
   const initializeEmbed = useCallback(async (retryCount = 0) => {
@@ -220,12 +253,19 @@ export function CalComEmbed({
       await loadCalScript();
 
       const Cal = (window as any).Cal;
-      if (!Cal) {
+      if (typeof Cal !== "function") {
         throw new Error("Cal.com not available after script load");
       }
 
-      // Initialize Cal with namespace
-      Cal("init", "booking", { origin: CALCOM_BASE_URL });
+      // Initialize Cal with namespace using proper pattern
+      // This creates Cal.ns.booking namespace for this embed
+      Cal("init", "booking", { 
+        origin: CALCOM_BASE_URL,
+        debug: false, // Set to true for debugging Cal.com issues
+      });
+
+      // Wait a tick for initialization to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Configure UI with theme - use refs for current values
       const themeConfig = getCalComThemeConfig(themeRef.current, resolvedThemeRef.current);
@@ -286,16 +326,22 @@ export function CalComEmbed({
 
   // Re-initialize theme when it changes (if already loaded)
   useEffect(() => {
-    if (mounted && loadingState.status === "loaded" && typeof window !== "undefined" && (window as any).Cal) {
+    if (mounted && loadingState.status === "loaded" && typeof window !== "undefined") {
       const Cal = (window as any).Cal;
-      const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
-      Cal("ui", {
-        ...themeConfig,
-        cssVarsPerTheme: {
-          light: { "cal-brand": brandColor },
-          dark: { "cal-brand": brandColor },
-        },
-      });
+      if (typeof Cal === "function") {
+        try {
+          const themeConfig = getCalComThemeConfig(themeProp, resolvedTheme);
+          Cal("ui", {
+            ...themeConfig,
+            cssVarsPerTheme: {
+              light: { "cal-brand": brandColor },
+              dark: { "cal-brand": brandColor },
+            },
+          });
+        } catch (err) {
+          console.warn("[CalComEmbed] Theme update failed:", err);
+        }
+      }
     }
   }, [currentTheme, themeProp, resolvedTheme, brandColor, mounted, loadingState.status]);
 

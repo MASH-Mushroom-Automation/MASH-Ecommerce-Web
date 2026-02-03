@@ -42,6 +42,33 @@
 - **Cal.com Callback Stability:** Store dynamic props in refs to prevent infinite loops in useCallback. Update refs via separate useEffect.
 
 - **Cal.com Variable Order:** In CalendlyEmbed.tsx, define currentTheme, brandColor, and calLink BEFORE useRefs that reference them. Otherwise you get "can't access lexical declaration before initialization".
+- **Cal.com Queue Initialization:** Cal.com embed uses a queue pattern - initialize `window.Cal` as a queue function BEFORE loading the script. The script processes queued commands on load. Wait for Cal to be a proper function (typeof Cal === "function") before using it, not just truthy.
+
+## [2026-02-03 16:45] - Cal.com "Cal is not defined" Fix
+**Completed:** Fixed Cal.com embed initialization error
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (improved script loading and initialization)
+
+**Implementation Notes:**
+- Root cause: Cal.com embed script sets `window.Cal` asynchronously AFTER script.onload fires
+- Previous code checked `(window as any).Cal` immediately after script.onload with only 200ms delay
+- Cal.com uses a queue pattern where commands can be queued before the real Cal function is ready
+- Fixed by:
+  1. Added `waitForCal()` function that polls for `typeof Cal === "function"` (not just truthy)
+  2. Initialize Cal queue BEFORE loading script: `window.Cal = function(...args) { Cal.q.push(args) }`
+  3. Increased timeout to 5000ms with 100ms polling interval
+  4. Clean up queue on script error to allow proper retry
+  5. Added small delay after Cal("init") to let initialization complete
+
+**Learnings for Future Iterations:**
+- Cal.com embed uses queue pattern: commands can be queued before script fully loads
+- Check `typeof Cal === "function"` instead of just `Cal` truthy check
+- Always initialize the queue stub before loading external embed scripts
+- Use polling with timeout instead of fixed delays for async script initialization
+- Clean up global state on failure to prevent stale queue data on retry
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 1548 Tests | [PASS] 120 Cal.com Tests
+---
 
 ## [2026-02-03 15:30] - Cal.com brandColor Initialization Fix
 **Completed:** Fixed ReferenceError in CalendlyEmbed.tsx
