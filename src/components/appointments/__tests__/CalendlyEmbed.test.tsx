@@ -2,7 +2,7 @@
  * Unit Tests for CalComEmbed Component
  * 
  * Tests the inline Cal.com widget integration for appointment booking.
- * Ensures proper rendering, prop handling, and error states.
+ * Ensures proper rendering, prop handling, theme switching, and error states.
  * 
  * @see src/components/appointments/CalendlyEmbed.tsx (renamed but exports CalComEmbed)
  * @see .github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md (Phase 8)
@@ -22,6 +22,16 @@ jest.mock('@/contexts/AuthContext', () => ({
       displayName: 'Test User',
     },
     isAuthenticated: true,
+  }),
+}));
+
+// Mock next-themes with controllable theme
+const mockResolvedTheme = { current: 'light' };
+jest.mock('next-themes', () => ({
+  useTheme: () => ({
+    resolvedTheme: mockResolvedTheme.current,
+    theme: mockResolvedTheme.current,
+    setTheme: jest.fn(),
   }),
 }));
 
@@ -229,5 +239,80 @@ describe('CalComEmbed Component', () => {
       );
     });
   });
-});
 
+  // ===============================================
+  // Theme Tests
+  // ===============================================
+
+  describe('Theme Support', () => {
+    beforeEach(() => {
+      mockResolvedTheme.current = 'light';
+    });
+
+    it('should apply light theme data attribute by default', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveAttribute('data-theme', 'light');
+    });
+
+    it('should apply dark theme when theme prop is dark', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} theme="dark" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveAttribute('data-theme', 'dark');
+    });
+
+    it('should apply light theme when theme prop is light', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} theme="light" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveAttribute('data-theme', 'light');
+    });
+
+    it('should follow system theme when theme is auto and system is light', () => {
+      mockResolvedTheme.current = 'light';
+      const { container } = render(<CalComEmbed {...defaultProps} theme="auto" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveAttribute('data-theme', 'light');
+    });
+
+    it('should follow system theme when theme is auto and system is dark', () => {
+      mockResolvedTheme.current = 'dark';
+      const { container } = render(<CalComEmbed {...defaultProps} theme="auto" />);
+      
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveAttribute('data-theme', 'dark');
+    });
+
+    it('should include theme in data-cal-config', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} theme="dark" />);
+      
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      const config = widgetContainer?.getAttribute('data-cal-config');
+      expect(config).toContain('"theme":"dark"');
+    });
+
+    it('should have month_view layout in config', () => {
+      const { container } = render(<CalComEmbed {...defaultProps} />);
+      
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      const config = widgetContainer?.getAttribute('data-cal-config');
+      expect(config).toContain('"layout":"month_view"');
+    });
+  });
+
+  // ===============================================
+  // Default Event Slug Tests
+  // ===============================================
+
+  describe('Default Event Slug', () => {
+    it('should use 30min as default event slug from config', () => {
+      const { container } = render(<CalComEmbed username="test-user" />);
+      
+      const widgetContainer = container.querySelector('[data-cal-link]');
+      expect(widgetContainer).toHaveAttribute('data-cal-link', 'test-user/30min');
+    });
+  });
+});

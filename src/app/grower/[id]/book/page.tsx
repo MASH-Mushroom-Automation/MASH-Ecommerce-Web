@@ -23,12 +23,14 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { sanityClient } from "@/lib/sanity/client";
+import type { CalComTheme } from "@/lib/calcom";
 
 // Extended grower type with Calendly fields
 interface GrowerWithCalendly {
   calendlyEnabled?: boolean;
   calendlyUsername?: string;
   calendlyDefaultEvent?: string;
+  calcomTheme?: CalComTheme;
   appointmentTypes?: Array<{
     name: string;
     eventSlug: string;
@@ -72,6 +74,7 @@ export default function GrowerBookingPage() {
           calendlyEnabled,
           calendlyUsername,
           calendlyDefaultEvent,
+          calcomTheme,
           appointmentTypes[] {
             name,
             eventSlug,
@@ -404,18 +407,19 @@ export default function GrowerBookingPage() {
                 username={calendlyData.calendlyUsername}
                 eventSlug={currentEventSlug}
                 height="700px"
+                theme={calendlyData.calcomTheme || "auto"}
               />
             </div>
 
-            {/* Powered by Calendly */}
+            {/* Powered by Cal.com */}
             <div className="text-center mt-4">
               <a
-                href="https://calendly.com"
+                href="https://cal.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
-                Powered by Calendly
+                Powered by Cal.com
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
