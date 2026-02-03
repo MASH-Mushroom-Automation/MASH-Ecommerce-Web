@@ -37,8 +37,33 @@
 - **Cal.com Component States:** CalendlyEmbed has 3 states: loading (spinner), error (retry button + fallback link), loaded (embed widget). Tests must mock these states separately.
 - **Component Async Testing:** For components with async script loading, use mock-based state control rather than waiting for real async operations. Control mock state via refs that tests can modify.
 - **Cal.com CSP:** Must include `https://cal.com` and `https://*.cal.com` in CSP script-src, style-src, connect-src, and frame-src directives. Without this, browser blocks embed script loading.
+- **Security Headers Reliability:** For CSP and security headers that must apply to ALL routes, use `next.config.js headers()` function with `source: '/:path*'`. Proxy/middleware may not match all routes. Keep both for redundancy.
 
-## [2026-02-03 11:00] - Cal.com CSP Fix
+## [2026-02-03 12:00] - Cal.com CSP Fix (next.config.js)
+**Completed:** Added CSP headers via next.config.js headers() for reliable application to all routes
+**Files Changed:**
+- next.config.js (added headers() function with comprehensive CSP)
+
+**Implementation Notes:**
+- Previous fix in proxy.ts wasn't being applied to all routes (specifically /grower/[id]/book)
+- next.config.js headers() applies to all routes via `source: '/:path*'` pattern
+- Added full security headers: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+
+**Root Cause Analysis:**
+- proxy.ts middleware wasn't matching the booking page route
+- Browser console showed OLD CSP without cal.com domains
+- next.config.js headers() is more reliable than middleware for global security headers
+
+**Learnings for Future Iterations:**
+- Use next.config.js headers() for security headers that must apply to ALL routes
+- proxy.ts middleware may not match all routes depending on matcher config
+- Keep both approaches for redundancy if needed
+- Browser DevTools Network tab shows actual CSP headers being applied
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com tests | [PASS] 25 Security tests
+---
+
+## [2026-02-03 11:00] - Cal.com CSP Fix (proxy.ts)
 **Completed:** Fixed Content-Security-Policy blocking cal.com embed script
 **Files Changed:**
 - src/proxy.ts (added cal.com to CSP headers)
