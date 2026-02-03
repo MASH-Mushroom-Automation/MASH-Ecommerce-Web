@@ -534,52 +534,26 @@ export default function GrowerBookingPage() {
             </Card>
           </div>
 
-          {/* Right Column: Cal.com Embed */}
+          {/* Right Column: Cal.com Embed - Cleaner UI */}
           <div className="lg:col-span-8">
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-muted/50 border-b">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      Select a Date & Time
-                    </h2>
-                    {selectedAppointment && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedAppointment.name} • {selectedAppointment.duration} minutes
-                      </p>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <a 
-                      href={`https://cal.com/${calendlyData.calendlyUsername}/${currentEventSlug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Open in Cal.com
-                    </a>
-                  </Button>
-                </div>
-              </CardHeader>
+            <Card className="overflow-hidden shadow-sm">
               <CardContent className="p-0">
                 <CalendlyEmbed
                   username={calendlyData.calendlyUsername}
                   eventSlug={currentEventSlug}
-                  height="700px"
+                  height="650px"
                   theme={calendlyData.calcomTheme || "auto"}
                 />
               </CardContent>
             </Card>
 
-            {/* Powered by Cal.com */}
-            <div className="text-center mt-4">
+            {/* Powered by Cal.com - Subtle footer */}
+            <div className="text-center mt-3">
               <a
                 href="https://cal.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                className="text-xs text-muted-foreground/60 hover:text-muted-foreground inline-flex items-center gap-1 transition-colors"
               >
                 Powered by Cal.com
                 <ExternalLink className="w-3 h-3" />

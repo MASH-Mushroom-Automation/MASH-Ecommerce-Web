@@ -168,7 +168,7 @@ export function CalComEmbed({
           light: { "cal-brand": brandColor },
           dark: { "cal-brand": brandColor },
         },
-        hideEventTypeDetails: false,
+        hideEventTypeDetails: true,
         layout: "month_view",
       });
 
@@ -392,7 +392,7 @@ export function CalComEmbed({
     );
   }
 
-  // Loaded state - show the embed container
+  // Loaded state - show the embed container (clean, without duplicate headers)
   return (
     <div 
       ref={containerRef}
@@ -409,36 +409,7 @@ export function CalComEmbed({
       data-theme={currentTheme}
       data-testid="calcom-loaded"
     >
-      {/* Event info header */}
-      {(eventTitle || duration) && (
-        <div className={cn(
-          "px-4 py-3 border-b flex items-center gap-3",
-          currentTheme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-slate-200 bg-slate-50"
-        )}>
-          <Calendar className="w-5 h-5 text-primary" />
-          <div>
-            {eventTitle && (
-              <p className={cn(
-                "font-medium",
-                currentTheme === "dark" ? "text-zinc-100" : "text-slate-900"
-              )}>
-                {eventTitle}
-              </p>
-            )}
-            {duration && (
-              <p className={cn(
-                "text-sm flex items-center gap-1",
-                currentTheme === "dark" ? "text-zinc-400" : "text-slate-600"
-              )}>
-                <Clock className="w-3.5 h-3.5" />
-                {duration} minutes
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Cal.com inline embed container */}
+      {/* Cal.com inline embed container - clean without header */}
       <div
         id={embedIdRef.current}
         data-cal-link={calLink}
@@ -454,7 +425,7 @@ export function CalComEmbed({
         )}
         style={{ 
           width: "100%", 
-          height: eventTitle || duration ? `calc(${height} - 56px)` : "100%",
+          height: "100%",
           minHeight: "600px",
           overflow: "auto",
         }}
