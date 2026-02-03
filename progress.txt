@@ -36,6 +36,28 @@
 - **Cal.com Embed URL:** MUST use `https://cal.com/embed/embed.js` (NOT app.cal.com). Script deduplication needed for components that may mount multiple times.
 - **Cal.com Component States:** CalendlyEmbed has 3 states: loading (spinner), error (retry button + fallback link), loaded (embed widget). Tests must mock these states separately.
 - **Component Async Testing:** For components with async script loading, use mock-based state control rather than waiting for real async operations. Control mock state via refs that tests can modify.
+- **Cal.com CSP:** Must include `https://cal.com` and `https://*.cal.com` in CSP script-src, style-src, connect-src, and frame-src directives. Without this, browser blocks embed script loading.
+
+## [2026-02-03 11:00] - Cal.com CSP Fix
+**Completed:** Fixed Content-Security-Policy blocking cal.com embed script
+**Files Changed:**
+- src/proxy.ts (added cal.com to CSP headers)
+- src/__tests__/security/penetration-tests.test.ts (updated CSP expectations)
+- src/components/appointments/__tests__/integration.test.tsx (fixed loading state test)
+
+**Implementation Notes:**
+- Root cause: CSP script-src directive didn't include cal.com domain
+- Error message: "Content-Security-Policy blocked script at https://cal.com/embed/embed.js"
+- Added cal.com and *.cal.com to: script-src, style-src, connect-src, frame-src
+
+**Learnings for Future Iterations:**
+- Always check CSP when adding external embed scripts (browser console shows CSP errors)
+- CSP is configured in src/proxy.ts addSecurityHeaders() function
+- External embeds need: script-src (JS), style-src (CSS), connect-src (API calls), frame-src (iframes)
+- Update security tests when modifying CSP to include new domains
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com tests | [PASS] 25 Security tests
+---
 
 ## [2025-06-XX XX:XX] - Cal.com Bug Fix and UI/UX Improvements
 **Completed:** Fixed Cal.com embed URL and improved booking page UI/UX
