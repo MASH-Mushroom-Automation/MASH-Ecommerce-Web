@@ -38,6 +38,33 @@
 - **Component Async Testing:** For components with async script loading, use mock-based state control rather than waiting for real async operations. Control mock state via refs that tests can modify.
 - **Cal.com CSP:** Must include `https://cal.com` and `https://*.cal.com` in CSP script-src, style-src, connect-src, and frame-src directives. Without this, browser blocks embed script loading.
 - **Security Headers Reliability:** For CSP and security headers that must apply to ALL routes, use `next.config.js headers()` function with `source: '/:path*'`. Proxy/middleware may not match all routes. Keep both for redundancy.
+- **CSP Meta Tag for Dev Mode:** Turbopack dev server may not apply next.config.js headers. Add CSP meta tag in layout.tsx as fallback for development.
+- **Cal.com Callback Stability:** Store dynamic props in refs to prevent infinite loops in useCallback. Update refs via separate useEffect.
+
+## [2026-02-03 14:00] - Complete Cal.com Integration Fix
+**Completed:** Fixed CSP blocking + improved UI/UX + updated Sanity grower data
+**Files Changed:**
+- src/app/layout.tsx (added CSP meta tag for dev mode)
+- src/components/appointments/CalendlyEmbed.tsx (improved UI, retry logic, refs for stability)
+- scripts/update-growers-calcom.js (new script to update growers with Cal.com settings)
+
+**Implementation Notes:**
+- Root cause: Turbopack dev server wasn't applying next.config.js headers
+- Solution: Added CSP meta tag in layout.tsx as fallback
+- Improved CalComEmbed with:
+  - Better loading/error states with retry logic (MAX_RETRIES=3)
+  - Dark/light theme auto-detection
+  - Fallback links to Cal.com when embed fails
+  - Fixed useCallback dependencies using refs pattern
+- Updated all 4 growers in Sanity CMS with Cal.com settings
+
+**Cal.com Configuration:**
+- Username: mash-mushroom
+- Profile: https://cal.com/mash-mushroom
+- Event Types: 15min, 30min (default), 1-hour-meeting
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 50 CalendlyEmbed | [PASS] 39 config | [PASS] 25 security
+---
 
 ## [2026-02-03 12:00] - Cal.com CSP Fix (next.config.js)
 **Completed:** Added CSP headers via next.config.js headers() for reliable application to all routes
