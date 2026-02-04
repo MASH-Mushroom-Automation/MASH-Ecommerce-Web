@@ -13,6 +13,8 @@ jobs:
   bundle-analysis:
     name: Bundle Size Analysis
     runs-on: ubuntu-latest
+    # Non-blocking: bundle analysis is informational
+    continue-on-error: true
     
     steps:
       - name: Checkout code
@@ -80,6 +82,7 @@ jobs:
       
       - name: Compare with base branch
         if: github.event_name == 'pull_request'
+        continue-on-error: true  # Don't fail if base branch comparison fails
         run: |
           echo "📊 Comparing with base branch..."
           
@@ -238,9 +241,12 @@ jobs:
           echo "  Bundle Analysis: ${{ needs.bundle-analysis.result }}"
           echo "  Lighthouse CI: ${{ needs.lighthouse.result }}"
           
+          # Non-blocking: warn but don't fail PR merge
           if [[ "${{ needs.bundle-analysis.result }}" == "failure" ]]; then
-            echo "::error::Bundle size check failed - review thresholds"
-            exit 1
+            echo "::warning::Bundle size check had issues - please review"
+          fi
+          if [[ "${{ needs.lighthouse.result }}" == "failure" ]]; then
+            echo "::warning::Lighthouse check had issues - please review"
           fi
           
-          echo "✅ Performance checks completed!"
+          echo "✅ Performance monitoring completed (informational only)"

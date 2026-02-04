@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    name: Unit Tests
     runs-on: ubuntu-latest
     # Non-blocking: some tests have pre-existing mock issues
     # Tests run and report but don't block PR merge

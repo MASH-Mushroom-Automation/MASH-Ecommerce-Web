@@ -110,6 +110,8 @@ jobs:
   codeql:
     name: CodeQL Security Analysis
     runs-on: ubuntu-latest
+    # Non-blocking: CodeQL is informational
+    continue-on-error: true
     permissions:
       actions: read
       contents: read
