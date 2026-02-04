@@ -53,3 +53,4 @@ studio/.env
 /.github/*.md
 *.env.test
 
+*.md
