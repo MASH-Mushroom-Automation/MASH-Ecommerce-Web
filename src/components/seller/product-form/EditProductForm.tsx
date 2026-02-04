@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,10 +55,26 @@ const productFormSchema = z.object({
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 interface EditProductFormProps {
-  productId: string;
+  productId?: string;
 }
 
 export function EditProductForm({ productId }: EditProductFormProps) {
+  // Support either receiving productId as a prop or reading it from the URL
+  const params = useParams();
+  const effectiveProductId = productId ?? (params?.id as string | undefined);
+
+  if (!effectiveProductId) {
+    return (
+      <div className="text-center py-12">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Product ID is missing from the URL or props.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   const router = useRouter();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -66,6 +82,8 @@ export function EditProductForm({ productId }: EditProductFormProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const {
     register,
@@ -98,7 +116,9 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/seller/products/${productId}`);
+        const response = await fetch(
+          `/api/seller/products/${effectiveProductId}`,
+        );
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error?.message || "Failed to load product");
@@ -107,24 +127,28 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         const result = await response.json();
         const product = result.data;
 
-        // Populate form with product data
+        // Populate form with product data (convert null optional fields to undefined)
         reset({
           name: product.name,
           description: product.description || "",
           category: product.category,
           price: product.price,
-          compareAtPrice: product.compareAtPrice,
+          compareAtPrice:
+            typeof product.compareAtPrice === "number"
+              ? product.compareAtPrice
+              : undefined,
           quantity: product.stock || 0,
           trackInventory: true,
           hasVariants: product.hasVariants || false,
-          sku: product.sku,
-          weight: product.weight,
-          metaTitle: product.seo?.metaTitle,
-          metaDescription: product.seo?.metaDescription,
+          sku: product.sku || undefined,
+          weight:
+            typeof product.weight === "number" ? product.weight : undefined,
+          metaTitle: product.seo?.metaTitle || undefined,
+          metaDescription: product.seo?.metaDescription || undefined,
           isAvailable: product.isAvailable !== false,
         });
 
-        // Load images
+        // Load images (handle both legacy string arrays and newer {url, assetId} objects)
         const productImages: UploadedImage[] = [];
         if (product.image) {
           productImages.push({
@@ -132,20 +156,32 @@ export function EditProductForm({ productId }: EditProductFormProps) {
             url: product.image,
             alt: product.name,
             isPrimary: true,
-            sanityAssetId: undefined, // Will be preserved if not changed
+            sanityAssetId: product.imageAssetId ?? undefined,
           });
         }
+
         if (product.images && product.images.length > 0) {
-          product.images.forEach((img: string, index: number) => {
-            productImages.push({
-              id: `existing-${index}`,
-              url: img,
-              alt: `${product.name} - Image ${index + 1}`,
-              isPrimary: false,
-              sanityAssetId: undefined,
-            });
+          product.images.forEach((img: any, index: number) => {
+            if (typeof img === "string") {
+              productImages.push({
+                id: `existing-${index}`,
+                url: img,
+                alt: `${product.name} - Image ${index + 1}`,
+                isPrimary: false,
+                sanityAssetId: undefined,
+              });
+            } else {
+              productImages.push({
+                id: `existing-${index}`,
+                url: img.url,
+                alt: `${product.name} - Image ${index + 1}`,
+                isPrimary: false,
+                sanityAssetId: img.assetId ?? undefined,
+              });
+            }
           });
         }
+
         setImages(productImages);
 
         // Load variants if any
@@ -163,10 +199,10 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       }
     }
 
-    if (productId) {
+    if (effectiveProductId) {
       loadProduct();
     }
-  }, [productId, reset]);
+  }, [effectiveProductId, reset]);
 
   const onSubmit = async (data: ProductFormValues) => {
     // Validate images
@@ -187,12 +223,14 @@ export function EditProductForm({ productId }: EditProductFormProps) {
 
     try {
       // Step 1: Upload new images that haven't been uploaded yet
-      const imagesToUpload = images.filter((img) => img.file && !img.sanityAssetId);
+      const imagesToUpload = images.filter(
+        (img) => img.file && !img.sanityAssetId,
+      );
       const uploadedImages = [...images];
 
       if (imagesToUpload.length > 0) {
         toast.loading("Uploading images...", { id: "upload-images" });
-        
+
         for (const image of imagesToUpload) {
           if (image.file) {
             try {
@@ -200,20 +238,27 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               formData.append("file", image.file);
               formData.append("alt", image.alt || "");
 
-              const uploadResponse = await fetch("/api/seller/products/upload-image", {
-                method: "POST",
-                body: formData,
-              });
+              const uploadResponse = await fetch(
+                "/api/seller/products/upload-image",
+                {
+                  method: "POST",
+                  body: formData,
+                },
+              );
 
               if (!uploadResponse.ok) {
                 const errorData = await uploadResponse.json();
-                throw new Error(errorData.error?.message || "Failed to upload image");
+                throw new Error(
+                  errorData.error?.message || "Failed to upload image",
+                );
               }
 
               const uploadData = await uploadResponse.json();
-              
+
               // Update the image with the asset ID
-              const imageIndex = uploadedImages.findIndex((img) => img.id === image.id);
+              const imageIndex = uploadedImages.findIndex(
+                (img) => img.id === image.id,
+              );
               if (imageIndex !== -1) {
                 uploadedImages[imageIndex] = {
                   ...uploadedImages[imageIndex],
@@ -226,12 +271,12 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               throw new Error(
                 `Failed to upload image ${image.file.name}: ${
                   error instanceof Error ? error.message : "Unknown error"
-                }`
+                }`,
               );
             }
           }
         }
-        
+
         toast.dismiss("upload-images");
       }
 
@@ -241,14 +286,21 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         description: data.description,
         category: data.category,
         price: data.price,
-        compareAtPrice: data.compareAtPrice,
+        // Convert nullable numeric inputs to undefined for validation
+        compareAtPrice:
+          typeof data.compareAtPrice === "number" && !isNaN(data.compareAtPrice)
+            ? data.compareAtPrice
+            : undefined,
         quantity: data.quantity,
         trackInventory: data.trackInventory,
         hasVariants: data.hasVariants,
         variants: data.hasVariants ? variants : undefined,
         images: uploadedImages,
         sku: data.sku,
-        weight: data.weight,
+        weight:
+          typeof data.weight === "number" && !isNaN(data.weight)
+            ? data.weight
+            : undefined,
         seo: {
           metaTitle: data.metaTitle,
           metaDescription: data.metaDescription,
@@ -258,14 +310,17 @@ export function EditProductForm({ productId }: EditProductFormProps) {
 
       // Step 3: Update product via API route
       toast.loading("Updating product...", { id: "update-product" });
-      
-      const response = await fetch(`/api/seller/products/${productId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+
+      const response = await fetch(
+        `/api/seller/products/${effectiveProductId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
         },
-        body: JSON.stringify(productData),
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -273,7 +328,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       }
 
       const result = await response.json();
-      
+
       toast.dismiss("update-product");
       toast.success("Product updated successfully!", {
         description: `${data.name} has been updated.`,
@@ -622,4 +677,3 @@ export function EditProductForm({ productId }: EditProductFormProps) {
     </form>
   );
 }
-

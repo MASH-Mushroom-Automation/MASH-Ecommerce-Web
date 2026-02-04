@@ -67,7 +67,7 @@ export interface ProductFormData {
 export async function uploadImageToSanity(
   file: File | Buffer,
   filename?: string,
-  contentType?: string
+  contentType?: string,
 ): Promise<SanityAsset> {
   try {
     // Get write token (server-side only)
@@ -82,13 +82,14 @@ export async function uploadImageToSanity(
 
     // Create form data with the image
     const formData = new FormData();
-    
+
     // Handle both File and Buffer
     if (file instanceof File) {
       formData.append("file", file);
     } else {
-      // Buffer from server-side
-      const blob = new Blob([file], { type: contentType || "image/jpeg" });
+      // Buffer from server-side - convert to Uint8Array for Blob compatibility
+      const uint8Array = new Uint8Array(file);
+      const blob = new Blob([uint8Array], { type: contentType || "image/jpeg" });
       formData.append("file", blob, filename || "image.jpg");
     }
 
@@ -123,12 +124,12 @@ export async function uploadImageToSanity(
 
 /**
  * Upload multiple images and return Sanity asset references
- * 
+ *
  * Note: Images should already have sanityAssetId set if uploaded via API route.
  * This function is primarily used server-side after images are uploaded.
  */
 export async function uploadProductImages(
-  images: UploadedImage[]
+  images: UploadedImage[],
 ): Promise<SanityImageAsset[]> {
   const uploadPromises = images.map(async (image) => {
     // Use existing asset ID if available (from client-side upload)
@@ -159,7 +160,7 @@ export async function uploadProductImages(
 
     // If neither asset ID nor file is available, this is an error
     throw new Error(
-      `Image "${image.id}" has no file or asset ID. Images must be uploaded first.`
+      `Image "${image.id}" has no file or asset ID. Images must be uploaded first.`,
     );
   });
 
@@ -180,7 +181,7 @@ export async function generateUniqueSlug(name: string): Promise<string> {
   // Check if slug exists
   const existingProduct = await sanityClient.fetch(
     `*[_type == "product" && slug.current == $slug][0]`,
-    { slug: baseSlug }
+    { slug: baseSlug },
   );
 
   if (!existingProduct) {
@@ -194,7 +195,7 @@ export async function generateUniqueSlug(name: string): Promise<string> {
   while (true) {
     const exists = await sanityClient.fetch(
       `*[_type == "product" && slug.current == $slug][0]`,
-      { slug: uniqueSlug }
+      { slug: uniqueSlug },
     );
 
     if (!exists) {
@@ -212,7 +213,7 @@ export async function generateUniqueSlug(name: string): Promise<string> {
 async function createProductVariant(
   productId: string,
   variant: ProductVariant,
-  productName: string
+  productName: string,
 ): Promise<string> {
   const variantDoc = {
     _type: "productVariant",
@@ -249,7 +250,7 @@ async function createProductVariant(
  */
 export async function createProduct(
   data: ProductFormData,
-  sellerId?: string
+  sellerId?: string,
 ): Promise<{ _id: string; slug: string }> {
   try {
     // Upload images
@@ -307,8 +308,8 @@ export async function createProduct(
     if (data.hasVariants && data.variants && data.variants.length > 0) {
       const variantIds = await Promise.all(
         data.variants.map((variant) =>
-          createProductVariant(product._id, variant, data.name)
-        )
+          createProductVariant(product._id, variant, data.name),
+        ),
       );
 
       // Update product with variant references
@@ -339,7 +340,7 @@ export async function createProduct(
  */
 export async function fetchProductById(
   productId: string,
-  sellerId?: string
+  sellerId?: string,
 ): Promise<{
   _id: string;
   name: string;
@@ -351,7 +352,8 @@ export async function fetchProductById(
   weight?: number;
   isAvailable?: boolean;
   mainImage?: string;
-  images?: string[];
+  mainImageAssetId?: string;
+  images?: Array<{ url: string; assetId: string }>;
   slug: string;
   sellerId?: string;
   compareAtPrice?: number;
@@ -363,12 +365,12 @@ export async function fetchProductById(
 } | null> {
   try {
     let query = `*[_type == "product" && _id == $productId`;
-    
+
     // Verify seller ownership if sellerId provided
     if (sellerId) {
       query += ` && sellerId == $sellerId`;
     }
-    
+
     query += `][0] {
       _id,
       name,
@@ -381,7 +383,8 @@ export async function fetchProductById(
       isAvailable,
       hasVariants,
       "mainImage": coalesce(mainImage.asset->url, image.asset->url),
-      "images": images[].asset->url,
+      "mainImageAssetId": coalesce(mainImage.asset->_id, image.asset->_id),
+      "images": images[]{ "url": asset->url, "assetId": asset._id },
       "category": category._ref,
       "slug": slug.current,
       sellerId,
@@ -406,14 +409,16 @@ export async function fetchProductById(
 export async function updateProduct(
   productId: string,
   data: ProductFormData,
-  sellerId?: string
+  sellerId?: string,
 ): Promise<{ _id: string; slug: string }> {
   try {
     // Verify seller ownership if sellerId provided
     if (sellerId) {
       const existingProduct = await fetchProductById(productId, sellerId);
       if (!existingProduct) {
-        throw new Error("Product not found or you don't have permission to edit it");
+        throw new Error(
+          "Product not found or you don't have permission to edit it",
+        );
       }
     }
 
@@ -459,7 +464,7 @@ export async function updateProduct(
     // Get current slug
     const product = await writeClient.fetch(
       `*[_type == "product" && _id == $id][0]{slug}`,
-      { id: productId }
+      { id: productId },
     );
 
     return {
@@ -468,7 +473,11 @@ export async function updateProduct(
     };
   } catch (error) {
     console.error("Error updating product:", error);
-    throw new Error("Failed to update product. Please try again.");
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to update product. Please try again.";
+    throw new Error(message);
   }
 }
 
@@ -529,17 +538,17 @@ export async function fetchSellerProducts(params?: {
 
   // Build GROQ query
   let query = `*[_type == "product" && !(_id in path("drafts.**"))`;
-  
+
   // Filter by seller ID if provided
   if (params?.sellerId) {
     query += ` && sellerId == $sellerId`;
   }
-  
+
   // Add search filter if provided
   if (search) {
     query += ` && (name match $search || description match $search || sku match $search)`;
   }
-  
+
   query += `] {
     _id,
     _createdAt,
@@ -570,25 +579,27 @@ export async function fetchSellerProducts(params?: {
   }
 
   // Fetch all matching products
-  const allProducts = await sanityClient.fetch<Array<{
-    _id: string;
-    _createdAt: string;
-    _updatedAt: string;
-    name: string;
-    description?: string;
-    price: number;
-    stock: number;
-    sku?: string;
-    weight?: number;
-    isAvailable?: boolean;
-    mainImage?: string;
-    images?: string[];
-    category?: {
+  const allProducts = await sanityClient.fetch<
+    Array<{
       _id: string;
+      _createdAt: string;
+      _updatedAt: string;
       name: string;
-      slug: string;
-    } | null;
-  }>>(query, queryParams);
+      description?: string;
+      price: number;
+      stock: number;
+      sku?: string;
+      weight?: number;
+      isAvailable?: boolean;
+      mainImage?: string;
+      images?: string[];
+      category?: {
+        _id: string;
+        name: string;
+        slug: string;
+      } | null;
+    }>
+  >(query, queryParams);
 
   // Transform to SellerProduct format
   const transformedProducts = allProducts.map((product) => {
@@ -601,7 +612,8 @@ export async function fetchSellerProducts(params?: {
     return {
       id: product._id,
       name: product.name,
-      image: product.mainImage || product.images?.[0] || "/placeholder-product.jpg",
+      image:
+        product.mainImage || product.images?.[0] || "/placeholder-product.jpg",
       price: product.price,
       stock: product.stock || 0,
       category: product.category?.name || "Uncategorized",
