@@ -23,10 +23,11 @@ export const useCdn = true;
 
 // Optional: Sanity API token for authenticated requests (read/write)
 // Use read token for public content, write token for admin operations
-const token = process.env.SANITY_API_READ_TOKEN;
+const readToken = process.env.SANITY_API_READ_TOKEN;
+const writeToken = process.env.SANITY_API_WRITE_TOKEN;
 
 /**
- * Create the Sanity client for published content
+ * Create the Sanity client for published content (READ-ONLY)
  * 
  * This client is used throughout the app to fetch content from Sanity.
  * It's configured with the project ID, dataset, and API version.
@@ -36,7 +37,7 @@ export const sanityClient = createClient({
   dataset,
   apiVersion,
   useCdn, // Use CDN to reduce API quota usage
-  token, // Optional: for authenticated requests
+  token: readToken, // Read token for public content
   perspective: "published", // Only fetch published content
   // Aggressive caching to avoid quota limits
   stega: {
@@ -45,6 +46,59 @@ export const sanityClient = createClient({
   // Request deduplication (prevent duplicate requests)
   resultSourceMap: false,
 });
+
+/**
+ * Create the Sanity client for WRITE operations (mutations)
+ * 
+ * This client is used for creating, updating, and deleting content.
+ * Requires SANITY_API_WRITE_TOKEN with Editor or higher permissions.
+ * 
+ * IMPORTANT: Only use this client for mutations - never for public reads.
+ * If write token is not available, falls back to read token (will fail on mutations).
+ */
+export const sanityWriteClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false, // Never use CDN for mutations
+  token: writeToken || readToken, // Prefer write token, fallback to read token
+  perspective: "published",
+  stega: {
+    enabled: false,
+  },
+  resultSourceMap: false,
+});
+
+/**
+ * Create the Sanity client for FRESH reads (bypasses CDN cache)
+ * 
+ * Use this client when you need guaranteed fresh data, such as:
+ * - Immediately after a mutation to show updated values
+ * - Real-time inventory updates
+ * - Any scenario where stale data is unacceptable
+ * 
+ * WARNING: Use sparingly - this bypasses CDN and uses more API quota.
+ */
+export const sanityFreshClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false, // Bypass CDN for fresh data
+  token: readToken,
+  perspective: "raw", // See both published and draft documents
+  stega: {
+    enabled: false,
+  },
+  resultSourceMap: false,
+});
+
+/**
+ * Check if write operations are properly configured
+ * @returns true if write token is available
+ */
+export function isWriteConfigured(): boolean {
+  return !!writeToken;
+}
 
 /**
  * Create the Sanity client for draft/preview content
@@ -57,7 +111,7 @@ export const previewClient = createClient({
   dataset,
   apiVersion,
   useCdn: false, // Don't use CDN for drafts - need real-time data
-  token, // Required for authenticated draft access
+  token: readToken, // Required for authenticated draft access
   perspective: "previewDrafts", // Show draft content
   stega: {
     enabled: true, // Enable Stega for click-to-edit in Presentation tool
