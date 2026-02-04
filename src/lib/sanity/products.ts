@@ -89,7 +89,9 @@ export async function uploadImageToSanity(
     } else {
       // Buffer from server-side - convert to Uint8Array for Blob compatibility
       const uint8Array = new Uint8Array(file);
-      const blob = new Blob([uint8Array], { type: contentType || "image/jpeg" });
+      const blob = new Blob([uint8Array], {
+        type: contentType || "image/jpeg",
+      });
       formData.append("file", blob, filename || "image.jpg");
     }
 
@@ -394,7 +396,11 @@ export async function fetchProductById(
       }
     }`;
 
-    const product = await sanityClient.fetch(query, { productId, sellerId });
+    const product = await sanityClient.fetch(
+      query,
+      { productId, sellerId },
+      { useCdn: false },
+    );
     return product || null;
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -599,7 +605,7 @@ export async function fetchSellerProducts(params?: {
         slug: string;
       } | null;
     }>
-  >(query, queryParams);
+  >(query, queryParams, { useCdn: false });
 
   // Transform to SellerProduct format
   const transformedProducts = allProducts.map((product) => {

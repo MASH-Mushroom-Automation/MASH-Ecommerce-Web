@@ -1,5 +1,6 @@
 // Custom hooks for seller data fetching
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SellerApi } from "@/lib/api/seller";
 import {
   SellerDashboardStats,
@@ -19,7 +20,9 @@ import {
 export function useSellerDashboard() {
   const [stats, setStats] = useState<SellerDashboardStats | null>(null);
   const [salesData, setSalesData] = useState<SellerSalesData[]>([]);
-  const [productPerformance, setProductPerformance] = useState<SellerProductPerformance[]>([]);
+  const [productPerformance, setProductPerformance] = useState<
+    SellerProductPerformance[]
+  >([]);
   const [recentOrders, setRecentOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,20 +32,26 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      const [statsResponse, salesResponse, performanceResponse, ordersResponse] =
-        await Promise.all([
-          SellerApi.getDashboardStats(),
-          SellerApi.getSalesData(),
-          SellerApi.getProductPerformance(),
-          SellerApi.getOrders({ limit: 5 }),
-        ]);
+      const [
+        statsResponse,
+        salesResponse,
+        performanceResponse,
+        ordersResponse,
+      ] = await Promise.all([
+        SellerApi.getDashboardStats(),
+        SellerApi.getSalesData(),
+        SellerApi.getProductPerformance(),
+        SellerApi.getOrders({ limit: 5 }),
+      ]);
 
       setStats(statsResponse.data);
       setSalesData(salesResponse.data);
       setProductPerformance(performanceResponse.data);
       setRecentOrders(ordersResponse.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch dashboard data",
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +119,7 @@ export function useSellerOrderDetail(orderId?: string) {
       setOrder(response.data);
       return response.data;
     },
-    [orderId]
+    [orderId],
   );
 
   return {
@@ -124,40 +133,159 @@ export function useSellerOrderDetail(orderId?: string) {
 
 // Products hooks
 export function useSellerProducts(
-  params: { page?: number; limit?: number; search?: string } = {}
+  params: { page?: number; limit?: number; search?: string } = {},
 ) {
-  const [products, setProducts] = useState<SellerProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<any>(null);
-
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await SellerApi.getProducts(params);
-      setProducts(response.data);
-      setPagination(response.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch products");
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.page, params.limit, params.search]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const query = useQuery({
+    queryKey: ["seller-products", params],
+    queryFn: () => SellerApi.getProducts(params),
+    staleTime: 0, // Always refetch when mounting seller products list
+  });
 
   return {
-    products,
-    loading,
-    error,
-    pagination,
-    refetch: fetchProducts,
+    products: query.data?.data || [],
+    loading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+    pagination: query.data?.pagination,
+    refetch: query.refetch,
   };
+}
+
+export function useSellerProduct(productId?: string) {
+  const query = useQuery({
+    queryKey: ["seller-product", productId],
+    queryFn: () =>
+      productId
+        ? SellerApi.getProductById(productId)
+        : Promise.resolve({ data: null, success: true }),
+    enabled: !!productId,
+    staleTime: 0, // Ensure we always have fresh data for editing
+  });
+
+  return {
+    product: query.data?.data || null,
+    loading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+    refetch: query.refetch,
+  };
+}
+
+export function useUpdateSellerProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, data }: { productId: string; data: any }) =>
+      SellerApi.updateProduct(productId, data),
+    // Optimistic updates
+    onMutate: async ({ productId, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["seller-products"] });
+      await queryClient.cancelQueries({
+        queryKey: ["seller-product", productId],
+      });
+
+      // Snapshot previous values for all matching product lists
+      const previousQueries = queryClient.getQueriesData({
+        queryKey: ["seller-products"],
+      });
+      const previousProduct = queryClient.getQueryData([
+        "seller-product",
+        productId,
+      ]);
+
+      // Optimistically update all matching product lists
+      queryClient.setQueriesData(
+        { queryKey: ["seller-products"] },
+        (old: any) => {
+          if (!old || !old.data) return old;
+
+          // Transform ProductFormData to Partial<SellerProduct> for optimistic update
+          const optimisticUpdate: any = {
+            name: data.name,
+            price: data.price,
+            stock: data.quantity,
+            description: data.description,
+            isAvailable: data.isAvailable,
+          };
+
+          // Map image
+          if (data.images && data.images.length > 0) {
+            optimisticUpdate.image = data.images[0].url;
+          }
+
+          // Map status
+          if (data.isAvailable !== undefined || data.quantity !== undefined) {
+            const isAvailable =
+              data.isAvailable !== undefined ? data.isAvailable : true;
+            const stock = data.quantity !== undefined ? data.quantity : 0;
+            optimisticUpdate.status = isAvailable
+              ? stock > 0
+                ? "Active"
+                : "Out of Stock"
+              : "Inactive";
+          }
+
+          return {
+            ...old,
+            data: old.data.map((p: any) =>
+              p.id === productId ? { ...p, ...optimisticUpdate } : p,
+            ),
+          };
+        },
+      );
+
+      if (previousProduct) {
+        queryClient.setQueryData(["seller-product", productId], (old: any) => {
+          if (!old || !old.data) return old;
+
+          // Transform ProductFormData to Partial<SellerProduct>
+          const optimisticUpdate: any = {
+            name: data.name,
+            price: data.price,
+            stock: data.quantity,
+            description: data.description,
+            isAvailable: data.isAvailable,
+            sku: data.sku,
+            weight: data.weight,
+            compareAtPrice: data.compareAtPrice,
+            hasVariants: data.hasVariants,
+            variants: data.variants,
+            images: data.images,
+            seo: data.seo,
+          };
+
+          return {
+            ...old,
+            data: { ...old.data, ...optimisticUpdate },
+          };
+        });
+      }
+
+      return { previousQueries, previousProduct };
+    },
+    // If mutation fails, use context returned from onMutate to roll back
+    onError: (err, variables, context) => {
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, oldData]) => {
+          queryClient.setQueryData(queryKey, oldData);
+        });
+      }
+      if (context?.previousProduct) {
+        queryClient.setQueryData(
+          ["seller-product", variables.productId],
+          context.previousProduct,
+        );
+      }
+    },
+    // Always refetch after error or success
+    onSettled: (data, error, variables) => {
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["seller-products"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["seller-product", variables.productId],
+        }),
+      ]);
+    },
+  });
 }
 
 // Orders hooks
@@ -167,7 +295,7 @@ export function useSellerOrders(
     limit?: number;
     status?: string;
     search?: string;
-  } = {}
+  } = {},
 ) {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,7 +338,7 @@ export function useSellerRefunds(
     limit?: number;
     status?: string;
     search?: string;
-  } = {}
+  } = {},
 ) {
   const [refunds, setRefunds] = useState<SellerRefund[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,7 +389,7 @@ export function useSellerNotifications() {
       setNotifications(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch notifications"
+        err instanceof Error ? err.message : "Failed to fetch notifications",
       );
       setNotifications([]);
     } finally {
@@ -276,8 +404,8 @@ export function useSellerNotifications() {
         prev.map((notification) =>
           notification.id === id
             ? { ...notification, isRead: true }
-            : notification
-        )
+            : notification,
+        ),
       );
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
@@ -312,7 +440,7 @@ export function useSellerAddresses() {
       setAddresses(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch addresses"
+        err instanceof Error ? err.message : "Failed to fetch addresses",
       );
       setAddresses([]);
     } finally {
@@ -328,11 +456,11 @@ export function useSellerAddresses() {
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to create address"
+          err instanceof Error ? err.message : "Failed to create address",
         );
       }
     },
-    []
+    [],
   );
 
   const updateAddress = useCallback(
@@ -340,16 +468,16 @@ export function useSellerAddresses() {
       try {
         const response = await SellerApi.updateAddress(id, address);
         setAddresses((prev) =>
-          prev.map((addr) => (addr.id === id ? response.data : addr))
+          prev.map((addr) => (addr.id === id ? response.data : addr)),
         );
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to update address"
+          err instanceof Error ? err.message : "Failed to update address",
         );
       }
     },
-    []
+    [],
   );
 
   const deleteAddress = useCallback(async (id: string) => {
@@ -358,7 +486,7 @@ export function useSellerAddresses() {
       setAddresses((prev) => prev.filter((addr) => addr.id !== id));
     } catch (err) {
       throw new Error(
-        err instanceof Error ? err.message : "Failed to delete address"
+        err instanceof Error ? err.message : "Failed to delete address",
       );
     }
   }, []);

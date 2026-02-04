@@ -69,10 +69,7 @@ const statusDescriptions: Record<SellerOrderStatus, string> = {
   REFUNDED: "Order was refunded",
 };
 
-const createTimelineEntry = (
-  status: SellerOrderStatus,
-  date: string
-) => ({
+const createTimelineEntry = (status: SellerOrderStatus, date: string) => ({
   status,
   date,
   description: statusDescriptions[status],
@@ -91,8 +88,20 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
         "123 Main Street, Barangay San Antonio, Quezon City, Metro Manila 1105",
     },
     items: [
-      { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
-      { id: "P-205", name: "Oyster Mushroom Growing Kit", quantity: 1, price: 150, total: 150 },
+      {
+        id: "P-101",
+        name: "Fresh Shiitake Mushrooms",
+        quantity: 2,
+        price: 150,
+        total: 300,
+      },
+      {
+        id: "P-205",
+        name: "Oyster Mushroom Growing Kit",
+        quantity: 1,
+        price: 150,
+        total: 150,
+      },
     ],
     coordination: {
       method: "Meet-up",
@@ -114,9 +123,7 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       total: 450,
     },
     notes: "Buyer prefers morning pickup and will message before arrival.",
-    timeline: [
-      createTimelineEntry("PENDING", "2025-10-20 10:30 AM"),
-    ],
+    timeline: [createTimelineEntry("PENDING", "2025-10-20 10:30 AM")],
     createdAt: "2025-10-20T10:30:00Z",
     updatedAt: "2025-10-20T10:30:00Z",
   },
@@ -131,8 +138,20 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       address: "45 Riverside Drive, Marikina City, Metro Manila",
     },
     items: [
-      { id: "P-111", name: "Pink Oyster Mushrooms", quantity: 1, price: 180, total: 180 },
-      { id: "P-130", name: "Dried Lion's Mane", quantity: 1, price: 100, total: 100 },
+      {
+        id: "P-111",
+        name: "Pink Oyster Mushrooms",
+        quantity: 1,
+        price: 180,
+        total: 180,
+      },
+      {
+        id: "P-130",
+        name: "Dried Lion's Mane",
+        quantity: 1,
+        price: 100,
+        total: 100,
+      },
     ],
     coordination: {
       method: "Courier arranged by seller",
@@ -170,12 +189,17 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       address: "78 Green Avenue, Makati City, Metro Manila",
     },
     items: [
-      { id: "P-160", name: "Reishi Powder", quantity: 1, price: 150, total: 150 },
+      {
+        id: "P-160",
+        name: "Reishi Powder",
+        quantity: 1,
+        price: 150,
+        total: 150,
+      },
     ],
     coordination: {
       method: "Meet-up",
-      location: "Makati Central Square"
-        + ", Ground floor lobby",
+      location: "Makati Central Square" + ", Ground floor lobby",
       preferredDate: "2025-10-19",
       preferredTime: "6:00 PM",
       contactPerson: "Mike Johnson",
@@ -211,8 +235,20 @@ const MOCK_SELLER_ORDER_DETAILS: Record<string, SellerOrderDetail> = {
       address: "12 Sunrise Street, Pasig City, Metro Manila",
     },
     items: [
-      { id: "P-101", name: "Fresh Shiitake Mushrooms", quantity: 2, price: 150, total: 300 },
-      { id: "P-220", name: "Mushroom Jerky", quantity: 2, price: 110, total: 220 },
+      {
+        id: "P-101",
+        name: "Fresh Shiitake Mushrooms",
+        quantity: 2,
+        price: 150,
+        total: 300,
+      },
+      {
+        id: "P-220",
+        name: "Mushroom Jerky",
+        quantity: 2,
+        price: 110,
+        total: 220,
+      },
     ],
     coordination: {
       method: "Courier arranged by buyer",
@@ -278,7 +314,7 @@ const MOCK_SELLER_REFUNDS: SellerRefund[] = [
     customer: "Sarah Williams",
     amount: 150,
     reason: "Damaged product",
-    status: "Pending",  // Note: SellerRefund has its own status enum separate from OrderStatus
+    status: "Pending", // Note: SellerRefund has its own status enum separate from OrderStatus
   },
 ];
 
@@ -381,14 +417,14 @@ export class SellerApi {
 
   // Products
   static async getProducts(
-    params: { page?: number; limit?: number; search?: string } = {}
+    params: { page?: number; limit?: number; search?: string } = {},
   ): Promise<ApiResponse<SellerProduct[]>> {
     try {
       // Import Sanity function dynamically to avoid circular dependencies
       const { fetchSellerProducts } = await import("@/lib/sanity/products");
-      
+
       const result = await fetchSellerProducts(params);
-      
+
       return {
         data: result.products,
         success: true,
@@ -403,7 +439,7 @@ export class SellerApi {
 
       if (params.search) {
         filteredProducts = filteredProducts.filter((p) =>
-          p.name.toLowerCase().includes(params.search!.toLowerCase())
+          p.name.toLowerCase().includes(params.search!.toLowerCase()),
         );
       }
 
@@ -427,17 +463,29 @@ export class SellerApi {
   }
 
   static async getProductById(
-    id: string
+    id: string,
   ): Promise<ApiResponse<SellerProduct | null>> {
-    await delay(200);
-
-    const product = MOCK_SELLER_PRODUCTS.find((p) => p.id === id);
-
-    return {
-      data: product || null,
-      success: !!product,
-      message: product ? undefined : "Product not found",
-    };
+    try {
+      const response = await fetch(`/api/seller/products/${id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch product");
+      }
+      const result = await response.json();
+      return {
+        data: result.data,
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error fetching product by ID:", error);
+      // Fallback to mock data if API fails
+      await delay(200);
+      const product = MOCK_SELLER_PRODUCTS.find((p) => p.id === id);
+      return {
+        data: product || null,
+        success: !!product,
+        message: product ? undefined : "Product not found",
+      };
+    }
   }
 
   // Orders
@@ -447,7 +495,7 @@ export class SellerApi {
       limit?: number;
       status?: string;
       search?: string;
-    } = {}
+    } = {},
   ): Promise<ApiResponse<SellerOrder[]>> {
     await delay(300);
 
@@ -461,7 +509,7 @@ export class SellerApi {
       filteredOrders = filteredOrders.filter(
         (o) =>
           o.customer.toLowerCase().includes(params.search!.toLowerCase()) ||
-          o.id.toLowerCase().includes(params.search!.toLowerCase())
+          o.id.toLowerCase().includes(params.search!.toLowerCase()),
       );
     }
 
@@ -484,7 +532,7 @@ export class SellerApi {
   }
 
   static async getOrderById(
-    id: string
+    id: string,
   ): Promise<ApiResponse<SellerOrderDetail | null>> {
     await delay(250);
 
@@ -499,7 +547,7 @@ export class SellerApi {
 
   static async updateOrderStatus(
     id: string,
-    status: SellerOrderStatus
+    status: SellerOrderStatus,
   ): Promise<ApiResponse<SellerOrderDetail | null>> {
     await delay(350);
 
@@ -537,7 +585,7 @@ export class SellerApi {
       limit?: number;
       status?: string;
       search?: string;
-    } = {}
+    } = {},
   ): Promise<ApiResponse<SellerRefund[]>> {
     await delay(300);
 
@@ -545,7 +593,7 @@ export class SellerApi {
 
     if (params.status) {
       filteredRefunds = filteredRefunds.filter(
-        (r) => r.status === params.status
+        (r) => r.status === params.status,
       );
     }
 
@@ -553,7 +601,7 @@ export class SellerApi {
       filteredRefunds = filteredRefunds.filter(
         (r) =>
           r.customer.toLowerCase().includes(params.search!.toLowerCase()) ||
-          r.id.toLowerCase().includes(params.search!.toLowerCase())
+          r.id.toLowerCase().includes(params.search!.toLowerCase()),
       );
     }
 
@@ -586,7 +634,7 @@ export class SellerApi {
   }
 
   static async markNotificationAsRead(
-    id: string
+    id: string,
   ): Promise<ApiResponse<boolean>> {
     await delay(100);
 
@@ -607,7 +655,7 @@ export class SellerApi {
   }
 
   static async createAddress(
-    address: Omit<SellerAddress, "id">
+    address: Omit<SellerAddress, "id">,
   ): Promise<ApiResponse<SellerAddress>> {
     await delay(300);
 
@@ -624,7 +672,7 @@ export class SellerApi {
 
   static async updateAddress(
     id: string,
-    address: Partial<SellerAddress>
+    address: Partial<SellerAddress>,
   ): Promise<ApiResponse<SellerAddress>> {
     await delay(300);
 
@@ -657,31 +705,31 @@ export class SellerApi {
   // Update product
   static async updateProduct(
     productId: string,
-    productData: Partial<SellerProduct>
+    productData: any,
   ): Promise<ApiResponse<SellerProduct>> {
-    await delay(500);
+    try {
+      const response = await fetch(`/api/seller/products/${productId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
 
-    // In a real application, you would make an API call to update the product
-    // For now, we'll just simulate the update
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to update product");
+      }
 
-    const updatedProduct: SellerProduct = {
-      id: productId,
-      name: productData.name || "Updated Product",
-      description: productData.description || "Updated description",
-      category: productData.category || "Fresh Mushroom",
-      price: productData.price || 0,
-      stock: productData.stock || 0,
-      status: productData.status || "Active",
-      image: productData.image || "/placeholder.png",
-      weight: productData.weight || "500g",
-      createdAt: "2025-01-15",
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-
-    return {
-      data: updatedProduct,
-      success: true,
-    };
+      const result = await response.json();
+      return {
+        data: result.data,
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error updating product:", error);
+      throw error;
+    }
   }
 
   // Delete product
