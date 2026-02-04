@@ -394,6 +394,16 @@ export async function fetchProductById(
   sellerId?: string;
   compareAtPrice?: number;
   hasVariants?: boolean;
+  variants?: Array<{
+    _id: string;
+    variantType?: string;
+    variantValue?: string;
+    sku?: string;
+    price?: number;
+    compareAtPrice?: number;
+    quantityInStock?: number;
+    isAvailable?: boolean;
+  }>;
   seo?: {
     metaTitle?: string;
     metaDescription?: string;
@@ -421,6 +431,7 @@ export async function fetchProductById(
       "mainImage": coalesce(mainImage.asset->url, image.asset->url),
       "mainImageAssetId": coalesce(mainImage.asset->_id, image.asset->_id),
       "images": images[]{ "url": asset->url, "assetId": asset._ref },
+      "variants": variants[]->{ _id, variantType, variantValue, sku, price, compareAtPrice, "quantityInStock": inventory.quantityInStock, isAvailable },
       "category": category._ref,
       "slug": slug.current,
       sellerId,
@@ -691,6 +702,46 @@ export async function updateProduct(
         },
       }),
     });
+
+    // Handle variants: create new variant documents for submitted variants and attach references
+    if (data.hasVariants) {
+      if (data.variants && data.variants.length > 0) {
+        try {
+          const variantIds = await Promise.all(
+            data.variants.map((variant) =>
+              createProductVariant(
+                productId,
+                variant as ProductVariant,
+                data.name,
+              ),
+            ),
+          );
+
+          // Set variant references on the product (preserve order)
+          patch.set({
+            variants: variantIds.map((id) => ({
+              _type: "reference",
+              _ref: id,
+              _key: id,
+            })),
+          });
+        } catch (err) {
+          console.error("Failed to create product variants:", err);
+          // Proceed without blocking the product update; variants may be retried separately
+        }
+      } else {
+        // If variants are enabled but none provided, ensure product has an empty variants array
+        patch.set({ variants: [] });
+      }
+    } else {
+      // If variants disabled, remove references from the product
+      try {
+        patch.unset(["variants"] as any);
+      } catch (err) {
+        // Some Sanity clients may not support unset on empty paths; ignore errors
+        console.warn("Failed to unset variants field:", err);
+      }
+    }
 
     await patch.commit();
 

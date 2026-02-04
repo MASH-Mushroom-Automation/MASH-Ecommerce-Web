@@ -107,6 +107,18 @@ export async function GET(
     const mainImageAssetId =
       product.mainImageAssetId || product.images?.[0]?.assetId;
 
+    // Map variants to client-friendly shape
+    const mappedVariants = (product.variants || []).map((v: any) => ({
+      id: v._id,
+      type: v.variantType || "Size",
+      value: v.variantValue || "",
+      sku: v.sku || "",
+      price: v.price || 0,
+      compareAtPrice: v.compareAtPrice,
+      quantityInStock: v.quantityInStock ?? v.inventory?.quantityInStock ?? 0,
+      isAvailable: v.isAvailable ?? true,
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -121,6 +133,7 @@ export async function GET(
         weight: product.weight,
         isAvailable: product.isAvailable,
         hasVariants: product.hasVariants,
+        variants: mappedVariants,
         image: mainImageUrl,
         imageAssetId: mainImageAssetId,
         images: product.images || [],
