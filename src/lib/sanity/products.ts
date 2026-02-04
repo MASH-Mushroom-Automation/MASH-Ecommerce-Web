@@ -147,7 +147,6 @@ export async function uploadProductImages(
     }
 
     // Upload new image if file is available (server-side direct upload)
-    // Note: This path is mainly for server-side scripts, not the web form
     if (image.file) {
       const asset = await uploadImageToSanity(image.file);
       return {
@@ -160,13 +159,45 @@ export async function uploadProductImages(
       };
     }
 
-    // If neither asset ID nor file is available, this is an error
-    throw new Error(
-      `Image "${image.id}" has no file or asset ID. Images must be uploaded first.`,
+    // If URL is provided but no asset ID, fetch the remote image and upload to Sanity
+    if (image.url) {
+      try {
+        const res = await fetch(image.url);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch remote image: ${res.status}`);
+        }
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const filename = image.url.split("/").pop() || "image.jpg";
+        const contentType = res.headers.get("content-type") || undefined;
+
+        const asset = await uploadImageToSanity(buffer, filename, contentType);
+
+        return {
+          _type: "image" as const,
+          asset: {
+            _type: "reference" as const,
+            _ref: asset._id,
+          },
+          alt: image.alt || "",
+        };
+      } catch (err) {
+        console.error("Failed to import remote image:", err);
+        // Do not throw here; return null to indicate failure and allow caller to continue
+        return null as unknown as SanityImageAsset;
+      }
+    }
+
+    // If neither asset ID, file, nor url is available, return null
+    console.error(
+      `Image "${image.id}" has no file, asset ID, or url. Skipping image.`,
     );
+    return null as unknown as SanityImageAsset;
   });
 
-  return Promise.all(uploadPromises);
+  const results = await Promise.all(uploadPromises);
+  // Filter out failed (null) uploads
+  return results.filter(Boolean) as SanityImageAsset[];
 }
 
 /**
@@ -271,12 +302,15 @@ export async function createProduct(
         current: slug,
       },
       description: data.description,
-      image: primaryImage,
-      images: additionalImages,
+      ...(uploadedImages.length > 0 && {
+        image: primaryImage,
+        images: additionalImages,
+      }),
       category: {
         _type: "reference",
         _ref: data.category,
       },
+
       price: data.price,
       quantity: data.quantity,
       inventory: {
@@ -416,7 +450,7 @@ export async function updateProduct(
   productId: string,
   data: ProductFormData,
   sellerId?: string,
-): Promise<{ _id: string; slug: string }> {
+): Promise<{ _id: string; slug: string; warnings?: string[] }> {
   try {
     // Verify seller ownership if sellerId provided
     if (sellerId) {
@@ -428,9 +462,202 @@ export async function updateProduct(
       }
     }
 
-    // Upload new images if any
-    const uploadedImages = await uploadProductImages(data.images);
-    const [primaryImage, ...additionalImages] = uploadedImages;
+    // Determine final image assets (tolerant import)
+    // Strategy:
+    // 1) Use provided sanityAssetId if available
+    // 2) Match incoming URLs to existing product images to reuse asset IDs
+    // 3) Upload provided files
+    // 4) Attempt to import remote URLs; on failure, continue and preserve existing images
+
+    const existing = await fetchProductById(productId, sellerId);
+
+    // Quick reorder-only optimization: if no files are provided and all incoming URLs match existing images,
+    // map incoming URLs to existing asset IDs and skip network operations.
+    const incomingUrls = (data.images || []).map((i) => i.url).filter(Boolean);
+    const hasFiles = (data.images || []).some((i) => !!i.file);
+
+    const finalAssets: Array<{
+      _type: "image";
+      asset: { _type: "reference"; _ref: string };
+    }> = [];
+    const failedImports: string[] = [];
+    let reorderOnlyOptimizationApplied = false;
+
+    // Track already-added asset refs to prevent duplicates
+    const addedAssetRefs = new Set<string>();
+
+    // Helper to add asset to finalAssets with deduplication
+    const addAsset = (assetRef: string): boolean => {
+      if (addedAssetRefs.has(assetRef)) {
+        return false; // Already added, skip
+      }
+      addedAssetRefs.add(assetRef);
+      finalAssets.push({
+        _type: "image" as const,
+        asset: { _type: "reference" as const, _ref: assetRef },
+      });
+      return true;
+    };
+
+    // Quick reorder-only optimization: if no files are provided and all incoming URLs match existing images,
+    // map incoming URLs to existing asset IDs and skip network operations entirely.
+    if (existing && !hasFiles && incomingUrls.length > 0) {
+      const urlToAsset = new Map<string, string>();
+      if (existing.mainImage && existing.mainImageAssetId) {
+        urlToAsset.set(existing.mainImage, existing.mainImageAssetId);
+      }
+      if (existing.images) {
+        for (const e of existing.images) {
+          if (e.url && e.assetId) urlToAsset.set(e.url, e.assetId);
+        }
+      }
+
+      const allMatch = incomingUrls.every((url) => urlToAsset.has(url));
+      if (allMatch) {
+        for (const img of data.images || []) {
+          if (img.sanityAssetId) {
+            addAsset(img.sanityAssetId);
+          } else if (img.url) {
+            const aid = urlToAsset.get(img.url);
+            if (aid) {
+              addAsset(aid);
+            }
+          }
+        }
+        reorderOnlyOptimizationApplied = true;
+      }
+    }
+
+    // Only process images individually if the reorder optimization wasn't applied
+    for (const img of data.images || []) {
+      // Skip per-image processing if reorder optimization already handled all images
+      if (reorderOnlyOptimizationApplied) {
+        break;
+      }
+      // 1) Asset ID already provided
+      if (img.sanityAssetId) {
+        addAsset(img.sanityAssetId);
+        continue;
+      }
+
+      // 2) Try to match with existing product images by URL
+      let matchedAssetId: string | undefined;
+      if (existing) {
+        if (
+          existing.mainImage &&
+          img.url &&
+          existing.mainImage === img.url &&
+          existing.mainImageAssetId
+        ) {
+          matchedAssetId = existing.mainImageAssetId;
+        }
+        if (!matchedAssetId && existing.images && img.url) {
+          const match = existing.images.find(
+            (e) => e.url === img.url && e.assetId,
+          );
+          if (match) matchedAssetId = match.assetId;
+        }
+      }
+
+      if (matchedAssetId) {
+        addAsset(matchedAssetId);
+        continue;
+      }
+
+      // 3) Upload file if provided
+      if (img.file) {
+        try {
+          const asset = await uploadImageToSanity(img.file);
+          addAsset(asset._id);
+          continue;
+        } catch (err) {
+          console.error("Failed to upload image file:", err);
+          failedImports.push(img.id);
+          continue;
+        }
+      }
+
+      // 4) Attempt to import remote URL; tolerate failure
+      if (img.url) {
+        try {
+          const res = await fetch(img.url);
+          if (!res.ok)
+            throw new Error(`Failed to fetch remote image: ${res.status}`);
+          const arrayBuffer = await res.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const filename = img.url.split("/").pop() || "image.jpg";
+          const contentType = res.headers.get("content-type") || undefined;
+
+          const asset = await uploadImageToSanity(
+            buffer,
+            filename,
+            contentType,
+          );
+          addAsset(asset._id);
+          continue;
+        } catch (err) {
+          console.error("Failed to import remote image:", err);
+          // Don't throw - record failure and continue
+          failedImports.push(img.id);
+          continue;
+        }
+      }
+
+      // If nothing matched, record failure (but keep going)
+      failedImports.push(img.id);
+    }
+
+    // If some imports failed, preserve any existing images not already included
+    if (failedImports.length > 0 && existing) {
+      // Use the already-tracked addedAssetRefs set for deduplication
+
+      // Add main image if not included
+      if (
+        existing.mainImageAssetId &&
+        !addedAssetRefs.has(existing.mainImageAssetId)
+      ) {
+        addedAssetRefs.add(existing.mainImageAssetId);
+        finalAssets.unshift({
+          _type: "image",
+          asset: { _type: "reference", _ref: existing.mainImageAssetId },
+        });
+      }
+
+      // Add other existing images (preserve order)
+      if (existing.images && existing.images.length > 0) {
+        for (const e of existing.images) {
+          if (e.assetId && !addedAssetRefs.has(e.assetId)) {
+            addedAssetRefs.add(e.assetId);
+            finalAssets.push({
+              _type: "image",
+              asset: { _type: "reference", _ref: e.assetId },
+            });
+          }
+        }
+      }
+    }
+
+    // Fallback: if finalAssets is empty but existing had images, reuse them
+    if (finalAssets.length === 0 && existing) {
+      if (existing.mainImageAssetId) {
+        finalAssets.push({
+          _type: "image",
+          asset: { _type: "reference", _ref: existing.mainImageAssetId },
+        });
+      }
+      if (existing.images && existing.images.length > 0) {
+        for (const e of existing.images) {
+          if (e.assetId) {
+            finalAssets.push({
+              _type: "image",
+              asset: { _type: "reference", _ref: e.assetId },
+            });
+          }
+        }
+      }
+    }
+
+    const [primaryImage, ...additionalImages] = finalAssets;
 
     // Update product using write client
     const writeClient = getWriteClient();
@@ -476,6 +703,7 @@ export async function updateProduct(
     return {
       _id: productId,
       slug: product?.slug?.current || "",
+      warnings: failedImports.length > 0 ? failedImports : undefined,
     };
   } catch (error) {
     console.error("Error updating product:", error);
