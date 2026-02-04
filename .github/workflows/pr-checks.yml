@@ -1,0 +1,508 @@
+name: PR Checks - Unified Quality Gates
+
+on:
+  pull_request:
+    branches: [main, develop, TESTING-&-SECURITY]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch: # Allow manual trigger
+
+# Cancel previous runs if a new commit is pushed
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: production
+
+jobs:
+  # ============================================
+  # Job 1: Setup & Cache Dependencies
+  # ============================================
+  setup:
+    name: Setup & Cache
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better analysis
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+      
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      
+      - name: Verify installation
+        run: |
+          echo "✅ Node version: $(node -v)"
+          echo "✅ NPM version: $(npm -v)"
+          echo "✅ Dependencies installed: $(ls node_modules | wc -l) packages"
+
+  # ============================================
+  # Job 2: Lint & Format Check
+  # ============================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Run ESLint
+        run: npm run lint
+      
+      - name: Annotate lint errors
+        if: failure()
+        run: |
+          echo "::error::ESLint checks failed. Run 'npm run lint' locally to fix."
+          exit 1
+
+  # ============================================
+  # Job 3: TypeScript Type Check
+  # ============================================
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Check TypeScript configuration
+        run: |
+          echo "📋 Checking next.config.js for ignoreBuildErrors..."
+          if grep -q "ignoreBuildErrors: true" next.config.js; then
+            echo "⚠️ WARNING: ignoreBuildErrors is enabled"
+            echo "::warning::Build has ignoreBuildErrors enabled - TypeScript errors may be hidden"
+          else
+            echo "✅ TypeScript strict mode enabled"
+          fi
+      
+      - name: Run TypeScript compiler
+        run: npx tsc --noEmit --pretty
+      
+      - name: Annotate type errors
+        if: failure()
+        run: |
+          echo "::error::TypeScript type checking failed. Run 'npx tsc --noEmit' locally to see errors."
+          exit 1
+
+  # ============================================
+  # Job 4: Unit Tests with Coverage
+  # ============================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Run unit tests with coverage
+        run: npm test -- --coverage --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/
+        env:
+          CI: true
+      
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(node -e "
+            try {
+              const coverage = require('./coverage/coverage-summary.json');
+              const total = coverage.total;
+              const avgCoverage = (total.lines.pct + total.statements.pct + total.functions.pct + total.branches.pct) / 4;
+              console.log(avgCoverage.toFixed(2));
+            } catch(e) {
+              console.log('0');
+            }
+          ")
+          echo "📊 Test Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "::error::Test coverage ($COVERAGE%) is below 80% threshold"
+            exit 1
+          fi
+          echo "✅ Test coverage meets 80%+ threshold"
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-pr-${{ github.event.pull_request.number }}
+          fail_ci_if_error: false
+      
+      - name: Comment coverage on PR
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lcov-file: ./coverage/lcov.info
+          delete-old-comments: true
+
+  # ============================================
+  # Job 5: Production Build Validation
+  # ============================================
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Restore Next.js cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+      
+      - name: Build Next.js application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
+          NEXT_PUBLIC_SANITY_API_VERSION: ${{ secrets.NEXT_PUBLIC_SANITY_API_VERSION }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      
+      - name: Verify build output
+        run: |
+          echo "📦 Checking build output..."
+          if [ ! -d ".next" ]; then
+            echo "::error::.next directory not found"
+            exit 1
+          fi
+          
+          if [ ! -f ".next/BUILD_ID" ]; then
+            echo "::error::BUILD_ID file not found"
+            exit 1
+          fi
+          
+          BUILD_SIZE=$(du -sh .next | cut -f1)
+          echo "📊 Build size: $BUILD_SIZE"
+          echo "✅ Build completed successfully"
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next
+          retention-days: 7
+
+  # ============================================
+  # Job 6: E2E Tests with Playwright
+  # ============================================
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          NEXT_PUBLIC_ENABLE_API_LOGGING: 'false'
+      
+      - name: Upload Playwright report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      
+      - name: Upload test screenshots (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: e2e/screenshots/
+          retention-days: 7
+
+  # ============================================
+  # Job 7: Security Scanning
+  # ============================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      
+      - name: Run npm audit
+        run: |
+          echo "🔒 Running security audit..."
+          npm audit --audit-level=moderate --production || {
+            echo "::warning::Security vulnerabilities found. Review npm audit output."
+            # Don't fail on moderate issues, only critical/high
+            npm audit --audit-level=high --production
+          }
+      
+      - name: Check for known vulnerabilities
+        run: |
+          CRITICAL=$(npm audit --json | jq '.metadata.vulnerabilities.critical // 0')
+          HIGH=$(npm audit --json | jq '.metadata.vulnerabilities.high // 0')
+          
+          echo "🔍 Security Summary:"
+          echo "  Critical: $CRITICAL"
+          echo "  High: $HIGH"
+          
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical and $HIGH high vulnerabilities"
+            exit 1
+          fi
+          
+          echo "✅ No critical or high vulnerabilities found"
+
+  # ============================================
+  # Job 8: Bundle Size Analysis
+  # ============================================
+  bundle-analysis:
+    name: Bundle Size
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next
+      
+      - name: Analyze bundle size
+        run: |
+          echo "📦 Analyzing bundle size..."
+          
+          # Check if .next directory exists
+          if [ ! -d ".next" ]; then
+            echo "::error::.next directory not found"
+            exit 1
+          fi
+          
+          # Calculate total build size
+          TOTAL_SIZE=$(du -sh .next | cut -f1)
+          STATIC_SIZE=$(du -sh .next/static 2>/dev/null | cut -f1 || echo "N/A")
+          
+          echo "📊 Bundle Size Report:"
+          echo "  Total: $TOTAL_SIZE"
+          echo "  Static: $STATIC_SIZE"
+          
+          # List largest chunks
+          echo ""
+          echo "🔍 Largest chunks:"
+          find .next -name "*.js" -type f -exec du -h {} + | sort -hr | head -10
+          
+          # Warning if build is too large (adjust threshold as needed)
+          TOTAL_MB=$(du -sm .next | cut -f1)
+          if [ "$TOTAL_MB" -gt 200 ]; then
+            echo "::warning::Build size ($TOTAL_SIZE) exceeds 200MB threshold"
+          else
+            echo "✅ Build size is within acceptable range"
+          fi
+
+  # ============================================
+  # Final: Summary Report
+  # ============================================
+  pr-check-summary:
+    name: PR Check Summary
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, e2e, security, bundle-analysis]
+    if: always()
+    
+    steps:
+      - name: Check job results
+        run: |
+          echo "📋 PR Check Results:"
+          echo "  Lint: ${{ needs.lint.result }}"
+          echo "  TypeCheck: ${{ needs.typecheck.result }}"
+          echo "  Tests: ${{ needs.test.result }}"
+          echo "  Build: ${{ needs.build.result }}"
+          echo "  E2E: ${{ needs.e2e.result }}"
+          echo "  Security: ${{ needs.security.result }}"
+          echo "  Bundle: ${{ needs.bundle-analysis.result }}"
+          
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.typecheck.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.build.result }}" != "success" ]] || \
+             [[ "${{ needs.e2e.result }}" != "success" ]] || \
+             [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "::error::One or more PR checks failed"
+            exit 1
+          fi
+          
+          echo "✅ All PR checks passed!"
+      
+      - name: Comment summary on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const summary = `
+            ## ✅ PR Checks Passed
+            
+            All quality gates have been validated:
+            - ✅ Lint & Format
+            - ✅ TypeScript Check
+            - ✅ Unit Tests (80%+ coverage)
+            - ✅ Production Build
+            - ✅ E2E Tests
+            - ✅ Security Scan
+            - ✅ Bundle Size Analysis
+            
+            **Ready for review!** 🚀
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

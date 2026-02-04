@@ -1,0 +1,103 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - development
+
+env:
+  NODE_ENV: production
+
+jobs:
+  # ============================================
+  # Pre-Deployment Validation
+  # ============================================
+  pre-deploy:
+    name: Pre-Deployment Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run lint
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm test -- --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/
+        env:
+          CI: true
+      
+      - name: Build production bundle
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
+          NEXT_PUBLIC_SANITY_API_VERSION: ${{ secrets.NEXT_PUBLIC_SANITY_API_VERSION }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      
+      - name: Report deployment readiness
+        run: |
+          echo "✅ All pre-deployment checks passed"
+          echo "📦 Build artifact ready for Railway deployment"
+          echo "🚀 Railway will auto-deploy from GitHub integration"
+
+  # ============================================
+  # Deployment Status Check
+  # ============================================
+  check-deployment:
+    name: Monitor Railway Deployment
+    runs-on: ubuntu-latest
+    needs: pre-deploy
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+      - name: Deployment info
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "🚀 Deploying to PRODUCTION"
+            echo "   → https://www.mashmarket.app"
+            echo "   → https://zen.mashmarket.app (Admin)"
+          else
+            echo "🚀 Deploying to DEVELOPMENT"
+            echo "   → https://beta.mashmarket.app"
+          fi
+          
+          echo ""
+          echo "Railway will automatically deploy via GitHub integration"
+          echo "Monitor deployment at: https://railway.app/dashboard"
+      
+      - name: Wait for Railway deployment
+        run: |
+          echo "⏳ Waiting for Railway to complete deployment..."
+          echo "This is handled by Railway's GitHub integration"
+          echo "Check Railway dashboard for deployment status"
+
+# Note: Railway deployment is triggered automatically via GitHub integration
+# This workflow validates the code before Railway attempts deployment

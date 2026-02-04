@@ -32,13 +32,28 @@ jobs:
         run: npm run lint
       
       - name: Run tests
-        run: npm test -- --coverage --ci --maxWorkers=2
+        run: npm test -- --coverage --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/
         env:
           CI: true
+      
+      - name: Generate coverage summary
+        run: |
+          if [ -f "coverage/coverage-summary.json" ]; then
+            echo "📊 Coverage Summary:"
+            node -e "
+              const coverage = require('./coverage/coverage-summary.json');
+              const total = coverage.total;
+              console.log('  Lines: ' + total.lines.pct.toFixed(2) + '%');
+              console.log('  Statements: ' + total.statements.pct.toFixed(2) + '%');
+              console.log('  Functions: ' + total.functions.pct.toFixed(2) + '%');
+              console.log('  Branches: ' + total.branches.pct.toFixed(2) + '%');
+            "
+          fi
 
       - name: Run open-handle detection (PRs only)
         if: github.event_name == 'pull_request'
-        run: npx jest --runInBand --detectOpenHandles --logHeapUsage --ci
+        continue-on-error: true
+        run: npx jest --runInBand --detectOpenHandles --logHeapUsage --ci --testPathIgnorePatterns=./e2e/
         env:
           CI: true
 

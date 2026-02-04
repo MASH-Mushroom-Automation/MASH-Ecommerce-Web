@@ -30,8 +30,17 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
         env:
-          # Ensure CI-safe env vars if needed
+          CI: true
           NEXT_PUBLIC_ENABLE_API_LOGGING: 'false'
+      
+      - name: Generate test report summary
+        if: always()
+        run: |
+          echo "🎭 Playwright Test Results:"
+          if [ -f "playwright-report/index.html" ]; then
+            echo "  Report generated: playwright-report/index.html"
+          fi
+          echo "  Check artifacts for detailed results"
 
       - name: Upload Playwright Report (on failure)
         if: failure()

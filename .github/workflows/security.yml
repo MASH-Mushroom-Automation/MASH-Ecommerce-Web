@@ -1,0 +1,195 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main, develop, TESTING-&-SECURITY]
+  pull_request:
+    branches: [main, develop, TESTING-&-SECURITY]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  # ============================================
+  # NPM Audit - Dependency Vulnerabilities
+  # ============================================
+  npm-audit:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run npm audit
+        run: |
+          echo "🔒 Running security audit..."
+          npm audit --json > audit-results.json || true
+          
+          # Parse results
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-results.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-results.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-results.json)
+          LOW=$(jq '.metadata.vulnerabilities.low // 0' audit-results.json)
+          
+          echo "📊 Security Vulnerability Summary:"
+          echo "  🔴 Critical: $CRITICAL"
+          echo "  🟠 High: $HIGH"
+          echo "  🟡 Moderate: $MODERATE"
+          echo "  🟢 Low: $LOW"
+          
+          # Export for summary
+          echo "CRITICAL=$CRITICAL" >> $GITHUB_ENV
+          echo "HIGH=$HIGH" >> $GITHUB_ENV
+          echo "MODERATE=$MODERATE" >> $GITHUB_ENV
+          echo "LOW=$LOW" >> $GITHUB_ENV
+          
+          # Fail on critical or high vulnerabilities
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical and $HIGH high vulnerabilities"
+            echo "Run 'npm audit' locally to see details"
+            exit 1
+          fi
+          
+          echo "✅ No critical or high vulnerabilities found"
+      
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-results
+          path: audit-results.json
+          retention-days: 30
+      
+      - name: Comment on PR (if vulnerabilities found)
+        if: github.event_name == 'pull_request' && (env.CRITICAL > 0 || env.HIGH > 0)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `
+            ## ⚠️ Security Vulnerabilities Detected
+            
+            NPM audit found the following vulnerabilities:
+            - 🔴 **Critical:** ${process.env.CRITICAL}
+            - 🟠 **High:** ${process.env.HIGH}
+            - 🟡 **Moderate:** ${process.env.MODERATE}
+            - 🟢 **Low:** ${process.env.LOW}
+            
+            Please run \`npm audit\` locally and fix critical/high vulnerabilities before merging.
+            
+            ### Quick Fix Commands:
+            \`\`\`bash
+            npm audit fix              # Automatic fixes
+            npm audit fix --force      # More aggressive fixes
+            npm audit                  # View details
+            \`\`\`
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # ============================================
+  # CodeQL Analysis - Static Code Security
+  # ============================================
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript', 'typescript']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+      
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+
+  # ============================================
+  # Dependency Review - PR Only
+  # ============================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: true
+      
+      - name: Check for license violations
+        run: |
+          echo "📜 Checking license compliance..."
+          npm install -g license-checker
+          license-checker --production --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD' || {
+            echo "::warning::Some dependencies have non-standard licenses"
+            license-checker --production --csv > licenses.csv
+            echo "Review licenses.csv for details"
+          }
+
+  # ============================================
+  # Security Summary
+  # ============================================
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [npm-audit, codeql, dependency-review]
+    if: always()
+    
+    steps:
+      - name: Generate security summary
+        run: |
+          echo "🔒 Security Scan Summary:"
+          echo "  NPM Audit: ${{ needs.npm-audit.result }}"
+          echo "  CodeQL: ${{ needs.codeql.result }}"
+          echo "  Dependency Review: ${{ needs.dependency-review.result }}"
+          
+          if [[ "${{ needs.npm-audit.result }}" != "success" ]] || \
+             [[ "${{ needs.codeql.result }}" != "success" ]]; then
+            echo "::error::Security scan failed - review results above"
+            exit 1
+          fi
+          
+          echo "✅ All security checks passed!"

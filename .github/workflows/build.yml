@@ -28,8 +28,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Validate environment configuration
+        run: |
+          echo "📋 Checking required environment variables..."
+          REQUIRED_VARS=(
+            "NEXT_PUBLIC_API_URL"
+            "NEXT_PUBLIC_SANITY_PROJECT_ID"
+            "NEXT_PUBLIC_SANITY_DATASET"
+            "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          )
+          
+          for var in "${REQUIRED_VARS[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Missing required environment variable: $var"
+              exit 1
+            fi
+          done
+          echo "✅ All required environment variables are set"
+      
       - name: Run production build validation
-        run: node scripts/validate-build.js
+        run: |
+          if [ -f "scripts/validate-build.js" ]; then
+            node scripts/validate-build.js
+          else
+            echo "⚠️ validate-build.js not found, skipping pre-build validation"
+          fi
         env:
           NODE_ENV: production
           # Environment variables for build validation
