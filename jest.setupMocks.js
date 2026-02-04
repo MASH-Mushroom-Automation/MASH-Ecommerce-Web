@@ -56,6 +56,88 @@ if (typeof global.Response === 'undefined') {
   };
 }
 
+// CRITICAL: Mock Firebase modules BEFORE any app code loads
+// This prevents Firebase from trying to initialize with real API keys
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(() => ({ name: '[DEFAULT]' })),
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(() => ({ name: '[DEFAULT]' })),
+}));
+
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({
+    currentUser: null,
+    onAuthStateChanged: jest.fn((callback) => {
+      callback(null);
+      return jest.fn(); // unsubscribe
+    }),
+    signInWithPopup: jest.fn(),
+    signOut: jest.fn(),
+    setPersistence: jest.fn(),
+  })),
+  GoogleAuthProvider: jest.fn(() => ({})),
+  signInWithPopup: jest.fn(),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    callback(null);
+    return jest.fn();
+  }),
+  sendPasswordResetEmail: jest.fn(),
+  sendEmailVerification: jest.fn(),
+  browserLocalPersistence: {},
+  browserSessionPersistence: {},
+  setPersistence: jest.fn(),
+}));
+
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(() => ({})),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(() => Promise.resolve({ exists: () => false, data: () => null })),
+  setDoc: jest.fn(() => Promise.resolve()),
+  updateDoc: jest.fn(() => Promise.resolve()),
+  deleteDoc: jest.fn(() => Promise.resolve()),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  limit: jest.fn(),
+  getDocs: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
+  onSnapshot: jest.fn(() => jest.fn()),
+  serverTimestamp: jest.fn(() => new Date()),
+  Timestamp: { now: jest.fn(() => ({ toDate: () => new Date() })) },
+}));
+
+// Also mock the internal Firebase modules if they're imported directly
+jest.mock('@/lib/firebase/config', () => ({
+  app: { name: '[DEFAULT]' },
+  auth: {
+    currentUser: null,
+    onAuthStateChanged: jest.fn((cb) => { cb(null); return jest.fn(); }),
+  },
+  db: {},
+}));
+
+jest.mock('@/lib/firebase/auth', () => ({
+  auth: {
+    currentUser: null,
+    onAuthStateChanged: jest.fn((cb) => { cb(null); return jest.fn(); }),
+  },
+  signInWithGoogle: jest.fn(),
+  signOutUser: jest.fn(),
+  onAuthStateChange: jest.fn((cb) => { cb(null); return jest.fn(); }),
+}));
+
+jest.mock('@/lib/firebase', () => ({
+  app: { name: '[DEFAULT]' },
+  auth: {
+    currentUser: null,
+    onAuthStateChanged: jest.fn((cb) => { cb(null); return jest.fn(); }),
+  },
+  db: {},
+}));
+
 // CRITICAL: Mock @/lib/cookies BEFORE any module imports it
 // This ensures WishlistContext, CartContext, etc. all get the mock
 // The mock functions are stored globally so tests can configure them

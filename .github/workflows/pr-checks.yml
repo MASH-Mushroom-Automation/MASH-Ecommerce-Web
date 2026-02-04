@@ -161,6 +161,14 @@ jobs:
         run: npm test -- --coverage --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/
         env:
           CI: true
+          # Test environment configuration (Firebase mocks are used, but env vars prevent initialization errors)
+          NEXT_PUBLIC_FIREBASE_API_KEY: test-api-key-for-jest
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: test-project.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: test-project
+          NEXT_PUBLIC_SANITY_PROJECT_ID: test-project
+          NEXT_PUBLIC_SANITY_DATASET: production
+          NEXT_PUBLIC_SANITY_API_VERSION: 2024-11-26
+          NEXT_PUBLIC_API_URL: https://api.mashmarket.app/api/v1
       
       - name: Check coverage threshold
         run: |
