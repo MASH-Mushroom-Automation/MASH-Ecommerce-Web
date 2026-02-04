@@ -420,7 +420,7 @@ export async function fetchProductById(
       hasVariants,
       "mainImage": coalesce(mainImage.asset->url, image.asset->url),
       "mainImageAssetId": coalesce(mainImage.asset->_id, image.asset->_id),
-      "images": images[]{ "url": asset->url, "assetId": asset._id },
+      "images": images[]{ "url": asset->url, "assetId": asset._ref },
       "category": category._ref,
       "slug": slug.current,
       sellerId,
