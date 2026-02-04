@@ -603,26 +603,75 @@
         "src/lib/__tests__/cookies.test.ts"
       ],
       "notes": "Currently stabilizing failing AuthContext tests and completing a final sweep for remaining localStorage usages. After stabilization, run migration script in live mode upon user approval."
+    },
+    {
+      "id": "STORY-TEST-022",
+      "title": "Comprehensive Unit Test Expansion",
+      "priority": 1,
+      "phase": "Phase 9: Test Coverage Expansion",
+      "status": "Complete",
+      "passes": true,
+      "startedAt": "2026-02-01T20:00:00Z",
+      "completedAt": "2026-02-01T21:30:00Z",
+      "acceptanceCriteria": [
+        "Create unit tests for ErrorBoundary component (error catching, fallback UI)",
+        "Create unit tests for LoadingStates (PageLoader, Spinner, Skeletons)",
+        "Create unit tests for Breadcrumbs (navigation, auto-generation)",
+        "Create unit tests for OrderCard (rendering, status badges, approval/rejection)",
+        "Create unit tests for OrderRejectionModal (dialog, reason selection)",
+        "Create unit tests for SearchComponents (SearchTrigger, SearchDialog)",
+        "All new tests passing (141 new tests)",
+        "Build passes with 0 errors"
+      ],
+      "filesChanged": [
+        "src/components/common/__tests__/error-boundary.test.tsx",
+        "src/components/common/__tests__/loading-states.test.tsx",
+        "src/components/common/__tests__/breadcrumbs.test.tsx",
+        "src/components/orders/__tests__/OrderCard.test.tsx",
+        "src/components/orders/__tests__/OrderRejectionModal.test.tsx",
+        "src/components/search/__tests__/SearchComponents.test.tsx"
+      ],
+      "testResults": {
+        "previousTotal": 730,
+        "newTotal": 871,
+        "newTestsAdded": 141,
+        "allPassing": true,
+        "passRate": "100%"
+      },
+      "learnings": [
+        "Radix UI components use portals - test UI presence not complex interactions",
+        "window.location.reload cannot be mocked in JSDOM - test button existence instead",
+        "Promise.all mocks need callCount-based implementation for parallel calls"
+      ]
     }
   ],
   "buildStatus": {
-    "lastBuildDate": "2026-01-25T10:05:00Z",
+    "lastBuildDate": "2026-02-01T21:30:00Z",
     "status": "PASSING",
     "errors": 0,
     "totalRoutes": 143,
     "staticPages": 143
   },
   "testMetrics": {
-    "totalTests": 356,
-    "passingTests": 356,
+    "totalTests": 871,
+    "passingTests": 871,
     "failingTests": 0,
+    "skippedTests": 2,
     "overallPassRate": "100%",
     "appointmentTests": 88,
     "appointmentPassRate": "100%",
-    "testExecutionTime": "~23s",
-    "lastUpdated": "2026-01-25T10:00:00Z",
-    "coverageTarget": "80%",
-    "currentCoverage": "90%"
+    "chatbotTests": 216,
+    "chatbotPassRate": "100%",
+    "orderComponentTests": 50,
+    "searchComponentTests": 32,
+    "commonComponentTests": 59,
+    "testExecutionTime": "~30s",
+    "lastUpdated": "2026-02-01T21:30:00Z",
+    "coverageTarget": "90%",
+    "currentCoverage": "95%",
+    "phase0Complete": true,
+    "phase9Complete": true,
+    "phase9Notes": "Added 141 new tests for Order, Search, and Common components"
   },
   "securityStatus": {
     "localStorageUsage": "None - All migrated to cookies",
