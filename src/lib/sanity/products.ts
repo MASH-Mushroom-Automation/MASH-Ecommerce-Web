@@ -703,6 +703,21 @@ export async function updateProduct(
       }),
     });
 
+    // Explicitly set or unset compareAtPrice so clearing the field removes it in Sanity
+    if (
+      typeof data.compareAtPrice === "number" &&
+      !isNaN(data.compareAtPrice)
+    ) {
+      patch.set({ compareAtPrice: data.compareAtPrice });
+    } else {
+      try {
+        patch.unset(["compareAtPrice"] as any);
+      } catch (err) {
+        // Ignore if unset isn't supported in this environment
+        console.warn("Failed to unset compareAtPrice:", err);
+      }
+    }
+
     // Handle variants: create new variant documents for submitted variants and attach references
     if (data.hasVariants) {
       if (data.variants && data.variants.length > 0) {
