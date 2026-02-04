@@ -32,14 +32,9 @@ import {
 } from "lucide-react";
 import { SellerApplicationForm } from "../page";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import TermsPage from "@/app/terms/page";
-import PrivacyPolicyPage from "@/app/privacy/page";
+import TermsModal from "@/components/legal/TermsModal";
+import PrivacyModal from "@/components/legal/PrivacyModal";
 
 interface ApplicationFormProps {
   form: UseFormReturn<SellerApplicationForm>;
@@ -725,29 +720,9 @@ export function ApplicationForm({
               </div>
 
               {/* Terms / Privacy Dialogs */}
-              <Dialog open={openTerms} onOpenChange={(open) => setOpenTerms(open)}>
-                <DialogContent className="!max-w-4xl w-full p-0">
-                  <DialogHeader>
-                    <DialogTitle>Terms and Conditions</DialogTitle>
-                    <DialogDescription />
-                  </DialogHeader>
-                  <div className="w-full">
-                    <TermsPage />
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={openPrivacy} onOpenChange={(open) => setOpenPrivacy(open)}>
-                <DialogContent className="!max-w-4xl w-full p-0">
-                  <DialogHeader>
-                    <DialogTitle>Privacy Policy</DialogTitle>
-                    <DialogDescription />
-                  </DialogHeader>
-                  <div className="w-full">
-                    <PrivacyPolicyPage />
-                  </div>
-                </DialogContent>
-              </Dialog>
+              {/* Use the new modal components (they include Dialog internally) */}
+              <TermsModal open={openTerms} onOpenChange={(open) => setOpenTerms(open)} />
+              <PrivacyModal open={openPrivacy} onOpenChange={(open) => setOpenPrivacy(open)} />
 
               {/* Submit Button */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
