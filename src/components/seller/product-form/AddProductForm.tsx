@@ -41,7 +41,12 @@ const productFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   category: z.string().min(1, "Category is required"),
   price: z.number().min(0.01, "Price must be greater than 0"),
-  compareAtPrice: z.number().optional(),
+  compareAtPrice: z.preprocess((val) => {
+    // Normalize empty and NaN values to undefined so compare price is optional
+    if (val === "" || val === null) return undefined;
+    if (typeof val === "number" && isNaN(val)) return undefined;
+    return val;
+  }, z.number().optional()),
   quantity: z.number().int().min(0, "Quantity must be 0 or greater"),
   trackInventory: z.boolean(),
   hasVariants: z.boolean(),
@@ -73,7 +78,7 @@ export function AddProductForm() {
     formState: { errors },
     reset,
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
+    resolver: zodResolver(productFormSchema) as any,
     defaultValues: {
       name: "",
       description: "",

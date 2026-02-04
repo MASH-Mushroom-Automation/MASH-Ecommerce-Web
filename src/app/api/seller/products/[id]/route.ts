@@ -235,7 +235,11 @@ export async function PUT(
         data: {
           id: result._id,
           slug: result.slug,
-          message: "Product updated successfully",
+          message:
+            result.warnings && result.warnings.length > 0
+              ? "Product updated with warnings: some images could not be imported. Existing images preserved."
+              : "Product updated successfully",
+          warnings: result.warnings,
         },
         timestamp: new Date().toISOString(),
         requestId: `req_${Date.now()}`,
