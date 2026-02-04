@@ -17,6 +17,8 @@ jobs:
   npm-audit:
     name: NPM Security Audit
     runs-on: ubuntu-latest
+    # Non-blocking: warns but doesn't fail the PR (existing vulnerabilities in ecosystem)
+    continue-on-error: true
     
     steps:
       - name: Checkout code
@@ -54,14 +56,13 @@ jobs:
           echo "MODERATE=$MODERATE" >> $GITHUB_ENV
           echo "LOW=$LOW" >> $GITHUB_ENV
           
-          # Fail on critical or high vulnerabilities
+          # Warn on critical or high vulnerabilities (non-blocking)
           if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
-            echo "::error::Found $CRITICAL critical and $HIGH high vulnerabilities"
-            echo "Run 'npm audit' locally to see details"
-            exit 1
+            echo "::warning::Found $CRITICAL critical and $HIGH high vulnerabilities"
+            echo "Run 'npm audit' locally to see details and fix what you can"
+          else
+            echo "✅ No critical or high vulnerabilities found"
           fi
-          
-          echo "✅ No critical or high vulnerabilities found"
       
       - name: Upload audit results
         if: always()

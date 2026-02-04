@@ -83,17 +83,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Run ESLint
@@ -123,17 +113,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Check TypeScript configuration
@@ -174,17 +154,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Run unit tests with coverage
@@ -250,17 +220,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Restore Next.js cache
@@ -328,17 +288,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Download build artifacts
@@ -391,17 +341,7 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Restore node_modules cache
-        id: cache-restore
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-      
-      - name: Install dependencies if cache miss
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: npm ci
       
       - name: Run npm audit
