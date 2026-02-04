@@ -1,5 +1,61 @@
 // Early mocks - run before modules are loaded
 
+// CRITICAL: Polyfill global fetch FIRST before any Firebase modules load
+// Firebase Auth requires fetch to be available globally
+if (typeof global.fetch === 'undefined') {
+  global.fetch = jest.fn(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    status: 200,
+    headers: new Map(),
+  }));
+  console.log('[jest.setupMocks] Polyfilled global fetch');
+}
+
+// Also polyfill Headers, Request, Response if not present
+if (typeof global.Headers === 'undefined') {
+  global.Headers = class Headers {
+    constructor(init = {}) {
+      this._map = new Map();
+      if (typeof init === 'object' && init !== null) {
+        Object.entries(init).forEach(([k, v]) => this._map.set(String(k).toLowerCase(), String(v)));
+      }
+    }
+    get(name) { return this._map.get(String(name).toLowerCase()) || null; }
+    set(name, value) { this._map.set(String(name).toLowerCase(), String(value)); }
+    has(name) { return this._map.has(String(name).toLowerCase()); }
+    forEach(fn) { for (const [k, v] of this._map) fn(v, k, this); }
+    entries() { return this._map.entries(); }
+    keys() { return this._map.keys(); }
+    values() { return this._map.values(); }
+  };
+}
+
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(url, init = {}) {
+      this.url = url;
+      this.method = init.method || 'GET';
+      this.headers = new global.Headers(init.headers);
+      this.body = init.body;
+    }
+  };
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, init = {}) {
+      this.body = body;
+      this.ok = (init.status || 200) >= 200 && (init.status || 200) < 300;
+      this.status = init.status || 200;
+      this.headers = new global.Headers(init.headers);
+    }
+    json() { return Promise.resolve(JSON.parse(this.body || '{}')); }
+    text() { return Promise.resolve(this.body || ''); }
+  };
+}
+
 // CRITICAL: Mock @/lib/cookies BEFORE any module imports it
 // This ensures WishlistContext, CartContext, etc. all get the mock
 // The mock functions are stored globally so tests can configure them

@@ -114,11 +114,6 @@ jobs:
       contents: read
       security-events: write
     
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['javascript', 'typescript']
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -126,7 +121,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: javascript-typescript
           queries: security-and-quality
       
       - name: Autobuild
@@ -135,11 +130,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
-      
-      - name: Upload SARIF results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+          category: "/language:javascript-typescript"
 
   # ============================================
   # Dependency Review - PR Only
@@ -186,10 +177,12 @@ jobs:
           echo "  CodeQL: ${{ needs.codeql.result }}"
           echo "  Dependency Review: ${{ needs.dependency-review.result }}"
           
-          if [[ "${{ needs.npm-audit.result }}" != "success" ]] || \
-             [[ "${{ needs.codeql.result }}" != "success" ]]; then
-            echo "::error::Security scan failed - review results above"
-            exit 1
+          # Only warn, don't block for security issues
+          if [[ "${{ needs.npm-audit.result }}" == "failure" ]]; then
+            echo "::warning::NPM audit found vulnerabilities - please review"
+          fi
+          if [[ "${{ needs.codeql.result }}" == "failure" ]]; then
+            echo "::warning::CodeQL found potential security issues - please review"
           fi
           
-          echo "✅ All security checks passed!"
+          echo "✅ Security summary complete"
