@@ -5,6 +5,34 @@
 
 require('@testing-library/jest-dom');
 
+// Polyfill global fetch for Node.js environment (required for Firebase Auth in tests)
+if (typeof global.fetch === 'undefined') {
+  global.fetch = jest.fn(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    status: 200,
+  }));
+  global.Response = class Response {
+    constructor(body, init) {
+      this.body = body;
+      this.ok = init?.status >= 200 && init?.status < 300;
+      this.status = init?.status || 200;
+    }
+    json() { return Promise.resolve(JSON.parse(this.body || '{}')); }
+    text() { return Promise.resolve(this.body || ''); }
+  };
+  global.Request = class Request {
+    constructor(url, init) {
+      this.url = url;
+      this.method = init?.method || 'GET';
+      this.headers = init?.headers || {};
+      this.body = init?.body;
+    }
+  };
+  console.log('[jest.setup] Polyfilled global fetch for Node.js');
+}
+
 // Add TextEncoder/TextDecoder for Node environment
 if (typeof TextEncoder === 'undefined') {
   const util = require('util');

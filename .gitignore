@@ -49,7 +49,8 @@ studio/.env
 
 # Keep .github for workflows but ignore sensitive files
 # /.github
-*.md
-/.github/*.md
-*.env.test
 
+# Allow .github documentation files
+!.github/*.md
+
+*.env.test
