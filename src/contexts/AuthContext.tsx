@@ -424,16 +424,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
+        // Normalize backend response: some backends return an envelope { success, statusCode, data: { ... } }
+        const payload =
+          data && (data.data || data.payload)
+            ? data.data || data.payload
+            : data;
+
+        console.log("[Auth] Normalized backend payload:", payload);
+
         console.log("[Auth] Backend Firebase sync successful:", {
-          userId: data.user?.id,
-          email: data.user?.email,
-          firebaseUid: data.user?.firebaseUid,
-          hasAccessToken: !!data.accessToken || !!data.tokens?.accessToken,
+          userId: payload.user?.id,
+          email: payload.user?.email,
+          firebaseUid: payload.user?.firebaseUid || payload.firebaseUid,
+          hasAccessToken:
+            !!payload.accessToken || !!payload.tokens?.accessToken,
         });
 
         // Backend may set HTTP-only cookie automatically, but also handle token in response
-        const accessToken = data.accessToken || data.tokens?.accessToken;
-        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+        const accessToken = payload.accessToken || payload.tokens?.accessToken;
+        const refreshToken =
+          payload.refreshToken || payload.tokens?.refreshToken;
 
         if (accessToken) {
           console.log("[Auth] Setting backend JWT token from response...");
@@ -447,7 +457,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Build unified auth user object with backend-verified data
-        const backendUser = data.user;
+        const backendUser =
+          payload.user || (payload.data ? payload.data.user : undefined);
 
         // Parse name from displayName if backend doesn't provide it
         const nameParts = (fbUser.displayName || "").split(" ");
