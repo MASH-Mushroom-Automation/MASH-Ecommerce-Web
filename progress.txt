@@ -28,10 +28,364 @@
 - **useProducts Hook Data:** `useProducts()` returns products with `id` (not `_id`) and `stock` (not `stockQuantity`). When passing to forms expecting `_id`, transform: `{ _id: p.id, stockQuantity: p.stock ?? 0 }`.
 - **Stock Management Products Source:** Use `useSanityProducts()` NOT `useProducts()` for stock management. `useProducts()` fetches from NestJS backend (api.mashmarket.app) which has NO products. Sanity CMS is the source of truth for product data.
 - **useSanityProducts vs useProducts:** `useSanityProducts()` → Sanity CMS (has products). `useProducts()` → NestJS backend (no products). For seller pages showing product data, always use Sanity hooks.
+- **Cal.com Embed Pattern:** Use unique ID selector (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace="booking"]`). Wait for DOM element to exist BEFORE calling `Cal("inline", {...})`. The Cal.com embed.js initializes `window.Cal` asynchronously - always poll for `Cal.loaded === true || Cal.__css` before use.
+- **Cal.com Embed Script URL:** Use `https://app.cal.com/embed/embed.js` (with `app` subdomain). The script expects `window.Cal` to be pre-initialized with queue pattern before loading. Use `initCalNamespace()` helper to set up the queue structure.
+- **Cal.com Initialization Pattern:** Cal.com uses queue pattern. Initialize `window.Cal` as a function that queues calls BEFORE loading embed.js. Wait for `Cal.loaded === true` or `Cal.__css` to confirm full initialization. Use 8s timeout with 100ms polling.
 - **React Query v5 Callbacks:** Mutation callbacks receive options object `{ onSuccess?: (options) => void }`, not positional args `(data, vars, ctx)`. Test with `expect(onSuccess).toHaveBeenCalled()` not specific args.
 - **Filter URL Sync:** Always deep clone DEFAULT_FILTERS in decodeFiltersFromURL to prevent mutation across tests. Use spread for arrays: `priceRange: [...DEFAULT_FILTERS.priceRange] as [number, number]`.
 - **HTML5 Input Constraints:** `<input type="number" min={0}>` prevents negative values in UI. Cannot test negative input validation via userEvent.type() - test with relationship validations instead.
 - **Integration Test Firebase Issues:** Full page tests requiring Firebase/AuthContext fail during Jest setup ("fetch is not defined"). Skip these tests with `.skip()` and verify via e2e testing instead.
+- **Cal.com Integration:** Use centralized config from `@/lib/calcom`. Theme prop supports 'auto'|'light'|'dark'. Username: mash-mushroom. Events: 1-hour-meeting, 30min (default), 15min, secret.
+- **Cal.com Embed URL:** MUST use `https://app.cal.com/embed/embed.js` (with app subdomain). Script deduplication needed for components that may mount multiple times.
+- **Cal.com Component States:** CalendlyEmbed has 3 states: loading (spinner), error (retry button + fallback link), loaded (embed widget). Tests must mock these states separately.
+- **Component Async Testing:** For components with async script loading, use mock-based state control rather than waiting for real async operations. Control mock state via refs that tests can modify.
+- **Cal.com CSP:** Must include `https://cal.com` and `https://*.cal.com` in CSP script-src, style-src, connect-src, and frame-src directives. Without this, browser blocks embed script loading.
+- **Security Headers Reliability:** For CSP and security headers that must apply to ALL routes, use `next.config.js headers()` function with `source: '/:path*'`. Proxy/middleware may not match all routes. Keep both for redundancy.
+- **CSP Meta Tag for Dev Mode:** Turbopack dev server may not apply next.config.js headers. Add CSP meta tag in layout.tsx as fallback for development.
+- **Cal.com Callback Stability:** Store dynamic props in refs to prevent infinite loops in useCallback. Update refs via separate useEffect.
+
+- **Cal.com Variable Order:** In CalendlyEmbed.tsx, define currentTheme, brandColor, and calLink BEFORE useRefs that reference them. Otherwise you get "can't access lexical declaration before initialization".
+- **Cal.com Queue Initialization:** Cal.com embed uses a queue pattern - initialize `window.Cal` as a queue function BEFORE loading the script. The script processes queued commands on load. Wait for Cal to be a proper function (typeof Cal === "function") before using it, not just truthy.
+- **Cal.com Inline Embed:** CRITICAL: After calling Cal("init") and Cal("ui"), you MUST call Cal("inline", {...}) to render the calendar. Use `Cal("inline", {...})` directly - NOT `Cal.ns.booking("inline")` which causes "calNs is not a function" error. The elementOrSelector should target the div with `data-cal-namespace="booking"`.
+- **Cal.com Element Targeting:** Use unique ID selectors (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace]`). The element MUST exist in DOM before calling Cal("inline", {...}). Add a `waitForElement()` function that polls for element existence.
+- **Cal.com Official Snippet Pattern:** CRITICAL: Use the OFFICIAL Cal.com IIFE snippet pattern for initialization. Do NOT pre-create a custom `window.Cal` function that conflicts with embed.js. The snippet uses `C.Cal = C.Cal || function...` pattern to only create Cal if it doesn't exist, and properly handles script loading internally.
+- **Cal.com Simplified Approach:** Cal.com's queue pattern means calls are queued IMMEDIATELY and processed when script loads - no need for waitForCal() or waitForElement() polling. Just inject snippet + call Cal() functions + mark as loaded.
+
+## [2026-02-03 21:00] - Cal.com Simplified Embed Component
+**Completed:** Drastically simplified CalendlyEmbed.tsx by removing complex waiting logic
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (reduced from 654 → ~370 lines)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (added 8 new tests for IIFE pattern)
+
+**Key Insight:**
+Cal.com's official snippet uses a **queue pattern** - calls to `Cal()` are immediately queued and processed when the script loads. This means we DON'T need:
+- `waitForCal()` - complex polling for Cal.loaded
+- `waitForElement()` - polling for DOM element
+- Complex loadCalScript promise handling
+
+**Simplified Pattern:**
+```typescript
+useEffect(() => {
+  // 1. Inject official IIFE snippet (creates queue, loads script)
+  (function (C, A, L) {
+    const p = function (a, ar) { a.q.push(ar); };
+    C.Cal = C.Cal || function () {
+      const cal = C.Cal;
+      if (!cal.loaded) {
+        cal.ns = {};
+        cal.q = cal.q || [];
+        document.head.appendChild(document.createElement("script")).src = A;
+        cal.loaded = true;
+      }
+      // ... handle init namespace
+      p(cal, arguments);
+    };
+  })(window, CAL_EMBED_SCRIPT_URL, "init");
+
+  // 2. Queue calls - they execute when script loads
+  const Cal = window.Cal;
+  Cal("init", { origin: "https://cal.com" });
+  Cal("ui", { theme, cssVarsPerTheme });
+  Cal("inline", { elementOrSelector: `#${embedId}`, calLink, layout: "month_view" });
+
+  // 3. Mark loaded immediately - queue handles the rest
+  setLoadingState({ status: "loaded", message: "Calendar loaded" });
+}, [mounted, ...deps]);
+```
+
+**Tests Added:**
+- Official IIFE snippet creates Cal with queue pattern
+- Queue stores init/inline/ui calls correctly
+- Cal is not recreated if it already exists
+- Retry cleanup properly removes scripts and window.Cal
+
+**Tests Passing:** [PASS] Build (135 routes) | [PASS] 150 tests | [PASS] Lint
+---
+- Simplified loadCalScript() - official snippet handles script loading internally
+- Updated waitForCal() timeout to 15s for slow connections
+- Changed Cal("init") call - no namespace arg (simpler pattern)
+- Changed Cal("preload") to Cal("prefill") for user data
+
+**Tests Passing:** [PASS] Build (135 routes) | [PASS] Lint | [PASS] 142 Cal.com Tests
+---
+
+## [2026-02-03 19:15] - Cal.com "Element not found" & "Cal is not defined" Fix
+**Completed:** Fixed Cal.com embed initialization errors - "Element not found" and "Cal is not defined"
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (added unique IDs, element waiting, improved init)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (added 22 new tests)
+
+**Root Causes Identified:**
+1. "Element not found" - Cal("inline") was called before DOM element existed
+2. "Cal is not defined" - embed.js hadn't fully initialized window.Cal yet  
+3. Previous "calNs is not a function" - was using Cal.ns.booking() incorrectly
+
+**Implementation Notes:**
+- Added `generateEmbedId()` to create unique IDs for each embed instance
+- Added `waitForElement()` function to poll DOM until target element exists
+- Changed from attribute selector `[data-cal-namespace="booking"]` to ID selector `#cal-embed-{id}`
+- Added `embedElementRef` to track the actual DOM element
+- Increased initialization wait time and added more robust polling
+- Simplified initCalNamespace() - removed complex namespace object creation
+- Added step-by-step logging for debugging
+
+**Key Changes:**
+```typescript
+// 1. Generate unique ID for each embed instance
+const embedIdRef = useRef<string>(generateEmbedId());
+
+// 2. Wait for element to exist before calling Cal("inline")
+await waitForElement(embedId);
+
+// 3. Use ID selector (more reliable than attribute selector)
+Cal("inline", {
+  elementOrSelector: `#${embedId}`,
+  calLink: calLinkRef.current,
+  ...
+});
+```
+
+**Tests Added (22 new):**
+- Unique ID generation tests
+- Cal.com script integration tests
+- Fallback link behavior tests
+- Edge cases and robustness tests
+- Multiple embed instance tests
+- JSON config parsing tests
+- initCalNamespace helper tests
+- generateEmbedId helper tests
+
+**Tests Passing:** [PASS] Build (135 routes) | [PASS] Lint | [PASS] 142 Cal.com Tests
+---
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com Tests
+---
+
+## [2026-02-03 18:00] - Cal.com Inline Embed Fix (Calendar Not Rendering)
+**Completed:** Fixed Cal.com calendar not showing in embed widget
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (added Cal("inline", ...) call)
+
+**Implementation Notes:**
+- Root cause: The data-cal-link attributes on the div were being set, but Cal.com doesn't auto-render from attributes alone
+- Cal.com requires an explicit `Cal("inline", {...})` call to render the calendar in a specific element
+- Added proper inline embed call using either namespace (`Cal.ns.booking("inline", ...)`) or global (`Cal("inline", ...)`)
+- The elementOrSelector must match the div with `data-cal-namespace="booking"`
+- Config includes layout, theme, and calLink properties
+
+**Key Fix:**
+```javascript
+// After Cal("init") and Cal("ui"), MUST call inline:
+Cal("inline", {
+  elementOrSelector: `[data-cal-namespace="booking"]`,
+  calLink: "mash-mushroom/30min",
+  layout: "month_view",
+});
+```
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com Tests
+---
+
+## [2026-02-03 16:45] - Cal.com "Cal is not defined" Fix
+**Completed:** Fixed Cal.com embed initialization error
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (improved script loading and initialization)
+
+**Implementation Notes:**
+- Root cause: Cal.com embed script sets `window.Cal` asynchronously AFTER script.onload fires
+- Previous code checked `(window as any).Cal` immediately after script.onload with only 200ms delay
+- Cal.com uses a queue pattern where commands can be queued before the real Cal function is ready
+- Fixed by:
+  1. Added `waitForCal()` function that polls for `typeof Cal === "function"` (not just truthy)
+  2. Initialize Cal queue BEFORE loading script: `window.Cal = function(...args) { Cal.q.push(args) }`
+  3. Increased timeout to 5000ms with 100ms polling interval
+  4. Clean up queue on script error to allow proper retry
+  5. Added small delay after Cal("init") to let initialization complete
+
+**Learnings for Future Iterations:**
+- Cal.com embed uses queue pattern: commands can be queued before script fully loads
+- Check `typeof Cal === "function"` instead of just `Cal` truthy check
+- Always initialize the queue stub before loading external embed scripts
+- Use polling with timeout instead of fixed delays for async script initialization
+- Clean up global state on failure to prevent stale queue data on retry
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 1548 Tests | [PASS] 120 Cal.com Tests
+---
+
+## [2026-02-03 17:30] - Cal.com Embed Script URL Fix (Iteration 2)
+**Completed:** Fixed persistent "Cal is not defined" error from embed.js
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (script URL + proper namespace initialization)
+
+**Implementation Notes:**
+- Root cause: embed.js at https://cal.com/embed/embed.js throws "Cal is not defined" internally
+- Switched script URL to `https://app.cal.com/embed/embed.js` (official embed location)
+- Added `initCalNamespace()` helper that creates proper Cal queue structure:
+  - Creates Cal function that queues calls
+  - Sets up `Cal.ns` namespace object for multi-embed support
+  - Marks `Cal.loaded = false` initially
+- Updated `waitForCal()` to check `Cal.loaded === true` OR `Cal.__css`
+- Increased timeout to 8000ms for slower networks
+- Removed crossOrigin attribute to avoid CORS issues
+- Added retry delay of 2000ms for more stable retries
+
+**Root Cause Analysis:**
+Cal.com embed.js internally validates window.Cal structure. Previous queue stub didn't match
+what embed.js expected. New `initCalNamespace()` creates the exact structure: 
+`{ q: [], ns: {}, loaded: false }` pattern that embed.js processes on load.
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com Tests
+---
+
+## [2026-02-03 15:30] - Cal.com brandColor Initialization Fix
+**Completed:** Fixed ReferenceError in CalendlyEmbed.tsx
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (reordered variable declarations)
+- src/app/layout.tsx (added app.cal.com and font-src for Cal.com)
+- next.config.js (synchronized CSP with layout.tsx)
+
+**Implementation Notes:**
+- Root cause: brandColor and calLink variables were being used in useRef() before they were defined
+- Fixed by moving currentTheme, brandColor, calLink declarations BEFORE the refs that use them
+- Added app.cal.com to CSP (some Cal.com resources come from this subdomain)
+- Added wss://localhost:* to connect-src for HMR websockets in dev mode
+- Added font-src for Cal.com (embeds may load fonts)
+
+**Learnings for Future Iterations:**
+- In React components, useRef initializers execute at component initialization time
+- Variable order matters - refs using variables must come AFTER those variables are defined
+- CSP should include all possible Cal.com subdomains: cal.com, *.cal.com, app.cal.com
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 159 Cal.com Tests
+---
+
+## [2026-02-03 14:00] - Complete Cal.com Integration Fix
+**Completed:** Fixed CSP blocking + improved UI/UX + updated Sanity grower data
+**Files Changed:**
+- src/app/layout.tsx (added CSP meta tag for dev mode)
+- src/components/appointments/CalendlyEmbed.tsx (improved UI, retry logic, refs for stability)
+- scripts/update-growers-calcom.js (new script to update growers with Cal.com settings)
+
+**Implementation Notes:**
+- Root cause: Turbopack dev server wasn't applying next.config.js headers
+- Solution: Added CSP meta tag in layout.tsx as fallback
+- Improved CalComEmbed with:
+  - Better loading/error states with retry logic (MAX_RETRIES=3)
+  - Dark/light theme auto-detection
+  - Fallback links to Cal.com when embed fails
+  - Fixed useCallback dependencies using refs pattern
+- Updated all 4 growers in Sanity CMS with Cal.com settings
+
+**Cal.com Configuration:**
+- Username: mash-mushroom
+- Profile: https://cal.com/mash-mushroom
+- Event Types: 15min, 30min (default), 1-hour-meeting
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 50 CalendlyEmbed | [PASS] 39 config | [PASS] 25 security
+---
+
+## [2026-02-03 12:00] - Cal.com CSP Fix (next.config.js)
+**Completed:** Added CSP headers via next.config.js headers() for reliable application to all routes
+**Files Changed:**
+- next.config.js (added headers() function with comprehensive CSP)
+
+**Implementation Notes:**
+- Previous fix in proxy.ts wasn't being applied to all routes (specifically /grower/[id]/book)
+- next.config.js headers() applies to all routes via `source: '/:path*'` pattern
+- Added full security headers: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+
+**Root Cause Analysis:**
+- proxy.ts middleware wasn't matching the booking page route
+- Browser console showed OLD CSP without cal.com domains
+- next.config.js headers() is more reliable than middleware for global security headers
+
+**Learnings for Future Iterations:**
+- Use next.config.js headers() for security headers that must apply to ALL routes
+- proxy.ts middleware may not match all routes depending on matcher config
+- Keep both approaches for redundancy if needed
+- Browser DevTools Network tab shows actual CSP headers being applied
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com tests | [PASS] 25 Security tests
+---
+
+## [2026-02-03 11:00] - Cal.com CSP Fix (proxy.ts)
+**Completed:** Fixed Content-Security-Policy blocking cal.com embed script
+**Files Changed:**
+- src/proxy.ts (added cal.com to CSP headers)
+- src/__tests__/security/penetration-tests.test.ts (updated CSP expectations)
+- src/components/appointments/__tests__/integration.test.tsx (fixed loading state test)
+
+**Implementation Notes:**
+- Root cause: CSP script-src directive didn't include cal.com domain
+- Error message: "Content-Security-Policy blocked script at https://cal.com/embed/embed.js"
+- Added cal.com and *.cal.com to: script-src, style-src, connect-src, frame-src
+
+**Learnings for Future Iterations:**
+- Always check CSP when adding external embed scripts (browser console shows CSP errors)
+- CSP is configured in src/proxy.ts addSecurityHeaders() function
+- External embeds need: script-src (JS), style-src (CSS), connect-src (API calls), frame-src (iframes)
+- Update security tests when modifying CSP to include new domains
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 120 Cal.com tests | [PASS] 25 Security tests
+---
+
+## [2025-06-XX XX:XX] - Cal.com Bug Fix and UI/UX Improvements
+**Completed:** Fixed Cal.com embed URL and improved booking page UI/UX
+**Files Changed:**
+- src/components/appointments/CalendlyEmbed.tsx (URL fix, loading/error states)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (complete rewrite)
+- src/app/grower/[id]/book/page.tsx (UI/UX improvements)
+- progress.txt (documentation)
+
+**Implementation Notes:**
+- Cal.com embed script URL changed from `app.cal.com` to `cal.com` (the correct URL)
+- Added comprehensive loading state with spinner and loading message
+- Added error state with retry button and fallback "Book on Cal.com" link
+- Script deduplication logic to prevent multiple script loads
+- useRef for container and init tracking
+- Booking page redesigned with Card components and gradient backgrounds
+- MEETING_TYPE_CONFIG for consistent meeting type styling (online/in-person/phone)
+- Added "Need Help?" quick contact section
+- Added external "Open in Cal.com" button for fallback
+
+**Learnings for Future Iterations:**
+- Cal.com embed script URL: always `https://cal.com/embed/embed.js` (NOT app.cal.com)
+- Components with external script loading need loading/error states for good UX
+- Mock-based state control is better for testing async components than fake timers
+- Test file mocking pattern: mock component to control rendering state, test each state separately
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] 131 Cal.com Tests
+---
+
+## [2025-06-XX XX:XX] - Cal.com Integration Complete
+**Completed:** Full Cal.com integration with dark/light mode theme support
+**Files Changed:**
+- src/lib/calcom/config.ts (NEW - centralized configuration)
+- src/lib/calcom/index.ts (NEW - exports)
+- src/lib/calcom/__tests__/config.test.ts (NEW - 40 tests)
+- src/components/appointments/CalendlyEmbed.tsx (theme support)
+- src/components/appointments/__tests__/CalendlyEmbed.test.tsx (theme tests)
+- src/components/appointments/index.ts (re-export CalComTheme types)
+- src/app/grower/[id]/book/page.tsx (theme from Sanity)
+- studio/src/schemaTypes/documents/grower.ts (calcomTheme field)
+
+**Implementation Notes:**
+- Cal.com username: mash-mushroom
+- Event types: 1-hour-meeting (60m), 30min (30m, default), 15min (15m), secret (15m)
+- Theme: useTheme() from next-themes for system theme detection
+- Auto theme follows user's dark/light mode preference
+- Brand colors: #16a34a (light), #22c55e (dark - brighter for dark backgrounds)
+- Config utilities: getCalComThemeConfig, getEventTypeBySlug, formatDuration
+
+**Learnings for Future Iterations:**
+- Cal.com embed uses data-cal-config JSON for theme/layout settings
+- Theme changes require re-initializing Cal API with new config
+- Sanity calcomTheme field allows per-grower theme customization
+- Use `mounted` state to avoid hydration mismatch with useTheme()
+- Re-export types from index.ts for cleaner imports
+
+**Tests Passing:** 136 (config: 40, CalComEmbed: 28, CalendlyButton: 44, integration: 24)
+---
 
 ## [2025-06-XX XX:XX] - QA Automation Test Fixes
 **Completed:** Fixed 42 failing tests across 4 test suites
