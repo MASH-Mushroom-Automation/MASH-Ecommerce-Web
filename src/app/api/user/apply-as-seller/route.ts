@@ -86,13 +86,10 @@ export async function POST(request: NextRequest) {
     const csrfToken = await getCsrfToken();
     console.log("[Apply-as-Seller] CSRF token fetched:", !!csrfToken);
 
-    const cookieHeader = request.headers.get("cookie") || "";
-
     // Build headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
-      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     };
 
     if (csrfToken) {
