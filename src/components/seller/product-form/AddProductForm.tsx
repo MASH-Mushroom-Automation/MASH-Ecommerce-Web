@@ -8,15 +8,23 @@ import { z } from "zod";
 import {
   Save,
   Loader2,
-  ChevronLeft,
   AlertCircle,
   CheckCircle2,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -64,6 +72,8 @@ export function AddProductForm() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<any>(null);
 
   const {
     register,
@@ -112,27 +122,36 @@ export function AddProductForm() {
 
   // Load draft on mount
   useEffect(() => {
-    const savedDraft = localStorage.getItem(DRAFT_KEY);
-    if (savedDraft) {
+    const draftData = localStorage.getItem(DRAFT_KEY);
+    if (draftData) {
       try {
-        const draft = JSON.parse(savedDraft);
-        const shouldRestore = window.confirm(
-          "You have an unsaved draft. Would you like to restore it?"
-        );
-        if (shouldRestore) {
-          reset(draft);
-          if (draft.images) setImages(draft.images);
-          if (draft.variants) setVariants(draft.variants);
-          setLastSaved(new Date());
-          toast.info("Draft restored");
-        } else {
-          localStorage.removeItem(DRAFT_KEY);
-        }
+        const draft = JSON.parse(draftData);
+        setSavedDraft(draft);
+        setShowDraftDialog(true);
       } catch (error) {
         console.error("Error loading draft:", error);
       }
     }
   }, [reset]);
+
+  // Handle draft restoration
+  const handleRestoreDraft = () => {
+    if (savedDraft) {
+      reset(savedDraft);
+      if (savedDraft.images) setImages(savedDraft.images);
+      if (savedDraft.variants) setVariants(savedDraft.variants);
+      setLastSaved(new Date());
+      toast.info("Draft restored successfully");
+    }
+    setShowDraftDialog(false);
+  };
+
+  // Handle draft dismissal
+  const handleDismissDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraft(null);
+    setShowDraftDialog(false);
+  };
 
   // Track unsaved changes
   useEffect(() => {
@@ -217,8 +236,7 @@ export function AddProductForm() {
             } catch (error) {
               console.error("Error uploading image:", error);
               throw new Error(
-                `Failed to upload image ${image.file.name}: ${
-                  error instanceof Error ? error.message : "Unknown error"
+                `Failed to upload image ${image.file.name}: ${error instanceof Error ? error.message : "Unknown error"
                 }`
               );
             }
@@ -303,321 +321,369 @@ export function AddProductForm() {
   }, [formData, images, variants]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <>
+      {/* Draft Restoration Dialog */}
+      <Dialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Unsaved Draft Found</DialogTitle>
+            <DialogDescription>
+              You have an unsaved draft from a previous session. Would you like to restore it and continue editing?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDismissDraft}
+              className="w-full sm:w-auto"
+            >
+              Discard Draft
+            </Button>
+            <Button
+              type="button"
+              onClick={handleRestoreDraft}
+              className="w-full sm:w-auto"
+            >
+              Restore Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+        {/* Header */}
+        <div className="space-y-4">
+          {/* Back Button */}
           <Link href="/seller/products">
             <Button type="button" variant="ghost" size="sm">
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Add New Product</h1>
-            <p className="text-muted-foreground">
-              Create a new product for your store
-            </p>
+
+          {/* Main Header */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Title Section */}
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Add New Product</h1>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">
+                Create a new product for your store
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-3">
+              {lastSaved && (
+                <span className="text-xs sm:text-sm text-muted-foreground order-first sm:order-none">
+                  Last saved: {lastSaved.toLocaleTimeString()}
+                </span>
+              )}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={saveDraft}
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Save Draft</span>
+                  <span className="sm:hidden">Draft</span>
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-initial">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <span className="hidden sm:inline">Creating...</span>
+                      <span className="sm:hidden">...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Create Product</span>
+                      <span className="sm:hidden">Create</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {lastSaved && (
-            <span className="text-sm text-muted-foreground">
-              Last saved: {lastSaved.toLocaleTimeString()}
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={saveDraft}
-            disabled={isSubmitting}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Draft
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Create Product
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+        {/* Error Summary */}
+        {Object.keys(errors).length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please fix the following errors before submitting:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field} className="text-sm">
+                    {field}: {error?.message}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Error Summary */}
-      {Object.keys(errors).length > 0 && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please fix the following errors before submitting:
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              {Object.entries(errors).map(([field, error]) => (
-                <li key={field} className="text-sm">
-                  {field}: {error?.message}
-                </li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Form Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="basic" className="text-xs sm:text-sm px-2 sm:px-4 flex justify-center text-center                                     ">
+              <span className="sm:inline flex text-center justify-center hidden">Basic Info</span>
+              <span className="sm:hidden">Basic</span>
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="text-xs sm:text-sm px-2 sm:px-4 flex justify-center text-center ">Pricing</TabsTrigger>
+            <TabsTrigger value="media" className="text-xs sm:text-sm px-2 sm:px-4 flex justify-center text-center ">Media</TabsTrigger>
+            <TabsTrigger value="variants" className="text-xs sm:text-sm px-2 sm:px-4 flex justify-center text-center ">
+              <span className="sm:inline flex text-center justify-center">Variants</span>
+              <span className="sm:hidden">Vars</span>
+            </TabsTrigger>
+            <TabsTrigger value="seo" className="text-xs sm:text-sm px-2 sm:px-4 flex justify-center text-center">SEO</TabsTrigger>
+          </TabsList>
 
-      {/* Form Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
-          <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="variants">Variants</TabsTrigger>
-          <TabsTrigger value="seo">SEO</TabsTrigger>
-        </TabsList>
-
-        {/* Basic Info Tab */}
-        <TabsContent value="basic" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-              <CardDescription>
-                Basic details about your product
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Product Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., King Oyster Mushrooms"
-                  {...register("name")}
-                  className={errors.name ? "border-destructive" : ""}
-                />
-                {errors.name && (
-                  <p className="text-sm text-destructive">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Description (Rich Text) */}
-              <div className="space-y-2">
-                <Label>Product Description *</Label>
-                <RichTextEditor
-                  value={formData.description}
-                  onChange={(value) => setValue("description", value)}
-                  error={errors.description?.message}
-                />
-              </div>
-
-              {/* Category */}
-              <CategorySelector
-                value={formData.category}
-                onChange={(value) => setValue("category", value)}
-                error={errors.category?.message}
-              />
-
-              {/* SKU & Weight */}
-              <div className="grid grid-cols-2 gap-4">
+          {/* Basic Info Tab */}
+          <TabsContent value="basic" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Information</CardTitle>
+                <CardDescription>
+                  Basic details about your product
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Product Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="sku">SKU (Optional)</Label>
+                  <Label htmlFor="name">Product Name *</Label>
                   <Input
-                    id="sku"
-                    placeholder="e.g., MUSH-001"
-                    {...register("sku")}
+                    id="name"
+                    placeholder="e.g., King Oyster Mushrooms"
+                    {...register("name")}
+                    className={errors.name ? "border-destructive" : ""}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (grams)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    placeholder="0"
-                    {...register("weight", { valueAsNumber: true })}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Pricing Tab */}
-        <TabsContent value="pricing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing & Inventory</CardTitle>
-              <CardDescription>
-                Set pricing and manage inventory
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Price & Compare Price */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (₱) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...register("price", { valueAsNumber: true })}
-                    className={errors.price ? "border-destructive" : ""}
-                  />
-                  {errors.price && (
+                  {errors.name && (
                     <p className="text-sm text-destructive">
-                      {errors.price.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="compareAtPrice">Compare at Price (₱)</Label>
-                  <Input
-                    id="compareAtPrice"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...register("compareAtPrice", { valueAsNumber: true })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Show a discount by setting a higher compare price
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Inventory */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity in Stock *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    step="1"
-                    placeholder="0"
-                    {...register("quantity", { valueAsNumber: true })}
-                    className={errors.quantity ? "border-destructive" : ""}
-                  />
-                  {errors.quantity && (
-                    <p className="text-sm text-destructive">
-                      {errors.quantity.message}
+                      {errors.name.message}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="trackInventory">Track Inventory</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically track stock levels
-                    </p>
-                  </div>
-                  <Switch
-                    id="trackInventory"
-                    {...register("trackInventory")}
-                    checked={formData.trackInventory}
-                    onCheckedChange={(checked) =>
-                      setValue("trackInventory", checked)
-                    }
+                {/* Description (Rich Text) */}
+                <div className="space-y-2">
+                  <Label>Product Description *</Label>
+                  <RichTextEditor
+                    value={formData.description}
+                    onChange={(value) => setValue("description", value)}
+                    error={errors.description?.message}
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="isAvailable">Available for Purchase</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Make this product visible in your store
+                {/* Category */}
+                <CategorySelector
+                  value={formData.category}
+                  onChange={(value) => setValue("category", value)}
+                  error={errors.category?.message}
+                />
+
+                {/* SKU & Weight */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sku">SKU (Optional)</Label>
+                    <Input
+                      id="sku"
+                      placeholder="e.g., MUSH-001"
+                      {...register("sku")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Weight (grams)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      placeholder="0"
+                      {...register("weight", { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Pricing Tab */}
+          <TabsContent value="pricing" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing & Inventory</CardTitle>
+                <CardDescription>
+                  Set pricing and manage inventory
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Price & Compare Price */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price (₱) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...register("price", { valueAsNumber: true })}
+                      className={errors.price ? "border-destructive" : ""}
+                    />
+                    {errors.price && (
+                      <p className="text-sm text-destructive">
+                        {errors.price.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="compareAtPrice">Compare at Price (₱)</Label>
+                    <Input
+                      id="compareAtPrice"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...register("compareAtPrice", { valueAsNumber: true })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Show a discount by setting a higher compare price
                     </p>
                   </div>
-                  <Switch
-                    id="isAvailable"
-                    {...register("isAvailable")}
-                    checked={formData.isAvailable}
-                    onCheckedChange={(checked) =>
-                      setValue("isAvailable", checked)
-                    }
-                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Media Tab */}
-        <TabsContent value="media" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Images</CardTitle>
-              <CardDescription>
-                Upload images to showcase your product
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ImageUploader
-                images={images}
-                onImagesChange={setImages}
-                error={
-                  images.length === 0
-                    ? "At least one image is required"
-                    : undefined
-                }
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+                <Separator />
 
-        {/* Variants Tab */}
-        <TabsContent value="variants" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Variants</CardTitle>
-              <CardDescription>
-                Add different sizes, colors, or weight options
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariantManager
-                hasVariants={hasVariants}
-                onHasVariantsChange={(enabled) =>
-                  setValue("hasVariants", enabled)
-                }
-                variants={variants}
-                onVariantsChange={setVariants}
-                basePrice={formData.price}
-                baseSku={formData.sku || "PROD"}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+                {/* Inventory */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity in Stock *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      step="1"
+                      placeholder="0"
+                      {...register("quantity", { valueAsNumber: true })}
+                      className={errors.quantity ? "border-destructive" : ""}
+                    />
+                    {errors.quantity && (
+                      <p className="text-sm text-destructive">
+                        {errors.quantity.message}
+                      </p>
+                    )}
+                  </div>
 
-        {/* SEO Tab */}
-        <TabsContent value="seo" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Search Engine Optimization</CardTitle>
-              <CardDescription>
-                Improve your product's visibility in search results
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SeoFields
-                metaTitle={formData.metaTitle || ""}
-                metaDescription={formData.metaDescription || ""}
-                onMetaTitleChange={(value) => setValue("metaTitle", value)}
-                onMetaDescriptionChange={(value) =>
-                  setValue("metaDescription", value)
-                }
-                productName={formData.name}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </form>
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="trackInventory">Track Inventory</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically track stock levels
+                      </p>
+                    </div>
+                    <Switch
+                      id="trackInventory"
+                      {...register("trackInventory")}
+                      checked={formData.trackInventory}
+                      onCheckedChange={(checked) =>
+                        setValue("trackInventory", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="isAvailable">Available for Purchase</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Make this product visible in your store
+                      </p>
+                    </div>
+                    <Switch
+                      id="isAvailable"
+                      {...register("isAvailable")}
+                      checked={formData.isAvailable}
+                      onCheckedChange={(checked) =>
+                        setValue("isAvailable", checked)
+                      }
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Media Tab */}
+          <TabsContent value="media" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Images</CardTitle>
+                <CardDescription>
+                  Upload images to showcase your product
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ImageUploader
+                  images={images}
+                  onImagesChange={setImages}
+                  error={
+                    images.length === 0
+                      ? "At least one image is required"
+                      : undefined
+                  }
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Variants Tab */}
+          <TabsContent value="variants" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Variants</CardTitle>
+                <CardDescription>
+                  Add different sizes, colors, or weight options
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VariantManager
+                  hasVariants={hasVariants}
+                  onHasVariantsChange={(enabled) =>
+                    setValue("hasVariants", enabled)
+                  }
+                  variants={variants}
+                  onVariantsChange={setVariants}
+                  basePrice={formData.price}
+                  baseSku={formData.sku || "PROD"}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* SEO Tab */}
+          <TabsContent value="seo" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Search Engine Optimization</CardTitle>
+                <CardDescription>
+                  Improve your product's visibility in search results
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SeoFields
+                  metaTitle={formData.metaTitle || ""}
+                  metaDescription={formData.metaDescription || ""}
+                  onMetaTitleChange={(value) => setValue("metaTitle", value)}
+                  onMetaDescriptionChange={(value) =>
+                    setValue("metaDescription", value)
+                  }
+                  productName={formData.name}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </form>
+    </>
   );
 }

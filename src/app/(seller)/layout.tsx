@@ -38,7 +38,7 @@ export default function SellerLayout({
 
   if (isStartSellingPage) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <main>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
             {children}
@@ -52,15 +52,10 @@ export default function SellerLayout({
     <SidebarProvider>
       <div
         className="flex w-full"
-        style={{ minHeight: "calc(100vh - var(--seller-header-height, 88px))" }}
       >
-        <SellerSidebar className="md:top-[calc(var(--seller-header-height,88px)+3px)] md:h-[calc(100vh-var(--seller-header-height,88px)-2px)] md:p-0" />
+        <SellerSidebar />
         <SidebarInset
-          className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none"
-          style={{
-            minHeight: "calc(100vh - var(--seller-header-height, 88px))",
-          }}
-        >
+          className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />

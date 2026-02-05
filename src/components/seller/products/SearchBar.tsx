@@ -93,7 +93,7 @@ export function SearchBar({
   return (
     <div className={cn('relative w-full', className)}>
       {/* Search Icon */}
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10">
         <Search className="h-4 w-4" />
       </div>
 

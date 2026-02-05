@@ -6,14 +6,14 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  Package, 
-  TrendingDown, 
-  TrendingUp, 
-  RotateCcw, 
-  AlertTriangle, 
-  ArrowRightLeft, 
-  Edit, 
+import {
+  Package,
+  TrendingDown,
+  TrendingUp,
+  RotateCcw,
+  AlertTriangle,
+  ArrowRightLeft,
+  Edit,
   Download,
   Search,
   Filter,
@@ -26,12 +26,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import {
   Table,
@@ -53,7 +53,7 @@ import { cn } from '@/lib/utils';
 import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 import { useStockHistory, useRecentAdjustments } from '@/hooks/useStockManagement';
 import { exportStockHistoryToCSV, downloadCSV } from '@/lib/sanity/stock-history-service';
-import type { StockAdjustmentType, StockAdjustmentHistory } from '@/types/stock-management';
+import type { StockAdjustmentType } from '@/types/stock-management';
 import { toast } from 'sonner';
 
 /**
@@ -128,11 +128,11 @@ interface StockHistoryLogProps {
 /**
  * StockHistoryLog Component
  */
-export function StockHistoryLog({ 
-  productId, 
+export function StockHistoryLog({
+  productId,
   showProductColumn = false,
   className,
-  pageSize = 20 
+  pageSize = 20
 }: StockHistoryLogProps) {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,11 +146,11 @@ export function StockHistoryLog({
 
   // Use appropriate hook based on whether we have a productId
   // useStockHistory for single product, useRecentAdjustments for all products
-  const productHistoryQuery = useStockHistory({ 
-    productId: productId || '', 
+  const productHistoryQuery = useStockHistory({
+    productId: productId || '',
     page,
     pageSize,
-    enabled: !!productId 
+    enabled: !!productId
   });
 
   const allHistoryQuery = useRecentAdjustments({
@@ -159,16 +159,16 @@ export function StockHistoryLog({
   });
 
   // Merge results based on which query is active
-  const historyData = productId 
-    ? productHistoryQuery.data 
+  const historyData = productId
+    ? (productHistoryQuery as any).data
     : {
-        items: allHistoryQuery.adjustments,
-        total: allHistoryQuery.adjustments.length,
-        hasMore: false,
-        page,
-        pageSize
-      };
-  
+      items: allHistoryQuery.adjustments,
+      total: allHistoryQuery.adjustments.length,
+      hasMore: false,
+      page,
+      pageSize
+    };
+
   const isLoading = productId ? productHistoryQuery.isLoading : allHistoryQuery.isLoading;
   const error = productId ? productHistoryQuery.error : allHistoryQuery.error;
   const isFetching = productId ? productHistoryQuery.isFetching : allHistoryQuery.isFetching;
@@ -205,12 +205,12 @@ export function StockHistoryLog({
 
     // Date filter
     if (dateRange.from) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         isAfter(parseISO(item.adjustmentDate), dateRange.from!)
       );
     }
     if (dateRange.to) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         isBefore(parseISO(item.adjustmentDate), dateRange.to!)
       );
     }
@@ -258,10 +258,10 @@ export function StockHistoryLog({
     }
 
     const csv = exportStockHistoryToCSV(filteredData);
-    const filename = productId 
+    const filename = productId
       ? `stock-history-${productId}-${format(new Date(), 'yyyy-MM-dd')}.csv`
       : `stock-history-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    
+
     downloadCSV(csv, filename);
     toast.success('History exported successfully');
   }, [filteredData, productId]);
@@ -306,7 +306,7 @@ export function StockHistoryLog({
             <Package className="h-5 w-5" />
             Stock History
           </CardTitle>
-          
+
           <Button variant="outline" size="sm" onClick={handleExport} disabled={!filteredData.length}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -407,113 +407,110 @@ export function StockHistoryLog({
           </div>
         ) : (
           <>
-            <ScrollArea className="h-96">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead 
-                      className="cursor-pointer"
-                      onClick={() => toggleSort('date')}
-                    >
-                      <span className="flex items-center gap-1">
-                        Date
-                        {sortField === 'date' && (
-                          sortOrder === 'desc' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />
-                        )}
-                      </span>
-                    </TableHead>
-                    <TableHead>Type</TableHead>
-                    {showProductColumn && <TableHead>Product</TableHead>}
-                    <TableHead 
-                      className="cursor-pointer text-right"
-                      onClick={() => toggleSort('quantity')}
-                    >
-                      <span className="flex items-center justify-end gap-1">
-                        Qty
-                        {sortField === 'quantity' && (
-                          sortOrder === 'desc' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />
-                        )}
-                      </span>
-                    </TableHead>
-                    <TableHead className="text-right">Stock</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>User</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredData.map((item) => (
-                    <React.Fragment key={item._id}>
-                      <TableRow 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => toggleRow(item._id)}
+            <ScrollArea className="h-96 w-full">
+              <div className="min-w-[700px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead
+                        className="cursor-pointer min-w-[100px]"
+                        onClick={() => toggleSort('date')}
                       >
-                        <TableCell>
-                          {expandedRows.has(item._id) 
-                            ? <ChevronUp className="h-4 w-4" />
-                            : <ChevronDown className="h-4 w-4" />
-                          }
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {format(parseISO(item.adjustmentDate), 'MMM d, HH:mm')}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <TypeIcon type={item.adjustmentType} />
-                            <span className="hidden sm:inline">
-                              {ADJUSTMENT_TYPE_CONFIG[item.adjustmentType].label}
-                            </span>
-                          </div>
-                        </TableCell>
-                        {showProductColumn && (
-                          <TableCell className="font-medium">
-                            {(item as { product?: { name?: string } }).product?.name || 'Unknown'}
+                        <span className="flex items-center gap-1">
+                          Date
+                          {sortField === 'date' && (
+                            sortOrder === 'desc' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />
+                          )}
+                        </span>
+                      </TableHead>
+                      <TableHead className="min-w-[100px]">Type</TableHead>
+                      {showProductColumn && <TableHead className="min-w-[120px]">Product</TableHead>}
+                      <TableHead
+                        className="cursor-pointer text-right min-w-[80px]"
+                        onClick={() => toggleSort('quantity')}
+                      >
+                        <span className="flex items-center justify-end gap-1">
+                          Qty
+                          {sortField === 'quantity' && (
+                            sortOrder === 'desc' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />
+                          )}
+                        </span>
+                      </TableHead>
+                      <TableHead className="text-right min-w-[100px]">Stock</TableHead>
+                      <TableHead className="min-w-[120px]">Reason</TableHead>
+                      <TableHead className="min-w-[100px]">User</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredData.map((item) => (
+                      <React.Fragment key={item._id}>
+                        <TableRow
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => toggleRow(item._id)}
+                        >
+                          <TableCell>
+                            {expandedRows.has(item._id)
+                              ? <ChevronUp className="h-4 w-4" />
+                              : <ChevronDown className="h-4 w-4" />
+                            }
                           </TableCell>
-                        )}
-                        <TableCell className={cn(
-                          'text-right font-mono font-medium',
-                          item.quantityChange > 0 ? 'text-green-600' : 'text-red-600'
-                        )}>
-                          {item.quantityChange > 0 ? '+' : ''}{item.quantityChange}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {item.previousStock} → {item.newStock}
-                        </TableCell>
-                        <TableCell className="max-w-32 truncate">
-                          {item.reason}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {item.adjustedBy?.name || item.adjustedBy?.email || 'System'}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Expanded details */}
-                      {expandedRows.has(item._id) && (
-                        <TableRow className="bg-muted/30">
-                          <TableCell colSpan={showProductColumn ? 8 : 7} className="py-4">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p className="font-medium text-muted-foreground">Reason Code</p>
-                                <p>{item.reason}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-muted-foreground">Date & Time</p>
-                                <p>{format(parseISO(item.adjustmentDate), 'PPpp')}</p>
-                              </div>
-                              {item.notes && (
-                                <div className="col-span-2">
-                                  <p className="font-medium text-muted-foreground">Notes</p>
-                                  <p className="whitespace-pre-wrap">{item.notes}</p>
-                                </div>
-                              )}
-                            </div>
+                          <TableCell className="font-mono text-sm">
+                            {format(parseISO(item.adjustmentDate), 'MMM d, HH:mm')}
+                          </TableCell>
+                          <TableCell>
+                            <TypeIcon type={item.adjustmentType} />
+                          </TableCell>
+                          {showProductColumn && (
+                            <TableCell className="font-medium">
+                              {(item as { product?: { name?: string } }).product?.name || 'Unknown'}
+                            </TableCell>
+                          )}
+                          <TableCell className={cn(
+                            'text-right font-mono font-medium',
+                            item.quantityChange > 0 ? 'text-green-600' : 'text-red-600'
+                          )}>
+                            {item.quantityChange > 0 ? '+' : ''}{item.quantityChange}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {item.previousStock} → {item.newStock}
+                          </TableCell>
+                          <TableCell className="max-w-32 truncate text-sm">
+                            {item.reason}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm truncate max-w-24">
+                            {item.adjustedBy?.name || item.adjustedBy?.email || 'System'}
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
+
+                        {/* Expanded details */}
+                        {expandedRows.has(item._id) && (
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={showProductColumn ? 8 : 7} className="py-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium text-muted-foreground">Reason Code</p>
+                                  <p>{item.reason}</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-muted-foreground">Date & Time</p>
+                                  <p>{format(parseISO(item.adjustmentDate), 'PPpp')}</p>
+                                </div>
+                                {item.notes && (
+                                  <div className="col-span-2">
+                                    <p className="font-medium text-muted-foreground">Notes</p>
+                                    <p className="whitespace-pre-wrap">{item.notes}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
 
             {/* Pagination */}
