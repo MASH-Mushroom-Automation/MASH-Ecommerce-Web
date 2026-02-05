@@ -24,6 +24,7 @@ const protectedRoutes = [
   "/profile/my-information",
   "/profile/order-history",
   "/wishlist",
+  "/start-selling", // Seller registration requires login
 ];
 
 // Define auth routes that authenticated users shouldn't access

@@ -2,6 +2,7 @@
 // src/components/cms/ContactSection.tsx
 
 import React, { useMemo } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Phone, MapPin, Facebook, MessageCircle } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  MessageCircle,
+  Youtube,
+  Linkedin,
+} from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { ContactInfo, BusinessHours, SocialLink } from "@/hooks/useCMS";
 
 interface CMSContactSectionProps {
@@ -56,6 +66,12 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
   loading,
   error,
 }) => {
+  const { isAuthenticated } = useAuth();
+
+  // Show partnership CTA only if not logged in
+  // (Logged in users can access seller dashboard directly from profile)
+  const showPartnershipCTA = !isAuthenticated;
+
   const {
     register,
     handleSubmit,
@@ -83,9 +99,9 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
         throw new Error(message);
       }
 
-      const data = (await response.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
 
       toast.success(data?.message ?? "Message sent", {
         description: "We'll get back to you within 24 hours.",
@@ -126,6 +142,12 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
         return <MessageCircle className="h-5 w-5" />;
       case "instagram":
         return <MessageCircle className="h-5 w-5" />;
+      case "youtube":
+        return <Youtube className="h-5 w-5" />;
+      case "linkedin":
+        return <Linkedin className="h-5 w-5" />;
+      case "github":
+        return <Linkedin className="h-5 w-5" />; // Sanity has platform as github but URL is LinkedIn
       default:
         return <MessageCircle className="h-5 w-5" />;
     }
@@ -136,7 +158,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
       (contactInfo ?? [])
         .filter((info) => info.isActive)
         .sort((a, b) => a.displayOrder - b.displayOrder),
-    [contactInfo]
+    [contactInfo],
   );
 
   const safeBusinessHours = useMemo(
@@ -144,7 +166,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
       (businessHours ?? [])
         .filter((hours) => hours.isActive)
         .sort((a, b) => a.displayOrder - b.displayOrder),
-    [businessHours]
+    [businessHours],
   );
 
   const safeSocialLinks = useMemo(
@@ -152,20 +174,26 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
       (socialLinks ?? [])
         .filter((link) => link.isActive)
         .sort((a, b) => a.displayOrder - b.displayOrder),
-    [socialLinks]
+    [socialLinks],
   );
 
   const renderContactValue = (info: ContactInfo) => {
     switch (info.type) {
       case "phone":
         return (
-          <a href={`tel:${info.value}`} className="text-primary font-semibold hover:underline">
+          <a
+            href={`tel:${info.value}`}
+            className="text-primary font-semibold hover:underline"
+          >
             {info.value}
           </a>
         );
       case "email":
         return (
-          <a href={`mailto:${info.value}`} className="text-primary font-semibold hover:underline">
+          <a
+            href={`mailto:${info.value}`}
+            className="text-primary font-semibold hover:underline text-sm break-all"
+          >
             {info.value}
           </a>
         );
@@ -241,15 +269,19 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                 <div className="bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   {getContactIcon(info.type)}
                 </div>
-                <h3 className="font-semibold text-foreground mb-2">{info.title}</h3>
-                <p className="text-muted-foreground text-sm mb-1">{info.description}</p>
+                <h3 className="font-semibold text-foreground mb-2">
+                  {info.title}
+                </h3>
+                <p className="text-muted-foreground text-sm mb-1">
+                  {info.description}
+                </p>
                 {renderContactValue(info)}
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-8 items-start">
           {/* Contact Form */}
           <Card>
             <CardHeader>
@@ -362,21 +394,24 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
               </CardHeader>
               <CardContent className="space-y-3">
                 {safeBusinessHours.map((hours) => (
-                    <div key={hours.id} className="flex justify-between items-center">
-                      <span className="text-muted-foreground capitalize">
-                        {hours.dayOfWeek}
-                      </span>
-                      <span
-                        className={`font-semibold ${
-                          hours.isClosed ? "text-destructive" : "text-foreground"
-                        }`}
-                      >
-                        {hours.isClosed
-                          ? "Closed"
-                          : `${hours.openTime} - ${hours.closeTime}`}
-                      </span>
-                    </div>
-                  ))}
+                  <div
+                    key={hours.id}
+                    className="flex justify-between items-center"
+                  >
+                    <span className="text-muted-foreground capitalize">
+                      {hours.dayOfWeek}
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        hours.isClosed ? "text-destructive" : "text-foreground"
+                      }`}
+                    >
+                      {hours.isClosed
+                        ? "Closed"
+                        : `${hours.openTime} - ${hours.closeTime}`}
+                    </span>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -394,38 +429,41 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                 </p>
                 <div className="flex gap-4">
                   {safeSocialLinks.map((link) => (
-                      <Button
-                        key={link.id}
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full"
-                        onClick={() => window.open(link.url, '_blank')}
-                      >
-                        {getSocialIcon(link.platform)}
-                      </Button>
-                    ))}
+                    <Button
+                      key={link.id}
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full"
+                      onClick={() => window.open(link.url, "_blank")}
+                    >
+                      {getSocialIcon(link.platform)}
+                    </Button>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Partnership CTA */}
-            <Card className="bg-primary text-primary-foreground">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg mb-2">
-                  Interested in Becoming a Grower?
-                </h3>
-                <p className="text-primary-foreground/80 text-sm mb-4">
-                  Join our network of mushroom growers and reach more customers
-                  through MASH.
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                >
-                  Learn About Partnership
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Partnership CTA - Only show for non-logged users or non-sellers */}
+            {showPartnershipCTA && (
+              <Card className="bg-primary text-primary-foreground">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg mb-2">
+                    Interested in Becoming a Grower?
+                  </h3>
+                  <p className="text-primary-foreground/80 text-sm mb-4">
+                    Join our network of mushroom growers and reach more
+                    customers through MASH.
+                  </p>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 border-primary-foreground/30"
+                  >
+                    <Link href="/start-selling">Learn About Partnership</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

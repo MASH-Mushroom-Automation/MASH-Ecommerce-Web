@@ -350,14 +350,14 @@ export default function TermsPage() {
               </p>
               <div className="space-y-1 text-sm">
                 <p>
-                  Email: <strong>legal@mash.ph</strong>
+                  Email: <strong>MASH.Mushroom.Automation@gmail.com</strong>
                 </p>
                 <p>
-                  Phone: <strong>+63 917 123 4567</strong>
+                  Phone: <strong>09272533969</strong>
                 </p>
                 <p>
                   Address:{" "}
-                  <strong>Quezon City, Metro Manila, Philippines</strong>
+                  <strong>University of Caloocan City, Philippines</strong>
                 </p>
               </div>
             </CardContent>
