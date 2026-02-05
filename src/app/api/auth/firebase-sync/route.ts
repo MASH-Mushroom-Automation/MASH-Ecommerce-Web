@@ -50,10 +50,12 @@ export async function POST(request: NextRequest) {
     // 3. Return a JWT access token
 
     try {
+      const cookieHeader = request.headers.get("cookie") || "";
       const backendResponse = await fetch(`${API_URL}/auth/firebase-sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         },
         credentials: "include",
         body: JSON.stringify({

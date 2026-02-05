@@ -26,7 +26,11 @@ async function getCsrfToken(): Promise<string | null> {
 
 // Helper to check if token is a mock token (invalid for backend)
 function isMockToken(token: string): boolean {
-  return token.startsWith("mock.") || token.includes(".mock.") || token.endsWith(".token");
+  return (
+    token.startsWith("mock.") ||
+    token.includes(".mock.") ||
+    token.endsWith(".token")
+  );
 }
 
 // POST /api/user/apply-as-seller - Submit seller application
@@ -48,44 +52,57 @@ export async function POST(request: NextRequest) {
             message: "Authentication required. Please sign in again.",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Check if using a mock token (development fallback - invalid for backend)
     if (isMockToken(token)) {
-      console.error("[Apply-as-Seller] Mock token detected - backend sync failed during login");
+      console.error(
+        "[Apply-as-Seller] Mock token detected - backend sync failed during login",
+      );
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "INVALID_TOKEN",
-            message: "Your session is not properly synced with the server. Please sign out and sign in again.",
-            details: "The backend authentication sync failed during login. This usually means the backend /auth/firebase-sync endpoint is not working.",
+            message:
+              "Your session is not properly synced with the server. Please sign out and sign in again.",
+            details:
+              "The backend authentication sync failed during login. This usually means the backend /auth/firebase-sync endpoint is not working.",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = await request.json();
-    console.log("[Apply-as-Seller] Request body:", JSON.stringify(body, null, 2));
+    console.log(
+      "[Apply-as-Seller] Request body:",
+      JSON.stringify(body, null, 2),
+    );
 
     // Fetch CSRF token from backend (public endpoint, no auth needed)
     const csrfToken = await getCsrfToken();
     console.log("[Apply-as-Seller] CSRF token fetched:", !!csrfToken);
 
+    const cookieHeader = request.headers.get("cookie") || "";
+
     // Build headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     };
 
     if (csrfToken) {
       headers["x-csrf-token"] = csrfToken;
     }
 
-    console.log("[Apply-as-Seller] Calling backend:", `${API_URL}/users/me/apply-as-seller`);
+    console.log(
+      "[Apply-as-Seller] Calling backend:",
+      `${API_URL}/users/me/apply-as-seller`,
+    );
 
     const response = await fetch(`${API_URL}/users/me/apply-as-seller`, {
       method: "POST",
@@ -99,7 +116,10 @@ export async function POST(request: NextRequest) {
       .json()
       .catch(() => ({ message: "Unknown error" }));
 
-    console.log("[Apply-as-Seller] Backend response:", JSON.stringify(data, null, 2));
+    console.log(
+      "[Apply-as-Seller] Backend response:",
+      JSON.stringify(data, null, 2),
+    );
 
     if (!response.ok) {
       // Provide more specific error messages
@@ -108,10 +128,12 @@ export async function POST(request: NextRequest) {
 
       if (response.status === 401) {
         errorCode = "UNAUTHORIZED";
-        errorMessage = "Your session has expired. Please sign out and sign in again to get a valid token.";
+        errorMessage =
+          "Your session has expired. Please sign out and sign in again to get a valid token.";
       } else if (response.status === 404) {
         errorCode = "ENDPOINT_NOT_FOUND";
-        errorMessage = "The seller application endpoint is not available on the backend. The /users/me/apply-as-seller endpoint may not be implemented yet.";
+        errorMessage =
+          "The seller application endpoint is not available on the backend. The /users/me/apply-as-seller endpoint may not be implemented yet.";
       }
 
       return NextResponse.json(
@@ -124,7 +146,7 @@ export async function POST(request: NextRequest) {
             backendMessage: data.message,
           },
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -146,7 +168,7 @@ export async function POST(request: NextRequest) {
         },
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
