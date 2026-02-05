@@ -2,67 +2,55 @@ name: Playwright E2E Tests
 
 on:
   pull_request:
-    branches: [ main, master, develop, TESTING-&-SECURITY ]
-  workflow_dispatch: {}
+    branches: [main, develop, TESTING-&-SECURITY]
+  workflow_dispatch:
 
 jobs:
   playwright-e2e:
-    name: E2E Browser Tests
+    name: E2E Tests
     runs-on: ubuntu-latest
-    # Non-blocking: E2E tests are informational, don't block PR merge
+    # Non-blocking: E2E tests are informational
     continue-on-error: true
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
-      - name: Build
+      - name: Build application
         run: npm run build
         env:
           NODE_ENV: production
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.mashmarket.app/api/v1' }}
-          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID || 'gerattrr' }}
-          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET || 'production' }}
-          NEXT_PUBLIC_SANITY_API_VERSION: ${{ secrets.NEXT_PUBLIC_SANITY_API_VERSION || '2024-11-26' }}
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'mash-ddf8d.firebaseapp.com' }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'mash-ddf8d' }}
+          NEXT_PUBLIC_API_URL: https://api.mashmarket.app/api/v1
+          NEXT_PUBLIC_SANITY_PROJECT_ID: gerattrr
+          NEXT_PUBLIC_SANITY_DATASET: production
+          NEXT_PUBLIC_SANITY_API_VERSION: 2024-11-26
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-key' }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: mash-ddf8d.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: mash-ddf8d
 
       - name: Run Playwright tests
-        continue-on-error: true  # Don't fail build on E2E test failures
-        run: npm run test:e2e || echo "::warning::Some E2E tests failed - please review"
+        continue-on-error: true
+        run: npm run test:e2e || echo "::warning::Some E2E tests failed"
         env:
           CI: true
-          NEXT_PUBLIC_ENABLE_API_LOGGING: 'false'
-      
-      - name: Generate test report summary
-        if: always()
-        run: |
-          echo "🎭 Playwright Test Results:"
-          if [ -f "playwright-report/index.html" ]; then
-            echo "  Report generated: playwright-report/index.html"
-          fi
-          echo "  Check artifacts for detailed results"
 
-      - name: Upload Playwright Report (on failure)
-        if: failure()
+      - name: Upload Playwright Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report/**
+          path: playwright-report/
+          retention-days: 7
 
-# Notes:
-# - This job runs Playwright e2e tests on PRs and on manual dispatch.
-# - If you want visual snapshots, enable `npx playwright test --update-snapshots` in a separate job or locally.

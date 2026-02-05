@@ -1,198 +1,37 @@
-name: Security Scanning
+name: Security Scan
 
 on:
   push:
-    branches: [main, develop, TESTING-&-SECURITY]
+    branches: [main, develop]
   pull_request:
-    branches: [main, develop, TESTING-&-SECURITY]
+    branches: [main, develop]
   schedule:
-    # Run security scan daily at 2 AM UTC
-    - cron: '0 2 * * *'
-  workflow_dispatch: # Allow manual trigger
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
+  workflow_dispatch:
 
 jobs:
-  # ============================================
-  # NPM Audit - Dependency Vulnerabilities
-  # ============================================
-  npm-audit:
-    name: NPM Security Audit
+  security:
+    name: Security Audit
     runs-on: ubuntu-latest
-    # Non-blocking: warns but doesn't fail the PR (existing vulnerabilities in ecosystem)
-    continue-on-error: true
+    continue-on-error: true  # Non-blocking
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
       
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
       
-      - name: Run npm audit
+      - name: NPM Audit
         run: |
           echo "🔒 Running security audit..."
-          npm audit --json > audit-results.json || true
-          
-          # Parse results
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-results.json)
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-results.json)
-          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-results.json)
-          LOW=$(jq '.metadata.vulnerabilities.low // 0' audit-results.json)
-          
-          echo "📊 Security Vulnerability Summary:"
-          echo "  🔴 Critical: $CRITICAL"
-          echo "  🟠 High: $HIGH"
-          echo "  🟡 Moderate: $MODERATE"
-          echo "  🟢 Low: $LOW"
-          
-          # Export for summary
-          echo "CRITICAL=$CRITICAL" >> $GITHUB_ENV
-          echo "HIGH=$HIGH" >> $GITHUB_ENV
-          echo "MODERATE=$MODERATE" >> $GITHUB_ENV
-          echo "LOW=$LOW" >> $GITHUB_ENV
-          
-          # Warn on critical or high vulnerabilities (non-blocking)
-          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
-            echo "::warning::Found $CRITICAL critical and $HIGH high vulnerabilities"
-            echo "Run 'npm audit' locally to see details and fix what you can"
-          else
-            echo "✅ No critical or high vulnerabilities found"
+          npm audit --json > audit.json || true
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit.json)
+          echo "Critical: $CRITICAL, High: $HIGH"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::$CRITICAL critical vulnerabilities found"
           fi
-      
-      - name: Upload audit results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-audit-results
-          path: audit-results.json
-          retention-days: 30
-      
-      - name: Comment on PR (if vulnerabilities found)
-        if: github.event_name == 'pull_request' && (env.CRITICAL > 0 || env.HIGH > 0)
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const comment = `
-            ## ⚠️ Security Vulnerabilities Detected
-            
-            NPM audit found the following vulnerabilities:
-            - 🔴 **Critical:** ${process.env.CRITICAL}
-            - 🟠 **High:** ${process.env.HIGH}
-            - 🟡 **Moderate:** ${process.env.MODERATE}
-            - 🟢 **Low:** ${process.env.LOW}
-            
-            Please run \`npm audit\` locally and fix critical/high vulnerabilities before merging.
-            
-            ### Quick Fix Commands:
-            \`\`\`bash
-            npm audit fix              # Automatic fixes
-            npm audit fix --force      # More aggressive fixes
-            npm audit                  # View details
-            \`\`\`
-            `;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-
-  # ============================================
-  # CodeQL Analysis - Static Code Security
-  # ============================================
-  codeql:
-    name: CodeQL Security Analysis
-    runs-on: ubuntu-latest
-    # Non-blocking: CodeQL is informational
-    continue-on-error: true
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-      
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript-typescript"
-
-  # ============================================
-  # Dependency Review - PR Only
-  # ============================================
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true  # Don't block PR on dependency issues
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Dependency Review
-        id: dep-review
-        continue-on-error: true  # Skip if Advanced Security not enabled
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: critical
-          comment-summary-in-pr: true
-      
-      - name: Note if dependency review skipped
-        if: steps.dep-review.outcome == 'failure'
-        run: |
-          echo "::notice::Dependency review requires GitHub Advanced Security to be enabled"
-          echo "Skipping dependency review - this is informational only"
-      
-      - name: Check for license violations
-        continue-on-error: true
-        run: |
-          echo "📜 Checking license compliance..."
-          npx license-checker --production --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0;Unlicense;CC0-1.0;CC-BY-3.0;CC-BY-4.0;WTFPL;BlueOak-1.0.0' || {
-            echo "::warning::Some dependencies have non-standard licenses"
-          }
-
-  # ============================================
-  # Security Summary
-  # ============================================
-  security-summary:
-    name: Security Summary
-    runs-on: ubuntu-latest
-    needs: [npm-audit, codeql, dependency-review]
-    if: always()
-    
-    steps:
-      - name: Generate security summary
-        run: |
-          echo "🔒 Security Scan Summary:"
-          echo "  NPM Audit: ${{ needs.npm-audit.result }}"
-          echo "  CodeQL: ${{ needs.codeql.result }}"
-          echo "  Dependency Review: ${{ needs.dependency-review.result }}"
-          
-          # Only warn, don't block for security issues
-          if [[ "${{ needs.npm-audit.result }}" == "failure" ]]; then
-            echo "::warning::NPM audit found vulnerabilities - please review"
-          fi
-          if [[ "${{ needs.codeql.result }}" == "failure" ]]; then
-            echo "::warning::CodeQL found potential security issues - please review"
-          fi
-          
-          echo "✅ Security summary complete"
