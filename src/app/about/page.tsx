@@ -123,10 +123,16 @@ export default function AboutPage() {
     backgroundImage: content?.heroImage?.url,
   };
 
-  // Transform challenges - expects array of strings
-  const challengeStrings = content?.challenges?.length
-    ? content.challenges.map((c) => c.description || c.title)
-    : DEFAULT_CHALLENGES;
+  // Transform challenges - expects array of { title, description } objects
+  const challengeItems = content?.challenges?.length
+    ? content.challenges.map((c) => ({
+        title: c.title,
+        description: c.description,
+      }))
+    : DEFAULT_CHALLENGES.map((desc, idx) => ({
+        title: `Challenge ${idx + 1}`,
+        description: desc,
+      }));
 
   const challenges = {
     isActive: true,
@@ -134,7 +140,7 @@ export default function AboutPage() {
     subtitle:
       content?.challengesSubtitle ||
       "Small-scale mushroom farmers face numerous obstacles",
-    challenges: challengeStrings,
+    challenges: challengeItems,
   };
 
   // Transform solutions - expects array of { id, title, description }

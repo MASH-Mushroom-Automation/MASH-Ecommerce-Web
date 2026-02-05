@@ -263,23 +263,41 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                     <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
                       {challenges.subtitle}
                     </p>
-                    <ul className="space-y-4">
-                      {challenges.challenges.map((challenge, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-4 p-4 bg-red-500/5 rounded-xl border border-red-500/10 hover:border-red-500/20 transition-colors"
-                        >
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center mt-0.5">
-                            <span className="text-red-500 text-xs font-bold">
-                              {index + 1}
-                            </span>
-                          </span>
-                          <span className="text-foreground/80">
-                            {challenge}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="space-y-4">
+                      {challenges.challenges.map((challenge, index) => {
+                        // Handle both string and object formats
+                        const isString = typeof challenge === "string";
+                        const title = isString
+                          ? `Challenge ${index + 1}`
+                          : challenge.title;
+                        const description = isString
+                          ? challenge
+                          : challenge.description;
+
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-start gap-4 p-4 bg-gradient-to-r from-red-500/5 to-transparent rounded-xl border border-red-500/10 hover:border-red-500/30 transition-all hover:translate-x-1"
+                          >
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                              <span className="text-red-500 text-xs font-bold">
+                                {index + 1}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              {!isString && title && (
+                                <h3 className="font-bold text-foreground mb-1">
+                                  {title}
+                                </h3>
+                              )}
+                              <p className="text-foreground/80 text-sm leading-relaxed break-words">
+                                {description}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
