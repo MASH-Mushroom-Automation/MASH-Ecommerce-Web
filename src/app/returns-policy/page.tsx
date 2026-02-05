@@ -213,14 +213,12 @@ export default function ReturnsPolicyPage() {
                     <li>
                       Email:{" "}
                       <strong className="text-primary">
-                        returns@mash.ph
+                        MASH.Mushroom.Automation@gmail.com
                       </strong>
                     </li>
                     <li>
                       Phone:{" "}
-                      <strong className="text-primary">
-                        +63 917 123 4567
-                      </strong>
+                      <strong className="text-primary">09272533969</strong>
                     </li>
                     <li>
                       Contact Form:{" "}
@@ -368,13 +366,13 @@ export default function ReturnsPolicyPage() {
                   </p>
                   <div className="space-y-2 text-sm mb-4">
                     <p>
-                      Email: <strong>returns@mash.ph</strong>
+                      Email: <strong>MASH.Mushroom.Automation@gmail.com</strong>
                     </p>
                     <p>
-                      Phone: <strong>+63 917 123 4567</strong>
+                      Phone: <strong>09272533969</strong>
                     </p>
                     <p>
-                      Hours: <strong>Monday-Saturday, 8AM-6PM</strong>
+                      Hours: <strong>Monday-Saturday, 9AM-6PM</strong>
                     </p>
                   </div>
                   <Link href="/contact">
