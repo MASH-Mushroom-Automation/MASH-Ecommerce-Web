@@ -155,6 +155,39 @@ export const product = defineType({
           description: 'Alert when stock falls below this number',
         },
         {
+          name: 'outOfStockThreshold',
+          title: 'Out of Stock Threshold',
+          type: 'number',
+          validation: (rule) =>
+            rule
+              .min(0)
+              .integer()
+              .custom((outOfStockThreshold, context) => {
+                const {parent} = context as {parent: any}
+                const lowStockThreshold = parent?.lowStockThreshold
+
+                // outOfStockThreshold must be less than lowStockThreshold
+                if (
+                  lowStockThreshold !== undefined &&
+                  outOfStockThreshold !== undefined &&
+                  outOfStockThreshold >= lowStockThreshold
+                ) {
+                  return 'Out of stock threshold must be less than low stock threshold'
+                }
+
+                return true
+              }),
+          initialValue: 0,
+          description: 'Mark product as out of stock when quantity falls to or below this number',
+        },
+        {
+          name: 'restockLevel',
+          title: 'Restock Level',
+          type: 'number',
+          validation: (rule) => rule.min(0).integer(),
+          description: 'Recommended quantity to reorder when restocking (optional)',
+        },
+        {
           name: 'trackInventory',
           title: 'Track Inventory',
           type: 'boolean',

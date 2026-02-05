@@ -22,7 +22,7 @@ jest.mock('next/server', () => ({
 
 const createMockHeaders = () => {
   const headers = new Map();
-  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebase.com https://*.firebaseio.com; connect-src 'self' https://*.firebase.com https://*.sanity.io https://api.stripe.com https://api.paymongo.com https://rest.lalamove.com; frame-ancestors 'none';");
+  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebase.com https://*.firebaseio.com https://cal.com https://*.cal.com; connect-src 'self' https://*.firebase.com https://*.sanity.io https://api.stripe.com https://api.paymongo.com https://rest.lalamove.com https://cal.com https://*.cal.com; frame-src 'self' https://cal.com https://*.cal.com; frame-ancestors 'none';");
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-XSS-Protection', '1; mode=block');

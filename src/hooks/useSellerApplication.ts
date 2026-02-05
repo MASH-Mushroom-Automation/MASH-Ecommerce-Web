@@ -42,23 +42,30 @@ export interface SellerApplicationResponse {
   };
 }
 
-// API function to submit seller application via Next.js API route (avoids CORS)
+// API function to submit seller application via direct backend call
 async function submitSellerApplication(
-  payload: SellerApplicationPayload
+  payload: SellerApplicationPayload,
 ): Promise<SellerApplicationResponse> {
-  const response = await fetch("/api/user/apply-as-seller", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  // No need to get token manually - browser will send HttpOnly cookie
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/apply-as-seller`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Authorization header is no longer needed
+      },
+      credentials: "include", // This tells the browser to send cookies
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
-      data.error?.message || data.message || "Failed to submit application"
+      data.error?.message || data.message || "Failed to submit application",
     );
   }
 
@@ -90,7 +97,7 @@ export async function uploadAllDocuments(files: {
       uploadDocument(files.validIdFile, "government-id"),
       uploadDocument(files.birCertificateFile, "bir-certificate"),
       uploadDocument(files.businessCertificateFile, "business-certificate"),
-    ]
+    ],
   );
 
   return { governmentId, birCertificate, businessCertificate };

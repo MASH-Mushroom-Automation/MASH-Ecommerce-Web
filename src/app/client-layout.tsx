@@ -23,6 +23,7 @@ import { useSearchShortcut } from "@/hooks/useSearchShortcut";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { Chatbot } from "@/components/chatbot";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const AUTH_ROUTES = [
   "/login",
@@ -68,17 +69,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }, [isDev]);
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme={isDev ? "light" : "system"}
-      enableSystem={!isDev}
-      disableTransitionOnChange
-    >
-      <QueryProvider>
-        <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <ChatProvider>
+    <NuqsAdapter>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme={isDev ? "light" : "system"}
+        enableSystem={!isDev}
+        disableTransitionOnChange
+      >
+        <QueryProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <ChatProvider>
                 {isSellerRoute ? (
                   // Seller routes get header and handle their own layout with sidebar
                   <div className="min-h-screen flex flex-col">
@@ -107,5 +109,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </AuthProvider>
       </QueryProvider>
     </ThemeProvider>
+    </NuqsAdapter>
   );
 }

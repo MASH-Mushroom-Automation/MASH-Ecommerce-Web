@@ -25,6 +25,12 @@ export interface SanityProduct {
   sku: string;
   weight?: number;
   unit?: string; // 'grams' | 'kilograms' | 'pieces'
+  
+  // Stock Management Thresholds (SELLER-021)
+  lowStockThreshold?: number; // Alert when stock falls below this (default: 10)
+  outOfStockThreshold?: number; // Mark as out of stock at or below this (default: 0)
+  restockLevel?: number; // Recommended reorder quantity (optional)
+  
   isAvailable: boolean;
   isFeatured: boolean;
   isPromo: boolean;
