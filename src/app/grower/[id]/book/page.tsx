@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -10,34 +10,179 @@ import {
   Clock,
   Video,
   MapPin,
-  Phone,
   CheckCircle,
   Info,
   Mail,
   ExternalLink,
+  Star,
+  Shield,
+  MessageCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useSanityGrower } from "@/hooks/useSanityGrowers";
 import { CalendlyEmbed } from "@/components/appointments";
-import { AppointmentTypeCard } from "@/components/appointments/CalendlyButton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { sanityClient } from "@/lib/sanity/client";
+import { cn } from "@/lib/utils";
+import type { CalComTheme } from "@/lib/calcom";
 
 // Extended grower type with Calendly fields
 interface GrowerWithCalendly {
   calendlyEnabled?: boolean;
   calendlyUsername?: string;
   calendlyDefaultEvent?: string;
+  calcomTheme?: CalComTheme;
   appointmentTypes?: Array<{
     name: string;
     eventSlug: string;
     duration: number;
-    meetingType: "online" | "in-person" | "phone";
+    meetingType: "online" | "in-person" | "email";
     description?: string;
     isDefault?: boolean;
   }>;
   appointmentNotes?: string;
+}
+
+// Default appointment types (fallback if not configured in Sanity)
+const DEFAULT_APPOINTMENT_TYPES: GrowerWithCalendly["appointmentTypes"] = [
+  {
+    name: "15 Min Quick Chat",
+    eventSlug: "15min",
+    duration: 15,
+    meetingType: "email",
+    description: "Quick questions about products or availability",
+    isDefault: false,
+  },
+  {
+    name: "30 Min Meeting",
+    eventSlug: "30min",
+    duration: 30,
+    meetingType: "online",
+    description: "Online consultation to discuss mushroom products",
+    isDefault: true,
+  },
+  {
+    name: "1 Hour Meeting",
+    eventSlug: "1-hour-meeting",
+    duration: 60,
+    meetingType: "in-person",
+    description: "In-person farm tour or detailed consultation",
+    isDefault: false,
+  },
+];
+
+// Meeting type configuration (no phone - only email, online, in-person)
+const MEETING_TYPE_CONFIG = {
+  online: {
+    icon: Video,
+    label: "Online Meeting",
+    sublabel: "Via Google Meet",
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950/50",
+    borderColor: "border-blue-200 dark:border-blue-800",
+  },
+  "in-person": {
+    icon: MapPin,
+    label: "Farm Visit",
+    sublabel: "In-person tour",
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-950/50",
+    borderColor: "border-green-200 dark:border-green-800",
+  },
+  email: {
+    icon: MessageSquare,
+    label: "Quick Chat",
+    sublabel: "Brief consultation",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-950/50",
+    borderColor: "border-purple-200 dark:border-purple-800",
+  },
+};
+
+type AppointmentType = NonNullable<GrowerWithCalendly["appointmentTypes"]>[number];
+
+/**
+ * AppointmentTypeCard - Selection card for appointment types
+ */
+function AppointmentTypeCard({
+  appointment,
+  isSelected,
+  onSelect,
+}: {
+  appointment: AppointmentType;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const config = MEETING_TYPE_CONFIG[appointment.meetingType] || MEETING_TYPE_CONFIG.online;
+  const Icon = config.icon;
+
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        "w-full text-left p-4 rounded-xl border-2 transition-all duration-200",
+        "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50",
+        isSelected
+          ? "border-primary bg-primary/5 shadow-md ring-1 ring-primary/20"
+          : "border-border hover:border-primary/50 bg-card"
+      )}
+      aria-pressed={isSelected}
+    >
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          "p-2.5 rounded-xl transition-colors",
+          isSelected ? "bg-primary/10" : config.bgColor
+        )}>
+          <Icon className={cn(
+            "w-5 h-5 transition-colors",
+            isSelected ? "text-primary" : config.color
+          )} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className={cn(
+              "font-semibold truncate transition-colors",
+              isSelected ? "text-primary" : "text-foreground"
+            )}>
+              {appointment.name}
+            </h3>
+            {appointment.isDefault && (
+              <Badge 
+                variant={isSelected ? "default" : "secondary"} 
+                className="shrink-0 text-xs"
+              >
+                Recommended
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{appointment.duration} min</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{config.sublabel || config.label}</span>
+          </div>
+          {appointment.description && (
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+              {appointment.description}
+            </p>
+          )}
+        </div>
+        <div className={cn(
+          "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+          isSelected 
+            ? "border-primary bg-primary" 
+            : "border-muted-foreground/30"
+        )}>
+          {isSelected && (
+            <CheckCircle className="w-4 h-4 text-white" />
+          )}
+        </div>
+      </div>
+    </button>
+  );
 }
 
 /**
@@ -59,8 +204,11 @@ export default function GrowerBookingPage() {
   const [calendlyData, setCalendlyData] = useState<GrowerWithCalendly | null>(null);
   const [loadingCalendly, setLoadingCalendly] = useState(true);
   
-  // Selected appointment type
+  // Selected appointment type slug
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  
+  // Key to force re-render of CalendlyEmbed when appointment type changes
+  const [embedKey, setEmbedKey] = useState(0);
 
   // Fetch Calendly data separately (includes new fields)
   useEffect(() => {
@@ -72,6 +220,7 @@ export default function GrowerBookingPage() {
           calendlyEnabled,
           calendlyUsername,
           calendlyDefaultEvent,
+          calcomTheme,
           appointmentTypes[] {
             name,
             eventSlug,
@@ -86,13 +235,14 @@ export default function GrowerBookingPage() {
         const data = await sanityClient.fetch<GrowerWithCalendly>(query, { slug });
         setCalendlyData(data);
         
+        // Use configured types or fallback to defaults
+        const types = data?.appointmentTypes?.length 
+          ? data.appointmentTypes 
+          : DEFAULT_APPOINTMENT_TYPES;
+        
         // Set default selected type
-        if (data?.appointmentTypes?.length) {
-          const defaultType = data.appointmentTypes.find(t => t.isDefault) || data.appointmentTypes[0];
-          setSelectedType(defaultType.eventSlug);
-        } else if (data?.calendlyDefaultEvent) {
-          setSelectedType(data.calendlyDefaultEvent);
-        }
+        const defaultType = types.find(t => t.isDefault) || types[0];
+        setSelectedType(defaultType?.eventSlug || "30min");
       } catch (err) {
         console.error("Error fetching Calendly data:", err);
       } finally {
@@ -103,17 +253,37 @@ export default function GrowerBookingPage() {
     fetchCalendlyData();
   }, [slug]);
 
+  // Handle appointment type change - force new embed
+  const handleSelectType = (eventSlug: string) => {
+    if (eventSlug !== selectedType) {
+      setSelectedType(eventSlug);
+      setEmbedKey(prev => prev + 1); // Force re-render of CalendlyEmbed
+    }
+  };
+
+  // Get appointment types (from Sanity or defaults)
+  const appointmentTypes = useMemo(() => {
+    return calendlyData?.appointmentTypes?.length 
+      ? calendlyData.appointmentTypes 
+      : DEFAULT_APPOINTMENT_TYPES;
+  }, [calendlyData?.appointmentTypes]);
+
+  // Get selected appointment details
+  const selectedAppointment = useMemo(() => {
+    return appointmentTypes?.find(t => t.eventSlug === selectedType);
+  }, [appointmentTypes, selectedType]);
+
   const loading = growerLoading || loadingCalendly;
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-4 py-12">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <LoadingSpinner size="lg" className="mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading booking page…</p>
+              <p className="text-muted-foreground">Loading booking page...</p>
             </div>
           </div>
         </div>
@@ -124,21 +294,23 @@ export default function GrowerBookingPage() {
   // Error or not found
   if (growerError || !grower) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-4 py-12">
-          <div className="max-w-3xl">
+          <div className="max-w-3xl mx-auto">
             <Link
               href="/grower"
               className="inline-flex items-center text-sm text-primary hover:underline mb-6"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to Growers
             </Link>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Grower not found
-            </h1>
-            <p className="text-muted-foreground">
-              We couldn&apos;t find the grower you&apos;re looking for.
-            </p>
+            <Card className="text-center p-8">
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Grower not found
+              </h1>
+              <p className="text-muted-foreground">
+                We couldn&apos;t find the grower you&apos;re looking for.
+              </p>
+            </Card>
           </div>
         </div>
       </div>
@@ -148,7 +320,7 @@ export default function GrowerBookingPage() {
   // Appointments not enabled
   if (!calendlyData?.calendlyEnabled || !calendlyData?.calendlyUsername) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-3xl mx-auto text-center">
             <Link
@@ -158,7 +330,7 @@ export default function GrowerBookingPage() {
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to {grower.name}
             </Link>
             
-            <div className="bg-card border rounded-lg p-8 mt-6">
+            <Card className="p-8 mt-6">
               <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-foreground mb-2">
                 Appointments Not Available
@@ -173,15 +345,7 @@ export default function GrowerBookingPage() {
                   <a href={`mailto:${grower.contactEmail}`}>
                     <Button variant="outline" className="gap-2">
                       <Mail className="w-4 h-4" />
-                      Email
-                    </Button>
-                  </a>
-                )}
-                {grower.contactPhone && (
-                  <a href={`tel:${grower.contactPhone}`}>
-                    <Button variant="outline" className="gap-2">
-                      <Phone className="w-4 h-4" />
-                      Call
+                      Send Email
                     </Button>
                   </a>
                 )}
@@ -192,31 +356,29 @@ export default function GrowerBookingPage() {
                   </Button>
                 </Link>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
     );
   }
 
-  const appointmentTypes = calendlyData.appointmentTypes || [];
   const currentEventSlug = selectedType || calendlyData.calendlyDefaultEvent || "30min";
-  const selectedAppointment = appointmentTypes.find(t => t.eventSlug === currentEventSlug);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {/* Header */}
       <div className="w-full bg-gradient-to-r from-primary to-primary/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <Link
             href={`/grower/${slug}`}
-            className="inline-flex items-center text-white/90 hover:text-white mb-4 text-sm"
+            className="inline-flex items-center text-white/90 hover:text-white mb-4 text-sm transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to {grower.name}
           </Link>
           
           <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-white/20 flex-shrink-0">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white/20 flex-shrink-0 ring-4 ring-white/30">
               <Image
                 src={grower.image || "/placeholder.png"}
                 alt={grower.name}
@@ -225,14 +387,14 @@ export default function GrowerBookingPage() {
               />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
                 Book an Appointment
               </h1>
-              <p className="text-white/90 text-sm sm:text-base">
+              <p className="text-white/90 text-sm sm:text-base mt-1">
                 with {grower.name}
               </p>
               {grower.location && (
-                <p className="text-white/70 text-xs sm:text-sm flex items-center gap-1 mt-0.5">
+                <p className="text-white/70 text-xs sm:text-sm flex items-center gap-1 mt-1">
                   <MapPin className="w-3 h-3" />
                   {grower.location}
                 </p>
@@ -242,180 +404,82 @@ export default function GrowerBookingPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Left Column: Appointment Types & Info */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 space-y-6">
             {/* Appointment Type Selection */}
-            {appointmentTypes.length > 0 && (
-              <div className="bg-card border rounded-lg p-5 mb-6">
-                <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <h2 className="font-semibold text-base text-foreground flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
                   Select Appointment Type
                 </h2>
-                <div className="space-y-3">
-                  {appointmentTypes.map((apt, index) => (
-                    <AppointmentTypeCard
-                      key={`${apt.eventSlug}-${index}`}
-                      appointment={apt}
-                      isSelected={selectedType === apt.eventSlug}
-                      onSelect={() => setSelectedType(apt.eventSlug)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                {appointmentTypes?.map((apt, index) => (
+                  <AppointmentTypeCard
+                    key={`${apt.eventSlug}-${index}`}
+                    appointment={apt}
+                    isSelected={selectedType === apt.eventSlug}
+                    onSelect={() => handleSelectType(apt.eventSlug)}
+                  />
+                ))}
+              </CardContent>
+            </Card>
 
             {/* Appointment Notes */}
             {calendlyData.appointmentNotes && (
-              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                      Before Your Appointment
-                    </h3>
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {calendlyData.appointmentNotes}
-                    </p>
+              <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                <CardContent className="pt-5">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                      <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        Before Your Appointment
+                      </h3>
+                      <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                        {calendlyData.appointmentNotes.split('\n').filter(Boolean).map((note, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-blue-500 mt-1">•</span>
+                            <span>{note.replace(/^[•\-]\s*/, '')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* What to Expect */}
-            <div className="bg-card border rounded-lg p-5">
-              <h2 className="font-semibold text-foreground mb-4">
-                What to Expect
-              </h2>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                    Select a convenient time from the calendar
-                  </span>
-                </li>
-                <li className="flex items-start gap-3 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                    Receive instant confirmation via email
-                  </span>
-                </li>
-                <li className="flex items-start gap-3 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                    Google Calendar invite with meeting link
-                  </span>
-                </li>
-                <li className="flex items-start gap-3 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                    Easy rescheduling if plans change
-                  </span>
-                </li>
-              </ul>
-
-              {/* Selected Meeting Type Info */}
-              {selectedAppointment && (
-                <div className="mt-4 pt-4 border-t">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {selectedAppointment.meetingType === "online" && (
-                      <>
-                        <Video className="w-4 h-4 text-blue-500" />
-                        <span>Online via Google Meet</span>
-                      </>
-                    )}
-                    {selectedAppointment.meetingType === "in-person" && (
-                      <>
-                        <MapPin className="w-4 h-4 text-green-500" />
-                        <span>In-person at {grower.location || "store location"}</span>
-                      </>
-                    )}
-                    {selectedAppointment.meetingType === "phone" && (
-                      <>
-                        <Phone className="w-4 h-4 text-orange-500" />
-                        <span>Phone call</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{selectedAppointment.duration} minutes</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Grower Contact Info */}
-            <div className="bg-card border rounded-lg p-5 mt-6">
-              <h2 className="font-semibold text-foreground mb-4">
-                Contact Information
-              </h2>
-              <div className="space-y-2 text-sm">
-                {grower.contactEmail && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="w-4 h-4" />
-                    <a href={`mailto:${grower.contactEmail}`} className="hover:text-primary">
-                      {grower.contactEmail}
-                    </a>
-                  </div>
-                )}
-                {grower.contactPhone && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="w-4 h-4" />
-                    <a href={`tel:${grower.contactPhone}`} className="hover:text-primary">
-                      {grower.contactPhone}
-                    </a>
-                  </div>
-                )}
-                {grower.location && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <span>{grower.location}</span>
-                  </div>
-                )}
-              </div>
-              
-              {grower.isVerified && (
-                <Badge variant="secondary" className="mt-3">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Verified Seller
-                </Badge>
-              )}
-            </div>
           </div>
 
-          {/* Right Column: Calendly Embed */}
+          {/* Right Column: Cal.com Embed */}
           <div className="lg:col-span-8">
-            <div className="bg-card border rounded-lg overflow-hidden">
-              <div className="p-4 border-b bg-muted/50">
-                <h2 className="font-semibold text-foreground flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Select a Date & Time
-                </h2>
-                {selectedAppointment && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedAppointment.name} • {selectedAppointment.duration} minutes
-                  </p>
-                )}
-              </div>
-              
-              <CalendlyEmbed
-                username={calendlyData.calendlyUsername}
-                eventSlug={currentEventSlug}
-                height="700px"
-              />
-            </div>
+            <Card className="overflow-hidden shadow-sm">
+              <CardContent className="p-0">
+                {/* Key forces re-render when appointment type changes */}
+                <CalendlyEmbed
+                  key={`cal-embed-${embedKey}-${currentEventSlug}`}
+                  username={calendlyData.calendlyUsername}
+                  eventSlug={currentEventSlug}
+                  height="650px"
+                  theme={calendlyData.calcomTheme || "auto"}
+                />
+              </CardContent>
+            </Card>
 
-            {/* Powered by Calendly */}
-            <div className="text-center mt-4">
+            {/* Powered by Cal.com - Subtle footer */}
+            <div className="text-center mt-2">
               <a
-                href="https://calendly.com"
+                href="https://cal.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                className="text-xs text-muted-foreground/50 hover:text-muted-foreground inline-flex items-center gap-1 transition-colors"
               >
-                Powered by Calendly
+                Powered by Cal.com
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

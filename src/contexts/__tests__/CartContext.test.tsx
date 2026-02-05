@@ -23,9 +23,19 @@ import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
 
 // Mock dependencies
 jest.mock("@/lib/firebase/cart");
-jest.mock("sonner");
+// sonner is mocked globally in jest.setupMocks.js via global.__mockToast
 jest.mock("../AuthContext"); // Mock the entire AuthContext
 jest.mock("@/lib/cookies"); // Mock cookie functions
+
+// Access global toast mock
+const mockToast = global.__mockToast as {
+  success: jest.Mock;
+  error: jest.Mock;
+  info: jest.Mock;
+  warning: jest.Mock;
+  loading: jest.Mock;
+  dismiss: jest.Mock;
+};
 
 // Test component to access cart context
 function TestComponent() {
@@ -142,10 +152,10 @@ describe("CartContext", () => {
     (setCartCookie as jest.Mock).mockImplementation(() => {});
     (clearCartCookie as jest.Mock).mockImplementation(() => {});
     
-    // Reset toast mocks
-    (toast.success as jest.Mock) = jest.fn();
-    (toast.error as jest.Mock) = jest.fn();
-    (toast.info as jest.Mock) = jest.fn();
+    // Reset toast mocks - use global mock, don't reassign
+    mockToast.success.mockClear();
+    mockToast.error.mockClear();
+    mockToast.info.mockClear();
 
     // Mock Firebase cart service methods with proper implementations
     (FirebaseCartService.saveCart as jest.Mock) = jest.fn().mockResolvedValue(undefined);
@@ -238,7 +248,7 @@ describe("CartContext", () => {
         expect(cartItems[0].quantity).toBe(2);
       });
 
-      expect(toast.success).toHaveBeenCalledWith(
+      expect(mockToast.success).toHaveBeenCalledWith(
         "Test Product added to cart!",
         expect.objectContaining({
           description: "2 kg(s) added",
@@ -317,7 +327,7 @@ describe("CartContext", () => {
         button.click();
       });
 
-      expect(toast.error).toHaveBeenCalledWith("Not enough stock available", {
+      expect(mockToast.error).toHaveBeenCalledWith("Not enough stock available", {
         description: "Only 3 items available",
       });
     });
@@ -375,7 +385,7 @@ describe("CartContext", () => {
         button.click(); // Try to add 2 more (total 6, but stock is 5)
       });
 
-      expect(toast.error).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         "Cannot add more items",
         expect.objectContaining({
           description: expect.stringContaining("Only 5 available"),
@@ -413,7 +423,7 @@ describe("CartContext", () => {
         expect(cartItems[0].productId).toBe("product-2");
       });
 
-      expect(toast.info).toHaveBeenCalledWith("Test Product 1 removed from cart");
+      expect(mockToast.info).toHaveBeenCalledWith("Test Product 1 removed from cart");
     });
 
     it("should handle removing non-existent product", async () => {
@@ -537,7 +547,7 @@ describe("CartContext", () => {
         button.click(); // Try to set quantity to 15 (more than stock)
       });
 
-      expect(toast.error).toHaveBeenCalledWith("Only 10 items available");
+      expect(mockToast.error).toHaveBeenCalledWith("Only 10 items available");
     });
   });
 
@@ -567,7 +577,7 @@ describe("CartContext", () => {
         expect(screen.getByTestId("cart-count").textContent).toBe("0");
       });
 
-      expect(toast.info).toHaveBeenCalledWith("Cart cleared");
+      expect(mockToast.info).toHaveBeenCalledWith("Cart cleared");
     });
 
     it("should clear Firebase cart if user is authenticated", async () => {
@@ -620,7 +630,7 @@ describe("CartContext", () => {
         expect(screen.getByTestId("cart-count").textContent).toBe("0");
       });
 
-      expect(toast.info).toHaveBeenCalledWith("Cart cleared");
+      expect(mockToast.info).toHaveBeenCalledWith("Cart cleared");
       
       await waitFor(() => {
         expect(FirebaseCartService.clearCart).toHaveBeenCalledWith("user-123");

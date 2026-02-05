@@ -1,506 +1,487 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import TanStackTable from "@/components/table/TanStackTable";
-import BulkActionBar from "@/components/BulkActionBar";
-import { useBulkSelect } from "@/hooks/useBulkSelect";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Plus, Search, Filter, Edit, Trash } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Filter as FilterIcon, SlidersHorizontal } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useSellerProducts } from "@/hooks/useSeller";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SellerApi } from "@/lib/api/seller";
-import { getStatusBadge } from "@/lib/status-utils";
 
-export default function SellerProducts() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(10);
+// Phase 2 Components (Search & Filter UI)
+import { SearchBar } from "@/components/seller/products/SearchBar";
+import { FilterChips } from "@/components/seller/products/FilterChips";
 
-  // Use the seller products hook
-  const { products, loading, error, pagination, refetch } = useSellerProducts({
-    page,
-    limit,
-    search: searchTerm || undefined,
-  });
+// Lazy load FilterPanel for performance (reduces initial bundle size)
+const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel").then(mod => ({ default: mod.FilterPanel })));
 
-  // Handle product deletion
-  const handleDeleteProduct = async (productId: string) => {
-    setDeletingProduct(productId);
-    try {
-      await SellerApi.deleteProduct(productId);
+// Phase 3 Hooks (State Management)
+import { useProductFilters } from "@/hooks/useProductFilters";
+import { useProductSearch } from "@/hooks/useProductSearch";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 
-      // Refresh the products list
-      refetch();
-    } catch (error) {
-      console.error("Failed to delete product:", error);
-      // You could show a toast notification here
-    } finally {
-      setDeletingProduct(null);
-    }
-  };
+// Sanity Product Search
+import { getFilterOptions, type FilterOptions } from "@/lib/sanity/product-search";
+import { DEFAULT_FILTERS } from "@/types/product-filters";
 
-  // Filter products based on status and category (support multiple categories)
-  const filteredProducts = products.filter((product) => {
-    const matchesStatus =
-      statusFilter === "all" ||
-      product.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesCategory =
-      categoryFilter.length === 0 ||
-      categoryFilter.map((c) => c.toLowerCase()).includes(product.category.toLowerCase());
+// Disable static generation for this page (required for nuqs)
+export const dynamic = 'force-dynamic';
 
-    return matchesStatus && matchesCategory;
-  });
+// Virtualized Product Grid for large lists (>100 products)
+interface VirtualizedProductGridProps {
+  products: any[];
+}
 
-  // Map for quick lookup
-  const productsMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    products.forEach((p) => (map[String(p.id)] = p));
-    return map;
-  }, [products]);
+function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1280
+  );
+  const [GridComponent, setGridComponent] = useState<any>(null);
 
-  // Dynamic lists for filters
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => {
-      if (p.category) set.add(String(p.category));
+  // Dynamic import react-window (client-side only)
+  useEffect(() => {
+    import('react-window').then((mod) => {
+      setGridComponent(() => mod.FixedSizeGrid);
     });
-    return Array.from(set).sort();
-  }, [products]);
+  }, []);
 
-  const statuses = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => {
-      if (p.status) set.add(String(p.status));
-    });
-    return Array.from(set).sort();
-  }, [products]);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  const bulk = useBulkSelect<string | number>([]);
+  // Calculate columns based on screen width (Tailwind breakpoints)
+  const columnCount = windowWidth >= 1280 ? 3 : windowWidth >= 640 ? 2 : 1;
+  const columnWidth = Math.floor(windowWidth / columnCount) - 24; // Account for gap
+  const rowHeight = 400; // Approximate card height
+  const rowCount = Math.ceil(products.length / columnCount);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading products...</p>
-        </div>
-      </div>
-    );
+  if (!GridComponent) {
+    return <LoadingSpinner size="md" />;
   }
 
-  if (error) {
+  return (
+    <GridComponent
+      columnCount={columnCount}
+      columnWidth={columnWidth}
+      height={Math.min(rowCount * rowHeight, 2000)} // Max 2000px height
+      rowCount={rowCount}
+      rowHeight={rowHeight}
+      width={windowWidth - 348} // Account for sidebar (300px) + gaps
+      itemData={{ products, columnCount }}
+    >
+      {({ columnIndex, rowIndex, style, data }: any) => {
+        const index = rowIndex * data.columnCount + columnIndex;
+        const product = data.products[index];
+        
+        if (!product) return null;
+
+        return (
+          <div style={{ ...style, padding: '8px' }}>
+            <ProductCard product={product} />
+          </div>
+        );
+      }}
+    </GridComponent>
+  );
+}
+
+function SellerProductsContent() {
+  // Phase 3: Filter state management with URL sync
+  const {
+    filters,
+    setFilters,
+    updateFilter,
+    removeFilter,
+    clearFilters,
+    activeFilterCount,
+    isFiltering,
+  } = useProductFilters();
+
+  // Phase 3: React Query product search with caching
+  const {
+    data: searchResults,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useProductSearch(filters, 1, 50);
+
+  // Phase 3: Filter presets with localStorage
+  const { presets, savePreset, loadPreset, deletePreset, presetExists } = useFilterPresets();
+
+  // Filter options from Sanity (categories, price ranges, etc.)
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    categories: [],
+    priceRange: { min: 0, max: 10000 },
+    stockCounts: { inStock: 0, outOfStock: 0, lowStock: 0 },
+    statusCounts: { published: 0, draft: 0, archived: 0 },
+  });
+
+  // Mobile filter drawer state
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  // Load filter options on mount
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const options = await getFilterOptions();
+        setFilterOptions(options);
+      } catch (error) {
+        console.error("[SellerProducts] Failed to load filter options:", error);
+      }
+    };
+
+    loadFilterOptions();
+  }, []);
+
+  // Handle search change (debounced via SearchBar)
+  const handleSearchChange = (value: string) => {
+    updateFilter('search', value);
+  };
+
+  // Handle filter changes from FilterPanel
+  const handleFiltersChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+  };
+
+  // Handle remove filter from FilterChips
+  const handleRemoveFilter = (filterKey: keyof typeof filters, value?: any) => {
+    removeFilter(filterKey, value);
+  };
+
+  // Handle clear all filters
+  const handleClearAllFilters = () => {
+    clearFilters();
+  };
+
+  // Get products from search results
+  const products = searchResults?.products || [];
+  const hasProducts = products.length > 0;
+  const totalProducts = searchResults?.total || 0;
+  const hasMore = searchResults?.hasMore || false;
+
+  // Loading state skeleton
+  const LoadingSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="animate-pulse" data-testid="skeleton">
+          <div className="flex gap-4">
+            <div className="h-24 w-24 bg-muted rounded-md flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-3 bg-muted rounded w-1/2" />
+              <div className="h-3 bg-muted rounded w-1/4" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Empty state
+  const EmptyState = () => (
+    <div className="text-center py-12">
+      <div className="text-muted-foreground mb-4">
+        <p className="text-lg font-medium">No products found</p>
+        <p className="text-sm mt-2">
+          {isFiltering
+            ? "Try adjusting your filters or search terms"
+            : "Add your first product to get started"}
+        </p>
+      </div>
+      {!isFiltering && (
+        <Link href="/seller/products/new">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" /> Add New Product
+          </Button>
+        </Link>
+      )}
+      {isFiltering && (
+        <Button variant="outline" onClick={clearFilters}>
+          Clear All Filters
+        </Button>
+      )}
+    </div>
+  );
+
+  // Error state
+  if (isError) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">Error: {error}</p>
+        <p className="text-destructive mb-4">Error loading products: {error?.message}</p>
         <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground mt-1 sm:text-base text-sm">
-            Create, Update, and Organize Products
+            Search, filter, and manage your product catalog
           </p>
         </div>
         <Link href="/seller/products/new">
           <Button>
-            <Plus className="h-4 w-4" /> Add New Product
+            <Plus className="h-4 w-4 mr-2" /> Add New Product
           </Button>
         </Link>
       </div>
 
-      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-        <div className="p-2 sm:p-4 border-b border-border">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+      {/* SearchBar (Phase 2 Component) */}
+      <SearchBar
+        value={filters.search}
+        onChange={handleSearchChange}
+        placeholder="Search products by name, SKU, or description..."
+        isLoading={isLoading}
+      />
+
+      {/* Filter Chips (Phase 2 Component) */}
+      {activeFilterCount > 0 && (
+        <FilterChips
+          filters={filters}
+          onRemoveFilter={handleRemoveFilter}
+          onClearAll={handleClearAllFilters}
+          filterOptions={filterOptions}
+        />
+      )}
+
+      {/* Layout: Desktop Sidebar + Mobile Drawer */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+        {/* Desktop FilterPanel (Phase 2 Component - Lazy Loaded) */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-4">
+            <Suspense fallback={<LoadingSpinner size="md" />}>
+              <FilterPanel
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                filterOptions={filterOptions}
+                showClearButton={activeFilterCount > 0}
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" /> Filters
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuLabel className="text-muted-foreground">Status</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={statusFilter} onValueChange={(v: string) => setStatusFilter(v)}>
-                    <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                    {statuses.map((s) => (
-                      <DropdownMenuRadioItem key={s} value={s}>{s}</DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-muted-foreground">Categories</DropdownMenuLabel>
-                  {categories.map((cat) => (
-                    <DropdownMenuCheckboxItem
-                      key={cat}
-                      checked={categoryFilter.includes(cat)}
-                      onCheckedChange={() => {
-                        setCategoryFilter((prev) => (prev.includes(cat) ? prev.filter((p) => p !== cat) : [...prev, cat]));
-                      }}
-                    >
-                      {cat}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            </Suspense>
           </div>
-        </div>
+        </aside>
 
-        {/* Desktop Table View */}
-        <div className="hidden md:block">
-          <div className="mb-3">
-            <BulkActionBar
-              selectedIds={bulk.selectedIds}
-              productsMap={productsMap}
-              onActivate={async (ids) => {
-                const success: string[] = [];
-                const failed: string[] = [];
-                for (const id of ids) {
-                  try {
-                    await SellerApi.updateProduct(String(id), { status: "Active" });
-                    success.push(String(id));
-                  } catch (e) {
-                    failed.push(String(id));
-                  }
-                }
-                // Refresh
-                refetch();
-                bulk.clearAll();
-                return { success, failed };
-              }}
-              onDeactivate={async (ids) => {
-                const success: string[] = [];
-                const failed: string[] = [];
-                for (const id of ids) {
-                  try {
-                    await SellerApi.updateProduct(String(id), { status: "Inactive" });
-                    success.push(String(id));
-                  } catch (e) {
-                    failed.push(String(id));
-                  }
-                }
-                refetch();
-                bulk.clearAll();
-                return { success, failed };
-              }}
-              onDelete={async (ids) => {
-                const success: string[] = [];
-                const failed: string[] = [];
-                for (const id of ids) {
-                  try {
-                    await SellerApi.deleteProduct(String(id));
-                    success.push(String(id));
-                  } catch (e) {
-                    failed.push(String(id));
-                  }
-                }
-                refetch();
-                bulk.clearAll();
-                return { success, failed };
-              }}
-              onUpdatePrice={async (ids, price) => {
-                const success: string[] = [];
-                const failed: string[] = [];
-                for (const id of ids) {
-                  try {
-                    await SellerApi.updateProduct(String(id), { price });
-                    success.push(String(id));
-                  } catch (e) {
-                    failed.push(String(id));
-                  }
-                }
-                refetch();
-                bulk.clearAll();
-                return { success, failed };
-              }}
-              onExport={(rows) => {
-                // export handled inside BulkActionBar via exportToCsv
-              }}
-              handlers={{ onComplete: () => {} }}
-              onClear={() => bulk.clearAll()}
-            />
-          </div>
-
-          <TanStackTable
-            data={filteredProducts}
-            rowKey="id"
-            columns={[
-              {
-                accessorKey: "name",
-                header: "Product",
-                enableSorting: true,
-                cell: ({ row }) => {
-                  const product = row.original as any;
-                  return (
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
-                        <Image src={product.image} alt={product.name} fill className="object-cover" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm line-clamp-2">{product.name}</div>
-                        <div className="text-xs text-muted-foreground">{product.category}</div>
-                      </div>
-                    </div>
-                  );
-                },
-              },
-              {
-                accessorKey: "price",
-                header: "Price",
-                enableSorting: true,
-                cell: ({ getValue }) => <div className="items-center">₱{Number(getValue()).toFixed(2)}</div>,
-              },
-              {
-                accessorKey: "stock",
-                header: "Stock",
-                enableSorting: true,
-                cell: ({ getValue }) => <div className="items-center">{getValue()}</div>,
-              },
-              {
-                accessorKey: "category",
-                header: "Category",
-                enableSorting: true,
-              },
-              {
-                accessorKey: "status",
-                header: "Status",
-                enableSorting: true,
-                cell: ({ getValue }) => getStatusBadge(String(getValue())),
-              },
-              {
-                id: "actions",
-                header: "Actions",
-                enableSorting: false,
-                cell: ({ row }) => {
-                  const p = row.original as any;
-                  return (
-                    <div className="flex items-center justify-end gap-2">
-                      <Link href={`/seller/products/edit/${p.id}`}>
-                        <Button variant="ghost" size="sm" className="h-9 px-3">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </Link>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash className="h-4 w-4 mr-2" />
-                            Delete
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete Product</DialogTitle>
-                            <DialogDescription>Are you sure you want to delete "{p.name}"? This action cannot be undone.</DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <DialogClose asChild>
-                              <Button variant="ghost">Cancel</Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                              <Button onClick={() => handleDeleteProduct(p.id)} disabled={deletingProduct === p.id} className="bg-destructive hover:bg-destructive/90">
-                                {deletingProduct === p.id ? "Deleting..." : "Delete"}
-                              </Button>
-                            </DialogClose>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  );
-                },
-              },
-            ]}
-            selectedIds={bulk.selectedIds}
-            onToggleRow={(id) => bulk.toggleRow(id)}
-            onSelectAll={(ids) => bulk.selectAll(ids)}
-          />
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="md:hidden">
-          {filteredProducts.length > 0 ? (
-            <div className="divide-y divide-border">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex gap-4 mb-3">
-                    <div className="h-20 w-20 rounded-md overflow-hidden bg-muted relative flex-shrink-0">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-foreground mb-1 line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mb-1">{product.category}</p>
-                      <Badge
-                        variant={
-                          product.status === "Active"
-                            ? "outline"
-                            : product.status === "Out of Stock"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          product.status === "Active"
-                            ? "bg-green-100/10 text-green-700 dark:text-green-600 border-green-300"
-                            : product.status === "Out of Stock"
-                            ? ""
-                            : ""
-                        }
-                      >
-                        {product.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Price</span>
-                      <span className="font-semibold text-primary">₱{product.price.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Stock</span>
-                      <span className={`font-medium ${product.stock < 10 ? "text-destructive" : ""}`}>
-                        {product.stock} units
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 min-h-[44px]"
-                      asChild
-                    >
-                      <Link href={`/seller/products/edit/${product.id}`} className="flex items-center justify-center gap-2">
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Link>
+        {/* Main Content Area */}
+        <main>
+          {/* Mobile Filter Button */}
+          <div className="lg:hidden mb-4">
+            <Dialog open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Filter Products</DialogTitle>
+                </DialogHeader>
+                <Suspense fallback={<LoadingSpinner size="sm" />}>
+                  <FilterPanel
+                    filters={filters}
+                    onFiltersChange={(newFilters) => {
+                      handleFiltersChange(newFilters);
+                      setMobileFilterOpen(false);
+                    }}
+                    filterOptions={filterOptions}
+                    showClearButton={activeFilterCount > 0}
+                  />
+                </Suspense>
+                <div className="flex gap-2 pt-4 border-t">
+                  <DialogClose asChild>
+                    <Button variant="outline" className="flex-1">
+                      Cancel
                     </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="min-h-[44px] min-w-[44px] text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete Product</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
-                          </DialogClose>
-                          <DialogClose asChild>
-                            <Button
-                              onClick={() => handleDeleteProduct(product.id)}
-                              disabled={deletingProduct === product.id}
-                              className="bg-destructive hover:bg-destructive/90"
-                            >
-                              {deletingProduct === product.id ? "Deleting..." : "Delete"}
-                            </Button>
-                          </DialogClose>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button className="flex-1">Apply Filters</Button>
+                  </DialogClose>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              <p className="text-sm">No products found</p>
-              <p className="text-xs mt-1">Try adjusting your search or filters</p>
-            </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Results Summary */}
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? (
+                "Searching..."
+              ) : (
+                <>
+                  Showing {products.length} of {totalProducts} products
+                  {hasMore && " (load more available)"}
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Loading State */}
+          {isLoading && <LoadingSkeleton />}
+
+          {/* Products Grid - Virtualized for >100 products */}
+          {!isLoading && hasProducts && (
+            <>
+              {products.length <= 100 ? (
+                // Standard grid for smaller lists
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="product-grid">
+                  {products.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))}
+                </div>
+              ) : (
+                // Virtualized grid for large lists (>100 products)
+                <div data-testid="virtualized-product-grid">
+                  <VirtualizedProductGrid products={products} />
+                </div>
+              )}
+            </>
           )}
-        </div>
 
-        <div className="py-4 border-t border-border">
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4">
-              <div className="text-sm text-muted-foreground">Showing page {pagination.page} of {pagination.totalPages}</div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" disabled={pagination.page <= 1} onClick={() => setPage(Math.max(1, pagination.page - 1))}>
-                  Previous
-                </Button>
-
-                {Array.from({ length: pagination.totalPages }).map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <Button key={p} size="sm" variant={p === pagination.page ? "default" : "ghost"} onClick={() => setPage(p)}>
-                      {p}
-                    </Button>
-                  );
-                })}
-
-                <Button size="sm" variant="ghost" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}>
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Empty State */}
+          {!isLoading && !hasProducts && <EmptyState />}
+        </main>
       </div>
     </div>
+  );
+}
+
+// Product Card Component
+interface ProductCardProps {
+  product: any; // SanityProduct from product-search.ts
+}
+
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
+
+const ProductCard = React.memo<ProductCardProps>(({ product }) => {
+  return (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <CardContent className="p-0">
+        {/* Product Image */}
+        <div className="relative h-48 bg-muted">
+          <Image
+            src={product.mainImage || PLACEHOLDER_IMAGE}
+            alt={product.name || 'Product Image'}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              // Fallback to placeholder on error
+              (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+            }}
+          />
+          {product.isOnPromo && (
+            <Badge className="absolute top-2 right-2 bg-red-500">
+              {product.promoType === 'percentage'
+                ? `-${product.promoPercentage}%`
+                : `₱${product.promoPrice}`}
+            </Badge>
+          )}
+        </div>
+
+        {/* Product Info */}
+        <div className="p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">
+              {product.name}
+            </h3>
+            {product.sku && (
+              <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+            )}
+          </div>
+
+          {/* Price */}
+          <div>
+            {product.isOnPromo && product.originalPrice ? (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-primary">
+                  ₱{(product.price ?? 0).toFixed(2)}
+                </span>
+                <span className="text-sm text-muted-foreground line-through">
+                  ₱{(product.originalPrice ?? 0).toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-lg font-bold text-primary">
+                ₱{(product.price ?? 0).toFixed(2)}
+              </span>
+            )}
+          </div>
+
+          {/* Stock & Status */}
+          <div className="flex items-center justify-between">
+            <Badge
+              variant={
+                product.stockStatus === 'in-stock'
+                  ? 'default'
+                  : product.stockStatus === 'low-stock'
+                  ? 'secondary'
+                  : 'destructive'
+              }
+            >
+              {product.stockStatus === 'in-stock' && 'In Stock'}
+              {product.stockStatus === 'low-stock' && 'Low Stock'}
+              {product.stockStatus === 'out-of-stock' && 'Out of Stock'}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {product.stockQuantity || 0} units
+            </span>
+          </div>
+
+          {/* Status */}
+          {product.status && product.status !== 'published' && (
+            <Badge variant="outline">{product.status}</Badge>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <Link href={`/seller/products/edit/${product._id}`}>
+                Edit
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/product/${product.slug?.current ?? product._id}`}>
+                View
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+ProductCard.displayName = 'ProductCard';
+
+// Main export with Suspense boundary for nuqs
+export default function SellerProducts() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    }>
+      <SellerProductsContent />
+    </Suspense>
   );
 }

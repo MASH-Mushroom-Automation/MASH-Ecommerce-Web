@@ -12,6 +12,7 @@ import {coupon} from './documents/coupon'
 import {promotion} from './documents/promotion'
 import {emailCampaign} from './documents/emailCampaign'
 import {analytics} from './documents/analytics'
+import {stockAdjustment} from './documents/stockAdjustment' // SELLER-021: Stock Adjustments
 import {grower} from './documents/grower' // Phase 1: Growers Schema
 import {faqCategory} from './documents/faqCategory' // Phase 2: FAQ Categories
 import {faqItem} from './documents/faqItem' // Phase 2: FAQ Items
@@ -64,6 +65,7 @@ export const schemaTypes = [
   productVariant,
   productBundle,
   order,
+  stockAdjustment, // SELLER-021: Stock Level Adjustments
   coupon,
   promotion,
   emailCampaign,
