@@ -49,16 +49,6 @@ jobs:
           echo "✅ Test job completed"
           if [ -f "coverage/coverage-summary.json" ]; then
             echo "📊 Coverage report generated"
-          fi
-
-            ")
-            echo "Average coverage: $COVERAGE%"
-            # Warn but don't fail if coverage is low - coverage threshold is informational
-            if [ "$(echo "$COVERAGE < 50" | bc -l)" -eq 1 ]; then
-              echo "::warning::Coverage ($COVERAGE%) is below 50%"
-            else
-              echo "✅ Coverage is acceptable"
-            fi
           else
-            echo "::warning::No coverage report found"
+            echo "::notice::No coverage report found"
           fi

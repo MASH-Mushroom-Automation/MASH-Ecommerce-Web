@@ -76,6 +76,41 @@ jest.mock('next/navigation', () => ({
   notFound: jest.fn(),
 }));
 
+// CRITICAL: Mock AuthContext to prevent "useAuth must be used within AuthProvider" errors
+// This allows CartContext and other contexts that depend on AuthContext to work in tests
+// The mock uses global.__mockAuthContext which tests can modify before rendering
+global.__mockAuthContext = {
+  user: null,
+  isAuthenticated: false,
+  loading: false,
+  signInWithGoogle: jest.fn(),
+  signInWithEmailPassword: jest.fn(),
+  signUpWithEmailPassword: jest.fn(),
+  signOut: jest.fn(),
+  signOutEverywhere: jest.fn(),
+  sendEmailSignInLink: jest.fn(),
+  completeEmailLinkSignIn: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  confirmPasswordReset: jest.fn(),
+  requestEmailVerification: jest.fn(),
+  verifyEmailCode: jest.fn(),
+};
+
+// Create useAuth as a jest.fn() that tests can override with mockReturnValue
+const mockUseAuth = jest.fn(() => global.__mockAuthContext);
+
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: mockUseAuth,
+  AuthProvider: ({ children }) => children,
+  AuthContext: {
+    Provider: ({ children }) => children,
+    Consumer: ({ children }) => children(global.__mockAuthContext),
+  },
+}));
+
+// Export mockUseAuth globally so tests can configure it
+global.__mockUseAuth = mockUseAuth;
+
 // CRITICAL: Mock Firebase modules BEFORE any app code loads
 // This prevents Firebase from trying to initialize with real API keys
 jest.mock('firebase/app', () => ({
@@ -275,6 +310,21 @@ jest.mock('@/lib/firebase', () => ({
     goOnline: jest.fn().mockResolvedValue(undefined),
     goOffline: jest.fn().mockResolvedValue(undefined),
   },
+}));
+
+// Mock sonner toast globally - tests can override with mockClear/mockImplementation
+global.__mockToast = {
+  success: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+  loading: jest.fn(),
+  dismiss: jest.fn(),
+  promise: jest.fn(),
+};
+
+jest.mock('sonner', () => ({
+  toast: global.__mockToast,
 }));
 
 // CRITICAL: Mock @/lib/cookies BEFORE any module imports it

@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// Unmock AuthContext to use the real implementation for testing
+jest.unmock('@/contexts/AuthContext');
+
 import { AuthProvider } from '../AuthContext';
 import { mockUser as fbUserMock } from '@/__mocks__/firebase';
 import * as firebaseAuth from '@/lib/firebase/auth';
