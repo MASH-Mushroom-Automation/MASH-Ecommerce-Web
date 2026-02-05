@@ -212,7 +212,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
           <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-repeat opacity-5" />
 
           <div className="relative max-w-5xl mx-auto text-center">
-            <Badge className="mb-6 bg-white/20 text-white border-white/30 hover:bg-white/30">
+            <Badge className="mb-6 bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/30 transition-colors">
               <Sparkles className="w-3 h-3 mr-1" />
               University of Caloocan City Thesis Project
             </Badge>
@@ -677,17 +677,17 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
             />
           </div>
 
-          <div className="relative max-w-5xl mx-auto text-center text-white">
-            <Badge className="mb-6 bg-white/20 text-white border-white/30 hover:bg-white/30">
+          <div className="relative max-w-5xl mx-auto text-center text-primary-foreground">
+            <Badge className="mb-6 bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/30 transition-colors">
               <Target className="w-3 h-3 mr-1" />
               Our Vision
             </Badge>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-8">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-8 text-primary-foreground">
               {vision.title}
             </h2>
 
-            <div className="space-y-6 text-lg md:text-xl leading-relaxed text-white/90">
+            <div className="space-y-6 text-lg md:text-xl leading-relaxed text-primary-foreground/90">
               {vision.content.map((paragraph, index) => (
                 <p key={index} className="max-w-3xl mx-auto">
                   {paragraph}
@@ -695,10 +695,10 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
               ))}
             </div>
 
-            <div className="mt-12 pt-8 border-t border-white/20">
-              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm px-8 py-4 rounded-2xl">
+            <div className="mt-12 pt-8 border-t border-primary-foreground/20">
+              <div className="inline-flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm px-8 py-4 rounded-2xl">
                 <Rocket className="w-6 h-6 text-amber-300" />
-                <p className="text-xl md:text-2xl font-bold text-white">
+                <p className="text-xl md:text-2xl font-bold text-primary-foreground">
                   {vision.callToAction}
                 </p>
               </div>
@@ -707,22 +707,28 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-6 mt-16 max-w-2xl mx-auto">
               <div className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                <div className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
                   7
                 </div>
-                <div className="text-sm text-white/70">Team Members</div>
+                <div className="text-base md:text-lg font-medium text-primary-foreground/90">
+                  Team Members
+                </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                <div className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
                   3
                 </div>
-                <div className="text-sm text-white/70">Core Systems</div>
+                <div className="text-base md:text-lg font-medium text-primary-foreground/90">
+                  Core Systems
+                </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                <div className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
                   1
                 </div>
-                <div className="text-sm text-white/70">Unified Platform</div>
+                <div className="text-base md:text-lg font-medium text-primary-foreground/90">
+                  Unified Platform
+                </div>
               </div>
             </div>
           </div>
