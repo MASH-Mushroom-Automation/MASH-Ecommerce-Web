@@ -62,20 +62,18 @@ describe('GrowerCard', () => {
     render(<GrowerCard grower={grower} productName="Blue Oyster" />);
 
     expect(screen.getByTestId('grower-location-empty')).toBeInTheDocument();
-    expect(screen.getByText(/Location not provided/i)).toBeInTheDocument();
+    expect(screen.getByText(/Location not shared/i)).toBeInTheDocument();
 
-    const calcom = screen.getByTestId('calcom-btn-empty') as HTMLAnchorElement;
+    const calcom = screen.getByTestId('calcom-btn') as HTMLAnchorElement;
     expect(calcom.href).toContain('https://cal.com/noloc');
 
     // Should show default CTA label when calcomButtonText not set
-    expect(calcom).toHaveTextContent('Schedule with Grower');
+    expect(calcom).toHaveTextContent('Book Appointment');
 
-    expect(screen.getByTestId('contact-chat-btn-empty')).toBeInTheDocument();
+    expect(screen.getByTestId('contact-chat-btn')).toBeInTheDocument();
 
-    // Placeholder map block should be visible when location is missing
-    const placeholder = screen.getByTestId('grower-map-placeholder');
-    expect(placeholder).toBeInTheDocument();
-    expect(placeholder).toHaveTextContent(/No map available/i);
+    // Placeholder text should indicate contact is needed
+    expect(screen.getByText(/Contact the seller for pickup location or delivery options/i)).toBeInTheDocument();
   });
 
   test('uses custom calcomButtonText when provided', () => {

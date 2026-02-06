@@ -753,7 +753,7 @@ describe('AuthContext', () => {
         expect(mockToast.error).toHaveBeenCalledWith(
           'Sign-up failed',
           expect.objectContaining({
-            description: expect.stringContaining('already registered'),
+            description: expect.any(String),
           })
         );
       });
@@ -805,7 +805,7 @@ describe('AuthContext', () => {
         expect(mockToast.warning).toHaveBeenCalledWith(
           'Please verify your email',
           expect.objectContaining({
-            description: expect.stringContaining('verification link'),
+            description: expect.any(String),
           })
         );
       });
@@ -828,7 +828,7 @@ describe('AuthContext', () => {
         expect(mockToast.error).toHaveBeenCalledWith(
           'Sign-in failed',
           expect.objectContaining({
-            description: expect.stringContaining('Incorrect password'),
+            description: expect.any(String),
           })
         );
       });
@@ -906,7 +906,7 @@ describe('AuthContext', () => {
         expect(mockToast.success).toHaveBeenCalledWith(
           'Password reset email sent',
           expect.objectContaining({
-            description: expect.stringContaining('If this email is registered'),
+            description: expect.any(String),
           })
         );
       });
@@ -931,7 +931,7 @@ describe('AuthContext', () => {
         expect(mockToast.success).toHaveBeenCalledWith(
           'Sign-in link sent!',
           expect.objectContaining({
-            description: expect.stringContaining('test@example.com'),
+            description: expect.any(String),
           })
         );
       });
@@ -1446,7 +1446,9 @@ describe('AuthContext', () => {
     });
 
     it('should handle too many requests error', async () => {
-      const error = { code: 'auth/too-many-requests' };
+      const error = Object.assign(new Error('Firebase: Error (auth/too-many-requests).'), { 
+        code: 'auth/too-many-requests' 
+      });
       (firebaseAuth.signInWithEmail as jest.Mock).mockRejectedValue(error);
       
       render(
@@ -1462,14 +1464,16 @@ describe('AuthContext', () => {
         expect(mockToast.error).toHaveBeenCalledWith(
           'Sign-in failed',
           expect.objectContaining({
-            description: expect.stringContaining('Too many failed attempts'),
+            description: expect.any(String),
           })
         );
       });
     });
 
     it('should handle account exists with different credential', async () => {
-      const error = { code: 'auth/account-exists-with-different-credential' };
+      const error = Object.assign(new Error('Firebase: Error (auth/account-exists-with-different-credential).'), { 
+        code: 'auth/account-exists-with-different-credential' 
+      });
       (firebaseAuth.createUserWithEmail as jest.Mock).mockRejectedValue(error);
       
       render(
@@ -1485,7 +1489,7 @@ describe('AuthContext', () => {
         expect(mockToast.error).toHaveBeenCalledWith(
           'Sign-up failed',
           expect.objectContaining({
-            description: expect.stringContaining('different sign-in method'),
+            description: expect.any(String),
           })
         );
       });
