@@ -1,6 +1,7 @@
 import { signOutFirebase } from "@/lib/firebase";
 import { UserApi } from "@/lib/api/user";
 import { removeCookie } from "@/lib/cookies";
+import { logger } from "@/lib/logger";
 
 // API Base URL for backend calls
 const API_BASE_URL =
@@ -72,7 +73,7 @@ export async function setAuthToken(
   refreshToken?: string,
   rememberMe = false
 ): Promise<boolean> {
-  console.log("🟢 [Auth] setAuthToken called via API route:", {
+  logger.info("[Auth] setAuthToken called via API route", {
     hasAccessToken: !!accessToken,
     hasRefreshToken: !!refreshToken,
     rememberMe,
@@ -97,7 +98,7 @@ export async function setAuthToken(
       return false;
     }
 
-    console.log("🟢 [Auth] Auth tokens set successfully via HTTP-only cookies");
+    logger.info("[Auth] Auth tokens set successfully via HTTP-only cookies");
     return true;
   } catch (error) {
     console.error("❌ [Auth] Error setting auth tokens:", error);
@@ -110,7 +111,7 @@ export async function setAuthToken(
  * Uses API route to clear HTTP-only cookies
  */
 export async function logout(): Promise<void> {
-  console.log("🔴 [Auth] logout called");
+  logger.info("[Auth] logout called");
   
   try {
     // Attempt to clear HTTP-only cookies server-side
@@ -205,7 +206,7 @@ export async function logout(): Promise<void> {
  * @returns Promise<boolean> - True if backend logout succeeded
  */
 export async function logoutEverywhere(): Promise<boolean> {
-  console.log("🔴 [Auth] logoutEverywhere called - invalidating all sessions");
+  logger.info("[Auth] logoutEverywhere called - invalidating all sessions");
 
   // Try to call backend logout endpoint (requires auth token in cookie)
   let backendLogoutSuccess = false;
@@ -243,7 +244,7 @@ export async function logoutEverywhere(): Promise<boolean> {
  * @returns Promise<boolean> - True if refresh succeeded
  */
 export async function refreshToken(): Promise<boolean> {
-  console.log("[Auth] Attempting token refresh using HTTP-only cookies");
+  logger.info("[Auth] Attempting token refresh using HTTP-only cookies");
 
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {

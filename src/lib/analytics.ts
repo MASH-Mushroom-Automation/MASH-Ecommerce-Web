@@ -42,7 +42,7 @@ interface EcommerceEventParams {
  */
 export const initGA = () => {
   if (!isGAEnabled()) {
-    console.log("GA not initialized: Missing or invalid measurement ID");
+    logger.warn("GA not initialized: Missing or invalid measurement ID");
     return;
   }
 
@@ -52,7 +52,7 @@ export const initGA = () => {
       const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
       if (measurementId) {
         ReactGA.default.initialize(measurementId);
-        console.log("GA initialized with ID:", measurementId);
+        logger.info("GA initialized with ID:", measurementId);
       }
     });
   } catch (error) {
@@ -70,7 +70,7 @@ export const logPageView = (url: string) => {
   try {
     import("react-ga4").then((ReactGA) => {
       ReactGA.default.send({ hitType: "pageview", page: url });
-      console.log("GA Page View:", url);
+      logger.debug("GA Page View:", url);
     });
   } catch (error) {
     console.error("Failed to log page view:", error);

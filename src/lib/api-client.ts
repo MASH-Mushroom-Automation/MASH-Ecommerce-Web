@@ -91,7 +91,10 @@ export async function apiRequest<T>(
   const url = `${baseUrl}${endpoint}`;
 
   if (ENABLE_API_LOGGING) {
-    console.log(`[API] Request: ${options.method || "GET"} ${url}`);
+    logger.debug("[API] Request", {
+      method: options.method || "GET",
+      url,
+    });
   }
 
   const headers: Record<string, string> = {
