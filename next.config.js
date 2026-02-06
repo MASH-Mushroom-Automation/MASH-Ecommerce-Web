@@ -6,6 +6,12 @@ module.exports = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // Remove console logs in production (keep errors and warnings)
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" 
+      ? { exclude: ["error", "warn"] } 
+      : false,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "placehold.co" },

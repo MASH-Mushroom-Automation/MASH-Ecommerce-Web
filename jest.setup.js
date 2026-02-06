@@ -5,6 +5,15 @@
 
 require('@testing-library/jest-dom');
 
+// Suppress console logs in tests (keep errors and warnings for debugging)
+global.console = {
+  ...console,
+  log: jest.fn(), // Suppress info logs
+  debug: jest.fn(), // Suppress debug logs
+  info: jest.fn(), // Suppress info logs
+  // Keep error and warn for test debugging
+};
+
 // Polyfill global fetch for Node.js environment (required for Firebase Auth in tests)
 if (typeof global.fetch === 'undefined') {
   global.fetch = jest.fn(() => Promise.resolve({
