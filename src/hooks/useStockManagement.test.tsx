@@ -525,10 +525,8 @@ describe('useStockHistory', () => {
     expect(result.current.items).toEqual([]);
   });
 
-  // NOTE: Error tests skipped - the hook has internal retry: 2 config that
-  // overrides the test's retry: false, making error state unreliable in tests.
-  // These need MSW for proper network-level mocking.
-  it.skip('should handle query errors', async () => {
+  // NOTE: This test verifies error handling despite internal retry config
+  it('should handle query errors', async () => {
     mockSanityFetch.mockRejectedValueOnce(new Error('Sanity fetch error'));
 
     const queryClient = createQueryClient();
@@ -544,8 +542,8 @@ describe('useStockHistory', () => {
     expect(result.current.error?.message).toBe('Sanity fetch error');
   });
 
-  // NOTE: This test is also flaky due to mock timing with React Query
-  it.skip('should keep previous data while fetching new page', async () => {
+  // NOTE: This test verifies pagination behavior
+  it('should keep previous data while fetching new page', async () => {
     const queryClient = createQueryClient();
 
     // Initial fetch - page 1
@@ -686,8 +684,8 @@ describe('useRecentAdjustments', () => {
     expect(mockSanityFetch).not.toHaveBeenCalled();
   });
 
-  // NOTE: Error test skipped - hook's internal retry: 2 config overrides test config
-  it.skip('should handle errors gracefully', async () => {
+  // NOTE: This test verifies error handling
+  it('should handle errors gracefully', async () => {
     mockSanityFetch.mockRejectedValueOnce(new Error('Fetch failed'));
 
     const queryClient = createQueryClient();

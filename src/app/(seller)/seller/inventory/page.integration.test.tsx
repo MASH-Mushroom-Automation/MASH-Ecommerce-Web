@@ -162,11 +162,9 @@ describe('InventoryOverviewPage Integration Tests', () => {
   });
 
   describe('Full Page Load', () => {
-    // NOTE: These integration tests are flaky due to React Query + mock timing issues
-    // They need MSW (Mock Service Worker) setup for reliable testing
-    // The mocks resolve but React Query doesn't always pick them up in time
+    // NOTE: These integration tests verify full page rendering
     
-    it.skip('should render all dashboard sections with data', async () => {
+    it('should render all dashboard sections with data', async () => {
       const { container } = render(<InventoryOverviewPage />, { wrapper: createWrapper() });
 
       // Wait for data to load
@@ -200,7 +198,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       expect(skeletons.length).toBeGreaterThan(0);
     });
 
-    it.skip('should handle error state gracefully', async () => {
+    it('should handle error state gracefully', async () => {
       mockGetInventoryStats.mockRejectedValue(new Error('Network error'));
 
       render(<InventoryOverviewPage />, { wrapper: createWrapper() });
@@ -211,9 +209,8 @@ describe('InventoryOverviewPage Integration Tests', () => {
     });
   });
 
-  // NOTE: Stock Update Flow tests skipped - React Query mock timing issues
-  // These tests require MSW for reliable mock data flow
-  describe.skip('Stock Update Flow', () => {
+  // NOTE: Stock Update Flow tests now enabled
+  describe('Stock Update Flow', () => {
     it('should update stock via QuickStockUpdate modal', async () => {
       const user = userEvent.setup();
       mockUpdateProductStock.mockResolvedValueOnce({
@@ -485,8 +482,8 @@ describe('InventoryOverviewPage Integration Tests', () => {
     });
   });
 
-  // NOTE: Refresh button is currently commented out in the component
-  describe.skip('Refresh Functionality', () => {
+  // NOTE: Refresh button tests - will fail if button not implemented
+  describe('Refresh Functionality', () => {
     it('should have refresh button to reload data', async () => {
       render(<InventoryOverviewPage />, { wrapper: createWrapper() });
 
@@ -526,9 +523,8 @@ describe('InventoryOverviewPage Integration Tests', () => {
     });
   });
 
-  // NOTE: Error Handling tests skipped - React Query error states aren't reliable with jest mocks
-  // These tests work inconsistently due to timing issues with React Query cache
-  describe.skip('Error Handling', () => {
+  // NOTE: Error Handling tests now enabled
+  describe('Error Handling', () => {
     it('should show error message when stats fetch fails', async () => {
       mockGetInventoryStats.mockRejectedValue(new Error('Connection timeout'));
       // Also reject all queries to ensure isError is true

@@ -40,10 +40,9 @@ describe("StockSync", () => {
     expect(queue[0].delta).toBe(-1);
   });
 
-  // Skip this test in CI - the StockSync singleton initialization has module loading
-  // order issues with Jest mocks. The actual feature works correctly in production.
-  // TODO: Refactor StockSync to accept InventoryApi as a dependency injection for better testability
-  test.skip("processQueue calls backend and dequeues on success", async () => {
+  // NOTE: This test may have module loading timing issues with Jest mocks
+  // If it fails, it indicates a need to refactor StockSync for better testability
+  test("processQueue calls backend and dequeues on success", async () => {
     // Setup mocks BEFORE any queue operations
     const mockGetInventory = InventoryApi.getInventory as jest.Mock;
     const mockUpdateStock = InventoryApi.updateStock as jest.Mock;

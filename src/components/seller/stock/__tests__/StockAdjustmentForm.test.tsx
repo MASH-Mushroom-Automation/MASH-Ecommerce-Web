@@ -147,9 +147,8 @@ const setQuantity = async (user: ReturnType<typeof userEvent.setup>, quantity: n
 // Test Suites
 // ============================================================================
 
-// Skip entire test suite because Radix UI Select doesn't work in jsdom
-// Integration tests in page.integration.test.tsx provide coverage
-const describeMain = SKIP_RADIX_SELECT_TESTS ? describe.skip : describe;
+// Run full test suite
+const describeMain = describe;
 
 describeMain('StockAdjustmentForm', () => {
   beforeEach(() => {
