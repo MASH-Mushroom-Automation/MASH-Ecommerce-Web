@@ -466,7 +466,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fallbackLastName = nameParts.slice(1).join(" ") || "";
 
         const authUser: AuthUser = {
-          id: backendUser?.id || fbUser.uid,
+          // IMPORTANT: Always use Firebase UID for id - Firestore rules validate against request.auth.uid
+          id: fbUser.uid,
           email: backendUser?.email || fbUser.email || "",
           firstName: backendUser?.firstName || fallbackFirstName,
           lastName: backendUser?.lastName || fallbackLastName,

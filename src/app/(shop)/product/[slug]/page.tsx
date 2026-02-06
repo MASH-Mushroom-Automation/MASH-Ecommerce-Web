@@ -5,12 +5,36 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ArrowLeft, Share2, Star, ThumbsUp, CheckCircle, Leaf, Clock, ChefHat, Truck, Snowflake, MapPin, Info, Utensils, Sparkles, Play, Store, BadgeCheck, ExternalLink } from "lucide-react";
+import {
+  ShoppingCart,
+  Heart,
+  ArrowLeft,
+  Share2,
+  Star,
+  ThumbsUp,
+  CheckCircle,
+  Leaf,
+  Clock,
+  ChefHat,
+  Truck,
+  Snowflake,
+  MapPin,
+  Info,
+  Utensils,
+  Sparkles,
+  Play,
+  Store,
+  BadgeCheck,
+  ExternalLink,
+} from "lucide-react";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated } from "@/lib/auth";
 import { toast } from "sonner";
-import { useSanityProduct, useSanitySuggestedProducts } from "@/hooks/useSanityProducts";
+import {
+  useSanityProduct,
+  useSanitySuggestedProducts,
+} from "@/hooks/useSanityProducts";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
 import { CalComButton } from "@/components/appointments/CalendlyButton"; // For grower appointment link
 import GrowerCard from "@/components/product/GrowerCard";
@@ -18,7 +42,7 @@ import MediaGallery from "@/components/product/MediaGallery";
 
 import { trackProductView, trackAddToCart } from "@/lib/analytics";
 import { ProductCard } from "@/components/product";
-import { useChat } from '@/contexts/ChatContext';
+import { useChat } from "@/contexts/ChatContext";
 import type { MediaItem } from "@/types/sanity";
 
 import { useStockSync } from "@/hooks/useStockSync";
@@ -31,23 +55,23 @@ type Props = { params: Promise<{ slug: string }> };
 // Helper to extract YouTube video ID from various URL formats
 function getYouTubeVideoId(url: string): string | null {
   if (!url) return null;
-  
+
   // Handle youtube.com/watch?v=ID format
   const watchMatch = url.match(/[?&]v=([^&]+)/);
   if (watchMatch) return watchMatch[1];
-  
+
   // Handle youtu.be/ID format
   const shortMatch = url.match(/youtu\.be\/([^?]+)/);
   if (shortMatch) return shortMatch[1];
-  
+
   // Handle youtube.com/shorts/ID format
   const shortsMatch = url.match(/youtube\.com\/shorts\/([^?]+)/);
   if (shortsMatch) return shortsMatch[1];
-  
+
   // Handle youtube.com/embed/ID format
   const embedMatch = url.match(/youtube\.com\/embed\/([^?]+)/);
   if (embedMatch) return embedMatch[1];
-  
+
   return null;
 }
 
@@ -60,11 +84,11 @@ function getVimeoVideoId(url: string): string | null {
 
 // Media gallery item type for combined images + videos
 interface GalleryItem {
-  type: 'image' | 'video';
+  type: "image" | "video";
   url: string;
   thumbnailUrl?: string;
   videoId?: string;
-  videoSource?: 'youtube' | 'vimeo' | 'file';
+  videoSource?: "youtube" | "vimeo" | "file";
   alt?: string;
   title?: string;
   isPrimary?: boolean;
@@ -82,27 +106,28 @@ export default function ProductDetailPage({ params }: Props) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
-  const dynamicStock = useStockSync(product?.id || '', product?.stock || product?.quantityInStock || 0);
+  const dynamicStock = useStockSync(
+    product?.id || "",
+    product?.stock || product?.quantityInStock || 0,
+  );
 
   // Variants are disabled on the storefront (managed in Seller Studio)
   // NOTE: we intentionally do not call useSanityVariants here to avoid showing variant selection to buyers.
 
   // Reviews hook - only fetch when product is loaded
-  const { 
-    reviews, 
-    rating, 
-    loading: reviewsLoading 
-  } = useSanityReviews(product?.id || '');
+  const {
+    reviews,
+    rating,
+    loading: reviewsLoading,
+  } = useSanityReviews(product?.id || "");
 
   // Suggested Products hook - automatically fetch from same grower/store
-  const { 
-    suggestedProducts, 
-    loading: suggestedProductsLoading 
-  } = useSanitySuggestedProducts(
-    product?.id || '',
-    product?.grower?.id || '',
-    4  // Limit to 4 suggested products
-  );
+  const { suggestedProducts, loading: suggestedProductsLoading } =
+    useSanitySuggestedProducts(
+      product?.id || "",
+      product?.grower?.id || "",
+      4, // Limit to 4 suggested products
+    );
 
   // Track product view when product loads
   React.useEffect(() => {
@@ -135,79 +160,91 @@ export default function ProductDetailPage({ params }: Props) {
   }
 
   const inWishlist = isInWishlist(product.id);
-  
+
   // Build combined gallery from images and media
   const buildGallery = (): GalleryItem[] => {
     const gallery: GalleryItem[] = [];
-    
+
     // Add main image first
-    if (product.image && product.image !== '' && product.image !== 'null' && product.image.startsWith('http')) {
+    if (
+      product.image &&
+      product.image !== "" &&
+      product.image !== "null" &&
+      product.image.startsWith("http")
+    ) {
       gallery.push({
-        type: 'image',
+        type: "image",
         url: product.image,
         alt: product.name,
         isPrimary: true,
       });
     }
-    
+
     // Add additional images
     if (product.images && Array.isArray(product.images)) {
       product.images
-        .filter(img => img && img !== '' && img !== 'null' && img.startsWith('http') && img !== product.image)
-        .forEach(img => {
+        .filter(
+          (img) =>
+            img &&
+            img !== "" &&
+            img !== "null" &&
+            img.startsWith("http") &&
+            img !== product.image,
+        )
+        .forEach((img) => {
           gallery.push({
-            type: 'image',
+            type: "image",
             url: img,
             alt: product.name,
           });
         });
     }
-    
+
     // Add media gallery items (images + videos)
     if (product.media && Array.isArray(product.media)) {
       product.media.forEach((mediaItem: MediaItem) => {
-        if (mediaItem.mediaType === 'video') {
+        if (mediaItem.mediaType === "video") {
           // Handle video items
           const videoUrl = mediaItem.videoUrl || mediaItem.video;
           if (videoUrl) {
             const youtubeId = getYouTubeVideoId(videoUrl);
             const vimeoId = getVimeoVideoId(videoUrl);
-            
+
             if (youtubeId) {
               gallery.push({
-                type: 'video',
+                type: "video",
                 url: videoUrl,
                 videoId: youtubeId,
-                videoSource: 'youtube',
+                videoSource: "youtube",
                 thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`,
                 title: mediaItem.title,
                 isPrimary: mediaItem.isPrimary,
               });
             } else if (vimeoId) {
               gallery.push({
-                type: 'video',
+                type: "video",
                 url: videoUrl,
                 videoId: vimeoId,
-                videoSource: 'vimeo',
+                videoSource: "vimeo",
                 title: mediaItem.title,
                 isPrimary: mediaItem.isPrimary,
               });
             } else if (mediaItem.video) {
               // Direct video file
               gallery.push({
-                type: 'video',
+                type: "video",
                 url: mediaItem.video,
-                videoSource: 'file',
+                videoSource: "file",
                 title: mediaItem.title,
                 isPrimary: mediaItem.isPrimary,
               });
             }
           }
-        } else if (mediaItem.mediaType === 'image' && mediaItem.image) {
+        } else if (mediaItem.mediaType === "image" && mediaItem.image) {
           // Handle image items (avoid duplicates)
-          if (!gallery.some(item => item.url === mediaItem.image)) {
+          if (!gallery.some((item) => item.url === mediaItem.image)) {
             gallery.push({
-              type: 'image',
+              type: "image",
               url: mediaItem.image,
               alt: mediaItem.imageAlt || mediaItem.title || product.name,
               title: mediaItem.title,
@@ -217,7 +254,7 @@ export default function ProductDetailPage({ params }: Props) {
         }
       });
     }
-    
+
     // Sort: primary items first
     return gallery.sort((a, b) => {
       if (a.isPrimary && !b.isPrimary) return -1;
@@ -227,10 +264,10 @@ export default function ProductDetailPage({ params }: Props) {
   };
 
   const galleryItems = buildGallery();
-  
+
   // Get current active item
   const activeItem = galleryItems[activeGalleryIndex] || galleryItems[0];
-  
+
   // Fallback if no gallery items
   const hasGalleryItems = galleryItems.length > 0;
 
@@ -248,20 +285,26 @@ export default function ProductDetailPage({ params }: Props) {
 
   const handleAddToCart = () => {
     // Use the first valid image or placeholder
-    const productImage = product.images?.[0] || product.image || '';
-    
-    const success = addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: productImage,
-      slug: product.slug,
-      stock: product.stock || 100, // Default if not available
-      grower: product.grower,
-      unit: product.unit,
-      comparePrice: product.compareAtPrice,
-    }, quantity);
-    
+    const productImage = product.images?.[0] || product.image || "";
+
+    const success = addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: productImage,
+        slug: product.slug,
+        stock: product.stock || 100, // Default if not available
+        grower:
+          typeof product.grower === "object"
+            ? product.grower?.name
+            : product.grower,
+        unit: product.unit,
+        comparePrice: product.compareAtPrice,
+      },
+      quantity,
+    );
+
     if (success) {
       // Track add to cart event
       trackAddToCart({
@@ -311,25 +354,26 @@ export default function ProductDetailPage({ params }: Props) {
             {/* Main Display Area (Image or Video) */}
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
               {hasGalleryItems && activeItem ? (
-                activeItem.type === 'video' ? (
+                activeItem.type === "video" ? (
                   // Video Display
-                  activeItem.videoSource === 'youtube' && activeItem.videoId ? (
+                  activeItem.videoSource === "youtube" && activeItem.videoId ? (
                     <iframe
                       src={`https://www.youtube.com/embed/${activeItem.videoId}?rel=0&modestbranding=1`}
-                      title={activeItem.title || 'Product Video'}
+                      title={activeItem.title || "Product Video"}
                       className="absolute inset-0 w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
-                  ) : activeItem.videoSource === 'vimeo' && activeItem.videoId ? (
+                  ) : activeItem.videoSource === "vimeo" &&
+                    activeItem.videoId ? (
                     <iframe
                       src={`https://player.vimeo.com/video/${activeItem.videoId}`}
-                      title={activeItem.title || 'Product Video'}
+                      title={activeItem.title || "Product Video"}
                       className="absolute inset-0 w-full h-full"
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
                     />
-                  ) : activeItem.videoSource === 'file' ? (
+                  ) : activeItem.videoSource === "file" ? (
                     <video
                       src={activeItem.url}
                       controls
@@ -377,10 +421,10 @@ export default function ProductDetailPage({ params }: Props) {
                       "relative aspect-square bg-muted rounded-lg overflow-hidden border-2 transition-all",
                       activeGalleryIndex === idx
                         ? "border-primary"
-                        : "border-transparent hover:border-border"
+                        : "border-transparent hover:border-border",
                     )}
                   >
-                    {item.type === 'video' ? (
+                    {item.type === "video" ? (
                       // Video Thumbnail
                       <div className="relative w-full h-full">
                         {item.thumbnailUrl ? (
@@ -397,7 +441,10 @@ export default function ProductDetailPage({ params }: Props) {
                         {/* Play Icon Overlay */}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                            <Play className="w-5 h-5 text-primary ml-0.5" fill="currentColor" />
+                            <Play
+                              className="w-5 h-5 text-primary ml-0.5"
+                              fill="currentColor"
+                            />
                           </div>
                         </div>
                       </div>
@@ -500,7 +547,13 @@ export default function ProductDetailPage({ params }: Props) {
                     value={quantity}
                     onChange={(e) =>
                       setQuantity(
-                        Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1))
+                        Math.max(
+                          1,
+                          Math.min(
+                            product.stock,
+                            parseInt(e.target.value) || 1,
+                          ),
+                        ),
                       )
                     }
                     className="w-16 text-center border-x border-border py-2 bg-background"
@@ -543,7 +596,7 @@ export default function ProductDetailPage({ params }: Props) {
                 <Heart
                   className={cn(
                     "w-5 h-5",
-                    inWishlist && "fill-current text-red-500"
+                    inWishlist && "fill-current text-red-500",
                   )}
                 />
               </Button>
@@ -551,19 +604,31 @@ export default function ProductDetailPage({ params }: Props) {
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
-          {/* Seller / Grower Card (prominent) */}
-          {product.grower && (
-            <aside className="sticky top-24 mt-4 hidden lg:block" aria-label="Seller card">
-              <GrowerCard renderTestIds={false} grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
-            </aside>
-          )}
+            {/* Seller / Grower Card (prominent) */}
+            {product.grower && (
+              <aside
+                className="sticky top-24 mt-4 hidden lg:block"
+                aria-label="Seller card"
+              >
+                <GrowerCard
+                  renderTestIds={false}
+                  grower={product.grower}
+                  productName={product.name}
+                  onQuickChat={() => openChat(true)}
+                />
+              </aside>
+            )}
 
-          {/* Mobile: show grower card inline below details */}
-          {product.grower && (
-            <div className="lg:hidden mt-6">
-              <GrowerCard grower={product.grower} productName={product.name} onQuickChat={() => openChat(true)} />
-            </div>
-          )}
+            {/* Mobile: show grower card inline below details */}
+            {product.grower && (
+              <div className="lg:hidden mt-6">
+                <GrowerCard
+                  grower={product.grower}
+                  productName={product.name}
+                  onQuickChat={() => openChat(true)}
+                />
+              </div>
+            )}
             {/* Product Meta */}
             <div className="border-t border-border pt-6 space-y-3 text-sm">
               {product.sku && (
@@ -587,7 +652,7 @@ export default function ProductDetailPage({ params }: Props) {
                 <span
                   className={cn(
                     "font-medium",
-                    dynamicStock > 0 ? "text-green-600" : "text-red-600"
+                    dynamicStock > 0 ? "text-green-600" : "text-red-600",
                   )}
                 >
                   {dynamicStock > 0 ? "In Stock" : "Out of Stock"}
@@ -595,18 +660,18 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Product Tags (kept, simplified styling) */}
         {product.productTags && product.productTags.length > 0 && (
           <div className="mt-8 p-6 rounded-xl bg-muted/10">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Product Tags</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">
+              Product Tags
+            </h3>
             <div className="flex flex-wrap gap-2">
               {product.productTags.map((tag, idx) => (
-                <span 
-                  key={idx} 
+                <span
+                  key={idx}
                   className="text-sm bg-muted text-muted-foreground px-3 py-1 rounded-full border"
                 >
                   #{tag}
@@ -619,74 +684,82 @@ export default function ProductDetailPage({ params }: Props) {
         {/* Frequently Bought Together and Nutritional Highlights removed for cleaner UX */}
 
         {/* You May Also Like Section - Automatically from Same Grower */}
-        {!suggestedProductsLoading && suggestedProducts && suggestedProducts.length > 0 && (
-          <section className="mt-16 border-t pt-12">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                  You May Also Like
-                </h2>
-                {product.grower && (
-                  <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2">
-                    <Store className="w-4 h-4" />
-                    More products from <span className="font-semibold text-foreground">{product.grower.name}</span>
-                    {product.grower.isVerified && (
-                      <BadgeCheck className="w-4 h-4 text-primary" title="Verified Grower" />
-                    )}
-                  </p>
+        {!suggestedProductsLoading &&
+          suggestedProducts &&
+          suggestedProducts.length > 0 && (
+            <section className="mt-16 border-t pt-12">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                    You May Also Like
+                  </h2>
+                  {product.grower && (
+                    <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2">
+                      <Store className="w-4 h-4" />
+                      More products from{" "}
+                      <span className="font-semibold text-foreground">
+                        {product.grower.name}
+                      </span>
+                      {product.grower.isVerified && (
+                        <BadgeCheck
+                          className="w-4 h-4 text-primary"
+                          title="Verified Grower"
+                        />
+                      )}
+                    </p>
+                  )}
+                </div>
+                {product.grower?.slug && (
+                  <Link
+                    href={`/grower/${product.grower.slug}`}
+                    className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors group"
+                  >
+                    View All Products
+                    <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </Link>
                 )}
               </div>
-              {product.grower?.slug && (
-                <Link 
-                  href={`/grower/${product.grower.slug}`}
-                  className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors group"
-                >
-                  View All Products
-                  <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </Link>
-              )}
-            </div>
-            
-            {/* Product Grid using reusable ProductCard component */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {suggestedProducts.slice(0, 4).map((item) => (
-                <ProductCard
-                  key={item.id}
-                  id={item.id}
-                  slug={item.slug}
-                  name={item.name}
-                  farm={product.grower?.name} // Pass grower name for context
-                  price={item.price}
-                  comparePrice={item.compareAtPrice}
-                  unit={item.unit || "kg"}
-                  image={item.image || "/mushroom-placeholder.png"}
-                  images={item.images}
-                  inStock={item.isAvailable && (item.stock ?? 0) > 0}
-                  stock={item.stock}
-                  tags={[
-                    ...(item.isFeatured ? ["Featured"] : []),
-                    ...(item.isPromo ? ["Sale"] : []),
-                    ...(item.productTags || []),
-                  ]}
-                  description={item.description}
-                />
-              ))}
-            </div>
 
-            {/* Mobile: View All Link */}
-            {product.grower?.slug && (
-              <div className="mt-6 md:hidden text-center">
-                <Link 
-                  href={`/grower/${product.grower.slug}`}
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
-                >
-                  View All Products from {product.grower.name}
-                  <ExternalLink className="w-4 h-4" />
-                </Link>
+              {/* Product Grid using reusable ProductCard component */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {suggestedProducts.slice(0, 4).map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    id={item.id}
+                    slug={item.slug}
+                    name={item.name}
+                    farm={product.grower?.name} // Pass grower name for context
+                    price={item.price}
+                    comparePrice={item.compareAtPrice}
+                    unit={item.unit || "kg"}
+                    image={item.image || "/mushroom-placeholder.png"}
+                    images={item.images}
+                    inStock={item.isAvailable && (item.stock ?? 0) > 0}
+                    stock={item.stock}
+                    tags={[
+                      ...(item.isFeatured ? ["Featured"] : []),
+                      ...(item.isPromo ? ["Sale"] : []),
+                      ...(item.productTags || []),
+                    ]}
+                    description={item.description}
+                  />
+                ))}
               </div>
-            )}
-          </section>
-        )}
+
+              {/* Mobile: View All Link */}
+              {product.grower?.slug && (
+                <div className="mt-6 md:hidden text-center">
+                  <Link
+                    href={`/grower/${product.grower.slug}`}
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                  >
+                    View All Products from {product.grower.name}
+                    <ExternalLink className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
+            </section>
+          )}
 
         {/* Customer Reviews Section */}
         {!reviewsLoading && rating && rating.totalReviews > 0 && (
@@ -710,13 +783,14 @@ export default function ProductDetailPage({ params }: Props) {
                         "w-5 h-5",
                         star <= Math.round(rating.averageRating)
                           ? "text-yellow-400 fill-yellow-400"
-                          : "text-gray-300"
+                          : "text-gray-300",
                       )}
                     />
                   ))}
                 </div>
                 <p className="text-muted-foreground">
-                  Based on {rating.totalReviews} review{rating.totalReviews !== 1 ? "s" : ""}
+                  Based on {rating.totalReviews} review
+                  {rating.totalReviews !== 1 ? "s" : ""}
                 </p>
                 {rating.recommendationPercentage > 0 && (
                   <p className="text-sm text-green-600 mt-2 flex items-center justify-center gap-1">
@@ -729,20 +803,28 @@ export default function ProductDetailPage({ params }: Props) {
               {/* Rating Distribution */}
               <div className="space-y-2">
                 {[5, 4, 3, 2, 1].map((stars) => {
-                  const count = rating.ratingDistribution[stars as keyof typeof rating.ratingDistribution];
-                  const percentage = rating.totalReviews > 0 
-                    ? (count / rating.totalReviews) * 100 
-                    : 0;
+                  const count =
+                    rating.ratingDistribution[
+                      stars as keyof typeof rating.ratingDistribution
+                    ];
+                  const percentage =
+                    rating.totalReviews > 0
+                      ? (count / rating.totalReviews) * 100
+                      : 0;
                   return (
                     <div key={stars} className="flex items-center gap-3">
-                      <span className="text-sm w-12 text-muted-foreground">{stars} star</span>
+                      <span className="text-sm w-12 text-muted-foreground">
+                        {stars} star
+                      </span>
                       <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-yellow-400 transition-all"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="text-sm w-8 text-muted-foreground text-right">{count}</span>
+                      <span className="text-sm w-8 text-muted-foreground text-right">
+                        {count}
+                      </span>
                     </div>
                   );
                 })}
@@ -752,11 +834,16 @@ export default function ProductDetailPage({ params }: Props) {
             {/* Individual Reviews */}
             <div className="space-y-6">
               {reviews.slice(0, 5).map((review) => (
-                <div key={review.id} className="border-b border-border pb-6 last:border-0">
+                <div
+                  key={review.id}
+                  className="border-b border-border pb-6 last:border-0"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-foreground">{review.customerName}</span>
+                        <span className="font-semibold text-foreground">
+                          {review.customerName}
+                        </span>
                         {review.verifiedPurchase && (
                           <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                             <CheckCircle className="w-3 h-3" />
@@ -773,17 +860,20 @@ export default function ProductDetailPage({ params }: Props) {
                                 "w-4 h-4",
                                 star <= review.rating
                                   ? "text-yellow-400 fill-yellow-400"
-                                  : "text-gray-300"
+                                  : "text-gray-300",
                               )}
                             />
                           ))}
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(review.reviewDate).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          {new Date(review.reviewDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
                         </span>
                       </div>
                     </div>
@@ -794,18 +884,25 @@ export default function ProductDetailPage({ params }: Props) {
                       </span>
                     )}
                   </div>
-                  
+
                   {review.title && (
-                    <h4 className="font-semibold text-foreground mb-2">{review.title}</h4>
+                    <h4 className="font-semibold text-foreground mb-2">
+                      {review.title}
+                    </h4>
                   )}
-                  
-                  <p className="text-muted-foreground leading-relaxed">{review.content}</p>
-                  
+
+                  <p className="text-muted-foreground leading-relaxed">
+                    {review.content}
+                  </p>
+
                   {/* Review Images */}
                   {review.images && review.images.length > 0 && (
                     <div className="flex gap-2 mt-3">
                       {review.images.slice(0, 3).map((img, idx) => (
-                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                        <div
+                          key={idx}
+                          className="relative w-16 h-16 rounded-lg overflow-hidden"
+                        >
                           <Image
                             src={img}
                             alt={`Review image ${idx + 1}`}

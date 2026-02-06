@@ -5,7 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ShoppingCart, Plus, Check, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  Plus,
+  Check,
+  Loader2,
+} from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { trackAddToCart } from "@/lib/analytics";
 
@@ -29,7 +36,7 @@ interface RelatedProductsSectionProps {
   title: string;
   subtitle?: string;
   products: RelatedProduct[];
-  variant?: 'default' | 'compact' | 'horizontal';
+  variant?: "default" | "compact" | "horizontal";
   showAddToCart?: boolean;
   maxItems?: number;
 }
@@ -38,7 +45,7 @@ export function RelatedProductsSection({
   title,
   subtitle,
   products,
-  variant = 'default',
+  variant = "default",
   showAddToCart = true,
   maxItems = 8,
 }: RelatedProductsSectionProps) {
@@ -47,7 +54,7 @@ export function RelatedProductsSection({
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  
+
   const { addToCart } = useCart();
 
   const displayProducts = products.slice(0, maxItems);
@@ -59,31 +66,40 @@ export function RelatedProductsSection({
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
   }, []);
 
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (direction: "left" | "right") => {
     if (!scrollContainerRef.current) return;
-    const scrollAmount = direction === 'left' ? -300 : 300;
-    scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    const scrollAmount = direction === "left" ? -300 : 300;
+    scrollContainerRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   const handleAddToCart = async (product: RelatedProduct) => {
     if (addingToCart === product.id || justAdded === product.id) return;
-    
+
     setAddingToCart(product.id);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const success = addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image || '',
-      slug: product.slug,
-      stock: product.stock || 100,
-      grower: product.grower,
-      unit: product.unit,
-    }, 1);
-    
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const success = addToCart(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image || "",
+        slug: product.slug,
+        stock: product.stock || 100,
+        grower:
+          typeof product.grower === "object"
+            ? (product.grower as { name?: string })?.name
+            : product.grower,
+        unit: product.unit,
+      },
+      1,
+    );
+
     setAddingToCart(null);
-    
+
     if (success) {
       setJustAdded(product.id);
       trackAddToCart({
@@ -103,36 +119,38 @@ export function RelatedProductsSection({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-foreground">{title}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">
+            {title}
+          </h2>
           {subtitle && (
             <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
         </div>
-        
+
         {/* Navigation Buttons */}
         {displayProducts.length > 4 && (
           <div className="hidden sm:flex gap-2">
             <button
-              onClick={() => scroll('left')}
+              onClick={() => scroll("left")}
               disabled={!canScrollLeft}
               className={cn(
                 "p-2 rounded-full border transition-all duration-200",
                 canScrollLeft
                   ? "border-border hover:bg-muted hover:border-primary/50"
-                  : "border-border/50 opacity-50 cursor-not-allowed"
+                  : "border-border/50 opacity-50 cursor-not-allowed",
               )}
               aria-label="Scroll left"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
-              onClick={() => scroll('right')}
+              onClick={() => scroll("right")}
               disabled={!canScrollRight}
               className={cn(
                 "p-2 rounded-full border transition-all duration-200",
                 canScrollRight
                   ? "border-border hover:bg-muted hover:border-primary/50"
-                  : "border-border/50 opacity-50 cursor-not-allowed"
+                  : "border-border/50 opacity-50 cursor-not-allowed",
               )}
               aria-label="Scroll right"
             >
@@ -149,7 +167,7 @@ export function RelatedProductsSection({
           onScroll={checkScrollButtons}
           className={cn(
             "flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 -mx-4 px-4 sm:mx-0 sm:px-0",
-            variant === 'horizontal' && "flex-col sm:flex-row"
+            variant === "horizontal" && "flex-col sm:flex-row",
           )}
         >
           {displayProducts.map((product) => (
@@ -157,12 +175,12 @@ export function RelatedProductsSection({
               key={product.id}
               className={cn(
                 "flex-shrink-0 group",
-                variant === 'default' && "w-[180px] sm:w-[220px]",
-                variant === 'compact' && "w-[150px] sm:w-[180px]",
-                variant === 'horizontal' && "w-full sm:w-[280px]"
+                variant === "default" && "w-[180px] sm:w-[220px]",
+                variant === "compact" && "w-[150px] sm:w-[180px]",
+                variant === "horizontal" && "w-full sm:w-[280px]",
               )}
             >
-              {variant === 'horizontal' ? (
+              {variant === "horizontal" ? (
                 // Horizontal Card Layout
                 <div className="flex gap-4 p-3 bg-card rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300">
                   <Link
@@ -170,14 +188,18 @@ export function RelatedProductsSection({
                     className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted"
                   >
                     <Image
-                      src={product.image && product.image.startsWith('http') ? product.image : PLACEHOLDER_IMAGE}
+                      src={
+                        product.image && product.image.startsWith("http")
+                          ? product.image
+                          : PLACEHOLDER_IMAGE
+                      }
                       alt={product.name}
                       fill
                       className={cn(
                         "group-hover:scale-105 transition-transform duration-300",
-                        product.image && product.image.startsWith('http') 
-                          ? "object-cover" 
-                          : "object-contain p-2"
+                        product.image && product.image.startsWith("http")
+                          ? "object-cover"
+                          : "object-contain p-2",
                       )}
                       sizes="96px"
                     />
@@ -194,7 +216,7 @@ export function RelatedProductsSection({
                       </h3>
                     </Link>
                     <p className="text-primary font-bold mt-1">
-                      ₱{product.price.toLocaleString('en-PH')}
+                      ₱{product.price.toLocaleString("en-PH")}
                     </p>
                     {showAddToCart && (
                       <Button
@@ -224,18 +246,22 @@ export function RelatedProductsSection({
                     className="block relative aspect-square bg-muted overflow-hidden"
                   >
                     <Image
-                      src={product.image && product.image.startsWith('http') ? product.image : PLACEHOLDER_IMAGE}
+                      src={
+                        product.image && product.image.startsWith("http")
+                          ? product.image
+                          : PLACEHOLDER_IMAGE
+                      }
                       alt={product.name}
                       fill
                       className={cn(
                         "group-hover:scale-110 transition-transform duration-500",
-                        product.image && product.image.startsWith('http') 
-                          ? "object-cover" 
-                          : "object-contain p-4"
+                        product.image && product.image.startsWith("http")
+                          ? "object-cover"
+                          : "object-contain p-4",
                       )}
-                      sizes={variant === 'compact' ? "180px" : "220px"}
+                      sizes={variant === "compact" ? "180px" : "220px"}
                     />
-                    
+
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1">
                       {product.isPromo && (
@@ -249,7 +275,7 @@ export function RelatedProductsSection({
                         </span>
                       )}
                     </div>
-                    
+
                     {/* Quick Add Button on Hover */}
                     {showAddToCart && (
                       <button
@@ -263,7 +289,7 @@ export function RelatedProductsSection({
                           "opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0",
                           justAdded === product.id
                             ? "bg-green-500 text-white"
-                            : "bg-white hover:bg-primary hover:text-white"
+                            : "bg-white hover:bg-primary hover:text-white",
                         )}
                         aria-label="Add to cart"
                       >
@@ -277,24 +303,25 @@ export function RelatedProductsSection({
                       </button>
                     )}
                   </Link>
-                  
-                  <div className={cn(
-                    "p-3",
-                    variant === 'compact' && "p-2"
-                  )}>
+
+                  <div className={cn("p-3", variant === "compact" && "p-2")}>
                     <Link href={`/product/${product.slug}`}>
-                      <h3 className={cn(
-                        "font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors",
-                        variant === 'compact' ? "text-xs" : "text-sm"
-                      )}>
+                      <h3
+                        className={cn(
+                          "font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors",
+                          variant === "compact" ? "text-xs" : "text-sm",
+                        )}
+                      >
                         {product.name}
                       </h3>
                     </Link>
-                    <p className={cn(
-                      "text-primary font-bold mt-1",
-                      variant === 'compact' ? "text-sm" : "text-base"
-                    )}>
-                      ₱{product.price.toLocaleString('en-PH')}
+                    <p
+                      className={cn(
+                        "text-primary font-bold mt-1",
+                        variant === "compact" ? "text-sm" : "text-base",
+                      )}
+                    >
+                      ₱{product.price.toLocaleString("en-PH")}
                     </p>
                   </div>
                 </div>

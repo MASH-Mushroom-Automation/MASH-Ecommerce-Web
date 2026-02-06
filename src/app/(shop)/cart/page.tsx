@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ShoppingBag, Tag } from "lucide-react";
+import {
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ShoppingBag,
+  Tag,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +36,8 @@ const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, summary, loading, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, summary, loading, updateQuantity, removeFromCart, clearCart } =
+    useCart();
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {
@@ -103,7 +112,8 @@ export default function CartPage() {
               Shopping Cart
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              {items.length} {items.length === 1 ? "item" : "items"} in your cart
+              {items.length} {items.length === 1 ? "item" : "items"} in your
+              cart
             </p>
           </div>
 
@@ -122,7 +132,8 @@ export default function CartPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Clear entire cart?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will remove all {items.length} items from your cart. This action cannot be undone.
+                  This will remove all {items.length} items from your cart. This
+                  action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -146,7 +157,10 @@ export default function CartPage() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     {/* Product Image */}
-                    <Link href={`/product/${item.slug || item.productId}`} className="flex-shrink-0">
+                    <Link
+                      href={`/product/${item.slug || item.productId}`}
+                      className="flex-shrink-0"
+                    >
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-muted">
                         <Image
                           src={item.image || PLACEHOLDER_IMAGE}
@@ -154,7 +168,8 @@ export default function CartPage() {
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                            (e.target as HTMLImageElement).src =
+                              PLACEHOLDER_IMAGE;
                           }}
                         />
                       </div>
@@ -169,7 +184,10 @@ export default function CartPage() {
                       </Link>
                       {item.grower && (
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          by {item.grower}
+                          by{" "}
+                          {typeof item.grower === "object"
+                            ? (item.grower as { name?: string }).name
+                            : item.grower}
                         </p>
                       )}
                       {item.unit && (
@@ -188,7 +206,12 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 rounded-r-none"
-                            onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.productId,
+                                item.quantity - 1,
+                              )
+                            }
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="h-4 w-4" />
@@ -200,7 +223,12 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 rounded-l-none"
-                            onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.productId,
+                                item.quantity + 1,
+                              )
+                            }
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
@@ -210,7 +238,9 @@ export default function CartPage() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleRemoveItem(item.productId, item.name)}
+                          onClick={() =>
+                            handleRemoveItem(item.productId, item.name)
+                          }
                           disabled={removingItemId === item.productId}
                         >
                           {removingItemId === item.productId ? (
@@ -262,7 +292,9 @@ export default function CartPage() {
                     <span className="text-muted-foreground">
                       Subtotal ({summary.itemCount} items)
                     </span>
-                    <span className="font-medium">₱{summary.subtotal.toLocaleString()}</span>
+                    <span className="font-medium">
+                      ₱{summary.subtotal.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery Fee</span>

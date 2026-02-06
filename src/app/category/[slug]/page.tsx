@@ -14,19 +14,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { 
-  SlidersHorizontal, 
-  Grid, 
-  List, 
-  Search, 
-  X, 
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  SlidersHorizontal,
+  Grid,
+  List,
+  Search,
+  X,
   ChevronLeft,
   ArrowUpDown,
-  Package
+  Package,
 } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
-import { useSanityCategory, useSanityCategories } from "@/hooks/useSanityCategories";
+import {
+  useSanityCategory,
+  useSanityCategories,
+} from "@/hooks/useSanityCategories";
 import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCart } from "@/contexts/CartContext";
@@ -35,7 +44,7 @@ import type { ProductFilters } from "@/types/sanity";
 
 /**
  * Category Detail Page
- * 
+ *
  * Displays products filtered by a specific category.
  * Features:
  * - Category hero header with image
@@ -74,8 +83,12 @@ export default function CategoryPage() {
   ];
 
   // Fetch category details
-  const { category, loading: categoryLoading, error: categoryError } = useSanityCategory(slug);
-  
+  const {
+    category,
+    loading: categoryLoading,
+    error: categoryError,
+  } = useSanityCategory(slug);
+
   // Fetch all categories for sidebar navigation
   const { categories: allCategories } = useSanityCategories();
 
@@ -91,14 +104,16 @@ export default function CategoryPage() {
   };
 
   // Fetch products filtered by this category
-  const { products: allProducts, loading: productsLoading, error: productsError } = useSanityProducts(filters);
+  const {
+    products: allProducts,
+    loading: productsLoading,
+    error: productsError,
+  } = useSanityProducts(filters);
 
   // Toggle tag selection
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
@@ -111,7 +126,7 @@ export default function CategoryPage() {
   };
 
   // Get other categories (excluding current)
-  const otherCategories = allCategories.filter(cat => cat.slug !== slug);
+  const otherCategories = allCategories.filter((cat) => cat.slug !== slug);
 
   // Loading state
   if (categoryLoading) {
@@ -175,11 +190,16 @@ export default function CategoryPage() {
               Home
             </Link>
             <span>/</span>
-            <Link href="/shop" className="hover:text-foreground transition-colors">
+            <Link
+              href="/shop"
+              className="hover:text-foreground transition-colors"
+            >
               Shop
             </Link>
             <span>/</span>
-            <span className="text-foreground font-medium">{category?.name}</span>
+            <span className="text-foreground font-medium">
+              {category?.name}
+            </span>
           </nav>
 
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
@@ -205,7 +225,8 @@ export default function CategoryPage() {
                 </p>
               )}
               <p className="text-sm text-muted-foreground mt-2">
-                {allProducts.length} {allProducts.length === 1 ? "product" : "products"} available
+                {allProducts.length}{" "}
+                {allProducts.length === 1 ? "product" : "products"} available
               </p>
             </div>
 
@@ -261,7 +282,9 @@ export default function CategoryPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">Min</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Min
+                      </label>
                       <input
                         type="number"
                         placeholder="₱0"
@@ -274,7 +297,9 @@ export default function CategoryPage() {
                     </div>
                     <span className="text-muted-foreground mt-5">—</span>
                     <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1 block">Max</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Max
+                      </label>
                       <input
                         type="number"
                         placeholder="₱12,000"
@@ -315,7 +340,7 @@ export default function CategoryPage() {
                         "px-3 py-1.5 text-xs rounded-full border transition-colors",
                         selectedTags.includes(tag.value)
                           ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/50",
                       )}
                     >
                       {tag.label}
@@ -333,7 +358,10 @@ export default function CategoryPage() {
               </div>
 
               {/* Reset Filters */}
-              {(priceRange[0] > 0 || priceRange[1] < 12000 || selectedTags.length > 0 || searchQuery) && (
+              {(priceRange[0] > 0 ||
+                priceRange[1] < 12000 ||
+                selectedTags.length > 0 ||
+                searchQuery) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -374,7 +402,11 @@ export default function CategoryPage() {
               </div>
               {searchQuery && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Showing results for &ldquo;<span className="font-medium text-foreground">{searchQuery}</span>&rdquo;
+                  Showing results for &ldquo;
+                  <span className="font-medium text-foreground">
+                    {searchQuery}
+                  </span>
+                  &rdquo;
                   {allProducts.length === 0 && " - No products found"}
                 </p>
               )}
@@ -391,17 +423,24 @@ export default function CategoryPage() {
                   >
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     Filters
-                    {(selectedTags.length > 0 || priceRange[0] > 0 || priceRange[1] < 12000) && (
+                    {(selectedTags.length > 0 ||
+                      priceRange[0] > 0 ||
+                      priceRange[1] < 12000) && (
                       <span className="ml-2 bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5">
-                        {selectedTags.length + (priceRange[0] > 0 || priceRange[1] < 12000 ? 1 : 0)}
+                        {selectedTags.length +
+                          (priceRange[0] > 0 || priceRange[1] < 12000 ? 1 : 0)}
                       </span>
                     )}
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 p-6 overflow-y-auto">
-                  <SheetTitle className="text-lg font-bold mb-6">Filters</SheetTitle>
-                  <SheetDescription className="sr-only">Filter products by tags, price, and categories</SheetDescription>
-                  
+                  <SheetTitle className="text-lg font-bold mb-6">
+                    Filters
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Filter products by tags, price, and categories
+                  </SheetDescription>
+
                   {/* Mobile Categories */}
                   {otherCategories.length > 0 && (
                     <div className="mb-6">
@@ -462,7 +501,7 @@ export default function CategoryPage() {
                             "px-3 py-1.5 text-xs rounded-full border transition-colors",
                             selectedTags.includes(tag.value)
                               ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                              : "bg-background text-muted-foreground border-border hover:bg-muted/50",
                           )}
                         >
                           {tag.label}
@@ -472,7 +511,9 @@ export default function CategoryPage() {
                   </div>
 
                   {/* Mobile Reset */}
-                  {(priceRange[0] > 0 || priceRange[1] < 12000 || selectedTags.length > 0) && (
+                  {(priceRange[0] > 0 ||
+                    priceRange[1] < 12000 ||
+                    selectedTags.length > 0) && (
                     <Button
                       variant="outline"
                       className="w-full"
@@ -491,7 +532,9 @@ export default function CategoryPage() {
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Select
                   value={sort}
-                  onValueChange={(value) => setSort(value as ProductFilters["sortBy"])}
+                  onValueChange={(value) =>
+                    setSort(value as ProductFilters["sortBy"])
+                  }
                 >
                   <SelectTrigger className="w-full sm:w-[180px]">
                     <ArrowUpDown className="h-4 w-4 mr-2" />
@@ -500,8 +543,12 @@ export default function CategoryPage() {
                   <SelectContent>
                     <SelectItem value="featured">Featured</SelectItem>
                     <SelectItem value="newest">Newest</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    <SelectItem value="price-asc">
+                      Price: Low to High
+                    </SelectItem>
+                    <SelectItem value="price-desc">
+                      Price: High to Low
+                    </SelectItem>
                     <SelectItem value="name">Name: A-Z</SelectItem>
                   </SelectContent>
                 </Select>
@@ -514,7 +561,7 @@ export default function CategoryPage() {
                       "p-2 transition-colors",
                       viewMode === "grid"
                         ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                     aria-label="Grid view"
                   >
@@ -526,7 +573,7 @@ export default function CategoryPage() {
                       "p-2 transition-colors",
                       viewMode === "list"
                         ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                     aria-label="List view"
                   >
@@ -537,9 +584,13 @@ export default function CategoryPage() {
             </div>
 
             {/* Active Filters Display */}
-            {(selectedTags.length > 0 || priceRange[0] > 0 || priceRange[1] < 12000) && (
+            {(selectedTags.length > 0 ||
+              priceRange[0] > 0 ||
+              priceRange[1] < 12000) && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="text-sm text-muted-foreground">Active filters:</span>
+                <span className="text-sm text-muted-foreground">
+                  Active filters:
+                </span>
                 {selectedTags.map((tag) => (
                   <button
                     key={tag}
@@ -552,7 +603,8 @@ export default function CategoryPage() {
                 ))}
                 {(priceRange[0] > 0 || priceRange[1] < 12000) && (
                   <span className="px-2 py-1 text-xs bg-muted rounded-full">
-                    ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
+                    ₱{priceRange[0].toLocaleString()} - ₱
+                    {priceRange[1].toLocaleString()}
                   </span>
                 )}
               </div>
@@ -568,7 +620,7 @@ export default function CategoryPage() {
                     "grid gap-4 md:gap-6",
                     viewMode === "grid"
                       ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
-                      : "grid-cols-1"
+                      : "grid-cols-1",
                   )}
                 >
                   {displayedProducts.map((product) => (
@@ -594,16 +646,22 @@ export default function CategoryPage() {
                         productTags: product.productTags || [],
                       }}
                       onAddToCart={() => {
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.price,
-                          image: product.image || "/placeholder-product.jpg",
-                          slug: product.slug,
-                          stock: product.stock,
-                          grower: product.grower,
-                          unit: product.unit,
-                        }, 1);
+                        addToCart(
+                          {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image: product.image || "/placeholder-product.jpg",
+                            slug: product.slug,
+                            stock: product.stock,
+                            grower:
+                              typeof product.grower === "object"
+                                ? product.grower?.name
+                                : product.grower,
+                            unit: product.unit,
+                          },
+                          1,
+                        );
                       }}
                       showQuickView
                     />
@@ -622,7 +680,8 @@ export default function CategoryPage() {
                       Load More Products
                     </Button>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Showing {displayedProducts.length} of {allProducts.length} products
+                      Showing {displayedProducts.length} of {allProducts.length}{" "}
+                      products
                     </p>
                   </div>
                 )}
