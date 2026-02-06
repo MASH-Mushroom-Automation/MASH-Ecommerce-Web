@@ -2417,3 +2417,38 @@ Phase 7: Testing & Deployment (3 stories)
 
 **Tests Passing:** [PASS] Build | [PENDING] Lint | [IN PROGRESS] 118 failures remaining
 ---
+## [2026-02-07 17:30] - TEST-FIXING-PHASE-2-INVENTORY-INTEGRATION-STARTED
+**Objective:** Fix ~20 inventory integration tests with React Query timing issues (Option A - High Impact Path)
+
+**Changes Applied:**
+1. **Test Configuration Added:**
+   - Added TEST_TIMEOUT constant (5000ms) and WAITFOR_OPTIONS ({ timeout: 5000, interval: 100 })
+   - Enhanced QueryClient configuration (retry: false, gcTime: 0, staleTime: 0, refetchOnWindowFocus: false)
+   - Added jest.setTimeout(10000) for complex async flows
+
+2. **Bulk Replacement Attempt:**
+   - First attempt with broad regex pattern broke tests (122 failures - WORSE)
+   - Incorrectly added WAITFOR_OPTIONS to render() calls and test closures
+   - Reverted with git checkout
+
+3. **Current Status:**
+   - Configuration enhancements applied correctly
+   - Manual waitFor timeout additions needed (28 locations identified)
+   - Full test suite: 122 failed → Reverted to 118 failed baseline
+
+**Learnings:**
+- Bulk regex replacements on test files require precise patterns to avoid breaking syntax
+- waitFor timeout should ONLY be added to wait waitFor(() => { ... }); calls
+- Do NOT add timeout to render() calls or test closure }); statements
+- React Query integration tests need both QueryClient config AND individual waitFor timeouts
+
+**Files Modified:**
+- src/app/(seller)/seller/inventory/page.integration.test.tsx (configuration added, bulk fix reverted)
+
+**Next Actions:**
+- Apply selective multi_replace with unique context for each waitFor call
+- Target the 28 locations identified via grep
+- Verify test count improves after each batch
+
+**Tests Passing:** Build ✅ | Lint ✅ | Suite: 118 failed (baseline maintained after revert)
+---

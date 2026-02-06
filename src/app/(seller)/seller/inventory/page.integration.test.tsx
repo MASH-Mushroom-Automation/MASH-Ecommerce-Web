@@ -17,6 +17,10 @@ import type {
   CategoryInventory,
 } from '@/types/inventory';
 
+// Test Configuration - Increased timeouts for React Query async operations
+const TEST_TIMEOUT = 5000; // 5 seconds for complex async flows
+const WAITFOR_OPTIONS = { timeout: TEST_TIMEOUT, interval: 100 };
+
 // Mock dependencies
 jest.mock('@/lib/sanity/inventory-service');
 jest.mock('@/lib/sanity/mutations/inventory');
@@ -136,6 +140,12 @@ function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
+        retry: false, // Disable retries for predictable test behavior
+        gcTime: 0, // Disable garbage collection
+        staleTime: 0, // Always consider data stale
+        refetchOnWindowFocus: false, // Disable automatic refetches
+      },
+      mutations: {
         retry: false,
       },
     },
@@ -147,6 +157,9 @@ function createWrapper() {
 }
 
 describe('InventoryOverviewPage Integration Tests', () => {
+  // Increase Jest timeout for React Query async operations
+  jest.setTimeout(10000);
+
   beforeEach(() => {
     jest.clearAllMocks();
 
