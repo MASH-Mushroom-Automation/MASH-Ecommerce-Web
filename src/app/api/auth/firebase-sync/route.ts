@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!body.idToken || !body.user) {
       return NextResponse.json(
         { error: "Missing required fields: idToken and user" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (!user.email) {
       return NextResponse.json(
         { error: "Email is required for authentication" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,10 +50,12 @@ export async function POST(request: NextRequest) {
     // 3. Return a JWT access token
 
     try {
+      const cookieHeader = request.headers.get("cookie") || "";
       const backendResponse = await fetch(`${API_URL}/auth/firebase-sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         },
         credentials: "include",
         body: JSON.stringify({
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
             backendResponse.status === 404)
         ) {
           console.warn(
-            `⚠️ [Firebase Sync API] Backend returned ${backendResponse.status}. Using fallback authentication for development.`
+            `⚠️ [Firebase Sync API] Backend returned ${backendResponse.status}. Using fallback authentication for development.`,
           );
           return handleFallbackAuth(user);
         }
@@ -88,16 +90,18 @@ export async function POST(request: NextRequest) {
           backendResponse.status === 404
         ) {
           try {
-            const parts = idToken.split('.');
+            const parts = idToken.split(".");
 
             // Treat tokens that are not three-part JWTs or have empty payload as a decode failure
-            if (parts.length !== 3 || !parts[1]) throw new Error('Invalid token format');
+            if (parts.length !== 3 || !parts[1])
+              throw new Error("Invalid token format");
 
-            const payloadStr = Buffer.from(parts[1], 'base64').toString('utf8');
-            const payload = JSON.parse(payloadStr || '{}');
+            const payloadStr = Buffer.from(parts[1], "base64").toString("utf8");
+            const payload = JSON.parse(payloadStr || "{}");
 
             // Require a 'sub' claim to consider decode successful
-            if (!payload.sub) throw new Error('Missing sub claim in token payload');
+            if (!payload.sub)
+              throw new Error("Missing sub claim in token payload");
 
             const firebaseUid = payload.sub;
 
@@ -108,20 +112,20 @@ export async function POST(request: NextRequest) {
             const resp = NextResponse.json(
               {
                 message:
-                  'Backend rejected token. Created Firebase-only session (no backend JWT).',
+                  "Backend rejected token. Created Firebase-only session (no backend JWT).",
                 firebaseUid,
               },
-              { status: 200, headers: { 'set-cookie': cookieValue } }
+              { status: 200, headers: { "set-cookie": cookieValue } },
             );
 
             // Also set cookie via NextResponse API so runtimes that support it get the cookie object
             try {
               resp.cookies.set({
-                name: 'firebase-uid',
+                name: "firebase-uid",
                 value: firebaseUid,
                 httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
+                sameSite: "lax",
+                path: "/",
                 maxAge: 60 * 60 * 24 * 7, // 7 days
               });
             } catch (err) {
@@ -130,17 +134,17 @@ export async function POST(request: NextRequest) {
 
             return resp;
           } catch (decodeError) {
-            console.error('Failed to decode idToken payload:', decodeError);
+            console.error("Failed to decode idToken payload:", decodeError);
             return NextResponse.json(
-              { error: backendData.message || 'Backend authentication failed' },
-              { status: backendResponse.status }
+              { error: backendData.message || "Backend authentication failed" },
+              { status: backendResponse.status },
             );
           }
         }
 
         return NextResponse.json(
           { error: backendData.message || "Backend authentication failed" },
-          { status: backendResponse.status }
+          { status: backendResponse.status },
         );
       }
 
@@ -157,14 +161,14 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { error: "Unable to connect to authentication service" },
-        { status: 503 }
+        { status: 503 },
       );
     }
   } catch (error) {
     console.error("Firebase sync error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

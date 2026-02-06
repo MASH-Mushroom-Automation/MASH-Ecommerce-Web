@@ -1,9 +1,9 @@
 /**
  * User Profile API Route
- * 
+ *
  * NOTE: For Google-authenticated users, profile data comes directly from Firebase/Firestore via AuthContext.
  * This endpoint is only used for backend email/password authenticated users.
- * 
+ *
  * For Google auth: AuthContext → Firestore → User Profile (no API call needed)
  * For Email auth: This API → Backend → User Profile
  */
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get("auth-token")?.value;
 
     // If there's no backend JWT token, but there is a Firebase session cookie, return profile from Firestore
-    const firebaseUidCookie = cookieStore.get('firebase-uid')?.value;
+    const firebaseUidCookie = cookieStore.get("firebase-uid")?.value;
 
     if (!token && firebaseUidCookie) {
       try {
@@ -38,22 +38,31 @@ export async function GET(request: NextRequest) {
               timestamp: new Date().toISOString(),
               requestId: `req_${Date.now()}`,
             },
-            { status: 200 }
+            { status: 200 },
           );
         }
 
         return NextResponse.json(
           {
             success: false,
-            error: { code: 'NOT_FOUND', message: 'Profile not found in Firestore' },
+            error: {
+              code: "NOT_FOUND",
+              message: "Profile not found in Firestore",
+            },
           },
-          { status: 404 }
+          { status: 404 },
         );
       } catch (err) {
-        console.error('[Profile API] Failed to get Firestore profile:', err);
+        console.error("[Profile API] Failed to get Firestore profile:", err);
         return NextResponse.json(
-          { success: false, error: { code: 'FETCH_ERROR', message: 'Failed to fetch profile from Firestore' } },
-          { status: 500 }
+          {
+            success: false,
+            error: {
+              code: "FETCH_ERROR",
+              message: "Failed to fetch profile from Firestore",
+            },
+          },
+          { status: 500 },
         );
       }
     }
@@ -64,23 +73,25 @@ export async function GET(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required. Google users should use Firebase/Firestore directly."
-          }
+            message:
+              "Authentication required. Google users should use Firebase/Firestore directly.",
+          },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Call real backend API
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Call real backend API (forward HTTP-only cookies to backend)
     const response = await apiRequest<ApiResponse<UserProfile>>(
       "/users/profile",
-      { method: "GET" }
+      { method: "GET", headers: { Cookie: cookieHeader } },
     );
 
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -88,11 +99,12 @@ export async function GET(request: NextRequest) {
         success: false,
         error: {
           code: "FETCH_ERROR",
-          message: error instanceof Error ? error.message : "Failed to fetch profile"
+          message:
+            error instanceof Error ? error.message : "Failed to fetch profile",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -109,28 +121,30 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required"
-          }
+            message: "Authentication required",
+          },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = await request.json();
 
-    // Call real backend API
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Call real backend API (forward HTTP-only cookies to backend)
     const response = await apiRequest<ApiResponse<UserProfile>>(
       "/users/profile",
       {
         method: "PUT",
         body: JSON.stringify(body),
-      }
+        headers: { Cookie: cookieHeader },
+      },
     );
 
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -138,11 +152,12 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: {
           code: "UPDATE_ERROR",
-          message: error instanceof Error ? error.message : "Failed to update profile"
+          message:
+            error instanceof Error ? error.message : "Failed to update profile",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
