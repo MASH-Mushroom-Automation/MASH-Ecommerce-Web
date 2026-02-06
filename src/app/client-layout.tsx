@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { SimpleHeader } from "@/components/layout/simple-header";
-import { SellerHeader } from "@/components/layout/seller-header";
 import { Footer } from "@/components/layout/footer";
 import {
   MobileBottomNav,
@@ -82,9 +81,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               <WishlistProvider>
                 <ChatProvider>
                 {isSellerRoute ? (
-                  // Seller routes get header and handle their own layout with sidebar
+                  // Seller routes handle their own layout with sidebar and header
                   <div className="min-h-screen flex flex-col">
-                    <SellerHeader />
                     {children}
                     <Toaster position="bottom-center" richColors closeButton />
                     <Chatbot />

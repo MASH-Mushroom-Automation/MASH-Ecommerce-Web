@@ -203,16 +203,16 @@ export default function InventoryOverviewPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
       {/* Page Header - Compact */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inventory Overview</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Inventory Overview</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Comprehensive inventory analytics and management
           </p>
         </div>
-        <Button
+        {/* <Button
           onClick={handleRefresh}
           variant="outline"
           size="sm"
@@ -221,13 +221,13 @@ export default function InventoryOverviewPage() {
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
-        </Button>
+        </Button> */}
       </div>
 
-      <Separator />
+      <Separator className="my-2 sm:my-3 md:my-4" />
 
       {/* Inventory Stats - Full width, 4 cards - Compact */}
-      <section aria-labelledby="inventory-stats-heading">
+      <section aria-labelledby="inventory-stats-heading" className="w-full">
         <h2 id="inventory-stats-heading" className="sr-only">
           Inventory Statistics
         </h2>
@@ -235,25 +235,25 @@ export default function InventoryOverviewPage() {
       </section>
 
       {/* Stock Chart (smaller) + Low Stock Alerts - Two column on desktop */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
-        <section 
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-4">
+        <section
           aria-labelledby="stock-distribution-heading"
           className="lg:col-span-2"
         >
           <h2 id="stock-distribution-heading" className="sr-only">
             Stock Distribution Chart
           </h2>
-          <StockChart 
-            stats={stats} 
-            isLoading={isLoading} 
-            isError={isError} 
-            height={220}
+          <StockChart
+            stats={stats}
+            isLoading={isLoading}
+            isError={isError}
+            height={280}
           />
         </section>
 
-        <section 
+        <section
           aria-labelledby="low-stock-alerts-heading"
-          className="lg:col-span-3"
+          className="lg:col-span-2"
         >
           <h2 id="low-stock-alerts-heading" className="sr-only">
             Low Stock Alerts
@@ -262,7 +262,7 @@ export default function InventoryOverviewPage() {
             items={lowStockProducts?.items ?? []}
             total={lowStockProducts?.total ?? 0}
             page={1}
-            pageSize={10}
+            pageSize={5}
             hasMore={lowStockProducts?.hasMore ?? false}
             isLoading={isLoading}
             isError={isError}
@@ -273,24 +273,24 @@ export default function InventoryOverviewPage() {
       </div>
 
       {/* Category Inventory Breakdown - Full width */}
-      <section aria-labelledby="category-inventory-heading">
+      <section aria-labelledby="category-inventory-heading" className="w-full">
         <h2 id="category-inventory-heading" className="sr-only">
           Category Inventory Breakdown
         </h2>
         <CategoryInventoryBreakdown
-          categories={categoryInventory}
+          categories={(categoryInventory as any) ?? []}
           isLoading={isLoading}
           isError={isError}
         />
       </section>
 
       {/* Stock Value Calculator - Full width */}
-      <section aria-labelledby="inventory-value-heading">
+      <section aria-labelledby="inventory-value-heading" className="w-full">
         <h2 id="inventory-value-heading" className="sr-only">
           Inventory Value Calculator
         </h2>
         <StockValueCalculator
-          valueData={stockValue}
+          valueData={(stockValue as any) ?? undefined}
           isLoading={isLoading}
           isError={isError}
         />
@@ -306,7 +306,7 @@ export default function InventoryOverviewPage() {
 
       {/* Full Stock Adjustment Form Modal (SELLER-021 P6-03) */}
       <Dialog open={isAdjustStockOpen} onOpenChange={setIsAdjustStockOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] ove  rflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Stock Adjustment

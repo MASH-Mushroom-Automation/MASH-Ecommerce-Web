@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -168,17 +168,17 @@ export default function StockManagementPage() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="quick-adjust" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="quick-adjust" className="flex items-center gap-2">
+          <TabsTrigger value="quick-adjust" className="flex items-center gap-2 justify-center text-center">
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Quick Adjust</span>
             <span className="sm:hidden">Adjust</span>
           </TabsTrigger>
-          <TabsTrigger value="batch-import" className="flex items-center gap-2">
+          <TabsTrigger value="batch-import" className="flex items-center gap-2 justify-center text-center">
             <FileSpreadsheet className="h-4 w-4" />
             <span className="hidden sm:inline">Batch Import</span>
             <span className="sm:hidden">Import</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
+          <TabsTrigger value="history" className="flex items-center gap-2 justify-center text-center">
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">History</span>
             <span className="sm:hidden">Log</span>
