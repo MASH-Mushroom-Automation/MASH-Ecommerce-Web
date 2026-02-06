@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import FocusTrap from 'focus-trap-react';
-import { Star, MapPin } from "lucide-react";
+import { Star, MapPin, MessageCircle, Calendar, Mail, ExternalLink, Maximize2, X, Navigation, Phone, Store, Shield, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,10 @@ interface Grower {
   calcomButtonText?: string;
   googleMapsEmbedUrl?: string; // pb-style embed URL from Google Maps share/embed snippet
   image?: string; // URL to grower logo/avatar
+  phone?: string;
+  isVerified?: boolean;
+  responseTime?: string; // e.g., "Usually responds within 1 hour"
+  deliveryInfo?: string; // e.g., "Free delivery within Metro Manila"
 }
 
 interface GrowerCardProps {
@@ -33,6 +37,9 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [resolvedEmbed, setResolvedEmbed] = useState<string | null | undefined>(undefined);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const expandBtnRef = useRef<HTMLButtonElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // Resolve short maps.app.goo.gl URLs server-side to get an embeddable URL when possible
   React.useEffect(() => {
@@ -79,11 +86,20 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
     return coordsEmbed ?? null;
   };
 
-  const [showMapModal, setShowMapModal] = useState(false);
-  const expandBtnRef = useRef<HTMLButtonElement | null>(null);
-  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
-
   const embedSrc = getEmbedSrc();
+
+  // Generate directions URL
+  const getDirectionsUrl = () => {
+    if (grower.latitude !== undefined && grower.longitude !== undefined) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${grower.latitude},${grower.longitude}`;
+    }
+    if (location) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}`;
+    }
+    return null;
+  };
+
+  const directionsUrl = getDirectionsUrl();
 
   useEffect(() => {
     if (!showMapModal) return;
@@ -95,75 +111,172 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
     };
 
     document.addEventListener('keydown', handleKeyDown);
-
-    // Focus the modal close button when opened
     setTimeout(() => closeBtnRef.current?.focus(), 0);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      // Return focus to the expand button when closed
       expandBtnRef.current?.focus();
     };
   }, [showMapModal]);
 
   return (
-    <div className={cn("bg-card rounded-xl p-5 border shadow-sm", "border-border")} data-testid="grower-card">
-      <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
-        <div className="flex-1">
-          <div className="text-sm text-muted-foreground">Seller</div>
-          <div className="flex items-center gap-3">
+    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden" data-testid="grower-card">
+      {/* Header Section */}
+      <div className="p-5 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-3">
+          <Store className="w-3.5 h-3.5" />
+          <span>Seller</span>
+        </div>
+        
+        <div className="flex items-start gap-4">
+          {/* Seller Avatar */}
+          <div className="relative flex-shrink-0">
             {grower.image ? (
-              <img src={grower.image} alt={`Seller: ${name}`} className="w-14 h-14 rounded-full object-cover" />
+              <img 
+                src={grower.image} 
+                alt={`Seller: ${name}`} 
+                className="w-16 h-16 rounded-xl object-cover ring-2 ring-white shadow-md" 
+              />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-sm text-muted-foreground">{name.split(' ').map(s => s[0]).slice(0,2).join('')}</div>
-            )}
-
-            <div>
-              <div className="font-semibold text-foreground">{name}</div>
-              <div className="flex items-center gap-1 text-sm text-yellow-600">
-                <Star className="w-4 h-4" />
-                <span>{rating.toFixed(1)}</span>
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-white shadow-md">
+                <span className="text-lg font-bold text-primary">
+                  {name.split(' ').map(s => s[0]).slice(0,2).join('')}
+                </span>
               </div>
-            </div>
-
-            {rating >= 4.5 && (
-              <span className="ml-2 inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Highly rated on Marketplace</span>
+            )}
+            {grower.isVerified && (
+              <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1 shadow-sm">
+                <Shield className="w-3 h-3" />
+              </div>
             )}
           </div>
+
+          {/* Seller Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-foreground text-lg truncate">{name}</h3>
+              {grower.isVerified && (
+                <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                  <Shield className="w-3 h-3" />
+                  Verified
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3 mt-1.5">
+              {/* Rating */}
+              <div className="flex items-center gap-1">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={cn(
+                        "w-4 h-4",
+                        star <= Math.round(rating)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-200"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-foreground">{rating.toFixed(1)}</span>
+              </div>
+              
+              {rating >= 4.5 && (
+                <span className="text-xs text-green-600 font-medium">Top Rated</span>
+              )}
+            </div>
+
+            {/* Quick Info Tags */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {grower.responseTime && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                  <Clock className="w-3 h-3" />
+                  {grower.responseTime}
+                </span>
+              )}
+              {grower.deliveryInfo && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                  <Truck className="w-3 h-3" />
+                  {grower.deliveryInfo}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="w-full lg:w-1/3 flex flex-col items-end gap-3">
-          {calcomUsername ? (
-            <a
-              data-testid="calcom-btn"
-              href={`https://cal.com/${calcomUsername}${calcomUsername && grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
-            >
-              {calcomButtonText || 'Schedule with Grower'}
-            </a>
-          ) : (
-            <a data-testid="mailto-link" href={`mailto:${contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
-          )}
-
-          <button
+      {/* Action Buttons */}
+      <div className="p-4 border-b border-border/50 bg-muted/20">
+        <div className="flex flex-wrap gap-2">
+          <Button
             onClick={() => {
               if (onQuickChat) return onQuickChat();
-              // Fallback behaviour: open mailto if no handler
               window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
             }}
             data-testid="contact-chat-btn"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
+            className="flex-1 min-w-[140px]"
+            size="sm"
           >
+            <MessageCircle className="w-4 h-4 mr-2" />
             Quick Chat
-          </button>
+          </Button>
+          
+          {calcomUsername ? (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-[140px] border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              data-testid="calcom-btn"
+            >
+              <a
+                href={`https://cal.com/${calcomUsername}${grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                {calcomButtonText || 'Book Appointment'}
+              </a>
+            </Button>
+          ) : contactEmail && (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-[140px]"
+              data-testid="mailto-link"
+            >
+              <a href={`mailto:${contactEmail}`}>
+                <Mail className="w-4 h-4 mr-2" />
+                Email Seller
+              </a>
+            </Button>
+          )}
+        </div>
+      </div>
 
-          <div className="mt-2 w-full">
-            {location ? (
-              // Use unified embed source and render a much larger responsive map with expand CTA
-              embedSrc ? (
-                <div role="region" aria-label={`Seller location`} className="w-full h-64 sm:h-72 md:h-96 lg:h-[28rem] xl:h-[34rem] rounded overflow-hidden border relative">
+      {/* Map Section */}
+      <div className="relative">
+        {location || embedSrc ? (
+          <div className="relative">
+            {embedSrc ? (
+              <>
+                {/* Map Container with proper aspect ratio */}
+                <div 
+                  role="region" 
+                  aria-label="Seller location" 
+                  className="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-muted"
+                >
+                  {!mapLoaded && !mapError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-2"></div>
+                        <p className="text-sm text-muted-foreground">Loading map...</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <iframe
                     data-testid={renderTestIds ? "grower-map" : undefined}
                     title="Seller location"
@@ -175,107 +288,191 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
                     onError={() => setMapError(true)}
                     aria-hidden={false}
                   />
-
-                  <button
-                    ref={expandBtnRef}
-                    data-testid="grower-map-expand"
-                    onClick={() => setShowMapModal(true)}
-                    className="absolute right-3 bottom-3 inline-flex items-center gap-2 bg-white/90 px-3 py-1 rounded-md text-sm shadow-sm hover:opacity-95"
-                  >
-                    View larger map
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  {mapError ? (
-                    <div className="p-3 rounded bg-muted/50 text-sm text-muted-foreground" data-testid={renderTestIds ? "grower-map-error" : undefined}>
-                      <div className="font-medium text-foreground">Map failed to load</div>
-                      <div className="text-sm mt-1">The seller's location could not be embedded. You can view it on Google Maps or contact the seller directly.</div>
-                      <div className="mt-2">
+                  
+                  {/* Map Overlay Controls */}
+                  <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end pointer-events-none">
+                    {/* Location Badge */}
+                    {location && (
+                      <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg max-w-[60%] pointer-events-auto">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-foreground font-medium line-clamp-2">{location}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pointer-events-auto">
+                      {directionsUrl && (
                         <a
-                          data-testid={renderTestIds ? "grower-map-link" : undefined}
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+                          href={directionsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-1"
+                          className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-xs font-medium text-primary hover:bg-white shadow-lg transition-colors"
                         >
-                          <MapPin className="w-4 h-4" />
-                          View on Google Maps
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Directions</span>
                         </a>
-                      </div>
+                      )}
+                      
+                      <button
+                        ref={expandBtnRef}
+                        data-testid="grower-map-expand"
+                        onClick={() => setShowMapModal(true)}
+                        className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-white shadow-lg transition-colors"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Expand</span>
+                      </button>
                     </div>
-                  ) : (
+                  </div>
+                </div>
+                
+                {/* Open in Google Maps Link */}
+                <div className="p-3 bg-muted/30 border-t border-border/50">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || `${grower.latitude},${grower.longitude}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open in Google Maps
+                  </a>
+                </div>
+              </>
+            ) : (
+              /* No embed available - show link */
+              <div className="p-6 text-center">
+                {mapError ? (
+                  <div className="space-y-3" data-testid={renderTestIds ? "grower-map-error" : undefined}>
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
+                      <MapPin className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Map couldn't be loaded</p>
+                      <p className="text-sm text-muted-foreground mt-1">View the location directly on Google Maps</p>
+                    </div>
                     <a
-                      data-testid="grower-map-link"
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+                      data-testid={renderTestIds ? "grower-map-link" : undefined}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-1"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                     >
-                      <MapPin className="w-4 h-4" />
-                      View on Google Maps
+                      <ExternalLink className="w-4 h-4" />
+                      Open in Google Maps
                     </a>
-                  )}
-                </div>
-              )
-            ) : (
-              <div data-testid={renderTestIds ? "grower-location-empty" : undefined} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start p-3 border rounded bg-muted text-sm text-muted-foreground">
-                <div>
-                  <div className="font-medium text-foreground">Location not provided</div>
-                  <div className="text-sm mt-1">This seller has not shared a precise location for this listing. If you'd like to know where the product is from, contact the seller using the appointment button or Quick Chat below.</div>
-
-                  <div className="mt-3 flex items-center gap-2">
-                    {calcomUsername ? (
-                      <a
-                        data-testid={renderTestIds ? "calcom-btn-empty" : undefined}
-                        href={`https://cal.com/${calcomUsername}${calcomUsername && grower.defaultEventSlug ? `/${grower.defaultEventSlug}` : ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:opacity-90"
-                      >
-                        {calcomButtonText || 'Schedule with Grower'}
-                      </a>
-                    ) : (
-                      <a data-testid={renderTestIds ? "mailto-link-empty" : undefined} href={`mailto:${contactEmail || ''}`} className="text-sm text-amber-600 hover:underline">Contact seller</a>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        if (onQuickChat) return onQuickChat();
-                        window.location.href = `mailto:${contactEmail || ''}?subject=${encodeURIComponent('Inquiry about ' + (productName || 'product'))}`;
-                      }}
-                      data-testid={renderTestIds ? "contact-chat-btn-empty" : undefined}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
-                    >
-                      Quick Chat
-                    </button>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-center rounded border bg-white/5 p-4" data-testid={renderTestIds ? "grower-map-placeholder" : undefined} aria-hidden="false">
-                  <div className="flex flex-col items-center text-sm text-muted-foreground">
-                    <MapPin className="w-8 h-8 text-muted-foreground mb-2" />
-                    <div className="font-medium text-foreground">No map available</div>
-                    <div className="text-sm mt-1">Seller has not provided a location for this product listing.</div>
-                  </div>
-                </div>
+                ) : (
+                  <a
+                    data-testid="grower-map-link"
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    View on Google Maps
+                  </a>
+                )}
               </div>
             )}
           </div>
-        </div>
+        ) : (
+          /* No location provided */
+          <div 
+            className="p-6 text-center bg-muted/30" 
+            data-testid={renderTestIds ? "grower-location-empty" : undefined}
+          >
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+              <MapPin className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Location not shared</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+              Contact the seller for pickup location or delivery options
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Expanded map modal */}
+      {/* Expanded Map Modal */}
       {showMapModal && embedSrc && (
-        <div data-testid="grower-map-modal" role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div 
+          data-testid="grower-map-modal" 
+          role="dialog" 
+          aria-modal="true" 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowMapModal(false)}
+        >
           {process.env.NODE_ENV !== 'test' ? (
             <FocusTrap active={showMapModal} focusTrapOptions={{ clickOutsideDeactivates: true }}>
-              <div className="bg-white rounded-lg w-full h-full md:w-[90%] md:h-[90%] lg:w-[95%] lg:h-[95%] overflow-hidden relative">
-                <div className="absolute top-0 right-0 z-10 p-2">
-                  <button ref={closeBtnRef} aria-label="Close map" onClick={() => setShowMapModal(false)} className="px-3 py-1 bg-white rounded shadow">×</button>
+              <div className="bg-white rounded-2xl w-full h-full max-w-6xl max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-4 border-b bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{name}</h3>
+                      {location && (
+                        <p className="text-sm text-muted-foreground truncate max-w-md">{location}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {directionsUrl && (
+                      <a
+                        href={directionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Get Directions
+                      </a>
+                    )}
+                    <button 
+                      ref={closeBtnRef}
+                      aria-label="Close map" 
+                      onClick={() => setShowMapModal(false)} 
+                      className="w-10 h-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                {/* Hidden focusable element for focus trap */}
-                <button style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true"></button>
+                
+                {/* Map */}
+                <div className="flex-1 relative">
+                  <button style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true" tabIndex={0}></button>
+                  <iframe
+                    data-testid="grower-map-large"
+                    title="Seller location large"
+                    src={embedSrc}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    tabIndex={-1}
+                  />
+                </div>
+              </div>
+            </FocusTrap>
+          ) : (
+            <div className="bg-white rounded-2xl w-full h-full max-w-6xl max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold">{name}</h3>
+                <button 
+                  ref={closeBtnRef}
+                  aria-label="Close map" 
+                  onClick={() => setShowMapModal(false)} 
+                  className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1">
                 <iframe
                   data-testid="grower-map-large"
                   title="Seller location large"
@@ -283,24 +480,9 @@ export function GrowerCard({ grower, productName, onQuickChat, renderTestIds = t
                   className="w-full h-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  tabIndex={-1} // Make iframe not tabbable, focus stays on close button
+                  tabIndex={-1}
                 />
               </div>
-            </FocusTrap>
-          ) : (
-            <div className="bg-white rounded-lg w-full h-full md:w-[90%] md:h-[90%] lg:w-[95%] lg:h-[95%] overflow-hidden relative">
-              <div className="absolute top-0 right-0 z-10 p-2">
-                <button ref={closeBtnRef} aria-label="Close map" onClick={() => setShowMapModal(false)} className="px-3 py-1 bg-white rounded shadow">×</button>
-              </div>
-              <iframe
-                data-testid="grower-map-large"
-                title="Seller location large"
-                src={embedSrc}
-                className="w-full h-full border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                tabIndex={-1}
-              />
             </div>
           )}
         </div>
