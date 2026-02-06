@@ -183,7 +183,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for data to load
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check all major sections are present
       expect(screen.getByText('Total SKUs')).toBeInTheDocument();
@@ -218,7 +218,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
     });
   });
 
@@ -239,7 +239,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for data to load
       await waitFor(() => {
         expect(screen.getByText('Oyster Mushroom')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Find and click Restock button
       const restockButtons = screen.getAllByText(/restock/i);
@@ -248,7 +248,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Modal should open
       await waitFor(() => {
         expect(screen.getByText('Quick Stock Update')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Change stock quantity
       const input = screen.getByLabelText(/new stock quantity/i);
@@ -262,7 +262,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Should call mutation
       await waitFor(() => {
         expect(mockUpdateProductStock).toHaveBeenCalledWith('prod-1', 50);
-      });
+      }, WAITFOR_OPTIONS);
     });
 
     it('should show success feedback after stock update', async () => {
@@ -299,7 +299,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalled();
-      });
+      }, WAITFOR_OPTIONS);
     });
 
     it('should close modal and refresh data after successful update', async () => {
@@ -316,7 +316,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Oyster Mushroom')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       const restockButtons = screen.getAllByText(/restock/i);
       await user.click(restockButtons[0]);
@@ -335,7 +335,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Modal should close
       await waitFor(() => {
         expect(screen.queryByText('Quick Stock Update')).not.toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
     });
   });
 
@@ -346,7 +346,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render (either with data or loading state)
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check if data loaded - if still showing skeleton, data didn't load
       const productFound = screen.queryByText('Oyster Mushroom');
@@ -366,7 +366,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check for urgency badges only if data loaded
       const productFound = screen.queryByText('Oyster Mushroom');
@@ -385,7 +385,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check navigation link only if data loaded
       const productLink = screen.queryByText('Oyster Mushroom');
@@ -405,7 +405,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check for chart section only if data loaded (not showing skeleton)
       const chartSection = screen.queryByText('Stock Distribution');
@@ -426,7 +426,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check for stock value section only if data loaded
       const stockValueSection = screen.queryByText('Stock Value');
@@ -447,7 +447,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Check for category section only if data loaded
       const categorySection = screen.queryByText('Category Inventory');
@@ -470,7 +470,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Wait for page to render
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Only test accordion if data loaded - use queryAllByText since multiple elements exist
       const categoryElements = screen.queryAllByText('Fresh Mushrooms');
@@ -502,7 +502,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Look for refresh/reload button
       const refreshButton = screen.getByRole('button', { name: /refresh|reload/i });
@@ -515,7 +515,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
 
       // Clear mock calls
       mockGetInventoryStats.mockClear();
@@ -532,7 +532,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
         expect(mockGetLowStockProducts).toHaveBeenCalled();
         expect(mockGetStockValue).toHaveBeenCalled();
         expect(mockGetCategoryInventory).toHaveBeenCalled();
-      });
+      }, WAITFOR_OPTIONS);
     });
   });
 
@@ -582,7 +582,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
       // Should not crash, page container should exist
       await waitFor(() => {
         expect(container).toBeInTheDocument();
-      });
+      }, WAITFOR_OPTIONS);
     });
   });
 

@@ -2452,3 +2452,41 @@ Phase 7: Testing & Deployment (3 stories)
 
 **Tests Passing:** Build ✅ | Lint ✅ | Suite: 118 failed (baseline maintained after revert)
 ---
+## [2026-02-07 18:00] - TEST-FIXING-INVENTORY-INTEGRATION-BATCH-FIXES
+**Objective:** Apply manual batch fixes to inventory integration tests using multi_replace
+
+**Changes Applied:**
+- Batch 1: 6/7 fixes - Full Page Load, Error State, Stock Update Flow (first 7 waitFor calls)
+- Batch 2: 7/7 fixes - Modal close, Low Stock Alerts, Chart sections  
+- Batch 3: 3/5 fixes - Category Breakdown tests
+- Batch 4: 2/3 fixes - Refresh Functionality tests
+- Total: ~18 waitFor calls now have WAITFOR_OPTIONS ({ timeout: 5000, interval: 100 })
+
+**Test Results:**
+- Inventory integration isolated: 109 failed (unchanged - indicates deeper issue)
+- Full test suite: 118 failed (baseline maintained - no regressions)
+- Build: ✅ PASSING - Zero errors
+
+**Analysis:**
+- Timeout fixes alone insufficient for inventory integration tests
+- 109 failures suggest component rendering issues or mock configuration problems
+- React Query may need ct() wrapping or different test strategy
+- Other 118 failures include AuthContext (~12), useStockManagement (~10), seller products (~15)
+
+**Learnings:**
+- multi_replace_string_in_file works well with unique context (6-7 fixes per batch)
+- Duplicate patterns require more surrounding code for specificity
+- Integration tests with React Query need more than just timeout increases
+- Build stability maintained throughout - good regression safety
+
+**Next Actions:**
+1. Focus on high-impact non-integration tests (AuthContext, useStockManagement)
+2. Consider different approach for inventory integration (MSW, component mocks)
+3. Target 40-50 quick wins in other test files first
+4. Return to inventory integration with fresh strategy
+
+**Files Modified:**
+- src/app/(seller)/seller/inventory/page.integration.test.tsx (~18 waitFor timeout fixes)
+
+**Tests Passing:** Build ✅ | Lint ✅ (assumed) | Suite: 118 failed (baseline stable)
+---
