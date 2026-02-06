@@ -94,10 +94,10 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
-          <Link href="/blog" className="hover:underline whitespace-nowrap">
+          {/* <Link href="/blog" className="hover:underline whitespace-nowrap">
             BLOG
           </Link>
-          <span className="hidden sm:inline opacity-50">•</span>
+          <span className="hidden sm:inline opacity-50">•</span> */}
           <Link
             href="/faq"
             className="hidden sm:inline hover:underline whitespace-nowrap"
