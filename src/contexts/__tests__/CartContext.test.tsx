@@ -960,12 +960,19 @@ describe("CartContext", () => {
         { user: mockUser, isAuthenticated: true }
       );
 
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          "Failed to merge carts:",
-          expect.any(Error)
-        );
-      });
+      // Wait for merge to be attempted and error to be logged
+      await waitFor(
+        () => {
+          expect(consoleErrorSpy).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
+
+      // Verify the error was logged with correct message
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to merge carts:",
+        expect.any(Error)
+      );
 
       consoleErrorSpy.mockRestore();
     });
@@ -1008,15 +1015,24 @@ describe("CartContext", () => {
         addButton.click();
       });
 
-      // Wait for debounce
-      await new Promise((resolve) => setTimeout(resolve, 600));
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          "Failed to sync cart to Firebase:",
-          expect.any(Error)
-        );
+      // Wait for debounce and Firebase sync attempt
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 700));
       });
+
+      // Wait for error to be logged
+      await waitFor(
+        () => {
+          expect(consoleErrorSpy).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
+
+      // Verify the error was logged with correct message
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to sync cart to Firebase:",
+        expect.any(Error)
+      );
 
       consoleErrorSpy.mockRestore();
     });

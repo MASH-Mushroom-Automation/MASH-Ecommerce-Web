@@ -2322,4 +2322,36 @@ Phase 7: Testing & Deployment (3 stories)
 3. Railway auto-deploys on merge
 4. Verify on beta.mashmarket.app after deployment
 
+---## [2026-02-07 Current] - TEST-FIXING-PHASE-2
+**Status:** Continuing systematic test failure fixes (119 failures remaining)
+**Files Changed:**
+- src/contexts/__tests__/CartContext.test.tsx (console.error spy timing fixes)
+
+**Implementation Notes:**
+- Fixed CartContext Firebase merge/save error tests with proper async timing
+- Applied waitFor blocks with 3s timeout and proper act() wrapping
+- Increased debounce wait from 600ms to 700ms for save error test
+- Build still passes after changes (29.0s compilation)
+
+**Current Test Status:**
+- Total: 1674 tests (119 failed, 0 skipped, 1555 passed)
+- 0 skipped tests - Phase 1 requirement MET ✓
+- 8 failing test files identified:
+  1. StockAdjustmentForm.test.tsx (~30 Radix UI tests)
+  2. page.integration.test.tsx (inventory) (~20 React Query timing)
+  3. AuthContext.test.tsx (~40 error description assertions)
+  4. CartContext.test.tsx (2 console.error spy tests - ATTEMPTED FIX)
+  5. page.test.tsx (products) (~15 Firebase/Auth setup)
+  6. apply-as-seller.forwarding.test.ts (~5 header assertions)
+  7. stock-sync.test.ts (1 processQueue test)
+  8. useStockManagement.test.tsx (~10 React Query retry)
+
+**Next Actions:**
+- Verify if CartContext console.error fixes reduced failure count
+- Fix API forwarding test header/body assertions (quick win)
+- Fix stock-sync processQueue module loading issue
+- Address AuthContext flexible error matchers
+- Tackle Radix UI and integration test timing issues
+
+**Tests Passing:** [PASS] Build (29.0s) | [PENDING] Lint | [PENDING] Full Test Suite
 ---
