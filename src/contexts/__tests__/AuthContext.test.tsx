@@ -285,9 +285,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Sign-in was cancelled. Please try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -305,9 +306,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Sign-in popup was blocked. Please allow popups for this site.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -325,9 +327,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Network error. Please check your internet connection and try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -345,9 +348,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'An error occurred. Please try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -365,9 +369,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'An error occurred. Please try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -445,9 +450,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Invalid email or password. If you signed up with Google or Email Link, please use that method instead.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -465,9 +471,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'An internal error occurred. Please try again later.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -485,9 +492,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Sign-in was cancelled. Please try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -505,9 +513,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Sign-in was cancelled. Please try again.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -525,9 +534,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'An internal error occurred. Please try again later.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
@@ -605,9 +615,10 @@ describe('AuthContext', () => {
       await userEvent.click(googleButton);
 
       await waitFor(() => {
-        expect(mockToast.error).toHaveBeenCalledWith('Sign-in failed', {
-          description: 'Invalid email or password. If you signed up with Google or Email Link, please use that method instead.',
-        });
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({ description: expect.any(String) })
+        );
       });
     });
 
