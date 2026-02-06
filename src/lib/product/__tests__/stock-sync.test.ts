@@ -53,11 +53,19 @@ describe("StockSync", () => {
     stockSync.enqueue("p1", -1);
     stockSync.setLocalStock("p1", 10);
 
+    // Give time for async processing
+    await new Promise((resolve) => setTimeout(resolve, 100));
     await stockSync.processQueue();
 
     const queue = JSON.parse(localStorage.getItem("mash-stock-sync-queue") || "[]");
     expect(queue).toHaveLength(0);
-    expect(mockUpdateStock).toHaveBeenCalledWith("p1", 9);
+    
+    // Verify backend was called with correct values
+    expect(mockUpdateStock).toHaveBeenCalled();
+    const updateCall = mockUpdateStock.mock.calls[0];
+    expect(updateCall[0]).toBe("p1"); // productId
+    expect(updateCall[1]).toBe(9);    // new quantity (10 - 1)
+    
     // Should update local stock with authoritative value
     expect(stockSync.getLocalStock("p1")).toBe(9);
   });
