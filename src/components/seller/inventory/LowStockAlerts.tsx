@@ -27,34 +27,34 @@ import { calculateUrgencyLevel } from '@/types/inventory';
 export interface LowStockAlertsProps {
   /** Low stock items to display */
   items: LowStockItem[];
-  
+
   /** Total count of low stock items (for pagination) */
   total: number;
-  
+
   /** Current page number (1-indexed) */
   page: number;
-  
+
   /** Items per page */
   pageSize: number;
-  
+
   /** Whether more pages exist */
   hasMore: boolean;
-  
+
   /** Loading state */
   isLoading?: boolean;
-  
+
   /** Error state */
   isError?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Callback when quick restock button is clicked (simple stock update) */
   onRestockClick?: (item: LowStockItem) => void;
-  
+
   /** Callback when adjust stock button is clicked (full adjustment form) */
   onAdjustStockClick?: (item: LowStockItem) => void;
-  
+
   /** Callback to load next page */
   onLoadMore?: () => void;
 }
@@ -131,7 +131,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 -mb-10">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             Low Stock Alerts
           </CardTitle>
@@ -158,7 +158,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
       </Card>
     );
   }
-  
+
   // Show error state
   if (isError) {
     return (
@@ -177,7 +177,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
       </Card>
     );
   }
-  
+
   // Show empty state
   if (items.length === 0 && !isLoading) {
     return (
@@ -194,11 +194,11 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
       </Card>
     );
   }
-  
+
   return (
     <Card className={className}>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between -mb-20">
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             Low Stock Alerts
@@ -227,7 +227,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
                   item.currentStock,
                   item.lowStockThreshold
                 );
-                
+
                 return (
                   <TableRow key={item._id}>
                     <TableCell className="font-medium">
@@ -258,8 +258,8 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
                           'font-semibold',
                           item.currentStock === 0 && 'text-red-600',
                           item.currentStock > 0 &&
-                            item.currentStock < item.lowStockThreshold &&
-                            'text-amber-600'
+                          item.currentStock < item.lowStockThreshold &&
+                          'text-amber-600'
                         )}
                       >
                         {item.currentStock}
@@ -324,7 +324,7 @@ export const LowStockAlerts = memo<LowStockAlertsProps>(function LowStockAlerts(
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Load More Button */}
         {hasMore && onLoadMore && (
           <div className="flex justify-center mt-4">

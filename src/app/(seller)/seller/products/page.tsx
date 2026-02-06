@@ -6,7 +6,13 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Filter as FilterIcon, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogTrigger,
@@ -27,11 +33,11 @@ const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel"
 // Phase 3 Hooks (State Management)
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { useProductSearch } from "@/hooks/useProductSearch";
-import { useFilterPresets } from "@/hooks/useFilterPresets";
+// import { useFilterPresets } from "@/hooks/useFilterPresets"; // Unused - for future use
 
 // Sanity Product Search
-import { getFilterOptions, type FilterOptions } from "@/lib/sanity/product-search";
-import { DEFAULT_FILTERS } from "@/types/product-filters";
+import { getFilterOptions } from "@/lib/sanity/product-search";
+import type { FilterOptions } from "@/types/product-filters";
 
 // Disable static generation for this page (required for nuqs)
 export const dynamic = 'force-dynamic';
@@ -47,12 +53,6 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
   );
   const [GridComponent, setGridComponent] = useState<any>(null);
 
-  // Dynamic import react-window (client-side only)
-  useEffect(() => {
-    import('react-window').then((mod) => {
-      setGridComponent(() => mod.FixedSizeGrid);
-    });
-  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -83,7 +83,7 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
       {({ columnIndex, rowIndex, style, data }: any) => {
         const index = rowIndex * data.columnCount + columnIndex;
         const product = data.products[index];
-        
+
         if (!product) return null;
 
         return (
@@ -117,8 +117,8 @@ function SellerProductsContent() {
     refetch,
   } = useProductSearch(filters, 1, 50);
 
-  // Phase 3: Filter presets with localStorage
-  const { presets, savePreset, loadPreset, deletePreset, presetExists } = useFilterPresets();
+  // Phase 3: Filter presets with localStorage (currently unused)
+  // const { presets, savePreset, loadPreset, deletePreset, presetExists } = useFilterPresets();
 
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -130,6 +130,9 @@ function SellerProductsContent() {
 
   // Mobile filter drawer state
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  // Desktop filter panel toggle state
+  const [desktopFilterOpen, setDesktopFilterOpen] = useState(false);
 
   // Load filter options on mount
   useEffect(() => {
@@ -246,7 +249,7 @@ function SellerProductsContent() {
       <SearchBar
         value={filters.search}
         onChange={handleSearchChange}
-        placeholder="Search products by name, SKU, or description..."
+        placeholder="Search products by name or description..."
         isLoading={isLoading}
       />
 
@@ -261,23 +264,52 @@ function SellerProductsContent() {
       )}
 
       {/* Layout: Desktop Sidebar + Mobile Drawer */}
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+      <div className={`grid grid-cols-1 ${desktopFilterOpen ? 'lg:grid-cols-[300px_1fr]' : ''} gap-6`}>
         {/* Desktop FilterPanel (Phase 2 Component - Lazy Loaded) */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-4">
-            <Suspense fallback={<LoadingSpinner size="md" />}>
-              <FilterPanel
-                filters={filters}
-                onFiltersChange={handleFiltersChange}
-                filterOptions={filterOptions}
-                showClearButton={activeFilterCount > 0}
-              />
-            </Suspense>
-          </div>
-        </aside>
+        {desktopFilterOpen && (
+          <aside className="hidden lg:block">
+            <div className="sticky top-4">
+              <Suspense fallback={<LoadingSpinner size="md" />}>
+                <FilterPanel
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
+                  filterOptions={filterOptions}
+                  showClearButton={activeFilterCount > 0}
+                />
+              </Suspense>
+            </div>
+          </aside>
+        )}
 
         {/* Main Content Area */}
         <main>
+          {/* Desktop: Results Summary + Filter Toggle Button */}
+          <div className="hidden lg:flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? (
+                "Searching..."
+              ) : (
+                <>
+                  Showing {products.length} of {totalProducts} products
+                  {hasMore && " (load more available)"}
+                </>
+              )}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDesktopFilterOpen(!desktopFilterOpen)}
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              {desktopFilterOpen ? 'Hide' : 'Show'} Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
           {/* Mobile Filter Button */}
           <div className="lg:hidden mb-4">
             <Dialog open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
@@ -321,8 +353,8 @@ function SellerProductsContent() {
             </Dialog>
           </div>
 
-          {/* Results Summary */}
-          <div className="mb-4">
+          {/* Mobile Results Summary */}
+          <div className="lg:hidden mb-4">
             <p className="text-sm text-muted-foreground">
               {isLoading ? (
                 "Searching..."
@@ -396,16 +428,40 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
                 : `₱${product.promoPrice}`}
             </Badge>
           )}
+          {/* Action Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 left-2 h-8 w-8 bg-white/90 hover:bg-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer">
+                  Edit Product
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer">
+                  View Product
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Product Info */}
         <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">
+            <h3 className="font-semibold">
               {product.name}
             </h3>
             {product.sku && (
-              <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+              <p className="pt-2 text-sm text-muted-foreground">SKU: {product.sku}</p>
             )}
           </div>
 
@@ -428,42 +484,34 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
           </div>
 
           {/* Stock & Status */}
-          <div className="flex items-center justify-between">
+          <div className="flex gap-2 items-center flex-wrap">
             <Badge
               variant={
                 product.stockStatus === 'in-stock'
                   ? 'default'
                   : product.stockStatus === 'low-stock'
-                  ? 'secondary'
-                  : 'destructive'
+                    ? 'secondary'
+                    : 'destructive'
               }
             >
               {product.stockStatus === 'in-stock' && 'In Stock'}
               {product.stockStatus === 'low-stock' && 'Low Stock'}
               {product.stockStatus === 'out-of-stock' && 'Out of Stock'}
             </Badge>
-            <span className="text-sm text-muted-foreground">
-              {product.stockQuantity || 0} units
-            </span>
-          </div>
+            
 
           {/* Status */}
-          {product.status && product.status !== 'published' && (
-            <Badge variant="outline">{product.status}</Badge>
+          {product.status && (
+            <Badge
+              variant={product.status === 'published' ? 'default' : 'outline'}
+              className={product.status === 'published' ? 'bg-green-600' : ''}
+            >
+              {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+            </Badge>
           )}
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" size="sm" className="flex-1" asChild>
-              <Link href={`/seller/products/edit/${product._id}`}>
-                Edit
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/product/${product.slug?.current ?? product._id}`}>
-                View
-              </Link>
-            </Button>
+          <span className="text-sm text-muted-foreground">
+              {product.stockQuantity || 0} units
+            </span>
           </div>
         </div>
       </CardContent>

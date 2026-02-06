@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 import {
   LayoutGrid,
   Package,
@@ -59,6 +60,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
 
@@ -153,101 +155,89 @@ function SellerNavUser() {
     try {
       clearWishlist()
       clearCart()
-    } catch {}
+    } catch { }
     router.push("/login")
     setLogoutDialogOpen(false)
   }
 
   return (
     <>
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={getAvatarUrl()} alt={getDisplayName()} />
-                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{getDisplayName()}</span>
-                <span className="truncate text-xs text-gray-500">{getUserEmail()}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={getAvatarUrl()} alt={getDisplayName()} />
-                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{getDisplayName()}</span>
-                  <span className="truncate text-xs text-gray-500">{getUserEmail()}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/seller/settings">
-                  <User />
-                  Account Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/seller/notifications">
-                  <Bell />
-                  Notifications
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogoutClick}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center w-full gap-3 rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={getAvatarUrl()} alt={getDisplayName()} />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium truncate">
+                {getDisplayName()}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {getUserEmail()}
+              </p>
+            </div>
+            <ChevronsUpDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+          </button>
+        </DropdownMenuTrigger>
 
-    {/* Logout Confirmation Dialog */}
-    <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to log out of your account?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DropdownMenuContent align="start" className="w-48 p-1">
+          <DropdownMenuItem asChild>
+            <Link
+              href="/seller/settings"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted/5"
+            >
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">Account Settings</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link
+              href="/seller/notifications"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted/5"
+            >
+              <Bell className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">Notifications</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <button
+              onClick={handleLogoutClick}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted/5 text-destructive"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span className="text-sm">Log out</span>
+            </button>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
 
 function SellerNavMain() {
   const pathname = usePathname()
-  
+
   // Get low stock count for inventory badge
   const { stats } = useInventoryStats({
     enabled: true,
@@ -261,13 +251,26 @@ function SellerNavMain() {
           {sidebarLinks.map((item) => {
             const isActive = pathname === item.href
             const showBadge = item.href === "/seller/inventory" && lowStockCount > 0
-            
+
             return (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive}>
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.label}
+                  className={cn(
+                    isActive && "bg-primary hover:bg-primary/90 [&>a]:text-primary-foreground"
+                  )}
+                >
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md transition-colors",
+                      isActive && "!bg-primary !text-primary-foreground hover:!bg-primary/90"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="font-medium">{item.label}</span>
                     {showBadge && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
                         {lowStockCount}
@@ -286,30 +289,29 @@ function SellerNavMain() {
 
 export function SellerSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar 
+    <Sidebar
       collapsible="icon"
       variant="inset"
-      className="p-0"
       {...props}
     >
-      <SidebarContent className="py-0"> 
-        {/* User section at the top */}
-        <SidebarGroup className="border-b border-sidebar-border p-0">
-          <SidebarGroupContent className="px-2 py-1.5">
-            <SellerNavUser />
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
+      {/* User section at the top */}
+      <div className="px-2 h-14 flex items-center border-b">
+        <SellerNavUser />
+      </div>
+
+      <SidebarContent>
         {/* Navigation items */}
         <SellerNavMain />
       </SidebarContent>
-      
+
+      <SidebarRail />
+
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/">
-                <Store />
+            <SidebarMenuButton asChild tooltip="Back to Store">
+              <Link href="/" className="flex items-center gap-3 rounded-md transition-colors">
+                <Store className="w-4 h-4" />
                 <span>Back to Store</span>
               </Link>
             </SidebarMenuButton>
