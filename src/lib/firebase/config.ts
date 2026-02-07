@@ -6,6 +6,7 @@
  */
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,11 +20,14 @@ const firebaseConfig = {
 
 // Initialize Firebase (prevent duplicate initialization in Next.js)
 let firebaseApp: FirebaseApp;
+let db: Firestore;
 
 if (getApps().length === 0) {
   firebaseApp = initializeApp(firebaseConfig);
+  db = getFirestore(firebaseApp);
 } else {
   firebaseApp = getApps()[0];
+  db = getFirestore(firebaseApp);
 }
 
-export { firebaseApp };
+export { firebaseApp, db };

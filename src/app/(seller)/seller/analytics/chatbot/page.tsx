@@ -1,11 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ChatbotMetrics from "@/components/admin/ChatbotMetrics";
 import { TimeRange, DashboardMetrics, TopQuery, TopProduct, FunnelStep, QueryPattern } from "@/types/analytics";
 import { exportToCSV } from "@/lib/analytics/chatbot-dashboard";
+import { 
+  createRealTimeMonitor, 
+  RefreshInterval, 
+  formatTimeAgo, 
+  getIntervalName,
+  Alert as MonitorAlert
+} from "@/lib/analytics/real-time-monitoring";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -15,7 +24,16 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Download, RefreshCw } from "lucide-react";
+import { 
+  CalendarIcon, 
+  Download, 
+  RefreshCw, 
+  Play, 
+  Pause, 
+  Clock,
+  AlertCircle,
+  X
+} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -28,11 +46,12 @@ import { toast } from "sonner";
  * 
  * Features:
  * - Time range filtering (today, week, month, year, custom dates)
- * - Real-time metrics display
+ * - Real-time metrics display with auto-refresh (30s, 1min, 5min intervals)
  * - Data export (CSV for queries, products, patterns)
  * - Manual refresh functionality
  * - Conversion funnel visualization
  * - Query pattern analysis
+ * - Alert notifications for monitoring issues
  * 
  * Route: /seller/analytics/chatbot
  * Access: Seller dashboard (protected route via src/proxy.ts)
@@ -43,6 +62,14 @@ export default function ChatbotAnalyticsPage() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Real-time monitoring state
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState<RefreshInterval>(60000); // Default: 1 minute
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
+  const monitorRef = useRef<ReturnType<typeof createRealTimeMonitor> | null>(null);
   
   // Data state for export functionality
   const [currentData, setCurrentData] = useState<{
@@ -56,6 +83,7 @@ export default function ChatbotAnalyticsPage() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     setRefreshKey((prev) => prev + 1);
+    setLastRefreshed(new Date());
     
     // Simulate refresh delay
     setTimeout(() => {
@@ -72,7 +100,84 @@ export default function ChatbotAnalyticsPage() {
     patterns: QueryPattern[];
   }) => {
     setCurrentData(data);
+    setLastRefreshed(new Date());
   };
+  
+  // Real-time monitoring functions
+  const toggleAutoRefresh = () => {
+    if (!monitorRef.current) return;
+    
+    if (autoRefreshEnabled) {
+      monitorRef.current.stop();
+      setAutoRefreshEnabled(false);
+      toast.info("Auto-refresh paused");
+    } else {
+      monitorRef.current.start();
+      setAutoRefreshEnabled(true);
+      toast.success(`Auto-refresh enabled (${getIntervalName(refreshInterval)})`);
+    }
+  };
+  
+  const handleIntervalChange = (newInterval: RefreshInterval) => {
+    setRefreshInterval(newInterval);
+    if (monitorRef.current) {
+      monitorRef.current.setInterval(newInterval);
+      if (autoRefreshEnabled) {
+        toast.success(`Refresh interval changed to ${getIntervalName(newInterval)}`);
+      }
+    }
+  };
+  
+  const handleManualRefresh = async () => {
+    if (monitorRef.current) {
+      await monitorRef.current.refreshNow();
+    } else {
+      handleRefresh();
+    }
+  };
+  
+  const dismissAlert = (alertId: string) => {
+    if (monitorRef.current) {
+      monitorRef.current.dismissAlert(alertId);
+    }
+  };
+  
+  // Initialize real-time monitoring
+  useEffect(() => {
+    const monitor = createRealTimeMonitor(
+      async () => {
+        // Trigger data refresh
+        handleRefresh();
+      },
+      (error) => {
+        console.error("[Monitor] Error:", error);
+        toast.error(`Monitoring error: ${error.message}`);
+      },
+      refreshInterval
+    );
+    
+    monitorRef.current = monitor;
+    
+    // Subscribe to alerts
+    const unsubscribe = monitor.onAlertsChange((newAlerts) => {
+      setAlerts(newAlerts);
+    });
+    
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      monitor.destroy();
+    };
+  }, []);
+  
+  // Update current time every second for "time ago" display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleExportQueries = () => {
     if (!currentData?.topQueries || currentData.topQueries.length === 0) {
@@ -284,6 +389,106 @@ export default function ChatbotAnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Real-Time Monitoring Controls */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Real-Time Monitoring</CardTitle>
+              <CardDescription>
+                Auto-refresh analytics data at configurable intervals
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {lastRefreshed && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Last updated {formatTimeAgo(lastRefreshed)}</span>
+                </div>
+              )}
+              <Badge variant={autoRefreshEnabled ? "default" : "secondary"}>
+                {autoRefreshEnabled ? "Active" : "Paused"}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Refresh Interval Selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Refresh Interval</label>
+              <Select
+                value={String(refreshInterval)}
+                onValueChange={(value) => handleIntervalChange(Number(value) as RefreshInterval)}
+                disabled={autoRefreshEnabled}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30000">30 seconds</SelectItem>
+                  <SelectItem value="60000">1 minute</SelectItem>
+                  <SelectItem value="300000">5 minutes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Control Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant={autoRefreshEnabled ? "destructive" : "default"}
+                size="sm"
+                onClick={toggleAutoRefresh}
+              >
+                {autoRefreshEnabled ? (
+                  <>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pause Auto-Refresh
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Auto-Refresh
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                Refresh Now
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert) => (
+            <Alert key={alert.id} variant={alert.type === "error" ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="flex items-center justify-between">
+                {alert.title}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 p-0"
+                  onClick={() => dismissAlert(alert.id)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </AlertTitle>
+              <AlertDescription>{alert.message}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       {/* Metrics Display */}
       <ChatbotMetrics
