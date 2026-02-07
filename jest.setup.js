@@ -49,6 +49,16 @@ if (typeof TextEncoder === 'undefined') {
   global.TextDecoder = util.TextDecoder;
 }
 
+// Polyfill React.act for React 19+ (removed from React in v19)
+// React Testing Library needs this internally
+const React = require('react');
+if (!React.act) {
+  React.act = (callback) => {
+    return Promise.resolve(callback());
+  };
+  console.log('[jest.setup] Polyfilled React.act for React 19+');
+}
+
 // Polyfill TransformStream for environments (Playwright, Node < 20) that expect web streams
 if (typeof TransformStream === 'undefined') {
   try {
