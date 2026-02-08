@@ -23,22 +23,29 @@ import type { ProductCardData } from '@/lib/ai/context-builder';
 import type { RAGResponse } from '@/lib/ai/rag-service';
 import * as analytics from '@/lib/analytics/chatbot-analytics';
 
+export type ChatViewState = 'minimized' | 'normal' | 'maximized';
+
 interface ChatContextValue {
   messages: Message[];
   productCardsByMessageId: Record<string, ProductCardData[]>;
   loading: boolean;
   error: string | null;
   isOpen: boolean;
+  viewState: ChatViewState;
   conversationId: string | null;
   sendMessage: (content: string) => Promise<void>;
   clearHistory: () => void;
   setIsOpen: (open: boolean) => void;
+  setViewState: (state: ChatViewState) => void;
+  toggleMinimize: () => void;
+  toggleMaximize: () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'mash-chatbot-history';
 const INTRO_SHOWN_KEY = 'mash-chatbot-intro-shown';
+const VIEW_STATE_KEY = 'mash-chatbot-view-state';
 
 const INTRO_MESSAGE: Message = {
   id: 'intro',
@@ -68,7 +75,34 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [viewState, setViewState] = useState<ChatViewState>('normal');
   const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Load persisted view state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedViewState = localStorage.getItem(VIEW_STATE_KEY) as ChatViewState;
+      if (savedViewState && ['minimized', 'normal', 'maximized'].includes(savedViewState)) {
+        setViewState(savedViewState);
+      }
+    }
+  }, []);
+
+  // Persist view state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VIEW_STATE_KEY, viewState);
+    }
+  }, [viewState]);
+
+  // Toggle minimize/maximize functions
+  const toggleMinimize = useCallback(() => {
+    setViewState(prev => prev === 'minimized' ? 'normal' : 'minimized');
+  }, []);
+
+  const toggleMaximize = useCallback(() => {
+    setViewState(prev => prev === 'maximized' ? 'normal' : 'maximized');
+  }, []);
 
   // Load chat history from localStorage
   useEffect(() => {
@@ -274,10 +308,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
     loading,
     error,
     isOpen,
+    viewState,
     conversationId,
     sendMessage,
     clearHistory,
     setIsOpen,
+    setViewState,
+    toggleMinimize,
+    toggleMaximize,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

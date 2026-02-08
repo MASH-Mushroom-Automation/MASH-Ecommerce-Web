@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { getWishlistCookie, setWishlistCookie, clearWishlistCookie } from "@/lib/cookies";
+import { logger } from "@/lib/logger";
 
 interface WishlistContextType {
   wishlistIds: string[];

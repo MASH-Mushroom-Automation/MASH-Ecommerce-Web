@@ -3,8 +3,12 @@
 /**
  * Message Component
  * 
- * CRITICAL: This component renders chat messages with EMBEDDED PRODUCT CARDS.
- * When AI response includes productCards[], they are rendered as actual ProductCard components.
+ * Renders individual chat messages with distinct user/assistant styling.
+ * - User messages: right-aligned, primary colour bubble
+ * - Assistant messages: left-aligned with MASH logo avatar, light bubble
+ * - Embedded ProductCard grid when AI recommends products
+ * - Markdown-lite formatting (bold, links, bullets)
+ * - Relative timestamps
  * 
  * @see .github/AI_CHATBOT_MASTER_PLAN.md - Phase 4, Task 4.3
  */
@@ -25,6 +29,15 @@ interface MessageProps {
   conversationId?: string;
 }
 
+/** Format timestamp to relative or short time string */
+function formatTime(ts: number): string {
+  const now = Date.now();
+  const diff = now - ts;
+  if (diff < 60_000) return 'Just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
 export function Message({
   message,
   productCards,
@@ -38,9 +51,9 @@ export function Message({
   return (
     <div
       className={cn(
-        'flex gap-3 mb-4',
-        isUser && 'flex-row-reverse',
-        className
+        'flex gap-2.5',
+        isUser ? 'flex-row-reverse' : 'flex-row',
+        className,
       )}
       data-testid={`message-${message.role}`}
       data-message-id={message.id}
@@ -48,77 +61,75 @@ export function Message({
       {/* Avatar */}
       <div
         className={cn(
-          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-white border-2 border-secondary'
+          'flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center overflow-hidden mt-0.5',
+          isUser
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-white dark:bg-zinc-800 border border-border/60',
         )}
       >
         {isUser ? (
-          <User className="h-4 w-4" />
+          <User className="h-3.5 w-3.5" />
         ) : (
           <Image
             src="/logo.png"
             alt="MASH AI"
-            width={32}
-            height={32}
+            width={20}
+            height={20}
             className="object-contain"
           />
         )}
       </div>
 
-      {/* Message content */}
+      {/* Content column */}
       <div
         className={cn(
-          'flex flex-col max-w-[85%] gap-2',
-          isUser && 'items-end'
+          'flex flex-col gap-1.5 max-w-[82%]',
+          isUser && 'items-end',
         )}
       >
-        {/* Message bubble */}
+        {/* Bubble */}
         <div
           className={cn(
-            'rounded-lg px-4 py-3',
+            'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
             isUser
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-secondary-foreground'
+              ? 'bg-primary text-primary-foreground rounded-tr-sm'
+              : 'bg-secondary/60 text-foreground rounded-tl-sm',
           )}
         >
-          <div 
-            className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:my-1 [&_p]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_strong]:font-semibold"
-            dangerouslySetInnerHTML={{ 
+          <div
+            className="prose prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_li]:my-0.5 [&_p]:my-1.5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_strong]:font-semibold"
+            dangerouslySetInnerHTML={{
               __html: message.content
-                // Bold text
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                // Convert markdown links to HTML links
-                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
-                // Convert product links with checkmarks
-                .replace(/✅\s*\[([^\]]+)\]\(([^)]+)\)\s*-\s*(₱[\d,]+)/g, 
-                  '<div class="flex items-center gap-2 my-1"><span class="text-green-500">✓</span><a href="$2" class="text-primary hover:underline font-medium">$1</a><span class="text-muted-foreground">$3</span></div>')
-                // Newlines to breaks
+                .replace(
+                  /\[([^\]]+)\]\(([^)]+)\)/g,
+                  '<a href="$2" class="text-primary hover:underline">$1</a>',
+                )
                 .replace(/\n/g, '<br/>')
-                // Bullet points with proper spacing
-                .replace(/•\s*/g, '<span class="inline-flex w-5 justify-center text-muted-foreground">•</span>')
+                .replace(
+                  /[•]\s*/g,
+                  '<span class="inline-flex w-4 justify-center text-muted-foreground">&#8226;</span>',
+                ),
             }}
           />
-
-          {/* Timestamp */}
-          {message.timestamp && (
-            <p className="text-xs opacity-70 mt-1">
-              {new Date(message.timestamp).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          )}
         </div>
 
-        {/* CRITICAL: Embedded Product Cards */}
+        {/* Timestamp */}
+        {message.timestamp && (
+          <span className="text-[10px] text-muted-foreground/70 px-1 select-none">
+            {formatTime(message.timestamp)}
+          </span>
+        )}
+
+        {/* Embedded product cards */}
         {isAssistant && productCards && productCards.length > 0 && (
-          <div className="w-full">
+          <div className="w-full mt-1">
             <div
               className={cn(
-                'grid gap-3',
+                'grid gap-2.5',
                 productCards.length === 1 && 'grid-cols-1',
                 productCards.length === 2 && 'grid-cols-1 sm:grid-cols-2',
-                productCards.length >= 3 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                productCards.length >= 3 && 'grid-cols-1 sm:grid-cols-2',
               )}
               data-testid="product-cards-grid"
             >
@@ -135,10 +146,10 @@ export function Message({
           </div>
         )}
 
-        {/* Error indicator */}
+        {/* Error badge */}
         {message.metadata?.error && (
-          <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
-            Error: {message.metadata.error}
+          <div className="text-[11px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-2.5 py-1">
+            Something went wrong. Please try again.
           </div>
         )}
       </div>

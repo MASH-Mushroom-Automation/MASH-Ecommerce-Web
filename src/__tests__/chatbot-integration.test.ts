@@ -453,11 +453,11 @@ describe('Chatbot Integration Tests', () => {
           aiResponse: 'Oyster and shiitake mushrooms are excellent for stir fry!',
         },
         {
-          userMessage: 'How do I cook them?',
+          userMessage: 'How do I cook oyster mushrooms?',
           aiResponse: 'Slice them thinly and stir fry on high heat for 3-4 minutes.',
         },
         {
-          userMessage: 'What about seasoning?',
+          userMessage: 'What mushroom seasoning do you recommend?',
           aiResponse: 'Use soy sauce, garlic, and a touch of sesame oil.',
         },
       ];

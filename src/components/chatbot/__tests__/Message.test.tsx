@@ -210,7 +210,35 @@ describe('Message', () => {
 
       render(<Message message={errorMessage} />);
 
-      expect(screen.getByText('Error: API timeout')).toBeInTheDocument();
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
+    });
+
+    it('should not display error message when no error in metadata', () => {
+      render(<Message message={assistantMessage} />);
+
+      expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Timestamps', () => {
+    it('should display relative time for recent messages', () => {
+      const recentMessage: MessageType = {
+        ...assistantMessage,
+        timestamp: Date.now() - 5000, // 5 seconds ago
+      };
+
+      render(<Message message={recentMessage} />);
+      expect(screen.getByText('Just now')).toBeInTheDocument();
+    });
+
+    it('should display minutes ago for messages within the hour', () => {
+      const minutesAgoMessage: MessageType = {
+        ...assistantMessage,
+        timestamp: Date.now() - 300_000, // 5 minutes ago
+      };
+
+      render(<Message message={minutesAgoMessage} />);
+      expect(screen.getByText('5m ago')).toBeInTheDocument();
     });
   });
 });

@@ -3,6 +3,8 @@
  * Google Analytics 4 integration for tracking user behavior and e-commerce events
  */
 
+import { logger } from "@/lib/logger";
+
 // Check if GA is available and enabled
 const isGAEnabled = () => {
   return (

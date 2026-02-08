@@ -110,7 +110,7 @@ describe('ChatDialog', () => {
   it('should show empty state when no messages', () => {
     render(<ChatDialog {...defaultProps} messages={[]} />);
 
-    expect(screen.getByText('No messages yet. Start by asking about mushrooms!')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to MASH AI')).toBeInTheDocument();
   });
 
   it('should call onSendMessage when message sent', async () => {
@@ -147,7 +147,7 @@ describe('ChatDialog', () => {
     render(<ChatDialog {...defaultProps} loading={true} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.getByText('Finding the best mushrooms for you...')).toBeInTheDocument();
+    expect(screen.getByText('Thinking...')).toBeInTheDocument();
   });
 
   it('should disable input when loading', () => {
