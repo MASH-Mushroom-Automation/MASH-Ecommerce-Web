@@ -75,6 +75,10 @@ export function proxy(request: NextRequest) {
   const firebaseAuth = request.cookies.get("firebase-auth")?.value;
   const isAuthenticated = !!authToken || !!firebaseAuth;
 
+  const allowDevSellerDashboard =
+    process.env.NODE_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_ALLOW_DEV_SELLER_DASHBOARD === "true";
+
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route),
@@ -90,6 +94,9 @@ export function proxy(request: NextRequest) {
 
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute && !isAuthenticated) {
+    if (allowDevSellerDashboard && pathname.startsWith("/seller")) {
+      return addSecurityHeaders(NextResponse.next());
+    }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
