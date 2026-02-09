@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api-client";
 
 // TypeScript types for the API response
 export interface TopPerformingProduct {
@@ -50,7 +49,7 @@ async function fetchTopPerformingProducts(
   // Always use dev token in development mode (or when explicitly enabled)
   if ((IS_DEVELOPMENT || USE_DEV_TOKEN) && DEV_TOKEN) {
     headers["Authorization"] = `Bearer ${DEV_TOKEN}`;
-    console.log("[Top Products] 🔐 Using hardcoded dev token for testing");
+    console.log("[Top Products] Using hardcoded dev token for testing");
   }
 
   try {
@@ -59,20 +58,23 @@ async function fetchTopPerformingProducts(
       orderBy,
     });
 
-    const response = await apiRequest<{ data: TopPerformingProductsResponse }>(
-      `/admin/products/top-performing?${queryParams}`,
+    const response = await fetch(
+      `/api/admin/products/top-performing?${queryParams}`,
       {
         method: "GET",
         headers,
       }
     );
 
-    console.log("[Top Products] ✅ Data fetched successfully", response);
-    // API returns nested data: { data: { data: [], meta: {} } }
-    // We need to return just the array
-    return response.data.data;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch top performing products (${response.status})`);
+    }
+
+    const data = (await response.json()) as TopPerformingProductsResponse;
+    console.log("[Top Products] Data fetched successfully", data);
+    return data.data;
   } catch (error) {
-    console.error("[Top Products] ❌ Fetch error:", error);
+    console.error("[Top Products] Fetch error:", error);
     throw error;
   }
 }

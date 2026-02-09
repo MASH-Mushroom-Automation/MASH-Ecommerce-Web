@@ -1,6 +1,8 @@
 // API Client Configuration
 // Centralized API client for making requests to the backend with dual-environment support
 
+import { logger } from "@/lib/logger";
+
 // Backend URLs - Default to port 30000 for local development
 const PRODUCTION_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
@@ -73,6 +75,13 @@ function getBaseUrl(endpoint: string): string {
 function getAuthToken(): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(/auth-token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Helper to get refresh token from cookies (may be HTTP-only and unavailable)
+function getRefreshToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/refresh-token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
