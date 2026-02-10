@@ -66,6 +66,7 @@ const customJestConfig = {
     '/coverage/',
     '/scripts/',
     '/e2e/',
+    '/sanity-schemas/',
   ],
 
   // Transform ignore patterns: allow transforming ESM packages that ship untranspiled code
