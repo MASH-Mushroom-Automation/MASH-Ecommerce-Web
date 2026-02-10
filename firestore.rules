@@ -148,14 +148,28 @@ service cloud.firestore {
     // REVIEWS COLLECTION
     // ========================================
     match /reviews/{reviewId} {
-      // Anyone can read reviews
+      // Anyone can read approved reviews
       allow read: if true;
       
       // Authenticated users can create reviews
-      allow create: if isSignedIn();
+      // Validate required fields and rating range
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.title is string
+        && request.resource.data.content is string
+        && request.resource.data.targetType in ['product', 'grower']
+        && request.resource.data.targetId is string;
       
-      // Users can update/delete their own reviews
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can update their own reviews
+      // Also allow helpful vote updates from any authenticated user
+      allow update: if isSignedIn()
+        && (resource.data.userId == request.auth.uid
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount', 'helpfulVotes'])));
+      
+      // Users can delete their own reviews
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
     
     

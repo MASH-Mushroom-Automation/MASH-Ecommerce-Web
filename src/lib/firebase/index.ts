@@ -58,3 +58,10 @@ export {
   type FirestoreUserProfile,
   type UserProfileInput,
 } from "./users";
+
+// Review Service
+export {
+  FirebaseReviewService,
+  calculateRatingStats,
+  type FirebaseRatingStats,
+} from "./reviews";

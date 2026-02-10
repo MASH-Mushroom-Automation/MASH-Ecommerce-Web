@@ -36,6 +36,7 @@ import {
   useSanitySuggestedProducts,
 } from "@/hooks/useSanityProducts";
 import { useSanityReviews } from "@/hooks/useSanityReviews";
+import { FirebaseReviewSection } from "@/components/reviews/FirebaseReviewSection";
 import { CalComButton } from "@/components/appointments/CalendlyButton"; // For grower appointment link
 import GrowerCard from "@/components/product/GrowerCard";
 import MediaGallery from "@/components/product/MediaGallery";
@@ -761,172 +762,17 @@ export default function ProductDetailPage({ params }: Props) {
             </section>
           )}
 
-        {/* Customer Reviews Section */}
-        {!reviewsLoading && rating && rating.totalReviews > 0 && (
-          <section className="mt-16 border-t pt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">
-              Customer Reviews
-            </h2>
-
-            {/* Rating Summary */}
-            <div className="grid md:grid-cols-2 gap-8 mb-8">
-              {/* Overall Rating */}
-              <div className="bg-muted/30 rounded-lg p-6 text-center">
-                <div className="text-5xl font-bold text-primary mb-2">
-                  {rating.averageRating.toFixed(1)}
-                </div>
-                <div className="flex justify-center gap-1 mb-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={cn(
-                        "w-5 h-5",
-                        star <= Math.round(rating.averageRating)
-                          ? "text-yellow-400 fill-yellow-400"
-                          : "text-gray-300",
-                      )}
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground">
-                  Based on {rating.totalReviews} review
-                  {rating.totalReviews !== 1 ? "s" : ""}
-                </p>
-                {rating.recommendationPercentage > 0 && (
-                  <p className="text-sm text-green-600 mt-2 flex items-center justify-center gap-1">
-                    <ThumbsUp className="w-4 h-4" />
-                    {rating.recommendationPercentage}% would recommend
-                  </p>
-                )}
-              </div>
-
-              {/* Rating Distribution */}
-              <div className="space-y-2">
-                {[5, 4, 3, 2, 1].map((stars) => {
-                  const count =
-                    rating.ratingDistribution[
-                      stars as keyof typeof rating.ratingDistribution
-                    ];
-                  const percentage =
-                    rating.totalReviews > 0
-                      ? (count / rating.totalReviews) * 100
-                      : 0;
-                  return (
-                    <div key={stars} className="flex items-center gap-3">
-                      <span className="text-sm w-12 text-muted-foreground">
-                        {stars} star
-                      </span>
-                      <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-yellow-400 transition-all"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm w-8 text-muted-foreground text-right">
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Individual Reviews */}
-            <div className="space-y-6">
-              {reviews.slice(0, 5).map((review) => (
-                <div
-                  key={review.id}
-                  className="border-b border-border pb-6 last:border-0"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-foreground">
-                          {review.customerName}
-                        </span>
-                        {review.verifiedPurchase && (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                            <CheckCircle className="w-3 h-3" />
-                            Verified Purchase
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={cn(
-                                "w-4 h-4",
-                                star <= review.rating
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-gray-300",
-                              )}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(review.reviewDate).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            },
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    {review.helpfulCount > 0 && (
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3" />
-                        {review.helpfulCount} found helpful
-                      </span>
-                    )}
-                  </div>
-
-                  {review.title && (
-                    <h4 className="font-semibold text-foreground mb-2">
-                      {review.title}
-                    </h4>
-                  )}
-
-                  <p className="text-muted-foreground leading-relaxed">
-                    {review.content}
-                  </p>
-
-                  {/* Review Images */}
-                  {review.images && review.images.length > 0 && (
-                    <div className="flex gap-2 mt-3">
-                      {review.images.slice(0, 3).map((img, idx) => (
-                        <div
-                          key={idx}
-                          className="relative w-16 h-16 rounded-lg overflow-hidden"
-                        >
-                          <Image
-                            src={img}
-                            alt={`Review image ${idx + 1}`}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Load More Reviews */}
-            {reviews.length > 5 && (
-              <div className="text-center mt-8">
-                <Button variant="outline">
-                  View All {rating.totalReviews} Reviews
-                </Button>
-              </div>
-            )}
-          </section>
-        )}
+        {/* Customer Reviews Section - Firebase-backed with real-time updates */}
+        <section className="mt-16 border-t pt-12">
+          <h2 className="text-2xl font-bold text-foreground mb-6">
+            Customer Reviews
+          </h2>
+          <FirebaseReviewSection
+            targetType="product"
+            targetId={product.id}
+            targetName={product.name}
+          />
+        </section>
       </div>
     </div>
   );

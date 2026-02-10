@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight, Globe, Facebook, Instagram, Calendar } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowLeft, Mail, Award, ExternalLink, Store, ChevronRight, Globe, Facebook, Instagram, Calendar, Star } from "lucide-react";
 import { useSanityGrower, useSanityGrowerProducts } from "@/hooks/useSanityGrowers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -14,6 +14,7 @@ import { TikTokIcon } from "@/components/ui/tiktok-icon";
 import { CalendlyButton } from "@/components/appointments";
 import type { GrowerCalendlyData } from "@/components/appointments";
 import { sanityClient } from "@/lib/sanity/client";
+import { FirebaseReviewSection } from "@/components/reviews/FirebaseReviewSection";
 
 export default function GrowerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -216,6 +217,19 @@ export default function GrowerDetailPage() {
                   ))}
                 </div>
               )}
+            </section>
+
+            {/* Grower Reviews Section - Firebase-backed */}
+            <section className="mt-10 border-t pt-8">
+              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                Reviews for {grower.name}
+              </h2>
+              <FirebaseReviewSection
+                targetType="grower"
+                targetId={grower.id || slug || ""}
+                targetName={grower.name}
+              />
             </section>
           </div>
 
