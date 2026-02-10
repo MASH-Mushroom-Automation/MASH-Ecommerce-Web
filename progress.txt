@@ -5,6 +5,10 @@
 - **Firebase Reviews:** Reviews stored in Firestore `reviews` collection with targetType ("product"|"grower") + targetId fields. One review per user per target enforced via getUserReview() check. Real-time updates via onSnapshot subscriptions.
 - **Review Rating Stats:** Calculated client-side from reviews array using calculateRatingStats(). Returns average, total, and distribution[1-5].
 - **Review Helpful Voting:** Uses Firestore arrayUnion/arrayRemove on helpfulVotes field. Toggle pattern - same user clicking again removes vote.
+- **Review Flagging:** Uses flagReview() with FlagReviewInput { reason, details? }. Prevents self-flagging and duplicate flags. Updates flaggedBy (arrayUnion), flagReasons (arrayUnion), flagCount (increment).
+- **Review Admin Response:** FirestoreReview supports adminResponse and adminResponseDate fields. Displayed in ReviewCard with MessageSquare icon and styled border-left.
+- **Sanity Review Schema:** Groups (content, target, moderation, metadata). targetType radio (product/grower) with conditional references. Admin response fields. Flag tracking. 5 orderings including Most Flagged and Lowest Rated.
+- **Firebase Mock Pattern:** jest.setupMocks.js mocks arrayUnion, arrayRemove, increment for Firestore. When testing updateDoc calls, mock doc() to return a ref object so expect.anything() works.
 - **Auth Tokens:** `setAuthToken()` is client-side only - check for SSR before calling
 - **Route Protection:** Use `src/proxy.ts` (Next.js 16 renamed from middleware.ts)
 - **API Routing:** Email endpoints route based on `NEXT_PUBLIC_EMAIL_SERVICE_ENV`
@@ -2644,4 +2648,42 @@ logger.debug('[Cart] Loading items...');
 Firestore rules and indexes saved locally but NOT deployed (account permission issue).
 Project owner must deploy via: npx firebase deploy --only firestore:rules,firestore:indexes
 Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash-ddf8d/
+---
+
+## [2026-02-11 05:55] - REVIEWS-V2
+**Completed:** Enhanced Review and Rating System v2 with Comprehensive Unit Tests
+**Branch:** feature/reviews-rating-system-v2
+**Files Changed:**
+- studio/src/schemaTypes/documents/review.ts (complete rewrite with groups, grower support, admin response, flagging)
+- src/types/reviews.ts (added FlagReason, FlagReviewInput, expanded FirestoreReview)
+- src/lib/firebase/reviews.ts (added flagReview method, enhanced transformDoc/createReview)
+- src/hooks/useFirebaseReviews.ts (added flagReview callback with toast)
+- src/components/reviews/FirebaseReviewSection.tsx (flag button, admin response display)
+- firestore.rules (flag field update permissions for authenticated users)
+- jest.setupMocks.js (added arrayRemove mock)
+- src/lib/firebase/__tests__/reviews.test.ts (37 tests - service CRUD, voting, flagging, stats)
+- src/components/reviews/__tests__/StarRatingInput.test.tsx (20 tests - rendering, selection, keyboard)
+- src/components/reviews/__tests__/ReviewForm.test.tsx (15 tests - auth states, validation, submission)
+- src/components/reviews/__tests__/FirebaseReviewSection.test.tsx (39 tests - full UI coverage)
+- src/hooks/__tests__/useFirebaseReviews.test.ts (25 tests - subscription, callbacks, auth gating)
+
+**Implementation Notes:**
+- Sanity review schema now supports both product AND grower reviews with targetType radio field
+- Conditional references: product ref shown when targetType=product, grower ref when targetType=grower
+- Admin response section in ReviewCard with MessageSquare icon and date formatting
+- Flag button with prompt-based reason input (spam, inappropriate, fake, offensive, other)
+- Self-flag prevention and duplicate-flag prevention in service layer
+- Firestore rules updated to allow any authenticated user to update flag fields
+
+**Learnings for Future Iterations:**
+- jest.setupMocks.js must mock arrayRemove in addition to arrayUnion and increment for Firestore operations
+- When testing updateDoc calls, mock doc() to return a ref object (not undefined) so assertions work
+- Multiple buttons matching same name require getByText + closest("button") pattern instead of getByRole
+- Sanity schema groups (content, target, moderation, metadata) improve admin UX significantly
+- Loading spinner detection in tests: use container.querySelector(".animate-spin") since Loader2 SVG has no role="status"
+
+**Tests Passing:** [PASS] Review Tests: 136/136 (6 suites) | [PASS] Build (all routes) | [PASS] Lint | [PASS] TypeCheck
+**Deployments:** [PASS] Firebase rules deployed to mash-ddf8d | [PASS] Sanity Studio deployed to ppnamias.sanity.studio
+**Commit:** 9a05e15 (12 files changed, +2689 insertions, -27 deletions)
+**Pushed:** feature/reviews-rating-system-v2 branch
 ---
