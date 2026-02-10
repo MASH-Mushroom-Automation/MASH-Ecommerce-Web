@@ -2,6 +2,9 @@
 - **Cart Format:** Always use Cart v2 format with `{ version: 2, items: [], updatedAt: string }`
 - **Sanity Images:** Use `coalesce(mainImage.asset->url, image.asset->url)` in GROQ queries
 - **Backend Enums:** UPPERCASE only (`USER`, `BUYER`, `GROWER`, `ADMIN`)
+- **Firebase Reviews:** Reviews stored in Firestore `reviews` collection with targetType ("product"|"grower") + targetId fields. One review per user per target enforced via getUserReview() check. Real-time updates via onSnapshot subscriptions.
+- **Review Rating Stats:** Calculated client-side from reviews array using calculateRatingStats(). Returns average, total, and distribution[1-5].
+- **Review Helpful Voting:** Uses Firestore arrayUnion/arrayRemove on helpfulVotes field. Toggle pattern - same user clicking again removes vote.
 - **Auth Tokens:** `setAuthToken()` is client-side only - check for SSR before calling
 - **Route Protection:** Use `src/proxy.ts` (Next.js 16 renamed from middleware.ts)
 - **API Routing:** Email endpoints route based on `NEXT_PUBLIC_EMAIL_SERVICE_ENV`
@@ -2599,4 +2602,46 @@ logger.debug('[Cart] Loading items...');
 - Tests have clean console output
 
 **Status:** ✅ Core migration complete and production-ready!
+---
+
+## [2025-07-11] - REVIEW-SYSTEM: Firebase Review and Rating System
+**Completed:** Full review and rating system for products and growers connected to Firebase Firestore
+**Files Created:**
+- src/types/reviews.ts - ReviewTargetType, FirestoreReview, CreateReviewInput, UpdateReviewInput, RatingStats, UseReviewsReturn types
+- src/lib/firebase/reviews.ts - FirebaseReviewService with CRUD, voting, real-time subscriptions
+- src/hooks/useFirebaseReviews.ts - Custom hook with real-time Firestore onSnapshot listener
+- src/components/reviews/StarRatingInput.tsx - Interactive 1-5 star rating with hover/keyboard
+- src/components/reviews/ReviewForm.tsx - Review form with React Hook Form + Zod validation
+- src/components/reviews/FirebaseReviewSection.tsx - Complete section with stats, list, form, voting + CompactFirebaseRating export
+
+**Files Modified:**
+- src/app/(shop)/product/[slug]/page.tsx - Replaced ~170 lines of static Sanity reviews with FirebaseReviewSection
+- src/app/grower/[id]/page.tsx - Added FirebaseReviewSection after products section
+- src/lib/firebase/index.ts - Added FirebaseReviewService and calculateRatingStats exports
+- firestore.rules - Enhanced reviews collection with field-level validation (rating 1-5, targetType enum, userId match)
+- firestore.indexes.json - Added 2 composite indexes for reviews queries
+
+**Implementation Notes:**
+- One review per user per target enforced via getUserReview() duplicate check
+- Real-time updates via Firestore onSnapshot subscriptions
+- Helpful vote toggle with arrayUnion/arrayRemove
+- Sort options: newest, highest, lowest, most helpful
+- Auth-gated form with sign-in prompt for unauthenticated users
+- Edit/delete own review functionality
+- Rating distribution chart in summary card
+- CompactFirebaseRating component for use in product/grower cards
+
+**Learnings for Future Iterations:**
+- Firestore null vs undefined: Use undefined not null for optional fields in TypeScript interfaces to match Firestore behavior
+- Firebase CLI permissions: mash-ddf8d project requires specific account access
+- Existing Sanity review schema in studio can coexist with Firestore reviews (different data sources)
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] TypeCheck (zero errors in new files)
+**Commit:** 99081af (11 files changed, +1570 insertions, -172 deletions)
+**Pushed:** main branch
+
+**[WARNING] Firebase Deploy Required:**
+Firestore rules and indexes saved locally but NOT deployed (account permission issue).
+Project owner must deploy via: npx firebase deploy --only firestore:rules,firestore:indexes
+Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash-ddf8d/
 ---
