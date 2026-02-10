@@ -3,13 +3,17 @@
  *
  * TypeScript interfaces for product and grower reviews stored in Firebase Firestore.
  * Supports both product reviews and grower/store reviews with unified rating system.
+ * Also defines types for Sanity CMS review management.
  */
 
 /** The entity type a review is associated with */
 export type ReviewTargetType = "product" | "grower";
 
 /** Moderation status of a review */
-export type ReviewStatus = "pending" | "approved" | "rejected";
+export type ReviewStatus = "pending" | "approved" | "rejected" | "flagged";
+
+/** Reasons a review can be flagged */
+export type FlagReason = "spam" | "inappropriate" | "fake" | "offensive" | "other";
 
 /**
  * Core review data stored in Firestore.
@@ -48,6 +52,16 @@ export interface FirestoreReview {
   helpfulCount: number;
   /** Array of user IDs who marked this review as helpful */
   helpfulVotes: string[];
+  /** Admin/seller response to this review */
+  adminResponse?: string;
+  /** ISO timestamp of admin response */
+  adminResponseDate?: string;
+  /** Number of times flagged */
+  flagCount: number;
+  /** Array of user IDs who flagged this review */
+  flaggedBy: string[];
+  /** Reasons for flagging */
+  flagReasons: string[];
   /** ISO timestamp when the review was created */
   createdAt: string;
   /** ISO timestamp when the review was last updated */
@@ -76,6 +90,14 @@ export interface UpdateReviewInput {
   title?: string;
   content?: string;
   images?: string[];
+}
+
+/**
+ * Input for flagging a review.
+ */
+export interface FlagReviewInput {
+  reason: FlagReason;
+  details?: string;
 }
 
 /**
@@ -116,6 +138,8 @@ export interface UseReviewsReturn {
   deleteReview: (reviewId: string) => Promise<void>;
   /** Vote a review as helpful */
   voteHelpful: (reviewId: string) => Promise<void>;
+  /** Flag a review for moderation */
+  flagReview: (reviewId: string, input: FlagReviewInput) => Promise<void>;
   /** Check if current user already reviewed this entity */
   hasUserReviewed: boolean;
   /** The current user's review if it exists */

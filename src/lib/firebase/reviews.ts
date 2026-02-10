@@ -35,6 +35,7 @@ import type {
   FirestoreReview,
   CreateReviewInput,
   UpdateReviewInput,
+  FlagReviewInput,
   RatingStats,
   ReviewTargetType,
 } from "@/types/reviews";
@@ -110,6 +111,11 @@ function transformDoc(docSnap: { id: string; data: () => Record<string, unknown>
     status: (data.status as string as FirestoreReview["status"]) || "pending",
     helpfulCount: (data.helpfulCount as number) || 0,
     helpfulVotes: (data.helpfulVotes as string[]) || [],
+    adminResponse: data.adminResponse as string | undefined,
+    adminResponseDate: data.adminResponseDate as string | undefined,
+    flagCount: (data.flagCount as number) || 0,
+    flaggedBy: (data.flaggedBy as string[]) || [],
+    flagReasons: (data.flagReasons as string[]) || [],
     createdAt: data.createdAt instanceof Timestamp
       ? data.createdAt.toDate().toISOString()
       : (data.createdAt as string) || new Date().toISOString(),
@@ -168,6 +174,11 @@ export const FirebaseReviewService = {
       status: "approved" as const,
       helpfulCount: 0,
       helpfulVotes: [],
+      adminResponse: undefined,
+      adminResponseDate: undefined,
+      flagCount: 0,
+      flaggedBy: [],
+      flagReasons: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -317,6 +328,45 @@ export const FirebaseReviewService = {
         helpfulCount: increment(1),
       });
     }
+  },
+
+  /**
+   * Flag a review for moderation.
+   * Each user can only flag a review once.
+   */
+  async flagReview(reviewId: string, userId: string, input: FlagReviewInput): Promise<void> {
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const data = docSnap.data();
+    const flaggedBy: string[] = data.flaggedBy || [];
+
+    if (flaggedBy.includes(userId)) {
+      throw new Error("You have already flagged this review.");
+    }
+
+    // Cannot flag own review
+    if (data.userId === userId) {
+      throw new Error("You cannot flag your own review.");
+    }
+
+    const reasonText = input.details
+      ? `${input.reason}: ${input.details}`
+      : input.reason;
+
+    await updateDoc(docRef, {
+      flaggedBy: arrayUnion(userId),
+      flagReasons: arrayUnion(reasonText),
+      flagCount: increment(1),
+      updatedAt: new Date().toISOString(),
+    });
+
+    console.log("[Reviews] Flagged review:", reviewId, "reason:", input.reason);
   },
 
   /**

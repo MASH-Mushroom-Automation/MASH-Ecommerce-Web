@@ -16,6 +16,7 @@ import type {
   FirestoreReview,
   CreateReviewInput,
   UpdateReviewInput,
+  FlagReviewInput,
   RatingStats,
   ReviewTargetType,
   UseReviewsReturn,
@@ -158,6 +159,25 @@ export function useFirebaseReviews(
     [isAuthenticated, user],
   );
 
+  // Flag a review for moderation
+  const flagReview = useCallback(
+    async (reviewId: string, input: FlagReviewInput) => {
+      if (!isAuthenticated || !user) {
+        toast.error("Please sign in to flag a review.");
+        return;
+      }
+
+      try {
+        await FirebaseReviewService.flagReview(reviewId, user.id, input);
+        toast.success("Review has been flagged for moderation.");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to flag review";
+        toast.error(message);
+      }
+    },
+    [isAuthenticated, user],
+  );
+
   // Manual refetch
   const refetch = useCallback(() => {
     if (!targetId) return;
@@ -183,6 +203,7 @@ export function useFirebaseReviews(
     updateReview,
     deleteReview,
     voteHelpful,
+    flagReview,
     hasUserReviewed,
     userReview,
     refetch,

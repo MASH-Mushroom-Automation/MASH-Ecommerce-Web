@@ -16,6 +16,8 @@ import {
   Loader2,
   ChevronDown,
   Trash2,
+  Flag,
+  MessageSquare,
 } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFirebaseReviews } from "@/hooks/useFirebaseReviews";
 import { ReviewForm } from "./ReviewForm";
 import { cn } from "@/lib/utils";
-import type { FirestoreReview, ReviewTargetType } from "@/types/reviews";
+import type { FirestoreReview, ReviewTargetType, FlagReviewInput } from "@/types/reviews";
 
 interface FirebaseReviewSectionProps {
   /** Type of entity */
@@ -66,6 +68,7 @@ export function FirebaseReviewSection({
     updateReview,
     deleteReview,
     voteHelpful,
+    flagReview,
     hasUserReviewed,
     userReview,
   } = useFirebaseReviews(targetType, targetId);
@@ -245,6 +248,7 @@ export function FirebaseReviewSection({
             currentUserId={user?.id}
             onVoteHelpful={voteHelpful}
             onDelete={deleteReview}
+            onFlag={flagReview}
           />
         ))}
       </div>
@@ -279,23 +283,28 @@ export function FirebaseReviewSection({
 }
 
 /**
- * Individual review card with helpful voting and delete.
+ * Individual review card with helpful voting, flagging, and delete.
  */
 function ReviewCard({
   review,
   currentUserId,
   onVoteHelpful,
   onDelete,
+  onFlag,
 }: {
   review: FirestoreReview;
   currentUserId?: string;
   onVoteHelpful: (reviewId: string) => Promise<void>;
   onDelete: (reviewId: string) => Promise<void>;
+  onFlag: (reviewId: string, input: FlagReviewInput) => Promise<void>;
 }) {
   const [deleting, setDeleting] = useState(false);
   const isOwn = currentUserId === review.userId;
   const hasVoted = currentUserId
     ? review.helpfulVotes.includes(currentUserId)
+    : false;
+  const hasFlagged = currentUserId
+    ? review.flaggedBy.includes(currentUserId)
     : false;
 
   const handleDelete = async () => {
@@ -392,6 +401,26 @@ function ReviewCard({
           </div>
         )}
 
+        {/* Admin Response */}
+        {review.adminResponse && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
+            <div className="flex items-center gap-2 mb-1">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">Seller Response</span>
+              {review.adminResponseDate && (
+                <span className="text-xs text-muted-foreground">
+                  {new Date(review.adminResponseDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">{review.adminResponse}</p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-4 pt-3 border-t">
           <Button
@@ -409,6 +438,33 @@ function ReviewCard({
             />
             Helpful ({review.helpfulCount})
           </Button>
+
+          {!isOwn && currentUserId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "text-muted-foreground hover:text-orange-500",
+                hasFlagged && "text-orange-500",
+              )}
+              onClick={() => {
+                if (hasFlagged) return;
+                const reason = prompt("Why are you flagging this review? (spam, inappropriate, fake, offensive, other)");
+                if (reason) {
+                  onFlag(review.id, {
+                    reason: (["spam", "inappropriate", "fake", "offensive"].includes(reason.toLowerCase())
+                      ? reason.toLowerCase()
+                      : "other") as "spam" | "inappropriate" | "fake" | "offensive" | "other",
+                    details: reason,
+                  });
+                }
+              }}
+              disabled={hasFlagged}
+            >
+              <Flag className={cn("w-4 h-4 mr-2", hasFlagged && "fill-current")} />
+              {hasFlagged ? "Flagged" : "Flag"}
+            </Button>
+          )}
 
           {isOwn && (
             <Button
