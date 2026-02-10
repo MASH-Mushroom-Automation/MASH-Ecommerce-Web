@@ -3,17 +3,20 @@
 /**
  * ChatInput Component
  * 
- * Text input with send button for chatbot messages.
- * Supports Enter key to send, with Shift+Enter for new lines.
+ * Polished input area with auto-resizing textarea and send button.
+ * - Enter sends, Shift+Enter for newlines
+ * - Auto-grows up to 4 lines
+ * - Disabled state with loading spinner
+ * - Character count when approaching limit
  * 
  * @see .github/AI_CHATBOT_MASTER_PLAN.md - Phase 4, Task 4.5
  */
 
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+
+const MAX_CHARS = 500;
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -27,55 +30,106 @@ export function ChatInput({
   onSend,
   disabled = false,
   loading = false,
-  placeholder = 'Ask me about mushrooms...',
+  placeholder = 'Ask about mushrooms, recipes, cooking tips...',
   className,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`; // max ~4 lines
+  }, [message]);
+
+  const canSend = message.trim().length > 0 && !disabled && !loading && message.length <= MAX_CHARS;
 
   const handleSend = () => {
-    const trimmed = message.trim();
-    if (trimmed && !disabled && !loading) {
-      onSend(trimmed);
-      setMessage('');
+    if (!canSend) return;
+    onSend(message.trim());
+    setMessage('');
+    // Reset height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter without Shift sends the message
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
+  const nearLimit = message.length > MAX_CHARS * 0.8;
+
   return (
     <div
-      className={cn('flex gap-2 items-end', className)}
+      className={cn(
+        'flex items-end gap-2 rounded-xl bg-secondary/30 border border-border/50 px-3 py-2',
+        'focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20',
+        'transition-colors',
+        className,
+      )}
       data-testid="chat-input"
     >
-      <Textarea
+      <textarea
+        ref={textareaRef}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled || loading}
-        rows={2}
-        className="resize-none flex-1 min-h-[60px] max-h-[120px]"
-        data-testid="chat-input-textarea"
-      />
-      <Button
-        onClick={handleSend}
-        disabled={disabled || loading || !message.trim()}
-        size="icon"
-        className="h-[60px] w-[60px] flex-shrink-0"
-        data-testid="chat-input-send-button"
-      >
-        {loading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <Send className="h-5 w-5" />
+        rows={1}
+        className={cn(
+          'flex-1 resize-none bg-transparent text-sm leading-relaxed',
+          'placeholder:text-muted-foreground/60',
+          'focus:outline-none',
+          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'min-h-[24px] max-h-[120px] py-1',
         )}
-      </Button>
+        data-testid="chat-input-textarea"
+        aria-label="Type your message"
+        maxLength={MAX_CHARS}
+      />
+
+      <div className="flex items-center gap-1.5 flex-shrink-0 pb-0.5">
+        {/* Character count near limit */}
+        {nearLimit && (
+          <span
+            className={cn(
+              'text-[10px] tabular-nums',
+              message.length > MAX_CHARS ? 'text-red-500' : 'text-muted-foreground',
+            )}
+            data-testid="char-count"
+          >
+            {message.length}/{MAX_CHARS}
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={!canSend}
+          className={cn(
+            'h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            'transition-colors duration-150',
+            canSend
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'bg-muted text-muted-foreground cursor-not-allowed',
+          )}
+          data-testid="chat-input-send-button"
+          aria-label="Send message"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { hybridSearch } from './search-engine';
 import { buildEnhancedContext, formatContextForPrompt } from './context-builder';
 import { generateResponse } from './gemini-client';
 import { handleWithFallback } from './error-handler';
+import { buildSecuredPrompt } from './prompt-security';
 import type { Message, AIResponse } from '@/types/chatbot';
 import type { SearchResult } from './search-engine';
 import type { ProductCardData } from './context-builder';
@@ -114,18 +115,8 @@ export async function ragSearch(
     // Step 5: Format context for AI prompt
     const contextText = formatContextForPrompt(enhancedContext);
 
-    // Step 6: Create enhanced system prompt
-    const systemPrompt = `You are MASH AI Assistant, a helpful chatbot for a mushroom e-commerce platform.
-
-${contextText}
-
-Instructions:
-- Use the product information above to provide helpful, accurate recommendations
-- Mention specific product names, prices, and availability
-- Suggest recipes when relevant
-- Include product links in your response using the Quick Links format
-- Be friendly, enthusiastic, and knowledgeable about mushrooms
-- If no products match, suggest alternatives or ask clarifying questions
+    // Step 6: Create secured system prompt with product context
+    const systemPrompt = `${buildSecuredPrompt(contextText)}
 
 User's question: ${userMessage}`;
 

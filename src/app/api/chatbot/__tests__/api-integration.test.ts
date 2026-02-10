@@ -211,7 +211,7 @@ describe('Chatbot API Integration Tests', () => {
       (geminiService.sendMessage as jest.Mock).mockResolvedValue(mockResponse);
 
       const request = makeMockRequest({
-        message: 'Follow-up question',
+        message: 'What mushroom recipe goes with that?',
         userId: mockUserId,
         history: [
           { id: '1', role: 'user', content: 'Previous question', timestamp: Date.now() },
@@ -224,7 +224,7 @@ describe('Chatbot API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(geminiService.sendMessage).toHaveBeenCalledWith(
-        'Follow-up question',
+        'What mushroom recipe goes with that?',
         expect.arrayContaining([
           expect.objectContaining({ role: 'user', content: 'Previous question' }),
           expect.objectContaining({ role: 'assistant', content: 'Previous answer' }),

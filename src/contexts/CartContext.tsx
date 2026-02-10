@@ -14,6 +14,7 @@ import { useAuth } from "./AuthContext";
 import { FirebaseCartService } from "@/lib/firebase/cart";
 import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
 import { stockSync } from "@/lib/product/stock-sync";
+import { logger } from "@/lib/logger";
 
 interface CartContextType {
   items: CartItem[];

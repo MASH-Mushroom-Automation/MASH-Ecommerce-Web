@@ -10,6 +10,7 @@
 import { generateResponse, generateStreamResponse } from '@/lib/ai/gemini-client';
 import { getSystemPrompt, detectQueryType } from './prompts';
 import { handleWithFallback } from '@/lib/ai/error-handler';
+import { buildSecuredPrompt } from '@/lib/ai/prompt-security';
 import type { Message, AIResponse } from '@/types/chatbot';
 import { CHATBOT_DEBUG } from '@/lib/ai/config';
 
@@ -30,13 +31,12 @@ export async function sendMessage(
     // Detect query type if no custom prompt
     const queryType = customPrompt ? null : detectQueryType(userMessage);
     
-    // Get appropriate system prompt
-    const systemPrompt = customPrompt || 
-      (queryType ? getSystemPrompt(queryType) : getSystemPrompt('recommendation'));
+    // Use hardened security prompt as base, with query-specific context
+    const systemPrompt = customPrompt || buildSecuredPrompt();
     
     if (CHATBOT_DEBUG) {
       console.log('[Gemini Service] Query type:', queryType);
-      console.log('[Gemini Service] Using prompt:', systemPrompt.slice(0, 100) + '...');
+      console.log('[Gemini Service] Using secured prompt, length:', systemPrompt.length);
     }
     
     // Build full conversation with system prompt
@@ -92,9 +92,8 @@ export async function streamMessage(
     // Detect query type if no custom prompt
     const queryType = customPrompt ? null : detectQueryType(userMessage);
     
-    // Get appropriate system prompt
-    const systemPrompt = customPrompt || 
-      (queryType ? getSystemPrompt(queryType) : getSystemPrompt('recommendation'));
+    // Use hardened security prompt as base
+    const systemPrompt = customPrompt || buildSecuredPrompt();
     
     if (CHATBOT_DEBUG) {
       console.log('[Gemini Service Stream] Query type:', queryType);

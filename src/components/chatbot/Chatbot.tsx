@@ -20,10 +20,14 @@ export function Chatbot() {
     productCardsByMessageId,
     loading,
     isOpen,
+    viewState,
     conversationId,
     sendMessage,
     clearHistory,
     setIsOpen,
+    setViewState,
+    toggleMinimize,
+    toggleMaximize,
   } = useChat();
 
   return (
@@ -38,6 +42,10 @@ export function Chatbot() {
         onClearHistory={clearHistory}
         loading={loading}
         conversationId={conversationId || undefined}
+        viewState={viewState}
+        onViewStateChange={setViewState}
+        onToggleMinimize={toggleMinimize}
+        onToggleMaximize={toggleMaximize}
       />
     </>
   );

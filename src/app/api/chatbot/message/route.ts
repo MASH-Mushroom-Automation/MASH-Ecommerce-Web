@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendMessage, validateMessage } from '@/services/chatbot/gemini-service';
 import { ragSearch, needsProductSearch } from '@/lib/ai/rag-service';
 import { checkRateLimit, getRemainingMessages, getResetTime } from '@/lib/ai/rate-limiter';
+import { sanitizeInput, isOnTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/prompt-security';
 import type { Message } from '@/types/chatbot';
 
 /**
@@ -99,6 +100,41 @@ export async function POST(request: NextRequest) {
           error: (validation && validation.error) || 'Invalid message',
         },
         { status: 400 }
+      );
+    }
+
+    // Security: Sanitize input for prompt injection attacks
+    const sanitization = sanitizeInput(message);
+    if (sanitization.blocked) {
+      console.warn('[Chatbot API] Blocked injection attempt:', sanitization.detectedPatterns);
+      return NextResponse.json(
+        {
+          success: true,
+          content: sanitization.reason || 'I can only help with mushroom products and the MASH platform.',
+          source: 'security',
+          rateLimit: {
+            remaining: getRemainingMessages(userId),
+            resetTime: getResetTime(userId),
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    // Security: Off-topic detection
+    if (!isOnTopic(sanitization.sanitizedMessage)) {
+      console.log('[Chatbot API] Off-topic message detected:', message.slice(0, 50));
+      return NextResponse.json(
+        {
+          success: true,
+          content: OFF_TOPIC_RESPONSE,
+          source: 'off-topic',
+          rateLimit: {
+            remaining: getRemainingMessages(userId),
+            resetTime: getResetTime(userId),
+          },
+        },
+        { status: 200 }
       );
     }
     
