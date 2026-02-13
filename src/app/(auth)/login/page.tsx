@@ -9,7 +9,7 @@
  * - Google OAuth (via Firebase)
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Shield,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -37,6 +38,8 @@ import { AuthApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth";
 import { getPasswordRequirements } from '@/lib/auth/password';
 import { toast } from "sonner";
+import { OTPVerificationModal } from "@/components/profile/OTPVerificationModal";
+import { apiRequest } from "@/lib/api-client";
 
 // Password requirements are not needed for login
 
@@ -87,6 +90,7 @@ export default function LoginPage() {
     isAuthenticated,
     signInWithEmailPassword,
     resendVerificationEmail,
+    verify2FA,
     loading: authLoading,
   } = useAuth();
 
@@ -94,6 +98,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [hasError, setHasError] = useState(false);
+
+  // Two-Factor Authentication state
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [twoFAPhoneNumber, setTwoFAPhoneNumber] = useState("");
+  const [twoFAError, setTwoFAError] = useState("");
+  const [twoFAAttempts, setTwoFAAttempts] = useState(0);
+  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
+  const tempTokenRef = useRef<string | null>(null);
+  const MAX_2FA_ATTEMPTS = 3;
 
   // Redirect authenticated users away from login page
   useEffect(() => {
@@ -182,6 +196,41 @@ export default function LoginPage() {
       });
 
       console.log("[Login] Backend response received:", response);
+
+      // Check if 2FA is required
+      const requires2FA = response.requiresTwoFactor || response.data?.requiresTwoFactor;
+      if (requires2FA) {
+        const twoFATempToken = response.tempToken || response.data?.tempToken;
+        const phoneNum = response.phoneNumber || response.data?.phoneNumber || "";
+
+        console.log("[Login] [2FA] Two-factor authentication required");
+        console.log("[Login] [2FA] Phone number (masked):", phoneNum ? phoneNum.replace(/\d(?=\d{4})/g, "*") : "unknown");
+
+        // Store tempToken in memory only (never persisted)
+        tempTokenRef.current = twoFATempToken || null;
+        setTwoFAPhoneNumber(phoneNum);
+        setTwoFAError("");
+        setTwoFAAttempts(0);
+        setShow2FAModal(true);
+
+        // Auto-send OTP to phone
+        try {
+          console.log("[Login] [2FA] Sending OTP to verified phone number...");
+          await apiRequest("/auth/2fa/send", {
+            method: "POST",
+            headers: twoFATempToken ? { Authorization: `Bearer ${twoFATempToken}` } : undefined,
+          });
+          console.log("[Login] [2FA] OTP sent successfully");
+          toast.info("Verification code sent", {
+            description: `A code has been sent to ${phoneNum || "your phone"}.`,
+          });
+        } catch (sendError) {
+          console.warn("[Login] [2FA] Failed to auto-send OTP:", sendError);
+          // Don't block the modal - user can resend manually
+        }
+
+        return;
+      }
 
       // Handle both response formats (nested data or direct)
       const user = response.data?.user || response.user;
@@ -380,6 +429,92 @@ export default function LoginPage() {
   };
 
   const contextualMessage = getContextualMessage();
+
+  /**
+   * Handle 2FA OTP verification success
+   * Called when user enters correct OTP code
+   */
+  const handle2FAVerifySuccess = useCallback(async (code: string) => {
+    if (twoFAAttempts >= MAX_2FA_ATTEMPTS) {
+      setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
+      console.log("[Login] [2FA] BLOCKED - Max attempts exceeded:", twoFAAttempts);
+      return;
+    }
+
+    setIsVerifying2FA(true);
+    setTwoFAError("");
+    const currentAttempt = twoFAAttempts + 1;
+    setTwoFAAttempts(currentAttempt);
+
+    console.log("[Login] [2FA] Verification attempt:", currentAttempt, "/", MAX_2FA_ATTEMPTS);
+
+    try {
+      // Use AuthContext verify2FA which handles token storage + redirect
+      await verify2FA(code);
+
+      console.log("[Login] [2FA] SUCCESS - Verification complete");
+      console.log("[Login] [2FA] Remember device:", rememberDevice);
+
+      // Store remember device preference if checked
+      if (rememberDevice) {
+        console.log("[Login] [2FA] Storing trusted device preference");
+        // Trusted device cookie will be set by backend in a separate story
+        // For now, store preference in sessionStorage
+        sessionStorage.setItem("2fa-remember-device", "true");
+      }
+
+      setShow2FAModal(false);
+      tempTokenRef.current = null;
+      // verify2FA in AuthContext handles the redirect
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Invalid verification code. Please try again.";
+      console.error("[Login] [2FA] FAILED - Attempt:", currentAttempt, "Error:", message);
+
+      if (currentAttempt >= MAX_2FA_ATTEMPTS) {
+        setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
+        console.log("[Login] [2FA] Account locked after", MAX_2FA_ATTEMPTS, "failed attempts");
+      } else {
+        const remaining = MAX_2FA_ATTEMPTS - currentAttempt;
+        setTwoFAError(`${message} (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`);
+      }
+    } finally {
+      setIsVerifying2FA(false);
+    }
+  }, [twoFAAttempts, verify2FA, rememberDevice]);
+
+  /**
+   * Handle 2FA OTP resend
+   */
+  const handle2FAResend = useCallback(async () => {
+    console.log("[Login] [2FA] Resending OTP...");
+    try {
+      await apiRequest("/auth/2fa/send", {
+        method: "POST",
+        headers: tempTokenRef.current ? { Authorization: `Bearer ${tempTokenRef.current}` } : undefined,
+      });
+      console.log("[Login] [2FA] OTP resent successfully");
+      setTwoFAError("");
+      toast.info("New code sent", {
+        description: `A new verification code has been sent to ${twoFAPhoneNumber || "your phone"}.`,
+      });
+    } catch (error) {
+      console.error("[Login] [2FA] Failed to resend OTP:", error);
+      toast.error("Failed to resend code", {
+        description: "Please try again in a moment.",
+      });
+    }
+  }, [twoFAPhoneNumber]);
+
+  /**
+   * Handle 2FA modal close
+   */
+  const handle2FAClose = useCallback(() => {
+    console.log("[Login] [2FA] Modal closed by user");
+    setShow2FAModal(false);
+    setTwoFAError("");
+    setTwoFAAttempts(0);
+    tempTokenRef.current = null;
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-6 sm:py-8 md:py-12">
@@ -669,6 +804,55 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Two-Factor Authentication OTP Modal */}
+      <OTPVerificationModal
+        open={show2FAModal}
+        onClose={handle2FAClose}
+        phoneNumber={twoFAPhoneNumber}
+        onVerifySuccess={handle2FAVerifySuccess}
+        onResendOTP={handle2FAResend}
+        errorMessage={twoFAError}
+        isVerifying={isVerifying2FA}
+      />
+
+      {/* 2FA Additional Options (rendered inside modal via portal) */}
+      {show2FAModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center pb-32 pointer-events-none"
+          aria-hidden="true"
+        >
+          <div className="pointer-events-auto bg-card border border-border rounded-lg shadow-lg p-4 max-w-sm w-full mx-4 space-y-3">
+            {/* Remember Device */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember-device"
+                checked={rememberDevice}
+                onCheckedChange={(checked) => setRememberDevice(!!checked)}
+                data-testid="remember-device-checkbox"
+              />
+              <label
+                htmlFor="remember-device"
+                className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
+              >
+                <Shield className="w-3 h-3 inline mr-1" />
+                Remember this device for 30 days
+              </label>
+            </div>
+
+            {/* Recovery Link */}
+            <div className="text-center">
+              <Link
+                href="/account-recovery"
+                className="text-xs text-primary hover:underline"
+                data-testid="2fa-recovery-link"
+              >
+                Can&apos;t access your phone?
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
