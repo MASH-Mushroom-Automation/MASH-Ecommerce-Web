@@ -113,32 +113,26 @@ export function FirebaseReviewSection({
     setSearchKeyword("");
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Sort reviews - must be above early return to preserve hook order
+  const sortedReviews = useMemo(() => {
+    return [...reviews].sort((a, b) => {
+      switch (sortBy) {
+        case "highest":
+          return b.rating - a.rating;
+        case "lowest":
+          return a.rating - b.rating;
+        case "helpful":
+          return b.helpfulCount - a.helpfulCount;
+        case "newest":
+        default:
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+      }
+    });
+  }, [reviews, sortBy]);
 
-  // Sort reviews
-  const sortedReviews = [...reviews].sort((a, b) => {
-    switch (sortBy) {
-      case "highest":
-        return b.rating - a.rating;
-      case "lowest":
-        return a.rating - b.rating;
-      case "helpful":
-        return b.helpfulCount - a.helpfulCount;
-      case "newest":
-      default:
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-    }
-  });
-
-  // Apply filters (AND logic)
+  // Apply filters (AND logic) - must be above early return to preserve hook order
   const filteredReviews = useMemo(() => {
     let result = sortedReviews;
     if (starFilter !== null) {
@@ -165,6 +159,14 @@ export function FirebaseReviewSection({
   const displayedReviews = showAll
     ? filteredReviews
     : filteredReviews.slice(0, initialCount);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
