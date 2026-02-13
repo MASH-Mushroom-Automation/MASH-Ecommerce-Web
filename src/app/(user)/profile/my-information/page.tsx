@@ -55,6 +55,10 @@ import {
 } from "firebase/auth";
 import { FirebaseUserService } from "@/lib/firebase";
 import { UserApi } from "@/lib/api/user";
+import { PhoneNumberInput } from "@/components/profile/PhoneNumberInput";
+import { OTPVerificationModal } from "@/components/profile/OTPVerificationModal";
+import { usePhoneVerification } from "@/hooks/usePhoneVerification";
+import { maskPhoneNumber } from "@/lib/phone-utils";
 
 export default function MyInformationPage() {
   const { user: authUser, isAuthenticated, updateUserProfile } = useAuth();
@@ -99,7 +103,53 @@ export default function MyInformationPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+
+  // Phone verification hook
+  const phoneVerification = usePhoneVerification({
+    onSuccess: async (verifiedPhone: string) => {
+      // Update backend profile
+      try {
+        const response = await UserApi.updateProfile({
+          phoneNumber: verifiedPhone,
+        });
+        if (response.success) {
+          setBackendProfile((prev) =>
+            prev
+              ? { ...prev, phoneNumber: verifiedPhone }
+              : { phoneNumber: verifiedPhone },
+          );
+          if (updateUserProfile) {
+            await updateUserProfile({ phone: verifiedPhone });
+          }
+          // Update localStorage
+          try {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+              const parsed = JSON.parse(storedUser);
+              parsed.phone = verifiedPhone;
+              localStorage.setItem("user", JSON.stringify(parsed));
+            }
+          } catch {
+            // Ignore localStorage errors
+          }
+          setPhoneVerified(true);
+          setIsEditingPhone(false);
+          setShowOTPModal(false);
+          toast.success("Phone number verified and saved!");
+        }
+      } catch (error) {
+        console.error("[Profile] Error saving verified phone:", error);
+        toast.error("Phone verified but failed to save. Please try again.");
+      }
+    },
+    onError: (error: Error) => {
+      console.error("[Profile] Phone verification error:", error);
+    },
+    autoUpdateProfile: false, // We handle profile update manually above
+  });
 
   // Backend profile data
   const [backendProfile, setBackendProfile] = useState<{
@@ -255,76 +305,63 @@ export default function MyInformationPage() {
   }, [isAuthenticated, user]);
 
   /**
-   * Handle phone number change - only allow numbers
+   * Handle phone number change from PhoneNumberInput component
    */
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers
-    const value = e.target.value.replace(/[^0-9]/g, "");
-
-    // Limit to 11 digits (Philippine format: 09XXXXXXXXX)
-    if (value.length <= 11) {
-      setPhoneNumber(value);
-    }
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
   };
 
   /**
-   * Validate Philippine phone number format
+   * Handle phone verification request - sends OTP
    */
-  const validatePhilippinePhone = (phone: string): boolean => {
-    // Must be exactly 11 digits and start with 09
-    if (phone.length !== 11) {
-      return false;
+  const handleVerifyPhone = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number first");
+      return;
     }
-
-    if (!phone.startsWith("09")) {
-      return false;
-    }
-
-    return true;
+    setShowOTPModal(true);
+    await phoneVerification.sendVerification(phoneNumber);
   };
 
   /**
-   * Handle phone number update - saves to backend API
+   * Handle OTP verification success from modal
+   */
+  const handleOTPVerifySuccess = async (code: string) => {
+    await phoneVerification.verifyCode(code);
+  };
+
+  /**
+   * Handle OTP resend from modal
+   */
+  const handleOTPResend = async () => {
+    await phoneVerification.resendCode();
+  };
+
+  /**
+   * Handle phone number save without verification (for basic save)
    */
   const handleSavePhone = async () => {
-    // Trim whitespace
     const cleanPhone = phoneNumber.trim();
-
-    // Validate Philippine phone number format
     if (!cleanPhone) {
       toast.error("Phone number is required");
       return;
     }
 
-    if (!validatePhilippinePhone(cleanPhone)) {
-      toast.error(
-        "Please enter a valid Philippine phone number (e.g., 09171234567)",
-      );
-      return;
-    }
-
     setPhoneLoading(true);
-
     try {
-      // Update via backend API using phoneNumber field
       const response = await UserApi.updateProfile({
         phoneNumber: cleanPhone,
       });
 
       if (response.success) {
-        // Update local state
         setBackendProfile((prev) =>
           prev
             ? { ...prev, phoneNumber: cleanPhone }
             : { phoneNumber: cleanPhone },
         );
-
-        // Update auth context if available
         if (updateUserProfile) {
           await updateUserProfile({ phone: cleanPhone });
         }
-
-        // Also update localStorage user
         try {
           const storedUser = localStorage.getItem("user");
           if (storedUser) {
@@ -335,8 +372,7 @@ export default function MyInformationPage() {
         } catch {
           // Ignore localStorage errors
         }
-
-        toast.success("Phone number updated successfully!");
+        toast.success("Phone number saved! Verify to enable delivery features.");
         setIsEditingPhone(false);
       } else {
         toast.error("Failed to update phone number");
@@ -800,94 +836,136 @@ export default function MyInformationPage() {
                   </div>
                 </div>
 
-                {/* Phone Number */}
+                {/* Phone Number with Verification */}
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Phone Number
-                    <span className="text-red-500 ml-1">*</span>
-                    <span className="text-xs text-gray-500 ml-2">
-                      (Required for delivery)
-                    </span>
-                  </Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Phone Number
+                      <span className="text-red-500 ml-1">*</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Required for delivery)
+                      </span>
+                    </Label>
+                    {phoneNumber && !isEditingPhone && (
+                      <div className="flex items-center gap-1.5">
+                        {phoneVerified ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Unverified
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {isEditingPhone ? (
-                    <div className="mt-1 space-y-2">
+                    <div className="mt-1 space-y-3">
+                      <PhoneNumberInput
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        validationState={
+                          phoneVerification.isLoading
+                            ? "loading"
+                            : phoneVerification.error
+                              ? "error"
+                              : phoneVerification.isVerified
+                                ? "success"
+                                : "idle"
+                        }
+                        error={phoneVerification.error || undefined}
+                        disabled={phoneLoading || phoneVerification.isLoading}
+                        required
+                        label=""
+                        placeholder="912 345 6789"
+                      />
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 flex items-center gap-2 p-2 bg-white rounded-lg border-2 border-[#1E392A]">
-                          <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                          <Input
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={handlePhoneChange}
-                            placeholder="09171234567"
-                            className="border-0 p-0 h-auto focus-visible:ring-0"
-                            maxLength={11}
-                          />
-                        </div>
                         <Button
-                          onClick={handleSavePhone}
-                          disabled={phoneLoading}
+                          onClick={handleVerifyPhone}
+                          disabled={
+                            phoneLoading ||
+                            phoneVerification.isLoading ||
+                            !phoneNumber ||
+                            phoneNumber.replace(/\D/g, "").length < 10
+                          }
                           size="sm"
                           className="bg-[#1E392A] hover:bg-[#2d5a42]"
+                        >
+                          {phoneVerification.isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Shield className="h-4 w-4 mr-1" />
+                          )}
+                          Verify &amp; Save
+                        </Button>
+                        <Button
+                          onClick={handleSavePhone}
+                          disabled={phoneLoading || phoneVerification.isLoading}
+                          size="sm"
+                          variant="outline"
                         >
                           {phoneLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            "Save"
+                            "Save Without Verify"
                           )}
                         </Button>
                         <Button
                           onClick={() => {
                             setIsEditingPhone(false);
-                            setPhoneNumber(user?.phone || "");
+                            setPhoneNumber(
+                              backendProfile?.phoneNumber ||
+                                backendProfile?.phone ||
+                                user?.phone ||
+                                "",
+                            );
+                            phoneVerification.reset();
                           }}
-                          disabled={phoneLoading}
+                          disabled={phoneLoading || phoneVerification.isLoading}
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
                         >
                           Cancel
                         </Button>
                       </div>
-
-                      {/* Real-time validation feedback */}
-                      {phoneNumber && (
-                        <div className="text-xs">
-                          {phoneNumber.length === 11 &&
-                          phoneNumber.startsWith("09") ? (
-                            <p className="text-green-600 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Valid Philippine phone number
-                            </p>
-                          ) : (
-                            <div className="space-y-1">
-                              <p className="text-amber-600 flex items-center gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                Must be 11 digits starting with 09
-                              </p>
-                              <p className="text-gray-500">
-                                Format: 09XXXXXXXXX ({phoneNumber.length}/11
-                                digits)
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="mt-1 flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-900">
-                          {phoneNumber || "No phone number set"}
+                          {phoneNumber
+                            ? maskPhoneNumber(phoneNumber)
+                            : "No phone number set"}
                         </span>
                       </div>
-                      <Button
-                        onClick={() => setIsEditingPhone(true)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#1E392A] hover:bg-[#1E392A]/10"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {phoneNumber && !phoneVerified && (
+                          <Button
+                            onClick={() => {
+                              setIsEditingPhone(true);
+                              handleVerifyPhone();
+                            }}
+                            size="sm"
+                            variant="ghost"
+                            className="text-amber-600 hover:bg-amber-50 text-xs"
+                          >
+                            <Shield className="h-3.5 w-3.5 mr-1" />
+                            Verify
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => setIsEditingPhone(true)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-[#1E392A] hover:bg-[#1E392A]/10"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                   {!phoneNumber && (
@@ -1465,6 +1543,20 @@ export default function MyInformationPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* OTP Verification Modal */}
+      <OTPVerificationModal
+        open={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          phoneVerification.reset();
+        }}
+        phoneNumber={phoneNumber}
+        onVerifySuccess={handleOTPVerifySuccess}
+        onResendOTP={handleOTPResend}
+        errorMessage={phoneVerification.error || undefined}
+        isVerifying={phoneVerification.state === "verifying"}
+      />
     </div>
   );
 }
