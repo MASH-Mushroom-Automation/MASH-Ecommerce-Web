@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { FirebaseReviewService } from "@/lib/firebase/reviews";
+import { syncReviewToSanity } from "@/lib/reviews/sync";
 import { toast } from "sonner";
 import type {
   FirestoreReview,
@@ -84,13 +85,37 @@ export function useFirebaseReviews(
       }
 
       try {
+        // Auto-verify purchase status for product reviews
+        let verifiedPurchase = false;
+        if (input.targetType === "product") {
+          try {
+            const res = await fetch(
+              `/api/reviews/verify-purchase?userId=${encodeURIComponent(user.id)}&productId=${encodeURIComponent(input.targetId)}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              verifiedPurchase = !!data.verified;
+            }
+          } catch {
+            // Verification failed - continue with unverified
+          }
+        }
+
         await FirebaseReviewService.createReview(
           user.id,
           user.displayName || user.firstName || "Anonymous",
           user.email,
           user.photoURL || user.imageUrl,
-          input,
+          { ...input, verifiedPurchase },
         );
+        // Fire-and-forget sync to Sanity
+        syncReviewToSanity(input.targetId, {
+          ...input,
+          userId: user.id,
+          userName: user.displayName || user.firstName || "Anonymous",
+          userEmail: user.email,
+          userPhotoURL: user.photoURL || user.imageUrl || "",
+        } as never);
         toast.success("Review submitted successfully!");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to submit review";

@@ -300,7 +300,9 @@ describe("FirebaseReviewSection", () => {
         stats: makeStats({ totalReviews: 1 }),
       });
       render(<FirebaseReviewSection {...defaultProps} />);
-      expect(screen.getByText("Verified")).toBeInTheDocument();
+      // Use getAllByText since "Verified" appears as both filter button and review badge
+      const verifiedElements = screen.getAllByText("Verified");
+      expect(verifiedElements.length).toBeGreaterThanOrEqual(2);
     });
 
     it("shows You badge for own reviews", () => {
@@ -320,14 +322,14 @@ describe("FirebaseReviewSection", () => {
         stats: makeStats({ totalReviews: 1 }),
       });
       render(<FirebaseReviewSection {...defaultProps} />);
-      expect(screen.getByText("Helpful (7)")).toBeInTheDocument();
+      expect(screen.getByText("7 people found this helpful")).toBeInTheDocument();
     });
   });
 
   // ===== Admin Response =====
 
   describe("admin response", () => {
-    it("shows seller response when present", () => {
+    it("shows admin response when present", () => {
       mockUseFirebaseReviews.mockReturnValue({
         ...defaultHookReturn,
         reviews: [makeReview({
@@ -337,14 +339,38 @@ describe("FirebaseReviewSection", () => {
         stats: makeStats({ totalReviews: 1 }),
       });
       render(<FirebaseReviewSection {...defaultProps} />);
-      expect(screen.getByText("Seller Response")).toBeInTheDocument();
+      expect(screen.getByText("Admin Response")).toBeInTheDocument();
       expect(screen.getByText("Thank you for your review! We appreciate the feedback.")).toBeInTheDocument();
+    });
+
+    it("does not show admin response section when none exists", () => {
+      mockUseFirebaseReviews.mockReturnValue({
+        ...defaultHookReturn,
+        reviews: [makeReview({ adminResponse: undefined })],
+        stats: makeStats({ totalReviews: 1 }),
+      });
+      render(<FirebaseReviewSection {...defaultProps} />);
+      expect(screen.queryByText("Admin Response")).not.toBeInTheDocument();
+    });
+
+    it("shows seller response with badge when present", () => {
+      mockUseFirebaseReviews.mockReturnValue({
+        ...defaultHookReturn,
+        reviews: [makeReview({
+          sellerResponse: "We value your support!",
+          sellerResponseDate: "2026-02-12T10:00:00Z",
+        })],
+        stats: makeStats({ totalReviews: 1 }),
+      });
+      render(<FirebaseReviewSection {...defaultProps} />);
+      expect(screen.getByText("Seller Response")).toBeInTheDocument();
+      expect(screen.getByText("We value your support!")).toBeInTheDocument();
     });
 
     it("does not show seller response section when none exists", () => {
       mockUseFirebaseReviews.mockReturnValue({
         ...defaultHookReturn,
-        reviews: [makeReview({ adminResponse: undefined })],
+        reviews: [makeReview({ sellerResponse: undefined })],
         stats: makeStats({ totalReviews: 1 }),
       });
       render(<FirebaseReviewSection {...defaultProps} />);
@@ -363,9 +389,10 @@ describe("FirebaseReviewSection", () => {
       });
       render(<FirebaseReviewSection {...defaultProps} />);
 
-      // Find the button that contains "Helpful" text
-      const helpfulButton = screen.getByText(/Helpful \(\d+\)/);
-      const button = helpfulButton.closest("button");
+      // Find the "Was this helpful?" prompt and the adjacent vote button
+      const prompt = screen.getByText("Was this helpful?");
+      const container = prompt.closest("div");
+      const button = container!.querySelector("button");
       expect(button).not.toBeNull();
       await userEvent.click(button!);
       expect(mockVoteHelpful).toHaveBeenCalledWith("review-1");
@@ -381,10 +408,9 @@ describe("FirebaseReviewSection", () => {
       });
       render(<FirebaseReviewSection {...defaultProps} />);
 
-      const helpfulButtons = screen.getAllByRole("button", { name: /helpful/i });
-      // The helpful button on the own review should be disabled
-      const ownHelpfulButton = helpfulButtons.find((btn) => btn.hasAttribute("disabled"));
-      expect(ownHelpfulButton).toBeDefined();
+      // Own review helpful button has title indicating voting is disabled
+      const ownButton = screen.getByTitle("You cannot vote on your own review");
+      expect(ownButton).toBeDisabled();
     });
   });
 

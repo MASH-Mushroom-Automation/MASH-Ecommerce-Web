@@ -38,6 +38,11 @@ import type {
   FlagReviewInput,
   RatingStats,
   ReviewTargetType,
+  ReviewStatus,
+  ModerationAction,
+  ModerationLogEntry,
+  ReviewFilters,
+  ModerationStats,
 } from "@/types/reviews";
 
 const REVIEWS_COLLECTION = "reviews";
@@ -45,6 +50,16 @@ const REVIEWS_COLLECTION = "reviews";
 /** Get Firestore instance */
 function getDb(): Firestore {
   return getFirestore(firebaseApp);
+}
+
+/** Safely check if a value is a Firestore Timestamp (works with mocked Timestamp too) */
+function isFirestoreTimestamp(value: unknown): value is Timestamp {
+  return (
+    value !== null &&
+    value !== undefined &&
+    typeof value === "object" &&
+    typeof (value as Record<string, unknown>).toDate === "function"
+  );
 }
 
 /**
@@ -90,6 +105,61 @@ function calculateRatingStats(reviews: FirestoreReview[]): RatingStats {
 }
 
 /**
+ * Calculate moderation statistics from all reviews (not just approved).
+ */
+function calculateModerationStats(reviews: FirestoreReview[]): ModerationStats {
+  if (reviews.length === 0) {
+    return {
+      totalReviews: 0,
+      pendingCount: 0,
+      approvedCount: 0,
+      rejectedCount: 0,
+      flaggedCount: 0,
+      averageRating: 0,
+    };
+  }
+
+  let totalRating = 0;
+  let pendingCount = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  let flaggedCount = 0;
+
+  for (const review of reviews) {
+    totalRating += review.rating;
+    switch (review.status) {
+      case "pending":
+        pendingCount++;
+        break;
+      case "approved":
+        approvedCount++;
+        break;
+      case "rejected":
+        rejectedCount++;
+        break;
+      case "flagged":
+        flaggedCount++;
+        break;
+    }
+    if (review.flagCount > 0) {
+      flaggedCount = Math.max(flaggedCount, reviews.filter((r) => r.flagCount > 0).length);
+    }
+  }
+
+  // Deduplicate: flaggedCount is actual reviews with flags > 0
+  flaggedCount = reviews.filter((r) => r.flagCount > 0).length;
+
+  return {
+    totalReviews: reviews.length,
+    pendingCount,
+    approvedCount,
+    rejectedCount,
+    flaggedCount,
+    averageRating: Math.round((totalRating / reviews.length) * 10) / 10,
+  };
+}
+
+/**
  * Transform a Firestore document snapshot into a FirestoreReview object.
  */
 function transformDoc(docSnap: { id: string; data: () => Record<string, unknown> }): FirestoreReview {
@@ -116,11 +186,16 @@ function transformDoc(docSnap: { id: string; data: () => Record<string, unknown>
     flagCount: (data.flagCount as number) || 0,
     flaggedBy: (data.flaggedBy as string[]) || [],
     flagReasons: (data.flagReasons as string[]) || [],
-    createdAt: data.createdAt instanceof Timestamp
-      ? data.createdAt.toDate().toISOString()
+    moderatedBy: data.moderatedBy as string | undefined,
+    moderatedAt: data.moderatedAt as string | undefined,
+    sellerResponse: data.sellerResponse as string | undefined,
+    sellerResponseDate: data.sellerResponseDate as string | undefined,
+    sellerRespondedBy: data.sellerRespondedBy as string | undefined,
+    createdAt: isFirestoreTimestamp(data.createdAt)
+      ? (data.createdAt as Timestamp).toDate().toISOString()
       : (data.createdAt as string) || new Date().toISOString(),
-    updatedAt: data.updatedAt instanceof Timestamp
-      ? data.updatedAt.toDate().toISOString()
+    updatedAt: isFirestoreTimestamp(data.updatedAt)
+      ? (data.updatedAt as Timestamp).toDate().toISOString()
       : (data.updatedAt as string) || new Date().toISOString(),
   };
 }
@@ -170,7 +245,7 @@ export const FirebaseReviewService = {
       title: input.title.trim(),
       content: input.content.trim(),
       images: input.images || [],
-      verifiedPurchase: false,
+      verifiedPurchase: input.verifiedPurchase || false,
       status: "approved" as const,
       helpfulCount: 0,
       helpfulVotes: [],
@@ -370,6 +445,374 @@ export const FirebaseReviewService = {
   },
 
   /**
+   * Moderate a review (admin only): approve, reject, flag, or delete.
+   * Writes a moderation log entry to a subcollection for audit trail.
+   */
+  async moderateReview(
+    reviewId: string,
+    adminId: string,
+    action: ModerationAction,
+    reason?: string,
+  ): Promise<void> {
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const statusMap: Record<ModerationAction, ReviewStatus> = {
+      approve: "approved",
+      reject: "rejected",
+      flag: "flagged",
+      delete: "rejected", // soft-delete by rejecting
+    };
+
+    const newStatus = statusMap[action];
+    const now = new Date().toISOString();
+
+    const updateData: Record<string, unknown> = {
+      status: newStatus,
+      moderatedBy: adminId,
+      moderatedAt: now,
+      updatedAt: now,
+    };
+
+    if (action === "reject" && reason) {
+      updateData.rejectionReason = reason;
+    }
+
+    await updateDoc(docRef, updateData);
+
+    // Write moderation log entry to subcollection
+    const logEntry: ModerationLogEntry = {
+      action,
+      adminId,
+      reason,
+      timestamp: now,
+    };
+    await addDoc(collection(db, REVIEWS_COLLECTION, reviewId, "moderationLog"), logEntry);
+
+    console.log("[Reviews] Moderated review:", reviewId, "action:", action);
+  },
+
+  /**
+   * Add an admin response to a review.
+   */
+  async addAdminResponse(
+    reviewId: string,
+    adminId: string,
+    response: string,
+  ): Promise<void> {
+    if (!response || response.trim().length < 10) {
+      throw new Error("Admin response must be at least 10 characters.");
+    }
+
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const now = new Date().toISOString();
+    await updateDoc(docRef, {
+      adminResponse: response.trim(),
+      adminResponseDate: now,
+      updatedAt: now,
+    });
+
+    // Log admin response action
+    const logEntry: ModerationLogEntry = {
+      action: "approve" as ModerationAction,
+      adminId,
+      reason: "Admin response added",
+      timestamp: now,
+    };
+    await addDoc(collection(db, REVIEWS_COLLECTION, reviewId, "moderationLog"), logEntry);
+
+    console.log("[Reviews] Admin response added to review:", reviewId);
+  },
+
+  /**
+   * Fetch ALL reviews (no status filter) for admin dashboard.
+   * Optionally filter by targetType.
+   */
+  async getAllReviews(
+    filters?: ReviewFilters,
+  ): Promise<{ reviews: FirestoreReview[]; stats: ModerationStats }> {
+    const db = getDb();
+
+    // Base query: all reviews without status filter
+    let q;
+    if (filters?.targetType) {
+      q = query(
+        collection(db, REVIEWS_COLLECTION),
+        where("targetType", "==", filters.targetType),
+        orderBy("createdAt", "desc"),
+      );
+    } else {
+      q = query(
+        collection(db, REVIEWS_COLLECTION),
+        orderBy("createdAt", "desc"),
+      );
+    }
+
+    const snapshot = await getDocs(q);
+    let reviews = snapshot.docs.map((d) =>
+      transformDoc(d as unknown as { id: string; data: () => Record<string, unknown> }),
+    );
+
+    // Apply client-side filters
+    if (filters?.status) {
+      reviews = reviews.filter((r) => r.status === filters.status);
+    }
+    if (filters?.ratingMin !== undefined) {
+      reviews = reviews.filter((r) => r.rating >= filters.ratingMin!);
+    }
+    if (filters?.ratingMax !== undefined) {
+      reviews = reviews.filter((r) => r.rating <= filters.ratingMax!);
+    }
+    if (filters?.dateFrom) {
+      reviews = reviews.filter((r) => r.createdAt >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      reviews = reviews.filter((r) => r.createdAt <= filters.dateTo!);
+    }
+    if (filters?.keyword) {
+      const kw = filters.keyword.toLowerCase();
+      reviews = reviews.filter(
+        (r) =>
+          r.title.toLowerCase().includes(kw) ||
+          r.content.toLowerCase().includes(kw) ||
+          r.userName.toLowerCase().includes(kw),
+      );
+    }
+    if (filters?.flaggedOnly) {
+      reviews = reviews.filter((r) => r.flagCount > 0);
+    }
+
+    // Calculate moderation stats from unfiltered data
+    const allReviews = snapshot.docs.map((d) =>
+      transformDoc(d as unknown as { id: string; data: () => Record<string, unknown> }),
+    );
+    const moderationStats = calculateModerationStats(allReviews);
+
+    return { reviews, stats: moderationStats };
+  },
+
+  /**
+   * Fetch reviews by status (admin use).
+   */
+  async getReviewsByStatus(
+    status: ReviewStatus,
+  ): Promise<FirestoreReview[]> {
+    const db = getDb();
+    const q = query(
+      collection(db, REVIEWS_COLLECTION),
+      where("status", "==", status),
+      orderBy("createdAt", "desc"),
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) =>
+      transformDoc(d as unknown as { id: string; data: () => Record<string, unknown> }),
+    );
+  },
+
+  /**
+   * Delete a review as admin (hard delete with audit log).
+   */
+  async deleteReviewAsAdmin(
+    reviewId: string,
+    adminId: string,
+    reason?: string,
+  ): Promise<void> {
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    // Write moderation log before deleting
+    const logEntry: ModerationLogEntry = {
+      action: "delete",
+      adminId,
+      reason: reason || "Admin deleted review",
+      timestamp: new Date().toISOString(),
+    };
+    await addDoc(collection(db, REVIEWS_COLLECTION, reviewId, "moderationLog"), logEntry);
+
+    await deleteDoc(docRef);
+    console.log("[Reviews] Admin deleted review:", reviewId, "by:", adminId);
+  },
+
+  /**
+   * Clear all flags on a review after admin review.
+   */
+  async clearFlags(
+    reviewId: string,
+    adminId: string,
+  ): Promise<void> {
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const now = new Date().toISOString();
+    await updateDoc(docRef, {
+      flagCount: 0,
+      flaggedBy: [],
+      flagReasons: [],
+      moderatedBy: adminId,
+      moderatedAt: now,
+      updatedAt: now,
+    });
+
+    // Log the flag clearing
+    const logEntry: ModerationLogEntry = {
+      action: "approve",
+      adminId,
+      reason: "Flags cleared after admin review",
+      timestamp: now,
+    };
+    await addDoc(collection(db, REVIEWS_COLLECTION, reviewId, "moderationLog"), logEntry);
+
+    console.log("[Reviews] Cleared flags on review:", reviewId);
+  },
+
+  /**
+   * Add a seller response to a review.
+   */
+  async addSellerResponse(
+    reviewId: string,
+    sellerId: string,
+    sellerName: string,
+    response: string,
+  ): Promise<void> {
+    if (!response || response.trim().length < 10) {
+      throw new Error("Seller response must be at least 10 characters.");
+    }
+
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const now = new Date().toISOString();
+    await updateDoc(docRef, {
+      sellerResponse: response.trim(),
+      sellerResponseDate: now,
+      sellerRespondedBy: sellerId,
+      updatedAt: now,
+    });
+
+    console.log("[Reviews] Seller response added to review:", reviewId);
+  },
+
+  /**
+   * Update a seller response (within 24 hours of original).
+   */
+  async updateSellerResponse(
+    reviewId: string,
+    sellerId: string,
+    response: string,
+  ): Promise<void> {
+    if (!response || response.trim().length < 10) {
+      throw new Error("Seller response must be at least 10 characters.");
+    }
+
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const data = docSnap.data();
+    if (data.sellerRespondedBy !== sellerId) {
+      throw new Error("You can only edit your own response.");
+    }
+
+    // Check 24-hour edit window
+    const responseDate = new Date(data.sellerResponseDate);
+    const hoursElapsed = (Date.now() - responseDate.getTime()) / (1000 * 60 * 60);
+    if (hoursElapsed > 24) {
+      throw new Error("Response can only be edited within 24 hours of posting.");
+    }
+
+    await updateDoc(docRef, {
+      sellerResponse: response.trim(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    console.log("[Reviews] Seller response updated on review:", reviewId);
+  },
+
+  /**
+   * Delete a seller response.
+   */
+  async deleteSellerResponse(
+    reviewId: string,
+    sellerId: string,
+  ): Promise<void> {
+    const db = getDb();
+    const docRef = doc(db, REVIEWS_COLLECTION, reviewId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("Review not found.");
+    }
+
+    const data = docSnap.data();
+    if (data.sellerRespondedBy !== sellerId) {
+      throw new Error("You can only delete your own response.");
+    }
+
+    await updateDoc(docRef, {
+      sellerResponse: null,
+      sellerResponseDate: null,
+      sellerRespondedBy: null,
+      updatedAt: new Date().toISOString(),
+    });
+
+    console.log("[Reviews] Seller response deleted on review:", reviewId);
+  },
+
+  /**
+   * Subscribe to ALL reviews in real-time (admin dashboard).
+   * Unlike subscribeToReviews, this does not filter by status or target.
+   */
+  subscribeToAllReviews(
+    callback: (reviews: FirestoreReview[], stats: ModerationStats) => void,
+  ): Unsubscribe {
+    const db = getDb();
+    const q = query(
+      collection(db, REVIEWS_COLLECTION),
+      orderBy("createdAt", "desc"),
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const reviews = snapshot.docs.map((d) =>
+        transformDoc(d as unknown as { id: string; data: () => Record<string, unknown> }),
+      );
+      const stats = calculateModerationStats(reviews);
+      callback(reviews, stats);
+    });
+  },
+
+  /**
    * Subscribe to real-time review updates for a target entity.
    * Returns an unsubscribe function.
    */
@@ -397,5 +840,5 @@ export const FirebaseReviewService = {
   },
 };
 
-export { calculateRatingStats };
+export { calculateRatingStats, calculateModerationStats };
 export type { RatingStats as FirebaseRatingStats };

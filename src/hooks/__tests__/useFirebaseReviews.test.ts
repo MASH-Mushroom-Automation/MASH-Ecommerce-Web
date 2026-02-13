@@ -42,6 +42,9 @@ jest.mock("sonner", () => ({
   },
 }));
 
+// Mock fetch for verify-purchase API
+// global.fetch already polyfilled by jest.setupMocks.js
+
 const mockService = FirebaseReviewService as jest.Mocked<typeof FirebaseReviewService>;
 
 function makeReview(overrides: Partial<FirestoreReview> = {}): FirestoreReview {
@@ -86,6 +89,12 @@ describe("useFirebaseReviews", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     unsubscribeMock = jest.fn();
+
+    // Re-setup fetch mock for verify-purchase API (clearAllMocks resets it)
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ verified: false }),
+    });
 
     // Default: auth user present
     mockUseAuth.mockReturnValue({
@@ -236,6 +245,7 @@ describe("useFirebaseReviews", () => {
           rating: 5,
           title: "Excellent",
           content: "Really great product, highly recommend!",
+          verifiedPurchase: false,
         },
       );
       expect(toast.success).toHaveBeenCalledWith("Review submitted successfully!");
@@ -274,8 +284,9 @@ describe("useFirebaseReviews", () => {
         useFirebaseReviews("product", "product-abc"),
       );
 
-      await expect(
-        act(async () => {
+      let thrownError: Error | null = null;
+      await act(async () => {
+        try {
           await result.current.submitReview({
             targetType: "product",
             targetId: "product-abc",
@@ -284,9 +295,12 @@ describe("useFirebaseReviews", () => {
             title: "Excellent",
             content: "Really great product!",
           });
-        }),
-      ).rejects.toThrow("Duplicate review");
+        } catch (e) {
+          thrownError = e as Error;
+        }
+      });
 
+      expect(thrownError?.message).toBe("Duplicate review");
       expect(toast.error).toHaveBeenCalledWith("Duplicate review");
     });
   });

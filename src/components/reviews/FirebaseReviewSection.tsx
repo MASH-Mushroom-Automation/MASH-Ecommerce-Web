@@ -8,7 +8,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Star,
   CheckCircle,
@@ -18,15 +18,20 @@ import {
   Trash2,
   Flag,
   MessageSquare,
+  Search,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirebaseReviews } from "@/hooks/useFirebaseReviews";
 import { ReviewForm } from "./ReviewForm";
+import { ReviewImageGallery } from "./ReviewImageGallery";
 import { cn } from "@/lib/utils";
 import type { FirestoreReview, ReviewTargetType, FlagReviewInput } from "@/types/reviews";
 
@@ -73,8 +78,40 @@ export function FirebaseReviewSection({
     userReview,
   } = useFirebaseReviews(targetType, targetId);
 
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("review-sort") as SortOption) || "newest";
+    }
+    return "newest";
+  });
   const [showAll, setShowAll] = useState(false);
+  const [starFilter, setStarFilter] = useState<number | null>(null);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [hasImagesOnly, setHasImagesOnly] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  // Persist sort preference
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("review-sort", sortBy);
+    }
+  }, [sortBy]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (starFilter !== null) count++;
+    if (verifiedOnly) count++;
+    if (hasImagesOnly) count++;
+    if (searchKeyword.trim()) count++;
+    return count;
+  }, [starFilter, verifiedOnly, hasImagesOnly, searchKeyword]);
+
+  const clearFilters = useCallback(() => {
+    setStarFilter(null);
+    setVerifiedOnly(false);
+    setHasImagesOnly(false);
+    setSearchKeyword("");
+  }, []);
 
   if (loading) {
     return (
@@ -101,9 +138,33 @@ export function FirebaseReviewSection({
     }
   });
 
+  // Apply filters (AND logic)
+  const filteredReviews = useMemo(() => {
+    let result = sortedReviews;
+    if (starFilter !== null) {
+      result = result.filter((r) => r.rating === starFilter);
+    }
+    if (verifiedOnly) {
+      result = result.filter((r) => r.verifiedPurchase);
+    }
+    if (hasImagesOnly) {
+      result = result.filter((r) => r.images && r.images.length > 0);
+    }
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.trim().toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.title.toLowerCase().includes(keyword) ||
+          r.content.toLowerCase().includes(keyword) ||
+          r.userName.toLowerCase().includes(keyword)
+      );
+    }
+    return result;
+  }, [sortedReviews, starFilter, verifiedOnly, hasImagesOnly, searchKeyword]);
+
   const displayedReviews = showAll
-    ? sortedReviews
-    : sortedReviews.slice(0, initialCount);
+    ? filteredReviews
+    : filteredReviews.slice(0, initialCount);
 
   return (
     <div className="space-y-6">
@@ -163,7 +224,15 @@ export function FirebaseReviewSection({
                       : 0;
 
                   return (
-                    <div key={star} className="flex items-center gap-3">
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setStarFilter(starFilter === star ? null : star)}
+                      className={cn(
+                        "flex items-center gap-3 w-full rounded-md px-2 py-1 transition-colors",
+                        starFilter === star ? "bg-yellow-100 dark:bg-yellow-900/30" : "hover:bg-muted/50"
+                      )}
+                    >
                       <div className="flex items-center gap-1 w-16">
                         <span className="text-sm font-medium">{star}</span>
                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -177,7 +246,7 @@ export function FirebaseReviewSection({
                       <span className="text-sm text-muted-foreground w-16 text-right">
                         {count} ({Math.round(pct)}%)
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -197,30 +266,94 @@ export function FirebaseReviewSection({
         existingReview={userReview}
       />
 
-      {/* Sort Controls */}
+      {/* Sort & Filter Controls */}
       {reviews.length > 0 && (
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="text-lg font-semibold">
-            {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
-          </h3>
-          <div className="flex gap-2">
-            {(
-              [
-                ["newest", "Newest"],
-                ["highest", "Highest"],
-                ["lowest", "Lowest"],
-                ["helpful", "Helpful"],
-              ] as const
-            ).map(([key, label]) => (
-              <Button
-                key={key}
-                variant={sortBy === key ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy(key)}
-              >
-                {label}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-lg font-semibold">
+              {filteredReviews.length}{" "}
+              {filteredReviews.length === 1 ? "Review" : "Reviews"}
+              {activeFilterCount > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  {" "}(filtered from {reviews.length})
+                </span>
+              )}
+            </h3>
+            <div className="flex gap-2">
+              {(
+                [
+                  ["newest", "Newest"],
+                  ["highest", "Highest"],
+                  ["lowest", "Lowest"],
+                  ["helpful", "Helpful"],
+                ] as const
+              ).map(([key, label]) => (
+                <Button
+                  key={key}
+                  variant={sortBy === key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search reviews..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+
+            <Button
+              variant={verifiedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setVerifiedOnly(!verifiedOnly)}
+              className="gap-1"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              Verified
+            </Button>
+
+            <Button
+              variant={hasImagesOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setHasImagesOnly(!hasImagesOnly)}
+              className="gap-1"
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              With Photos
+            </Button>
+
+            {starFilter !== null && (
+              <Badge variant="secondary" className="gap-1">
+                {starFilter}
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                only
+                <button
+                  type="button"
+                  onClick={() => setStarFilter(null)}
+                  className="ml-1"
+                  aria-label="Clear star filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-destructive">
+                <X className="w-3.5 h-3.5" />
+                Clear All ({activeFilterCount})
               </Button>
-            ))}
+            )}
           </div>
         </div>
       )}
@@ -254,7 +387,7 @@ export function FirebaseReviewSection({
       </div>
 
       {/* Show More Button */}
-      {reviews.length > initialCount && !showAll && (
+      {filteredReviews.length > initialCount && !showAll && (
         <div className="text-center">
           <Button
             variant="outline"
@@ -262,7 +395,7 @@ export function FirebaseReviewSection({
             className="gap-2"
           >
             <ChevronDown className="w-4 h-4" />
-            Show All {reviews.length} Reviews
+            Show All {filteredReviews.length} Reviews
           </Button>
         </div>
       )}
@@ -299,13 +432,33 @@ function ReviewCard({
   onFlag: (reviewId: string, input: FlagReviewInput) => Promise<void>;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [optimisticVoted, setOptimisticVoted] = useState<boolean | null>(null);
+  const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
   const isOwn = currentUserId === review.userId;
-  const hasVoted = currentUserId
-    ? review.helpfulVotes.includes(currentUserId)
-    : false;
+  const hasVoted = optimisticVoted !== null
+    ? optimisticVoted
+    : currentUserId
+      ? review.helpfulVotes.includes(currentUserId)
+      : false;
+  const helpfulCount = optimisticCount !== null ? optimisticCount : review.helpfulCount;
   const hasFlagged = currentUserId
     ? review.flaggedBy.includes(currentUserId)
     : false;
+
+  const handleVoteHelpful = async () => {
+    if (!currentUserId || isOwn) return;
+    // Optimistic UI
+    const wasVoted = currentUserId ? review.helpfulVotes.includes(currentUserId) : false;
+    setOptimisticVoted(!wasVoted);
+    setOptimisticCount(review.helpfulCount + (wasVoted ? -1 : 1));
+    try {
+      await onVoteHelpful(review.id);
+    } catch {
+      // Revert on failure
+      setOptimisticVoted(null);
+      setOptimisticCount(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete your review?")) return;
@@ -384,20 +537,11 @@ function ReviewCard({
 
         {/* Images */}
         {review.images && review.images.length > 0 && (
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {review.images.map((img, idx) => (
-              <div
-                key={idx}
-                className="relative w-20 h-20 rounded-lg overflow-hidden border"
-              >
-                <Image
-                  src={img}
-                  alt={`Review image ${idx + 1}`}
-                  fill
-                  className="object-cover hover:scale-110 transition-transform cursor-pointer"
-                />
-              </div>
-            ))}
+          <div className="mb-4">
+            <ReviewImageGallery
+              images={review.images}
+              reviewerName={review.userName}
+            />
           </div>
         )}
 
@@ -406,7 +550,7 @@ function ReviewCard({
           <div className="mb-4 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
             <div className="flex items-center gap-2 mb-1">
               <MessageSquare className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">Seller Response</span>
+              <span className="text-sm font-semibold text-primary">Admin Response</span>
               {review.adminResponseDate && (
                 <span className="text-xs text-muted-foreground">
                   {new Date(review.adminResponseDate).toLocaleDateString("en-US", {
@@ -421,24 +565,69 @@ function ReviewCard({
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-4 pt-3 border-t">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "text-muted-foreground hover:text-primary",
-              hasVoted && "text-primary",
-            )}
-            onClick={() => onVoteHelpful(review.id)}
-            disabled={isOwn}
-          >
-            <ThumbsUp
-              className={cn("w-4 h-4 mr-2", hasVoted && "fill-current")}
-            />
-            Helpful ({review.helpfulCount})
-          </Button>
+        {/* Seller Response */}
+        {review.sellerResponse && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border-l-4 border-green-500">
+            <div className="flex items-center gap-2 mb-1">
+              <MessageSquare className="w-4 h-4 text-green-600" />
+              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                Seller Response
+              </Badge>
+              {review.sellerResponseDate && (
+                <span className="text-xs text-muted-foreground">
+                  {new Date(review.sellerResponseDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">{review.sellerResponse}</p>
+          </div>
+        )}
 
+        {/* Helpful Voting & Actions */}
+        <div className="flex items-center justify-between gap-4 pt-3 border-t">
+          <div className="flex items-center gap-3">
+            {/* Helpful text */}
+            <span className="text-xs text-muted-foreground">Was this helpful?</span>
+            {currentUserId ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-muted-foreground hover:text-primary h-8 px-2",
+                  hasVoted && "text-primary bg-primary/10",
+                )}
+                onClick={handleVoteHelpful}
+                disabled={isOwn}
+                title={isOwn ? "You cannot vote on your own review" : undefined}
+              >
+                <ThumbsUp
+                  className={cn("w-4 h-4 mr-1", hasVoted && "fill-current")}
+                />
+                {helpfulCount > 0 ? helpfulCount : ""}
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" className="text-muted-foreground h-8 px-2" asChild>
+                <a href="/login" title="Sign in to vote">
+                  <ThumbsUp className="w-4 h-4 mr-1" />
+                  {helpfulCount > 0 ? helpfulCount : ""}
+                </a>
+              </Button>
+            )}
+            {/* Helper text */}
+            {helpfulCount > 0 ? (
+              <span className="text-xs text-muted-foreground">
+                {helpfulCount} {helpfulCount === 1 ? "person" : "people"} found this helpful
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Be the first to find this helpful</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
           {!isOwn && currentUserId && (
             <Button
               variant="ghost"
@@ -482,6 +671,7 @@ function ReviewCard({
               Delete
             </Button>
           )}
+          </div>
         </div>
       </CardContent>
     </Card>

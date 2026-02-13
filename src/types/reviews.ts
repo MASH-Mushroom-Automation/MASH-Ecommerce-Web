@@ -15,6 +15,49 @@ export type ReviewStatus = "pending" | "approved" | "rejected" | "flagged";
 /** Reasons a review can be flagged */
 export type FlagReason = "spam" | "inappropriate" | "fake" | "offensive" | "other";
 
+/** Admin moderation actions */
+export type ModerationAction = "approve" | "reject" | "flag" | "delete";
+
+/** Moderation log entry stored in Firestore subcollection */
+export interface ModerationLogEntry {
+  action: ModerationAction;
+  adminId: string;
+  adminName?: string;
+  reason?: string;
+  timestamp: string;
+}
+
+/** Seller response on a review */
+export interface SellerResponse {
+  content: string;
+  sellerId: string;
+  sellerName?: string;
+  respondedAt: string;
+  updatedAt?: string;
+}
+
+/** Filters for admin review queries */
+export interface ReviewFilters {
+  status?: ReviewStatus;
+  targetType?: ReviewTargetType;
+  ratingMin?: number;
+  ratingMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  keyword?: string;
+  flaggedOnly?: boolean;
+}
+
+/** Admin moderation stats */
+export interface ModerationStats {
+  totalReviews: number;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  flaggedCount: number;
+  averageRating: number;
+}
+
 /**
  * Core review data stored in Firestore.
  * Used for both product and grower reviews.
@@ -62,6 +105,16 @@ export interface FirestoreReview {
   flaggedBy: string[];
   /** Reasons for flagging */
   flagReasons: string[];
+  /** Admin who last moderated this review */
+  moderatedBy?: string;
+  /** ISO timestamp of last moderation action */
+  moderatedAt?: string;
+  /** Seller response content */
+  sellerResponse?: string;
+  /** ISO timestamp of seller response */
+  sellerResponseDate?: string;
+  /** Seller user ID who responded */
+  sellerRespondedBy?: string;
   /** ISO timestamp when the review was created */
   createdAt: string;
   /** ISO timestamp when the review was last updated */
@@ -80,6 +133,7 @@ export interface CreateReviewInput {
   title: string;
   content: string;
   images?: string[];
+  verifiedPurchase?: boolean;
 }
 
 /**

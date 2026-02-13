@@ -57,6 +57,15 @@
 - **Cal.com Element Targeting:** Use unique ID selectors (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace]`). The element MUST exist in DOM before calling Cal("inline", {...}). Add a `waitForElement()` function that polls for element existence.
 - **Cal.com Official Snippet Pattern:** CRITICAL: Use the OFFICIAL Cal.com IIFE snippet pattern for initialization. Do NOT pre-create a custom `window.Cal` function that conflicts with embed.js. The snippet uses `C.Cal = C.Cal || function...` pattern to only create Cal if it doesn't exist, and properly handles script loading internally.
 - **Cal.com Simplified Approach:** Cal.com's queue pattern means calls are queued IMMEDIATELY and processed when script loads - no need for waitForCal() or waitForElement() polling. Just inject snippet + call Cal() functions + mark as loaded.
+- **Admin Moderation Flow:** ReviewModerationModal receives review + callback handlers (onModerate, onAddAdminResponse, onDelete, onClearFlags). Status changes via FirebaseReviewService.moderateReview(). AlertDialog used for destructive delete confirmation.
+- **Sanity-Firebase Sync Pattern:** Bidirectional sync via API routes. sync-to-sanity: mapFirebaseToSanity() transforms fields + uses Sanity write client with SANITY_API_WRITE_TOKEN (server-only). sync-from-sanity: extractSyncableFields() picks status/adminResponse/moderation/flag fields for Firestore update.
+- **Seller Response Pattern:** SellerResponseModal uses useAuth() for seller identity + FirebaseReviewService for add/edit/delete response. Response stored in review.sellerResponse + sellerResponseDate fields. Modal has add/edit/delete modes based on existing response.
+- **Email Notification Trigger Pattern:** Fire-and-forget via sendRawEmail({to, subject, html}). Templates in src/lib/email/templates/. No await needed in calling code - logs errors silently. Gmail SMTP via nodemailer.
+- **Cloudinary Image Upload Pattern:** ReviewImageUpload uses NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME (drkcpvmfc) + UPLOAD_PRESET (Mash-Automation). Upload URL: https://api.cloudinary.com/v1_1/{CLOUD_NAME}/image/upload. FormData with file + upload_preset + folder fields.
+- **Review Analytics Pattern:** recharts for all charts. Data aggregation done client-side from Firestore reviews array. CSV export via Blob + download link. Sentiment derived from rating (1-2=negative, 3=neutral, 4-5=positive).
+- **Jest NextRequest Workaround:** jest.setupMocks.js Request polyfill uses this.url=url (setter) which conflicts with NextRequest getter-only url. Solution: pass plain {url: string} object cast to handler parameter type.
+- **Jest Email Template Testing:** @react-email/components render() requires --experimental-vm-modules. Use react-dom/server renderToStaticMarkup instead for Jest tests. Verify React.isValidElement() then renderToStaticMarkup().
+- **Jest File Upload Testing:** userEvent.upload v14+ respects input accept attribute. Use fireEvent.change(input, {target: {files: [file]}}) to test rejection of invalid file types. Mock URL.createObjectURL/revokeObjectURL in beforeEach.
 
 ## [2026-02-03 21:00] - Cal.com Simplified Embed Component
 **Completed:** Drastically simplified CalendlyEmbed.tsx by removing complex waiting logic
@@ -2686,4 +2695,40 @@ Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash
 **Deployments:** [PASS] Firebase rules deployed to mash-ddf8d | [PASS] Sanity Studio deployed to ppnamias.sanity.studio
 **Commit:** 9a05e15 (12 files changed, +2689 insertions, -27 deletions)
 **Pushed:** feature/reviews-rating-system-v2 branch
+---
+
+## [2025-07-17] - REVIEW-018 through REVIEW-022 (Final Completion)
+**Completed:** Helpful Voting UI fix, Review Analytics Dashboard, Seller Review Insights, Comprehensive Test Suite, Documentation
+**Files Changed:**
+- src/components/reviews/FirebaseReviewSection.tsx (fixed unclosed div in helpful voting)
+- src/components/reviews/__tests__/FirebaseReviewSection.test.tsx (updated 3 tests for new helpful voting UI)
+- src/app/(seller)/seller/analytics/reviews/page.tsx (NEW - full analytics dashboard with charts)
+- src/components/seller/ReviewInsights.tsx (NEW - seller insights with trends, keywords, alerts)
+- src/app/(seller)/seller/my-reviews/page.tsx (integrated ReviewInsights as tab)
+- src/components/admin/reviews/__tests__/ReviewModerationModal.test.tsx (NEW - 30 admin moderation tests)
+- src/components/seller/__tests__/SellerResponseModal.test.tsx (NEW - seller response modal tests)
+- src/lib/email/__tests__/review-notifications.test.ts (NEW - email notification trigger tests)
+- src/lib/email/__tests__/review-email-templates.test.tsx (NEW - 6 template render tests)
+- src/components/reviews/__tests__/ReviewImageUpload.test.tsx (NEW - 12 Cloudinary upload tests)
+- src/app/api/reviews/__tests__/verify-purchase.test.ts (NEW - 8 purchase verification tests)
+- prd-reviews.json (REVIEW-018 through REVIEW-022 all passes: true)
+- .github/REVIEW_RATING_SYSTEM_MASTER_PLAN.md (status updated to COMPLETE)
+
+**Implementation Notes:**
+- REVIEW-018: Fixed unclosed div in helpful voting refactor, updated tests for "Was this helpful?" format
+- REVIEW-019: Created full analytics dashboard with recharts (sentiment trend, rating distribution, category breakdown, top products table, CSV export)
+- REVIEW-020: Created seller insights component with review trends (7/30/90 day), keyword analysis, declining rating alerts
+- REVIEW-021: Created 6 new test files covering moderation, seller response, email, image upload, and API routes
+- REVIEW-022: Updated master plan status, appended codebase patterns
+
+**Learnings for Future Iterations:**
+- userEvent.upload (v14+) respects input accept attribute in jsdom - use fireEvent.change to test rejection of invalid types
+- jest.setupMocks.js Request polyfill conflicts with NextRequest constructor (url is getter-only) - use mock objects with url property instead
+- @react-email/components render() requires --experimental-vm-modules - use react-dom/server renderToStaticMarkup for Jest tests
+- URL.createObjectURL not available in jsdom - mock it in beforeEach for upload component tests
+- getAllByText/getAllByRole needed when shadcn AlertDialog creates duplicates of trigger text in dialog title
+- jest.clearAllMocks() clears global.fetch mock implementations - re-setup fetch mock in each beforeEach
+
+**Tests Passing:** [PASS] Review Tests: 255/255 (15 suites) | [PASS] Build (all routes) | [PASS] Lint | [PASS] TypeCheck
+**PRD Status:** 22/22 stories COMPLETE (prd-reviews.json v2.0.0)
 ---
