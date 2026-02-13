@@ -25,10 +25,12 @@ import { FirebaseReviewSection } from "@/components/reviews/FirebaseReviewSectio
 /* ------------------------------------------------------------------ */
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: string | number; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-xl bg-white/80 dark:bg-card/80 backdrop-blur-sm px-4 py-3 shadow-sm border border-border/50">
-      <Icon className="w-4 h-4 text-primary mb-0.5" />
+    <div className="flex flex-col items-center gap-1.5 rounded-xl bg-white dark:bg-card backdrop-blur-sm px-4 py-4 shadow-sm border border-border/60 hover:shadow-md transition-shadow">
+      <div className="p-1.5 rounded-lg bg-primary/10">
+        <Icon className="w-4 h-4 text-primary" />
+      </div>
       <span className="text-lg font-bold text-foreground leading-none">{value}</span>
-      <span className="text-[11px] text-muted-foreground leading-none">{label}</span>
+      <span className="text-[11px] text-muted-foreground leading-none font-medium uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -270,18 +272,7 @@ export default function GrowerDetailPage() {
                   )}
                 </div>
               )}
-              {calendlyData?.calendlyEnabled && (
-                <CalendlyButton
-                  growerSlug={slug || ""}
-                  growerName={grower.name}
-                  calendlyEnabled={calendlyData.calendlyEnabled}
-                  appointmentTypes={calendlyData.appointmentTypes}
-                  buttonText={calendlyData?.calcomButtonText || "Book Appointment"}
-                  variant="secondary"
-                  size="lg"
-                  className="shadow-lg font-semibold"
-                />
-              )}
+
             </div>
           </div>
         </div>
@@ -427,20 +418,16 @@ export default function GrowerDetailPage() {
             </section>
 
             {/* ---- Reviews Section ---- */}
-            <section className="rounded-xl border bg-card shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b bg-muted/30">
-                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  Customer Reviews
-                </h2>
-              </div>
-              <div className="px-6 py-5">
-                <FirebaseReviewSection
-                  targetType="grower"
-                  targetId={grower.id || slug || ""}
-                  targetName={grower.name}
-                />
-              </div>
+            <section>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                Customer Reviews
+              </h2>
+              <FirebaseReviewSection
+                targetType="grower"
+                targetId={grower.id || slug || ""}
+                targetName={grower.name}
+              />
             </section>
           </div>
 
@@ -450,7 +437,10 @@ export default function GrowerDetailPage() {
               {/* ---- Contact Card ---- */}
               <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b bg-muted/30">
-                  <h3 className="font-semibold text-foreground text-sm">Contact Information</h3>
+                  <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-primary" />
+                    Contact Information
+                  </h3>
                 </div>
                 <div className="p-5 space-y-3.5 text-sm">
                   {grower.location && (
@@ -466,7 +456,7 @@ export default function GrowerDetailPage() {
                       <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                         <Phone className="w-3.5 h-3.5" />
                       </div>
-                      <a href={`tel:${grower.contactPhone}`} className="text-muted-foreground hover:text-primary transition-colors">
+                      <a href={`tel:${grower.contactPhone}`} className="text-foreground font-medium hover:text-primary transition-colors">
                         {grower.contactPhone}
                       </a>
                     </div>
@@ -476,7 +466,7 @@ export default function GrowerDetailPage() {
                       <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                         <Mail className="w-3.5 h-3.5" />
                       </div>
-                      <a href={`mailto:${grower.contactEmail}`} className="text-muted-foreground hover:text-primary transition-colors truncate">
+                      <a href={`mailto:${grower.contactEmail}`} className="text-foreground font-medium hover:text-primary transition-colors truncate">
                         {grower.contactEmail}
                       </a>
                     </div>
@@ -495,6 +485,22 @@ export default function GrowerDetailPage() {
                     </div>
                   )}
                 </div>
+                {(grower.contactEmail || grower.contactPhone) && (
+                  <div className="px-5 pb-4 flex gap-2">
+                    {grower.contactEmail && (
+                      <a href={`mailto:${grower.contactEmail}`}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                        <Mail className="w-3.5 h-3.5" /> Email
+                      </a>
+                    )}
+                    {grower.contactPhone && (
+                      <a href={`tel:${grower.contactPhone}`}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                        <Phone className="w-3.5 h-3.5" /> Call
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* ---- Map ---- */}
@@ -527,20 +533,36 @@ export default function GrowerDetailPage() {
 
               {/* ---- Book Appointment Card ---- */}
               {calendlyData?.calendlyEnabled && (
-                <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-primary/10 to-emerald-50 dark:from-primary/10 dark:via-primary/5 dark:to-emerald-900/10 shadow-sm overflow-hidden">
-                  <div className="p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2.5 rounded-xl bg-primary/15">
-                        <Calendar className="w-5 h-5 text-primary" />
+                <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-emerald-50/80 to-primary/10 dark:from-primary/10 dark:via-emerald-900/20 dark:to-primary/5 shadow-md overflow-hidden">
+                  <div className="p-5 pb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-3 rounded-xl bg-primary text-white shadow-sm">
+                        <Calendar className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-foreground text-sm">Book an Appointment</h3>
-                        <p className="text-xs text-muted-foreground">Meet {grower.name}</p>
+                        <h3 className="font-bold text-foreground">Book an Appointment</h3>
+                        <p className="text-xs text-muted-foreground">Schedule a visit with {grower.name}</p>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                      Interested in our products? Schedule a consultation for bulk orders, custom requests, or a farm visit.
+                  </div>
+                  <div className="px-5 pb-2">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Interested in our products? Schedule a consultation for bulk orders, custom growing requests, or a farm tour.
                     </p>
+                  </div>
+                  {calendlyData.appointmentTypes && calendlyData.appointmentTypes.length > 0 && (
+                    <div className="px-5 pb-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {calendlyData.appointmentTypes.slice(0, 3).map((apt, i) => (
+                          <Badge key={i} variant="secondary" className="text-[11px] bg-white/70 dark:bg-white/10">
+                            {apt.name}
+                            {apt.duration && <span className="text-muted-foreground ml-1">({apt.duration}min)</span>}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-5 pt-3">
                     <CalendlyButton
                       growerSlug={slug || ""}
                       growerName={grower.name}
@@ -548,59 +570,18 @@ export default function GrowerDetailPage() {
                       appointmentTypes={calendlyData.appointmentTypes}
                       buttonText={calendlyData?.calcomButtonText || "Book Appointment"}
                       variant="default"
-                      size="default"
-                      className="w-full"
+                      size="lg"
+                      className="w-full font-semibold shadow-sm"
                     />
+                    {calendlyData.appointmentNotes && (
+                      <p className="text-[11px] text-muted-foreground text-center mt-2.5">
+                        {calendlyData.appointmentNotes}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* ---- Store Locations ---- */}
-              {grower.availableAtStores && grower.availableAtStores.length > 0 && (
-                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b bg-muted/30">
-                    <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
-                      <Store className="w-4 h-4 text-primary" />
-                      Find Our Products At
-                    </h3>
-                  </div>
-                  <div className="p-3 space-y-2">
-                    {grower.availableAtStores.map((store) => (
-                      <Link
-                        key={store.id}
-                        href={`/stores/${store.slug}`}
-                        className="group flex items-center justify-between p-3 rounded-lg hover:bg-muted/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                            {store.imageUrl ? (
-                              <Image src={store.imageUrl} alt={store.name} fill className="object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Store className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm group-hover:text-primary transition-colors">{store.name}</div>
-                            {(store.city || store.state) && (
-                              <div className="text-xs text-muted-foreground">
-                                {[store.city, store.state].filter(Boolean).join(", ")}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </Link>
-                    ))}
-                  </div>
-                  <div className="px-5 pb-4 pt-1">
-                    <Link href="/stores" className="block text-center text-sm text-primary hover:underline font-medium">
-                      View All Store Locations
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
           </aside>
         </div>

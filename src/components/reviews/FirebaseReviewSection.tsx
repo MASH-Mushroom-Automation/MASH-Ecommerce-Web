@@ -402,17 +402,7 @@ export function FirebaseReviewSection({
         </div>
       )}
 
-      {/* Real-Time Indicator */}
-      {reviews.length > 0 && (
-        <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <AlertDescription className="text-blue-800 dark:text-blue-200">
-              Reviews update in real-time
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
+
     </div>
   );
 }
