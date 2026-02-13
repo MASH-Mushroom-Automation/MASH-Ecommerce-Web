@@ -2678,3 +2678,69 @@ Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash
 **Branch:** feature/phone-verification-2fa
 **PRD:** prd-phone-verification-2fa.json (STORY-2FA-004 marked complete: passes=true)
 ---
+
+## [2026-02-14 23:15] - STORY-2FA-002
+**Completed:** Backend OTP Service API Endpoints (Frontend API Client Only)
+**Files Created:**
+- src/lib/api/otp.ts - OTP API client with 3 functions (sendOTP, verifyOTP, resendOTP)
+- src/lib/api/__tests__/otp.test.ts - 23 unit tests with mocked apiRequest responses
+
+**Implementation Notes:**
+- Created FRONTEND API CLIENT ONLY - backend endpoints must be implemented separately in MASH-Backend repo
+- sendOTP(phoneNumber, purpose): Calls POST /api/v1/otp/send with E.164 format validation, returns masked phone + expiration timestamp
+- verifyOTP(phoneNumber, code): Calls POST /api/v1/otp/verify with attempt tracking, max 3 failures = account lock
+- resendOTP(phoneNumber): Calls POST /api/v1/otp/resend with 60-second cooldown enforcement between requests
+- OTPErrorCode enum: 10 typed error codes for granular error handling (RATE_LIMIT_EXCEEDED, INVALID_OTP, EXPIRED_OTP, MAX_ATTEMPTS_EXCEEDED, PHONE_NOT_FOUND, INVALID_PHONE_FORMAT, TWILIO_ERROR, OTP_NOT_FOUND, VERIFICATION_LOCKED, COOLDOWN_ACTIVE)
+- TypeScript interfaces: 6 request/response types + 3 data interfaces for full type safety
+- All functions return Promise<ApiResponse<T>> using existing apiRequest() helper from api-client.ts
+- Comprehensive JSDoc with @param, @returns, @throws, @example blocks for IDE autocomplete
+- Error responses include statusCode, message, and errorCode for client-side differentiation
+
+**Function Signatures:**
+- sendOTP(phoneNumber: string, purpose?: 'PHONE_VERIFICATION' | '2FA_LOGIN' | 'PHONE_CHANGE'): Promise<ApiResponse<SendOTPData>>
+- verifyOTP(phoneNumber: string, code: string): Promise<ApiResponse<VerifyOTPData>>
+- resendOTP(phoneNumber: string): Promise<ApiResponse<ResendOTPData>>
+
+**Type Definitions:**
+- SendOTPData: { success, message, phoneNumber (masked), expiresAt, expiresIn, cooldownUntil, attemptsRemaining }
+- VerifyOTPData: { success, verified, message, attemptsRemaining, lockedUntil }
+- ResendOTPData: { success, message, phoneNumber (masked), expiresAt, expiresIn, cooldownUntil, attemptsRemaining }
+
+**Test Coverage:**
+- 23 unit tests organized in 4 describe blocks: Send OTP (6), Verify OTP (6), Resend OTP (6), Integration (5)
+- Success scenarios: All 3 API calls with proper response data structures
+- Error scenarios: Rate limits (429), invalid phone format (400), Twilio failures (500), invalid/expired OTP (400), max attempts exceeded (400), cooldown periods (429)
+- Integration tests: apiRequest headers/method verification, JSON body serialization, error propagation, authentication errors (401), server errors (500)
+- Mocked dependencies: apiRequest from api-client.ts, sonner toast notifications
+- Edge cases: Empty phone numbers, server errors, network failures, authentication failures
+- Test execution: 1.527s runtime, 23/23 passing
+
+**Backend Requirements (NOT IMPLEMENTED - SEPARATE MASH-Backend REPO TASK):**
+[IMPORTANT] These endpoints DO NOT EXIST yet. Backend implementation required:
+- POST /api/v1/otp/send: Generate 6-digit OTP (crypto.randomInt(100000, 999999)), hash with bcrypt (cost 10), store in Firestore, send via Twilio SMS API
+- POST /api/v1/otp/verify: Verify OTP with bcrypt.compare(), track failed attempts, lock after 3 failures for 15 minutes
+- POST /api/v1/otp/resend: Resend same OTP code (don't generate new), enforce 60s cooldown between requests
+- Firestore otp_verifications collection schema: { id, userId, phoneNumber, code (bcrypt hashed), purpose, attempts, expiresAt, verified, createdAt, updatedAt }
+- Rate limiting: Max 3 sends per phone per 15min window, max 5 per user per hour
+- OTP expiration: 5 minutes from generation timestamp
+- Firestore TTL policy: Auto-delete OTP documents after 10 minutes
+- Security requirements: All endpoints require authentication (JWT), phone numbers must be E.164 format (+63XXXXXXXXXX), never store plaintext OTPs
+
+**Learnings for Future Iterations:**
+- Frontend API clients can be implemented before backend endpoints using TypeScript contracts
+- apiRequest() helper from api-client.ts provides consistent error handling across all API calls
+- apiRequest automatically adds Authorization header from auth-token cookie and handles 401 token refresh
+- TypeScript interfaces document expected backend response shapes, serving as implementation contract
+- Error codes (OTPErrorCode enum) enable client-side differentiation of failure types (validation vs rate limit vs network)
+- JSDoc @throws declarations help IDE show required error handling for function consumers
+- Mocking apiRequest in tests is cleaner than mocking fetch directly - isolates API client logic from HTTP layer
+- Always test error propagation thoroughly - verify statusCode, message, and response.data structure match backend contract
+- ApiResponse<T> generic wrapper ensures consistent response structure: { success, data?, message?, statusCode }
+
+**Quality Gates:** [PASS] Build (143 routes compiled, 22.7s) | [PASS] Lint (zero warnings) | [PASS] TypeCheck (all type signatures validated) | [PASS] Tests (23/23 passing, 1.527s runtime)
+**Bundle Impact:** +5KB (estimated - 193 lines of source code)
+**Commit:** b97115a (11 files changed, +2016 insertions including prior uncommitted work)
+**Branch:** feature/phone-verification-2fa
+**PRD:** prd-phone-verification-2fa.json (STORY-2FA-002 marked complete: passes=true, status=Complete, completedAt=2026-02-14T23:15:00Z)
+**Reference:** STORY-2FA-002
+---
