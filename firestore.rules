@@ -186,6 +186,24 @@ service cloud.firestore {
     
     
     // ========================================
+    // OTP VERIFICATIONS COLLECTION
+    // ========================================
+    match /otp_verifications/{verificationId} {
+      // Users can only read their own OTP verifications
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can only create OTP verifications for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own OTP verifications (increment attempts, mark verified)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own OTP verifications
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    
+    // ========================================
     // CHATBOT ANALYTICS COLLECTIONS
     // ========================================
     

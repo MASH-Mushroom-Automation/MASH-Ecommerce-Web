@@ -65,3 +65,13 @@ export {
   calculateRatingStats,
   type FirebaseRatingStats,
 } from "./reviews";
+
+// OTP Service (Phone Verification & 2FA)
+export { OTPService } from "./otp-service";
+export type {
+  OTPVerification,
+  OTPPurpose,
+  CreateOTPVerificationInput,
+  OTPVerificationResult,
+  OTPVerificationQuery,
+} from "@/types/otp";

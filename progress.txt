@@ -2645,3 +2645,36 @@ Firestore rules and indexes saved locally but NOT deployed (account permission i
 Project owner must deploy via: npx firebase deploy --only firestore:rules,firestore:indexes
 Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash-ddf8d/
 ---
+
+## [2026-02-14] - STORY-2FA-004: Phone Number Validation Utilities
+**Completed:** Philippine phone number validation utilities with E.164 formatting, validation, normalization, and privacy masking
+**Files Created:**
+- src/lib/phone-utils.ts - 4 utility functions with comprehensive JSDoc documentation
+- src/lib/__tests__/phone-utils.test.ts - 63 unit tests with 100% coverage
+
+**Implementation Notes:**
+- formatPhoneNumber(): Converts 4 input formats (+63XXXXXXXXXX, 63XXXXXXXXXX, 09XXXXXXXXX, 9XXXXXXXXX) to E.164 standard
+- validatePhilippinePhoneNumber(): Validates against 87 known PH mobile prefixes (Smart 813-959, Globe 960-979, DITO 980-999)
+- normalizePhoneNumber(): Strips all formatting (spaces, dashes, parentheses) using regex /[^\d+]/g
+- maskPhoneNumber(): Returns privacy-safe format (+63 *** *** **34) showing only last 2 digits
+- All functions null-safe with graceful empty string returns for invalid inputs
+- VALID_PH_PREFIXES array: Comprehensive list covering 0813-0819, 0905-0906, 0907-0909, 0910-0999 ranges
+
+**Learnings for Future Iterations:**
+- Philippine mobile prefix ranges: Smart (813-959), Globe (960-979), DITO (980-999) - no overlap
+- E.164 international format: +63XXXXXXXXXX (13 chars total) is standard for global compatibility
+- Test validation bug: Prefix 911 (0911) is VALID Smart range, not invalid - use 811 (0811) for invalid tests
+- Defensive programming: Always return empty string for null/undefined instead of throwing errors for better UX
+
+**Test Coverage:**
+- 63 unit tests organized by function: Null safety (16), Format normalization (8), Format conversion (10), PH validation (16), Masking (8), Integration (5)
+- Edge cases covered: Empty strings, null, undefined, invalid formats, short/long numbers, wrong country codes, special characters
+- All valid prefix ranges tested: 0813, 0905, 0917, 0960, 0975, 0980, 0999, etc.
+- Integration tests validate complete workflow: normalize → format → validate → mask
+
+**Quality Gates:** [PASS] Build (143 routes) | [PASS] Lint (zero warnings) | [PASS] TypeCheck (all signatures validated) | [PASS] Tests (63/63)
+**Bundle Impact:** +3KB (estimated)
+**Commit:** f9fb92d (2 files changed, +527 insertions)
+**Branch:** feature/phone-verification-2fa
+**PRD:** prd-phone-verification-2fa.json (STORY-2FA-004 marked complete: passes=true)
+---

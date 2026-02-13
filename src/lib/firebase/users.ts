@@ -42,6 +42,13 @@ export interface FirestoreUserProfile {
   provider: "email" | "google" | "email-link";
   emailVerified: boolean;
   
+  // Phone verification & 2FA
+  phoneNumber?: string;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: Timestamp;
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: "SMS";
+  
   // Preferences
   preferences?: {
     cookingLevel?: string;
