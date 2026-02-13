@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -48,6 +49,7 @@ import {
 } from "@/lib/token-refresh";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api-client";
 
 // ============================================================================
 // Firebase Auth Cookie Helpers (for proxy/middleware detection)
@@ -96,6 +98,8 @@ export interface AuthUser {
   emailVerified: boolean;
   onboardingCompleted?: boolean;
   preferences?: FirestoreUserProfile["preferences"];
+  twoFactorEnabled: boolean;
+  twoFactorMethod?: "SMS";
 }
 
 interface AuthContextType {
@@ -140,6 +144,12 @@ interface AuthContextType {
     hasToken: boolean;
     expiresIn: string | null;
   }>;
+
+  // Two-Factor Authentication
+  enable2FA: () => Promise<void>;
+  disable2FA: () => Promise<void>;
+  verify2FA: (code: string) => Promise<void>;
+  requiresTwoFactor: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const tempTokenRef = useRef<string | null>(null);
   const router = useRouter();
 
   /**
@@ -192,6 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailVerified: profile.emailVerified,
         onboardingCompleted: profile.onboardingCompleted,
         preferences: profile.preferences,
+        twoFactorEnabled: (profile as unknown as Record<string, unknown>).twoFactorEnabled === true,
+        twoFactorMethod: (profile as unknown as Record<string, unknown>).twoFactorEnabled ? "SMS" : undefined,
       };
     },
     [],
@@ -310,6 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: fbUser.photoURL || undefined,
           provider,
           emailVerified: fbUser.emailVerified,
+          twoFactorEnabled: false,
         };
 
         setUser(authUser);
@@ -479,6 +494,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: backendUser?.imageUrl || fbUser.photoURL || undefined,
           provider: "google",
           emailVerified: true, // Verified by Firebase
+          twoFactorEnabled: false,
         };
 
         setUser(authUser);
@@ -721,6 +737,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatar: fbUser.photoURL || undefined,
             provider: "google",
             emailVerified: fbUser.emailVerified,
+            twoFactorEnabled: false,
           };
           setUser(authUser);
           setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
@@ -1020,8 +1037,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncToFirestoreProfile(fbUser, "email");
 
       // Optional: try to sync to backend for JWT (non-blocking)
+      // Also check if 2FA is required from the backend response
       try {
-        await syncFirebaseUserToBackend(fbUser);
+        const backendResult = await syncFirebaseUserToBackend(fbUser);
+
+        // Check if the backend response indicates 2FA is required
+        // The syncFirebaseUserToBackend may return user data with 2FA flag
+        if (backendResult && (backendResult as AuthUser & { requiresTwoFactor?: boolean; tempToken?: string }).requiresTwoFactor) {
+          const twoFactorResult = backendResult as AuthUser & { requiresTwoFactor: boolean; tempToken: string };
+          // Store tempToken in memory only (useRef - never in storage)
+          tempTokenRef.current = twoFactorResult.tempToken;
+          setRequiresTwoFactor(true);
+          setLoading(false);
+          toast.dismiss("email-signin");
+          toast.info("Two-factor authentication required", {
+            description: "Please enter the verification code sent to your phone.",
+          });
+          return;
+        }
       } catch {
         // Backend sync failed, but Firestore profile is still saved
         console.warn("Backend sync failed, using Firebase only");
@@ -1034,6 +1067,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           displayName: fbUser.displayName || undefined,
           provider: "email",
           emailVerified: fbUser.emailVerified,
+          twoFactorEnabled: false,
         };
 
         setUser(authUser);
@@ -1146,6 +1180,159 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw handledError;
     }
   };
+
+  // ============================================================================
+  // TWO-FACTOR AUTHENTICATION HANDLERS
+  // ============================================================================
+
+  /**
+   * Enable 2FA for the current user
+   * Requires phone to be verified before enabling
+   */
+  const handleEnable2FA = useCallback(async () => {
+    if (!user) {
+      throw new Error("No user logged in");
+    }
+    if (!user.phone) {
+      toast.error("Phone verification required", {
+        description: "Please verify your phone number before enabling 2FA.",
+      });
+      throw new Error("Phone not verified");
+    }
+
+    try {
+      await apiRequest("/auth/2fa/enable", {
+        method: "POST",
+      });
+      const updatedUser: AuthUser = {
+        ...user,
+        twoFactorEnabled: true,
+        twoFactorMethod: "SMS",
+      };
+      setUser(updatedUser);
+      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+      toast.success("Two-factor authentication enabled");
+    } catch (error: unknown) {
+      console.error("[Auth] Enable 2FA error:", error);
+      const message = error instanceof Error ? error.message : "Failed to enable 2FA";
+      toast.error("Failed to enable 2FA", { description: message });
+      throw error;
+    }
+  }, [user]);
+
+  /**
+   * Disable 2FA for the current user
+   */
+  const handleDisable2FA = useCallback(async () => {
+    if (!user) {
+      throw new Error("No user logged in");
+    }
+
+    try {
+      await apiRequest("/auth/2fa/disable", {
+        method: "POST",
+      });
+      const updatedUser: AuthUser = {
+        ...user,
+        twoFactorEnabled: false,
+        twoFactorMethod: undefined,
+      };
+      setUser(updatedUser);
+      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+      toast.success("Two-factor authentication disabled");
+    } catch (error: unknown) {
+      console.error("[Auth] Disable 2FA error:", error);
+      const message = error instanceof Error ? error.message : "Failed to disable 2FA";
+      toast.error("Failed to disable 2FA", { description: message });
+      throw error;
+    }
+  }, [user]);
+
+  /**
+   * Verify 2FA OTP code during login
+   * Uses tempToken stored in useRef (never persisted to storage)
+   */
+  const handleVerify2FA = useCallback(async (code: string) => {
+    const tempToken = tempTokenRef.current;
+    if (!tempToken) {
+      throw new Error("No pending 2FA verification");
+    }
+
+    try {
+      toast.loading("Verifying code...", { id: "2fa-verify" });
+
+      const response = await apiRequest<{
+        data: {
+          user: {
+            id: string;
+            email: string;
+            firstName?: string;
+            lastName?: string;
+            username?: string;
+            phone?: string;
+            imageUrl?: string;
+            twoFactorEnabled?: boolean;
+          };
+          accessToken: string;
+          refreshToken?: string;
+        };
+      }>("/auth/2fa/verify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tempToken}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      // Clear tempToken immediately after successful verification
+      tempTokenRef.current = null;
+      setRequiresTwoFactor(false);
+
+      const payload = response.data;
+
+      // Set auth tokens
+      if (payload.accessToken) {
+        setAuthToken(payload.accessToken, payload.refreshToken, true);
+      }
+
+      // Build user from response
+      const backendUser = payload.user;
+      const authUser: AuthUser = {
+        id: backendUser.id,
+        email: backendUser.email,
+        firstName: backendUser.firstName,
+        lastName: backendUser.lastName,
+        username: backendUser.username,
+        phone: backendUser.phone,
+        imageUrl: backendUser.imageUrl,
+        provider: "email",
+        emailVerified: true,
+        twoFactorEnabled: backendUser.twoFactorEnabled ?? true,
+        twoFactorMethod: "SMS",
+      };
+
+      setUser(authUser);
+      setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
+
+      toast.dismiss("2fa-verify");
+      toast.success(`Welcome back, ${authUser.firstName || authUser.email}!`);
+
+      // Redirect after successful 2FA
+      const redirectUrl =
+        sessionStorage.getItem("auth-redirect-url") ||
+        sessionStorage.getItem("redirectUrl") ||
+        "/";
+      sessionStorage.removeItem("auth-redirect-url");
+      sessionStorage.removeItem("redirectUrl");
+      window.location.href = redirectUrl;
+    } catch (error: unknown) {
+      toast.dismiss("2fa-verify");
+      console.error("[Auth] 2FA verification error:", error);
+      const message = error instanceof Error ? error.message : "Invalid verification code";
+      toast.error("Verification failed", { description: message });
+      throw error;
+    }
+  }, []);
 
   // ============================================================================
   // EMAIL LINK (PASSWORDLESS) AUTHENTICATION HANDLERS
@@ -1402,6 +1589,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Phase 5: Session Management
     signOutEverywhere: handleSignOutEverywhere,
     getSessionInfo: handleGetSessionInfo,
+    // Two-Factor Authentication
+    enable2FA: handleEnable2FA,
+    disable2FA: handleDisable2FA,
+    verify2FA: handleVerify2FA,
+    requiresTwoFactor,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
