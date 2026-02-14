@@ -12,14 +12,14 @@
 
 import { sendSMS, sendOTP, isTwilioConfigured, logSMSSend } from "../twilio";
 import { doc, getDoc, setDoc, increment, deleteDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 
 // Mock Firestore
 jest.mock("@/lib/firebase/config", () => ({
-  db: {},
+  firebaseApp: {},
 }));
 
 jest.mock("firebase/firestore", () => ({
+  getFirestore: jest.fn(() => ({})),
   doc: jest.fn(),
   getDoc: jest.fn(),
   setDoc: jest.fn(),

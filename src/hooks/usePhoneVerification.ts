@@ -147,6 +147,7 @@ export function usePhoneVerification(
   const [attempts, setAttempts] = useState<number>(0);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const [expirySeconds, setExpirySeconds] = useState<number>(0);
+  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   // ============================================================================
   // Refs for timer management
@@ -270,13 +271,24 @@ export function usePhoneVerification(
         const response = await OTPApi.sendOTP(phone, 'PHONE_VERIFICATION');
 
         if (response.success && response.data) {
-          const data = response.data as SendOTPData;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
           
+          // Track verificationId for verify/resend calls
+          if (data.verificationId) {
+            setVerificationId(data.verificationId);
+          }
+
           setState('sent');
           startCooldownTimer();
           startExpiryTimer(data.expiresAt);
 
-          toast.success(`Verification code sent to ${data.phoneNumber}`);
+          // In dev mode, show the code in the toast so user can complete the flow
+          if (data.devCode) {
+            toast.success(`Code sent! Dev code: ${data.devCode}`, { duration: 15000 });
+          } else {
+            toast.success(`Verification code sent to ${data.phoneNumber}`);
+          }
         } else {
           throw new Error(response.message || 'Failed to send OTP');
         }
@@ -374,13 +386,22 @@ export function usePhoneVerification(
       const response = await OTPApi.resendOTP(phoneNumber);
 
       if (response.success && response.data) {
-        const data = response.data as SendOTPData;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
         
+        if (data.verificationId) {
+          setVerificationId(data.verificationId);
+        }
+
         setState('sent');
         startCooldownTimer();
         startExpiryTimer(data.expiresAt);
 
-        toast.success('Verification code resent');
+        if (data.devCode) {
+          toast.success(`Code resent! Dev code: ${data.devCode}`, { duration: 15000 });
+        } else {
+          toast.success('Verification code resent');
+        }
       } else {
         throw new Error(response.message || 'Failed to resend OTP');
       }
@@ -403,6 +424,7 @@ export function usePhoneVerification(
     setAttempts(0);
     setCooldownSeconds(0);
     setExpirySeconds(0);
+    setVerificationId(null);
     clearTimers();
     lastSentAtRef.current = null;
     expiresAtRef.current = null;

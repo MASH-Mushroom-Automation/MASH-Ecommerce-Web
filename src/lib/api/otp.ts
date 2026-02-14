@@ -1,5 +1,29 @@
-import { apiRequest } from "../api-client";
 import { ApiResponse } from "@/types/api";
+
+/**
+ * Local fetch helper – calls our own Next.js API routes (/api/otp/*)
+ * instead of the backend, so no CSRF token is needed.
+ */
+async function localApiRequest<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string>),
+    },
+  });
+
+  const data = await res.json();
+
+  if (!res.ok && !data.success) {
+    throw new Error(data.message || `Request failed (${res.status})`);
+  }
+
+  return data as T;
+}
 
 // OTP Error Codes for typed error handling
 export enum OTPErrorCode {
@@ -109,7 +133,7 @@ export const OTPApi = {
     phoneNumber: string,
     purpose: SendOTPRequest["purpose"] = "PHONE_VERIFICATION"
   ): Promise<SendOTPResponse> => {
-    return apiRequest<SendOTPResponse>("/otp/send", {
+    return localApiRequest<SendOTPResponse>("/api/otp/send", {
       method: "POST",
       body: JSON.stringify({ phoneNumber, purpose }),
     });
@@ -143,7 +167,7 @@ export const OTPApi = {
     phoneNumber: string,
     code: string
   ): Promise<VerifyOTPResponse> => {
-    return apiRequest<VerifyOTPResponse>("/otp/verify", {
+    return localApiRequest<VerifyOTPResponse>("/api/otp/verify", {
       method: "POST",
       body: JSON.stringify({ phoneNumber, code }),
     });
@@ -172,7 +196,7 @@ export const OTPApi = {
    * }
    */
   resendOTP: async (phoneNumber: string): Promise<ResendOTPResponse> => {
-    return apiRequest<ResendOTPResponse>("/otp/resend", {
+    return localApiRequest<ResendOTPResponse>("/api/otp/resend", {
       method: "POST",
       body: JSON.stringify({ phoneNumber }),
     });

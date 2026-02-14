@@ -7,15 +7,16 @@
  * - Resend OTP with success/error scenarios
  * - Error handling for rate limits, invalid codes, expired OTPs
  * - TypeScript type safety for request/response objects
+ *
+ * NOTE: OTP client now uses localApiRequest (plain fetch to /api/otp/*)
+ *       instead of the backend apiRequest, so we mock global.fetch.
  */
 
 import { OTPApi, OTPErrorCode } from "../otp";
-import { apiRequest } from "../../api-client";
 
-// Mock api-client
-jest.mock("../../api-client", () => ({
-  apiRequest: jest.fn(),
-}));
+// Mock global fetch (used by localApiRequest inside otp.ts)
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
 // Mock toast
 jest.mock("sonner", () => ({
@@ -32,6 +33,32 @@ describe("OTP API Client", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
+  // Helper: create a mock Response for fetch
+  function mockFetchResponse(data: unknown, ok = true, status = 200) {
+    mockFetch.mockResolvedValueOnce({
+      ok,
+      status,
+      json: () => Promise.resolve(data),
+    });
+  }
+
+  // Helper: assert fetch was called with correct path + body
+  function expectFetchCalledWith(
+    path: string,
+    bodyObj: Record<string, unknown>
+  ) {
+    expect(mockFetch).toHaveBeenCalledWith(
+      path,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(bodyObj),
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+      })
+    );
+  }
 
   // =========================================================================
   // Send OTP Tests
@@ -50,16 +77,13 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.sendOTP(mockPhoneNumber);
 
-      expect(apiRequest).toHaveBeenCalledWith("/otp/send", {
-        method: "POST",
-        body: JSON.stringify({
-          phoneNumber: mockPhoneNumber,
-          purpose: "PHONE_VERIFICATION",
-        }),
+      expectFetchCalledWith("/api/otp/send", {
+        phoneNumber: mockPhoneNumber,
+        purpose: "PHONE_VERIFICATION",
       });
 
       expect(result.success).toBe(true);
@@ -79,72 +103,72 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       await OTPApi.sendOTP(mockPhoneNumber, "2FA_LOGIN");
 
-      expect(apiRequest).toHaveBeenCalledWith("/otp/send", {
-        method: "POST",
-        body: JSON.stringify({
-          phoneNumber: mockPhoneNumber,
-          purpose: "2FA_LOGIN",
-        }),
+      expectFetchCalledWith("/api/otp/send", {
+        phoneNumber: mockPhoneNumber,
+        purpose: "2FA_LOGIN",
       });
     });
 
     it("should handle rate limit error", async () => {
-      const mockError = new Error("Rate limit exceeded");
-      (mockError as any).statusCode = 429;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "Too many OTP requests. Please try again in 15 minutes.",
-          errorCode: OTPErrorCode.RATE_LIMIT_EXCEEDED,
-          cooldownUntil: "2026-02-14T15:15:00Z",
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.RATE_LIMIT_EXCEEDED,
+            cooldownUntil: "2026-02-14T15:15:00Z",
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        429
+      );
 
       await expect(OTPApi.sendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Rate limit exceeded"
+        "Too many OTP requests"
       );
     });
 
     it("should handle invalid phone format error", async () => {
-      const mockError = new Error("Invalid phone number format");
-      (mockError as any).statusCode = 400;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message:
             "Phone number must be in E.164 format (e.g., +639171234567)",
-          errorCode: OTPErrorCode.INVALID_PHONE_FORMAT,
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.INVALID_PHONE_FORMAT,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        400
+      );
 
       await expect(OTPApi.sendOTP("09171234567")).rejects.toThrow(
-        "Invalid phone number format"
+        "Phone number must be in E.164 format"
       );
     });
 
     it("should handle Twilio API failure", async () => {
-      const mockError = new Error("Failed to send SMS via Twilio");
-      (mockError as any).statusCode = 500;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "SMS delivery failed. Please try again.",
-          errorCode: OTPErrorCode.TWILIO_ERROR,
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.TWILIO_ERROR,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        500
+      );
 
       await expect(OTPApi.sendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Failed to send SMS via Twilio"
+        "SMS delivery failed"
       );
     });
 
@@ -157,11 +181,11 @@ describe("OTP API Client", () => {
           phoneNumber: "+63 *** *** **67",
           expiresAt: "2026-02-14T15:05:00Z",
           expiresIn: 300,
-          attemptsRemaining: 1, // Only 1 attempt left before rate limit
+          attemptsRemaining: 1,
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.sendOTP(mockPhoneNumber);
 
@@ -184,16 +208,13 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.verifyOTP(mockPhoneNumber, mockOTP);
 
-      expect(apiRequest).toHaveBeenCalledWith("/otp/verify", {
-        method: "POST",
-        body: JSON.stringify({
-          phoneNumber: mockPhoneNumber,
-          code: mockOTP,
-        }),
+      expectFetchCalledWith("/api/otp/verify", {
+        phoneNumber: mockPhoneNumber,
+        code: mockOTP,
       });
 
       expect(result.success).toBe(true);
@@ -201,19 +222,20 @@ describe("OTP API Client", () => {
     });
 
     it("should handle invalid OTP code", async () => {
-      const mockError = new Error("Invalid OTP code");
-      (mockError as any).statusCode = 400;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
-          verified: false,
           message: "Invalid OTP code",
-          errorCode: OTPErrorCode.INVALID_OTP,
-          attemptsRemaining: 2,
+          data: {
+            success: false,
+            verified: false,
+            errorCode: OTPErrorCode.INVALID_OTP,
+            attemptsRemaining: 2,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        400
+      );
 
       await expect(
         OTPApi.verifyOTP(mockPhoneNumber, "000000")
@@ -221,18 +243,19 @@ describe("OTP API Client", () => {
     });
 
     it("should handle expired OTP", async () => {
-      const mockError = new Error("OTP has expired");
-      (mockError as any).statusCode = 400;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
-          verified: false,
           message: "OTP has expired. Please request a new one.",
-          errorCode: OTPErrorCode.EXPIRED_OTP,
+          data: {
+            success: false,
+            verified: false,
+            errorCode: OTPErrorCode.EXPIRED_OTP,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        400
+      );
 
       await expect(OTPApi.verifyOTP(mockPhoneNumber, mockOTP)).rejects.toThrow(
         "OTP has expired"
@@ -240,43 +263,45 @@ describe("OTP API Client", () => {
     });
 
     it("should handle max attempts exceeded", async () => {
-      const mockError = new Error("Maximum verification attempts exceeded");
-      (mockError as any).statusCode = 429;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
-          verified: false,
           message:
             "Too many failed attempts. Verification locked for 15 minutes.",
-          errorCode: OTPErrorCode.MAX_ATTEMPTS_EXCEEDED,
-          attemptsRemaining: 0,
-          lockedUntil: "2026-02-14T15:15:00Z",
+          data: {
+            success: false,
+            verified: false,
+            errorCode: OTPErrorCode.MAX_ATTEMPTS_EXCEEDED,
+            attemptsRemaining: 0,
+            lockedUntil: "2026-02-14T15:15:00Z",
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        429
+      );
 
       await expect(OTPApi.verifyOTP(mockPhoneNumber, mockOTP)).rejects.toThrow(
-        "Maximum verification attempts exceeded"
+        "Too many failed attempts"
       );
     });
 
     it("should handle OTP not found", async () => {
-      const mockError = new Error("OTP not found");
-      (mockError as any).statusCode = 404;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
-          verified: false,
           message: "No OTP found for this phone number. Please request a new one.",
-          errorCode: OTPErrorCode.OTP_NOT_FOUND,
+          data: {
+            success: false,
+            verified: false,
+            errorCode: OTPErrorCode.OTP_NOT_FOUND,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        404
+      );
 
       await expect(OTPApi.verifyOTP(mockPhoneNumber, mockOTP)).rejects.toThrow(
-        "OTP not found"
+        "No OTP found"
       );
     });
 
@@ -287,11 +312,11 @@ describe("OTP API Client", () => {
           success: true,
           verified: true,
           message: "Phone number verified successfully",
-          attemptsRemaining: 3, // Reset after successful verification
+          attemptsRemaining: 3,
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.verifyOTP(mockPhoneNumber, mockOTP);
 
@@ -316,15 +341,12 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.resendOTP(mockPhoneNumber);
 
-      expect(apiRequest).toHaveBeenCalledWith("/otp/resend", {
-        method: "POST",
-        body: JSON.stringify({
-          phoneNumber: mockPhoneNumber,
-        }),
+      expectFetchCalledWith("/api/otp/resend", {
+        phoneNumber: mockPhoneNumber,
       });
 
       expect(result.success).toBe(true);
@@ -332,76 +354,80 @@ describe("OTP API Client", () => {
     });
 
     it("should handle cooldown period", async () => {
-      const mockError = new Error("Cooldown active");
-      (mockError as any).statusCode = 429;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "Please wait 60 seconds before requesting another OTP",
-          errorCode: OTPErrorCode.COOLDOWN_ACTIVE,
-          cooldownUntil: "2026-02-14T15:01:00Z",
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.COOLDOWN_ACTIVE,
+            cooldownUntil: "2026-02-14T15:01:00Z",
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        429
+      );
 
       await expect(OTPApi.resendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Cooldown active"
+        "Please wait 60 seconds"
       );
     });
 
     it("should handle OTP not found error", async () => {
-      const mockError = new Error("OTP not found");
-      (mockError as any).statusCode = 404;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message:
             "No active OTP found. Please send a new OTP instead of resending.",
-          errorCode: OTPErrorCode.OTP_NOT_FOUND,
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.OTP_NOT_FOUND,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        404
+      );
 
       await expect(OTPApi.resendOTP(mockPhoneNumber)).rejects.toThrow(
-        "OTP not found"
+        "No active OTP found"
       );
     });
 
     it("should handle rate limit exceeded", async () => {
-      const mockError = new Error("Rate limit exceeded");
-      (mockError as any).statusCode = 429;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "Too many resend attempts. Please try again later.",
-          errorCode: OTPErrorCode.RATE_LIMIT_EXCEEDED,
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.RATE_LIMIT_EXCEEDED,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        429
+      );
 
       await expect(OTPApi.resendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Rate limit exceeded"
+        "Too many resend attempts"
       );
     });
 
     it("should handle Twilio API failure on resend", async () => {
-      const mockError = new Error("Failed to send SMS via Twilio");
-      (mockError as any).statusCode = 500;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "SMS delivery failed. Please try again.",
-          errorCode: OTPErrorCode.TWILIO_ERROR,
+          data: {
+            success: false,
+            errorCode: OTPErrorCode.TWILIO_ERROR,
+          },
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        500
+      );
 
       await expect(OTPApi.resendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Failed to send SMS via Twilio"
+        "SMS delivery failed"
       );
     });
 
@@ -414,11 +440,11 @@ describe("OTP API Client", () => {
           phoneNumber: "+63 *** *** **67",
           expiresAt: "2026-02-14T15:05:00Z",
           expiresIn: 300,
-          attemptsRemaining: 2, // 2 more resends allowed
+          attemptsRemaining: 2,
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       const result = await OTPApi.resendOTP(mockPhoneNumber);
 
@@ -431,7 +457,7 @@ describe("OTP API Client", () => {
   // =========================================================================
 
   describe("API client integration", () => {
-    it("should pass correct headers and method to apiRequest", async () => {
+    it("should pass correct headers and method to fetch", async () => {
       const mockResponse = {
         success: true,
         data: {
@@ -443,15 +469,18 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       await OTPApi.sendOTP(mockPhoneNumber);
 
-      expect(apiRequest).toHaveBeenCalledWith(
-        "/otp/send",
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/otp/send",
         expect.objectContaining({
           method: "POST",
           body: expect.any(String),
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+          }),
         })
       );
     });
@@ -466,11 +495,11 @@ describe("OTP API Client", () => {
         },
       };
 
-      (apiRequest as jest.Mock).mockResolvedValue(mockResponse);
+      mockFetchResponse(mockResponse);
 
       await OTPApi.verifyOTP(mockPhoneNumber, mockOTP);
 
-      const callArgs = (apiRequest as jest.Mock).mock.calls[0];
+      const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
 
       expect(body).toEqual({
@@ -479,9 +508,8 @@ describe("OTP API Client", () => {
       });
     });
 
-    it("should properly propagate errors from apiRequest", async () => {
-      const mockError = new Error("Network error");
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+    it("should properly propagate errors from fetch", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
       await expect(OTPApi.sendOTP(mockPhoneNumber)).rejects.toThrow(
         "Network error"
@@ -489,36 +517,32 @@ describe("OTP API Client", () => {
     });
 
     it("should handle authentication errors (401)", async () => {
-      const mockError = new Error("Unauthorized");
-      (mockError as any).statusCode = 401;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "Authentication required",
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        401
+      );
 
       await expect(OTPApi.sendOTP(mockPhoneNumber)).rejects.toThrow(
-        "Unauthorized"
+        "Authentication required"
       );
     });
 
     it("should handle server errors (500)", async () => {
-      const mockError = new Error("Internal server error");
-      (mockError as any).statusCode = 500;
-      (mockError as any).response = {
-        data: {
+      mockFetchResponse(
+        {
           success: false,
           message: "An unexpected error occurred",
         },
-      };
-
-      (apiRequest as jest.Mock).mockRejectedValue(mockError);
+        false,
+        500
+      );
 
       await expect(OTPApi.verifyOTP(mockPhoneNumber, mockOTP)).rejects.toThrow(
-        "Internal server error"
+        "An unexpected error occurred"
       );
     });
   });

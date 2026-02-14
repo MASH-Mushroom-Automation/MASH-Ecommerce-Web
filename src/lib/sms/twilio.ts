@@ -6,8 +6,10 @@
  * Includes rate limiting and error handling with exponential backoff retry.
  */
 
-import { doc, getDoc, setDoc, increment, serverTimestamp, deleteDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { doc, getDoc, setDoc, increment, serverTimestamp, deleteDoc, getFirestore } from "firebase/firestore";
+import { firebaseApp } from "@/lib/firebase/config";
+
+const db = getFirestore(firebaseApp);
 
 // ============================================================================
 // Types & Interfaces
