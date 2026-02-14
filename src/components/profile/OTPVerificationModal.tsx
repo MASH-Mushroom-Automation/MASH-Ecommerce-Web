@@ -75,7 +75,10 @@ export function OTPVerificationModal({
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(timerDuration);
   const [canResend, setCanResend] = useState(false);
-  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(resendCooldown);
+
+  // Screen reader timer milestone announcements
+  const [timerAnnouncement, setTimerAnnouncement] = useState("");
   
   // Refs for input focus management
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -170,6 +173,25 @@ export function OTPVerificationModal({
       }
     };
   }, [open, resendCooldownSeconds]);
+
+  /**
+   * Screen reader timer announcements at meaningful intervals
+   */
+  useEffect(() => {
+    if (!open) {
+      setTimerAnnouncement("");
+      return;
+    }
+    if (remainingSeconds === 60) {
+      setTimerAnnouncement("One minute remaining to enter verification code");
+    } else if (remainingSeconds === 30) {
+      setTimerAnnouncement("30 seconds remaining to enter verification code");
+    } else if (remainingSeconds === 10) {
+      setTimerAnnouncement("10 seconds remaining");
+    } else if (remainingSeconds === 0) {
+      setTimerAnnouncement("Verification code has expired. Please request a new code.");
+    }
+  }, [remainingSeconds, open]);
 
   /**
    * Sync external error message
@@ -419,8 +441,12 @@ export function OTPVerificationModal({
         </DialogHeader>
 
         {state === "success" ? (
-          <div className="flex flex-col items-center justify-center py-8 animate-in fade-in zoom-in duration-300">
-            <CheckCircle className="h-16 w-16 text-green-600 mb-4" />
+          <div
+            className="flex flex-col items-center justify-center py-8 animate-in fade-in zoom-in duration-500"
+            role="status"
+            aria-live="polite"
+          >
+            <CheckCircle className="h-16 w-16 text-green-600 mb-4 transition-opacity duration-500" />
             <p className="text-lg font-medium text-green-700">Phone Verified!</p>
           </div>
         ) : (
@@ -436,16 +462,16 @@ export function OTPVerificationModal({
                     }}
                     type="text"
                     inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleDigitChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={index === 0 ? handlePaste : undefined}
-                    disabled={state === "verifying" || state === "success"}
+                    disabled={state === "verifying"}
                     className={cn(
                       "w-12 h-14 text-center text-xl font-semibold p-0",
                       state === "error" ? "border-red-500 focus:ring-red-500" : "",
-                      state === "success" ? "border-green-500" : "",
                       digit ? "border-primary" : ""
                     )}
                     aria-label={`Digit ${index + 1} of 6`}
@@ -453,6 +479,11 @@ export function OTPVerificationModal({
                     aria-describedby={state === "error" ? "otp-error" : undefined}
                   />
                 ))}
+              </div>
+
+              {/* Screen reader timer milestone announcements */}
+              <div className="sr-only" aria-live="assertive" role="status">
+                {timerAnnouncement}
               </div>
 
               {/* Timer Display */}
@@ -465,7 +496,7 @@ export function OTPVerificationModal({
                 aria-live="polite"
                 aria-atomic="true"
               >
-                <Clock className={cn("h-4 w-4", isTimerWarning && "animate-pulse")} />
+                <Clock className={cn("h-4 w-4", isTimerWarning && "animate-pulse")} aria-hidden="true" />
                 <span aria-label={`Time remaining: ${formatTime(remainingSeconds)}`}>
                   {formatTime(remainingSeconds)}
                 </span>

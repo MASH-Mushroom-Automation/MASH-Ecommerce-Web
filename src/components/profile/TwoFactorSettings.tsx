@@ -172,6 +172,7 @@ export function TwoFactorSettings({
                 <Badge
                   className="bg-green-600 text-white hover:bg-green-600"
                   data-testid="status-badge-enabled"
+                  aria-label="Two-factor authentication status: Enabled"
                 >
                   Enabled
                 </Badge>
@@ -180,6 +181,7 @@ export function TwoFactorSettings({
                   variant="secondary"
                   className="bg-gray-200 text-gray-600 hover:bg-gray-200"
                   data-testid="status-badge-disabled"
+                  aria-label="Two-factor authentication status: Disabled"
                 >
                   Disabled
                 </Badge>
@@ -237,8 +239,8 @@ export function TwoFactorSettings({
       </div>
 
       {/* Security Notice */}
-      <div className="flex items-start gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+      <div className="flex items-start gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-700" role="note" aria-label="Security information">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
         <p data-testid="security-notice">
           Adds an extra layer of security to your account. When enabled, you
           will need to enter a verification code from your phone in addition to
@@ -248,8 +250,8 @@ export function TwoFactorSettings({
 
       {/* Phone Not Verified Warning */}
       {!phoneVerified && (
-        <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700" role="alert">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p>
             You need to verify your phone number before enabling two-factor
             authentication.
@@ -271,8 +273,8 @@ export function TwoFactorSettings({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700" role="note">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>
               Without two-factor authentication, your account will only be
               protected by your password.

@@ -223,7 +223,15 @@ export function PhoneNumberInput({
     const input = e.target.value;
     
     // Extract only digits from input
-    const digitsOnly = input.replace(/[^\d]/g, '');
+    const rawDigits = input.replace(/[^\d]/g, '');
+    
+    // Strip country code prefix (63) if present from display formatting
+    // The display format includes +63 prefix, so when user types into the input,
+    // the raw digits will include 63 from the display prefix
+    let digitsOnly = rawDigits;
+    if (digitsOnly.startsWith('63') && digitsOnly.length > 10) {
+      digitsOnly = digitsOnly.substring(2);
+    }
     
     // Limit to 10 digits (Philippine mobile without country code)
     const limitedDigits = digitsOnly.slice(0, 10);
@@ -312,8 +320,12 @@ export function PhoneNumberInput({
       {/* Input container */}
       <div className="relative w-full">
         {/* Country code prefix (read-only for MVP) */}
-        <div className="absolute left-0 top-0 h-full flex items-center pl-3 pointer-events-none">
-          <span className="text-sm font-medium text-muted-foreground">
+        <div
+          className="absolute left-0 top-0 h-full flex items-center pl-3 pointer-events-none"
+          aria-label={`Country: ${countryCodes[0].label} (${countryCodes[0].code})`}
+          role="img"
+        >
+          <span className="text-sm font-medium text-muted-foreground" aria-hidden="true">
             {countryCodes[0].flag}
           </span>
         </div>
@@ -330,7 +342,7 @@ export function PhoneNumberInput({
           placeholder={`${countryCode} ${placeholder}`}
           required={required}
           aria-invalid={!!error || finalValidState === 'error'}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={error ? `${id}-error` : finalValidState === 'idle' ? `${id}-help` : undefined}
           className={cn(
             'w-full rounded-lg border bg-background px-4 py-3 pl-12 pr-12 text-base text-foreground',
             'placeholder:text-muted-foreground/70',
@@ -360,7 +372,7 @@ export function PhoneNumberInput({
 
       {/* Help text */}
       {!error && finalValidState === 'idle' && (
-        <p className="text-sm text-muted-foreground">
+        <p id={`${id}-help`} className="text-sm text-muted-foreground">
           Enter your Philippine mobile number (10 digits)
         </p>
       )}

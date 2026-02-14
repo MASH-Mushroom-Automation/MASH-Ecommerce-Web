@@ -491,4 +491,55 @@ describe("TwoFactorSettings", () => {
       expect(onEnable).not.toHaveBeenCalled();
     });
   });
+
+  // =========================================================================
+  // Accessibility
+  // =========================================================================
+  describe("Accessibility", () => {
+    it("should have aria-label on Enabled status badge", () => {
+      render(<TwoFactorSettings {...defaultProps} enabled={true} />);
+
+      const badge = screen.getByTestId("status-badge-enabled");
+      expect(badge).toHaveAttribute(
+        "aria-label",
+        "Two-factor authentication status: Enabled"
+      );
+    });
+
+    it("should have aria-label on Disabled status badge", () => {
+      render(<TwoFactorSettings {...defaultProps} enabled={false} />);
+
+      const badge = screen.getByTestId("status-badge-disabled");
+      expect(badge).toHaveAttribute(
+        "aria-label",
+        "Two-factor authentication status: Disabled"
+      );
+    });
+
+    it("should have role='note' on security notice", () => {
+      render(<TwoFactorSettings {...defaultProps} />);
+
+      const notice = screen.getByRole("note", { name: "Security information" });
+      expect(notice).toBeInTheDocument();
+    });
+
+    it("should have role='alert' on phone not verified warning", () => {
+      render(<TwoFactorSettings {...defaultProps} phoneVerified={false} />);
+
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent(
+        "You need to verify your phone number before enabling two-factor authentication."
+      );
+    });
+
+    it("should have aria-label on 2FA toggle switch", () => {
+      render(<TwoFactorSettings {...defaultProps} />);
+
+      const toggle = screen.getByTestId("2fa-toggle");
+      expect(toggle).toHaveAttribute(
+        "aria-label",
+        "Enable Two-Factor Authentication"
+      );
+    });
+  });
 });

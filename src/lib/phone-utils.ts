@@ -94,13 +94,22 @@ export function formatPhoneNumber(input: string): string {
 
   // Convert to format: 63XXXXXXXXXX
   if (digits.startsWith('639') && digits.length === 12) {
-    // Already in 63XXXXXXXXXX format
+    // Already in 63XXXXXXXXXX format (e.g., 639123456789)
+    return `+${digits}`;
+  } else if (digits.startsWith('638') && digits.length === 12) {
+    // Already in 63XXXXXXXXXX format with 8XX prefix (e.g., 638131234567)
     return `+${digits}`;
   } else if (digits.startsWith('09') && digits.length === 11) {
-    // Convert 09XXXXXXXXX to 639XXXXXXXXX
+    // Convert 09XXXXXXXXX to +639XXXXXXXXX
+    return `+63${digits.substring(1)}`;
+  } else if (digits.startsWith('08') && digits.length === 11) {
+    // Convert 08XXXXXXXXX to +638XXXXXXXXX (Smart 081X range)
     return `+63${digits.substring(1)}`;
   } else if (digits.startsWith('9') && digits.length === 10) {
-    // Convert 9XXXXXXXXX to 639XXXXXXXXX
+    // Convert 9XXXXXXXXX to +639XXXXXXXXX
+    return `+63${digits}`;
+  } else if (digits.startsWith('8') && digits.length === 10) {
+    // Convert 8XXXXXXXXX to +638XXXXXXXXX (Smart 081X range)
     return `+63${digits}`;
   } else if (digits.startsWith('63') && digits.length === 12) {
     // Add + prefix to 63XXXXXXXXXX

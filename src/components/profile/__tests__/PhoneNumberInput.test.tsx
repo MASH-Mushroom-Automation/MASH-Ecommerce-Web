@@ -268,7 +268,6 @@ describe('PhoneNumberInput - Validation States', () => {
     renderPhoneNumberInput({ validationState: 'loading' });
     
     expect(screen.getByLabelText(/validating/i)).toBeInTheDocument();
-    expect(screen.getByTestId(/loader/i) || screen.getByLabelText(/validating/i)).toBeInTheDocument();
   });
 
   it('should display success state when validationState=success', () => {
@@ -320,8 +319,8 @@ describe('PhoneNumberInput - Validation States', () => {
     // External success state should show immediately
     expect(screen.getByLabelText(/valid phone number/i)).toBeInTheDocument();
     
-    // Even if we type invalid input
-    const input = screen.getByLabelText(/phone number/i);
+    // Even if we type invalid input - use getByRole to avoid ambiguity with validation icon aria-labels
+    const input = screen.getByRole('textbox');
     await user.type(input, '900');
     
     // External state still takes precedence
@@ -487,6 +486,38 @@ describe('PhoneNumberInput - Accessibility', () => {
     
     const input = screen.getByLabelText(/phone number/i);
     expect(input).toBeRequired();
+  });
+
+  it('should have aria-describedby pointing to help text in idle state', () => {
+    renderPhoneNumberInput({ id: 'phone' });
+    
+    const input = screen.getByLabelText(/phone number/i);
+    expect(input).toHaveAttribute('aria-describedby', 'phone-help');
+
+    const helpText = document.getElementById('phone-help');
+    expect(helpText).toBeInTheDocument();
+    expect(helpText).toHaveTextContent('Enter your Philippine mobile number');
+  });
+
+  it('should have aria-describedby pointing to error when error exists', () => {
+    renderPhoneNumberInput({ id: 'phone', error: 'Invalid number' });
+    
+    const input = screen.getByLabelText(/phone number/i);
+    expect(input).toHaveAttribute('aria-describedby', 'phone-error');
+  });
+
+  it('should have aria-invalid when error exists', () => {
+    renderPhoneNumberInput({ error: 'Invalid format' });
+    
+    const input = screen.getByLabelText(/phone number/i);
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('should have country code flag with proper aria-label', () => {
+    renderPhoneNumberInput();
+    
+    const flagContainer = screen.getByRole('img', { name: /Country: Philippines/ });
+    expect(flagContainer).toBeInTheDocument();
   });
 });
 

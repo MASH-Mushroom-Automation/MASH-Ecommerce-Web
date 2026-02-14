@@ -20,6 +20,9 @@
 - **HuggingFace API:** Use OpenAI-compatible chat completions endpoint (`/v1/chat/completions`) with `{model, messages}` format.
 - **Test Stability:** All 1478 tests passing (91 skipped). Updated June 2025 with comprehensive test fixes.
 - **Radix UI Testing:** Radix UI Select/Dialog use portals - test UI presence/structure rather than complex async interactions. Use getAllByText/getAllByRole for multiple elements. Unit tests with Select interactions should be skipped in jsdom.
+- **Phone Format (PH):** formatPhoneNumber() handles 09XX (standard) AND 0XXX (all valid PH mobile prefixes like 0813). Always strip country code from display input before re-processing to prevent double-counting.
+- **Firestore Test Mocks:** Global jest.setupMocks.js mocks override test-level jest.mock() for same module. Configure mock return values in beforeEach using jest.mocked() on the global mock functions.
+- **OTP Modal Timers:** Initialize resendCooldownSeconds to resendCooldown value (not 0) to prevent race condition where cooldown effect briefly sets canResend=true before mount effect updates the value.
 - **Order Type:** Use `Order` from `@/hooks/useSanityOrders` with fields: customerName, customerEmail, customerPhone, shippingAddress (with fullAddress), items with product object.
 - **Stock Management Types:** All stock adjustment types use Zod schemas for validation. validateStockAdjustment() checks business rules (positive/negative quantities based on type, sufficient stock, valid reason codes).
 - **Sanity Schema Validation:** Custom validation in Sanity schemas uses `Rule.custom((value, context) => {})` with access to document context. Validation can check related fields and return error messages or true. Use `readOnly: true` for immutable audit trail fields.
@@ -2774,3 +2777,36 @@ Or apply rules manually at: https://console.firebase.google.com/u/7/project/mash
 **Test Notes:** 2 tests skipped due to Firestore Timestamp mock infrastructure limitations (implementation verified via successful build and 24 other passing tests)
 **Test Execution Time:** 1.7s
 ---
+
+---
+## [2026-02-15 19:15] - STORY-2FA-014 through STORY-2FA-020
+**Completed:** Phone Verification & 2FA - Phase 4-5 Test Stabilization & Completion
+**Files Changed:**
+- src/lib/sms/__tests__/twilio.test.ts (fixed 4 test failures: undefined var, URL encoding, increment mock, TTL assertion)
+- src/lib/phone-utils.ts (fixed formatPhoneNumber to handle all PH local formats 0+XXX, not just 09XX)
+- src/components/profile/PhoneNumberInput.tsx (fixed double-counting country code digits in handleChange)
+- src/components/profile/__tests__/PhoneNumberInput.test.tsx (fixed aria-label query conflicts, loader testId assertions)
+- src/components/profile/OTPVerificationModal.tsx (fixed resend cooldown race condition - initialize to resendCooldown instead of 0)
+- src/components/profile/__tests__/OTPVerificationModal.test.tsx (fixed fake timer assertions, added act() wrappers)
+- src/components/profile/__tests__/PhoneChangeFlow.test.tsx (increased asyncUtilTimeout for password verification delays)
+- src/hooks/__tests__/useAccountRecovery.test.ts (created 35 tests covering recovery email, code verification, 2FA disable, backup codes, reset)
+- jest.setupMocks.js (added Timestamp.fromDate to global Firestore mock)
+
+**Implementation Notes:**
+- Fixed formatPhoneNumber to support all PH mobile prefixes (0813-0819 Smart range) not just 09XX
+- Fixed PhoneNumberInput handleChange to strip country code digits from re-processed input to prevent double-counting
+- Fixed OTP modal resend cooldown initialization race condition between useEffect cycles
+- Created comprehensive useAccountRecovery test suite using global auth/Firestore mocks
+- Fixed Twilio test suite: URL-encoded body assertions, mock variable references, Firestore mock alignment
+
+**Learnings for Future Iterations:**
+- Global jest.setupMocks.js mocks take precedence over test-level jest.mock() for the same module path
+- Use global.__mockAuthContext and global.__mockUseAuth to configure auth mocks in test beforeEach
+- URLSearchParams encodes spaces as + (not %20) - need .replace(/\+/g, " ") before decodeURIComponent
+- jest.clearAllMocks() clears call counts but preserves mock implementations when resetMocks: false
+- OTP modal race condition: useEffect setting state to 0 then another effect reading it as 0 causes brief canResend=true flash
+- PhoneNumberInput displays +63 prefix in input value - subsequent keystrokes include those digits in e.target.value
+
+**Tests Passing:** [PASS] Phone/2FA Suite: 21 suites, 675 passing, 2 skipped | [PASS] Build (143 routes) | [PASS] TypeCheck
+**Test Execution Time:** 82s (full phone/2FA suite)
+**PRD Status:** 19/20 stories complete (STORY-2FA-018 E2E deferred to post-deployment)
