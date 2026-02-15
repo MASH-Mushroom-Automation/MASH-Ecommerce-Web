@@ -11,15 +11,20 @@
  *   3. linkWithCredential() / updatePhoneNumber() verifies the code and
  *      links/updates the phone on the Firebase user (no auth state change)
  *
- * On localhost: appVerificationDisabledForTesting bypasses reCAPTCHA
- *   (Firebase still sends real SMS -- only the captcha check is skipped).
- * On production: Invisible reCAPTCHA runs automatically.
+ * reCAPTCHA: Invisible reCAPTCHA runs automatically on all environments.
+ *   Firebase requires reCAPTCHA to prevent abuse. The invisible widget
+ *   auto-solves without user interaction.
  *
- * Blaze plan: 1,000 SMS/day default quota (configurable).
+ * IMPORTANT: Do NOT set appVerificationDisabledForTesting = true.
+ *   That flag causes Firebase to return 200/sessionInfo but SKIP sending
+ *   the actual SMS. It's only for automated test suites, not development.
  *
  * Prerequisites:
  *   - Firebase Console > Authentication > Sign-in method > Phone > Enable
+ *   - Firebase Console > Authentication > Settings > Authorized domains
+ *     must include your domain (localhost is included by default)
  *   - Google Cloud Console > Identity Toolkit API must be enabled
+ *   - Project must be on Blaze plan for SMS delivery
  *
  * @module firebase/phone-auth
  */
@@ -41,7 +46,6 @@ import { auth } from "./auth";
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let storedVerificationId: string | null = null;
-let devModeEnabled = false;
 
 // ============================================================================
 // Phone Number Normalisation
@@ -64,46 +68,21 @@ function ensureE164(phone: string): string {
 }
 
 // ============================================================================
-// Development Mode
-// ============================================================================
-
-/**
- * On localhost, disable reCAPTCHA app verification so Firebase Phone Auth
- * can work without a real captcha token. Firebase will still send real SMS
- * to real phone numbers -- only the abuse-prevention captcha is skipped.
- *
- * This is called lazily (on first send) rather than at module load time,
- * because `auth` may not be fully initialized yet.
- */
-function enableDevModeIfNeeded(): void {
-  if (devModeEnabled) return;
-  try {
-    const hostname = window.location.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      auth.settings.appVerificationDisabledForTesting = true;
-      console.log("[PhoneAuth] localhost detected -- reCAPTCHA disabled for testing");
-    }
-  } catch {
-    // Ignore -- window or auth not available
-  }
-  devModeEnabled = true;
-}
-
-// ============================================================================
 // reCAPTCHA Management
 // ============================================================================
 
 /**
  * Create a fresh invisible reCAPTCHA verifier.
  *
- * On localhost (appVerificationDisabledForTesting = true) this creates a mock
- * verifier that auto-resolves. On production it loads the real Google reCAPTCHA.
+ * The invisible reCAPTCHA auto-solves without user interaction.
+ * signInWithPhoneNumber() will trigger its rendering internally.
  *
- * We intentionally do NOT pre-render() -- signInWithPhoneNumber() handles
- * rendering internally and pre-rendering can cause stale-widget errors.
+ * We call render() here to pre-initialize the widget. This ensures the
+ * reCAPTCHA is ready when signInWithPhoneNumber() needs it, avoiding
+ * race conditions that cause auth/internal-error.
  */
-export function getRecaptchaVerifier(): RecaptchaVerifier {
-  // Tear down any previous verifier
+export async function getRecaptchaVerifier(): Promise<RecaptchaVerifier> {
+  // Tear down any previous verifier to avoid stale-widget errors
   clearRecaptchaVerifier();
 
   // Ensure DOM container exists
@@ -111,12 +90,24 @@ export function getRecaptchaVerifier(): RecaptchaVerifier {
   if (!container) {
     container = document.createElement("div");
     container.id = "recaptcha-container";
+    container.style.display = "none";
     document.body.appendChild(container);
   }
 
   recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
     size: "invisible",
+    callback: () => {
+      console.log("[PhoneAuth] reCAPTCHA solved");
+    },
+    "expired-callback": () => {
+      console.log("[PhoneAuth] reCAPTCHA expired, will refresh on next send");
+      clearRecaptchaVerifier();
+    },
   });
+
+  // Pre-render so the widget is ready before signInWithPhoneNumber
+  await recaptchaVerifier.render();
+  console.log("[PhoneAuth] reCAPTCHA widget rendered");
 
   return recaptchaVerifier;
 }
@@ -159,12 +150,10 @@ export function clearRecaptchaVerifier(): void {
 export async function sendFirebasePhoneVerification(
   phoneNumber: string,
 ): Promise<string> {
-  enableDevModeIfNeeded();
-
   const e164Phone = ensureE164(phoneNumber);
   console.log("[PhoneAuth] Sending verification to:", e164Phone);
 
-  const verifier = getRecaptchaVerifier();
+  const verifier = await getRecaptchaVerifier();
 
   const confirmResult: ConfirmationResult = await signInWithPhoneNumber(
     auth,
