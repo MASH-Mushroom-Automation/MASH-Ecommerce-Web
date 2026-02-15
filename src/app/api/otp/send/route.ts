@@ -192,7 +192,14 @@ export async function POST(request: NextRequest) {
       // Send via Twilio
       try {
         const { sendOTP: twilioSend } = await import("@/lib/sms/twilio");
-        await twilioSend(normalised, code, userId);
+        const smsResult = await twilioSend(normalised, code, userId);
+        if (!smsResult.success) {
+          console.warn(`[OTP] Twilio SMS failed (${smsResult.error}), falling back to dev mode`);
+          responseData.devCode = code;
+          responseData.message = `[DEV-FALLBACK] SMS delivery failed. Code for ${masked}: ${code}`;
+        } else {
+          console.log(`[OTP] SMS sent via Twilio to ${normalised}, SID: ${smsResult.messageSid}`);
+        }
       } catch (smsErr) {
         console.error("[OTP] Twilio send failed, returning code in dev mode:", smsErr);
         responseData.devCode = code;
