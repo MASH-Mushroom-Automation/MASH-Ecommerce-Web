@@ -101,7 +101,7 @@ if (typeof Request === 'undefined') {
 
 // Mock Firebase Auth to prevent initialization errors in tests
 jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(() => ({})),
+  getAuth: jest.fn(() => ({ currentUser: null })),
   GoogleAuthProvider: jest.fn(() => ({
     addScope: jest.fn(),
     setCustomParameters: jest.fn(),
@@ -122,6 +122,25 @@ jest.mock('firebase/auth', () => ({
   signInWithEmailLink: jest.fn(() => Promise.resolve({ user: {} })),
   sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
   updateProfile: jest.fn(() => Promise.resolve()),
+  // Firebase Phone Auth
+  RecaptchaVerifier: jest.fn(() => ({
+    clear: jest.fn(),
+    render: jest.fn(() => Promise.resolve()),
+    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
+  })),
+  PhoneAuthProvider: {
+    credential: jest.fn(() => ({ providerId: 'phone' })),
+    PROVIDER_ID: 'phone',
+  },
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({
+    verificationId: 'mock-verification-id',
+    confirm: jest.fn(() => Promise.resolve({ user: {} })),
+  })),
+  linkWithPhoneNumber: jest.fn(() => Promise.resolve({
+    verificationId: 'mock-verification-id',
+    confirm: jest.fn(() => Promise.resolve({ user: {} })),
+  })),
+  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
 }));
 
 // Mock Firebase App

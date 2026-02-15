@@ -20,6 +20,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { OTPApi, type SendOTPData, type VerifyOTPData } from "@/lib/api/otp";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import {
+  sendFirebasePhoneVerification,
+  verifyFirebasePhoneCode,
+  clearRecaptchaVerifier,
+  isFirebasePhoneAuthAvailable,
+} from "@/lib/firebase/phone-auth";
 
 // ============================================================================
 // Types
@@ -149,6 +155,9 @@ export function usePhoneVerification(
   const [expirySeconds, setExpirySeconds] = useState<number>(0);
   const [verificationId, setVerificationId] = useState<string | null>(null);
 
+  // Track which SMS provider is being used for this verification session
+  const usingFirebaseRef = useRef<boolean>(false);
+
   // ============================================================================
   // Refs for timer management
   // ============================================================================
@@ -258,7 +267,8 @@ export function usePhoneVerification(
   // ============================================================================
 
   /**
-   * Send OTP verification code to phone number
+   * Send OTP verification code to phone number.
+   * Tries Firebase Phone Auth first (sends real SMS), falls back to API route (dev mode).
    */
   const sendVerification = useCallback(
     async (phone: string) => {
@@ -266,15 +276,36 @@ export function usePhoneVerification(
         setState('sending');
         setError(null);
         setPhoneNumber(phone);
-        setAttempts(0); // Reset attempts on new send
+        setAttempts(0);
 
+        // Try Firebase Phone Auth first
+        if (isFirebasePhoneAuthAvailable()) {
+          try {
+            await sendFirebasePhoneVerification(phone);
+            usingFirebaseRef.current = true;
+
+            setState('sent');
+            startCooldownTimer();
+            // Firebase codes expire in 5 minutes
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+            startExpiryTimer(expiresAt);
+
+            toast.success(`Verification code sent to ${phone.slice(0, 4)}****${phone.slice(-2)}. Check your SMS.`);
+            return;
+          } catch (firebaseErr) {
+            // Firebase Phone Auth failed - fall back to API route
+            console.warn('[PhoneVerification] Firebase Phone Auth failed, using API fallback:', firebaseErr);
+            clearRecaptchaVerifier();
+            usingFirebaseRef.current = false;
+          }
+        }
+
+        // Fallback: Use API route (dev mode shows code in toast)
         const response = await OTPApi.sendOTP(phone, 'PHONE_VERIFICATION');
 
         if (response.success && response.data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
           
-          // Track verificationId for verify/resend calls
           if (data.verificationId) {
             setVerificationId(data.verificationId);
           }
@@ -283,7 +314,6 @@ export function usePhoneVerification(
           startCooldownTimer();
           startExpiryTimer(data.expiresAt);
 
-          // In dev mode, show the code in the toast so user can complete the flow
           if (data.devCode) {
             toast.success(`Code sent! Dev code: ${data.devCode}`, { duration: 15000 });
           } else {
@@ -304,7 +334,9 @@ export function usePhoneVerification(
   );
 
   /**
-   * Verify OTP code
+   * Verify OTP code.
+   * Uses Firebase Phone Auth confirm if Firebase was used for sending,
+   * otherwise falls back to API route verification.
    */
   const verifyCode = useCallback(
     async (code: string): Promise<boolean> => {
@@ -318,6 +350,40 @@ export function usePhoneVerification(
         setError(null);
         setAttempts((prev) => prev + 1);
 
+        // If we used Firebase Phone Auth to send, verify with Firebase
+        if (usingFirebaseRef.current) {
+          try {
+            await verifyFirebasePhoneCode(code);
+
+            setState('success');
+            clearTimers();
+
+            if (autoUpdateProfile) {
+              try {
+                await updateUserProfile({ phone: phoneNumber });
+              } catch (profileError) {
+                console.warn('Failed to update profile after verification:', profileError);
+              }
+            }
+
+            toast.success('Phone number verified successfully!');
+            onSuccess?.(phoneNumber);
+            return true;
+          } catch (firebaseErr) {
+            const fbError = firebaseErr as { code?: string; message?: string };
+            setState('sent');
+            const msg = fbError.code === 'auth/invalid-verification-code'
+              ? 'Invalid code. Please try again.'
+              : fbError.code === 'auth/code-expired'
+                ? 'Code expired. Please request a new one.'
+                : fbError.message || 'Verification failed';
+            setError(msg);
+            toast.error(msg);
+            return false;
+          }
+        }
+
+        // Fallback: API route verification
         const response = await OTPApi.verifyOTP(phoneNumber, code);
 
         if (response.success && response.data) {
@@ -327,15 +393,11 @@ export function usePhoneVerification(
             setState('success');
             clearTimers();
             
-            // Update user profile with verified phone
             if (autoUpdateProfile) {
               try {
-                await updateUserProfile({
-                  phone: phoneNumber,
-                });
+                await updateUserProfile({ phone: phoneNumber });
               } catch (profileError) {
                 console.warn('Failed to update profile after verification:', profileError);
-                // Don't fail the verification if profile update fails
               }
             }
 
@@ -343,8 +405,7 @@ export function usePhoneVerification(
             onSuccess?.(phoneNumber);
             return true;
           } else {
-            // Verification failed
-            setState('sent'); // Return to sent state to allow retry
+            setState('sent');
             const remainingAttempts = data.attemptsRemaining ?? (MAX_ATTEMPTS - attempts);
             setError(`Invalid code. ${remainingAttempts} attempts remaining.`);
             toast.error(`Invalid code. ${remainingAttempts} attempts remaining.`);
@@ -366,7 +427,8 @@ export function usePhoneVerification(
   );
 
   /**
-   * Resend OTP code (enforces cooldown)
+   * Resend OTP code (enforces cooldown).
+   * Re-sends via Firebase if that was the original provider, otherwise API route.
    */
   const resendCode = useCallback(async () => {
     if (!phoneNumber) {
@@ -383,10 +445,29 @@ export function usePhoneVerification(
       setState('sending');
       setError(null);
 
+      // If we used Firebase, re-send via Firebase
+      if (usingFirebaseRef.current && isFirebasePhoneAuthAvailable()) {
+        try {
+          await sendFirebasePhoneVerification(phoneNumber);
+
+          setState('sent');
+          startCooldownTimer();
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          startExpiryTimer(expiresAt);
+
+          toast.success('Verification code resent. Check your SMS.');
+          return;
+        } catch (firebaseErr) {
+          console.warn('[PhoneVerification] Firebase resend failed, using API fallback:', firebaseErr);
+          clearRecaptchaVerifier();
+          usingFirebaseRef.current = false;
+        }
+      }
+
+      // Fallback: API route
       const response = await OTPApi.resendOTP(phoneNumber);
 
       if (response.success && response.data) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
         
         if (data.verificationId) {
@@ -425,6 +506,8 @@ export function usePhoneVerification(
     setCooldownSeconds(0);
     setExpirySeconds(0);
     setVerificationId(null);
+    usingFirebaseRef.current = false;
+    clearRecaptchaVerifier();
     clearTimers();
     lastSentAtRef.current = null;
     expiresAtRef.current = null;
