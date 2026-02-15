@@ -43,20 +43,32 @@ async function getDb() {
 // ── rate-limit check (per phone, 3 sends / 15 min) ────────────────
 
 async function isRateLimited(phoneNumber: string): Promise<boolean> {
-  const { collection, query, where, getDocs, Timestamp } = await import(
+  const { collection, query, where, getDocs } = await import(
     "firebase/firestore"
   );
   const db = await getDb();
 
-  const windowStart = new Date(Date.now() - 15 * 60 * 1000);
+  // Use single-field query (auto-indexed) to avoid composite index requirement.
+  // Filter by time window in application code.
   const q = query(
     collection(db, "otp_verifications"),
-    where("phoneNumber", "==", phoneNumber),
-    where("createdAt", ">=", Timestamp.fromDate(windowStart))
+    where("phoneNumber", "==", phoneNumber)
   );
 
   const snap = await getDocs(q);
-  return snap.size >= 3;
+
+  // Count only documents created within the last 15 minutes
+  const windowStart = Date.now() - 15 * 60 * 1000;
+  let recentCount = 0;
+  snap.forEach((d) => {
+    const data = d.data();
+    const createdMs =
+      data.createdAt?.toDate?.()?.getTime?.() ??
+      (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+    if (createdMs >= windowStart) recentCount++;
+  });
+
+  return recentCount >= 3;
 }
 
 // ── handler ────────────────────────────────────────────────────────

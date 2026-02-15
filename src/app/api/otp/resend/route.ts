@@ -45,8 +45,6 @@ export async function POST(request: NextRequest) {
       updateDoc,
       serverTimestamp,
       Timestamp,
-      orderBy,
-      limit,
     } = await import("firebase/firestore");
     const db = await getDb();
 
@@ -69,17 +67,36 @@ export async function POST(request: NextRequest) {
         normalised = "+" + normalised;
       else if (!normalised.startsWith("+")) normalised = "+63" + normalised;
 
+      // Use single-field query (auto-indexed) to avoid composite index requirement.
+      // Filter by verified status and sort by createdAt in application code.
       const q = query(
         collection(db, "otp_verifications"),
-        where("phoneNumber", "==", normalised),
-        where("verified", "==", false),
-        orderBy("createdAt", "desc"),
-        limit(1)
+        where("phoneNumber", "==", normalised)
       );
       const snap = await getDocs(q);
-      if (!snap.empty) {
-        verification = snap.docs[0].data();
-        verificationRef = snap.docs[0].ref;
+
+      // Find latest unverified OTP for this phone (sort client-side)
+      let latestDoc: { data: () => Record<string, unknown>; ref: typeof verificationRef } | null = null;
+      let latestCreated = 0;
+      snap.forEach((d) => {
+        const data = d.data();
+        if (data.verified === true) return; // skip verified
+        const createdMs =
+          data.createdAt?.toDate?.()?.getTime?.() ??
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((data.createdAt as any)?.seconds ? (data.createdAt as any).seconds * 1000 : 0);
+        if (createdMs >= latestCreated) {
+          latestCreated = createdMs;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          latestDoc = d as any;
+        }
+      });
+
+      if (latestDoc) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        verification = (latestDoc as any).data();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        verificationRef = (latestDoc as any).ref;
       }
     }
 

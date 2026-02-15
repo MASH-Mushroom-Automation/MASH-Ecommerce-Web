@@ -75,3 +75,14 @@ export type {
   OTPVerificationResult,
   OTPVerificationQuery,
 } from "@/types/otp";
+
+// Security Events Service (Audit Trail)
+export {
+  logSecurityEvent,
+  getSecurityEvents,
+  getSecurityEventsByType,
+} from "./security-events";
+export type {
+  SecurityEvent as FirestoreSecurityEvent,
+  LogSecurityEventOptions,
+} from "./security-events";
