@@ -5,12 +5,19 @@
  * This replaces Twilio for OTP delivery -- Firebase handles SMS sending
  * through Google's infrastructure.
  *
- * Free tier (Spark plan): Up to 10 SMS verifications/day for testing.
- * Blaze plan: First 10K verifications/month free.
+ * Approach:
+ *   1. RecaptchaVerifier renders an invisible reCAPTCHA widget
+ *   2. PhoneAuthProvider.verifyPhoneNumber() sends the SMS
+ *   3. PhoneAuthProvider.credential() creates a credential from the code
+ *   4. linkWithCredential() / updatePhoneNumber() verifies the code
+ *      server-side and links/updates the phone on the Firebase user
  *
- * When Firebase Phone Auth fails (quota exceeded, not enabled, etc.),
- * the system falls back to the existing API routes which show the OTP
- * code directly in the UI via dev mode.
+ * Free tier: 10 SMS verifications/day (Spark plan, no billing required).
+ * Blaze plan: 1,000 SMS/day default quota (configurable).
+ *
+ * Prerequisites:
+ *   - Firebase Console > Authentication > Sign-in method > Phone > Enable
+ *   - CSP must allow https://www.google.com in script-src (for reCAPTCHA)
  *
  * @module firebase/phone-auth
  */
@@ -18,9 +25,9 @@
 import {
   RecaptchaVerifier,
   PhoneAuthProvider,
-  signInWithPhoneNumber,
-  linkWithPhoneNumber,
-  type ConfirmationResult,
+  linkWithCredential,
+  updatePhoneNumber,
+  signInWithCredential,
 } from "firebase/auth";
 import { auth } from "./auth";
 
@@ -29,56 +36,91 @@ import { auth } from "./auth";
 // ============================================================================
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
-let confirmationResult: ConfirmationResult | null = null;
+let storedVerificationId: string | null = null;
+
+// ============================================================================
+// Phone Number Normalisation
+// ============================================================================
+
+/**
+ * Ensure phone number is in E.164 format (+63XXXXXXXXXX).
+ * Firebase requires E.164 for phone verification.
+ */
+function ensureE164(phone: string): string {
+  let n = phone.replace(/[\s\-()]/g, "");
+  if (n.startsWith("0")) {
+    n = "+63" + n.slice(1);
+  } else if (n.startsWith("63") && !n.startsWith("+63")) {
+    n = "+" + n;
+  } else if (!n.startsWith("+")) {
+    n = "+63" + n;
+  }
+  return n;
+}
 
 // ============================================================================
 // reCAPTCHA Management
 // ============================================================================
 
 /**
- * Initialize an invisible reCAPTCHA verifier.
- * Firebase Phone Auth requires reCAPTCHA to prevent SMS abuse.
- * The invisible variant shows no UI -- it auto-solves in the background.
+ * Ensure a hidden DOM container exists for the invisible reCAPTCHA widget.
  */
-export function getRecaptchaVerifier(): RecaptchaVerifier {
-  // Clear any existing verifier to avoid stale state
-  if (recaptchaVerifier) {
-    try {
-      recaptchaVerifier.clear();
-    } catch {
-      // Ignore clear errors
-    }
-    recaptchaVerifier = null;
-  }
-
-  // Ensure the container element exists
+function ensureRecaptchaContainer(): HTMLElement {
   let container = document.getElementById("recaptcha-container");
   if (!container) {
     container = document.createElement("div");
     container.id = "recaptcha-container";
-    container.style.display = "none";
     document.body.appendChild(container);
   }
+  return container;
+}
+
+/**
+ * Initialize an invisible reCAPTCHA verifier and pre-render it.
+ * Firebase Phone Auth requires reCAPTCHA to prevent SMS abuse.
+ * The invisible variant shows no UI -- it auto-solves in the background.
+ *
+ * Pre-rendering avoids timing issues where verifyPhoneNumber() calls
+ * the verifier before it's ready.
+ */
+export async function getRecaptchaVerifier(): Promise<RecaptchaVerifier> {
+  // Clear any existing verifier to avoid stale state
+  clearRecaptchaVerifier();
+
+  ensureRecaptchaContainer();
 
   recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
     size: "invisible",
+    callback: () => {
+      console.log("[PhoneAuth] reCAPTCHA solved automatically");
+    },
+    "expired-callback": () => {
+      console.warn("[PhoneAuth] reCAPTCHA expired, will re-initialise on next send");
+      clearRecaptchaVerifier();
+    },
   });
+
+  // Pre-render so the widget is ready before verifyPhoneNumber() needs it
+  await recaptchaVerifier.render();
+  console.log("[PhoneAuth] reCAPTCHA verifier rendered");
 
   return recaptchaVerifier;
 }
 
 /**
- * Clean up reCAPTCHA verifier (call on unmount or after use)
+ * Clean up reCAPTCHA verifier and stored verification state.
  */
 export function clearRecaptchaVerifier(): void {
   if (recaptchaVerifier) {
     try {
       recaptchaVerifier.clear();
     } catch {
-      // Ignore
+      // Ignore -- already cleared or DOM was detached
     }
     recaptchaVerifier = null;
   }
+  // Do NOT clear storedVerificationId here -- it's needed for code verification.
+  // Only clearRecaptchaVerifier's own state.
 }
 
 // ============================================================================
@@ -88,38 +130,36 @@ export function clearRecaptchaVerifier(): void {
 /**
  * Send a verification SMS to the given phone number using Firebase Phone Auth.
  *
- * @param phoneNumber - Phone number in E.164 format (+63XXXXXXXXXX)
- * @returns The ConfirmationResult to verify the code later
+ * Uses PhoneAuthProvider.verifyPhoneNumber() which sends the SMS without
+ * signing in or linking -- the verification step is handled separately.
+ *
+ * @param phoneNumber - Phone number (any Philippine format, auto-converted to E.164)
+ * @returns The verification ID needed to verify the code later
  * @throws Error if Firebase Phone Auth is not enabled or quota exceeded
  */
 export async function sendFirebasePhoneVerification(
   phoneNumber: string,
-): Promise<ConfirmationResult> {
-  const verifier = getRecaptchaVerifier();
+): Promise<string> {
+  const e164Phone = ensureE164(phoneNumber);
+  console.log("[PhoneAuth] Sending verification to:", e164Phone);
 
-  // If user is signed in, try linking the phone to their account.
-  // If not signed in (e.g. 2FA login), use signInWithPhoneNumber.
-  const currentUser = auth.currentUser;
+  const verifier = await getRecaptchaVerifier();
 
-  if (currentUser) {
-    confirmationResult = await linkWithPhoneNumber(
-      currentUser,
-      phoneNumber,
-      verifier,
-    );
-  } else {
-    confirmationResult = await signInWithPhoneNumber(
-      auth,
-      phoneNumber,
-      verifier,
-    );
-  }
+  const provider = new PhoneAuthProvider(auth);
+  storedVerificationId = await provider.verifyPhoneNumber(e164Phone, verifier);
 
-  return confirmationResult;
+  console.log(
+    "[PhoneAuth] SMS sent, verificationId:",
+    storedVerificationId.slice(0, 10) + "...",
+  );
+  return storedVerificationId;
 }
 
 /**
  * Verify the SMS code the user received.
+ *
+ * Creates a PhoneAuthCredential and attempts to link/update the phone number
+ * on the Firebase user account. This validates the code server-side.
  *
  * @param code - 6-digit verification code
  * @returns true if verification succeeded
@@ -128,31 +168,57 @@ export async function sendFirebasePhoneVerification(
 export async function verifyFirebasePhoneCode(
   code: string,
 ): Promise<boolean> {
-  if (!confirmationResult) {
+  if (!storedVerificationId) {
     throw new Error("No verification in progress. Send a code first.");
   }
 
-  const credential = PhoneAuthProvider.credential(
-    confirmationResult.verificationId,
-    code,
-  );
+  console.log("[PhoneAuth] Verifying code...");
+  const credential = PhoneAuthProvider.credential(storedVerificationId, code);
 
-  // Confirm the code -- this links the phone to the Firebase account
-  // or signs in the user depending on the initial call
-  await confirmationResult.confirm(code);
+  const currentUser = auth.currentUser;
 
-  // Reset state
-  confirmationResult = null;
+  if (currentUser) {
+    // Signed-in user: link phone to their account or update existing phone.
+    try {
+      await linkWithCredential(currentUser, credential);
+      console.log("[PhoneAuth] Phone linked to account");
+    } catch (err: unknown) {
+      const fbErr = err as { code?: string };
+      if (fbErr.code === "auth/provider-already-linked") {
+        // Phone provider already linked -- update the number instead
+        try {
+          await updatePhoneNumber(currentUser, credential);
+          console.log("[PhoneAuth] Phone number updated");
+        } catch (updateErr: unknown) {
+          const uErr = updateErr as { code?: string };
+          if (uErr.code === "auth/credential-already-in-use") {
+            // Code verified but number belongs to another Firebase account.
+            // Still counts as verification for profile purposes.
+            console.warn(
+              "[PhoneAuth] Phone verified but in use by another account",
+            );
+          } else {
+            throw updateErr;
+          }
+        }
+      } else if (fbErr.code === "auth/credential-already-in-use") {
+        // Code was correct but phone belongs to another account
+        console.warn(
+          "[PhoneAuth] Phone verified but in use by another account",
+        );
+      } else {
+        throw err;
+      }
+    }
+  } else {
+    // No signed-in user (e.g. 2FA login flow) -- sign in with phone
+    await signInWithCredential(auth, credential);
+    console.log("[PhoneAuth] Signed in with phone credential");
+  }
+
+  storedVerificationId = null;
   clearRecaptchaVerifier();
-
   return true;
-}
-
-/**
- * Get the current confirmation result (for resend scenarios)
- */
-export function getConfirmationResult(): ConfirmationResult | null {
-  return confirmationResult;
 }
 
 /**
