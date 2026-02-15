@@ -128,19 +128,19 @@ jest.mock('firebase/auth', () => ({
     render: jest.fn(() => Promise.resolve()),
     verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
   })),
-  PhoneAuthProvider: {
-    credential: jest.fn(() => ({ providerId: 'phone' })),
-    PROVIDER_ID: 'phone',
-  },
-  signInWithPhoneNumber: jest.fn(() => Promise.resolve({
-    verificationId: 'mock-verification-id',
-    confirm: jest.fn(() => Promise.resolve({ user: {} })),
-  })),
-  linkWithPhoneNumber: jest.fn(() => Promise.resolve({
-    verificationId: 'mock-verification-id',
-    confirm: jest.fn(() => Promise.resolve({ user: {} })),
-  })),
+  PhoneAuthProvider: Object.assign(
+    jest.fn(() => ({
+      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
+    })),
+    {
+      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
+      PROVIDER_ID: 'phone',
+    },
+  ),
   linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  updatePhoneNumber: jest.fn(() => Promise.resolve()),
+  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
 }));
 
 // Mock Firebase App

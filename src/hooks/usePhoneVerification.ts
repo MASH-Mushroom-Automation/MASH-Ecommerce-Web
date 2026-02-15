@@ -334,7 +334,7 @@ export function usePhoneVerification(
         } else if (error.code === 'auth/missing-phone-number') {
           msg = 'Please enter a phone number first.';
         } else if (error.code === 'auth/internal-error') {
-          msg = 'Firebase Phone Auth error. Make sure Phone provider is enabled in Firebase Console.';
+          msg = 'Firebase internal error. Please check: (1) Phone provider is enabled in Firebase Console, (2) Identity Toolkit API is enabled in Google Cloud Console, (3) Refresh the page and try again.';
         }
 
         console.error('[PhoneVerification] Send failed:', error.code, error.message);
