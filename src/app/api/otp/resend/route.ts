@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const { randomInt } = require("crypto");
+  return randomInt(100000, 999999).toString();
 }
 
 function maskPhone(phone: string): string {

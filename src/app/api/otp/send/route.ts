@@ -14,9 +14,9 @@ import { NextRequest, NextResponse } from "next/server";
 // ── helpers ────────────────────────────────────────────────────────
 
 function generateOTP(): string {
-  // crypto.randomInt is available in Node 16+
-  const code = Math.floor(100000 + Math.random() * 900000);
-  return code.toString();
+  // Use crypto.randomInt for cryptographically secure OTP generation (Node 16+)
+  const { randomInt } = require("crypto");
+  return randomInt(100000, 999999).toString();
 }
 
 function maskPhone(phone: string): string {
