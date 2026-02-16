@@ -80,16 +80,15 @@ function ensureE164(phone: string): string {
  * errors on retries.
  */
 export function getRecaptchaVerifier(): RecaptchaVerifier {
-  // Tear down any previous verifier to avoid stale-widget errors
+  // Tear down any previous verifier AND DOM element to avoid
+  // "reCAPTCHA has already been rendered in this element" errors.
   clearRecaptchaVerifier();
 
-  // Ensure DOM container exists
-  let container = document.getElementById("recaptcha-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "recaptcha-container";
-    document.body.appendChild(container);
-  }
+  // Always create a FRESH container -- Google's reCAPTCHA API tags DOM
+  // elements as "rendered" and refuses to re-use them even after clear().
+  const container = document.createElement("div");
+  container.id = "recaptcha-container-" + Date.now();
+  document.body.appendChild(container);
 
   recaptchaVerifier = new RecaptchaVerifier(auth, container, {
     size: "invisible",
@@ -119,6 +118,12 @@ export function clearRecaptchaVerifier(): void {
     }
     recaptchaVerifier = null;
   }
+  // Remove ALL reCAPTCHA container elements from the DOM.
+  // Google's API tags elements as "rendered" permanently, so we must
+  // destroy the DOM node to allow a fresh reCAPTCHA on retry.
+  document
+    .querySelectorAll('[id^="recaptcha-container"]')
+    .forEach((el) => el.remove());
 }
 
 // ============================================================================
