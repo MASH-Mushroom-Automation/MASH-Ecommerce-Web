@@ -653,15 +653,15 @@ export default function MyInformationPage() {
 
     if (authProvider === "google" && !hasPassword) {
       return (
-        <Alert className="bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-900">
+        <Alert className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium mb-1">
                   Enhance Your Account Security
                 </p>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
                   Add a password to your Google account so you can also sign in
                   with email/password
                 </p>
@@ -683,9 +683,9 @@ export default function MyInformationPage() {
     if (authProvider === "google" && hasPassword) {
       return (
         <div className="space-y-3">
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-900">
+          <Alert className="bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-green-900 dark:text-green-100">
               <p className="text-sm">
                 Your account is secured with both Google Sign-In and
                 email/password authentication. You can sign in using either
@@ -712,17 +712,17 @@ export default function MyInformationPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#1E392A]">My Profile</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
+        <p className="text-muted-foreground mt-1">
           Manage your account information and delivery addresses
         </p>
       </div>
 
       {/* User Profile Card */}
-      <Card className="bg-white shadow-sm">
-        <CardHeader className="border-b border-gray-100">
+      <Card className="shadow-sm">
+        <CardHeader className="border-b border-border">
           <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5 text-[#1E392A]" />
+            <User className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
             Account Information
           </CardTitle>
         </CardHeader>
@@ -730,7 +730,7 @@ export default function MyInformationPage() {
           <div className="flex items-start gap-6">
             {/* Profile Picture */}
             <div className="relative flex-shrink-0">
-              <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
+              <div className="h-24 w-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
                 <Image
                   src={getProfileAvatar(user)}
                   alt={`${user?.firstName || "User"} ${user?.lastName || ""}`}
@@ -792,12 +792,12 @@ export default function MyInformationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Name */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className="text-sm font-medium text-muted-foreground">
                     Full Name
                   </Label>
-                  <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-gray-900">
+                  <div className="mt-1 flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                    <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">
                       {profileLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin inline" />
                       ) : (
@@ -814,12 +814,12 @@ export default function MyInformationPage() {
 
                 {/* Email */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className="text-sm font-medium text-muted-foreground">
                     Email Address
                   </Label>
-                  <div className="mt-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-gray-900 truncate">
+                  <div className="mt-1 flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                    <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground truncate">
                       {profileLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin inline" />
                       ) : (
@@ -832,10 +832,10 @@ export default function MyInformationPage() {
                 {/* Phone Number with Verification */}
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-1">
-                    <Label className="text-sm font-medium text-gray-700">
+                    <Label className="text-sm font-medium text-muted-foreground">
                       Phone Number
                       <span className="text-red-500 ml-1">*</span>
-                      <span className="text-xs text-gray-500 ml-2">
+                      <span className="text-xs text-muted-foreground ml-2">
                         (Required for delivery)
                       </span>
                     </Label>
@@ -926,10 +926,10 @@ export default function MyInformationPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-1 flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="mt-1 flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                       <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                        <span className="text-gray-900">
+                        <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-foreground">
                           {phoneNumber
                             ? maskPhoneNumber(phoneNumber)
                             : "No phone number set"}
@@ -944,7 +944,7 @@ export default function MyInformationPage() {
                             }}
                             size="sm"
                             variant="ghost"
-                            className="text-amber-600 hover:bg-amber-50 text-xs"
+                            className="text-amber-600 dark:text-amber-400 hover:bg-amber-600/10 text-xs"
                           >
                             <Shield className="h-3.5 w-3.5 mr-1" />
                             Verify
@@ -972,7 +972,7 @@ export default function MyInformationPage() {
               </div>
 
               {/* Password Management Section */}
-              <div className="pt-2 border-t border-gray-100">
+              <div className="pt-2 border-t border-border">
                 {renderPasswordSection()}
               </div>
             </div>
@@ -981,11 +981,11 @@ export default function MyInformationPage() {
       </Card>
 
       {/* Addresses Card */}
-      <Card className="bg-white shadow-sm">
-        <CardHeader className="border-b border-gray-100">
+      <Card className="shadow-sm">
+        <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-[#1E392A]" />
+              <MapPin className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
               <CardTitle className="text-lg">Delivery Addresses</CardTitle>
             </div>
             <Button
@@ -1008,14 +1008,14 @@ export default function MyInformationPage() {
           {addressesLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-[#1E392A]" />
-                <p className="text-gray-600">Loading addresses...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading addresses...</p>
               </div>
             </div>
           ) : savedAddresses.length === 0 ? (
             <div className="text-center py-12">
-              <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No saved addresses yet</p>
+              <MapPin className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">No saved addresses yet</p>
               <Button
                 onClick={() => {
                   setEditingAddress(null);
@@ -1037,8 +1037,8 @@ export default function MyInformationPage() {
                   key={addr.id}
                   className={`relative p-4 rounded-lg border-2 transition-all ${
                     addr.isDefault
-                      ? "border-[#1E392A] bg-[#1E392A]/5"
-                      : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#1E392A] dark:border-emerald-600 bg-[#1E392A]/5 dark:bg-emerald-950/20"
+                      : "border-border bg-card hover:border-muted-foreground/30"
                   }`}
                 >
                   {/* Default badge */}
@@ -1053,30 +1053,30 @@ export default function MyInformationPage() {
 
                   <div className="pr-32">
                     {/* Label */}
-                    <h3 className="font-semibold text-[#1E392A] mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       {addr.label}
                     </h3>
 
                     {/* Address */}
-                    <p className="text-gray-700 mb-1">
+                    <p className="text-muted-foreground mb-1">
                       {addr.formattedAddress}
                     </p>
 
                     {/* Landmark */}
                     {addr.landmark && (
-                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
-                        <p className="text-sm font-medium text-amber-900">
+                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
                           📍 Delivery Instructions:
                         </p>
-                        <p className="text-sm text-amber-800">
+                        <p className="text-sm text-amber-800 dark:text-amber-300">
                           {addr.landmark}
                         </p>
                       </div>
                     )}
 
                     {/* Coordinates */}
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Coordinates: {addr.coordinates.lat.toFixed(6)},{" "}
                       {addr.coordinates.lng.toFixed(6)}
                     </p>
@@ -1089,7 +1089,7 @@ export default function MyInformationPage() {
                       size="sm"
                       onClick={() => handleEditAddress(addr)}
                       disabled={addressMutating}
-                      className="text-blue-600 hover:bg-blue-50"
+                      className="text-blue-600 dark:text-blue-400 hover:bg-blue-600/10"
                       title="Edit address location and instructions"
                     >
                       <Edit className="h-4 w-4" />
@@ -1111,7 +1111,7 @@ export default function MyInformationPage() {
                       size="sm"
                       onClick={() => handleDeleteAddressClick(addr.id)}
                       disabled={addressMutating}
-                      className="text-red-600 hover:bg-red-50"
+                      className="text-red-600 dark:text-red-400 hover:bg-red-600/10"
                       title="Delete this address"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1125,15 +1125,15 @@ export default function MyInformationPage() {
       </Card>
 
       {/* Info Card */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-medium text-blue-900 mb-1">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
                 Delivery Instructions Help Riders Find You
               </h4>
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 Add landmarks like "in front of 7/11" or "beside the church" to
                 help Lalamove riders deliver your mushrooms quickly and
                 accurately. Click "Edit" to update the map location and
@@ -1195,15 +1195,15 @@ export default function MyInformationPage() {
                 className="mt-1"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Help Lalamove riders find your location easily
               </p>
             </div>
 
             {editingAddress && (
-              <Alert className="bg-amber-50 border-amber-200">
-                <Info className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-900">
+              <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-amber-900 dark:text-amber-100">
                   <p className="text-sm">
                     Current location: {editingAddress.formattedAddress}. You can
                     search for a new address or drag the marker to update the
@@ -1434,11 +1434,11 @@ export default function MyInformationPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <Alert className="bg-blue-50 border-blue-200">
-            <Shield className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-900">
+          <Alert className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-900 dark:text-blue-100">
               <p className="text-sm font-medium mb-1">Why add a password?</p>
-              <ul className="text-sm space-y-1 list-disc list-inside text-blue-800">
+              <ul className="text-sm space-y-1 list-disc list-inside text-blue-800 dark:text-blue-200">
                 <li>Sign in with email/password when Google is unavailable</li>
                 <li>Access your account from any device</li>
                 <li>Enhanced account security with multiple login methods</li>
