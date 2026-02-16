@@ -75,13 +75,11 @@ function ensureE164(phone: string): string {
  * Create a fresh invisible reCAPTCHA verifier.
  *
  * The invisible reCAPTCHA auto-solves without user interaction.
- * signInWithPhoneNumber() will trigger its rendering internally.
- *
- * We call render() here to pre-initialize the widget. This ensures the
- * reCAPTCHA is ready when signInWithPhoneNumber() needs it, avoiding
- * race conditions that cause auth/internal-error.
+ * signInWithPhoneNumber() triggers rendering internally -- we do NOT
+ * call render() ourselves because pre-rendering can cause stale-widget
+ * errors on retries.
  */
-export async function getRecaptchaVerifier(): Promise<RecaptchaVerifier> {
+export function getRecaptchaVerifier(): RecaptchaVerifier {
   // Tear down any previous verifier to avoid stale-widget errors
   clearRecaptchaVerifier();
 
@@ -90,11 +88,10 @@ export async function getRecaptchaVerifier(): Promise<RecaptchaVerifier> {
   if (!container) {
     container = document.createElement("div");
     container.id = "recaptcha-container";
-    container.style.display = "none";
     document.body.appendChild(container);
   }
 
-  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+  recaptchaVerifier = new RecaptchaVerifier(auth, container, {
     size: "invisible",
     callback: () => {
       console.log("[PhoneAuth] reCAPTCHA solved");
@@ -105,10 +102,7 @@ export async function getRecaptchaVerifier(): Promise<RecaptchaVerifier> {
     },
   });
 
-  // Pre-render so the widget is ready before signInWithPhoneNumber
-  await recaptchaVerifier.render();
-  console.log("[PhoneAuth] reCAPTCHA widget rendered");
-
+  console.log("[PhoneAuth] reCAPTCHA verifier created (invisible)");
   return recaptchaVerifier;
 }
 
@@ -138,10 +132,9 @@ export function clearRecaptchaVerifier(): void {
  * API for phone verification. The returned ConfirmationResult's verificationId
  * is stored for the subsequent verify step.
  *
- * IMPORTANT: signInWithPhoneNumber() does NOT change auth state until
- * confirmResult.confirm() is called. We never call confirm() -- instead we
- * use PhoneAuthProvider.credential() + linkWithCredential() so the existing
- * user session (e.g. Google sign-in) is preserved.
+ * Works on both localhost and production. Firebase includes localhost in
+ * authorized domains by default. The invisible reCAPTCHA handles bot
+ * detection automatically.
  *
  * @param phoneNumber - Phone number (any PH format, auto-converted to E.164)
  * @returns The verification ID
@@ -152,21 +145,41 @@ export async function sendFirebasePhoneVerification(
 ): Promise<string> {
   const e164Phone = ensureE164(phoneNumber);
   console.log("[PhoneAuth] Sending verification to:", e164Phone);
+  console.log("[PhoneAuth] Auth project:", auth.app.options.projectId, "| Auth domain:", auth.app.options.authDomain);
 
-  const verifier = await getRecaptchaVerifier();
+  // NOTE: Do NOT call initializeRecaptchaConfig(auth) here.
+  // That function enables reCAPTCHA Enterprise mode which requires separate
+  // Google Cloud Console setup. Without it, calling initializeRecaptchaConfig
+  // corrupts the auth instance's internal state, causing signInWithPhoneNumber
+  // to fail with auth/internal-error. Standard reCAPTCHA v2 works without it.
 
-  const confirmResult: ConfirmationResult = await signInWithPhoneNumber(
-    auth,
-    e164Phone,
-    verifier,
-  );
+  const verifier = getRecaptchaVerifier();
 
-  storedVerificationId = confirmResult.verificationId;
-  console.log(
-    "[PhoneAuth] SMS sent, verificationId:",
-    storedVerificationId.slice(0, 10) + "...",
-  );
-  return storedVerificationId;
+  try {
+    const confirmResult: ConfirmationResult = await signInWithPhoneNumber(
+      auth,
+      e164Phone,
+      verifier,
+    );
+
+    storedVerificationId = confirmResult.verificationId;
+    console.log(
+      "[PhoneAuth] SMS sent, verificationId:",
+      storedVerificationId.slice(0, 10) + "...",
+    );
+    return storedVerificationId;
+  } catch (sendErr: unknown) {
+    // Clean up reCAPTCHA on failure so a fresh one is created on retry
+    clearRecaptchaVerifier();
+    const fbErr = sendErr as { code?: string; message?: string; customData?: unknown };
+    console.error(
+      "[PhoneAuth] signInWithPhoneNumber FAILED",
+      "\n  code:", fbErr.code,
+      "\n  message:", fbErr.message,
+      "\n  customData:", fbErr.customData,
+    );
+    throw sendErr;
+  }
 }
 
 /**

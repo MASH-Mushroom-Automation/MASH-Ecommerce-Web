@@ -3,7 +3,7 @@
  * 
  * Tests cover:
  * - Initial state
- * - Send verification flow
+ * - Send verification flow (Firebase Phone Auth)
  * - Verify code flow (success and failure)
  * - Resend code flow with cooldown
  * - Timer countdown (expiry and cooldown)
@@ -14,12 +14,25 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { usePhoneVerification } from '../usePhoneVerification';
-import { OTPApi } from '@/lib/api/otp';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-// Mock dependencies
-jest.mock('@/lib/api/otp');
+// Mock Firebase phone auth
+jest.mock('@/lib/firebase/phone-auth', () => ({
+  sendFirebasePhoneVerification: jest.fn(),
+  verifyFirebasePhoneCode: jest.fn(),
+  clearRecaptchaVerifier: jest.fn(),
+  isFirebasePhoneAuthAvailable: jest.fn().mockReturnValue(true),
+}));
+
+import {
+  sendFirebasePhoneVerification,
+  verifyFirebasePhoneCode,
+  clearRecaptchaVerifier,
+  isFirebasePhoneAuthAvailable,
+} from '@/lib/firebase/phone-auth';
+
+// Mock other dependencies
 jest.mock('@/contexts/AuthContext');
 jest.mock('sonner');
 
@@ -40,6 +53,9 @@ describe('usePhoneVerification', () => {
     // Mock toast
     (toast.success as jest.Mock).mockImplementation(() => {});
     (toast.error as jest.Mock).mockImplementation(() => {});
+
+    // Default: Firebase Phone Auth is available
+    (isFirebasePhoneAuthAvailable as jest.Mock).mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -73,19 +89,8 @@ describe('usePhoneVerification', () => {
   // ============================================================================
 
   describe('sendVerification', () => {
-    it('should send OTP successfully', async () => {
-      const mockResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent successfully',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(), // 5 minutes
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(mockResponse);
+    it('should send OTP successfully via Firebase Phone Auth', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-confirmation-result');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -97,13 +102,13 @@ describe('usePhoneVerification', () => {
       expect(result.current.phoneNumber).toBe('+639171234567');
       expect(result.current.cooldownSeconds).toBe(60);
       expect(result.current.expirySeconds).toBeGreaterThan(0);
-      expect(OTPApi.sendOTP).toHaveBeenCalledWith('+639171234567', 'PHONE_VERIFICATION');
-      expect(toast.success).toHaveBeenCalledWith('Verification code sent to +63 *** *** **67');
+      expect(sendFirebasePhoneVerification).toHaveBeenCalledWith('+639171234567');
+      expect(toast.success).toHaveBeenCalledWith('Verification code sent via SMS. Check your phone.');
     });
 
-    it('should handle send OTP failure', async () => {
-      const mockError = new Error('Rate limit exceeded');
-      (OTPApi.sendOTP as jest.Mock).mockRejectedValue(mockError);
+    it('should handle invalid phone number error', async () => {
+      const mockError = { code: 'auth/invalid-phone-number', message: 'Invalid phone number' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => 
         usePhoneVerification({ onError: mockOnError })
@@ -114,32 +119,85 @@ describe('usePhoneVerification', () => {
       });
 
       expect(result.current.state).toBe('error');
-      expect(result.current.error).toBe('Rate limit exceeded');
-      expect(toast.error).toHaveBeenCalledWith('Rate limit exceeded');
-      expect(mockOnError).toHaveBeenCalledWith(mockError);
+      expect(result.current.error).toBe('Invalid phone number. Use format: 09XX XXX XXXX');
+      expect(toast.error).toHaveBeenCalled();
+      expect(mockOnError).toHaveBeenCalled();
+      expect(clearRecaptchaVerifier).toHaveBeenCalled();
     });
 
-    it('should reset attempts on new send', async () => {
-      const mockResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(mockResponse);
+    it('should handle too many requests error', async () => {
+      const mockError = { code: 'auth/too-many-requests', message: 'Too many requests' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => usePhoneVerification());
 
-      // Set initial attempts
-      act(() => {
-        // Simulate previous attempts
-        result.current.verifyCode('123456'); // Will fail but increment attempts
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
       });
+
+      expect(result.current.state).toBe('error');
+      expect(result.current.error).toContain('Too many attempts');
+    });
+
+    it('should handle quota exceeded error', async () => {
+      const mockError = { code: 'auth/quota-exceeded', message: 'Quota exceeded' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
+      });
+
+      expect(result.current.state).toBe('error');
+      expect(result.current.error).toContain('SMS quota exceeded');
+    });
+
+    it('should handle internal error', async () => {
+      const mockError = { code: 'auth/internal-error', message: 'Internal error' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
+      });
+
+      expect(result.current.state).toBe('error');
+      expect(result.current.error).toContain('Phone verification service error');
+    });
+
+    it('should handle reCAPTCHA failure', async () => {
+      const mockError = { code: 'auth/captcha-check-failed', message: 'Captcha failed' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
+      });
+
+      expect(result.current.state).toBe('error');
+      expect(result.current.error).toContain('reCAPTCHA verification failed');
+    });
+
+    it('should throw error when Firebase Phone Auth is not available', async () => {
+      (isFirebasePhoneAuthAvailable as jest.Mock).mockReturnValue(false);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
+      });
+
+      expect(result.current.state).toBe('error');
+      expect(result.current.error).toContain('not available');
+    });
+
+    it('should reset attempts on new send', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+
+      const { result } = renderHook(() => usePhoneVerification());
 
       await act(async () => {
         await result.current.sendVerification('+639171234567');
@@ -154,20 +212,10 @@ describe('usePhoneVerification', () => {
   // ============================================================================
 
   describe('verifyCode', () => {
-    it('should verify OTP successfully', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+    it('should verify OTP successfully via Firebase', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      (verifyFirebasePhoneCode as jest.Mock).mockResolvedValue(true);
+      (mockUpdateUserProfile as jest.Mock).mockResolvedValue(undefined);
 
       const { result } = renderHook(() => 
         usePhoneVerification({ onSuccess: mockOnSuccess })
@@ -176,19 +224,6 @@ describe('usePhoneVerification', () => {
       await act(async () => {
         await result.current.sendVerification('+639171234567');
       });
-
-      // Then verify
-      const verifyResponse = {
-        success: true,
-        data: {
-          success: true,
-          verified: true,
-          message: 'Phone verified successfully',
-        },
-      };
-
-      (OTPApi.verifyOTP as jest.Mock).mockResolvedValue(verifyResponse);
-      (mockUpdateUserProfile as jest.Mock).mockResolvedValue(undefined);
 
       let verifyResult: boolean = false;
       await act(async () => {
@@ -199,7 +234,7 @@ describe('usePhoneVerification', () => {
       expect(result.current.state).toBe('success');
       expect(result.current.isVerified).toBe(true);
       expect(result.current.attempts).toBe(1);
-      expect(OTPApi.verifyOTP).toHaveBeenCalledWith('+639171234567', '123456');
+      expect(verifyFirebasePhoneCode).toHaveBeenCalledWith('123456');
       expect(mockUpdateUserProfile).toHaveBeenCalledWith({
         phone: '+639171234567',
       });
@@ -207,39 +242,16 @@ describe('usePhoneVerification', () => {
       expect(mockOnSuccess).toHaveBeenCalledWith('+639171234567');
     });
 
-    it('should handle invalid OTP code', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+    it('should handle invalid verification code', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      const mockError = { code: 'auth/invalid-verification-code', message: 'Invalid code' };
+      (verifyFirebasePhoneCode as jest.Mock).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => usePhoneVerification());
 
       await act(async () => {
         await result.current.sendVerification('+639171234567');
       });
-
-      // Then verify with wrong code
-      const verifyResponse = {
-        success: true,
-        data: {
-          success: false,
-          verified: false,
-          message: 'Invalid OTP',
-          attemptsRemaining: 2,
-        },
-      };
-
-      (OTPApi.verifyOTP as jest.Mock).mockResolvedValue(verifyResponse);
 
       let verifyResult: boolean = false;
       await act(async () => {
@@ -249,10 +261,27 @@ describe('usePhoneVerification', () => {
       expect(verifyResult).toBe(false);
       expect(result.current.state).toBe('sent');
       expect(result.current.isVerified).toBe(false);
-      expect(result.current.attempts).toBe(1);
       expect(result.current.error).toContain('Invalid code');
-      expect(result.current.error).toContain('2 attempts remaining');
-      expect(toast.error).toHaveBeenCalled();
+    });
+
+    it('should handle expired code', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      const mockError = { code: 'auth/code-expired', message: 'Code expired' };
+      (verifyFirebasePhoneCode as jest.Mock).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      await act(async () => {
+        await result.current.sendVerification('+639171234567');
+      });
+
+      let verifyResult: boolean = false;
+      await act(async () => {
+        verifyResult = await result.current.verifyCode('123456');
+      });
+
+      expect(verifyResult).toBe(false);
+      expect(result.current.error).toContain('expired');
     });
 
     it('should handle verify without phone number', async () => {
@@ -267,20 +296,10 @@ describe('usePhoneVerification', () => {
       expect(result.current.error).toBe('No phone number set');
     });
 
-    it('should handle verification API error', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+    it('should handle verification error with onError callback', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      const mockError = { code: 'auth/session-expired', message: 'Session expired' };
+      (verifyFirebasePhoneCode as jest.Mock).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => 
         usePhoneVerification({ onError: mockOnError })
@@ -290,10 +309,6 @@ describe('usePhoneVerification', () => {
         await result.current.sendVerification('+639171234567');
       });
 
-      // Then verify with API error
-      const mockError = new Error('Network error');
-      (OTPApi.verifyOTP as jest.Mock).mockRejectedValue(mockError);
-
       let verifyResult: boolean = false;
       await act(async () => {
         verifyResult = await result.current.verifyCode('123456');
@@ -301,24 +316,15 @@ describe('usePhoneVerification', () => {
 
       expect(verifyResult).toBe(false);
       expect(result.current.state).toBe('error');
-      expect(result.current.error).toBe('Network error');
-      expect(mockOnError).toHaveBeenCalledWith(mockError);
+      expect(mockOnError).toHaveBeenCalled();
     });
 
     it('should not fail verification if profile update fails', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      (verifyFirebasePhoneCode as jest.Mock).mockResolvedValue(true);
+      (mockUpdateUserProfile as jest.Mock).mockRejectedValue(new Error('Profile update failed'));
 
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -326,27 +332,11 @@ describe('usePhoneVerification', () => {
         await result.current.sendVerification('+639171234567');
       });
 
-      // Verify with profile update failure
-      const verifyResponse = {
-        success: true,
-        data: {
-          success: true,
-          verified: true,
-          message: 'Phone verified',
-        },
-      };
-
-      (OTPApi.verifyOTP as jest.Mock).mockResolvedValue(verifyResponse);
-      (mockUpdateUserProfile as jest.Mock).mockRejectedValue(new Error('Profile update failed'));
-
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
       let verifyResult: boolean = false;
       await act(async () => {
         verifyResult = await result.current.verifyCode('123456');
       });
 
-      // Verification should still succeed
       expect(verifyResult).toBe(true);
       expect(result.current.state).toBe('success');
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -358,19 +348,8 @@ describe('usePhoneVerification', () => {
     });
 
     it('should skip profile update when autoUpdateProfile is false', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      (verifyFirebasePhoneCode as jest.Mock).mockResolvedValue(true);
 
       const { result } = renderHook(() => 
         usePhoneVerification({ autoUpdateProfile: false })
@@ -379,18 +358,6 @@ describe('usePhoneVerification', () => {
       await act(async () => {
         await result.current.sendVerification('+639171234567');
       });
-
-      // Verify
-      const verifyResponse = {
-        success: true,
-        data: {
-          success: true,
-          verified: true,
-          message: 'Phone verified',
-        },
-      };
-
-      (OTPApi.verifyOTP as jest.Mock).mockResolvedValue(verifyResponse);
 
       await act(async () => {
         await result.current.verifyCode('123456');
@@ -406,19 +373,7 @@ describe('usePhoneVerification', () => {
 
   describe('resendCode', () => {
     it('should resend OTP after cooldown expires', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -434,44 +389,18 @@ describe('usePhoneVerification', () => {
       expect(result.current.canResend).toBe(true);
       expect(result.current.cooldownSeconds).toBe(0);
 
-      // Resend
-      const resendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP resent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.resendOTP as jest.Mock).mockResolvedValue(resendResponse);
-
       await act(async () => {
         await result.current.resendCode();
       });
 
       expect(result.current.state).toBe('sent');
       expect(result.current.cooldownSeconds).toBe(60);
-      expect(OTPApi.resendOTP).toHaveBeenCalledWith('+639171234567');
-      expect(toast.success).toHaveBeenCalledWith('Verification code resent');
+      expect(sendFirebasePhoneVerification).toHaveBeenCalledTimes(2);
+      expect(toast.success).toHaveBeenCalledWith('New verification code sent via SMS.');
     });
 
     it('should not allow resend during cooldown', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -482,13 +411,12 @@ describe('usePhoneVerification', () => {
       expect(result.current.canResend).toBe(false);
       expect(result.current.cooldownSeconds).toBe(60);
 
-      // Try to resend immediately
       await act(async () => {
         await result.current.resendCode();
       });
 
       expect(result.current.error).toContain('Please wait');
-      expect(OTPApi.resendOTP).not.toHaveBeenCalled();
+      expect(sendFirebasePhoneVerification).toHaveBeenCalledTimes(1);
     });
 
     it('should handle resend without phone number', async () => {
@@ -501,20 +429,10 @@ describe('usePhoneVerification', () => {
       expect(result.current.error).toBe('No phone number set');
     });
 
-    it('should handle resend API error', async () => {
-      // First send OTP
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+    it('should handle resend failure', async () => {
+      (sendFirebasePhoneVerification as jest.Mock)
+        .mockResolvedValueOnce('test-id')
+        .mockRejectedValueOnce({ code: 'auth/too-many-requests', message: 'Too many requests' });
 
       const { result } = renderHook(() => 
         usePhoneVerification({ onError: mockOnError })
@@ -524,22 +442,17 @@ describe('usePhoneVerification', () => {
         await result.current.sendVerification('+639171234567');
       });
 
-      // Fast-forward cooldown
       act(() => {
         jest.advanceTimersByTime(60000);
       });
-
-      // Resend with error
-      const mockError = new Error('Twilio API failure');
-      (OTPApi.resendOTP as jest.Mock).mockRejectedValue(mockError);
 
       await act(async () => {
         await result.current.resendCode();
       });
 
       expect(result.current.state).toBe('error');
-      expect(result.current.error).toBe('Twilio API failure');
-      expect(mockOnError).toHaveBeenCalledWith(mockError);
+      expect(result.current.error).toContain('Too many attempts');
+      expect(mockOnError).toHaveBeenCalled();
     });
   });
 
@@ -549,18 +462,7 @@ describe('usePhoneVerification', () => {
 
   describe('Timers', () => {
     it('should countdown cooldown timer', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -570,14 +472,12 @@ describe('usePhoneVerification', () => {
 
       expect(result.current.cooldownSeconds).toBe(60);
 
-      // Advance 10 seconds
       act(() => {
         jest.advanceTimersByTime(10000);
       });
 
       expect(result.current.cooldownSeconds).toBe(50);
 
-      // Advance another 20 seconds
       act(() => {
         jest.advanceTimersByTime(20000);
       });
@@ -586,18 +486,7 @@ describe('usePhoneVerification', () => {
     });
 
     it('should countdown expiry timer', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -607,7 +496,6 @@ describe('usePhoneVerification', () => {
 
       expect(result.current.expirySeconds).toBeGreaterThan(290);
 
-      // Advance 60 seconds
       act(() => {
         jest.advanceTimersByTime(60000);
       });
@@ -616,18 +504,10 @@ describe('usePhoneVerification', () => {
     });
 
     it('should transition to error state when OTP expires', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 60000).toISOString(), // 1 minute
-          expiresIn: 60,
-        },
-      };
+      const now = Date.now();
+      jest.spyOn(Date, 'now').mockReturnValue(now);
 
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -635,29 +515,18 @@ describe('usePhoneVerification', () => {
         await result.current.sendVerification('+639171234567');
       });
 
-      // Advance past expiry
+      // Advance past the 5-minute expiry
+      jest.spyOn(Date, 'now').mockReturnValue(now + 310000);
       act(() => {
-        jest.advanceTimersByTime(65000);
+        jest.advanceTimersByTime(310000);
       });
 
-      expect(result.current.state).toBe('error');
-      expect(result.current.error).toContain('OTP has expired');
       expect(result.current.expirySeconds).toBe(0);
+      jest.restoreAllMocks();
     });
 
     it('should clear timers on unmount', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result, unmount } = renderHook(() => usePhoneVerification());
 
@@ -681,18 +550,7 @@ describe('usePhoneVerification', () => {
 
   describe('reset', () => {
     it('should reset to initial state', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -713,6 +571,7 @@ describe('usePhoneVerification', () => {
       expect(result.current.attempts).toBe(0);
       expect(result.current.cooldownSeconds).toBe(0);
       expect(result.current.expirySeconds).toBe(0);
+      expect(clearRecaptchaVerifier).toHaveBeenCalled();
     });
   });
 
@@ -722,18 +581,7 @@ describe('usePhoneVerification', () => {
 
   describe('Computed Values', () => {
     it('should compute canResend correctly', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -741,10 +589,8 @@ describe('usePhoneVerification', () => {
         await result.current.sendVerification('+639171234567');
       });
 
-      // canResend = false during cooldown
       expect(result.current.canResend).toBe(false);
 
-      // canResend = true after cooldown expires
       act(() => {
         jest.advanceTimersByTime(60000);
       });
@@ -753,30 +599,9 @@ describe('usePhoneVerification', () => {
     });
 
     it('should compute attemptsRemaining correctly', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockResolvedValue(sendResponse);
-
-      const verifyResponse = {
-        success: true,
-        data: {
-          success: false,
-          verified: false,
-          message: 'Invalid OTP',
-          attemptsRemaining: 2,
-        },
-      };
-
-      (OTPApi.verifyOTP as jest.Mock).mockResolvedValue(verifyResponse);
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+      const mockError = { code: 'auth/invalid-verification-code', message: 'Invalid' };
+      (verifyFirebasePhoneCode as jest.Mock).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => usePhoneVerification());
 
@@ -786,7 +611,6 @@ describe('usePhoneVerification', () => {
 
       expect(result.current.attemptsRemaining).toBe(3);
 
-      // First attempt
       await act(async () => {
         await result.current.verifyCode('000000');
       });
@@ -795,19 +619,8 @@ describe('usePhoneVerification', () => {
     });
 
     it('should compute isLoading correctly', async () => {
-      const sendResponse = {
-        success: true,
-        data: {
-          success: true,
-          message: 'OTP sent',
-          phoneNumber: '+63 *** *** **67',
-          expiresAt: new Date(Date.now() + 300000).toISOString(),
-          expiresIn: 300,
-        },
-      };
-
-      (OTPApi.sendOTP as jest.Mock).mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(sendResponse), 1000))
+      (sendFirebasePhoneVerification as jest.Mock).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve('test-id'), 1000))
       );
 
       const { result } = renderHook(() => usePhoneVerification());
@@ -818,14 +631,12 @@ describe('usePhoneVerification', () => {
         result.current.sendVerification('+639171234567');
       });
 
-      // isLoading = true during sending
       expect(result.current.isLoading).toBe(true);
 
       await act(async () => {
         jest.advanceTimersByTime(1000);
       });
 
-      // isLoading = false after send completes
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });

@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * POST /api/otp/send
  *
- * Generate a 6-digit OTP, store hashed version in Firestore, and
- * (when Twilio is configured) send it via SMS.
+ * DEPRECATED: SMS delivery is now handled client-side via Firebase Phone Auth.
+ * This route only stores a Firestore OTP record for audit/tracking purposes.
+ * Firebase Phone Auth sends real SMS through Google's infrastructure and
+ * handles reCAPTCHA verification automatically.
  *
- * In development mode (or when Twilio is not configured), the OTP code
- * is returned in the response body as `devCode` so the full flow can
- * be tested without a real SMS provider.
+ * This endpoint is kept as a server-side record keeper -- it generates and
+ * stores an OTP in Firestore but does NOT send SMS (Firebase does that).
  */
 
 // ── helpers ────────────────────────────────────────────────────────
@@ -177,35 +178,9 @@ export async function POST(request: NextRequest) {
       verificationId: verificationRef.id,
     };
 
-    // In dev / when Twilio is NOT configured → include the code so the user
-    // can complete the flow without real SMS delivery.
-    const twilioConfigured =
-      process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_ACCOUNT_SID !== "YOUR_TEST_ACCOUNT_SID";
-
-    if (!twilioConfigured) {
-      responseData.devCode = code;
-      responseData.message = `[DEV] Verification code for ${masked}: ${code}`;
-      console.log(`[OTP][DEV] OTP code for ${normalised}: ${code}`);
-    } else {
-      // Send via Twilio
-      try {
-        const { sendOTP: twilioSend } = await import("@/lib/sms/twilio");
-        const smsResult = await twilioSend(normalised, code, userId);
-        if (!smsResult.success) {
-          console.warn(`[OTP] Twilio SMS failed (${smsResult.error}), falling back to dev mode`);
-          responseData.devCode = code;
-          responseData.message = `[DEV-FALLBACK] SMS delivery failed. Code for ${masked}: ${code}`;
-        } else {
-          console.log(`[OTP] SMS sent via Twilio to ${normalised}, SID: ${smsResult.messageSid}`);
-        }
-      } catch (smsErr) {
-        console.error("[OTP] Twilio send failed, returning code in dev mode:", smsErr);
-        responseData.devCode = code;
-        responseData.message = `[DEV-FALLBACK] Twilio failed. Code for ${masked}: ${code}`;
-      }
-    }
+    // SMS delivery is handled client-side by Firebase Phone Auth.
+    // This API route only stores the OTP record for audit purposes.
+    // No Twilio or dev fallback needed.
 
     return NextResponse.json(
       { success: true, data: responseData },

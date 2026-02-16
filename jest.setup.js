@@ -141,6 +141,7 @@ jest.mock('firebase/auth', () => ({
   updatePhoneNumber: jest.fn(() => Promise.resolve()),
   signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
   signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
+  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock Firebase App

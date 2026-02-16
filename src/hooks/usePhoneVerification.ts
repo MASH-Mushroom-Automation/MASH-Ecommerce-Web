@@ -17,7 +17,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { OTPApi, type SendOTPData, type VerifyOTPData } from "@/lib/api/otp";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
@@ -153,7 +152,6 @@ export function usePhoneVerification(
   const [attempts, setAttempts] = useState<number>(0);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const [expirySeconds, setExpirySeconds] = useState<number>(0);
-  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   // Track which SMS provider is being used for this verification session
   const usingFirebaseRef = useRef<boolean>(false);
@@ -269,11 +267,9 @@ export function usePhoneVerification(
   /**
    * Send OTP verification code to phone number.
    *
-   * Strategy:
-   *   1. Try Firebase Phone Auth first (sends real SMS).
-   *   2. On localhost, if Firebase fails (auth/internal-error, reCAPTCHA issues),
-   *      fall back to the API route which generates a test code.
-   *   3. On production, Firebase errors are surfaced directly (no silent fallback).
+   * Uses Firebase Phone Auth for SMS delivery on all environments.
+   * Firebase handles reCAPTCHA verification and SMS sending through
+   * Google's infrastructure. Localhost is supported natively by Firebase.
    */
   const sendVerification = useCallback(
     async (phone: string) => {
@@ -283,87 +279,44 @@ export function usePhoneVerification(
         setPhoneNumber(phone);
         setAttempts(0);
 
-        const isLocalhost =
-          typeof window !== 'undefined' &&
-          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-        // ---------- Try Firebase Phone Auth ----------
+        // Use Firebase Phone Auth for real SMS delivery on all environments
         if (isFirebasePhoneAuthAvailable()) {
-          try {
-            await sendFirebasePhoneVerification(phone);
-            usingFirebaseRef.current = true;
-
-            setState('sent');
-            startCooldownTimer();
-            const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-            startExpiryTimer(expiresAt);
-
-            toast.success('Verification code sent via SMS. Check your phone.');
-            return;
-          } catch (firebaseErr) {
-            const fbErr = firebaseErr as { code?: string; message?: string };
-            console.error('[PhoneVerification] Firebase Phone Auth failed:', fbErr.code, fbErr.message);
-            clearRecaptchaVerifier();
-            usingFirebaseRef.current = false;
-
-            // Non-recoverable errors -- surface to user immediately everywhere
-            if (fbErr.code === 'auth/invalid-phone-number') {
-              throw new Error('Invalid phone number. Use format: 09XX XXX XXXX');
-            }
-            if (fbErr.code === 'auth/too-many-requests') {
-              throw new Error('Too many attempts. Please wait a few minutes before trying again.');
-            }
-            if (fbErr.code === 'auth/quota-exceeded') {
-              throw new Error('SMS quota exceeded for today. Please try again tomorrow.');
-            }
-
-            // On production, surface all other Firebase errors
-            if (!isLocalhost) {
-              throw firebaseErr;
-            }
-
-            // On localhost, fall through to API route for recoverable errors
-            console.warn('[PhoneVerification] Localhost: falling back to API route (test code)');
-          }
-        }
-
-        // ---------- Fallback: API route (generates test code on localhost) ----------
-        const response = await OTPApi.sendOTP(phone, 'PHONE_VERIFICATION');
-
-        if (response.success && response.data) {
-          const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
-
-          if (data.verificationId) {
-            setVerificationId(data.verificationId);
-          }
+          await sendFirebasePhoneVerification(phone);
+          usingFirebaseRef.current = true;
 
           setState('sent');
           startCooldownTimer();
-          startExpiryTimer(data.expiresAt);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          startExpiryTimer(expiresAt);
 
-          if (data.devCode) {
-            toast.success(`Dev code: ${data.devCode} (Firebase unavailable on localhost)`, { duration: 15000 });
-          } else {
-            toast.success(`Verification code sent to ${data.phoneNumber}`);
-          }
-        } else {
-          throw new Error(response.message || 'Failed to send OTP');
+          toast.success('Verification code sent via SMS. Check your phone.');
+          return;
         }
+
+        // SSR fallback (should not normally reach here in browser)
+        throw new Error('Firebase Phone Auth is not available. Please reload the page and try again.');
       } catch (err) {
         const error = err as { code?: string; message?: string };
         setState('error');
+        clearRecaptchaVerifier();
 
         let msg = error.message || 'Failed to send verification code';
-        if (error.code === 'auth/captcha-check-failed') {
+        if (error.code === 'auth/invalid-phone-number') {
+          msg = 'Invalid phone number. Use format: 09XX XXX XXXX';
+        } else if (error.code === 'auth/captcha-check-failed') {
           msg = 'reCAPTCHA verification failed. Please refresh the page and try again.';
         } else if (error.code === 'auth/missing-phone-number') {
           msg = 'Please enter a phone number first.';
+        } else if (error.code === 'auth/too-many-requests') {
+          msg = 'Too many attempts. Please wait a few minutes before trying again.';
+        } else if (error.code === 'auth/quota-exceeded') {
+          msg = 'SMS quota exceeded for today. Please try again tomorrow.';
         } else if (error.code === 'auth/internal-error') {
-          msg = 'Firebase Phone Auth configuration error. Check Firebase Console: Authentication > Settings > Authorized Domains must include your domain. Also ensure Identity Toolkit API is enabled in Google Cloud Console.';
+          msg = 'Phone verification service error. Please ensure Phone provider is enabled in Firebase Console and reCAPTCHA is not blocked.';
         }
 
         console.error('[PhoneVerification] Send failed:', error.code || '(no code)', msg);
-        clearRecaptchaVerifier();
+        usingFirebaseRef.current = false;
 
         setError(msg);
         toast.error(msg);
@@ -374,9 +327,7 @@ export function usePhoneVerification(
   );
 
   /**
-   * Verify OTP code.
-   * Uses Firebase Phone Auth confirm if Firebase was used for sending,
-   * otherwise falls back to API route verification.
+   * Verify OTP code using Firebase Phone Auth.
    */
   const verifyCode = useCallback(
     async (code: string): Promise<boolean> => {
@@ -390,85 +341,51 @@ export function usePhoneVerification(
         setError(null);
         setAttempts((prev) => prev + 1);
 
-        // If we used Firebase Phone Auth to send, verify with Firebase
-        if (usingFirebaseRef.current) {
+        await verifyFirebasePhoneCode(code);
+
+        setState('success');
+        clearTimers();
+
+        if (autoUpdateProfile) {
           try {
-            await verifyFirebasePhoneCode(code);
-
-            setState('success');
-            clearTimers();
-
-            if (autoUpdateProfile) {
-              try {
-                await updateUserProfile({ phone: phoneNumber });
-              } catch (profileError) {
-                console.warn('Failed to update profile after verification:', profileError);
-              }
-            }
-
-            toast.success('Phone number verified successfully!');
-            onSuccess?.(phoneNumber);
-            return true;
-          } catch (firebaseErr) {
-            const fbError = firebaseErr as { code?: string; message?: string };
-            setState('sent');
-            const msg = fbError.code === 'auth/invalid-verification-code'
-              ? 'Invalid code. Please try again.'
-              : fbError.code === 'auth/code-expired'
-                ? 'Code expired. Please request a new one.'
-                : fbError.message || 'Verification failed';
-            setError(msg);
-            toast.error(msg);
-            return false;
+            await updateUserProfile({ phone: phoneNumber });
+          } catch (profileError) {
+            console.warn('Failed to update profile after verification:', profileError);
           }
         }
 
-        // Fallback: API route verification
-        const response = await OTPApi.verifyOTP(phoneNumber, code);
-
-        if (response.success && response.data) {
-          const data = response.data as VerifyOTPData;
-          
-          if (data.verified) {
-            setState('success');
-            clearTimers();
-            
-            if (autoUpdateProfile) {
-              try {
-                await updateUserProfile({ phone: phoneNumber });
-              } catch (profileError) {
-                console.warn('Failed to update profile after verification:', profileError);
-              }
-            }
-
-            toast.success('Phone number verified successfully!');
-            onSuccess?.(phoneNumber);
-            return true;
-          } else {
-            setState('sent');
-            const remainingAttempts = data.attemptsRemaining ?? (MAX_ATTEMPTS - attempts);
-            setError(`Invalid code. ${remainingAttempts} attempts remaining.`);
-            toast.error(`Invalid code. ${remainingAttempts} attempts remaining.`);
-            return false;
-          }
-        } else {
-          throw new Error(response.message || 'Verification failed');
-        }
+        toast.success('Phone number verified successfully!');
+        onSuccess?.(phoneNumber);
+        return true;
       } catch (err) {
-        const error = err as Error;
-        setState('error');
-        setError(error.message || 'Verification failed');
-        toast.error(error.message || 'Verification failed');
-        onError?.(error);
+        const error = err as { code?: string; message?: string };
+
+        let msg = error.message || 'Verification failed';
+        if (error.code === 'auth/invalid-verification-code') {
+          msg = 'Invalid code. Please try again.';
+          setState('sent');
+        } else if (error.code === 'auth/code-expired') {
+          msg = 'Code expired. Please request a new one.';
+          setState('sent');
+        } else if (error.code === 'auth/session-expired') {
+          msg = 'Verification session expired. Please request a new code.';
+          setState('error');
+        } else {
+          setState('error');
+        }
+
+        setError(msg);
+        toast.error(msg);
+        onError?.(new Error(msg));
         return false;
       }
     },
-    [phoneNumber, attempts, clearTimers, autoUpdateProfile, updateUserProfile, onSuccess, onError]
+    [phoneNumber, clearTimers, autoUpdateProfile, updateUserProfile, onSuccess, onError]
   );
 
   /**
    * Resend OTP code (enforces cooldown).
-   * Same strategy as sendVerification: Firebase first, localhost fallback to API route.
+   * Uses Firebase Phone Auth for SMS delivery on all environments.
    */
   const resendCode = useCallback(async () => {
     if (!phoneNumber) {
@@ -485,73 +402,34 @@ export function usePhoneVerification(
       setState('sending');
       setError(null);
 
-      const isLocalhost =
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-      // ---------- Try Firebase Phone Auth ----------
       if (isFirebasePhoneAuthAvailable()) {
-        try {
-          await sendFirebasePhoneVerification(phoneNumber);
-          usingFirebaseRef.current = true;
-
-          setState('sent');
-          startCooldownTimer();
-          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-          startExpiryTimer(expiresAt);
-
-          toast.success('New verification code sent via SMS.');
-          return;
-        } catch (firebaseErr) {
-          const fbErr = firebaseErr as { code?: string; message?: string };
-          console.error('[PhoneVerification] Firebase resend failed:', fbErr.code, fbErr.message);
-          clearRecaptchaVerifier();
-          usingFirebaseRef.current = false;
-
-          if (fbErr.code === 'auth/too-many-requests') {
-            throw new Error('Too many attempts. Please wait a few minutes.');
-          }
-          if (fbErr.code === 'auth/quota-exceeded') {
-            throw new Error('SMS quota exceeded for today. Please try again tomorrow.');
-          }
-
-          if (!isLocalhost) {
-            throw firebaseErr;
-          }
-
-          console.warn('[PhoneVerification] Localhost: resend falling back to API route');
-        }
-      }
-
-      // ---------- Fallback: API route ----------
-      const response = await OTPApi.resendOTP(phoneNumber);
-
-      if (response.success && response.data) {
-        const data = response.data as SendOTPData & { verificationId?: string; devCode?: string };
-
-        if (data.verificationId) {
-          setVerificationId(data.verificationId);
-        }
+        await sendFirebasePhoneVerification(phoneNumber);
+        usingFirebaseRef.current = true;
 
         setState('sent');
         startCooldownTimer();
-        startExpiryTimer(data.expiresAt);
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        startExpiryTimer(expiresAt);
 
-        if (data.devCode) {
-          toast.success(`Dev code: ${data.devCode} (Firebase unavailable on localhost)`, { duration: 15000 });
-        } else {
-          toast.success('Verification code resent');
-        }
-      } else {
-        throw new Error(response.message || 'Failed to resend OTP');
+        toast.success('New verification code sent via SMS.');
+        return;
       }
+
+      throw new Error('Firebase Phone Auth is not available. Please reload the page and try again.');
     } catch (err) {
       const error = err as { code?: string; message?: string };
       setState('error');
-
-      const msg = error.message || 'Failed to resend verification code';
-      console.error('[PhoneVerification] Resend failed:', error.code || '(no code)', msg);
       clearRecaptchaVerifier();
+      usingFirebaseRef.current = false;
+
+      let msg = error.message || 'Failed to resend verification code';
+      if (error.code === 'auth/too-many-requests') {
+        msg = 'Too many attempts. Please wait a few minutes.';
+      } else if (error.code === 'auth/quota-exceeded') {
+        msg = 'SMS quota exceeded for today. Please try again tomorrow.';
+      }
+
+      console.error('[PhoneVerification] Resend failed:', error.code || '(no code)', msg);
 
       setError(msg);
       toast.error(msg);
@@ -569,7 +447,6 @@ export function usePhoneVerification(
     setAttempts(0);
     setCooldownSeconds(0);
     setExpirySeconds(0);
-    setVerificationId(null);
     usingFirebaseRef.current = false;
     clearRecaptchaVerifier();
     clearTimers();
