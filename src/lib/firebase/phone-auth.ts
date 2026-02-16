@@ -11,15 +11,14 @@
  *   3. linkWithCredential() / updatePhoneNumber() verifies the code and
  *      links/updates the phone on the Firebase user (no auth state change)
  *
- * reCAPTCHA: Invisible reCAPTCHA runs automatically on all environments.
- *   Firebase requires reCAPTCHA to prevent abuse. The invisible widget
- *   auto-solves without user interaction.
+ * reCAPTCHA: Only enforced in production. In development mode,
+ *   Firebase's appVerificationDisabledForTesting flag is set to true,
+ *   which skips the reCAPTCHA challenge while still using the full
+ *   Firebase Phone Auth flow (real signInWithPhoneNumber calls).
+ *   Configure test phone numbers in Firebase Console to avoid SMS charges
+ *   during development.
  *
- * IMPORTANT: Do NOT set appVerificationDisabledForTesting = true.
- *   That flag causes Firebase to return 200/sessionInfo but SKIP sending
- *   the actual SMS. It's only for automated test suites, not development.
- *
- * Prerequisites:
+ * Prerequisites (Production only):
  *   - Firebase Console > Authentication > Sign-in method > Phone > Enable
  *   - Firebase Console > Authentication > Settings > Authorized domains
  *     must include your domain (localhost is included by default)
@@ -39,6 +38,14 @@ import {
   type ConfirmationResult,
 } from "firebase/auth";
 import { auth } from "./auth";
+
+// ============================================================================
+// Environment Detection
+// ============================================================================
+
+function isDevMode(): boolean {
+  return process.env.NODE_ENV === "development";
+}
 
 // ============================================================================
 // State
@@ -93,15 +100,13 @@ export function getRecaptchaVerifier(): RecaptchaVerifier {
   recaptchaVerifier = new RecaptchaVerifier(auth, container, {
     size: "invisible",
     callback: () => {
-      console.log("[PhoneAuth] reCAPTCHA solved");
+      // reCAPTCHA solved
     },
     "expired-callback": () => {
-      console.log("[PhoneAuth] reCAPTCHA expired, will refresh on next send");
       clearRecaptchaVerifier();
     },
   });
 
-  console.log("[PhoneAuth] reCAPTCHA verifier created (invisible)");
   return recaptchaVerifier;
 }
 
@@ -149,14 +154,22 @@ export async function sendFirebasePhoneVerification(
   phoneNumber: string,
 ): Promise<string> {
   const e164Phone = ensureE164(phoneNumber);
-  console.log("[PhoneAuth] Sending verification to:", e164Phone);
-  console.log("[PhoneAuth] Auth project:", auth.app.options.projectId, "| Auth domain:", auth.app.options.authDomain);
 
   // NOTE: Do NOT call initializeRecaptchaConfig(auth) here.
   // That function enables reCAPTCHA Enterprise mode which requires separate
   // Google Cloud Console setup. Without it, calling initializeRecaptchaConfig
   // corrupts the auth instance's internal state, causing signInWithPhoneNumber
   // to fail with auth/internal-error. Standard reCAPTCHA v2 works without it.
+
+  // In development mode, disable app verification (reCAPTCHA) so the
+  // phone auth flow works without reCAPTCHA challenges. Firebase will
+  // still process signInWithPhoneNumber normally -- it just skips the
+  // reCAPTCHA check. For test phone numbers configured in Firebase
+  // Console > Authentication > Phone > Phone numbers for testing,
+  // a preset verification code is returned without sending a real SMS.
+  if (isDevMode()) {
+    auth.settings.appVerificationDisabledForTesting = true;
+  }
 
   const verifier = getRecaptchaVerifier();
 
@@ -168,10 +181,6 @@ export async function sendFirebasePhoneVerification(
     );
 
     storedVerificationId = confirmResult.verificationId;
-    console.log(
-      "[PhoneAuth] SMS sent, verificationId:",
-      storedVerificationId.slice(0, 10) + "...",
-    );
     return storedVerificationId;
   } catch (sendErr: unknown) {
     // Clean up reCAPTCHA on failure so a fresh one is created on retry
@@ -206,7 +215,6 @@ export async function verifyFirebasePhoneCode(
     throw new Error("No verification in progress. Send a code first.");
   }
 
-  console.log("[PhoneAuth] Verifying code...");
   const credential = PhoneAuthProvider.credential(storedVerificationId, code);
 
   const currentUser = auth.currentUser;
@@ -215,31 +223,25 @@ export async function verifyFirebasePhoneCode(
     // Signed-in user: link phone to their account or update existing phone.
     try {
       await linkWithCredential(currentUser, credential);
-      console.log("[PhoneAuth] Phone linked to account");
     } catch (err: unknown) {
       const fbErr = err as { code?: string };
       if (fbErr.code === "auth/provider-already-linked") {
         // Phone provider already linked -- update the number instead
         try {
           await updatePhoneNumber(currentUser, credential);
-          console.log("[PhoneAuth] Phone number updated");
         } catch (updateErr: unknown) {
           const uErr = updateErr as { code?: string };
           if (uErr.code === "auth/credential-already-in-use") {
             // Code verified but number belongs to another Firebase account.
             // Still counts as verification for profile purposes.
-            console.warn(
-              "[PhoneAuth] Phone verified but in use by another account",
-            );
+
           } else {
             throw updateErr;
           }
         }
       } else if (fbErr.code === "auth/credential-already-in-use") {
         // Code was correct but phone belongs to another account
-        console.warn(
-          "[PhoneAuth] Phone verified but in use by another account",
-        );
+
       } else {
         throw err;
       }
@@ -247,7 +249,6 @@ export async function verifyFirebasePhoneCode(
   } else {
     // No signed-in user (e.g. 2FA login flow) -- sign in with phone credential
     await signInWithCredential(auth, credential);
-    console.log("[PhoneAuth] Signed in with phone credential");
   }
 
   storedVerificationId = null;

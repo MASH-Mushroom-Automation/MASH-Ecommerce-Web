@@ -42,19 +42,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from cookie on mount
   useEffect(() => {
-    logger.debug("[CartContext] Loading cart from cookie...");
     const savedCart = getCartCookie();
-    logger.debug("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
-        logger.debug("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
         if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
-          logger.debug("[CartContext] Loading", savedCart.items.length, "items");
           setItems(savedCart.items);
         } else {
           // Old cart format - clear it
-          logger.debug("[CartContext] Old cart format detected, clearing cart");
           clearCartCookie();
         }
       } catch (error) {
@@ -62,19 +57,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
-    logger.debug("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      logger.debug("[CartContext] Saving to cookie, items:", items.length);
       setCartCookie({
         version: 2,
         items,
         updatedAt: new Date().toISOString(),
       });
-      logger.debug("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
@@ -173,7 +165,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-    logger.debug("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
     
     // Validate stock
     if (product.stock < quantity) {
