@@ -70,7 +70,6 @@ function setFirebaseAuthCookie(userId: string): void {
   // Set cookie with 30 day expiry
   const maxAge = 60 * 60 * 24 * 30;
   document.cookie = `firebase-auth=${userId}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-  console.log("[Auth] Firebase auth cookie set for user:", userId);
 }
 
 /**
@@ -79,7 +78,6 @@ function setFirebaseAuthCookie(userId: string): void {
 function clearFirebaseAuthCookie(): void {
   if (typeof document === "undefined") return;
   document.cookie = "firebase-auth=; Path=/; Max-Age=0";
-  console.log("[Auth] Firebase auth cookie cleared");
 }
 
 // User type that works for both Firebase and traditional auth
@@ -171,7 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Only start token refresh for email/password users with backend tokens
     // Google OAuth users don't have backend JWT tokens
     if (user && user.provider === "email") {
-      console.log("[Auth] Starting token refresh monitoring for email user...");
       startTokenRefreshCheck();
     } else {
       stopTokenRefreshCheck();
@@ -222,8 +219,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       additionalData?: Partial<AuthUser>,
     ): Promise<AuthUser> => {
       try {
-        console.log("[Auth Context] Syncing to Firestore profile...");
-
         // Parse name properly (handle "Last, First" format from Google)
         let firstName = additionalData?.firstName;
         let lastName = additionalData?.lastName;
@@ -289,7 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Failed to set user cookie:", e);
         }
 
-        console.log("[Auth Context] Profile synced to Firestore successfully");
         return authUser;
       } catch (error) {
         console.error("[Auth Context] Firestore sync error:", error);
@@ -365,12 +359,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
       try {
-        console.log("[Auth] Syncing Firebase user to backend...");
-        console.log("[Auth] Firebase user:", {
-          uid: fbUser.uid,
-          email: fbUser.email,
-          displayName: fbUser.displayName,
-        });
 
         // Get Firebase ID token for backend verification
         const idToken = await fbUser.getIdToken(true); // Force refresh to ensure valid token
@@ -380,28 +368,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        console.log("[Auth] Got Firebase ID token, length:", idToken.length);
-        console.log("[Auth] Token preview:", idToken.substring(0, 50) + "...");
-
         // Only send idToken - backend extracts user info from the verified Firebase token
         const requestBody = {
           idToken: idToken,
         };
 
-        console.log("[Auth] Request body:", requestBody);
-
         // If no backend URL configured, skip backend sync quietly (useful in local/dev)
         if (!process.env.NEXT_PUBLIC_API_URL) {
-          console.info(
-            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured",
-          );
           return null;
         }
-
-        console.log(
-          "[Auth] Sending to:",
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
-        );
 
         // Call backend API with Firebase ID token in request body
         // Backend will verify this token with Firebase Admin SDK
@@ -428,10 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        console.log("[Auth] Backend response status:", response.status);
-
         const data = await response.json().catch(() => ({}));
-        console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
           console.error("[Auth] Backend Firebase sync failed:", data);
@@ -445,30 +417,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? data.data || data.payload
             : data;
 
-        console.log("[Auth] Normalized backend payload:", payload);
-
-        console.log("[Auth] Backend Firebase sync successful:", {
-          userId: payload.user?.id,
-          email: payload.user?.email,
-          firebaseUid: payload.user?.firebaseUid || payload.firebaseUid,
-          hasAccessToken:
-            !!payload.accessToken || !!payload.tokens?.accessToken,
-        });
-
         // Backend may set HTTP-only cookie automatically, but also handle token in response
         const accessToken = payload.accessToken || payload.tokens?.accessToken;
         const refreshToken =
           payload.refreshToken || payload.tokens?.refreshToken;
 
         if (accessToken) {
-          console.log("[Auth] Setting backend JWT token from response...");
           setAuthToken(accessToken, refreshToken, true);
         }
         // Refresh token is managed via HTTP-only cookies set by setAuthToken()
         if (refreshToken) {
-          console.log(
-            "[Auth] Refresh token handled via HTTP-only cookie (setAuthToken)",
-          );
         }
 
         // Build unified auth user object with backend-verified data
@@ -506,7 +464,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Persist to cookie (30d)
         try {
           setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-          console.log("[Auth] User data persisted to cookie");
         } catch (err) {
           console.error("[Auth] Failed to store user in cookie:", err);
         }
@@ -537,7 +494,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         !parsed.email || (parsed.firstName && parsed.firstName.includes(","));
 
       if (needsMigration && fbUser.email) {
-        console.log("[Auth Context] Migrating old user data...");
 
         // Fix email
         if (!parsed.email) {
@@ -556,7 +512,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Save migrated data to cookie
         setCookie("user", parsed, { maxAge: 60 * 60 * 24 * 30 });
-        console.log("[Auth Context] User data migrated successfully");
         return true;
       }
 
@@ -575,7 +530,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
-        console.log("[Auth Context] Firebase user detected:", fbUser.email);
 
         // Migrate old cached data if needed
         const wasMigrated = migrateOldUserData(fbUser);
@@ -586,8 +540,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedUser) {
             const parsed = storedUser;
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
-              console.log("[Auth Context] User loaded from cookie");
-
               // Use migrated data if available, otherwise use stored data
               setUser(parsed);
               setLoading(false);
@@ -606,9 +558,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               // If data was migrated or missing email, fetch fresh from Firestore
               if (wasMigrated || !parsed.email) {
-                console.log(
-                  "[Auth Context] Fetching fresh data from Firestore after migration...",
-                );
                 const profile = await FirebaseUserService.getProfile(
                   fbUser.uid,
                 );
@@ -623,9 +572,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-                  console.log(
-                    "[Auth Context] User profile updated from Firestore",
-                  );
                 }
                 return;
               }
@@ -647,9 +593,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-                  console.log(
-                    "[Auth Context] User profile refreshed from Firestore",
-                  );
                 }
               } catch (error) {
                 console.warn(
@@ -669,7 +612,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // If not in localStorage, load from Firestore
         try {
-          console.log("[Auth Context] Loading profile from Firestore...");
           const profile = await FirebaseUserService.getProfile(fbUser.uid);
 
           if (profile) {
@@ -694,17 +636,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (e) {
               console.error("Failed to set user cookie:", e);
             }
-            console.log("[Auth Context] User profile loaded from Firestore:", {
-              id: authUser.id,
-              email: authUser.email,
-              name: `${authUser.firstName} ${authUser.lastName}`,
-              provider: authUser.provider,
-            });
           } else {
             // Profile doesn't exist, create it
-            console.log(
-              "[Auth Context] No Firestore profile found, creating one...",
-            );
             await syncToFirestoreProfile(fbUser, "google");
           }
         } catch (error) {
@@ -830,8 +763,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      console.log("[Auth] Starting Google sign-in...");
-
       // Capture redirect at the beginning to avoid it being cleared during async work
       const _preSignRedirect =
         sessionStorage.getItem("auth-redirect-url") ||
@@ -845,12 +776,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
-          console.log("[Auth] Google sign-in successful:", {
-            uid: result.uid,
-            email: result.email,
-            displayName: result.displayName,
-          });
-
           // First sync to Firestore profile (local Firebase storage)
           const firestoreUser = await syncToFirestoreProfile(result, "google");
 
@@ -858,15 +783,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // This sends the Firebase ID token to backend for verification
           let authUser = firestoreUser;
           try {
-            console.log("[Auth] Attempting backend sync...");
             const backendUser = await syncFirebaseUserToBackend(result);
             if (backendUser) {
               authUser = backendUser;
-              console.log("[Auth] Backend sync successful");
-            } else {
-              console.log(
-                "[Auth] Backend sync skipped/failed, using Firebase-only auth",
-              );
             }
           } catch (backendError) {
             console.warn(
@@ -874,13 +793,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               backendError,
             );
           }
-
-          console.log("[Auth] Google sign-in complete - user profile:", {
-            id: authUser.id,
-            email: authUser.email,
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
-          });
 
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);

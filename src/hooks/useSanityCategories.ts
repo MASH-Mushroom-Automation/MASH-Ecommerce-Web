@@ -101,14 +101,12 @@ export function useSanityCategories(filters?: CategoryFilters) {
         ${includeProductCount ? `"productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])` : ''}
       }`;
 
-      console.log('📦 Fetching categories from Sanity...');
       const data = await sanityClient.fetch<Array<SanityCategory & { productCount?: number; parentId?: string }>>(query);
       
       const transformed = data.map(transformCategory);
       setCategories(transformed);
-      console.log('✅ Categories fetched:', transformed.length);
     } catch (err) {
-      console.error('❌ Error fetching categories:', err);
+      console.error('Error fetching categories:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -119,8 +117,6 @@ export function useSanityCategories(filters?: CategoryFilters) {
     fetchCategories();
 
     // Set up REAL-TIME subscription
-    console.debug('🔌 Setting up categories real-time subscription');
-    
     let query = `*[_type == "category" && !(_id in path("drafts.**"))] | order(name asc)`;
     
     if (filters?.limit) {
@@ -129,18 +125,13 @@ export function useSanityCategories(filters?: CategoryFilters) {
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.debug('📡 Categories mutation event received:', update.type);
-        
         if (update.type === 'mutation') {
-          // Re-fetch to get fresh data with product counts
           fetchCategories();
-          console.info('🔄 Categories updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Categories subscription cleaned up');
     };
   }, [fetchCategories, filters?.limit]);
 
@@ -192,18 +183,15 @@ export function useSanityCategory(slug: string) {
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])
       }`;
 
-      console.log(`📦 Fetching category "${slug}" from Sanity...`);
       const data = await sanityClient.fetch<SanityCategory & { productCount?: number; parentId?: string }>(query, { slug });
       
       if (data) {
         setCategory(transformCategory(data));
-        console.log(`✅ Category "${slug}" fetched`);
       } else {
         setCategory(null);
-        console.log(`⚠️ Category "${slug}" not found`);
       }
     } catch (err) {
-      console.error(`❌ Error fetching category "${slug}":`, err);
+      console.error(`Error fetching category "${slug}":`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -216,31 +204,22 @@ export function useSanityCategory(slug: string) {
     fetchCategory();
 
     // Set up REAL-TIME subscription for this specific category
-    console.log(`🔌 Setting up real-time subscription for category "${slug}"`);
-    
     const query = `*[_type == "category" && slug.current == $slug][0]`;
 
     const subscription = sanityClient
       .listen(query, { slug })
       .subscribe((update) => {
-        console.log(`📡 Category "${slug}" mutation event received:`, update.type);
-        
         if (update.type === 'mutation') {
           if (update.result) {
-            // Category updated - re-fetch to get fresh data
             fetchCategory();
-            console.log(`🔄 Category "${slug}" updated in real-time!`);
           } else {
-            // Category deleted
             setCategory(null);
-            console.log(`🗑️ Category "${slug}" deleted in real-time!`);
           }
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log(`🧹 Category "${slug}" subscription cleaned up`);
     };
   }, [slug, fetchCategory]);
 
@@ -282,14 +261,12 @@ export function useSanityParentCategories() {
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])
       }`;
 
-      console.log('📦 Fetching parent categories from Sanity...');
       const data = await sanityClient.fetch<Array<SanityCategory & { productCount?: number }>>(query);
       
       const transformed = data.map(transformCategory);
       setCategories(transformed);
-      console.log('✅ Parent categories fetched:', transformed.length);
     } catch (err) {
-      console.error('❌ Error fetching parent categories:', err);
+      console.error('Error fetching parent categories:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -300,23 +277,17 @@ export function useSanityParentCategories() {
     fetchParentCategories();
 
     // Set up REAL-TIME subscription
-    console.debug('🔌 Setting up parent categories real-time subscription');
-    
     const query = `*[_type == "category" && !defined(parent) && !(_id in path("drafts.**"))]`;
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.log('📡 Parent categories mutation event received:', update.type);
-        
         if (update.type === 'mutation') {
           fetchParentCategories();
-          console.log('🔄 Parent categories updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Parent categories subscription cleaned up');
     };
   }, [fetchParentCategories]);
 
@@ -363,7 +334,6 @@ export function useSanitySubcategories(parentId: string) {
         "productCount": count(*[_type == "product" && references(^._id) && !(_id in path("drafts.**"))])
       }`;
 
-      console.log(`📦 Fetching subcategories for parent "${parentId}"...`);
       const data = await sanityClient.fetch<Array<SanityCategory & { productCount?: number }>>(query, { parentId });
       
       const transformed = data.map((cat) => ({
@@ -371,9 +341,8 @@ export function useSanitySubcategories(parentId: string) {
         parentId,
       }));
       setCategories(transformed);
-      console.log(`✅ Subcategories fetched for parent "${parentId}":`, transformed.length);
     } catch (err) {
-      console.error(`❌ Error fetching subcategories for parent "${parentId}":`, err);
+      console.error(`Error fetching subcategories for parent "${parentId}":`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -386,23 +355,17 @@ export function useSanitySubcategories(parentId: string) {
     fetchSubcategories();
 
     // Set up REAL-TIME subscription
-    console.debug(`🔌 Setting up subcategories real-time subscription for parent "${parentId}"`);
-    
     const query = `*[_type == "category" && parent._ref == $parentId && !(_id in path("drafts.**"))]`;
 
     const subscription = listenSafe(query, { parentId })
       .subscribe((update) => {
-        console.log(`📡 Subcategories for parent "${parentId}" mutation event received:`, update.type);
-        
         if (update.type === 'mutation') {
           fetchSubcategories();
-          console.log(`🔄 Subcategories for parent "${parentId}" updated in real-time!`);
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log(`🧹 Subcategories for parent "${parentId}" subscription cleaned up`);
     };
   }, [parentId, fetchSubcategories]);
 
@@ -470,13 +433,11 @@ export function useSanityProductsByCategory(categorySlug: string, limit?: number
         nutrition
       }`;
 
-      console.log(`📦 Fetching products for category "${categorySlug}"...`);
       const data = await sanityClient.fetch<SanityProduct[]>(query, { categorySlug });
       
       setProducts(data || []);
-      console.log(`✅ Products fetched for category "${categorySlug}":`, data?.length || 0);
     } catch (err) {
-      console.error(`❌ Error fetching products for category "${categorySlug}":`, err);
+      console.error(`Error fetching products for category "${categorySlug}":`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -489,8 +450,6 @@ export function useSanityProductsByCategory(categorySlug: string, limit?: number
     fetchProducts();
 
     // Set up REAL-TIME subscription for products in this category
-    console.log(`🔌 Setting up real-time subscription for products in category "${categorySlug}"`);
-    
     let query = `*[_type == "product" && category->slug.current == $categorySlug && !(_id in path("drafts.**"))]`;
     
     if (limit) {
@@ -499,18 +458,13 @@ export function useSanityProductsByCategory(categorySlug: string, limit?: number
 
     const subscription = listenSafe(query, { categorySlug })
       .subscribe((update) => {
-        console.log(`📡 Products in category "${categorySlug}" mutation event received:`, update.type);
-        
         if (update.type === 'mutation') {
-          // Re-fetch products to get fresh data
           fetchProducts();
-          console.log(`🔄 Products in category "${categorySlug}" updated in real-time!`);
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log(`🧹 Products in category "${categorySlug}" subscription cleaned up`);
     };
   }, [categorySlug, limit, fetchProducts]);
 

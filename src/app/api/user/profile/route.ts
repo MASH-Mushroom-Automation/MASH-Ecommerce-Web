@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get("auth-token")?.value;
 
     // If there's no backend JWT token, but there is a Firebase session cookie, return profile from Firestore
-    const firebaseUidCookie = cookieStore.get("firebase-uid")?.value;
+    const firebaseUidCookie = cookieStore.get("firebase-auth")?.value;
 
     if (!token && firebaseUidCookie) {
       try {

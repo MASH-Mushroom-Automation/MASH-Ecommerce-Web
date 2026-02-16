@@ -367,16 +367,13 @@ export function useSanitySiteSettings() {
         }
       }`;
 
-      console.debug('📦 Fetching site settings from Sanity (siteSettings)...');
       const data = await sanityClient.fetch<SanitySiteSettings | null>(query);
       
       if (data) {
         const transformedData = transformSiteSettings(data);
         setSettings(transformedData);
-        console.log('✅ Site settings fetched successfully');
       } else {
         // Fallback to legacy settings document if siteSettings not found
-        console.log('⚠️ No siteSettings found, trying legacy settings...');
         const legacyQuery = `*[_type == "settings"][0] {
           _id,
           _createdAt,
@@ -423,10 +420,8 @@ export function useSanitySiteSettings() {
             updatedAt: legacyData._updatedAt,
           };
           setSettings(transformedLegacy);
-          console.log('✅ Legacy settings used as fallback');
         } else {
           setSettings(null);
-          console.log('⚠️ No settings found');
         }
       }
     } catch (err) {
@@ -441,19 +436,14 @@ export function useSanitySiteSettings() {
     fetchSettings();
 
     // Set up REAL-TIME subscription for site settings
-    console.debug('🔌 Setting up site settings real-time subscription');
-    
     // Listen to both siteSettings and legacy settings
     const query = `*[_type in ["siteSettings", "settings"]][0]`;
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.debug('📡 Site settings mutation event received:', update.type);
-        
         if (update.type === 'mutation') {
           // Re-fetch to get fresh data with image URLs
           fetchSettings();
-          console.info('🔄 Site settings updated in real-time!');
         }
       });
 
@@ -651,15 +641,12 @@ export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
         }
       }`;
 
-      console.log(`📦 Fetching ${menuType} navigation from Sanity...`);
       const data = await sanityClient.fetch<NavigationMenu | null>(query, { menuType });
       
       if (data) {
         setMenu(data);
-        console.log(`✅ ${menuType} navigation fetched (${data.items?.length || 0} items)`);
       } else {
         setMenu(null);
-        console.log(`⚠️ No ${menuType} navigation found`);
       }
     } catch (err) {
       console.error(`❌ Error fetching ${menuType} navigation:`, err);
@@ -673,23 +660,17 @@ export function useSanityNavigation(menuType: NavigationMenu['menuType']) {
     fetchMenu();
 
     // Set up REAL-TIME subscription for navigation
-    console.debug(`🔌 Setting up ${menuType} navigation real-time subscription`);
-    
     const query = `*[_type == "navigation" && menuType == $menuType]`;
 
     const subscription = listenSafe(query, { menuType })
       .subscribe((update) => {
-        console.log(`📡 ${menuType} navigation mutation event received:`, update.type);
-        
         if (update.type === 'mutation') {
           fetchMenu();
-          console.log(`🔄 ${menuType} navigation updated in real-time!`);
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log(`🧹 ${menuType} navigation subscription cleaned up`);
     };
   }, [fetchMenu, menuType]);
 
@@ -746,15 +727,12 @@ export function useSanityAllNavigations() {
         }
       }`;
 
-      console.log('📦 Fetching all navigation menus from Sanity...');
       const data = await sanityClient.fetch<NavigationMenu[]>(query);
       
       if (data) {
         setNavigations(data);
-        console.log(`✅ All navigations fetched (${data.length} menus)`);
       } else {
         setNavigations([]);
-        console.log('⚠️ No navigation menus found');
       }
     } catch (err) {
       console.error('❌ Error fetching all navigations:', err);
@@ -768,23 +746,17 @@ export function useSanityAllNavigations() {
     fetchNavigations();
 
     // Set up REAL-TIME subscription for all navigations
-    console.debug('🔌 Setting up all navigations real-time subscription');
-    
     const query = `*[_type == "navigation"]`;
 
     const subscription = listenSafe(query)
       .subscribe((update) => {
-        console.log('📡 Navigation mutation event received:', update.type);
-        
         if (update.type === 'mutation') {
           fetchNavigations();
-          console.log('🔄 Navigations updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 All navigations subscription cleaned up');
     };
   }, [fetchNavigations]);
 

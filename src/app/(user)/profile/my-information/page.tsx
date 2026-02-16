@@ -206,7 +206,6 @@ export default function MyInformationPage() {
         const response = await UserApi.getProfile();
 
         if (response.success && response.data) {
-          console.log("[Profile] Fetched from backend:", response.data);
           setBackendProfile(response.data);
 
           // Update phone number from backend - prefer phoneNumber, fallback to phone
@@ -288,12 +287,6 @@ export default function MyInformationPage() {
         } else {
           setAuthProvider("unknown");
         }
-
-        console.log("[Profile] Auth provider:", {
-          detected: hasGoogleProvider ? "google" : "email",
-          hasPassword: hasEmailProvider,
-          providerData,
-        });
       } catch (error) {
         console.error("[Profile] Error detecting auth provider:", error);
       }
