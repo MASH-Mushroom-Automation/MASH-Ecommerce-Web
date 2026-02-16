@@ -289,7 +289,12 @@ export function usePhoneVerification(
           const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
           startExpiryTimer(expiresAt);
 
-          toast.success('Verification code sent via SMS. Check your phone.');
+          const isTest = process.env.NEXT_PUBLIC_PHONE_AUTH_TEST_MODE === 'true';
+          if (isTest) {
+            toast.info('Test mode: Use the code configured in Firebase Console.');
+          } else {
+            toast.success('SMS sent! Check your phone for the 6-digit code.');
+          }
           return;
         }
 
@@ -311,6 +316,8 @@ export function usePhoneVerification(
           msg = 'Too many attempts. Please wait a few minutes before trying again.';
         } else if (error.code === 'auth/quota-exceeded') {
           msg = 'SMS quota exceeded for today. Please try again tomorrow.';
+        } else if (error.code === 'auth/operation-not-allowed') {
+          msg = 'Phone sign-in is not enabled. Enable Phone provider in Firebase Console > Authentication > Sign-in method.';
         } else if (error.code === 'auth/internal-error') {
           msg = 'Phone verification service error. Please ensure Phone provider is enabled in Firebase Console and reCAPTCHA is not blocked.';
         }
@@ -411,7 +418,7 @@ export function usePhoneVerification(
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
         startExpiryTimer(expiresAt);
 
-        toast.success('New verification code sent via SMS.');
+        toast.success('New SMS code sent! Check your phone.');
         return;
       }
 

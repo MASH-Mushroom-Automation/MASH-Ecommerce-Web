@@ -11,19 +11,23 @@
  *   3. linkWithCredential() / updatePhoneNumber() verifies the code and
  *      links/updates the phone on the Firebase user (no auth state change)
  *
- * reCAPTCHA: Only enforced in production. In development mode,
- *   Firebase's appVerificationDisabledForTesting flag is set to true,
- *   which skips the reCAPTCHA challenge while still using the full
- *   Firebase Phone Auth flow (real signInWithPhoneNumber calls).
- *   Configure test phone numbers in Firebase Console to avoid SMS charges
- *   during development.
+ * reCAPTCHA: Enabled by default on ALL environments (dev + production).
+ *   The invisible reCAPTCHA auto-solves without user interaction.
+ *   Firebase requires reCAPTCHA to verify the request is legitimate
+ *   before dispatching a real SMS. Disabling reCAPTCHA (test mode)
+ *   causes Firebase to skip SMS delivery for real phone numbers.
  *
- * Prerequisites (Production only):
+ * Test Mode (NEXT_PUBLIC_PHONE_AUTH_TEST_MODE=true):
+ *   Disables reCAPTCHA and only works with test phone numbers configured
+ *   in Firebase Console > Authentication > Phone > Phone numbers for testing.
+ *   No real SMS is sent in test mode.
+ *
+ * Prerequisites:
  *   - Firebase Console > Authentication > Sign-in method > Phone > Enable
  *   - Firebase Console > Authentication > Settings > Authorized domains
  *     must include your domain (localhost is included by default)
  *   - Google Cloud Console > Identity Toolkit API must be enabled
- *   - Project must be on Blaze plan for SMS delivery
+ *   - Project must be on Blaze plan for SMS delivery to real numbers
  *
  * @module firebase/phone-auth
  */
@@ -43,8 +47,14 @@ import { auth } from "./auth";
 // Environment Detection
 // ============================================================================
 
-function isDevMode(): boolean {
-  return process.env.NODE_ENV === "development";
+/**
+ * Check if phone auth test mode is explicitly enabled.
+ * When true, reCAPTCHA is disabled and only Firebase Console test phone
+ * numbers will receive codes (no real SMS is sent).
+ * Default: false (real SMS delivery with reCAPTCHA).
+ */
+function isTestMode(): boolean {
+  return process.env.NEXT_PUBLIC_PHONE_AUTH_TEST_MODE === "true";
 }
 
 // ============================================================================
@@ -161,15 +171,26 @@ export async function sendFirebasePhoneVerification(
   // corrupts the auth instance's internal state, causing signInWithPhoneNumber
   // to fail with auth/internal-error. Standard reCAPTCHA v2 works without it.
 
-  // In development mode, disable app verification (reCAPTCHA) so the
-  // phone auth flow works without reCAPTCHA challenges. Firebase will
-  // still process signInWithPhoneNumber normally -- it just skips the
-  // reCAPTCHA check. For test phone numbers configured in Firebase
-  // Console > Authentication > Phone > Phone numbers for testing,
-  // a preset verification code is returned without sending a real SMS.
-  if (isDevMode()) {
+  // Test mode: disable reCAPTCHA for Firebase Console test phone numbers only.
+  // When disabled (default), reCAPTCHA runs normally and Firebase sends real SMS.
+  // IMPORTANT: appVerificationDisabledForTesting = true prevents real SMS delivery!
+  if (isTestMode()) {
     auth.settings.appVerificationDisabledForTesting = true;
+    console.warn(
+      "[PhoneAuth] TEST MODE active (NEXT_PUBLIC_PHONE_AUTH_TEST_MODE=true).",
+      "reCAPTCHA disabled. Only Firebase Console test phone numbers will work.",
+      "No real SMS will be sent.",
+    );
+  } else {
+    // Explicitly ensure verification is enabled for real SMS delivery
+    auth.settings.appVerificationDisabledForTesting = false;
   }
+
+  console.info(
+    "[PhoneAuth] Sending SMS to:", e164Phone,
+    "| Test mode:", isTestMode(),
+    "| reCAPTCHA:", isTestMode() ? "DISABLED" : "ENABLED (real SMS)",
+  );
 
   const verifier = getRecaptchaVerifier();
 
@@ -181,6 +202,14 @@ export async function sendFirebasePhoneVerification(
     );
 
     storedVerificationId = confirmResult.verificationId;
+
+    console.info(
+      "[PhoneAuth] SMS request accepted by Firebase.",
+      "\n  Phone:", e164Phone,
+      "\n  verificationId:", storedVerificationId.substring(0, 12) + "...",
+      "\n  Real SMS:", !isTestMode() ? "YES - check your phone" : "NO - test mode",
+    );
+
     return storedVerificationId;
   } catch (sendErr: unknown) {
     // Clean up reCAPTCHA on failure so a fresh one is created on retry
