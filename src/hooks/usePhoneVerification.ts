@@ -79,12 +79,12 @@ export interface UsePhoneVerificationReturn {
   attempts: number;
   /** Remaining attempts before lock (3 - attempts) */
   attemptsRemaining: number;
-  /** Send OTP to phone number */
-  sendVerification: (phoneNumber: string) => Promise<void>;
+  /** Send OTP to phone number. Returns true if SMS was sent successfully. */
+  sendVerification: (phoneNumber: string) => Promise<boolean>;
   /** Verify OTP code */
   verifyCode: (code: string) => Promise<boolean>;
-  /** Resend OTP code (enforces cooldown) */
-  resendCode: () => Promise<void>;
+  /** Resend OTP code (enforces cooldown). Returns true if SMS was sent. */
+  resendCode: () => Promise<boolean>;
   /** Reset to initial state */
   reset: () => void;
 }
@@ -272,7 +272,7 @@ export function usePhoneVerification(
    * Google's infrastructure. Localhost is supported natively by Firebase.
    */
   const sendVerification = useCallback(
-    async (phone: string) => {
+    async (phone: string): Promise<boolean> => {
       try {
         setState('sending');
         setError(null);
@@ -295,7 +295,7 @@ export function usePhoneVerification(
           } else {
             toast.success('SMS sent! Check your phone for the 6-digit code.');
           }
-          return;
+          return true;
         }
 
         // SSR fallback (should not normally reach here in browser)
@@ -328,6 +328,7 @@ export function usePhoneVerification(
         setError(msg);
         toast.error(msg);
         onError?.(new Error(msg));
+        return false;
       }
     },
     [startCooldownTimer, startExpiryTimer, onError]
@@ -394,15 +395,15 @@ export function usePhoneVerification(
    * Resend OTP code (enforces cooldown).
    * Uses Firebase Phone Auth for SMS delivery on all environments.
    */
-  const resendCode = useCallback(async () => {
+  const resendCode = useCallback(async (): Promise<boolean> => {
     if (!phoneNumber) {
       setError('No phone number set');
-      return;
+      return false;
     }
 
     if (!canResend) {
       setError(`Please wait ${cooldownSeconds} seconds before resending`);
-      return;
+      return false;
     }
 
     try {
@@ -419,7 +420,7 @@ export function usePhoneVerification(
         startExpiryTimer(expiresAt);
 
         toast.success('New SMS code sent! Check your phone.');
-        return;
+        return true;
       }
 
       throw new Error('Firebase Phone Auth is not available. Please reload the page and try again.');
@@ -441,6 +442,7 @@ export function usePhoneVerification(
       setError(msg);
       toast.error(msg);
       onError?.(new Error(msg));
+      return false;
     }
   }, [phoneNumber, canResend, cooldownSeconds, startCooldownTimer, startExpiryTimer, onError]);
 

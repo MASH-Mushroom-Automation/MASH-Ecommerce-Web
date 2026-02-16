@@ -126,8 +126,13 @@ function PhoneVerificationSectionInner({
       toast.error('Please enter a valid phone number first');
       return;
     }
-    setShowOTPModal(true);
-    await phoneVerification.sendVerification(localPhone);
+
+    // Send SMS FIRST (triggers reCAPTCHA while no modal is blocking it),
+    // then open the OTP modal only after Firebase accepts the request.
+    const sent = await phoneVerification.sendVerification(localPhone);
+    if (sent) {
+      setShowOTPModal(true);
+    }
   };
 
   const handleOTPVerifySuccess = async (code: string) => {
@@ -135,7 +140,20 @@ function PhoneVerificationSectionInner({
   };
 
   const handleOTPResend = async () => {
-    await phoneVerification.resendCode();
+    // Close the modal first so the Radix Dialog overlay doesn't block
+    // Google's reCAPTCHA challenge from receiving click events.
+    setShowOTPModal(false);
+
+    // Brief delay for the dialog overlay to unmount
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Resend SMS (reCAPTCHA runs without any overlay blocking)
+    const sent = await phoneVerification.resendCode();
+
+    // Reopen modal only if a new code was sent successfully
+    if (sent) {
+      setShowOTPModal(true);
+    }
   };
 
   const handleSaveWithoutVerify = async () => {
