@@ -103,7 +103,7 @@ describe('usePhoneVerification', () => {
       expect(result.current.cooldownSeconds).toBe(60);
       expect(result.current.expirySeconds).toBeGreaterThan(0);
       expect(sendFirebasePhoneVerification).toHaveBeenCalledWith('+639171234567');
-      expect(toast.success).toHaveBeenCalledWith('Verification code sent via SMS. Check your phone.');
+      expect(toast.success).toHaveBeenCalledWith('SMS sent! Check your phone for the 6-digit code.');
     });
 
     it('should handle invalid phone number error', async () => {
@@ -204,6 +204,46 @@ describe('usePhoneVerification', () => {
       });
 
       expect(result.current.attempts).toBe(0);
+    });
+
+    it('should return true when SMS is sent successfully', async () => {
+      (sendFirebasePhoneVerification as jest.Mock).mockResolvedValue('test-id');
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      let sent: boolean = false;
+      await act(async () => {
+        sent = await result.current.sendVerification('+639171234567');
+      });
+
+      expect(sent).toBe(true);
+    });
+
+    it('should return false when SMS sending fails', async () => {
+      const mockError = { code: 'auth/invalid-phone-number', message: 'Invalid' };
+      (sendFirebasePhoneVerification as jest.Mock).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      let sent: boolean = true;
+      await act(async () => {
+        sent = await result.current.sendVerification('+639171234567');
+      });
+
+      expect(sent).toBe(false);
+    });
+
+    it('should return false when Firebase Phone Auth is unavailable', async () => {
+      (isFirebasePhoneAuthAvailable as jest.Mock).mockReturnValue(false);
+
+      const { result } = renderHook(() => usePhoneVerification());
+
+      let sent: boolean = true;
+      await act(async () => {
+        sent = await result.current.sendVerification('+639171234567');
+      });
+
+      expect(sent).toBe(false);
     });
   });
 
@@ -396,7 +436,7 @@ describe('usePhoneVerification', () => {
       expect(result.current.state).toBe('sent');
       expect(result.current.cooldownSeconds).toBe(60);
       expect(sendFirebasePhoneVerification).toHaveBeenCalledTimes(2);
-      expect(toast.success).toHaveBeenCalledWith('New verification code sent via SMS.');
+      expect(toast.success).toHaveBeenCalledWith('New SMS code sent! Check your phone.');
     });
 
     it('should not allow resend during cooldown', async () => {

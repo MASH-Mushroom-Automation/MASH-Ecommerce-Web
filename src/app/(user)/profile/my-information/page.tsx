@@ -305,15 +305,20 @@ export default function MyInformationPage() {
   };
 
   /**
-   * Handle phone verification request - sends OTP
+   * Handle phone verification request - sends OTP.
+   * reCAPTCHA resolves and SMS is sent BEFORE the OTP modal opens.
    */
   const handleVerifyPhone = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       toast.error("Please enter a valid phone number first");
       return;
     }
-    setShowOTPModal(true);
-    await phoneVerification.sendVerification(phoneNumber);
+    // Send SMS first (reCAPTCHA resolves during this call).
+    // Only show the OTP modal after the SMS is successfully sent.
+    const sent = await phoneVerification.sendVerification(phoneNumber);
+    if (sent) {
+      setShowOTPModal(true);
+    }
   };
 
   /**
