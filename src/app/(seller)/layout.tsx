@@ -3,6 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { SellerSidebar } from "@/components/seller-sidebar";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 import {
   SidebarInset,
   SidebarProvider,
@@ -36,6 +37,8 @@ export default function SellerLayout({
   const pathname = usePathname();
   const isStartSellingPage = pathname === "/start-selling";
 
+  // Allow start-selling page for everyone (no admin guard)
+  // This is where users apply to become sellers
   if (isStartSellingPage) {
     return (
       <div className="min-h-screen">
@@ -46,6 +49,27 @@ export default function SellerLayout({
         </main>
       </div>
     );
+  }
+
+  // Admin role verification - only admins can access other seller pages
+  const { isAdmin, loading } = useAdminGuard();
+
+  // Show loading state while verifying admin access
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not admin, useAdminGuard will handle redirect automatically
+  // Return null to prevent any flash of content
+  if (!isAdmin) {
+    return null;
   }
 
   return (
