@@ -162,11 +162,13 @@ service cloud.firestore {
         && request.resource.data.targetType in ['product', 'grower']
         && request.resource.data.targetId is string;
       
-      // Users can update their own reviews
+      // Users can update their own reviews (content edits)
       // Also allow helpful vote updates from any authenticated user
+      // Also allow flag updates from any authenticated user
       allow update: if isSignedIn()
         && (resource.data.userId == request.auth.uid
-            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount', 'helpfulVotes'])));
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpfulCount', 'helpfulVotes'])
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flagCount', 'flaggedBy', 'flagReasons', 'updatedAt']));
       
       // Users can delete their own reviews
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;

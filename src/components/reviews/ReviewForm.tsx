@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Send, Pencil, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StarRatingInput } from "./StarRatingInput";
+import { ReviewImageUpload } from "./ReviewImageUpload";
 import type {
   CreateReviewInput,
   UpdateReviewInput,
@@ -67,6 +68,7 @@ export function ReviewForm({
 }: ReviewFormProps) {
   const { user, isAuthenticated } = useAuth();
   const [rating, setRating] = useState(existingReview?.rating || 0);
+  const [reviewImages, setReviewImages] = useState<string[]>(existingReview?.images || []);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
@@ -142,6 +144,7 @@ export function ReviewForm({
           rating,
           title: data.title,
           content: data.content,
+          images: reviewImages.length > 0 ? reviewImages : undefined,
         });
         setIsEditing(false);
       } else {
@@ -152,9 +155,11 @@ export function ReviewForm({
           rating,
           title: data.title,
           content: data.content,
+          images: reviewImages.length > 0 ? reviewImages : undefined,
         });
         reset();
         setRating(0);
+        setReviewImages([]);
       }
     } catch {
       // Error is handled in the hook with toast
@@ -224,6 +229,16 @@ export function ReviewForm({
                 {errors.content.message}
               </p>
             )}
+          </div>
+
+          {/* Photo Upload */}
+          <div className="space-y-2">
+            <Label>Photos (optional)</Label>
+            <ReviewImageUpload
+              images={reviewImages}
+              onChange={setReviewImages}
+              disabled={submitting}
+            />
           </div>
 
           {/* Submit Button */}

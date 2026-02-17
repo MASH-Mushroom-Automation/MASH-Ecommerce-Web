@@ -26,6 +26,7 @@ import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useProductRatings } from "@/hooks/useProductRatings";
 import type { ProductFilters, TransformedProduct } from "@/types/sanity";
 
 export default function ProductCatalogPage() {
@@ -150,6 +151,10 @@ export default function ProductCatalogPage() {
   // Client-side pagination (showing first N products)
   const displayedProducts = allProducts.slice(0, itemsPerPage);
   const hasMoreProducts = allProducts.length > displayedProducts.length;
+
+  // Batch-fetch ratings for displayed products
+  const displayedProductIds = displayedProducts.map((p) => p.id);
+  const { ratings: productRatings } = useProductRatings(displayedProductIds);
 
   // Keep full category objects for both slug (filtering) and name (display)
   // Filter out categories without valid slug
@@ -751,6 +756,8 @@ export default function ProductCatalogPage() {
                         images={product.images}
                         inStock={product.stock > 0}
                         stock={product.stock}
+                        rating={productRatings[product.id]?.averageRating}
+                        reviewCount={productRatings[product.id]?.totalReviews}
                         tags={product.productTags || []}
                         description={product.description}
                         onQuickView={(id) => handleQuickView(id, allProducts)}

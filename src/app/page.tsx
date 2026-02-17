@@ -13,6 +13,7 @@ import { TestimonialsSection } from "@/components/cms/TestimonialsSection"; // P
 import { useSanityFeatures } from "@/hooks/useSanityFeatures"; // Phase 4: Sanity hook
 import { useSanityFeaturedProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
+import { useProductRatings } from "@/hooks/useProductRatings";
 import { useSanityGrowers } from "@/hooks/useSanityGrowers"; // Phase 1: Use Sanity for growers
 import {
   ProductListSkeleton,
@@ -79,6 +80,8 @@ const WhyMASHSection: React.FC = () => {
 const FeaturedProductsSection: React.FC = () => {
   // Use Sanity CMS for featured products
   const { products, loading, error } = useSanityFeaturedProducts(8);
+  const productIds = (products || []).map((p) => p.id);
+  const { ratings: productRatings } = useProductRatings(productIds);
 
   if (loading) {
     return (
@@ -154,6 +157,8 @@ const FeaturedProductsSection: React.FC = () => {
               unit={product.unit || "kg"}
               image={product.image}
               inStock={product.isAvailable}
+              rating={productRatings[product.id]?.averageRating}
+              reviewCount={productRatings[product.id]?.totalReviews}
             />
           ))}
         </div>
