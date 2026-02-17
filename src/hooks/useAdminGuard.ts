@@ -1,21 +1,3 @@
-/**
- * Admin Guard Hook
- * 
- * Verifies that the current user has Admin role and redirects unauthorized users.
- * Use this hook in layouts or pages that should only be accessible to admins.
- * 
- * @example
- * ```tsx
- * function SellerLayout({ children }) {
- *   const { isAdmin, loading } = useAdminGuard();
- *   
- *   if (loading) return <LoadingSpinner />;
- *   if (!isAdmin) return null; // Will redirect automatically
- *   
- *   return <div>{children}</div>;
- * }
- * ```
- */
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
