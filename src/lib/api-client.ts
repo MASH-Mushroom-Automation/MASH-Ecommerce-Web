@@ -128,27 +128,27 @@ export async function apiRequest<T>(
 
   // Handle 400 Bad Request for auth endpoints (validation errors)
   if (response.status === 400) {
-    const isAuthEndpoint = endpoint.includes('/auth/login') || 
-                          endpoint.includes('/auth/register') || 
-                          endpoint.includes('/auth/verify') ||
-                          endpoint.includes('/auth/forgot-password') ||
-                          endpoint.includes('/auth/reset-password');
-    
+    const isAuthEndpoint = endpoint.includes('/auth/login') ||
+      endpoint.includes('/auth/register') ||
+      endpoint.includes('/auth/verify') ||
+      endpoint.includes('/auth/forgot-password') ||
+      endpoint.includes('/auth/reset-password');
+
     if (isAuthEndpoint) {
       // Extract error message from backend structure
-      const errorMessage = data.error?.message || 
-                         data.details?.message || 
-                         data.message || 
-                         "Validation failed";
-      
+      const errorMessage = data.error?.message ||
+        data.details?.message ||
+        data.message ||
+        "Validation failed";
+
       // Ensure errorMessage is always a string
-      const messageString = typeof errorMessage === 'string' 
-        ? errorMessage 
+      const messageString = typeof errorMessage === 'string'
+        ? errorMessage
         : JSON.stringify(errorMessage);
-      
+
       const error: any = new Error(messageString);
       error.statusCode = 400;
-      
+
       // Create comprehensive nested error response structure
       error.response = {
         status: 400,
@@ -161,31 +161,32 @@ export async function apiRequest<T>(
           ...data
         }
       };
-      
+
       if (ENABLE_API_LOGGING) {
         console.error(`[API] Auth error (400): ${messageString}`, {
           fullError: data.error,
           details: data.details
         });
       }
-      
+
       throw error;
     }
   }
 
   // Handle unauthorized errors (token expired)
   if (response.status === 401) {
-    const refreshToken = getRefreshToken();
-    
     // ⚠️ DON'T redirect on auth endpoints (login, register, etc.)
     // Let those pages handle the error and show toast notifications
-    const isAuthEndpoint = endpoint.includes('/auth/login') || 
-                          endpoint.includes('/auth/register') || 
-                          endpoint.includes('/auth/verify') ||
-                          endpoint.includes('/auth/forgot-password') ||
-                          endpoint.includes('/auth/reset-password');
-    
-    if (refreshToken && !isAuthEndpoint) {
+    const isAuthEndpoint = endpoint.includes('/auth/login') ||
+      endpoint.includes('/auth/register') ||
+      endpoint.includes('/auth/verify') ||
+      endpoint.includes('/auth/forgot-password') ||
+      endpoint.includes('/auth/reset-password');
+
+    // Try to refresh token for non-auth endpoints
+    // Backend will validate refresh-token from HTTP-only cookie
+    // This works for both SSO and email/password login
+    if (!isAuthEndpoint) {
       try {
         // Refresh token using HTTP-only cookies
         // Backend will read refresh-token cookie automatically
@@ -208,7 +209,7 @@ export async function apiRequest<T>(
         if (refreshResponse.ok) {
           // Tokens are automatically set as HTTP-only cookies by backend
           // No need to manually update cookies here
-          
+
           // Retry original request with refreshed cookies
           return apiRequest<T>(endpoint, options);
         }
@@ -222,19 +223,19 @@ export async function apiRequest<T>(
     if (isAuthEndpoint) {
       // Extract error message from backend structure: data.error.message
       // Backend sends: {error: {message: "Invalid credentials"}}
-      const errorMessage = data.error?.message || 
-                         data.details?.message || 
-                         data.message || 
-                         "Authentication failed";
-      
+      const errorMessage = data.error?.message ||
+        data.details?.message ||
+        data.message ||
+        "Authentication failed";
+
       // Ensure errorMessage is always a string (defensive coding)
-      const messageString = typeof errorMessage === 'string' 
-        ? errorMessage 
+      const messageString = typeof errorMessage === 'string'
+        ? errorMessage
         : JSON.stringify(errorMessage);
-      
+
       const error: any = new Error(messageString);
       error.statusCode = 401;
-      
+
       // Create comprehensive nested error response structure
       error.response = {
         status: 401,
@@ -247,14 +248,14 @@ export async function apiRequest<T>(
           ...data // Include all backend fields
         }
       };
-      
+
       if (ENABLE_API_LOGGING) {
         console.error(`[API] Auth error (401): ${messageString}`, {
           fullError: data.error,
           details: data.details
         });
       }
-      
+
       throw error;
     }
 
@@ -263,13 +264,13 @@ export async function apiRequest<T>(
       // Clear auth token cookie (client-side fallback)
       document.cookie =
         "auth-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      
+
       // Call logout API to clear HTTP-only cookies properly
       fetch("/api/auth/clear-tokens", {
         method: "POST",
         credentials: "include",
       }).catch(console.error);
-      
+
       window.location.href = "/login";
     }
     throw new Error("Unauthorized");
@@ -278,16 +279,16 @@ export async function apiRequest<T>(
   if (!response.ok) {
     // Extract detailed error message from various response formats
     let errorMessage = data.message || data.error?.message || `API Error: ${response.status}`;
-    
+
     // Add status code for better error handling
     const error: any = new Error(errorMessage);
     error.statusCode = response.status;
     error.response = data;
-    
+
     if (ENABLE_API_LOGGING) {
       console.error(`[API] Error: ${response.status} - ${errorMessage}`, data);
     }
-    
+
     throw error;
   }
 
@@ -327,9 +328,9 @@ export const api = {
   getProducts: (params?: Record<string, string | number>) => {
     const queryString = params
       ? "?" +
-        new URLSearchParams(
-          Object.entries(params).map(([k, v]) => [k, String(v)])
-        ).toString()
+      new URLSearchParams(
+        Object.entries(params).map(([k, v]) => [k, String(v)])
+      ).toString()
       : "";
     return apiRequest(`/products${queryString}`, { method: "GET" });
   },
