@@ -1,0 +1,667 @@
+{
+  "projectName": "MASH E-Commerce - Review & Rating System Complete Implementation",
+  "version": "2.0.0",
+  "branchName": "feature/review-rating-system",
+  "description": "Complete end-to-end review and rating system for products and mushroom growers with Sanity CMS integration, admin moderation, seller responses, and real-time Firebase synchronization",
+  "owner": "AI Agent (Ralph)",
+  "startedDate": "2026-02-13",
+  "targetCompletion": "2026-02-18",
+  "existingFoundation": {
+    "firebaseService": "src/lib/firebase/reviews.ts - Full CRUD, voting, flagging, real-time subscriptions",
+    "types": "src/types/reviews.ts - FirestoreReview, CreateReviewInput, UpdateReviewInput, FlagReviewInput, RatingStats, UseReviewsReturn",
+    "hook": "src/hooks/useFirebaseReviews.ts - Real-time hook with CRUD, voting, flagging",
+    "components": [
+      "src/components/reviews/FirebaseReviewSection.tsx - Full review section with stats, sort, pagination",
+      "src/components/reviews/ReviewForm.tsx - Zod-validated form with star rating",
+      "src/components/reviews/ReviewList.tsx - Review list display",
+      "src/components/reviews/StarRatingInput.tsx - Interactive star selector"
+    ],
+    "sanitySchema": "studio/src/schemaTypes/documents/review.ts - Full schema with moderation, flagging, admin response fields",
+    "pageIntegrations": [
+      "src/app/(shop)/product/[slug]/page.tsx - FirebaseReviewSection on product pages",
+      "src/app/grower/[id]/page.tsx - FirebaseReviewSection on grower pages (ALREADY INTEGRATED)"
+    ],
+    "existingLibraries": {
+      "recharts": "^2.15.4 (charts - INSTALLED)",
+      "reactEmail": "@react-email/components ^1.0.1 (INSTALLED)",
+      "nodemailer": "INSTALLED (Gmail SMTP configured in .env)",
+      "cloudinary": "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + UPLOAD_PRESET configured"
+    },
+    "sellerDashboard": "15+ pages exist under src/app/(seller)/seller/ - dashboard, orders, products, stock, etc.",
+    "tests": "39 tests for FirebaseReviewSection, full service tests - 1478 total tests passing"
+  },
+  "successMetrics": {
+    "testCoverage": "90%+ code coverage for review system",
+    "security": "All Sanity write operations server-side with SANITY_API_WRITE_TOKEN",
+    "build": "npm run build passes with zero errors",
+    "tests": "All test suites pass with 0 failures",
+    "performance": "Reviews load < 500ms, real-time updates < 100ms",
+    "documentation": "All new patterns documented in progress.txt"
+  },
+  "stories": [
+    {
+      "id": "REVIEW-001",
+      "title": "Review Moderation Service - Firebase Backend Functions",
+      "priority": 1,
+      "phase": "Phase 1: Admin Moderation Backend",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T10:00:00Z",
+      "acceptanceCriteria": [
+        "Add moderateReview(reviewId, adminId, action, reason?) to FirebaseReviewService",
+        "Add addAdminResponse(reviewId, adminId, response) to FirebaseReviewService",
+        "Add getAllReviews(filters?) that fetches ALL reviews (not just approved) for admin",
+        "Add getReviewsByStatus(status) for filtering by pending/approved/rejected/flagged",
+        "Add deleteReviewAsAdmin(reviewId, adminId, reason) with audit logging",
+        "Add clearFlags(reviewId, adminId) to reset flag count after admin review",
+        "All functions validate admin permission (check userId matches admin)",
+        "All moderation actions write to moderationLog subcollection with timestamp",
+        "Update FirestoreReview type to include moderatedBy, moderatedAt, sellerResponse fields",
+        "Unit tests for all new service functions"
+      ],
+      "technicalNotes": {
+        "file": "src/lib/firebase/reviews.ts",
+        "typesFile": "src/types/reviews.ts - Add ModerationAction, SellerResponse types",
+        "testFile": "src/lib/firebase/__tests__/reviews-moderation.test.ts",
+        "pattern": "Follow existing toggleHelpfulVote/flagReview patterns with getDoc + updateDoc"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-002",
+      "title": "useReviewModeration Hook",
+      "priority": 1,
+      "phase": "Phase 1: Admin Moderation Backend",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T10:30:00Z",
+      "acceptanceCriteria": [
+        "Create src/hooks/useReviewModeration.ts custom hook",
+        "Fetch all reviews with real-time onSnapshot (no status filter for admin view)",
+        "Provide moderateReview(reviewId, action, reason?) function",
+        "Provide addAdminResponse(reviewId, response) function",
+        "Provide deleteReviewAsAdmin(reviewId, reason) function",
+        "Support filtering by: status, targetType, rating range, date range, keyword search",
+        "Pagination support with configurable page size",
+        "Loading and error states",
+        "Stats: total count by status, average rating, total reviews",
+        "Toast notifications on success/error for all actions"
+      ],
+      "technicalNotes": {
+        "file": "src/hooks/useReviewModeration.ts",
+        "pattern": "Follow useFirebaseReviews.ts pattern with onSnapshot subscription",
+        "auth": "Uses useAuth() to get current admin user ID for audit trail",
+        "filters": "Client-side filtering since Firestore composite index limitations"
+      },
+      "dependencies": ["REVIEW-001"]
+    },
+    {
+      "id": "REVIEW-003",
+      "title": "Admin Review Dashboard Page",
+      "priority": 1,
+      "phase": "Phase 1: Admin Moderation Dashboard",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T11:00:00Z",
+      "acceptanceCriteria": [
+        "Create route at src/app/(seller)/seller/reviews/page.tsx",
+        "Page header with title, total review count, and average rating summary",
+        "Tab bar: All Reviews | Pending | Approved | Flagged | Rejected",
+        "Each tab shows count badge (e.g., Pending (5))",
+        "Review cards in list/grid with: reviewer name, rating stars, content preview, target name, status badge, date",
+        "Click review card opens moderation modal (REVIEW-004)",
+        "Search box for keyword search across review content",
+        "Filter dropdowns: Target Type (product/grower), Rating (1-5), Date Range",
+        "Pagination: 20 per page with prev/next buttons",
+        "Loading skeleton states, error state with retry, empty state messages",
+        "Mobile responsive - stack filters vertically on mobile"
+      ],
+      "technicalNotes": {
+        "route": "src/app/(seller)/seller/reviews/page.tsx",
+        "components": "src/components/admin/reviews/ReviewDashboard.tsx, ReviewFilters.tsx, ReviewCard.tsx",
+        "hook": "Uses useReviewModeration from REVIEW-002",
+        "layout": "Follows existing seller dashboard layout pattern (see seller/orders/page.tsx)",
+        "roleCheck": "Check user role is ADMIN or SELLER via useAuth()"
+      },
+      "dependencies": ["REVIEW-002"]
+    },
+    {
+      "id": "REVIEW-004",
+      "title": "Review Moderation Modal",
+      "priority": 1,
+      "phase": "Phase 1: Admin Moderation Dashboard",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T11:00:00Z",
+      "acceptanceCriteria": [
+        "Create ReviewModerationModal component using shadcn Dialog",
+        "Display full review: rating stars, title, full content, all images, reviewer info",
+        "Display target info: product/grower name with link",
+        "Display review metadata: date, status, helpful count, flag count",
+        "If flagged: show flag reasons list and reporter count",
+        "Action buttons: Approve (green), Reject (red), Delete (destructive)",
+        "Reject requires reason selection: spam, inappropriate, fake, offensive, other",
+        "Admin Response textarea (max 500 chars) with character counter",
+        "Save Response button stores adminResponse and adminResponseDate in Firestore",
+        "Success/error toast notifications on all actions",
+        "Modal closes on successful action",
+        "Confirmation dialog for Delete action (Are you sure?)"
+      ],
+      "technicalNotes": {
+        "component": "src/components/admin/reviews/ReviewModerationModal.tsx",
+        "ui": "shadcn Dialog + Tabs + Select + Textarea + Button",
+        "actions": "Calls useReviewModeration hook functions",
+        "validation": "Reject requires reason, Response requires min 10 chars"
+      },
+      "dependencies": ["REVIEW-003"]
+    },
+    {
+      "id": "REVIEW-005",
+      "title": "Firebase to Sanity Sync API Route",
+      "priority": 2,
+      "phase": "Phase 2: Sanity-Firebase Sync",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T11:30:00Z",
+      "acceptanceCriteria": [
+        "Create API route POST /api/reviews/sync-to-sanity",
+        "Accept { reviewId, reviewData } in request body",
+        "Use SANITY_API_WRITE_TOKEN (server-side only, never exposed to client)",
+        "Map Firebase review fields to Sanity review schema fields",
+        "Handle product reference: query Sanity for product by _id matching targetId",
+        "Handle grower reference: query Sanity for grower by _id or slug matching targetId",
+        "Use createOrReplace mutation to create/update Sanity document",
+        "Store firebaseId in Sanity doc for reverse lookup",
+        "Implement retry logic: 3 attempts with 1s/2s/4s backoff",
+        "Log sync errors to console and return detailed error response",
+        "Return { success: boolean, sanityId: string, syncedAt: string }",
+        "Unit tests for mapping logic and API route"
+      ],
+      "technicalNotes": {
+        "route": "src/app/api/reviews/sync-to-sanity/route.ts",
+        "sanityClient": "createClient with token from process.env.SANITY_API_WRITE_TOKEN",
+        "securityPattern": "Follow src/app/api/seller/stock/adjust/route.ts pattern for server-side Sanity writes",
+        "mapping": "targetType=product -> _ref to product._id, targetType=grower -> _ref to grower._id"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-006",
+      "title": "Sanity to Firebase Sync API Route",
+      "priority": 2,
+      "phase": "Phase 2: Sanity-Firebase Sync",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T11:30:00Z",
+      "acceptanceCriteria": [
+        "Create API route POST /api/reviews/sync-from-sanity",
+        "Accept { sanityId } or Sanity webhook payload in request body",
+        "Fetch Sanity review document by _id using read token",
+        "Find corresponding Firestore review via stored firebaseId field",
+        "Sync status, adminResponse, adminResponseDate from Sanity to Firestore",
+        "Last-write-wins: compare updatedAt timestamps, newer wins",
+        "Return { success: boolean, firebaseId: string, fieldsUpdated: string[] }",
+        "Handle missing Firestore document gracefully (log warning, skip)",
+        "Unit tests for sync logic"
+      ],
+      "technicalNotes": {
+        "route": "src/app/api/reviews/sync-from-sanity/route.ts",
+        "webhookSupport": "Optional Sanity webhook can POST to this endpoint on review update",
+        "conflictResolution": "Compare updatedAt timestamps, most recent wins"
+      },
+      "dependencies": ["REVIEW-005"]
+    },
+    {
+      "id": "REVIEW-007",
+      "title": "Auto-Sync on Review Submission and Moderation",
+      "priority": 2,
+      "phase": "Phase 2: Sanity-Firebase Sync",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-13T11:30:00Z",
+      "acceptanceCriteria": [
+        "After ReviewForm creates review in Firestore, call /api/reviews/sync-to-sanity",
+        "After admin moderateReview action, call /api/reviews/sync-to-sanity to update Sanity",
+        "After admin addAdminResponse, sync response to Sanity",
+        "All sync calls are fire-and-forget (don't block user interaction)",
+        "Log sync failures to console but don't show error to user",
+        "Add sync status indicator in admin dashboard (synced/pending/failed icon per review)",
+        "Unit test: verify fetch calls are made after review actions"
+      ],
+      "technicalNotes": {
+        "integration": "Add fetch('/api/reviews/sync-to-sanity') calls in useFirebaseReviews and useReviewModeration hooks",
+        "fireAndForget": "Use .catch(console.error) pattern - never await sync in user flow",
+        "indicator": "Add syncStatus field to review display: check if Sanity doc exists"
+      },
+      "dependencies": ["REVIEW-005", "REVIEW-006"]
+    },
+    {
+      "id": "REVIEW-008",
+      "title": "Seller Review Dashboard",
+      "priority": 3,
+      "phase": "Phase 3: Seller Response System",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create route at src/app/(seller)/seller/my-reviews/page.tsx",
+        "Fetch seller's products from Sanity (by seller/grower reference)",
+        "Fetch reviews where targetId matches any of seller's product IDs",
+        "Display summary stats: average rating, total reviews, recent (last 7 days count)",
+        "Rating distribution bar chart (recharts BarChart, 1-5 stars)",
+        "Review list with product name, rating, content preview, date",
+        "Filter by: specific product (dropdown), rating, date range",
+        "Click review opens seller response modal (REVIEW-009)",
+        "Pagination: 15 per page",
+        "Loading/error/empty states"
+      ],
+      "technicalNotes": {
+        "route": "src/app/(seller)/seller/my-reviews/page.tsx",
+        "productFetch": "Query Sanity for products where grower._ref matches current user's grower ID",
+        "reviewFetch": "Query Firestore reviews where targetId in sellerProductIds",
+        "charts": "recharts BarChart for rating distribution"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-009",
+      "title": "Seller Response System",
+      "priority": 3,
+      "phase": "Phase 3: Seller Response System",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create SellerResponseModal component using shadcn Dialog",
+        "Display full review content (read-only) at top of modal",
+        "Textarea for seller response (max 500 chars with counter)",
+        "Save button stores sellerResponse, sellerResponseDate, sellerRespondedBy in Firestore",
+        "Add addSellerResponse(reviewId, sellerId, response) to FirebaseReviewService",
+        "Display seller response in FirebaseReviewSection/ReviewCard with 'Seller Response' badge",
+        "Allow edit response within 24 hours of posting",
+        "Allow delete own response",
+        "Toast notifications on success/error",
+        "Update FirestoreReview type with sellerResponse, sellerResponseDate, sellerRespondedBy fields"
+      ],
+      "technicalNotes": {
+        "component": "src/components/seller/SellerResponseModal.tsx",
+        "service": "Add to src/lib/firebase/reviews.ts: addSellerResponse(), updateSellerResponse(), deleteSellerResponse()",
+        "display": "Update FirebaseReviewSection ReviewCard to show seller response section"
+      },
+      "dependencies": ["REVIEW-008"]
+    },
+    {
+      "id": "REVIEW-010",
+      "title": "Grower List Page - Rating Badges",
+      "priority": 4,
+      "phase": "Phase 4: Rating Integration Across Pages",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Fetch review stats for each grower displayed on src/app/grower/page.tsx",
+        "Display average rating badge (star icon + number) on each grower card",
+        "Show total review count text (e.g., '4.5 (23 reviews)')",
+        "If no reviews, show 'No reviews yet' text instead",
+        "Click rating links to grower detail page reviews section",
+        "Add sort option: 'Highest Rated' to grower list sorting",
+        "Optimize: batch fetch review stats for visible growers to reduce Firestore reads",
+        "Loading skeleton for rating badges while fetching"
+      ],
+      "technicalNotes": {
+        "file": "src/app/grower/page.tsx",
+        "strategy": "Create useGrowerRatings(growerIds) hook that batch-fetches stats",
+        "optimization": "Cache stats in state, only refetch on page navigation",
+        "note": "Grower detail page already has FirebaseReviewSection integrated"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-011",
+      "title": "Product Card - Rating Display",
+      "priority": 4,
+      "phase": "Phase 4: Rating Integration Across Pages",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Add average rating display to ProductCard component",
+        "Show star rating + review count below product name (e.g., 4.2 stars (15))",
+        "Create useProductRatings(productIds) hook for batch fetching",
+        "Display on shop page, category pages, search results, grower product lists",
+        "If no reviews, show no rating element (don't show 0 stars)",
+        "Compact display that doesn't bloat card size",
+        "Loading skeleton placeholder while fetching ratings"
+      ],
+      "technicalNotes": {
+        "component": "Modify existing ProductCard component to accept optional rating props",
+        "hook": "src/hooks/useProductRatings.ts - similar pattern to useGrowerRatings",
+        "pages": "Update all pages that render ProductCard to pass rating data"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-012",
+      "title": "Review Email Templates",
+      "priority": 5,
+      "phase": "Phase 5: Email Notifications",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create src/lib/email/templates/review-submitted.tsx - New review alert (to seller)",
+        "Create src/lib/email/templates/review-approved.tsx - Review approved (to reviewer)",
+        "Create src/lib/email/templates/review-response.tsx - Response added (to reviewer)",
+        "Create src/lib/email/templates/review-flagged.tsx - Review flagged (to admin)",
+        "All templates use existing EmailLayout component pattern",
+        "Include product/grower name, rating stars, review excerpt",
+        "Include call-to-action buttons (View Review, View Dashboard)",
+        "Mobile-responsive design matching existing order email templates",
+        "Include unsubscribe link placeholder"
+      ],
+      "technicalNotes": {
+        "pattern": "Follow src/lib/email/templates/order-confirmation.tsx pattern exactly",
+        "components": "Use @react-email/components (Button, Section, Text) - ALREADY INSTALLED",
+        "layout": "Use existing EmailLayout wrapper component",
+        "testing": "Verify templates render without errors via unit test"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-013",
+      "title": "Review Email Trigger Service",
+      "priority": 5,
+      "phase": "Phase 5: Email Notifications",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create src/lib/email/review-notifications.ts with email trigger functions",
+        "sendNewReviewNotification(review: FirestoreReview) - sends to seller/admin",
+        "sendReviewApprovedNotification(review: FirestoreReview) - sends to reviewer",
+        "sendResponseNotification(review: FirestoreReview, responder: string) - sends to reviewer",
+        "sendFlaggedReviewAlert(review: FirestoreReview) - sends to admin email",
+        "Use existing src/lib/email/send-email.ts helper with Gmail SMTP",
+        "All sends are fire-and-forget with try/catch error logging",
+        "Create API route POST /api/reviews/send-notification for server-side email sending",
+        "Integrate triggers: after review create, after moderate, after respond, after flag threshold"
+      ],
+      "technicalNotes": {
+        "file": "src/lib/email/review-notifications.ts",
+        "apiRoute": "src/app/api/reviews/send-notification/route.ts",
+        "smtp": "Use existing EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD from .env",
+        "existingPattern": "Follow src/lib/email/send-email.ts for nodemailer usage"
+      },
+      "dependencies": ["REVIEW-012"]
+    },
+    {
+      "id": "REVIEW-014",
+      "title": "Cloudinary Image Upload for Reviews",
+      "priority": 6,
+      "phase": "Phase 6: Image Upload",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create ReviewImageUpload component with drag-and-drop zone",
+        "Upload images to Cloudinary using NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and UPLOAD_PRESET",
+        "Client-side validation: max 5 images, each < 2MB, types: jpg/png/webp",
+        "Show upload progress indicator per image",
+        "Preview uploaded images as thumbnails with remove button",
+        "Pass Cloudinary URLs array back to ReviewForm via onChange callback",
+        "Integrate into ReviewForm below content textarea",
+        "Store Cloudinary URLs in Firestore images field on review create/update",
+        "Error handling: show toast on upload failure with retry option"
+      ],
+      "technicalNotes": {
+        "component": "src/components/reviews/ReviewImageUpload.tsx",
+        "cloudinary": "POST to https://api.cloudinary.com/v1_1/{cloud_name}/image/upload",
+        "env": "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=drkcpvmfc, NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=Mash-Automation"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-015",
+      "title": "Review Image Display and Lightbox",
+      "priority": 6,
+      "phase": "Phase 6: Image Upload",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Display image thumbnails in review cards (grid layout, max 3 visible)",
+        "Show '+X more' badge if more than 3 images",
+        "Click thumbnail opens lightbox modal (shadcn Dialog + next/image)",
+        "Lightbox: prev/next navigation, image counter (1 of 5), close button",
+        "Lazy load images with next/image component for optimization",
+        "Alt text for accessibility on all images",
+        "Mobile responsive: thumbnails stack on small screens"
+      ],
+      "technicalNotes": {
+        "component": "src/components/reviews/ReviewImageGallery.tsx",
+        "lightbox": "Build with shadcn Dialog + next/image (no extra library needed)",
+        "integration": "Update FirebaseReviewSection review card rendering to include gallery"
+      },
+      "dependencies": ["REVIEW-014"]
+    },
+    {
+      "id": "REVIEW-016",
+      "title": "Advanced Review Filtering and Sorting",
+      "priority": 7,
+      "phase": "Phase 7: UX Enhancements",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Enhance FirebaseReviewSection with filter bar above review list",
+        "Sort options: Most Recent, Highest Rated, Lowest Rated, Most Helpful",
+        "Filter checkboxes: Verified Purchase Only, Has Images Only",
+        "Star filter: clickable star bars in rating summary (click 4-star bar shows only 4-star reviews)",
+        "Keyword search input for searching within review content (client-side filter)",
+        "Show active filter count badge and Clear All button",
+        "Filters combine with AND logic",
+        "Persist sort preference in localStorage",
+        "All filtering is client-side (reviews already loaded via onSnapshot)"
+      ],
+      "technicalNotes": {
+        "component": "Update src/components/reviews/FirebaseReviewSection.tsx",
+        "note": "FirebaseReviewSection already has sortBy state - extend it with filters",
+        "clientSide": "All filtering is client-side from the reviews array, no new Firestore queries needed"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-017",
+      "title": "Verified Purchase Validation",
+      "priority": 7,
+      "phase": "Phase 7: UX Enhancements",
+      "status": "Complete",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Create API route GET /api/reviews/verify-purchase?userId=X&productId=Y",
+        "Query backend /orders endpoint for user's delivered orders",
+        "Check if any order contains the specific productId",
+        "Return { verified: boolean }",
+        "Call verify-purchase API when user submits a review",
+        "Auto-set verifiedPurchase: true in Firestore if validated",
+        "Display green checkmark + 'Verified Purchase' badge in review cards",
+        "Admin can manually toggle verification status in moderation modal"
+      ],
+      "technicalNotes": {
+        "route": "src/app/api/reviews/verify-purchase/route.ts",
+        "backendCall": "GET https://api.mashmarket.app/api/v1/orders?userId={userId}",
+        "integration": "Call from ReviewForm.onSubmit before/after createReview"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-018",
+      "title": "Helpful Voting UI Enhancement",
+      "priority": 7,
+      "phase": "Phase 7: UX Enhancements",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-15T18:00:00Z",
+      "acceptanceCriteria": [
+        "Add 'Was this helpful?' section below each review in FirebaseReviewSection",
+        "Show thumbs-up button with count, visual state change when voted",
+        "Optimistic UI: immediately update count before Firestore confirms",
+        "Prevent voting on own review",
+        "Show '23 people found this helpful' text, or 'Be the first to find this helpful'",
+        "Authenticated users only - show sign-in prompt for guests",
+        "toggleHelpfulVote already implemented in Firebase service - just add UI"
+      ],
+      "technicalNotes": {
+        "note": "FirebaseReviewService.toggleHelpfulVote() and useFirebaseReviews.voteHelpful() ALREADY EXIST",
+        "component": "Update review card in FirebaseReviewSection to show helpful voting UI",
+        "existing": "The backend logic exists, this story is purely UI integration"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-019",
+      "title": "Review Analytics Dashboard",
+      "priority": 8,
+      "phase": "Phase 8: Analytics and Insights",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-15T19:00:00Z",
+      "acceptanceCriteria": [
+        "Create route at src/app/(seller)/seller/analytics/reviews/page.tsx",
+        "Summary cards: Total Reviews, Average Rating, Verified Purchase %, Response Rate",
+        "Chart 1: Rating distribution (BarChart, 1-5 stars with counts)",
+        "Chart 2: Review volume over time (LineChart, last 6 months by week)",
+        "Chart 3: Average rating trend over time (LineChart)",
+        "Table: Top 5 highest-rated products, Top 5 lowest-rated products",
+        "Table: Products with most reviews",
+        "Date range picker to filter analytics data",
+        "Export to CSV button (download review data as CSV file)",
+        "Loading states for charts while data aggregates"
+      ],
+      "technicalNotes": {
+        "route": "src/app/(seller)/seller/analytics/reviews/page.tsx",
+        "charts": "recharts (ALREADY INSTALLED): BarChart, LineChart, ResponsiveContainer",
+        "data": "Aggregate from all Firestore reviews, group by month/week for trends",
+        "csv": "Generate CSV string and trigger download via Blob URL"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "REVIEW-020",
+      "title": "Seller Review Insights",
+      "priority": 8,
+      "phase": "Phase 8: Analytics and Insights",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2026-02-15T19:30:00Z",
+      "acceptanceCriteria": [
+        "Add Insights tab to seller review dashboard (my-reviews page)",
+        "Chart: Rating trend for seller's products (last 3 months)",
+        "Chart: Rating distribution per product (horizontal bar chart)",
+        "Top keywords from reviews (simple word frequency, exclude common words)",
+        "Alert: Products with declining ratings (red badge if avg dropped > 0.5 in 30 days)",
+        "Comparison: Seller's average vs overall platform average",
+        "Mobile responsive charts"
+      ],
+      "technicalNotes": {
+        "component": "src/components/seller/ReviewInsights.tsx",
+        "integration": "Tab in seller/my-reviews page",
+        "keywords": "Simple word frequency analysis - split content, filter stopwords, count occurrences"
+      },
+      "dependencies": ["REVIEW-008"]
+    },
+    {
+      "id": "REVIEW-021",
+      "title": "Comprehensive Test Suite for Review System",
+      "priority": 9,
+      "phase": "Phase 9: Testing and Polish",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2025-07-17T00:00:00Z",
+      "acceptanceCriteria": [
+        "Unit tests for all new FirebaseReviewService functions (moderation, seller response)",
+        "Unit tests for useReviewModeration hook",
+        "Unit tests for ReviewModerationModal component (render, approve, reject, respond)",
+        "Unit tests for SellerResponseModal component",
+        "Unit tests for sync API routes (sync-to-sanity, sync-from-sanity)",
+        "Unit tests for email templates (render without errors)",
+        "Unit tests for ReviewImageUpload component",
+        "Unit tests for verify-purchase API route",
+        "All new tests pass with npm run test",
+        "Existing 1478 tests still pass (zero regressions)",
+        "Test coverage >= 85% for all new review-related files"
+      ],
+      "technicalNotes": {
+        "testFiles": [
+          "src/lib/firebase/__tests__/reviews-moderation.test.ts",
+          "src/hooks/__tests__/useReviewModeration.test.ts",
+          "src/components/admin/reviews/__tests__/ReviewModerationModal.test.tsx",
+          "src/components/seller/__tests__/SellerResponseModal.test.tsx",
+          "src/app/api/reviews/__tests__/sync-to-sanity.test.ts",
+          "src/lib/email/__tests__/review-notifications.test.ts"
+        ],
+        "mockPattern": "Follow jest.setupMocks.js Firebase mock pattern from progress.txt"
+      },
+      "dependencies": [
+        "REVIEW-001", "REVIEW-004", "REVIEW-009", "REVIEW-012", "REVIEW-014"
+      ]
+    },
+    {
+      "id": "REVIEW-022",
+      "title": "Documentation and Progress Update",
+      "priority": 9,
+      "phase": "Phase 9: Testing and Polish",
+      "status": "Complete",
+      "passes": true,
+      "completedAt": "2025-07-17T00:00:00Z",
+      "acceptanceCriteria": [
+        "Append all new codebase patterns to progress.txt Codebase Patterns section",
+        "Document: Admin moderation flow pattern",
+        "Document: Sanity-Firebase sync pattern",
+        "Document: Seller response pattern",
+        "Document: Email notification trigger pattern",
+        "Document: Cloudinary image upload pattern",
+        "Update .github/REVIEW_RATING_SYSTEM_MASTER_PLAN.md status to COMPLETE",
+        "Final build validation: npm run build passes",
+        "Final test validation: npm run test passes with 0 failures"
+      ],
+      "technicalNotes": {
+        "progressTxt": "Append each implementation summary with files changed, patterns learned",
+        "masterPlan": "Update all Phase checkboxes to [x] and status to Complete"
+      },
+      "dependencies": ["REVIEW-021"]
+    }
+  ],
+  "technicalDecisions": {
+    "database": "Firebase Firestore (primary user-facing) + Sanity CMS (admin moderation via sync)",
+    "sync": "Bidirectional via Next.js API routes, last-write-wins conflict resolution",
+    "auth": "Firebase Auth UID for review ownership, useAuth() for role-based access",
+    "images": "Cloudinary upload with NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME (drkcpvmfc) + UPLOAD_PRESET (Mash-Automation)",
+    "email": "Gmail SMTP via nodemailer + @react-email/components templates (ALREADY INSTALLED)",
+    "realtime": "Firestore onSnapshot for dashboard updates (existing pattern in useFirebaseReviews)",
+    "charts": "recharts (ALREADY INSTALLED) for all analytics dashboards",
+    "state": "Custom hooks (useReviewModeration, useFirebaseReviews) with React state",
+    "testing": "Jest + RTL for unit tests, following jest.setupMocks.js Firebase mock pattern",
+    "security": "SANITY_API_WRITE_TOKEN server-side only in API routes, never client-side"
+  },
+  "qualityGates": {
+    "build": "npm run build - zero errors",
+    "lint": "npm run lint - clean output",
+    "typecheck": "Implicit in build (ignoreBuildErrors: false)",
+    "tests": "npm run test - all passing (existing 1478 + new tests)",
+    "coverage": ">= 85% for all new review files",
+    "performance": "Reviews load < 500ms",
+    "mobile": "Responsive 320px - 1920px"
+  },
+  "rollbackPlan": {
+    "phase1": "Revert admin dashboard pages, keep existing review display unchanged",
+    "phase2": "Disable sync API routes, Firestore remains source of truth",
+    "phase3": "Hide seller response UI, data stays intact in Firestore",
+    "emergency": "Feature flag NEXT_PUBLIC_REVIEWS_ENABLED=false to disable review submission"
+  },
+  "phaseExecutionOrder": {
+    "note": "Ralph should execute phases in priority order. Within a phase, follow story dependency order.",
+    "phases": [
+      "Phase 1: Admin Moderation Backend + Dashboard (REVIEW-001 through REVIEW-004) - HIGHEST PRIORITY",
+      "Phase 2: Sanity-Firebase Sync (REVIEW-005 through REVIEW-007)",
+      "Phase 3: Seller Response System (REVIEW-008, REVIEW-009)",
+      "Phase 4: Rating Integration Across Pages (REVIEW-010, REVIEW-011)",
+      "Phase 5: Email Notifications (REVIEW-012, REVIEW-013)",
+      "Phase 6: Image Upload (REVIEW-014, REVIEW-015)",
+      "Phase 7: UX Enhancements (REVIEW-016, REVIEW-017, REVIEW-018)",
+      "Phase 8: Analytics and Insights (REVIEW-019, REVIEW-020)",
+      "Phase 9: Testing and Polish (REVIEW-021, REVIEW-022) - FINAL"
+    ]
+  }
+}

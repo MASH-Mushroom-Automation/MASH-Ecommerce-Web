@@ -168,6 +168,7 @@ jest.mock('firebase/firestore', () => ({
   },
   increment: jest.fn((n) => n),
   arrayUnion: jest.fn((...args) => args),
+  arrayRemove: jest.fn((...args) => args),
   writeBatch: jest.fn(() => ({
     set: jest.fn(),
     update: jest.fn(),
