@@ -37,7 +37,21 @@ export default function SellerLayout({
   const pathname = usePathname();
   const isStartSellingPage = pathname === "/start-selling";
 
-  // Admin role verification - only admins can access seller pages
+  // Allow start-selling page for everyone (no admin guard)
+  // This is where users apply to become sellers
+  if (isStartSellingPage) {
+    return (
+      <div className="min-h-screen">
+        <main>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Admin role verification - only admins can access other seller pages
   const { isAdmin, loading } = useAdminGuard();
 
   // Show loading state while verifying admin access
@@ -56,18 +70,6 @@ export default function SellerLayout({
   // Return null to prevent any flash of content
   if (!isAdmin) {
     return null;
-  }
-
-  if (isStartSellingPage) {
-    return (
-      <div className="min-h-screen">
-        <main>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
-            {children}
-          </div>
-        </main>
-      </div>
-    );
   }
 
   return (
