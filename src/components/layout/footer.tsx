@@ -34,6 +34,7 @@ export function Footer() {
                   width={260}
                   height={90}
                   className="h-auto w-auto max-w-[260px]"
+                  style={{ width: 'auto', height: 'auto' }}
                 />
               )}
             </div>

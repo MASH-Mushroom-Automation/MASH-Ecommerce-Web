@@ -109,7 +109,7 @@ export class FirebaseCartService {
         },
         { merge: true }
       );
-      console.log("[FirebaseCartService] Cart saved for user:", userId);
+
     } catch (error) {
       console.error("[FirebaseCartService] Error saving cart:", error);
       throw error;
@@ -161,7 +161,7 @@ export class FirebaseCartService {
         version: Date.now(),
       };
       await setDoc(cartRef, cartData);
-      console.log("[FirebaseCartService] Cart cleared for user:", userId);
+
     } catch (error) {
       console.error("[FirebaseCartService] Error clearing cart:", error);
       throw error;
@@ -210,11 +210,7 @@ export class FirebaseCartService {
       // Save merged cart
       await this.saveCart(userId, mergedItems);
 
-      console.log("[FirebaseCartService] Cart merged:", {
-        firebaseCount: firebaseItems.length,
-        localCount: localItems.length,
-        mergedCount: mergedItems.length,
-      });
+
 
       return mergedItems;
     } catch (error) {

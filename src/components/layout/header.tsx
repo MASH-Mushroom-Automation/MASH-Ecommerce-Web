@@ -264,6 +264,7 @@ export function SellerHeader() {
               width={150}
               height={50}
               className="h-16 w-auto sm:h-20"
+              style={{ width: 'auto', height: 'auto' }}
               priority
             />
           )}
@@ -308,8 +309,7 @@ export function SimpleHeader() {
               alt="MASH Logo"
               width={150}
               height={50}
-              className="h-10 w-auto sm:h-12"
-              priority
+              className="h-10 w-auto sm:h-12"              style={{ width: 'auto', height: 'auto' }}              priority
             />
           )}
         </Link>
@@ -421,6 +421,7 @@ export function Header() {
                 width={150}
                 height={50}
                 className="h-10 w-auto sm:h-12"
+                style={{ width: 'auto', height: 'auto' }}
                 priority
               />
             )}

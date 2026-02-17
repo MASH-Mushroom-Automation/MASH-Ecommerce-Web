@@ -195,3 +195,27 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/*
+ * Force Google reCAPTCHA to render above Radix Dialog overlays (z-50).
+ * Without this, the reCAPTCHA challenge popup appears behind modals.
+ * Uses max 32-bit int z-index to guarantee it stays on top.
+ */
+div[id^="recaptcha-container"] {
+  z-index: 2147483647 !important;
+  position: relative !important;
+}
+
+.grecaptcha-badge {
+  z-index: 2147483647 !important;
+}
+
+iframe[src*="recaptcha"],
+iframe[src*="google.com/recaptcha"] {
+  z-index: 2147483647 !important;
+}
+
+body > div[style*="z-index: 2000000000"] {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
