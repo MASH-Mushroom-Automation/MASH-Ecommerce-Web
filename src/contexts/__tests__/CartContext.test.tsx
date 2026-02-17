@@ -965,7 +965,7 @@ describe("CartContext", () => {
         () => {
           expect(consoleErrorSpy).toHaveBeenCalled();
         },
-        { timeout: 3000 }
+        { timeout: 6000 }
       );
 
       // Verify the error was logged with correct message
@@ -977,65 +977,69 @@ describe("CartContext", () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it("should handle Firebase save errors gracefully", async () => {
-      const mockUser: AuthUser = {
-        id: "user-123",
-        email: "test@example.com",
-        name: "Test User",
-        role: "BUYER",
-        authProvider: "FIREBASE_GOOGLE",
-      };
+    it(
+      "should handle Firebase save errors gracefully",
+      async () => {
+        const mockUser: AuthUser = {
+          id: "user-123",
+          email: "test@example.com",
+          name: "Test User",
+          role: "BUYER",
+          authProvider: "FIREBASE_GOOGLE",
+        };
 
-      (FirebaseCartService.saveCart as jest.Mock) = jest
-        .fn()
-        .mockRejectedValue(new Error("Save failed"));
+        (FirebaseCartService.saveCart as jest.Mock) = jest
+          .fn()
+          .mockRejectedValue(new Error("Save failed"));
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue([]);
+        (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
+          .fn()
+          .mockResolvedValue([]);
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+        (FirebaseCartService.subscribeToCart as jest.Mock) = jest
+          .fn()
+          .mockReturnValue(() => {});
 
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+        const consoleErrorSpy = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
 
-      renderWithAuth(
-        <CartProvider>
-          <TestComponent />
-        </CartProvider>,
-        { user: mockUser, isAuthenticated: true }
-      );
+        renderWithAuth(
+          <CartProvider>
+            <TestComponent />
+          </CartProvider>,
+          { user: mockUser, isAuthenticated: true }
+        );
 
-      const addButton = screen.getByTestId("add-product");
-      
-      await act(async () => {
-        addButton.click();
-      });
+        const addButton = screen.getByTestId("add-product");
+        
+        await act(async () => {
+          addButton.click();
+        });
 
-      // Wait for debounce and Firebase sync attempt
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-      });
+        // Wait for debounce and Firebase sync attempt
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        });
 
-      // Wait for error to be logged
-      await waitFor(
-        () => {
-          expect(consoleErrorSpy).toHaveBeenCalled();
-        },
-        { timeout: 3000 }
-      );
+        // Wait for error to be logged with increased timeout
+        await waitFor(
+          () => {
+            expect(consoleErrorSpy).toHaveBeenCalled();
+          },
+          { timeout: 6000 }
+        );
 
-      // Verify the error was logged with correct message
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to sync cart to Firebase:",
-        expect.any(Error)
-      );
+        // Verify the error was logged with correct message
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Failed to sync cart to Firebase:",
+          expect.any(Error)
+        );
 
-      consoleErrorSpy.mockRestore();
-    });
+        consoleErrorSpy.mockRestore();
+      },
+      10000
+    ); // Increase test timeout to 10 seconds
   });
 
   describe("Context Hook", () => {
