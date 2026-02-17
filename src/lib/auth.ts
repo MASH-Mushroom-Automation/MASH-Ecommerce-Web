@@ -73,11 +73,7 @@ export async function setAuthToken(
   refreshToken?: string,
   rememberMe = false
 ): Promise<boolean> {
-  logger.info("[Auth] setAuthToken called via API route", {
-    hasAccessToken: !!accessToken,
-    hasRefreshToken: !!refreshToken,
-    rememberMe,
-  });
+  logger.info("[Auth] setAuthToken called via API route");
 
   try {
     const response = await fetch("/api/auth/set-token", {
@@ -122,11 +118,7 @@ export async function logout(): Promise<void> {
       });
 
       if (!response.ok) {
-        console.warn(
-          "⚠️ [Auth] Failed to clear tokens via API (status: " + response.status + "), continuing with client cleanup"
-        );
-      } else {
-        console.log("🔴 [Auth] Auth tokens cleared via API");
+        console.warn("[Auth] Failed to clear tokens via API, continuing with client cleanup");
       }
     } catch (err) {
       console.warn("[Auth] Error calling /api/auth/clear-tokens, proceeding with client cleanup:", err);
@@ -134,8 +126,6 @@ export async function logout(): Promise<void> {
 
     // Clear client-side state: cookies/sessionStorage and cached user state
     try {
-      console.log("🔴 [Auth] Clearing cookies and sessionStorage");
-
       removeCookie("refreshToken");
       removeCookie("user");
       sessionStorage.removeItem("pendingVerificationEmail");
@@ -159,7 +149,6 @@ export async function logout(): Promise<void> {
 
     // Also sign out from Firebase if available
     try {
-      console.log("🔴 [Auth] Signing out from Firebase");
       await signOutFirebase();
     } catch (err) {
       console.warn("Firebase sign out failed:", err);
@@ -171,8 +160,6 @@ export async function logout(): Promise<void> {
   // Clear client-side storage (non-sensitive data)
   if (typeof window !== "undefined") {
     try {
-      console.log("🔴 [Auth] Clearing client-side storage (cookies + session)");
-
       // Clear cookie-based data (cart, wishlist, preferences) and HTTP-only auth cookies
       const { clearAllCookies } = await import("@/lib/cookies");
       await clearAllCookies();
@@ -186,7 +173,6 @@ export async function logout(): Promise<void> {
       sessionStorage.removeItem("google_auth_redirect");
 
       // Sign out from Firebase if user was authenticated via Google
-      console.log("🔴 [Auth] Signing out from Firebase");
       await signOutFirebase();
     } catch (error) {
       console.error("❌ [Auth] Error clearing storage:", error);
@@ -221,10 +207,9 @@ export async function logoutEverywhere(): Promise<boolean> {
     });
 
     if (response.ok) {
-      console.log("🟢 [Auth] Backend logout successful - all sessions invalidated");
       backendLogoutSuccess = true;
     } else {
-      console.warn("⚠️ [Auth] Backend logout failed:", response.status);
+      console.warn("[Auth] Backend logout failed:", response.status);
     }
   } catch (error) {
     console.error("❌ [Auth] Backend logout error:", error);
@@ -272,7 +257,6 @@ export async function refreshToken(): Promise<boolean> {
       // Set new tokens via API (HTTP-only cookies)
       const success = await setAuthToken(newAccessToken, newRefreshToken, true);
       if (success) {
-        console.log("[Auth] Token refresh successful");
         return true;
       }
     }

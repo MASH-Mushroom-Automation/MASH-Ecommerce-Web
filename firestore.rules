@@ -188,6 +188,61 @@ service cloud.firestore {
     
     
     // ========================================
+    // OTP VERIFICATIONS COLLECTION
+    // ========================================
+    // OTP operations are performed server-side via Next.js API routes
+    // (/api/otp/send, /api/otp/verify, /api/otp/resend) which handle
+    // all security: rate limiting, input validation, SHA-256 hashing,
+    // attempt tracking, and expiry management.
+    // The server-side Firebase client SDK has no auth context, so rules
+    // must allow write access. OTP codes are never stored in plaintext.
+    // TTL auto-deletes documents after 10 minutes.
+    match /otp_verifications/{verificationId} {
+      allow read, write: if true;
+    }
+    
+    
+    // ========================================
+    // SECURITY EVENTS COLLECTION
+    // ========================================
+    // Security audit trail for phone verification, 2FA, and account recovery.
+    // Events are created server-side via API routes and client-side services.
+    // 90-day TTL via _expiresAt field.
+    match /security_events/{eventId} {
+      // Users can read their own security events
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Authenticated users can create events for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // No updates or deletes - events are immutable audit records
+      allow update, delete: if false;
+    }
+    
+    // ========================================
+    // PHONE CHANGE HISTORY COLLECTION
+    // ========================================
+    match /phone_change_history/{changeId} {
+      // Users can read their own phone change history
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Authenticated users can create records for themselves
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // No updates or deletes - immutable audit records
+      allow update, delete: if false;
+    }
+    
+    // ========================================
+    // RATE LIMITS COLLECTION
+    // ========================================
+    match /rate_limits/{limitId} {
+      // Rate limit operations happen server-side; allow read/write for authenticated users
+      allow read, write: if isSignedIn();
+    }
+    
+    
+    // ========================================
     // CHATBOT ANALYTICS COLLECTIONS
     // ========================================
     

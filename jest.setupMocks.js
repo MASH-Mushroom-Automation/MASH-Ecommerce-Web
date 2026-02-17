@@ -162,7 +162,10 @@ jest.mock('firebase/firestore', () => ({
   getDocs: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
   onSnapshot: jest.fn(() => jest.fn()),
   serverTimestamp: jest.fn(() => new Date()),
-  Timestamp: { now: jest.fn(() => ({ toDate: () => new Date() })) },
+  Timestamp: { 
+    now: jest.fn(() => ({ seconds: Math.floor(Date.now() / 1000), toDate: () => new Date() })),
+    fromDate: jest.fn((d) => ({ seconds: Math.floor(d.getTime() / 1000), toDate: () => d })),
+  },
   increment: jest.fn((n) => n),
   arrayUnion: jest.fn((...args) => args),
   arrayRemove: jest.fn((...args) => args),
