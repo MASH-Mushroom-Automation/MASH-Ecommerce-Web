@@ -85,6 +85,16 @@ export {
   getRecaptchaVerifier,
 } from "./phone-auth";
 
+// Profile Picture Storage
+export {
+  uploadProfilePicture,
+  deleteProfilePicture,
+  validateProfileImage,
+  MAX_FILE_SIZE,
+  ACCEPTED_IMAGE_TYPES,
+} from "./storage";
+export type { UploadProgress, UploadResult } from "./storage";
+
 // Security Events Service (Audit Trail)
 export {
   logSecurityEvent,
