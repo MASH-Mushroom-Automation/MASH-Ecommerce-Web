@@ -63,7 +63,7 @@ export default function ProfileLayout({
           <div className="lg:col-span-1">
             <Card className="bg-card">
               <CardContent className="p-6">
-                <h1 className="text-2xl font-bold text-foreground mb-6">
+                <h1 className="text-xl font-bold text-foreground mb-6">
                   Account
                 </h1>
 
@@ -73,7 +73,7 @@ export default function ProfileLayout({
                     href="/profile/my-information"
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       pathname === "/profile/my-information"
-                        ? "bg-muted text-foreground"
+                        ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-muted/30"
                     }`}
                   >
@@ -84,7 +84,7 @@ export default function ProfileLayout({
                     href="/profile/order-history"
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       pathname === "/profile/order-history"
-                        ? "bg-muted text-foreground"
+                        ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-muted/30"
                     }`}
                   >

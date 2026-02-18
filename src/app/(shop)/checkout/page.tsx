@@ -388,7 +388,7 @@ export default function CheckoutPage() {
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                       currentStep >= step
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-secondary text-muted-foreground"
                     )}
                   >
                     {step}
@@ -397,7 +397,7 @@ export default function CheckoutPage() {
                     <div
                       className={cn(
                         "w-12 h-1 rounded",
-                        currentStep > step ? "bg-primary" : "bg-muted"
+                        currentStep > step ? "bg-primary" : "bg-secondary"
                       )}
                     />
                   )}

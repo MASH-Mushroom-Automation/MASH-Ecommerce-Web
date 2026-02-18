@@ -138,7 +138,7 @@ const FeaturedProductsSection: React.FC = () => {
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             Hand-picked favorites from our local growers, loved by our
-            community.
+            communitysss.
           </p>
         </div>
 

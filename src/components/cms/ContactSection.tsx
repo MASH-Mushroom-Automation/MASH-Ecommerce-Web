@@ -285,14 +285,14 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
           {/* Contact Form */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-primary">
+              <CardTitle className="text-xl text-foreground sm:-mb-6 ">
                 Send us a Message
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Full Name *</Label>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
                   <Input
                     id="name"
                     placeholder="Juan Dela Cruz"
@@ -305,8 +305,8 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="email">Email Address *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
@@ -320,8 +320,8 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="subject">Subject *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
                   <Controller
                     name="subject"
                     control={control}
@@ -357,16 +357,17 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="message">Message *</Label>
+                <div className="space-y-6">
+                  <Label htmlFor="message">Message</Label>
                   <Textarea
                     id="message"
                     placeholder="Tell us how we can help you..."
                     rows={6}
                     {...register("message")}
+                    className="dark:bg-[#3e4a3d] dark:border-[#3e4a3d] dark:focus:ring-[#3e4a3d]/50"
                   />
                   {errors.message && (
-                    <p className="mt-1 text-sm text-destructive">
+                    <p className="mt-1   text-sm text-destructive">
                       {errors.message.message}
                     </p>
                   )}
@@ -388,7 +389,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
             {/* Business Hours */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl text-primary">
+                <CardTitle className="text-xl text-foreground -mb-0 sm:-mb-10">
                   Business Hours
                 </CardTitle>
               </CardHeader>
@@ -418,7 +419,7 @@ export const CMSContactSection: React.FC<CMSContactSectionProps> = ({
             {/* Social Links */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl text-primary">
+                <CardTitle className="text-xl text-foreground -mb-0 sm:-mb-10">
                   Follow Us
                 </CardTitle>
               </CardHeader>

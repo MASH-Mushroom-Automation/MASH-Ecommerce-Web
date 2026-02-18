@@ -56,7 +56,7 @@ export function ProductCard({
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const inWishlist = isInWishlist(id);
-  
+
   // Local state for interactions
   const [isHovered, setIsHovered] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -66,13 +66,13 @@ export function ProductCard({
 
   // Placeholder image for products without images
   const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
-  
+
   // Use placeholder if no image provided or if image failed to load
   const displayImage = (!image || imageError) ? PLACEHOLDER_IMAGE : image;
 
   // Calculate discount percentage if comparePrice exists
-  const discountPercent = comparePrice && comparePrice > price 
-    ? Math.round(((comparePrice - price) / comparePrice) * 100) 
+  const discountPercent = comparePrice && comparePrice > price
+    ? Math.round(((comparePrice - price) / comparePrice) * 100)
     : 0;
 
   // Check for special tags
@@ -88,7 +88,7 @@ export function ProductCard({
   const toggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Allow wishlist for all users (stored in localStorage)
     if (inWishlist) {
       removeFromWishlist(id);
@@ -110,9 +110,9 @@ export function ProductCard({
     e.stopPropagation();
 
     if (isAddingToCart || justAdded) return;
-    
+
     setIsAddingToCart(true);
-    
+
     // Small delay for better UX feedback
     await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -150,7 +150,7 @@ export function ProductCard({
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "group bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full",
         "hover:border-primary/30 hover:-translate-y-1",
@@ -168,7 +168,7 @@ export function ProductCard({
         {!imageLoaded && (
           <div className="absolute inset-0 bg-muted animate-pulse" />
         )}
-        
+
         {/* Primary Image */}
         <Image
           src={displayImage}
@@ -187,7 +187,7 @@ export function ProductCard({
           onError={() => setImageError(true)}
           priority={false}
         />
-        
+
         {/* Secondary Image (on hover) */}
         {secondaryImage && !imageError && (
           <Image
@@ -201,13 +201,13 @@ export function ProductCard({
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
           />
         )}
-        
+
         {/* Gradient overlay */}
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent transition-opacity duration-300",
           isHovered ? "opacity-100" : "opacity-0"
         )} />
-        
+
         {/* Top Left Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
           {/* Discount Badge */}
@@ -266,7 +266,7 @@ export function ProductCard({
             @{farm}
           </button>
         )}
-        
+
         {/* Action Buttons - Top Right */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-2 z-10">
           {/* Wishlist Button */}
@@ -274,8 +274,8 @@ export function ProductCard({
             onClick={toggleWishlist}
             className={cn(
               "p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110",
-              inWishlist 
-                ? "bg-red-50 hover:bg-red-100 ring-2 ring-red-200" 
+              inWishlist
+                ? "bg-red-50 hover:bg-red-100 ring-2 ring-red-200"
                 : "bg-white/95 backdrop-blur-md hover:bg-white"
             )}
             aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
@@ -289,7 +289,7 @@ export function ProductCard({
               )}
             />
           </button>
-          
+
           {/* Quick View Button (visible on hover) */}
           {onQuickView && (
             <button
@@ -330,8 +330,8 @@ export function ProductCard({
                     i < Math.floor(rating)
                       ? "fill-amber-400 text-amber-400"
                       : i < rating
-                      ? "fill-amber-400/50 text-amber-400"
-                      : "fill-gray-200 text-gray-200"
+                        ? "fill-amber-400/50 text-amber-400"
+                        : "fill-gray-200 text-gray-200"
                   )}
                 />
               ))}
@@ -352,18 +352,18 @@ export function ProductCard({
             {name}
           </h3>
         </Link>
-        
+
         {/* Short description (if provided) */}
         {description && (
-          <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
+          <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed -mb-4">
             {description}
           </p>
         )}
       </div>
 
       {/* Price and Add to Cart - Fixed at bottom */}
-      <div className="p-3 sm:p-4 pt-0 mt-auto">
-        <div className="flex items-end justify-between gap-2">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-end justify-between gap-2 mb-3">
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-base sm:text-lg font-bold text-foreground">
@@ -378,37 +378,37 @@ export function ProductCard({
             <span className="text-[10px] sm:text-xs text-muted-foreground">per {unit ?? "unit"}</span>
           </div>
 
-          <Button
-            variant="default"
-            size="sm"
-            className={cn(
-              "rounded-lg shadow-sm transition-all duration-300 min-w-[80px] sm:min-w-[90px]",
-              justAdded 
-                ? "bg-green-500 hover:bg-green-600" 
-                : inStock 
-                  ? "bg-primary hover:bg-primary/90 hover:shadow-md active:scale-95" 
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            )}
-            onClick={handleAddToCart}
-            disabled={!inStock || isAddingToCart}
-          >
-            {isAddingToCart ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : justAdded ? (
-              <>
-                <Check className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Added</span>
-              </>
-            ) : inStock ? (
-              <>
-                <Plus className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Add</span>
-              </>
-            ) : (
-              <span className="text-xs">Sold Out</span>
-            )}
-          </Button>
         </div>
+        <Button
+          variant="default"
+          size="sm"
+          className={cn(
+            "rounded-lg shadow-sm transition-all duration-300 w-full",
+            justAdded
+              ? "bg-green-500 hover:bg-green-600"
+              : inStock
+                ? "bg-primary hover:bg-primary/90 hover:shadow-md active:scale-95"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          )}
+          onClick={handleAddToCart}
+          disabled={!inStock || isAddingToCart}
+        >
+          {isAddingToCart ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : justAdded ? (
+            <>
+              <Check className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Added</span>
+            </>
+          ) : inStock ? (
+            <>
+              <Plus className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Add</span>
+            </>
+          ) : (
+            <span className="text-xs">Sold Out</span>
+          )}
+        </Button>
       </div>
     </div>
   );

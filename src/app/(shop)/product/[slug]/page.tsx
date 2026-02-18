@@ -481,7 +481,7 @@ export default function ProductDetailPage({ params }: Props) {
 
             {/* Price */}
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-primary">
+              <span className="text-3xl font-bold text-foreground">
                 ₱{product.price.toFixed(2)}
               </span>
               {product.unit && (
@@ -509,7 +509,7 @@ export default function ProductDetailPage({ params }: Props) {
             {/* Description */}
             {product.description && (
               <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="font-semibold text-foreground">
                   Description
                 </h3>
                 <p className="text-muted-foreground whitespace-pre-line">
@@ -521,7 +521,7 @@ export default function ProductDetailPage({ params }: Props) {
             {/* Promo Badge */}
             {product.isPromo && (
               <div className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-                🎉 On Promotion!
+                On Promotion!
               </div>
             )}
 
@@ -593,11 +593,12 @@ export default function ProductDetailPage({ params }: Props) {
                 size="lg"
                 variant={inWishlist ? "default" : "outline"}
                 onClick={toggleWishlist}
+                
               >
                 <Heart
                   className={cn(
                     "w-5 h-5",
-                    inWishlist && "fill-current text-red-500",
+                    inWishlist && "fill-current text-primary-foreground",
                   )}
                 />
               </Button>
@@ -631,7 +632,7 @@ export default function ProductDetailPage({ params }: Props) {
               </div>
             )}
             {/* Product Meta */}
-            <div className="border-t border-border pt-6 space-y-3 text-sm">
+            <div className="border-t border-border pt-3 space-y-3 text-sm">
               {product.sku && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">SKU:</span>

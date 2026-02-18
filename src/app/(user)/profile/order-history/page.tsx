@@ -196,20 +196,20 @@ export default function OrderHistoryPage() {
 
   return (
     <>
-      <Card className="bg-white">
+      <Card>
         <CardContent className="p-6 sm:p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center flex-wrap justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Package className="h-5 w-5 text-primary" />
+                <Package className="h-5 w-5 text-foreground" />
                 <h2 className="text-xl font-bold text-foreground">Order History</h2>
               </div>
               <p className="text-sm text-muted-foreground">
                 Track your orders and view order details
               </p>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-green-50 border border-green-200">
+            <div className="flex items-center gap-2 px-2 py-1 mt-3 rounded-full bg-green-50 border border-green-200">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-xs font-medium text-green-700">Live Updates</span>
             </div>
