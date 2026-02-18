@@ -3,13 +3,60 @@
  *
  * TypeScript interfaces for product and grower reviews stored in Firebase Firestore.
  * Supports both product reviews and grower/store reviews with unified rating system.
+ * Also defines types for Sanity CMS review management.
  */
 
 /** The entity type a review is associated with */
 export type ReviewTargetType = "product" | "grower";
 
 /** Moderation status of a review */
-export type ReviewStatus = "pending" | "approved" | "rejected";
+export type ReviewStatus = "pending" | "approved" | "rejected" | "flagged";
+
+/** Reasons a review can be flagged */
+export type FlagReason = "spam" | "inappropriate" | "fake" | "offensive" | "other";
+
+/** Admin moderation actions */
+export type ModerationAction = "approve" | "reject" | "flag" | "delete";
+
+/** Moderation log entry stored in Firestore subcollection */
+export interface ModerationLogEntry {
+  action: ModerationAction;
+  adminId: string;
+  adminName?: string;
+  reason?: string;
+  timestamp: string;
+}
+
+/** Seller response on a review */
+export interface SellerResponse {
+  content: string;
+  sellerId: string;
+  sellerName?: string;
+  respondedAt: string;
+  updatedAt?: string;
+}
+
+/** Filters for admin review queries */
+export interface ReviewFilters {
+  status?: ReviewStatus;
+  targetType?: ReviewTargetType;
+  ratingMin?: number;
+  ratingMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  keyword?: string;
+  flaggedOnly?: boolean;
+}
+
+/** Admin moderation stats */
+export interface ModerationStats {
+  totalReviews: number;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  flaggedCount: number;
+  averageRating: number;
+}
 
 /**
  * Core review data stored in Firestore.
@@ -48,6 +95,26 @@ export interface FirestoreReview {
   helpfulCount: number;
   /** Array of user IDs who marked this review as helpful */
   helpfulVotes: string[];
+  /** Admin/seller response to this review */
+  adminResponse?: string;
+  /** ISO timestamp of admin response */
+  adminResponseDate?: string;
+  /** Number of times flagged */
+  flagCount: number;
+  /** Array of user IDs who flagged this review */
+  flaggedBy: string[];
+  /** Reasons for flagging */
+  flagReasons: string[];
+  /** Admin who last moderated this review */
+  moderatedBy?: string;
+  /** ISO timestamp of last moderation action */
+  moderatedAt?: string;
+  /** Seller response content */
+  sellerResponse?: string;
+  /** ISO timestamp of seller response */
+  sellerResponseDate?: string;
+  /** Seller user ID who responded */
+  sellerRespondedBy?: string;
   /** ISO timestamp when the review was created */
   createdAt: string;
   /** ISO timestamp when the review was last updated */
@@ -66,6 +133,7 @@ export interface CreateReviewInput {
   title: string;
   content: string;
   images?: string[];
+  verifiedPurchase?: boolean;
 }
 
 /**
@@ -76,6 +144,14 @@ export interface UpdateReviewInput {
   title?: string;
   content?: string;
   images?: string[];
+}
+
+/**
+ * Input for flagging a review.
+ */
+export interface FlagReviewInput {
+  reason: FlagReason;
+  details?: string;
 }
 
 /**
@@ -116,6 +192,8 @@ export interface UseReviewsReturn {
   deleteReview: (reviewId: string) => Promise<void>;
   /** Vote a review as helpful */
   voteHelpful: (reviewId: string) => Promise<void>;
+  /** Flag a review for moderation */
+  flagReview: (reviewId: string, input: FlagReviewInput) => Promise<void>;
   /** Check if current user already reviewed this entity */
   hasUserReviewed: boolean;
   /** The current user's review if it exists */

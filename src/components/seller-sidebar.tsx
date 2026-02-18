@@ -18,7 +18,9 @@ import {
   User,
   Bell,
   Box,
-  PackageSearch
+  PackageSearch,
+  MessageSquare,
+  BarChart3,
 } from "lucide-react"
 
 import { logout } from "@/lib/auth"
@@ -100,6 +102,21 @@ const sidebarLinks = [
     href: "/seller/handover",
     icon: Store,
     label: "Handover Center Pickup",
+  },
+  {
+    href: "/seller/my-reviews",
+    icon: MessageSquare,
+    label: "My Reviews",
+  },
+  {
+    href: "/seller/reviews",
+    icon: MessageSquare,
+    label: "Review Moderation",
+  },
+  {
+    href: "/seller/analytics/reviews",
+    icon: BarChart3,
+    label: "Review Analytics",
   },
   {
     href: "/seller/refund",
