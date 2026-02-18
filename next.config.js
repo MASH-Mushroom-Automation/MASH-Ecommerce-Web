@@ -2,6 +2,8 @@ const path = require("path");
 
 /** @type {import('next').NextConfig} */
 module.exports = {
+  // Packages that need to be transpiled (needed for Jest transformIgnorePatterns via nextJest)
+  transpilePackages: ['nuqs', 'next-sanity', '@sanity/client', '@sanity/image-url', 'groq'],
   // Explicitly set Turbopack root to this project directory
   turbopack: {
     root: path.resolve(__dirname),

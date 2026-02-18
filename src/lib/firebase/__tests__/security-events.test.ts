@@ -239,8 +239,9 @@ describe("Security Events Service", () => {
 
       const { serverTimestamp } = require("firebase/firestore");
       const dataArg = mockSetDoc.mock.calls[0][1];
-      expect(dataArg.createdAt).toBeInstanceOf(Date);
+      // The implementation stores the return value of serverTimestamp() as createdAt
       expect(serverTimestamp).toHaveBeenCalled();
+      expect(dataArg.createdAt).toBe(serverTimestamp.mock.results[0].value);
     });
 
     it("should propagate Firestore write errors", async () => {

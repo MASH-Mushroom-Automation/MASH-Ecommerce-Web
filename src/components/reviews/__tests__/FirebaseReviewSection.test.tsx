@@ -567,8 +567,8 @@ describe("FirebaseReviewSection", () => {
 
     it("does not show real-time message when no reviews", () => {
       render(<FirebaseReviewSection {...defaultProps} />);
-      // Verify component renders without reviews
-      expect(screen.getByText("Customer Reviews")).toBeInTheDocument();
+      // Component renders the no-reviews state (heading only shows when stats.totalReviews > 0)
+      expect(screen.getByText("No Reviews Yet")).toBeInTheDocument();
     });
   });
 });

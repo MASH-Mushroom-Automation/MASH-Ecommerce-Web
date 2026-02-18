@@ -1,0 +1,158 @@
+﻿node.exe : [baseline-browser-mapping] The data in this module is over two months old.  To ensure 
+accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([baseline-brows...ping@latest -D`:String) [], RemoteE 
+   xception
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+jest-haste-map: duplicate manual mock found: sanity
+  The following files share their name; please delete one of them:
+    * <rootDir>\__mocks__\sanity.js
+    * <rootDir>\src\__mocks__\sanity.ts
+
+  console.log
+    [jest.setupMocks] Polyfilled global fetch
+
+      at Object.<anonymous> (jest.setupMocks.js:268:13)
+
+  console.log
+    [jest.setupMocks] wishlist mock present= true cart mock present= true
+
+      at Object.<anonymous> (jest.setupMocks.js:461:13)
+
+  console.error
+    In HTML, <div> cannot be a child of <option>.
+    This will cause a hydration error.
+    
+      <StockAdjustmentForm products={[...]} onSuccess={function mockConstructor} onCancel={function mockConstructor}>
+        <Card className="w-full max...">
+          <div data-slot="card" className="bg-card te...">
+            <CardHeader>
+            <form onSubmit={function}>
+              <CardContent className="space-y-6">
+                <div data-slot="card-content" className="p-4 sm:p-5...">
+                  <div className="space-y-2">
+                    <Label>
+                    <Select value="" onValueChange={function} disabled={false}>
+                      <select id="productId" value="" onChange={function onChange} disabled={false} role="combobox">
+                        <option>
+    >                   <option value="prod-001" role="option">
+    >                     <div className="flex items-center justify-between w-full gap-4">
+                        ...
+                  ...
+              ...
+
+    [0m [90m 555 |[39m       [36mreturn[39m[33m;[39m
+     [90m 556 |[39m     }
+    [31m[1m>[22m[39m[90m 557 |[39m     originalError[33m.[39mcall(console[33m,[39m [33m...[39margs)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 558 |[39m   }[33m;[39m
+     [90m 559 |[39m
+     [90m 560 |[39m   [90m// Suppress specific warnings[39m[0m
+
+      at Object.call [as error] (jest.setup.js:557:19)
+      at validateDOMNesting (node_modules/react-dom/cjs/react-dom-client.development.js:2606:19)
+      at completeWork (node_modules/react-dom/cjs/react-dom-client.development.js:11299:15)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1522:13)
+      at completeUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15268:19)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15149:11)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:14956:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:14936:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:14419:13)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-dom/cjs/react-dom-client.development.js:16216:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:566:34)
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:859:10)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:189:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:291:10)
+      at Object.<anonymous> (src/components/seller/stock/__tests__/StockAdjustmentForm.test.tsx:233:13)
+
+  console.error
+    <option> cannot contain a nested <div>.
+    See this log for the ancestor stack trace.
+
+    [0m [90m 555 |[39m       [36mreturn[39m[33m;[39m
+     [90m 556 |[39m     }
+    [31m[1m>[22m[39m[90m 557 |[39m     originalError[33m.[39mcall(console[33m,[39m [33m...[39margs)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 558 |[39m   }[33m;[39m
+     [90m 559 |[39m
+     [90m 560 |[39m   [90m// Suppress specific warnings[39m[0m
+
+      at Object.call [as error] (jest.setup.js:557:19)
+      at node_modules/react-dom/cjs/react-dom-client.development.js:2626:21
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1522:13)
+      at validateDOMNesting (node_modules/react-dom/cjs/react-dom-client.development.js:2625:11)
+      at completeWork (node_modules/react-dom/cjs/react-dom-client.development.js:11299:15)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1522:13)
+      at completeUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15268:19)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15149:11)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:14956:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:14936:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:14419:13)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-dom/cjs/react-dom-client.development.js:16216:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:566:34)
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:859:10)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:189:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:291:10)
+      at Object.<anonymous> (src/components/seller/stock/__tests__/StockAdjustmentForm.test.tsx:233:13)
+
+  console.error
+    Received NaN for the `children` attribute. If this is expected, cast the value to a string.
+
+    [0m [90m 555 |[39m       [36mreturn[39m[33m;[39m
+     [90m 556 |[39m     }
+    [31m[1m>[22m[39m[90m 557 |[39m     originalError[33m.[39mcall(console[33m,[39m [33m...[39margs)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 558 |[39m   }[33m;[39m
+     [90m 559 |[39m
+     [90m 560 |[39m   [90m// Suppress specific warnings[39m[0m
+
+      at Object.call [as error] (jest.setup.js:557:19)
+      at validateProperty (node_modules/react-dom/cjs/react-dom-client.development.js:2988:19)
+      at warnUnknownProperties (node_modules/react-dom/cjs/react-dom-client.development.js:3154:9)
+      at validatePropertiesInDevelopment (node_modules/react-dom/cjs/react-dom-client.development.js:17117:9)
+      at setInitialProperties (node_modules/react-dom/cjs/react-dom-client.development.js:17741:7)
+      at completeWork (node_modules/react-dom/cjs/react-dom-client.development.js:11391:18)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1522:13)
+      at completeUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15268:19)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:15149:11)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:14956:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:14936:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:14419:13)
+      at performSyncWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:16231:7)
+      at flushSyncWorkAcrossRoots_impl (node_modules/react-dom/cjs/react-dom-client.development.js:16079:21)
+      at flushSyncWork$1 (node_modules/react-dom/cjs/react-dom-client.development.js:14721:12)
+      at batchedUpdates$1 (node_modules/react-dom/cjs/react-dom-client.development.js:3270:14)
+      at dispatchEventForPluginEventSystem (node_modules/react-dom/cjs/react-dom-client.development.js:16572:7)
+      at dispatchEvent (node_modules/react-dom/cjs/react-dom-client.development.js:20658:11)
+      at dispatchDiscreteEvent (node_modules/react-dom/cjs/react-dom-client.development.js:20626:11)
+      at HTMLDivElement.callTheUserObjectsOperation (node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+      at innerInvokeEventListeners (node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:350:25)
+      at invokeEventListeners (node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:286:3)
+      at HTMLInputElementImpl._dispatch (node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:233:9)
+      at HTMLInputElementImpl.dispatchEvent (node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:104:17)
+      at HTMLInputElement.dispatchEvent (node_modules/jsdom/lib/jsdom/living/generated/EventTarget.js:241:34)
+      at node_modules/@testing-library/user-event/dist/cjs/event/dispatchEvent.js:45:43
+      at node_modules/@testing-library/react/dist/pure.js:107:16
+      at node_modules/@testing-library/react/dist/act-compat.js:47:24
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:789:22)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at Object.eventWrapper (node_modules/@testing-library/react/dist/pure.js:106:28)
+      at Object.wrapEvent (node_modules/@testing-library/user-event/dist/cjs/event/wrapEvent.js:6:28)
+      at Object.dispatchEvent (node_modules/@testing-library/user-event/dist/cjs/event/dispatchEvent.js:45:22)
+      at Object.dispatchUIEvent (node_modules/@testing-library/user-event/dist/cjs/event/dispatchEvent.js:22:26)
+      at commitInput (node_modules/@testing-library/user-event/dist/cjs/event/input.js:145:14)
+      at editInputElement (node_modules/@testing-library/user-event/dist/cjs/event/input.js:115:9)
+      at Object.input (node_modules/@testing-library/user-event/dist/cjs/event/input.js:37:9)
+      at Object.clear (node_modules/@testing-library/user-event/dist/cjs/utility/clear.js:29:11)
+      at node_modules/@testing-library/user-event/dist/cjs/setup/setup.js:85:45
+      at Object.asyncWrapper (node_modules/@testing-library/react/dist/pure.js:87:28)
+      at Object.wrapAsync (node_modules/@testing-library/user-event/dist/cjs/setup/wrapAsync.js:8:28)
+      at Object.method [as clear] (node_modules/@testing-library/user-event/dist/cjs/setup/setup.js:85:26)
+      at clear (src/components/seller/stock/__tests__/StockAdjustmentForm.test.tsx:200:14)
+      at Object.setQuantity (src/components/seller/stock/__tests__/StockAdjustmentForm.test.tsx:336:13)
+

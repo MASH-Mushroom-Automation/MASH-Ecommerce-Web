@@ -117,9 +117,7 @@ describe("OTPService", () => {
   // ========================================
 
   describe("createVerification", () => {
-    // Skip these tests due to Timestamp mock infrastructure limitation
-    // The implementation is correct (build passes, other tests validate behavior)
-    it.skip("should create a new OTP verification with default expiry", async () => {
+    it("should create a new OTP verification with default expiry", async () => {
       const mockDocRef = { id: mockVerificationId };
       (collection as jest.Mock).mockReturnValue({});
       (doc as jest.Mock).mockReturnValue(mockDocRef);
@@ -148,7 +146,7 @@ describe("OTPService", () => {
       expect(callArgs.verified).toBe(false);
     });
 
-    it.skip("should create verification with custom expiry times", async () => {
+    it("should create verification with custom expiry times", async () => {
       const mockDocRef = { id: mockVerificationId };
       (collection as jest.Mock).mockReturnValue({});
       (doc as jest.Mock).mockReturnValue(mockDocRef);

@@ -218,6 +218,17 @@ jest.mock('@/lib/firebase/auth', () => ({
   updateUserProfile: jest.fn(),
 }));
 
+// Mock FirebaseCartService for cart operations
+jest.mock('@/lib/firebase/cart', () => ({
+  FirebaseCartService: {
+    getCart: jest.fn().mockResolvedValue([]),
+    saveCart: jest.fn().mockResolvedValue(undefined),
+    clearCart: jest.fn().mockResolvedValue(undefined),
+    mergeWithLocalCart: jest.fn().mockResolvedValue([]),
+    subscribeToCart: jest.fn().mockReturnValue(jest.fn()),
+  },
+}));
+
 // Mock FirebaseUserService for user profile operations
 jest.mock('@/lib/firebase/users', () => ({
   FirebaseUserService: {

@@ -151,25 +151,7 @@ jest.mock('firebase/app', () => ({
   getApp: jest.fn(() => ({})),
 }));
 
-// Mock Firebase/Firestore for analytics
-jest.mock('firebase/firestore', () => ({
-  getFirestore: jest.fn(() => ({})),
-  collection: jest.fn(),
-  addDoc: jest.fn(() => Promise.resolve({ id: 'mock-id' })),
-  query: jest.fn(),
-  where: jest.fn(),
-  getDocs: jest.fn(() => Promise.resolve({ docs: [] })),
-  orderBy: jest.fn(),
-  limit: jest.fn(),
-  Timestamp: {
-    now: jest.fn(() => ({ seconds: Date.now() / 1000 })),
-    fromDate: jest.fn((date) => ({ seconds: date.getTime() / 1000 })),
-  },
-  serverTimestamp: jest.fn(() => ({ _methodName: 'serverTimestamp' })),
-  updateDoc: jest.fn(() => Promise.resolve()),
-  doc: jest.fn(),
-  increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
-}));
+// firebase/firestore is mocked in the FIREBASE MOCKS section below - see line ~411
 
 // NOTE: js-cookie is mocked via __mocks__/js-cookie.js manual mock file
 // That mock uses an in-memory store and exposes it via __cookieStore
@@ -425,10 +407,18 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(() => Promise.resolve()),
   doc: jest.fn(),
   increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
+  arrayUnion: jest.fn((...args) => args),
+  arrayRemove: jest.fn((...args) => args),
   getDoc: jest.fn(() => Promise.resolve({ exists: () => false })),
   setDoc: jest.fn(() => Promise.resolve()),
   deleteDoc: jest.fn(() => Promise.resolve()),
-  onSnapshot: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+  writeBatch: jest.fn(() => ({
+    set: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    commit: jest.fn(() => Promise.resolve()),
+  })),
 }));
 
 // ============================================================================

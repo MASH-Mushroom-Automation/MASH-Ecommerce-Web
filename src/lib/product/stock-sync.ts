@@ -18,12 +18,13 @@ class StockSync {
   private stockCache: Record<string, number> = {};
   private subscribers: Subscriber[] = [];
   private processing = false;
+  private syncInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.loadQueue();
     this.loadCache();
     // Process periodically
-    setInterval(() => this.processQueue(), 2000);
+    this.syncInterval = setInterval(() => this.processQueue(), 2000);
     // Listen for multi-tab changes
     if (typeof window !== "undefined") {
       window.addEventListener("storage", (e) => {
@@ -106,6 +107,14 @@ class StockSync {
 
   getLocalStock(productId: string): number | undefined {
     return this.stockCache[productId];
+  }
+
+  /** Stop the background sync interval. Useful for testing. */
+  stopSync() {
+    if (this.syncInterval !== null) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
   }
 
   subscribe(sub: Subscriber) {

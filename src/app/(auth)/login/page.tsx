@@ -36,12 +36,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth";
-import { getPasswordRequirements } from '@/lib/auth/password';
 import { toast } from "sonner";
 import { OTPVerificationModal } from "@/components/profile/OTPVerificationModal";
 import { apiRequest } from "@/lib/api-client";
-
-// Password requirements are not needed for login
 
 const getEmailStatus = (email: string) => {
   if (!email) {
@@ -112,7 +109,6 @@ export default function LoginPage() {
   // Redirect authenticated users away from login page
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log("[Login] User already authenticated, redirecting...");
       const storedRedirect = sessionStorage.getItem("auth-redirect-url");
       const destination = storedRedirect || redirectUrl || "/";
 
@@ -183,29 +179,17 @@ export default function LoginPage() {
     setHasError(false);
 
     try {
-      console.log("[Login] Starting login process...");
-      console.log("[Login] Email:", data.email);
-      console.log("[Login] Password length:", data.password.length);
-      console.log("[Login] Remember Me:", data.rememberMe);
-
       // Use backend API for email/password login
       const response = await AuthApi.login({
         email: data.email.trim(),
         password: data.password,
         rememberMe: data.rememberMe || false,
       });
-
-      console.log("[Login] Backend response received:", response);
-
       // Check if 2FA is required
       const requires2FA = response.requiresTwoFactor || response.data?.requiresTwoFactor;
       if (requires2FA) {
         const twoFATempToken = response.tempToken || response.data?.tempToken;
         const phoneNum = response.phoneNumber || response.data?.phoneNumber || "";
-
-        console.log("[Login] [2FA] Two-factor authentication required");
-        console.log("[Login] [2FA] Phone number (masked):", phoneNum ? phoneNum.replace(/\d(?=\d{4})/g, "*") : "unknown");
-
         // Store tempToken in memory only (never persisted)
         tempTokenRef.current = twoFATempToken || null;
         setTwoFAPhoneNumber(phoneNum);
@@ -215,12 +199,10 @@ export default function LoginPage() {
 
         // Auto-send OTP to phone
         try {
-          console.log("[Login] [2FA] Sending OTP to verified phone number...");
           await apiRequest("/auth/2fa/send", {
             method: "POST",
             headers: twoFATempToken ? { Authorization: `Bearer ${twoFATempToken}` } : undefined,
           });
-          console.log("[Login] [2FA] OTP sent successfully");
           toast.info("Verification code sent", {
             description: `A code has been sent to ${phoneNum || "your phone"}.`,
           });
@@ -241,11 +223,6 @@ export default function LoginPage() {
         throw new Error("Invalid response from server. Please try again.");
       }
 
-      console.log("[Login] User data:", {
-        email: user.email,
-        verified: user.emailVerified,
-      });
-
       // Check if email is verified
       if (!user.emailVerified) {
         console.warn("[Login] Email not verified");
@@ -265,10 +242,8 @@ export default function LoginPage() {
 
       // Store tokens if available
       if (accessToken) {
-        console.log("[Login] Storing access token...");
         // Also store refresh token if available
         if (refreshToken) {
-          console.log("[Login] Storing refresh token...");
           setAuthToken(accessToken, refreshToken, data.rememberMe); // Use proper cookie storage
         } else {
           setAuthToken(accessToken, undefined, data.rememberMe); // Use proper cookie storage without refresh token
@@ -282,9 +257,6 @@ export default function LoginPage() {
         description: `Welcome back, ${displayName}!`,
         duration: 3000,
       });
-
-      console.log("[Login] Login successful, redirecting...");
-
       // Small delay for toast to show before navigation
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -294,10 +266,8 @@ export default function LoginPage() {
         const redirectUrl = sessionStorage.getItem("auth-redirect-url");
         if (redirectUrl) {
           sessionStorage.removeItem("auth-redirect-url");
-          console.log("[Login] Redirecting to:", redirectUrl);
           router.push(redirectUrl);
         } else {
-          console.log("[Login] Redirecting to home");
           router.push("/");
         }
       }
@@ -334,16 +304,12 @@ export default function LoginPage() {
         console.warn("[Login] errorMessage is not a string:", errorMessage);
         errorMessage = JSON.stringify(errorMessage);
       }
-
-      console.log("[Login] Error message:", errorMessage);
-
       // Handle specific error cases (now safe to call .toLowerCase())
       const lowerMsg = errorMessage.toLowerCase();
       const statusCode = error?.response?.status || error?.response?.statusCode;
 
       // Handle validation errors (400 Bad Request)
       if (statusCode === 400 || lowerMsg.includes("validation")) {
-        console.log("[Login] Validation error detected");
         toast.error("Invalid Request", {
           description: "Please check your login information and try again.",
           duration: 5000,
@@ -355,7 +321,6 @@ export default function LoginPage() {
         lowerMsg.includes("not verified") ||
         lowerMsg.includes("email verification")
       ) {
-        console.log("[Login] Email not verified (from error)");
         sessionStorage.setItem("pendingVerificationEmail", data.email);
         toast.error("Email Not Verified", {
           description: "Please verify your email address to continue.",
@@ -372,7 +337,6 @@ export default function LoginPage() {
         lowerMsg.includes("wrong") ||
         lowerMsg.includes("credentials")
       ) {
-        console.log("[Login] Invalid credentials detected");
         toast.error("Invalid Credentials", {
           description:
             "The email or password you entered is incorrect. Please try again.",
@@ -384,7 +348,6 @@ export default function LoginPage() {
         lowerMsg.includes("no user") ||
         lowerMsg.includes("doesn't exist")
       ) {
-        console.log("[Login] Account not found");
         toast.error("Account Not Found", {
           description:
             "No account exists with this email. Would you like to sign up?",
@@ -396,7 +359,6 @@ export default function LoginPage() {
         });
         return; // CRITICAL: Stop execution, don't navigate
       } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
-        console.log("[Login] Network/timeout error");
         toast.error("Connection Error", {
           description:
             "Unable to reach the server. Please check your internet connection.",
@@ -407,7 +369,6 @@ export default function LoginPage() {
         lowerMsg.includes("too many") ||
         lowerMsg.includes("rate limit")
       ) {
-        console.log("[Login] Rate limit exceeded");
         toast.error("Too Many Attempts", {
           description: "Please wait a few minutes before trying again.",
           duration: 5000,
@@ -415,7 +376,6 @@ export default function LoginPage() {
         return; // CRITICAL: Stop execution, don't navigate
       } else {
         // Generic error with actual message
-        console.log("[Login] Generic error:", errorMessage);
         toast.error(errorTitle, {
           description: errorMessage,
           duration: 5000,
@@ -424,7 +384,6 @@ export default function LoginPage() {
       }
     } finally {
       // Always log completion
-      console.log("[Login] Form submission completed (error:", hasError, ")");
     }
   };
 
@@ -437,7 +396,6 @@ export default function LoginPage() {
   const handle2FAVerifySuccess = useCallback(async (code: string) => {
     if (twoFAAttempts >= MAX_2FA_ATTEMPTS) {
       setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
-      console.log("[Login] [2FA] BLOCKED - Max attempts exceeded:", twoFAAttempts);
       return;
     }
 
@@ -445,19 +403,11 @@ export default function LoginPage() {
     setTwoFAError("");
     const currentAttempt = twoFAAttempts + 1;
     setTwoFAAttempts(currentAttempt);
-
-    console.log("[Login] [2FA] Verification attempt:", currentAttempt, "/", MAX_2FA_ATTEMPTS);
-
     try {
       // Use AuthContext verify2FA which handles token storage + redirect
       await verify2FA(code);
-
-      console.log("[Login] [2FA] SUCCESS - Verification complete");
-      console.log("[Login] [2FA] Remember device:", rememberDevice);
-
       // Store remember device preference if checked
       if (rememberDevice) {
-        console.log("[Login] [2FA] Storing trusted device preference");
         // Trusted device cookie will be set by backend in a separate story
         // For now, store preference in sessionStorage
         sessionStorage.setItem("2fa-remember-device", "true");
@@ -472,7 +422,6 @@ export default function LoginPage() {
 
       if (currentAttempt >= MAX_2FA_ATTEMPTS) {
         setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
-        console.log("[Login] [2FA] Account locked after", MAX_2FA_ATTEMPTS, "failed attempts");
       } else {
         const remaining = MAX_2FA_ATTEMPTS - currentAttempt;
         setTwoFAError(`${message} (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`);
@@ -486,13 +435,11 @@ export default function LoginPage() {
    * Handle 2FA OTP resend
    */
   const handle2FAResend = useCallback(async () => {
-    console.log("[Login] [2FA] Resending OTP...");
     try {
       await apiRequest("/auth/2fa/send", {
         method: "POST",
         headers: tempTokenRef.current ? { Authorization: `Bearer ${tempTokenRef.current}` } : undefined,
       });
-      console.log("[Login] [2FA] OTP resent successfully");
       setTwoFAError("");
       toast.info("New code sent", {
         description: `A new verification code has been sent to ${twoFAPhoneNumber || "your phone"}.`,
@@ -509,7 +456,6 @@ export default function LoginPage() {
    * Handle 2FA modal close
    */
   const handle2FAClose = useCallback(() => {
-    console.log("[Login] [2FA] Modal closed by user");
     setShow2FAModal(false);
     setTwoFAError("");
     setTwoFAAttempts(0);

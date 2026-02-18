@@ -33,8 +33,6 @@ const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel"
 // Phase 3 Hooks (State Management)
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { useProductSearch } from "@/hooks/useProductSearch";
-// import { useFilterPresets } from "@/hooks/useFilterPresets"; // Unused - for future use
-
 // Sanity Product Search
 import { getFilterOptions } from "@/lib/sanity/product-search";
 import type { FilterOptions } from "@/types/product-filters";
@@ -51,8 +49,13 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1280
   );
-  const [GridComponent, setGridComponent] = useState<any>(null);
+  const [GridComponent, setGridComponent] = useState<React.ComponentType<any> | null>(null);
 
+  useEffect(() => {
+    import('react-window').then((mod) => {
+      setGridComponent(() => mod.Grid);
+    });
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -60,24 +63,25 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Calculate columns based on screen width (Tailwind breakpoints)
   const columnCount = windowWidth >= 1280 ? 3 : windowWidth >= 640 ? 2 : 1;
-  const columnWidth = Math.floor(windowWidth / columnCount) - 24; // Account for gap
-  const rowHeight = 400; // Approximate card height
+  const columnWidth = Math.floor(windowWidth / columnCount) - 24;
+  const rowHeight = 400;
   const rowCount = Math.ceil(products.length / columnCount);
 
   if (!GridComponent) {
     return <LoadingSpinner size="md" />;
   }
 
+  const Grid = GridComponent;
+
   return (
-    <GridComponent
+    <Grid
       columnCount={columnCount}
       columnWidth={columnWidth}
-      height={Math.min(rowCount * rowHeight, 2000)} // Max 2000px height
+      height={Math.min(rowCount * rowHeight, 2000)}
       rowCount={rowCount}
       rowHeight={rowHeight}
-      width={windowWidth - 348} // Account for sidebar (300px) + gaps
+      width={windowWidth - 348}
       itemData={{ products, columnCount }}
     >
       {({ columnIndex, rowIndex, style, data }: any) => {
@@ -92,7 +96,7 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
           </div>
         );
       }}
-    </GridComponent>
+    </Grid>
   );
 }
 
@@ -116,9 +120,6 @@ function SellerProductsContent() {
     error,
     refetch,
   } = useProductSearch(filters, 1, 50);
-
-  // Phase 3: Filter presets with localStorage (currently unused)
-  // const { presets, savePreset, loadPreset, deletePreset, presetExists } = useFilterPresets();
 
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -441,12 +442,12 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem asChild>
-                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer">
+                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer" role="menuitem" aria-label="Edit">
                   Edit Product
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer">
+                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer" role="menuitem" aria-label="View">
                   View Product
                 </Link>
               </DropdownMenuItem>
@@ -470,15 +471,15 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             {product.isOnPromo && product.originalPrice ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-primary">
-                  ₱{(product.price ?? 0).toFixed(2)}
+                  ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-sm text-muted-foreground line-through">
-                  ₱{(product.originalPrice ?? 0).toFixed(2)}
+                  ₱{(product.originalPrice ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             ) : (
               <span className="text-lg font-bold text-primary">
-                ₱{(product.price ?? 0).toFixed(2)}
+                ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             )}
           </div>
@@ -498,18 +499,15 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
               {product.stockStatus === 'low-stock' && 'Low Stock'}
               {product.stockStatus === 'out-of-stock' && 'Out of Stock'}
             </Badge>
-            
-
-          {/* Status */}
-          {product.status && (
-            <Badge
-              variant={product.status === 'published' ? 'default' : 'outline'}
-              className={product.status === 'published' ? 'bg-green-600' : ''}
-            >
-              {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-            </Badge>
-          )}
-          <span className="text-sm text-muted-foreground">
+            {product.status && (
+              <Badge
+                variant={product.status === 'published' ? 'default' : 'outline'}
+                className={product.status === 'published' ? 'bg-green-600' : ''}
+              >
+                {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+              </Badge>
+            )}
+            <span className="text-sm text-muted-foreground">
               {product.stockQuantity || 0} units
             </span>
           </div>

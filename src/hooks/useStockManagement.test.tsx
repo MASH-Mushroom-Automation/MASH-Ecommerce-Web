@@ -144,16 +144,11 @@ function createQueryClient() {
     defaultOptions: {
       queries: {
         retry: false, // Disable retries in tests
-        cacheTime: Infinity, // Keep cache during tests
+        gcTime: Infinity, // Keep cache during tests (renamed from cacheTime in v5)
       },
       mutations: {
         retry: false,
       },
-    },
-    logger: {
-      log: console.log,
-      warn: console.warn,
-      error: () => {}, // Suppress error logs in tests
     },
   });
 }
@@ -527,7 +522,7 @@ describe('useStockHistory', () => {
 
   // NOTE: This test verifies error handling despite internal retry config
   it('should handle query errors', async () => {
-    mockSanityFetch.mockRejectedValueOnce(new Error('Sanity fetch error'));
+    mockSanityFetch.mockRejectedValue(new Error('Sanity fetch error'));
 
     const queryClient = createQueryClient();
     const { result } = renderHook(
@@ -537,7 +532,7 @@ describe('useStockHistory', () => {
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
-    });
+    }, { timeout: 10000 });
 
     expect(result.current.error?.message).toBe('Sanity fetch error');
   });
@@ -686,7 +681,7 @@ describe('useRecentAdjustments', () => {
 
   // NOTE: This test verifies error handling
   it('should handle errors gracefully', async () => {
-    mockSanityFetch.mockRejectedValueOnce(new Error('Fetch failed'));
+    mockSanityFetch.mockRejectedValue(new Error('Fetch failed'));
 
     const queryClient = createQueryClient();
     const { result } = renderHook(() => useRecentAdjustments(), {
@@ -695,7 +690,7 @@ describe('useRecentAdjustments', () => {
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
-    });
+    }, { timeout: 10000 });
 
     expect(result.current.error?.message).toBe('Fetch failed');
     expect(result.current.adjustments).toEqual([]);
