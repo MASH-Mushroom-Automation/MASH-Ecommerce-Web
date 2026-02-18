@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ export default function CartPage() {
   const router = useRouter();
   const { items, summary, loading, updateQuantity, removeFromCart, clearCart } =
     useCart();
+  const { addToWishlist } = useWishlist();
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
@@ -101,7 +103,19 @@ export default function CartPage() {
 
   // Move selected items to wishlist
   const moveToWishlist = () => {
-    toast.info("Move to wishlist feature coming soon!");
+    if (selectedItems.size === 0) {
+      toast.error("Please select items to add to wishlist");
+      return;
+    }
+
+    // Add each selected item to wishlist (keep in cart)
+    selectedItems.forEach((productId) => {
+      addToWishlist(productId);
+    });
+
+    const count = selectedItems.size;
+    setSelectedItems(new Set());
+    toast.success(`Added ${count} item${count === 1 ? '' : 's'} to wishlist`);
   };
 
   const selectedCount = selectedItems.size;

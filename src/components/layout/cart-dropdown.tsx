@@ -14,7 +14,9 @@ import { ShoppingCart, X, Minus, Plus, Trash2, Check, Maximize2 } from "lucide-r
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 // TEMPORARILY DISABLED: Backend API not ready yet
 // import { useProducts } from "@/hooks/useProducts";
 import {
@@ -36,6 +38,7 @@ export function CartDropdown() {
   const cartData = useCart();
   const { items, summary, updateQuantity, removeFromCart, clearCart } =
     cartData;
+  const { addToWishlist } = useWishlist();
   // TEMPORARILY DISABLED: Backend API not ready, cart items should already have product details
   // const { products } = useProducts({ limit: 100 });
   const [prevItemCount, setPrevItemCount] = useState(0);
@@ -73,6 +76,23 @@ export function CartDropdown() {
       removeFromCart(productId);
     });
     setSelectedItems(new Set());
+  };
+
+  // Move selected items to wishlist
+  const moveToWishlist = () => {
+    if (selectedItems.size === 0) {
+      toast.error("Please select items to add to wishlist");
+      return;
+    }
+
+    // Add each selected item to wishlist (keep in cart)
+    selectedItems.forEach((productId) => {
+      addToWishlist(productId);
+    });
+
+    const count = selectedItems.size;
+    setSelectedItems(new Set());
+    toast.success(`Added ${count} item${count === 1 ? '' : 's'} to wishlist`);
   };
 
   const selectedCount = selectedItems.size;
@@ -401,9 +421,12 @@ export function CartDropdown() {
 
                 <span className="text-gray-300">|</span>
 
-                <Link href="/wishlist" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                <button
+                  onClick={moveToWishlist}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
                   Move to My Likes
-                </Link>
+                </button>
               </div>
 
               {/* Checkout Button */}
