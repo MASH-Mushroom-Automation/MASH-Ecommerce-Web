@@ -2,206 +2,144 @@
 
 ## Summary
 
-Fixes Firebase Storage 404 error and implements fully automated profile picture uploading to the `/profile/my-information` page using Firebase Storage. Users can upload, preview, and remove their profile photo through a dialog-based interface with drag-and-drop support. Includes comprehensive test coverage with 85 tests across unit, component, and e2e test suites.
+Resolves the Firebase Storage 404 error that prevented profile picture uploads. The root cause was that the Firebase Storage bucket (`mash-ddf8d.appspot.com` / `mash-ddf8d.firebasestorage.app`) was never provisioned in the Firebase Console. Instead of requiring manual infrastructure setup, this PR replaces Firebase Storage with a **client-side Canvas API approach** that generates optimized data URLs stored directly in Firestore.
 
 ## Branch
 
 `Profile-Picture-Upload` -> `main`
 
-## Root Cause: Firebase Storage 404
+## Root Cause Analysis
 
-**Problem:** POST/OPTIONS requests to `https://firebasestorage.googleapis.com/v0/b/mash-ddf8d.firebasestorage.app/o` returned 404 because the GCS bucket `mash-ddf8d.firebasestorage.app` does not exist.
+**Symptom:** POST and OPTIONS requests to `firebasestorage.googleapis.com/v0/b/mash-ddf8d.appspot.com/o` returned **404 Not Found**. CORS preflight failed as a secondary symptom.
 
-**Root Cause:** The `.env` file had `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=mash-ddf8d.firebasestorage.app` which is the new Firebase download URL format, NOT the actual GCS bucket name. For older Firebase projects (like mash-ddf8d, confirmed by auth domain `mash-ddf8d.firebaseapp.com`), the bucket remains `{projectId}.appspot.com`.
+**Root Cause:** Firebase Storage was **never enabled** for project `mash-ddf8d`. Neither the legacy bucket format (`mash-ddf8d.appspot.com`) nor the new format (`mash-ddf8d.firebasestorage.app`) exists in Google Cloud Storage. The Firebase Console Storage tab was never activated with "Get Started".
 
-**Fix:** Changed `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` from `mash-ddf8d.firebasestorage.app` to `mash-ddf8d.appspot.com` in `.env`. **NOTE: The `.env` file is gitignored -- this fix must also be applied on the deployment environment (Railway dashboard).**
+**Resolution:** Replaced Firebase Storage SDK with client-side Canvas API. Images are resized to 256x256, compressed as JPEG at 80% quality, and returned as data URLs stored in Firestore via the existing `updateUserProfile` callback. This eliminates all external storage dependencies and CORS issues.
 
-## Changes
-
-### New Files (1)
-
-| File | Purpose |
-|------|---------|
-| `storage.rules` | Firebase Storage security rules: read by anyone, write only by authenticated user matching userId, 5 MB limit, image MIME validation, delete only by owner |
-
-### Modified Files (6)
-
-| File | Change |
-|------|--------|
-| `src/lib/firebase/storage.ts` | Added `previousStoragePath` parameter for automatic old photo cleanup before upload |
-| `firebase.json` | Added storage rules config path and storage emulator on port 9199 |
-| `next.config.js` | Added `*.appspot.com` to image remotePatterns for Firebase Storage URLs |
-| `src/lib/firebase/__tests__/storage.test.ts` | Expanded from 21 to 43 unit tests with edge cases, previousStoragePath tests, and constant verification |
-| `src/components/profile/__tests__/ProfilePictureUpload.test.tsx` | Expanded from 20 to 30 component tests with edge cases, accessibility, avatar display |
-| `e2e/tests/profile-picture-upload.spec.ts` | Expanded from 6 to 12 Playwright e2e tests with accessibility and format validation |
-
-### Environment Changes (Not Committed - Gitignored)
-
-| File | Change |
-|------|--------|
-| `.env` | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` changed from `mash-ddf8d.firebasestorage.app` to `mash-ddf8d.appspot.com` |
-
-## Feature Details
+## Solution Architecture
 
 ### Upload Flow
 
-1. User clicks camera icon overlay on their avatar
-2. Dialog opens with drag-and-drop zone
-3. User selects or drops an image file (JPEG, PNG, or WebP, max 5 MB)
-4. Circular preview shown with upload button
-5. Upload progress bar displays real-time progress
-6. On completion, profile photo updates across the app via AuthContext
-7. Old profile picture is automatically deleted from Storage (via previousStoragePath parameter)
+1. User selects an image file (JPEG, PNG, or WebP, max 5 MB)
+2. File is validated (type + size checks)
+3. `FileReader` loads the file as a data URL
+4. `Image` element renders the data URL
+5. `Canvas` resizes to fit within 256x256 pixels (maintaining aspect ratio)
+6. Canvas exports compressed JPEG data URL (80% quality, typically 15-40 KB)
+7. Data URL is returned and stored in Firestore via `updateUserProfile({ photoURL, avatar: photoURL })`
 
-### Storage Architecture
+### Why Canvas + Firestore
 
-- **Path pattern**: `profile-pictures/{userId}/avatar_{timestamp}`
-- **Supported formats**: JPEG, PNG, WebP
-- **Max file size**: 5 MB
-- **Old photo cleanup**: Previous photo path is passed via `previousStoragePath` and deleted silently before new upload
-- **Firestore sync**: `photoURL` and `avatar` fields updated via `AuthContext.updateUserProfile`
-- **Storage bucket**: `mash-ddf8d.appspot.com` (NOT `.firebasestorage.app`)
+| Factor | Firebase Storage | Canvas + Firestore |
+|--------|-----------------|-------------------|
+| Infrastructure needed | Bucket provisioning + CORS config | None (Firestore already active) |
+| CORS issues | Requires `gsutil cors set` | None (no cross-origin requests) |
+| External dependencies | `firebase/storage` SDK | Browser Canvas API (built-in) |
+| Latency | Upload to GCS + download URL fetch | Instant (local processing) |
+| Cost | Storage + bandwidth charges | Included in Firestore reads |
+| Image size | Original file size | 15-40 KB after resize |
 
-### Function Signatures
+## Changes
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/lib/firebase/storage.ts` | Complete rewrite: removed all Firebase Storage SDK imports, added Canvas-based `resizeImage()`, `uploadProfilePicture()` returns data URLs, `deleteProfilePicture()` is a no-op |
+| `src/lib/avatar.ts` | `isValidAvatarUrl()` accepts `data:` URLs; `isDiceBearAvatar()` returns true for `data:` URLs (enables `unoptimized` prop on Next.js Image) |
+| `src/lib/firebase/__tests__/storage.test.ts` | Complete rewrite: replaced Firebase Storage SDK mocks with Canvas/FileReader/Image mocks, 42 tests |
+| `firebase.json` | Removed storage rules reference and storage emulator config |
+
+### Deleted Files
+
+| File | Reason |
+|------|--------|
+| `storage.rules` | Firebase Storage security rules no longer needed |
+
+### Unchanged Files (API Compatibility)
+
+| File | Reason |
+|------|--------|
+| `src/components/profile/ProfilePictureUpload.tsx` | Same `uploadProfilePicture` interface maintained |
+| `src/app/(user)/profile/my-information/page.tsx` | `onUploadComplete` callback unchanged |
+| `src/lib/firebase/index.ts` | Barrel exports unchanged (same function signatures) |
+
+## Function Signatures (Unchanged Interface)
 
 ```typescript
-// Upload with optional old photo cleanup
+// Upload: validates, resizes via Canvas, returns data URL
 uploadProfilePicture(
   userId: string,
   file: File,
   onProgress?: (progress: UploadProgress) => void,
-  previousStoragePath?: string
+  previousStoragePath?: string  // Kept for API compatibility (unused)
 ): Promise<UploadResult>
 
-// Delete a profile picture from Firebase Storage
+// Delete: no-op (data URLs managed in Firestore)
 deleteProfilePicture(storagePath: string): Promise<void>
 
-// Validate file type and size before upload
+// Validate: unchanged
 validateProfileImage(file: File): string | null
+
+// Internal: Canvas-based resize (not exported)
+resizeImage(file: File, maxDimension?: number): Promise<string>
 ```
-
-### Component API
-
-```tsx
-<ProfilePictureUpload
-  user={user}
-  onUploadComplete={async (photoURL: string) => {
-    await updateUserProfile({ photoURL, avatar: photoURL });
-  }}
-/>
-```
-
-## Accessibility
-
-- Keyboard navigable: Tab to camera button, Enter/Space to open dialog
-- ARIA labels on all interactive elements (camera button, remove button, dropzone, file input)
-- Screen reader announcements for upload state changes
-- Focus management within dialog
-- Descriptive alt text on avatar image (falls back through displayName, firstName, "User")
-- Error messages use `role="alert"` for screen reader announcement
-- Progress bar has proper `role="progressbar"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`
 
 ## Test Coverage
 
-### Total: 85 tests (43 + 30 + 12)
+### Storage Service - 42 unit tests
 
-**Storage Service -- 43 unit tests:**
-- validateProfileImage: JPEG, PNG, WebP valid; GIF, SVG, BMP, TIFF, PDF, text, video, empty MIME rejected; size boundary at 5 MB; error message content
-- Constants: MAX_FILE_SIZE = 5242880, ACCEPTED_IMAGE_TYPES has exactly 3 entries (no gif, no svg)
-- uploadProfilePicture: success flow, onProgress callbacks, works without onProgress, invalid file rejection, oversized file rejection, upload failure, getDownloadURL failure, metadata contentType, timestamp path generation, userId in path, previousStoragePath cleanup, cleanup failure tolerance, no cleanup without path, correct MIME type, non-Error rejection handling
-- deleteProfilePicture: deletion, empty path no-op, object-not-found tolerance, permission-denied rethrow, network error rethrow, correct ref creation
+- **validateProfileImage (16 tests):** JPEG/PNG/WebP valid; GIF/SVG/BMP/TIFF/PDF/text/video/empty MIME rejected; size boundary at 5 MB; error message content
+- **Constants (6 tests):** MAX_FILE_SIZE = 5242880; ACCEPTED_IMAGE_TYPES has exactly 3 entries
+- **uploadProfilePicture (16 tests):** data URL generation, storage path with userId, progress callbacks (0% -> 50% -> 100%), progress states (running -> success), validation rejection, FileReader mock verification, Canvas mock verification, JPEG output verification, different user paths, previousStoragePath ignored
+- **deleteProfilePicture (4 tests):** no-op for any path, empty path, void return, no storage interaction
 
-**Upload Component -- 30 component tests:**
-- Rendering: avatar image, camera button, null user fallback
-- Dialog: open on click, close on cancel, format/size description
-- File Selection: valid file preview, invalid type error, oversized error, remove file
-- Drag and Drop: dragover state, dragleave state, file drop processing
-- Upload: success flow with toast, error toast on failure, disabled without file, disabled during upload
-- Edge Cases: null user no-op, error clearing on new file, preview URL revocation, non-Error rejection, state reset after dialog close
-- User Avatar: displayName alt text, firstName fallback
-- Accessibility: camera button aria-label, dropzone keyboard role/tabIndex, error alert role, dialog title/description, remove button aria-label, file input hidden
+### Component Tests - 30 tests (unchanged, all passing)
 
-**Playwright E2E -- 12 tests:**
-- Camera button visibility and aria-label
-- Upload dialog open on click
-- Dialog close on cancel
-- Upload button disabled without file
-- File selection with preview and enabled upload button
-- Remove button clears file and returns to dropzone
-- Dropzone accepted format info
-- Dropzone keyboard accessibility attributes
-- File input MIME type restrictions
-- Dialog title and description
-- Remove button accessible label
+### Full Test Suite - 2865 tests across 129 suites
 
 ## Quality Gates
 
 | Check | Status | Details |
 |-------|--------|---------|
-| Unit Tests | [PASS] | 2866/2866 tests passing across 129 test suites |
-| Build | [PASS] | All routes compiled successfully, zero errors |
-| Lint | [PASS] | Zero warnings, zero errors |
-| TypeScript | [PASS] | No type errors (implicit in build) |
-| New Tests | [PASS] | 85/85 (43 storage + 30 component + 12 e2e) |
-| No Regressions | [PASS] | All 2781 existing tests still passing |
-| Skipped Tests | 2 legitimate | Sanity Studio schema test (requires studio env), seller e2e conditional skip |
+| Unit Tests | PASS | 2865/2865 passing (129 suites) |
+| Build | PASS | All routes compiled, zero errors |
+| Lint | PASS | Zero warnings, zero errors |
+| TypeScript | PASS | No type errors |
 
-## Configuration Changes
+## Technical Decisions
 
-### next.config.js
-- Added `{ protocol: "https", hostname: "*.appspot.com" }` to `remotePatterns` for Next.js Image optimization of Firebase Storage profile photos
+### Data URL size in Firestore
+- Resized images (256x256 JPEG at 80% quality): 15-40 KB raw, 20-55 KB as base64
+- Firestore document max: 1 MiB - well within limits
+- Profile documents are read infrequently - extra bytes are negligible
 
-### firebase.json
-- Added `"storage": { "rules": "storage.rules" }` for Firebase deployment
-- Added storage emulator configuration on port 9199
+### Future migration path to Firebase Storage
+If Firebase Storage is eventually enabled in the Firebase Console:
+1. Update `storage.ts` to use Firebase Storage SDK again
+2. Restore `storage.rules` with security rules
+3. Configure CORS: `gsutil cors set cors.json gs://BUCKET_NAME`
+4. The component layer requires **zero changes** (same interface maintained)
 
-### storage.rules (New)
-```rules
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /profile-pictures/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
-      allow delete: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+## How to Test
 
-## Security Considerations
-
-- File type validated client-side (accept attribute + validateProfileImage) before any upload attempt
-- File size enforced at 5 MB limit before upload
-- Storage path scoped to user ID prevents cross-user access
-- Firebase Storage Rules restrict writes to authenticated user matching the userId path segment
-- Storage Rules also enforce server-side size limit and content type validation
-- Old profile pictures are cleaned up automatically to prevent storage bloat
+1. Log in with any account
+2. Navigate to Profile > My Information
+3. Click the camera icon on the avatar
+4. Select a JPEG, PNG, or WebP image (under 5 MB)
+5. Verify the preview appears in the dialog
+6. Click "Upload" and verify:
+   - Progress bar shows 0% -> 50% -> 100%
+   - Toast notification "Profile picture updated!" appears
+   - Avatar updates immediately
+7. Refresh the page - avatar should persist (stored in Firestore)
+8. Test with invalid files (GIF, PDF) - should show error
+9. Test with files over 5 MB - should show size error
 
 ## Deployment Notes
 
-1. **CRITICAL:** Update `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` in Railway dashboard from `mash-ddf8d.firebasestorage.app` to `mash-ddf8d.appspot.com`
-2. Deploy Firebase Storage Rules: `firebase deploy --only storage`
-3. Verify Firebase Storage is enabled in the Firebase Console (Storage tab)
-4. Test upload flow with a logged-in user at `/profile/my-information`
-
-## How to Test Manually
-
-1. Ensure `.env` has `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=mash-ddf8d.appspot.com`
-2. Navigate to `/profile/my-information` (must be logged in)
-3. Click the camera icon on the avatar
-4. Select or drag a JPEG/PNG/WebP image (under 5 MB)
-5. Verify circular preview appears
-6. Click "Upload"
-7. Verify progress bar and success toast
-8. Verify avatar updates across the page
-9. Test with invalid file types (GIF, PDF -- should show error)
-10. Test with files over 5 MB (should show size error)
-11. Upload a second photo and verify old one is cleaned up from Storage
+No environment variable changes needed. No infrastructure setup required. The solution works immediately on any deployment target since it only uses the browser Canvas API and existing Firestore connection.
 
 ## Dependencies
 
-No new dependencies added. Uses `firebase/storage` already bundled in `firebase@12.6.0` (`@firebase/storage@0.14.0`).
+No new dependencies. Removed runtime dependency on `firebase/storage` SDK (still bundled but no longer imported by `storage.ts`).
