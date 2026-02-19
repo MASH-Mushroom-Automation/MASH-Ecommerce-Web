@@ -143,3 +143,88 @@ No environment variable changes needed. No infrastructure setup required. The so
 ## Dependencies
 
 No new dependencies. Removed runtime dependency on `firebase/storage` SDK (still bundled but no longer imported by `storage.ts`).
+
+---
+
+## Update 2: Profile Picture Persistence Fix
+
+### Problem
+
+After the Canvas/data URL approach was implemented, profile picture uploads worked correctly but **did not persist after page refresh**. The uploaded picture would revert to the Google account profile photo.
+
+### Root Causes Identified
+
+1. **`syncFirebaseUserToBackend()` overwriting user state** -- On every page refresh, `onAuthStateChanged` fires and triggers `syncFirebaseUserToBackend()` in the background. This function was calling `setUser(authUser)` with `photoURL: fbUser.photoURL` (Google's profile pic URL), directly overwriting the in-memory user state that had been loaded from Firestore with the custom photo.
+
+2. **`createOrUpdateProfile()` overwriting Firestore data** -- During Google sign-in and auth state changes, `syncToFirestoreProfile()` calls `createOrUpdateProfile()` with `photoURL: fbUser.photoURL` (Google photo). For existing profiles, this Firestore update would overwrite the custom-uploaded data URL with Google's photo URL.
+
+3. **Cookie data URL overflow** -- Custom uploaded photos stored as data URLs (base64 encoded, ~20-65KB) exceed the ~4KB cookie limit, causing `setCookie("user", ...)` to silently fail or truncate data.
+
+### Fixes Applied
+
+**Fix 1: Preserve existing `photoURL` in `createOrUpdateProfile()` ([src/lib/firebase/users.ts](src/lib/firebase/users.ts))**
+
+Changed the update logic for existing profiles to skip the `photoURL` field if the profile already has one. Auth sync never overwrites a previously-set photo. The explicit `updateProfile()` method (called by the profile edit form) continues to freely update `photoURL`.
+
+```typescript
+// Before:
+if (data.photoURL !== undefined) updateData.photoURL = data.photoURL;
+
+// After:
+if (data.photoURL !== undefined && !existing.photoURL) updateData.photoURL = data.photoURL;
+```
+
+**Fix 2: Remove user state overwrites from `syncFirebaseUserToBackend()` ([src/contexts/AuthContext.tsx](src/contexts/AuthContext.tsx))**
+
+Removed `setUser()`, `setFirebaseUser()`, and `setCookie()` calls. This function now only handles JWT token acquisition from the backend API. User state management is exclusively handled by `syncToFirestoreProfile()` and the `onAuthStateChanged` handler (which reads from Firestore).
+
+**Fix 3: Cookie overflow protection in `handleUpdateUserProfile()` ([src/contexts/AuthContext.tsx](src/contexts/AuthContext.tsx))**
+
+When saving user data to cookies after a profile update, data URL `photoURL` values are stripped to prevent exceeding the cookie limit. Firestore remains the source of truth.
+
+### Additional Changes
+
+| File | Changes |
+|------|---------|
+| `src/lib/firebase/__tests__/users.test.ts` | **NEW** - 14 unit tests for FirebaseUserService photo preservation |
+| `src/contexts/__tests__/AuthContext.photo-persistence.test.tsx` | **NEW** - 6 integration tests for AuthContext photo persistence |
+
+### Data Flow After Fix
+
+```
+Upload Custom Photo
+  -> handleUpdateUserProfile()
+    -> FirebaseUserService.updateProfile() [writes to Firestore - ALWAYS updates photoURL]
+    -> setUser(updatedUser) [local state with data URL]
+    -> setCookie(cookieUser) [data URL stripped for 4KB safety]
+
+Page Refresh
+  -> onAuthStateChanged fires
+    -> Load cookie (fast, no photoURL for data URLs)
+    -> Background: FirebaseUserService.getProfile() [reads custom photoURL from Firestore]
+    -> profileToAuthUser() maps photoURL -> authUser.photoURL + authUser.avatar
+    -> setUser(authUser) [restores custom photo]
+    -> Background: syncFirebaseUserToBackend() [JWT only, no user state overwrite]
+
+Google Re-login
+  -> syncToFirestoreProfile()
+    -> createOrUpdateProfile() [preserves existing photoURL in Firestore]
+    -> profileToAuthUser() [returns profile with custom photo intact]
+```
+
+### Updated Test Results
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Unit Tests | PASS | 3488/3488 passing (20 new tests) |
+| Build | PASS | All routes compiled, zero errors |
+| Lint | PASS | Zero warnings, zero errors |
+| TypeScript | PASS | No type errors |
+
+### Commits
+
+| Hash | Description |
+|------|-------------|
+| `c028e54` | Canvas-based storage.ts rewrite (data URL approach) |
+| `1fc9490` | PR documentation update |
+| `9f9abd5` | Profile picture persistence fix with 20 new tests |
