@@ -1,8 +1,8 @@
 /**
- * Firebase Storage Service Tests
+ * Profile Picture Upload Service Tests
  *
- * Comprehensive tests for profile picture upload, validation, and deletion.
- * Covers all edge cases, error handling, and the previousStoragePath cleanup.
+ * Comprehensive tests for profile picture validation, Canvas-based
+ * image processing, and the data URL upload flow.
  */
 
 import {
@@ -15,89 +15,104 @@ import {
 import type { UploadProgress } from "../storage";
 
 // ============================================================================
-// Mocks
+// Mocks - All synchronous to avoid timer complexities
 // ============================================================================
 
-const mockUploadBytesResumable = jest.fn();
-const mockGetDownloadURL = jest.fn();
-const mockDeleteObject = jest.fn();
-const mockRef = jest.fn();
+const mockCompressedDataURL = "data:image/jpeg;base64,/9j/compressed==";
 
-jest.mock("../config", () => ({
-  firebaseApp: {},
+// Mock FileReader: synchronously invokes onload when readAsDataURL is called
+const MockFileReader = jest.fn().mockImplementation(() => {
+  const instance = {
+    onload: undefined as ((e: { target: { result: string } }) => void) | undefined,
+    onerror: undefined as (() => void) | undefined,
+    readAsDataURL: jest.fn(() => {
+      if (instance.onload) {
+        instance.onload({
+          target: { result: "data:image/jpeg;base64,/9j/rawfiledata==" },
+        });
+      }
+    }),
+  };
+  return instance;
+});
+
+// Mock Canvas context
+const mockDrawImage = jest.fn();
+const mockToDataURL = jest.fn(() => mockCompressedDataURL);
+const mockGetContext = jest.fn(() => ({
+  drawImage: mockDrawImage,
 }));
 
-jest.mock("firebase/storage", () => ({
-  getStorage: jest.fn(() => ({})),
-  ref: (...args: unknown[]) => mockRef(...args),
-  uploadBytesResumable: (...args: unknown[]) =>
-    mockUploadBytesResumable(...args),
-  getDownloadURL: (...args: unknown[]) => mockGetDownloadURL(...args),
-  deleteObject: (...args: unknown[]) => mockDeleteObject(...args),
-}));
+// Mock createElement to return a mock canvas for "canvas" tag
+const originalCreateElement = document.createElement.bind(document);
+jest.spyOn(document, "createElement").mockImplementation((tag: string) => {
+  if (tag === "canvas") {
+    return {
+      width: 0,
+      height: 0,
+      getContext: mockGetContext,
+      toDataURL: mockToDataURL,
+    } as unknown as HTMLCanvasElement;
+  }
+  return originalCreateElement(tag);
+});
+
+// Mock window.Image: synchronously invokes onload when src is set
+Object.defineProperty(window, "Image", {
+  value: jest.fn().mockImplementation(() => {
+    const instance: Record<string, unknown> = {
+      onload: undefined,
+      onerror: undefined,
+      _src: "",
+      width: 512,
+      height: 512,
+    };
+    Object.defineProperty(instance, "src", {
+      set(value: string) {
+        instance._src = value;
+        const onload = instance.onload as (() => void) | undefined;
+        if (onload) onload();
+      },
+      get() {
+        return instance._src;
+      },
+    });
+    return instance;
+  }),
+});
+
+// Override global FileReader
+Object.defineProperty(global, "FileReader", { value: MockFileReader });
+
+// Mock the 200ms UX delay to be instant
+const originalSetTimeout = global.setTimeout;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(global as any).setTimeout = jest.fn((fn: () => void, _ms?: number) => {
+  fn();
+  return 0;
+}) as unknown as typeof setTimeout;
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function createMockFile(
-  name: string,
-  size: number,
-  type: string,
-): File {
+function createMockFile(name: string, size: number, type: string): File {
   const buffer = new ArrayBuffer(size);
   return new File([buffer], name, { type });
-}
-
-function createSuccessfulUploadTask(downloadURL: string) {
-  return {
-    on: jest.fn(
-      (
-        _event: string,
-        onProgress: (snapshot: { bytesTransferred: number; totalBytes: number; state: string }) => void,
-        _onError: (error: Error) => void,
-        onComplete: () => void,
-      ) => {
-        onProgress({
-          bytesTransferred: 50,
-          totalBytes: 100,
-          state: "running",
-        });
-        onProgress({
-          bytesTransferred: 100,
-          totalBytes: 100,
-          state: "running",
-        });
-        onComplete();
-      },
-    ),
-    snapshot: { ref: { fullPath: "profile-pictures/user1/avatar_123" } },
-  };
-}
-
-function createFailedUploadTask(errorMessage: string) {
-  return {
-    on: jest.fn(
-      (
-        _event: string,
-        _onProgress: unknown,
-        onError: (error: Error) => void,
-      ) => {
-        onError(new Error(errorMessage));
-      },
-    ),
-    snapshot: { ref: {} },
-  };
 }
 
 // ============================================================================
 // Tests
 // ============================================================================
 
-describe("Firebase Storage Service", () => {
+describe("Profile Picture Upload Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRef.mockReturnValue({ fullPath: "mock-path" });
+    mockToDataURL.mockReturnValue(mockCompressedDataURL);
+  });
+
+  afterAll(() => {
+    (global as Record<string, unknown>).setTimeout = originalSetTimeout;
   });
 
   // --------------------------------------------------------------------------
@@ -182,8 +197,7 @@ describe("Firebase Storage Service", () => {
 
     it("returns error for file one byte over the limit", () => {
       const file = createMockFile("over.jpg", MAX_FILE_SIZE + 1, "image/jpeg");
-      const result = validateProfileImage(file);
-      expect(result).not.toBeNull();
+      expect(validateProfileImage(file)).not.toBeNull();
     });
 
     it("passes for very small file (1 byte)", () => {
@@ -241,58 +255,12 @@ describe("Firebase Storage Service", () => {
   // uploadProfilePicture
   // --------------------------------------------------------------------------
   describe("uploadProfilePicture", () => {
-    it("uploads file and returns download URL", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const result = await uploadProfilePicture("user123", file);
-
-      expect(result.downloadURL).toBe(downloadURL);
-      expect(result.storagePath).toContain("profile-pictures/user123/avatar_");
-      expect(mockRef).toHaveBeenCalled();
-      expect(mockUploadBytesResumable).toHaveBeenCalled();
-    });
-
-    it("calls onProgress callback during upload", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const progressUpdates: UploadProgress[] = [];
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-
-      await uploadProfilePicture("user123", file, (progress) => {
-        progressUpdates.push({ ...progress });
-      });
-
-      expect(progressUpdates.length).toBe(2);
-      expect(progressUpdates[0].percentage).toBe(50);
-      expect(progressUpdates[1].percentage).toBe(100);
-    });
-
-    it("works without onProgress callback", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const result = await uploadProfilePicture("user123", file);
-
-      expect(result.downloadURL).toBe(downloadURL);
-    });
-
     it("rejects with validation error for invalid file type", async () => {
       const file = createMockFile("bad.gif", 1024, "image/gif");
 
       await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
         "File must be JPEG, PNG, or WebP",
       );
-      expect(mockUploadBytesResumable).not.toHaveBeenCalled();
     });
 
     it("rejects with validation error for oversized file", async () => {
@@ -303,161 +271,145 @@ describe("Firebase Storage Service", () => {
       );
     });
 
-    it("handles upload failure", async () => {
-      const task = createFailedUploadTask("network error");
-      mockUploadBytesResumable.mockReturnValue(task);
-
+    it("returns a data URL as the download URL", async () => {
       const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user123", file);
 
-      await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
-        "Upload failed: network error",
-      );
+      expect(result.downloadURL).toBe(mockCompressedDataURL);
+      expect(result.downloadURL).toContain("data:image/jpeg;base64,");
     });
 
-    it("handles getDownloadURL failure", async () => {
-      const task = {
-        on: jest.fn(
-          (
-            _event: string,
-            _onProgress: unknown,
-            _onError: unknown,
-            onComplete: () => void,
-          ) => {
-            onComplete();
-          },
-        ),
-        snapshot: { ref: { fullPath: "mock-path" } },
-      };
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockRejectedValue(new Error("URL fetch failed"));
-
+    it("returns a storage path containing userId", async () => {
       const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user123", file);
 
-      await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
-        "Failed to get download URL",
-      );
-    });
-
-    it("passes correct metadata with file", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const file = createMockFile("photo.png", 2048, "image/png");
-      await uploadProfilePicture("user456", file);
-
-      const callArgs = mockUploadBytesResumable.mock.calls[0];
-      const metadata = callArgs[2];
-      expect(metadata.contentType).toBe("image/png");
-      expect(metadata.customMetadata.userId).toBe("user456");
-      expect(metadata.customMetadata.uploadedAt).toBeDefined();
-    });
-
-    it("generates unique storage path with timestamp", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const result = await uploadProfilePicture("user789", file);
-
+      expect(result.storagePath).toContain("user123");
       expect(result.storagePath).toMatch(
-        /^profile-pictures\/user789\/avatar_\d+$/,
+        /^profile-pictures\/user123\/avatar_\d+$/,
       );
     });
 
-    it("includes userId in storage path", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const result = await uploadProfilePicture("specificUser", file);
-
-      expect(result.storagePath).toContain("specificUser");
-    });
-
-    it("deletes previous picture when previousStoragePath is provided", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-      mockDeleteObject.mockResolvedValue(undefined);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const oldPath = "profile-pictures/user123/avatar_old";
-
-      await uploadProfilePicture("user123", file, undefined, oldPath);
-
-      expect(mockDeleteObject).toHaveBeenCalled();
-    });
-
-    it("continues upload even if deleting old picture fails", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-      mockDeleteObject.mockRejectedValue(new Error("delete failed"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const oldPath = "profile-pictures/user123/avatar_old";
-
-      const result = await uploadProfilePicture("user123", file, undefined, oldPath);
-
-      expect(result.downloadURL).toBe(downloadURL);
-    });
-
-    it("does not delete when no previousStoragePath is provided", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
-
+    it("calls onProgress callback during processing", async () => {
+      const progressUpdates: UploadProgress[] = [];
       const file = createMockFile("photo.jpg", 1024, "image/jpeg");
 
-      await uploadProfilePicture("user123", file);
+      await uploadProfilePicture("user123", file, (progress) => {
+        progressUpdates.push({ ...progress });
+      });
 
-      expect(mockDeleteObject).not.toHaveBeenCalled();
+      expect(progressUpdates.length).toBeGreaterThanOrEqual(2);
+      expect(progressUpdates[0].percentage).toBe(0);
+      expect(progressUpdates[progressUpdates.length - 1].percentage).toBe(100);
     });
 
-    it("sets contentType to match the uploaded file MIME type", async () => {
-      const downloadURL = "https://firebasestorage.googleapis.com/test.webp";
-      const task = createSuccessfulUploadTask(downloadURL);
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockResolvedValue(downloadURL);
+    it("works without onProgress callback", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user123", file);
 
-      const file = createMockFile("photo.webp", 1024, "image/webp");
-      await uploadProfilePicture("user123", file);
-
-      const metadata = mockUploadBytesResumable.mock.calls[0][2];
-      expect(metadata.contentType).toBe("image/webp");
+      expect(result.downloadURL).toBeDefined();
     });
 
-    it("handles non-Error rejection from getDownloadURL", async () => {
-      const task = {
-        on: jest.fn(
-          (
-            _event: string,
-            _onProgress: unknown,
-            _onError: unknown,
-            onComplete: () => void,
-          ) => {
-            onComplete();
-          },
-        ),
-        snapshot: { ref: { fullPath: "mock-path" } },
-      };
-      mockUploadBytesResumable.mockReturnValue(task);
-      mockGetDownloadURL.mockRejectedValue("string-error");
+    it("includes timestamp in storage path", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user123", file);
 
+      expect(result.storagePath).toMatch(/avatar_\d+$/);
+    });
+
+    it("ignores previousStoragePath parameter", async () => {
       const file = createMockFile("photo.jpg", 1024, "image/jpeg");
 
-      await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
-        "Failed to get download URL: Unknown error",
+      const result = await uploadProfilePicture(
+        "user123",
+        file,
+        undefined,
+        "old-path/avatar_old",
       );
+
+      expect(result.downloadURL).toBeDefined();
+    });
+
+    it("initial progress state is running", async () => {
+      const progressUpdates: UploadProgress[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user123", file, (progress) => {
+        progressUpdates.push({ ...progress });
+      });
+
+      expect(progressUpdates[0].state).toBe("running");
+    });
+
+    it("final progress state is success", async () => {
+      const progressUpdates: UploadProgress[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user123", file, (progress) => {
+        progressUpdates.push({ ...progress });
+      });
+
+      const last = progressUpdates[progressUpdates.length - 1];
+      expect(last.state).toBe("success");
+      expect(last.percentage).toBe(100);
+    });
+
+    it("reads the file with FileReader", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      await uploadProfilePicture("user123", file);
+
+      expect(MockFileReader).toHaveBeenCalled();
+    });
+
+    it("creates a canvas for image resize", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      await uploadProfilePicture("user123", file);
+
+      expect(document.createElement).toHaveBeenCalledWith("canvas");
+      expect(mockGetContext).toHaveBeenCalledWith("2d");
+      expect(mockDrawImage).toHaveBeenCalled();
+    });
+
+    it("generates JPEG output via canvas.toDataURL", async () => {
+      const file = createMockFile("photo.png", 1024, "image/png");
+      await uploadProfilePicture("user123", file);
+
+      expect(mockToDataURL).toHaveBeenCalledWith("image/jpeg", expect.any(Number));
+    });
+
+    it("produces different storage paths for different users", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      const result1 = await uploadProfilePicture("userA", file);
+      const result2 = await uploadProfilePicture("userB", file);
+
+      expect(result1.storagePath).toContain("userA");
+      expect(result2.storagePath).toContain("userB");
+      expect(result1.storagePath).not.toBe(result2.storagePath);
+    });
+
+    it("reports 50% progress after resize completes", async () => {
+      const progressUpdates: UploadProgress[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user123", file, (progress) => {
+        progressUpdates.push({ ...progress });
+      });
+
+      const midProgress = progressUpdates.find((p) => p.percentage === 50);
+      expect(midProgress).toBeDefined();
+      expect(midProgress?.state).toBe("running");
+    });
+
+    it("progress bytesTransferred matches totalBytes at completion", async () => {
+      const progressUpdates: UploadProgress[] = [];
+      const file = createMockFile("photo.jpg", 2048, "image/jpeg");
+
+      await uploadProfilePicture("user123", file, (progress) => {
+        progressUpdates.push({ ...progress });
+      });
+
+      const last = progressUpdates[progressUpdates.length - 1];
+      expect(last.bytesTransferred).toBe(last.totalBytes);
     });
   });
 
@@ -465,54 +417,26 @@ describe("Firebase Storage Service", () => {
   // deleteProfilePicture
   // --------------------------------------------------------------------------
   describe("deleteProfilePicture", () => {
-    it("deletes file at given storage path", async () => {
-      mockDeleteObject.mockResolvedValue(undefined);
-
-      await deleteProfilePicture("profile-pictures/user1/avatar_123");
-
-      expect(mockRef).toHaveBeenCalled();
-      expect(mockDeleteObject).toHaveBeenCalled();
-    });
-
-    it("does nothing when path is empty string", async () => {
-      await deleteProfilePicture("");
-
-      expect(mockDeleteObject).not.toHaveBeenCalled();
-    });
-
-    it("ignores object-not-found errors", async () => {
-      const error = new Error("Object not found") as Error & { code: string };
-      error.code = "storage/object-not-found";
-      mockDeleteObject.mockRejectedValue(error);
-
+    it("resolves without error for any path", async () => {
       await expect(
         deleteProfilePicture("profile-pictures/user1/avatar_123"),
       ).resolves.toBeUndefined();
     });
 
-    it("rethrows permission-denied errors", async () => {
-      mockDeleteObject.mockRejectedValue(new Error("permission denied"));
-
-      await expect(
-        deleteProfilePicture("profile-pictures/user1/avatar_123"),
-      ).rejects.toThrow("permission denied");
+    it("resolves without error for empty path", async () => {
+      await expect(deleteProfilePicture("")).resolves.toBeUndefined();
     });
 
-    it("rethrows network errors", async () => {
-      mockDeleteObject.mockRejectedValue(new Error("network unavailable"));
-
-      await expect(
-        deleteProfilePicture("profile-pictures/user1/avatar_123"),
-      ).rejects.toThrow("network unavailable");
+    it("is a no-op that returns void", async () => {
+      const result = await deleteProfilePicture("any-path");
+      expect(result).toBeUndefined();
     });
 
-    it("creates correct ref for the storage path", async () => {
-      mockDeleteObject.mockResolvedValue(undefined);
-
-      const path = "profile-pictures/user999/avatar_456";
-      await deleteProfilePicture(path);
-
-      expect(mockRef).toHaveBeenCalledWith(expect.anything(), path);
+    it("does not interact with any storage service", async () => {
+      await deleteProfilePicture("profile-pictures/user1/avatar_123");
+      // No external calls should be made
+      expect(mockDrawImage).not.toHaveBeenCalled();
+      expect(MockFileReader).not.toHaveBeenCalled();
     });
   });
 });
