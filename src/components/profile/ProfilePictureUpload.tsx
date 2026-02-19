@@ -2,7 +2,16 @@
 
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Camera, Loader2, X, Upload, AlertCircle } from "lucide-react";
+import {
+  Camera,
+  Loader2,
+  X,
+  Upload,
+  AlertCircle,
+  ImagePlus,
+  Trash2,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   uploadProfilePicture,
   validateProfileImage,
@@ -22,11 +32,14 @@ import {
 import type { UploadProgress } from "@/lib/firebase";
 import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
 import type { AvatarUser } from "@/lib/avatar";
+import { ImageCropEditor } from "./ImageCropEditor";
 
 interface ProfilePictureUploadProps {
   user: AvatarUser | null | undefined;
   onUploadComplete: (photoURL: string) => Promise<void>;
 }
+
+type UploadStep = "select" | "crop" | "uploading";
 
 export function ProfilePictureUpload({
   user,
@@ -34,28 +47,34 @@ export function ProfilePictureUpload({
 }: ProfilePictureUploadProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [rawPreviewUrl, setRawPreviewUrl] = useState<string | null>(null);
+  const [croppedDataUrl, setCroppedDataUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
-    null,
-  );
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [step, setStep] = useState<UploadStep>("select");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const avatarUrl = getProfileAvatar(user);
   const isGenerated = isDiceBearAvatar(avatarUrl);
+  const hasCustomPhoto =
+    user?.photoURL?.startsWith("data:") ||
+    (user?.photoURL?.startsWith("http") &&
+      !user?.photoURL?.includes("dicebear.com"));
 
   const resetState = useCallback(() => {
     setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+    if (rawPreviewUrl) {
+      URL.revokeObjectURL(rawPreviewUrl);
     }
-    setPreviewUrl(null);
+    setRawPreviewUrl(null);
+    setCroppedDataUrl(null);
     setUploadProgress(null);
     setError(null);
     setIsDragging(false);
-  }, [previewUrl]);
+    setStep("select");
+  }, [rawPreviewUrl]);
 
   const handleOpenDialog = useCallback(() => {
     resetState();
@@ -78,12 +97,14 @@ export function ProfilePictureUpload({
       }
 
       setSelectedFile(file);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+      if (rawPreviewUrl) {
+        URL.revokeObjectURL(rawPreviewUrl);
       }
-      setPreviewUrl(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setRawPreviewUrl(url);
+      setStep("crop");
     },
-    [previewUrl],
+    [rawPreviewUrl],
   );
 
   const handleFileSelect = useCallback(
@@ -92,7 +113,6 @@ export function ProfilePictureUpload({
       if (file) {
         processFile(file);
       }
-      // Reset input so the same file can be re-selected
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -126,9 +146,14 @@ export function ProfilePictureUpload({
     [processFile],
   );
 
-  const handleUpload = useCallback(async () => {
-    if (!selectedFile || !user?.id) return;
+  const handleCropComplete = useCallback((dataUrl: string) => {
+    setCroppedDataUrl(dataUrl);
+  }, []);
 
+  const handleUpload = useCallback(async () => {
+    if (!selectedFile || !user?.id || !croppedDataUrl) return;
+
+    setStep("uploading");
     setUploading(true);
     setError(null);
 
@@ -141,18 +166,44 @@ export function ProfilePictureUpload({
         },
       );
 
-      await onUploadComplete(downloadURL);
-      toast.success("Profile picture updated!");
+      // Use the cropped version instead of the raw resized output
+      const finalUrl = croppedDataUrl || downloadURL;
+
+      await onUploadComplete(finalUrl);
+      toast.success("Profile picture updated successfully!");
       handleCloseDialog();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Upload failed. Please try again.";
       setError(message);
+      setStep("crop");
       toast.error(message);
     } finally {
       setUploading(false);
     }
-  }, [selectedFile, user?.id, onUploadComplete, handleCloseDialog]);
+  }, [selectedFile, user?.id, croppedDataUrl, onUploadComplete, handleCloseDialog]);
+
+  const handleRemovePhoto = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      await onUploadComplete("");
+      toast.success("Profile picture removed.");
+      handleCloseDialog();
+    } catch {
+      toast.error("Failed to remove profile picture.");
+    }
+  }, [user?.id, onUploadComplete, handleCloseDialog]);
+
+  const handleBackToSelect = useCallback(() => {
+    setSelectedFile(null);
+    if (rawPreviewUrl) {
+      URL.revokeObjectURL(rawPreviewUrl);
+    }
+    setRawPreviewUrl(null);
+    setCroppedDataUrl(null);
+    setError(null);
+    setStep("select");
+  }, [rawPreviewUrl]);
 
   const acceptString = ACCEPTED_IMAGE_TYPES.join(",");
   const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
@@ -160,21 +211,39 @@ export function ProfilePictureUpload({
   return (
     <>
       {/* Avatar display with camera button */}
-      <div className="relative flex-shrink-0">
-        <div className="h-24 w-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
+      <div className="relative flex-shrink-0 group">
+        <div className="h-24 w-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg transition-transform group-hover:scale-105">
           <Image
             src={avatarUrl}
             alt={`${user?.displayName || user?.firstName || "User"} profile picture`}
             width={96}
             height={96}
-            className="object-cover"
+            className="object-cover w-full h-full"
             unoptimized={isGenerated}
           />
         </div>
+        {/* Overlay on hover */}
+        <div
+          className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center cursor-pointer"
+          onClick={handleOpenDialog}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleOpenDialog();
+            }
+          }}
+          aria-label="Change profile picture"
+          data-testid="profile-picture-overlay"
+        >
+          <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+        {/* Camera badge */}
         <button
           type="button"
           onClick={handleOpenDialog}
-          className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg"
+          className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg ring-2 ring-background"
           aria-label="Change profile picture"
           data-testid="profile-picture-camera-btn"
         >
@@ -184,76 +253,196 @@ export function ProfilePictureUpload({
 
       {/* Upload dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="sm:max-w-lg"
+          data-testid="profile-picture-dialog"
+        >
           <DialogHeader>
-            <DialogTitle>Update Profile Picture</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <ImagePlus className="h-5 w-5 text-[#1E392A]" />
+              {step === "select" && "Update Profile Picture"}
+              {step === "crop" && "Adjust Your Photo"}
+              {step === "uploading" && "Uploading..."}
+            </DialogTitle>
             <DialogDescription>
-              Upload a new profile picture. Accepted formats: JPEG, PNG, WebP.
-              Max size: {maxSizeMB} MB.
+              {step === "select" &&
+                `Upload a new profile picture. Accepted formats: JPEG, PNG, WebP. Max size: ${maxSizeMB} MB.`}
+              {step === "crop" &&
+                "Zoom and drag to adjust your photo. The circular area shows your final profile picture."}
+              {step === "uploading" && "Your profile picture is being processed..."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Preview or drop zone */}
-            {previewUrl ? (
-              <div className="relative flex items-center justify-center">
-                <div className="h-48 w-48 rounded-full overflow-hidden border-4 border-muted shadow-md">
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    width={192}
-                    height={192}
-                    className="object-cover w-full h-full"
-                    unoptimized
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    if (previewUrl) URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                    setError(null);
-                  }}
-                  className="absolute top-0 right-12 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
-                  aria-label="Remove selected image"
-                  data-testid="profile-picture-remove-btn"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            {/* Step 1: Select image */}
+            {step === "select" && (
+              <Tabs defaultValue="upload" className="w-full">
+                <TabsList className="w-full grid grid-cols-2">
+                  <TabsTrigger value="upload">Upload New</TabsTrigger>
+                  <TabsTrigger value="current">Current Photo</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="mt-4">
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      isDragging
+                        ? "border-[#1E392A] bg-[#1E392A]/5 scale-[1.02]"
+                        : "border-muted-foreground/30 hover:border-[#1E392A]/50 hover:bg-muted/30"
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    data-testid="profile-picture-dropzone"
+                  >
+                    <div className="p-4 rounded-full bg-[#1E392A]/10">
+                      <Upload className="h-8 w-8 text-[#1E392A]" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground">
+                        {isDragging
+                          ? "Drop your image here"
+                          : "Click to browse or drag an image"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        JPEG, PNG, or WebP up to {maxSizeMB} MB
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="current" className="mt-4">
+                  <div className="flex flex-col items-center gap-4 p-6">
+                    <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-muted shadow-md">
+                      <Image
+                        src={avatarUrl}
+                        alt="Current profile picture"
+                        width={128}
+                        height={128}
+                        className="object-cover w-full h-full"
+                        unoptimized={isGenerated}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground text-center">
+                      {hasCustomPhoto
+                        ? "Your current custom profile picture"
+                        : "Auto-generated avatar based on your profile"}
+                    </p>
+                    {hasCustomPhoto && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemovePhoto}
+                        data-testid="remove-photo-btn"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Photo
+                      </Button>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {/* Step 2: Crop and adjust */}
+            {step === "crop" && rawPreviewUrl && (
+              <div className="flex flex-col items-center gap-4">
+                <ImageCropEditor
+                  imageSrc={rawPreviewUrl}
+                  onCropComplete={handleCropComplete}
+                  cropSize={220}
+                  outputSize={256}
+                  outputQuality={0.9}
+                />
+
+                {/* Preview comparison */}
+                {croppedDataUrl && (
+                  <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg w-full" data-testid="crop-preview-comparison">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-muted-foreground font-medium">Preview</span>
+                      <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-border">
+                        <Image
+                          src={croppedDataUrl}
+                          alt="Small preview"
+                          width={48}
+                          height={48}
+                          className="object-cover w-full h-full"
+                          unoptimized
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-muted-foreground font-medium">Profile</span>
+                      <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-border">
+                        <Image
+                          src={croppedDataUrl}
+                          alt="Profile preview"
+                          width={64}
+                          height={64}
+                          className="object-cover w-full h-full"
+                          unoptimized
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 text-right">
+                      <p className="text-xs text-muted-foreground">
+                        This is how your photo will look on your profile
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                  isDragging
-                    ? "border-[#1E392A] bg-[#1E392A]/5"
-                    : "border-muted-foreground/30 hover:border-[#1E392A]/50 hover:bg-muted/30"
-                }`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    fileInputRef.current?.click();
-                  }
-                }}
-                data-testid="profile-picture-dropzone"
-              >
-                <Upload className="h-10 w-10 text-muted-foreground" />
-                <div className="text-center">
-                  <p className="text-sm font-medium text-foreground">
-                    {isDragging
-                      ? "Drop image here"
-                      : "Click or drag an image here"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JPEG, PNG, or WebP up to {maxSizeMB} MB
-                  </p>
-                </div>
+            )}
+
+            {/* Step 3: Uploading */}
+            {step === "uploading" && (
+              <div className="flex flex-col items-center gap-4 py-6">
+                {croppedDataUrl && (
+                  <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-[#1E392A]/20 shadow-lg animate-pulse">
+                    <Image
+                      src={croppedDataUrl}
+                      alt="Uploading"
+                      width={128}
+                      height={128}
+                      className="object-cover w-full h-full"
+                      unoptimized
+                    />
+                  </div>
+                )}
+
+                {uploadProgress && (
+                  <div className="w-full max-w-xs space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                      <span className="font-medium">
+                        {Math.round(uploadProgress.percentage)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#1E392A] rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress.percentage}%` }}
+                        role="progressbar"
+                        aria-valuenow={Math.round(uploadProgress.percentage)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        data-testid="profile-picture-progress"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -266,29 +455,6 @@ export function ProfilePictureUpload({
               className="hidden"
               data-testid="profile-picture-file-input"
             />
-
-            {/* Upload progress */}
-            {uploading && uploadProgress && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Uploading...</span>
-                  <span className="font-medium">
-                    {Math.round(uploadProgress.percentage)}%
-                  </span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#1E392A] rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress.percentage}%` }}
-                    role="progressbar"
-                    aria-valuenow={Math.round(uploadProgress.percentage)}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    data-testid="profile-picture-progress"
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Error display */}
             {error && (
@@ -304,33 +470,45 @@ export function ProfilePictureUpload({
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseDialog}
-              disabled={uploading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="bg-[#1E392A] hover:bg-[#2d5a42] text-white"
-              data-testid="profile-picture-upload-btn"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload
-                </>
-              )}
-            </Button>
+            {step === "select" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseDialog}
+              >
+                Cancel
+              </Button>
+            )}
+
+            {step === "crop" && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToSelect}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Choose Different
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleUpload}
+                  disabled={!croppedDataUrl}
+                  className="bg-[#1E392A] hover:bg-[#2d5a42] text-white"
+                  data-testid="profile-picture-upload-btn"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Save Photo
+                </Button>
+              </>
+            )}
+
+            {step === "uploading" && (
+              <Button type="button" variant="outline" disabled>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Please wait...
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

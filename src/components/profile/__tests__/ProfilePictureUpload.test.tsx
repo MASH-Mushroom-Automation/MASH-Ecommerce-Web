@@ -2,11 +2,13 @@
  * ProfilePictureUpload Component Tests
  *
  * Test categories:
- * 1. Rendering: Avatar display, camera button
- * 2. Dialog: Open/close, drop zone, preview
+ * 1. Rendering: Avatar display, camera button, overlay
+ * 2. Dialog: Open/close, tabs, steps
  * 3. File selection: Valid files, invalid files, drag and drop
- * 4. Upload: Progress, success, failure
- * 5. Accessibility: ARIA labels, keyboard navigation
+ * 4. Crop step: Image crop editor, preview comparison
+ * 5. Upload: Progress, success, failure
+ * 6. Remove photo: Custom photo removal
+ * 7. Accessibility: ARIA labels, keyboard navigation
  */
 
 import React from "react";
@@ -41,6 +43,18 @@ jest.mock("@/lib/avatar", () => ({
   isDiceBearAvatar: jest.fn((url: string) => url.includes("dicebear.com")),
 }));
 
+// Mock ImageCropEditor - calls onCropComplete with a fake data URL
+const MOCK_CROPPED_URL = "data:image/jpeg;base64,/9j/mockCroppedImage";
+jest.mock("../ImageCropEditor", () => ({
+  ImageCropEditor: ({ onCropComplete }: { onCropComplete: (url: string) => void }) => {
+    // Simulate crop completion on mount
+    React.useEffect(() => {
+      onCropComplete(MOCK_CROPPED_URL);
+    }, [onCropComplete]);
+    return <div data-testid="image-crop-editor">Mock Crop Editor</div>;
+  },
+}));
+
 // Mock Next.js Image
 jest.mock("next/image", () => ({
   __esModule: true,
@@ -50,8 +64,6 @@ jest.mock("next/image", () => ({
   },
 }));
 
-// Mock sonner
-const mockToastSuccess = jest.fn();
 // Use global toast mock from jest.setupMocks.js
 const mockToast = (globalThis as Record<string, unknown>).__mockToast as {
   success: jest.Mock;
@@ -104,6 +116,16 @@ function renderComponent(
   );
 }
 
+// Helper to open dialog, select a file, and reach the crop step
+async function openDialogAndSelectFile(
+  file?: File,
+): Promise<void> {
+  await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+  const inputFile = file || createMockFile("photo.jpg", 1024, "image/jpeg");
+  const input = screen.getByTestId("profile-picture-file-input");
+  fireEvent.change(input, { target: { files: [inputFile] } });
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -139,6 +161,14 @@ describe("ProfilePictureUpload", () => {
       const img = screen.getByAltText("User profile picture");
       expect(img).toHaveAttribute("src", "/profile_placeholder.png");
     });
+
+    it("renders the hover overlay for profile picture", () => {
+      renderComponent();
+
+      const overlay = screen.getByTestId("profile-picture-overlay");
+      expect(overlay).toBeInTheDocument();
+      expect(overlay).toHaveAttribute("aria-label", "Change profile picture");
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -153,6 +183,15 @@ describe("ProfilePictureUpload", () => {
 
       expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
       expect(screen.getByTestId("profile-picture-dropzone")).toBeInTheDocument();
+    });
+
+    it("opens dialog when overlay is clicked", async () => {
+      renderComponent();
+
+      const overlay = screen.getByTestId("profile-picture-overlay");
+      await userEvent.click(overlay);
+
+      expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
     });
 
     it("closes dialog when Cancel is clicked", async () => {
@@ -170,6 +209,15 @@ describe("ProfilePictureUpload", () => {
       });
     });
 
+    it("shows tabs for Upload New and Current Photo", async () => {
+      renderComponent();
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      expect(screen.getByText("Upload New")).toBeInTheDocument();
+      expect(screen.getByText("Current Photo")).toBeInTheDocument();
+    });
+
     it("shows accepted formats and max size in description", async () => {
       renderComponent();
 
@@ -178,24 +226,41 @@ describe("ProfilePictureUpload", () => {
       expect(screen.getByText(/JPEG, PNG, WebP/)).toBeInTheDocument();
       expect(screen.getByText(/Max size: 5 MB/)).toBeInTheDocument();
     });
+
+    it("shows current photo tab content with auto-generated message for no custom photo", async () => {
+      renderComponent();
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await userEvent.click(screen.getByText("Current Photo"));
+
+      expect(screen.getByText("Auto-generated avatar based on your profile")).toBeInTheDocument();
+    });
+
+    it("shows remove button when user has custom photo", async () => {
+      renderComponent({
+        ...mockUser,
+        photoURL: "data:image/jpeg;base64,/9j/customPhoto",
+      });
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await userEvent.click(screen.getByText("Current Photo"));
+
+      expect(screen.getByTestId("remove-photo-btn")).toBeInTheDocument();
+    });
   });
 
   // --------------------------------------------------------------------------
   // File Selection
   // --------------------------------------------------------------------------
   describe("File Selection", () => {
-    it("shows preview after selecting a valid file", async () => {
+    it("transitions to crop step after selecting a valid file", async () => {
       renderComponent();
 
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       expect(mockCreateObjectURL).toHaveBeenCalled();
-      expect(screen.getByAltText("Preview")).toBeInTheDocument();
+      expect(screen.getByText("Adjust Your Photo")).toBeInTheDocument();
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
     });
 
     it("shows error for invalid file type", async () => {
@@ -233,22 +298,17 @@ describe("ProfilePictureUpload", () => {
       });
     });
 
-    it("allows removing selected file", async () => {
+    it("allows choosing a different file via back button in crop step", async () => {
       renderComponent();
 
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await openDialogAndSelectFile();
 
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      expect(screen.getByText("Adjust Your Photo")).toBeInTheDocument();
 
-      expect(screen.getByAltText("Preview")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /choose different/i }));
 
-      const removeBtn = screen.getByTestId("profile-picture-remove-btn");
-      await userEvent.click(removeBtn);
-
-      expect(screen.queryByAltText("Preview")).not.toBeInTheDocument();
-      expect(mockRevokeObjectURL).toHaveBeenCalled();
+      expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
+      expect(screen.getByTestId("profile-picture-dropzone")).toBeInTheDocument();
     });
   });
 
@@ -267,7 +327,7 @@ describe("ProfilePictureUpload", () => {
         dataTransfer: { files: [] },
       });
 
-      expect(screen.getByText("Drop image here")).toBeInTheDocument();
+      expect(screen.getByText("Drop your image here")).toBeInTheDocument();
     });
 
     it("removes drag state on dragleave", async () => {
@@ -280,17 +340,17 @@ describe("ProfilePictureUpload", () => {
       fireEvent.dragOver(dropzone, {
         dataTransfer: { files: [] },
       });
-      expect(screen.getByText("Drop image here")).toBeInTheDocument();
+      expect(screen.getByText("Drop your image here")).toBeInTheDocument();
 
       fireEvent.dragLeave(dropzone, {
         dataTransfer: { files: [] },
       });
       expect(
-        screen.getByText("Click or drag an image here"),
+        screen.getByText("Click to browse or drag an image"),
       ).toBeInTheDocument();
     });
 
-    it("processes file on drop", async () => {
+    it("processes file on drop and transitions to crop step", async () => {
       renderComponent();
 
       await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
@@ -303,6 +363,49 @@ describe("ProfilePictureUpload", () => {
       });
 
       expect(mockCreateObjectURL).toHaveBeenCalled();
+      expect(screen.getByText("Adjust Your Photo")).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Crop Step
+  // --------------------------------------------------------------------------
+  describe("Crop Step", () => {
+    it("shows image crop editor in crop step", async () => {
+      renderComponent();
+
+      await openDialogAndSelectFile();
+
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
+      expect(screen.getByText("Mock Crop Editor")).toBeInTheDocument();
+    });
+
+    it("shows crop preview comparison", async () => {
+      renderComponent();
+
+      await openDialogAndSelectFile();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("crop-preview-comparison")).toBeInTheDocument();
+      });
+    });
+
+    it("shows Save Photo button in crop step", async () => {
+      renderComponent();
+
+      await openDialogAndSelectFile();
+
+      const saveBtn = screen.getByTestId("profile-picture-upload-btn");
+      expect(saveBtn).toBeInTheDocument();
+      expect(saveBtn).toHaveTextContent("Save Photo");
+    });
+
+    it("shows description about adjusting photo", async () => {
+      renderComponent();
+
+      await openDialogAndSelectFile();
+
+      expect(screen.getByText(/Zoom and drag to adjust/)).toBeInTheDocument();
     });
   });
 
@@ -310,7 +413,7 @@ describe("ProfilePictureUpload", () => {
   // Upload
   // --------------------------------------------------------------------------
   describe("Upload", () => {
-    it("uploads file and calls onUploadComplete on success", async () => {
+    it("uploads file and calls onUploadComplete with cropped URL", async () => {
       const downloadURL =
         "https://firebasestorage.googleapis.com/uploaded.jpg";
       mockUploadProfilePicture.mockResolvedValue({
@@ -321,11 +424,7 @@ describe("ProfilePictureUpload", () => {
 
       renderComponent();
 
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
       await userEvent.click(uploadBtn);
@@ -333,12 +432,13 @@ describe("ProfilePictureUpload", () => {
       await waitFor(() => {
         expect(mockUploadProfilePicture).toHaveBeenCalledWith(
           "user123",
-          file,
+          expect.any(File),
           expect.any(Function),
         );
-        expect(mockOnUploadComplete).toHaveBeenCalledWith(downloadURL);
+        // Should use cropped URL, not raw download URL
+        expect(mockOnUploadComplete).toHaveBeenCalledWith(MOCK_CROPPED_URL);
         expect(mockToast.success).toHaveBeenCalledWith(
-          "Profile picture updated!",
+          "Profile picture updated successfully!",
         );
       });
     });
@@ -350,11 +450,7 @@ describe("ProfilePictureUpload", () => {
 
       renderComponent();
 
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
       await userEvent.click(uploadBtn);
@@ -364,33 +460,21 @@ describe("ProfilePictureUpload", () => {
       });
     });
 
-    it("disables upload button when no file is selected", async () => {
-      renderComponent();
-
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
-      expect(uploadBtn).toBeDisabled();
-    });
-
-    it("disables buttons during upload", async () => {
-      // Make upload hang indefinitely
-      mockUploadProfilePicture.mockReturnValue(new Promise(() => {}));
+    it("returns to crop step on upload failure", async () => {
+      mockUploadProfilePicture.mockRejectedValue(
+        new Error("Upload failed"),
+      );
 
       renderComponent();
 
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
       await userEvent.click(uploadBtn);
 
       await waitFor(() => {
-        expect(uploadBtn).toBeDisabled();
-        expect(screen.getByText("Uploading...")).toBeInTheDocument();
+        expect(screen.getByText("Adjust Your Photo")).toBeInTheDocument();
+        expect(screen.getByTestId("profile-picture-error")).toBeInTheDocument();
       });
     });
   });
@@ -402,12 +486,7 @@ describe("ProfilePictureUpload", () => {
     it("does nothing when user is null", async () => {
       renderComponent(null);
 
-      const btn = screen.getByTestId("profile-picture-camera-btn");
-      await userEvent.click(btn);
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
       await userEvent.click(uploadBtn);
@@ -449,6 +528,9 @@ describe("ProfilePictureUpload", () => {
 
       expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
 
+      // Go back and select new file
+      await userEvent.click(screen.getByRole("button", { name: /choose different/i }));
+
       const file2 = createMockFile("photo2.jpg", 1024, "image/jpeg");
       fireEvent.change(input, { target: { files: [file2] } });
 
@@ -460,11 +542,8 @@ describe("ProfilePictureUpload", () => {
       mockUploadProfilePicture.mockRejectedValue("string error");
 
       renderComponent();
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
 
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
       const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
       await userEvent.click(uploadBtn);
@@ -476,16 +555,15 @@ describe("ProfilePictureUpload", () => {
       });
     });
 
-    it("resets upload state after dialog is closed", async () => {
+    it("resets to select step after dialog is closed and reopened", async () => {
       renderComponent();
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
 
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
+      await openDialogAndSelectFile();
 
-      expect(screen.getByAltText("Preview")).toBeInTheDocument();
+      expect(screen.getByText("Adjust Your Photo")).toBeInTheDocument();
 
+      // Close by choosing different then cancelling
+      await userEvent.click(screen.getByRole("button", { name: /choose different/i }));
       await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
       await waitFor(() => {
@@ -495,8 +573,61 @@ describe("ProfilePictureUpload", () => {
       // Reopen dialog - should be fresh
       await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
 
-      expect(screen.queryByAltText("Preview")).not.toBeInTheDocument();
+      expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
       expect(screen.getByTestId("profile-picture-dropzone")).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Remove Photo
+  // --------------------------------------------------------------------------
+  describe("Remove Photo", () => {
+    it("calls onUploadComplete with empty string to remove photo", async () => {
+      mockOnUploadComplete.mockResolvedValue(undefined);
+
+      renderComponent({
+        ...mockUser,
+        photoURL: "data:image/jpeg;base64,/9j/customPhoto",
+      });
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await userEvent.click(screen.getByText("Current Photo"));
+
+      const removeBtn = screen.getByTestId("remove-photo-btn");
+      await userEvent.click(removeBtn);
+
+      await waitFor(() => {
+        expect(mockOnUploadComplete).toHaveBeenCalledWith("");
+        expect(mockToast.success).toHaveBeenCalledWith("Profile picture removed.");
+      });
+    });
+
+    it("shows error toast when remove fails", async () => {
+      mockOnUploadComplete.mockRejectedValue(new Error("Failed"));
+
+      renderComponent({
+        ...mockUser,
+        photoURL: "data:image/jpeg;base64,/9j/customPhoto",
+      });
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await userEvent.click(screen.getByText("Current Photo"));
+
+      const removeBtn = screen.getByTestId("remove-photo-btn");
+      await userEvent.click(removeBtn);
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Failed to remove profile picture.");
+      });
+    });
+
+    it("does not show remove button when user has no custom photo", async () => {
+      renderComponent(mockUser);
+
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+      await userEvent.click(screen.getByText("Current Photo"));
+
+      expect(screen.queryByTestId("remove-photo-btn")).not.toBeInTheDocument();
     });
   });
 
@@ -537,6 +668,15 @@ describe("ProfilePictureUpload", () => {
       expect(btn).toHaveAttribute("aria-label", "Change profile picture");
     });
 
+    it("overlay has aria-label and keyboard accessibility", () => {
+      renderComponent();
+
+      const overlay = screen.getByTestId("profile-picture-overlay");
+      expect(overlay).toHaveAttribute("aria-label", "Change profile picture");
+      expect(overlay).toHaveAttribute("role", "button");
+      expect(overlay).toHaveAttribute("tabIndex", "0");
+    });
+
     it("drop zone is keyboard accessible", async () => {
       renderComponent();
 
@@ -569,18 +709,6 @@ describe("ProfilePictureUpload", () => {
 
       expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
       expect(screen.getByText(/Max size: 5 MB/)).toBeInTheDocument();
-    });
-
-    it("remove button has aria-label", async () => {
-      renderComponent();
-      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
-
-      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
-      const input = screen.getByTestId("profile-picture-file-input");
-      fireEvent.change(input, { target: { files: [file] } });
-
-      const removeBtn = screen.getByTestId("profile-picture-remove-btn");
-      expect(removeBtn).toHaveAttribute("aria-label", "Remove selected image");
     });
 
     it("file input is hidden", async () => {
