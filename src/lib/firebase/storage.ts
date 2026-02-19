@@ -75,16 +75,25 @@ function getProfilePicturePath(userId: string): string {
  * @param userId - The authenticated user's UID
  * @param file - The image file to upload
  * @param onProgress - Optional callback for upload progress
+ * @param previousStoragePath - Optional path to the previous profile picture to delete
  * @returns Promise resolving to the download URL and storage path
  */
 export async function uploadProfilePicture(
   userId: string,
   file: File,
   onProgress?: (progress: UploadProgress) => void,
+  previousStoragePath?: string,
 ): Promise<UploadResult> {
   const validationError = validateProfileImage(file);
   if (validationError) {
     throw new Error(validationError);
+  }
+
+  // Delete old profile picture before uploading new one
+  if (previousStoragePath) {
+    await deleteProfilePicture(previousStoragePath).catch(() => {
+      // Silently ignore delete failure for old photo
+    });
   }
 
   const storagePath = getProfilePicturePath(userId);

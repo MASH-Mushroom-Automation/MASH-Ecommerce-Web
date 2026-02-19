@@ -396,6 +396,137 @@ describe("ProfilePictureUpload", () => {
   });
 
   // --------------------------------------------------------------------------
+  // Upload - edge cases
+  // --------------------------------------------------------------------------
+  describe("Upload Edge Cases", () => {
+    it("does nothing when user is null", async () => {
+      renderComponent(null);
+
+      const btn = screen.getByTestId("profile-picture-camera-btn");
+      await userEvent.click(btn);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [file] } });
+
+      const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
+      await userEvent.click(uploadBtn);
+
+      expect(mockUploadProfilePicture).not.toHaveBeenCalled();
+    });
+
+    it("clears error when new valid file is selected", async () => {
+      mockValidateProfileImage
+        .mockReturnValueOnce("File must be JPEG, PNG, or WebP")
+        .mockReturnValueOnce(null);
+
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const badFile = createMockFile("photo.gif", 1024, "image/gif");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [badFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("profile-picture-error")).toBeInTheDocument();
+      });
+
+      const goodFile = createMockFile("photo.jpg", 1024, "image/jpeg");
+      fireEvent.change(input, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("profile-picture-error")).not.toBeInTheDocument();
+      });
+    });
+
+    it("revokes old preview URL when new file is selected", async () => {
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const file1 = createMockFile("photo1.jpg", 1024, "image/jpeg");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [file1] } });
+
+      expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
+
+      const file2 = createMockFile("photo2.jpg", 1024, "image/jpeg");
+      fireEvent.change(input, { target: { files: [file2] } });
+
+      expect(mockRevokeObjectURL).toHaveBeenCalled();
+      expect(mockCreateObjectURL).toHaveBeenCalledTimes(2);
+    });
+
+    it("handles generic non-Error rejection during upload", async () => {
+      mockUploadProfilePicture.mockRejectedValue("string error");
+
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [file] } });
+
+      const uploadBtn = screen.getByTestId("profile-picture-upload-btn");
+      await userEvent.click(uploadBtn);
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "Upload failed. Please try again.",
+        );
+      });
+    });
+
+    it("resets upload state after dialog is closed", async () => {
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [file] } });
+
+      expect(screen.getByAltText("Preview")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText("Update Profile Picture")).not.toBeInTheDocument();
+      });
+
+      // Reopen dialog - should be fresh
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      expect(screen.queryByAltText("Preview")).not.toBeInTheDocument();
+      expect(screen.getByTestId("profile-picture-dropzone")).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // User avatar display
+  // --------------------------------------------------------------------------
+  describe("User Avatar", () => {
+    it("shows user displayName in alt text", () => {
+      renderComponent({
+        ...mockUser,
+        displayName: "Jane Doe",
+      });
+
+      const img = screen.getByAltText("Jane Doe profile picture");
+      expect(img).toBeInTheDocument();
+    });
+
+    it("falls back to firstName when displayName is missing", () => {
+      renderComponent({
+        ...mockUser,
+        displayName: undefined as unknown as string,
+        firstName: "Jane",
+      });
+
+      const img = screen.getByAltText("Jane profile picture");
+      expect(img).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // Accessibility
   // --------------------------------------------------------------------------
   describe("Accessibility", () => {
@@ -430,6 +561,34 @@ describe("ProfilePictureUpload", () => {
         const err = screen.getByTestId("profile-picture-error");
         expect(err).toHaveAttribute("role", "alert");
       });
+    });
+
+    it("dialog has descriptive title and description", async () => {
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      expect(screen.getByText("Update Profile Picture")).toBeInTheDocument();
+      expect(screen.getByText(/Max size: 5 MB/)).toBeInTheDocument();
+    });
+
+    it("remove button has aria-label", async () => {
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const input = screen.getByTestId("profile-picture-file-input");
+      fireEvent.change(input, { target: { files: [file] } });
+
+      const removeBtn = screen.getByTestId("profile-picture-remove-btn");
+      expect(removeBtn).toHaveAttribute("aria-label", "Remove selected image");
+    });
+
+    it("file input is hidden", async () => {
+      renderComponent();
+      await userEvent.click(screen.getByTestId("profile-picture-camera-btn"));
+
+      const input = screen.getByTestId("profile-picture-file-input");
+      expect(input).toHaveClass("hidden");
     });
   });
 });

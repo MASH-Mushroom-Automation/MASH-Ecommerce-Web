@@ -1,7 +1,8 @@
 /**
  * Firebase Storage Service Tests
  *
- * Tests for profile picture upload, validation, and deletion.
+ * Comprehensive tests for profile picture upload, validation, and deletion.
+ * Covers all edge cases, error handling, and the previousStoragePath cleanup.
  */
 
 import {
@@ -57,7 +58,6 @@ function createSuccessfulUploadTask(downloadURL: string) {
         _onError: (error: Error) => void,
         onComplete: () => void,
       ) => {
-        // Simulate progress
         onProgress({
           bytesTransferred: 50,
           totalBytes: 100,
@@ -68,7 +68,6 @@ function createSuccessfulUploadTask(downloadURL: string) {
           totalBytes: 100,
           state: "running",
         });
-        // Call complete
         onComplete();
       },
     ),
@@ -120,7 +119,7 @@ describe("Firebase Storage Service", () => {
       expect(validateProfileImage(file)).toBeNull();
     });
 
-    it("returns error for unsupported file type", () => {
+    it("returns error for unsupported file type (GIF)", () => {
       const file = createMockFile("photo.gif", 1024, "image/gif");
       expect(validateProfileImage(file)).toBe(
         "File must be JPEG, PNG, or WebP",
@@ -134,25 +133,73 @@ describe("Firebase Storage Service", () => {
       );
     });
 
-    it("returns error for file exceeding max size", () => {
-      const file = createMockFile(
-        "big.jpg",
-        MAX_FILE_SIZE + 1,
-        "image/jpeg",
+    it("returns error for BMP files", () => {
+      const file = createMockFile("image.bmp", 1024, "image/bmp");
+      expect(validateProfileImage(file)).toBe(
+        "File must be JPEG, PNG, or WebP",
       );
+    });
+
+    it("returns error for TIFF files", () => {
+      const file = createMockFile("image.tiff", 1024, "image/tiff");
+      expect(validateProfileImage(file)).toBe(
+        "File must be JPEG, PNG, or WebP",
+      );
+    });
+
+    it("returns error for non-image MIME type (PDF)", () => {
+      const file = createMockFile("doc.pdf", 1024, "application/pdf");
+      expect(validateProfileImage(file)).toBe(
+        "File must be JPEG, PNG, or WebP",
+      );
+    });
+
+    it("returns error for text files", () => {
+      const file = createMockFile("readme.txt", 1024, "text/plain");
+      expect(validateProfileImage(file)).toBe(
+        "File must be JPEG, PNG, or WebP",
+      );
+    });
+
+    it("returns error for video files", () => {
+      const file = createMockFile("video.mp4", 1024, "video/mp4");
+      expect(validateProfileImage(file)).toBe(
+        "File must be JPEG, PNG, or WebP",
+      );
+    });
+
+    it("returns error for file exceeding max size", () => {
+      const file = createMockFile("big.jpg", MAX_FILE_SIZE + 1, "image/jpeg");
       const result = validateProfileImage(file);
       expect(result).toContain("too large");
       expect(result).toContain("5 MB");
     });
 
-    it("returns error for file at exactly 5 MB boundary", () => {
-      // Exactly at the limit should pass
+    it("passes for file at exactly 5 MB boundary", () => {
       const file = createMockFile("exact.jpg", MAX_FILE_SIZE, "image/jpeg");
       expect(validateProfileImage(file)).toBeNull();
     });
 
-    it("returns error for non-image MIME type", () => {
-      const file = createMockFile("doc.pdf", 1024, "application/pdf");
+    it("returns error for file one byte over the limit", () => {
+      const file = createMockFile("over.jpg", MAX_FILE_SIZE + 1, "image/jpeg");
+      const result = validateProfileImage(file);
+      expect(result).not.toBeNull();
+    });
+
+    it("passes for very small file (1 byte)", () => {
+      const file = createMockFile("tiny.jpg", 1, "image/jpeg");
+      expect(validateProfileImage(file)).toBeNull();
+    });
+
+    it("shows correct file size in error message", () => {
+      const sixMB = 6 * 1024 * 1024;
+      const file = createMockFile("big.png", sixMB, "image/png");
+      const result = validateProfileImage(file);
+      expect(result).toContain("6.0 MB");
+    });
+
+    it("returns error for empty MIME type", () => {
+      const file = createMockFile("noext", 1024, "");
       expect(validateProfileImage(file)).toBe(
         "File must be JPEG, PNG, or WebP",
       );
@@ -167,11 +214,26 @@ describe("Firebase Storage Service", () => {
       expect(MAX_FILE_SIZE).toBe(5 * 1024 * 1024);
     });
 
+    it("MAX_FILE_SIZE is exactly 5242880 bytes", () => {
+      expect(MAX_FILE_SIZE).toBe(5242880);
+    });
+
     it("ACCEPTED_IMAGE_TYPES includes jpeg, png, webp", () => {
       expect(ACCEPTED_IMAGE_TYPES).toContain("image/jpeg");
       expect(ACCEPTED_IMAGE_TYPES).toContain("image/png");
       expect(ACCEPTED_IMAGE_TYPES).toContain("image/webp");
+    });
+
+    it("ACCEPTED_IMAGE_TYPES has exactly 3 entries", () => {
       expect(ACCEPTED_IMAGE_TYPES).toHaveLength(3);
+    });
+
+    it("ACCEPTED_IMAGE_TYPES does not include gif", () => {
+      expect(ACCEPTED_IMAGE_TYPES).not.toContain("image/gif");
+    });
+
+    it("ACCEPTED_IMAGE_TYPES does not include svg", () => {
+      expect(ACCEPTED_IMAGE_TYPES).not.toContain("image/svg+xml");
     });
   });
 
@@ -212,7 +274,19 @@ describe("Firebase Storage Service", () => {
       expect(progressUpdates[1].percentage).toBe(100);
     });
 
-    it("rejects with validation error for invalid file", async () => {
+    it("works without onProgress callback", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user123", file);
+
+      expect(result.downloadURL).toBe(downloadURL);
+    });
+
+    it("rejects with validation error for invalid file type", async () => {
       const file = createMockFile("bad.gif", 1024, "image/gif");
 
       await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
@@ -222,11 +296,7 @@ describe("Firebase Storage Service", () => {
     });
 
     it("rejects with validation error for oversized file", async () => {
-      const file = createMockFile(
-        "huge.jpg",
-        MAX_FILE_SIZE + 1,
-        "image/jpeg",
-      );
+      const file = createMockFile("huge.jpg", MAX_FILE_SIZE + 1, "image/jpeg");
 
       await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
         "too large",
@@ -283,6 +353,112 @@ describe("Firebase Storage Service", () => {
       expect(metadata.customMetadata.userId).toBe("user456");
       expect(metadata.customMetadata.uploadedAt).toBeDefined();
     });
+
+    it("generates unique storage path with timestamp", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("user789", file);
+
+      expect(result.storagePath).toMatch(
+        /^profile-pictures\/user789\/avatar_\d+$/,
+      );
+    });
+
+    it("includes userId in storage path", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const result = await uploadProfilePicture("specificUser", file);
+
+      expect(result.storagePath).toContain("specificUser");
+    });
+
+    it("deletes previous picture when previousStoragePath is provided", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+      mockDeleteObject.mockResolvedValue(undefined);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const oldPath = "profile-pictures/user123/avatar_old";
+
+      await uploadProfilePicture("user123", file, undefined, oldPath);
+
+      expect(mockDeleteObject).toHaveBeenCalled();
+    });
+
+    it("continues upload even if deleting old picture fails", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+      mockDeleteObject.mockRejectedValue(new Error("delete failed"));
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      const oldPath = "profile-pictures/user123/avatar_old";
+
+      const result = await uploadProfilePicture("user123", file, undefined, oldPath);
+
+      expect(result.downloadURL).toBe(downloadURL);
+    });
+
+    it("does not delete when no previousStoragePath is provided", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.jpg";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user123", file);
+
+      expect(mockDeleteObject).not.toHaveBeenCalled();
+    });
+
+    it("sets contentType to match the uploaded file MIME type", async () => {
+      const downloadURL = "https://firebasestorage.googleapis.com/test.webp";
+      const task = createSuccessfulUploadTask(downloadURL);
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockResolvedValue(downloadURL);
+
+      const file = createMockFile("photo.webp", 1024, "image/webp");
+      await uploadProfilePicture("user123", file);
+
+      const metadata = mockUploadBytesResumable.mock.calls[0][2];
+      expect(metadata.contentType).toBe("image/webp");
+    });
+
+    it("handles non-Error rejection from getDownloadURL", async () => {
+      const task = {
+        on: jest.fn(
+          (
+            _event: string,
+            _onProgress: unknown,
+            _onError: unknown,
+            onComplete: () => void,
+          ) => {
+            onComplete();
+          },
+        ),
+        snapshot: { ref: { fullPath: "mock-path" } },
+      };
+      mockUploadBytesResumable.mockReturnValue(task);
+      mockGetDownloadURL.mockRejectedValue("string-error");
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await expect(uploadProfilePicture("user123", file)).rejects.toThrow(
+        "Failed to get download URL: Unknown error",
+      );
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -298,7 +474,7 @@ describe("Firebase Storage Service", () => {
       expect(mockDeleteObject).toHaveBeenCalled();
     });
 
-    it("does nothing when path is empty", async () => {
+    it("does nothing when path is empty string", async () => {
       await deleteProfilePicture("");
 
       expect(mockDeleteObject).not.toHaveBeenCalled();
@@ -309,18 +485,34 @@ describe("Firebase Storage Service", () => {
       error.code = "storage/object-not-found";
       mockDeleteObject.mockRejectedValue(error);
 
-      // Should not throw
       await expect(
         deleteProfilePicture("profile-pictures/user1/avatar_123"),
       ).resolves.toBeUndefined();
     });
 
-    it("rethrows non-object-not-found errors", async () => {
+    it("rethrows permission-denied errors", async () => {
       mockDeleteObject.mockRejectedValue(new Error("permission denied"));
 
       await expect(
         deleteProfilePicture("profile-pictures/user1/avatar_123"),
       ).rejects.toThrow("permission denied");
+    });
+
+    it("rethrows network errors", async () => {
+      mockDeleteObject.mockRejectedValue(new Error("network unavailable"));
+
+      await expect(
+        deleteProfilePicture("profile-pictures/user1/avatar_123"),
+      ).rejects.toThrow("network unavailable");
+    });
+
+    it("creates correct ref for the storage path", async () => {
+      mockDeleteObject.mockResolvedValue(undefined);
+
+      const path = "profile-pictures/user999/avatar_456";
+      await deleteProfilePicture(path);
+
+      expect(mockRef).toHaveBeenCalledWith(expect.anything(), path);
     });
   });
 });

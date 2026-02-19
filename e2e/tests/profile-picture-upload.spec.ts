@@ -105,4 +105,56 @@ test.describe("Profile Picture Upload", () => {
     await expect(page.getByTestId("profile-picture-dropzone")).toBeVisible();
     await expect(page.getByAltText("Preview")).toBeHidden();
   });
+
+  test("dropzone shows accepted format info", async ({ page }) => {
+    await page.getByTestId("profile-picture-camera-btn").click();
+
+    await expect(
+      page.getByText(/JPEG, PNG, or WebP/),
+    ).toBeVisible();
+  });
+
+  test("dropzone has keyboard accessibility attributes", async ({ page }) => {
+    await page.getByTestId("profile-picture-camera-btn").click();
+
+    const dropzone = page.getByTestId("profile-picture-dropzone");
+    await expect(dropzone).toHaveAttribute("role", "button");
+    await expect(dropzone).toHaveAttribute("tabindex", "0");
+  });
+
+  test("file input accepts only image MIME types", async ({ page }) => {
+    await page.getByTestId("profile-picture-camera-btn").click();
+
+    const fileInput = page.getByTestId("profile-picture-file-input");
+    const accept = await fileInput.getAttribute("accept");
+    expect(accept).toContain("image/jpeg");
+    expect(accept).toContain("image/png");
+    expect(accept).toContain("image/webp");
+  });
+
+  test("dialog shows title and description", async ({ page }) => {
+    await page.getByTestId("profile-picture-camera-btn").click();
+
+    await expect(page.getByText("Update Profile Picture")).toBeVisible();
+    await expect(page.getByText(/Max size:/)).toBeVisible();
+  });
+
+  test("remove button has accessible label", async ({ page }) => {
+    await page.getByTestId("profile-picture-camera-btn").click();
+
+    const fileInput = page.getByTestId("profile-picture-file-input");
+
+    const pngBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+    const buffer = Buffer.from(pngBase64, "base64");
+
+    await fileInput.setInputFiles({
+      name: "test-avatar.png",
+      mimeType: "image/png",
+      buffer,
+    });
+
+    const removeBtn = page.getByTestId("profile-picture-remove-btn");
+    await expect(removeBtn).toHaveAttribute("aria-label", "Remove selected image");
+  });
 });

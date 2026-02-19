@@ -29,6 +29,7 @@ module.exports = {
       { protocol: "https", hostname: "i3.ytimg.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+      { protocol: "https", hostname: "*.appspot.com" },
       { protocol: "https", hostname: "api.dicebear.com", pathname: "/**" },
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/drkcpvmfc/**" },
     ],
