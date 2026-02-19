@@ -28,6 +28,8 @@ import {
   Copy,
   Check,
   ArrowRight,
+  Ban,
+  Navigation,
 } from "lucide-react";
 import {
   Dialog,
@@ -41,10 +43,11 @@ import {
   useUserFirebaseOrders,
   useFirebaseOrder,
 } from "@/hooks/useFirebaseOrders";
-import { type FirestoreOrder, type OrderStatus } from "@/lib/firebase/orders";
+import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -631,6 +634,10 @@ function OrderDetailDialog({
   onClose: () => void;
 }) {
   const { order, loading, error } = useFirebaseOrder(orderId);
+  const { user } = useAuth();
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   if (loading) {
     return (
@@ -963,15 +970,100 @@ function OrderDetailDialog({
           </div>
         </div>
 
-        {/* Sticky footer */}
-        <div className="sticky bottom-0 bg-background border-t p-4">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="w-full"
-          >
-            Close
-          </Button>
+        {/* Sticky footer with action buttons */}
+        <div className="sticky bottom-0 bg-background border-t p-4 space-y-2">
+          {/* Cancel Order Confirmation */}
+          {showCancelConfirm && (
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-destructive">Cancel this order?</p>
+              <input
+                type="text"
+                placeholder="Reason for cancellation (optional)"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full text-sm px-3 py-1.5 rounded-md border bg-background"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={cancelling}
+                  onClick={async () => {
+                    setCancelling(true);
+                    try {
+                      await FirebaseOrdersService.cancelOrder(
+                        orderId,
+                        user?.id || "customer",
+                        cancelReason || undefined
+                      );
+                      toast.success("Order cancelled successfully");
+                      setShowCancelConfirm(false);
+                      setCancelReason("");
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error ? err.message : "Failed to cancel order"
+                      );
+                    } finally {
+                      setCancelling(false);
+                    }
+                  }}
+                >
+                  {cancelling ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : null}
+                  Confirm Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowCancelConfirm(false);
+                    setCancelReason("");
+                  }}
+                >
+                  Keep Order
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {/* Track Delivery Button - visible for shipped delivery orders */}
+            {order.deliveryMethod !== "pickup" &&
+              ["shipped", "processing", "ready_for_pickup"].includes(order.status) && (
+                <Button asChild variant="default" className="flex-1">
+                  <Link href={`/profile/orders/${orderId}/track`}>
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Track Delivery
+                  </Link>
+                </Button>
+              )}
+
+            {/* Cancel Order Button - visible for cancellable statuses */}
+            {["pending_approval", "approved", "processing"].includes(order.status) &&
+              !showCancelConfirm && (
+                <Button
+                  variant="outline"
+                  className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/30"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Cancel Order
+                </Button>
+              )}
+
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className={
+                !["pending_approval", "approved", "processing", "shipped", "ready_for_pickup"].includes(order.status)
+                  ? "w-full"
+                  : ""
+              }
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

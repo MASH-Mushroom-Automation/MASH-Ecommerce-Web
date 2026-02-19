@@ -229,6 +229,19 @@ jest.mock('@/lib/firebase/cart', () => ({
   },
 }));
 
+// Mock FirebaseWishlistService for wishlist operations
+jest.mock('@/lib/firebase/wishlist', () => ({
+  FirebaseWishlistService: {
+    getWishlist: jest.fn().mockResolvedValue([]),
+    addItem: jest.fn().mockResolvedValue('mock-item-id'),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    clearWishlist: jest.fn().mockResolvedValue(undefined),
+    subscribeToWishlist: jest.fn().mockReturnValue(jest.fn()),
+    mergeLocalStorageWishlist: jest.fn().mockResolvedValue(undefined),
+    isInWishlist: jest.fn().mockResolvedValue(false),
+  },
+}));
+
 // Mock FirebaseUserService for user profile operations
 jest.mock('@/lib/firebase/users', () => ({
   FirebaseUserService: {
