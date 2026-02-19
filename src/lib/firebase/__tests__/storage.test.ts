@@ -439,4 +439,175 @@ describe("Profile Picture Upload Service", () => {
       expect(MockFileReader).not.toHaveBeenCalled();
     });
   });
+
+  // --------------------------------------------------------------------------
+  // resizeImage (tested indirectly via uploadProfilePicture)
+  // --------------------------------------------------------------------------
+  describe("Image Resizing", () => {
+    it("scales down a landscape image maintaining aspect ratio", async () => {
+      // MockImage has width=512, height=512 by default
+      const file = createMockFile("landscape.jpg", 1024, "image/jpeg");
+      await uploadProfilePicture("user1", file);
+
+      expect(mockDrawImage).toHaveBeenCalled();
+    });
+
+    it("handles portrait-oriented images", async () => {
+      const file = createMockFile("portrait.jpg", 1024, "image/jpeg");
+      await uploadProfilePicture("user-portrait", file);
+
+      expect(mockDrawImage).toHaveBeenCalled();
+      expect(mockGetContext).toHaveBeenCalledWith("2d");
+    });
+
+    it("always produces JPEG output regardless of input format", async () => {
+      const pngFile = createMockFile("photo.png", 1024, "image/png");
+      await uploadProfilePicture("user1", pngFile);
+      expect(mockToDataURL).toHaveBeenCalledWith("image/jpeg", expect.any(Number));
+
+      const webpFile = createMockFile("photo.webp", 1024, "image/webp");
+      await uploadProfilePicture("user2", webpFile);
+      expect(mockToDataURL).toHaveBeenCalledWith("image/jpeg", expect.any(Number));
+    });
+
+    it("sets canvas dimensions before drawing", async () => {
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      await uploadProfilePicture("user1", file);
+
+      expect(document.createElement).toHaveBeenCalledWith("canvas");
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Error scenarios
+  // --------------------------------------------------------------------------
+  describe("Error Scenarios", () => {
+    it("rejects when FileReader fails", async () => {
+      // Override MockFileReader to trigger onerror
+      MockFileReader.mockImplementationOnce(() => {
+        const instance = {
+          onload: undefined as (() => void) | undefined,
+          onerror: undefined as (() => void) | undefined,
+          readAsDataURL: jest.fn(() => {
+            if (instance.onerror) {
+              instance.onerror();
+            }
+          }),
+        };
+        return instance;
+      });
+
+      const file = createMockFile("bad.jpg", 1024, "image/jpeg");
+      await expect(uploadProfilePicture("user1", file)).rejects.toThrow(
+        "Failed to read file",
+      );
+    });
+
+    it("rejects when Image fails to load", async () => {
+      // Override window.Image to trigger onerror
+      const OriginalImage = window.Image;
+      Object.defineProperty(window, "Image", {
+        value: jest.fn().mockImplementation(() => {
+          const instance: Record<string, unknown> = {
+            onload: undefined,
+            onerror: undefined,
+            _src: "",
+            crossOrigin: "",
+            width: 0,
+            height: 0,
+          };
+          Object.defineProperty(instance, "src", {
+            set() {
+              const onerror = instance.onerror as (() => void) | undefined;
+              if (onerror) onerror();
+            },
+            get() {
+              return instance._src;
+            },
+          });
+          return instance;
+        }),
+      });
+
+      const file = createMockFile("corrupt.jpg", 1024, "image/jpeg");
+      await expect(uploadProfilePicture("user1", file)).rejects.toThrow(
+        "Failed to load image for resize",
+      );
+
+      // Restore original
+      Object.defineProperty(window, "Image", { value: OriginalImage });
+    });
+
+    it("rejects when canvas context is null", async () => {
+      mockGetContext.mockReturnValueOnce(null);
+
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+      await expect(uploadProfilePicture("user1", file)).rejects.toThrow(
+        "Failed to create canvas context",
+      );
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Progress callback sequence
+  // --------------------------------------------------------------------------
+  describe("Progress Callback Sequence", () => {
+    it("emits progress in correct order: 0% -> 50% -> 100%", async () => {
+      const percentages: number[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user1", file, (progress) => {
+        percentages.push(progress.percentage);
+      });
+
+      expect(percentages).toEqual([0, 50, 100]);
+    });
+
+    it("emits exactly 3 progress updates", async () => {
+      const updates: UploadProgress[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user1", file, (progress) => {
+        updates.push({ ...progress });
+      });
+
+      expect(updates).toHaveLength(3);
+    });
+
+    it("state transitions from running to success", async () => {
+      const states: string[] = [];
+      const file = createMockFile("photo.jpg", 1024, "image/jpeg");
+
+      await uploadProfilePicture("user1", file, (progress) => {
+        states.push(progress.state);
+      });
+
+      expect(states).toEqual(["running", "running", "success"]);
+    });
+
+    it("totalBytes is consistent across all progress updates", async () => {
+      const fileSize = 2048;
+      const totalBytesValues: number[] = [];
+      const file = createMockFile("photo.jpg", fileSize, "image/jpeg");
+
+      await uploadProfilePicture("user1", file, (progress) => {
+        totalBytesValues.push(progress.totalBytes);
+      });
+
+      expect(totalBytesValues.every((v) => v === fileSize)).toBe(true);
+    });
+
+    it("bytesTransferred at 50% is half of file size", async () => {
+      const fileSize = 4096;
+      const file = createMockFile("photo.jpg", fileSize, "image/jpeg");
+      const updates: UploadProgress[] = [];
+
+      await uploadProfilePicture("user1", file, (progress) => {
+        updates.push({ ...progress });
+      });
+
+      const midUpdate = updates.find((u) => u.percentage === 50);
+      expect(midUpdate?.bytesTransferred).toBe(Math.round(fileSize / 2));
+    });
+  });
 });

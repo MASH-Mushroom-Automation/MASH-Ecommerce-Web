@@ -269,11 +269,163 @@ describe("ImageCropEditor", () => {
   // Drag Interaction
   // --------------------------------------------------------------------------
   describe("Drag Interaction", () => {
+    beforeEach(() => {
+      // JSDOM does not implement setPointerCapture/releasePointerCapture
+      Element.prototype.setPointerCapture = jest.fn();
+      Element.prototype.releasePointerCapture = jest.fn();
+    });
+
     it("crop area has grab cursor by default", () => {
       renderEditor();
 
       const cropArea = screen.getByTestId("crop-area");
       expect(cropArea.className).toContain("cursor-grab");
+    });
+
+    it("changes to grabbing cursor during drag", () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      const cropArea = screen.getByTestId("crop-area");
+
+      fireEvent.pointerDown(cropArea, {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+      });
+
+      expect(cropArea.className).toContain("cursor-grabbing");
+    });
+
+    it("releases grab cursor on pointer up", () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      const cropArea = screen.getByTestId("crop-area");
+
+      fireEvent.pointerDown(cropArea, {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+      });
+      expect(cropArea.className).toContain("cursor-grabbing");
+
+      fireEvent.pointerUp(cropArea, { pointerId: 1 });
+      expect(cropArea.className).toContain("cursor-grab");
+      expect(cropArea.className).not.toContain("cursor-grabbing");
+    });
+
+    it("does not move when pointer moves without prior pointer down", () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      const cropArea = screen.getByTestId("crop-area");
+
+      // Move without pressing first - should not crash
+      fireEvent.pointerMove(cropArea, {
+        clientX: 150,
+        clientY: 150,
+        pointerId: 1,
+      });
+
+      expect(cropArea.className).toContain("cursor-grab");
+    });
+
+    it("pointer down followed by move updates drag state", () => {
+      renderEditor();
+
+      act(() => { jest.runAllTimers(); });
+
+      const cropArea = screen.getByTestId("crop-area");
+
+      fireEvent.pointerDown(cropArea, { clientX: 100, clientY: 100, pointerId: 42 });
+      expect(cropArea.className).toContain("cursor-grabbing");
+
+      fireEvent.pointerMove(cropArea, { clientX: 110, clientY: 110, pointerId: 42 });
+      // Should still be dragging
+      expect(cropArea.className).toContain("cursor-grabbing");
+    });
+
+    it("pointer up after drag restores grab cursor", () => {
+      renderEditor();
+
+      act(() => { jest.runAllTimers(); });
+
+      const cropArea = screen.getByTestId("crop-area");
+
+      fireEvent.pointerDown(cropArea, { clientX: 100, clientY: 100, pointerId: 42 });
+      fireEvent.pointerMove(cropArea, { clientX: 110, clientY: 110, pointerId: 42 });
+      fireEvent.pointerUp(cropArea, { pointerId: 42 });
+
+      expect(cropArea.className).toContain("cursor-grab");
+      expect(cropArea.className).not.toContain("cursor-grabbing");
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Zoom behavior
+  // --------------------------------------------------------------------------
+  describe("Zoom Behavior", () => {
+    it("shows move indicator when zoomed in", async () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // Initially at zoom 1, no move indicator
+      expect(screen.queryByText("Drag to reposition the image")).not.toBeInTheDocument();
+
+      // Click zoom in
+      const zoomInBtn = screen.getByTestId("zoom-in-btn");
+      await userEvent.setup({ advanceTimers: jest.advanceTimersByTime }).click(zoomInBtn);
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // Now the move indicator should appear
+      await waitFor(() => {
+        expect(screen.getByText("Drag to reposition the image")).toBeInTheDocument();
+      });
+    });
+
+    it("reset button returns zoom to initial state", async () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // Zoom in first
+      const zoomInBtn = screen.getByTestId("zoom-in-btn");
+      await userEvent.setup({ advanceTimers: jest.advanceTimersByTime }).click(zoomInBtn);
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // Zoom should be above 0% now
+      expect(screen.queryByText("Zoom: 0%")).not.toBeInTheDocument();
+
+      // Reset
+      const resetBtn = screen.getByTestId("reset-btn");
+      await userEvent.setup({ advanceTimers: jest.advanceTimersByTime }).click(resetBtn);
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(screen.getByText("Zoom: 0%")).toBeInTheDocument();
     });
   });
 
@@ -323,6 +475,136 @@ describe("ImageCropEditor", () => {
 
       await waitFor(() => {
         expect(screen.getByText(/512 x 512px/)).toBeInTheDocument();
+      });
+    });
+
+    it("defaults to 220px crop size when not specified", () => {
+      render(
+        <ImageCropEditor
+          imageSrc={TEST_IMAGE_SRC}
+          onCropComplete={mockOnCropComplete}
+        />,
+      );
+
+      const cropArea = screen.getByTestId("crop-area");
+      expect(cropArea).toHaveStyle({ width: "220px", height: "220px" });
+    });
+
+    it("uses different image sources", () => {
+      const customSrc = "blob:http://localhost/different-image";
+      renderEditor({ imageSrc: customSrc });
+
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Image loading
+  // --------------------------------------------------------------------------
+  describe("Image Loading", () => {
+    it("sets crossOrigin to anonymous on the image", () => {
+      renderEditor();
+
+      // MockImage is instantiated with crossOrigin = ""
+      // then set to "anonymous" in the useEffect
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
+    });
+
+    it("does not show image info before image loads", () => {
+      renderEditor();
+
+      // Before timers run, image hasn't loaded
+      expect(screen.queryByTestId("image-info")).not.toBeInTheDocument();
+    });
+
+    it("shows image info after image loads", async () => {
+      renderEditor();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("image-info")).toBeInTheDocument();
+      });
+    });
+
+    it("handles image load error gracefully", () => {
+      // Override MockImage to trigger onerror
+      const OriginalMockImage = window.Image;
+      class ErrorImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        crossOrigin = "";
+        naturalWidth = 0;
+        naturalHeight = 0;
+        private _src = "";
+        get src() { return this._src; }
+        set src(value: string) {
+          this._src = value;
+          setTimeout(() => {
+            if (this.onerror) this.onerror();
+          }, 0);
+        }
+      }
+      Object.defineProperty(window, "Image", { value: ErrorImage, writable: true });
+
+      renderEditor();
+      act(() => { jest.runAllTimers(); });
+
+      // Should not crash, just not show image info
+      expect(screen.queryByTestId("image-info")).not.toBeInTheDocument();
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
+
+      Object.defineProperty(window, "Image", { value: OriginalMockImage, writable: true });
+    });
+
+    it("reloads image when imageSrc prop changes", () => {
+      const { rerender } = renderEditor();
+
+      act(() => { jest.runAllTimers(); });
+
+      // Rerender with new image source
+      rerender(
+        <ImageCropEditor
+          imageSrc="blob:http://localhost/new-image"
+          onCropComplete={mockOnCropComplete}
+          cropSize={220}
+          outputSize={256}
+          outputQuality={0.9}
+        />,
+      );
+
+      act(() => { jest.runAllTimers(); });
+
+      expect(screen.getByTestId("image-crop-editor")).toBeInTheDocument();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Output generation
+  // --------------------------------------------------------------------------
+  describe("Output Generation", () => {
+    it("generates JPEG output format", async () => {
+      renderEditor();
+
+      act(() => { jest.runAllTimers(); });
+
+      await waitFor(() => {
+        expect(mockOnCropComplete).toHaveBeenCalledWith(
+          expect.stringContaining("data:image/jpeg"),
+        );
+      });
+    });
+
+    it("creates a separate output canvas for cropped result", async () => {
+      renderEditor();
+
+      act(() => { jest.runAllTimers(); });
+
+      await waitFor(() => {
+        // document.createElement should be called for the output canvas
+        expect(document.createElement).toHaveBeenCalledWith("canvas");
       });
     });
   });

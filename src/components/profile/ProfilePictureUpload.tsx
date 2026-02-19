@@ -158,7 +158,7 @@ export function ProfilePictureUpload({
     setError(null);
 
     try {
-      const { downloadURL } = await uploadProfilePicture(
+      await uploadProfilePicture(
         user.id,
         selectedFile,
         (progress) => {
@@ -166,10 +166,7 @@ export function ProfilePictureUpload({
         },
       );
 
-      // Use the cropped version instead of the raw resized output
-      const finalUrl = croppedDataUrl || downloadURL;
-
-      await onUploadComplete(finalUrl);
+      await onUploadComplete(croppedDataUrl);
       toast.success("Profile picture updated successfully!");
       handleCloseDialog();
     } catch (err) {

@@ -339,3 +339,133 @@ interface ImageCropEditorProps {
 | Hash | Description |
 |------|-------------|
 | `80b1e4b` | Enhanced Profile Picture Upload with Image Crop Editor |
+
+---
+
+## Update 4: Code Cleanup, Test Expansion, and Playwright Enhancement
+
+### Scope
+
+Polish pass focused on code quality, test coverage expansion, and comprehensive Playwright e2e test additions. No new features -- strictly cleanup, deduplication, and hardening the test suite.
+
+### Code Cleanup
+
+**1. Extracted `calculateDrawParams` helper in ImageCropEditor.tsx**
+
+The aspect ratio calculation and draw positioning logic was duplicated between `drawCanvas()` and `generateCroppedImage()`. Extracted into a shared `calculateDrawParams(img, canvasSize, posScale)` callback that returns `{ drawWidth, drawHeight, drawX, drawY }`. Both functions now use this helper, eliminating ~15 lines of duplicated code.
+
+**2. Removed unused `downloadURL` destructuring in ProfilePictureUpload.tsx**
+
+The `handleUpload` function was destructuring `downloadURL` from `uploadProfilePicture()` result but never using it -- `croppedDataUrl` was always used instead. Simplified to just `await uploadProfilePicture(...)` without destructuring.
+
+### Unit Test Expansion (+37 new tests)
+
+| File | New Tests | Total | Details |
+|------|-----------|-------|---------|
+| `storage.test.ts` | +12 | 52 | Image resizing (4), error scenarios (3), progress callback sequence (5) |
+| `ImageCropEditor.test.tsx` | +15 | 35 | Drag interaction (7), zoom behavior (2), props (2), image loading (5), output generation (2) |
+| `ProfilePictureUpload.test.tsx` | +10 | 52 | User avatar edge cases (3), accessibility enhancements (5), keyboard navigation (2) |
+
+**New test categories added:**
+- **Error Scenarios:** FileReader failure, Image load failure, canvas context null return
+- **Progress Callback Sequence:** Correct 0->50->100% order, exactly 3 updates, state transitions, consistent totalBytes
+- **Drag Interaction:** Cursor class changes (grab/grabbing), pointer up restores, no move without pointer down
+- **Image Loading:** crossOrigin attribute, load/error handling, prop change reloading
+- **Accessibility:** Enter/Space key activation, focus management, accept attribute validation
+
+### Playwright E2E Test Expansion (+19 new tests, 35 total)
+
+| Section | Before | After | New Tests |
+|---------|--------|-------|-----------|
+| Avatar Display | 2 | 4 | Camera button type, overlay keyboard focus |
+| Dialog - Select Step | 8 | 11 | Overlay click open, file input hidden, Current Photo description |
+| Dialog - Crop Step | 6 | 13 | Zoom in/out buttons, zoom disabled state, ARIA labels, zoom slider, zoom percentage, reset button, crop area, JPEG file input |
+| Keyboard Navigation | -- | 4 | Enter/Space on overlay, Escape close, tab keyboard navigation |
+| State Transitions | -- | 4 | Dialog reset on reopen, Choose Different flow, default tab state, tab switching |
+
+### Quality Gates
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Unit Tests | PASS | 2952/2952 passing (132 suites) |
+| Build | PASS | All routes compiled, zero errors |
+| Lint | PASS | Zero warnings, zero errors |
+| TypeScript | PASS | No type errors |
+| Playwright | READY | 35 e2e tests defined (requires dev server for execution) |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/profile/ImageCropEditor.tsx` | Extracted `calculateDrawParams` helper |
+| `src/components/profile/ProfilePictureUpload.tsx` | Removed unused `downloadURL` destructuring |
+| `src/lib/firebase/__tests__/storage.test.ts` | +12 new tests (52 total) |
+| `src/components/profile/__tests__/ImageCropEditor.test.tsx` | +15 new tests (35 total) |
+| `src/components/profile/__tests__/ProfilePictureUpload.test.tsx` | +10 new tests (52 total) |
+| `e2e/tests/profile-picture-upload.spec.ts` | +19 new e2e tests (35 total) |
+
+---
+
+## What To Do Next
+
+### Immediate (Before Merge to main)
+
+1. **Enable Firebase Storage in Firebase Console**
+   - Go to https://console.firebase.google.com/u/7/project/mash-ddf8d/storage
+   - Click "Get Started" to provision the storage bucket
+   - This is required if you want to move from data URLs to hosted file storage
+   - Until enabled, the current Canvas data URL approach works in production
+
+2. **Test on Production (Railway)**
+   - Deploy `develop-profile-picture-upload` branch to `beta.mashmarket.app`
+   - Test full upload flow: select -> crop -> save -> page refresh persistence
+   - Test with Google OAuth accounts and email/password accounts
+   - Verify avatar persists across sessions (Firestore is source of truth)
+
+3. **Run Playwright E2E Tests**
+   - Start dev server: `npm run dev`
+   - Run e2e suite: `npx playwright test e2e/tests/profile-picture-upload.spec.ts`
+   - All 35 tests should pass against the live dev server
+
+4. **Merge Strategy**
+   - Merge `develop-profile-picture-upload` -> `Profile-Picture-Upload` (squash or merge)
+   - Then merge `Profile-Picture-Upload` -> `main` (PR with review)
+   - Or merge `develop-profile-picture-upload` directly into `main` if `Profile-Picture-Upload` is stale
+
+### Short-Term (After Merge)
+
+5. **Migrate from Data URLs to Firebase Storage**
+   - Once Firebase Storage is enabled, update `storage.ts` to use Firebase Storage SDK
+   - Upload resized Canvas output to GCS instead of returning data URL
+   - Store the download URL in Firestore instead of base64 data URL
+   - Benefits: smaller Firestore documents, CDN-delivered images, better mobile performance
+   - The component layer requires zero changes (same `uploadProfilePicture` interface)
+
+6. **Add Image CDN / Optimization**
+   - Serve profile pictures via Next.js Image optimization or a CDN
+   - Configure `next.config.js` `images.remotePatterns` for the Firebase Storage domain
+   - Remove `unoptimized` prop from Image components once using real URLs
+
+7. **Mobile Device Testing**
+   - Test camera capture flow on iOS Safari and Android Chrome
+   - Verify touch-based drag-to-reposition works in the crop editor
+   - Test file picker behavior on mobile (camera vs gallery selection)
+
+### Medium-Term (Future Enhancement)
+
+8. **Animated Avatar Support**
+   - Consider supporting animated GIF/WebP avatars (currently blocked to JPEG/PNG/WebP static)
+   - Would require updating `ACCEPTED_IMAGE_TYPES` and adjusting Canvas processing
+
+9. **Avatar Presets / AI Generation**
+   - Add preset avatar library as an alternative to Upload New tab
+   - Consider AI-based avatar generation from user photo
+
+10. **Profile Picture Size Variants**
+    - Generate multiple sizes (32px, 64px, 128px, 256px) during upload
+    - Serve appropriate size based on display context
+    - Reduces bandwidth for small avatar displays in navigation/comments
+
+11. **Crop Shape Options**
+    - Add option for square crop in addition to circular
+    - Useful for seller profile pages or product review displays

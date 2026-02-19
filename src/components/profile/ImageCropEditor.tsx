@@ -71,6 +71,31 @@ export function ImageCropEditor({
     };
   }, [imageSrc]);
 
+  // Calculate draw dimensions for a given canvas size
+  const calculateDrawParams = useCallback(
+    (img: HTMLImageElement, canvasSize: number, posScale: number = 1) => {
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      let drawWidth: number;
+      let drawHeight: number;
+
+      if (imgAspect > 1) {
+        drawHeight = canvasSize * zoom;
+        drawWidth = drawHeight * imgAspect;
+      } else {
+        drawWidth = canvasSize * zoom;
+        drawHeight = drawWidth / imgAspect;
+      }
+
+      return {
+        drawWidth,
+        drawHeight,
+        drawX: (canvasSize - drawWidth) / 2 + position.x * posScale,
+        drawY: (canvasSize - drawHeight) / 2 + position.y * posScale,
+      };
+    },
+    [zoom, position],
+  );
+
   // Draw the image on canvas whenever zoom/position changes
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -80,40 +105,21 @@ export function ImageCropEditor({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const canvasSize = cropSize;
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
+    canvas.width = cropSize;
+    canvas.height = cropSize;
 
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    ctx.clearRect(0, 0, cropSize, cropSize);
 
-    // Save context for circular clip
     ctx.save();
     ctx.beginPath();
-    ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2, 0, Math.PI * 2);
+    ctx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
 
-    // Calculate image dimensions to fit the crop area
-    const imgAspect = img.naturalWidth / img.naturalHeight;
-    let drawWidth: number;
-    let drawHeight: number;
-
-    if (imgAspect > 1) {
-      // Landscape: height fits, width extends
-      drawHeight = canvasSize * zoom;
-      drawWidth = drawHeight * imgAspect;
-    } else {
-      // Portrait or square: width fits, height extends
-      drawWidth = canvasSize * zoom;
-      drawHeight = drawWidth / imgAspect;
-    }
-
-    const drawX = (canvasSize - drawWidth) / 2 + position.x;
-    const drawY = (canvasSize - drawHeight) / 2 + position.y;
-
+    const { drawX, drawY, drawWidth, drawHeight } = calculateDrawParams(img, cropSize);
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
     ctx.restore();
-  }, [zoom, position, cropSize, imageLoaded]);
+  }, [cropSize, imageLoaded, calculateDrawParams]);
 
   useEffect(() => {
     drawCanvas();
@@ -130,33 +136,17 @@ export function ImageCropEditor({
     const ctx = outputCanvas.getContext("2d");
     if (!ctx) return "";
 
-    // Draw circular crop at output size
     ctx.beginPath();
     ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
 
-    const imgAspect = img.naturalWidth / img.naturalHeight;
-    let drawWidth: number;
-    let drawHeight: number;
-
     const scale = outputSize / cropSize;
-
-    if (imgAspect > 1) {
-      drawHeight = outputSize * zoom;
-      drawWidth = drawHeight * imgAspect;
-    } else {
-      drawWidth = outputSize * zoom;
-      drawHeight = drawWidth / imgAspect;
-    }
-
-    const drawX = (outputSize - drawWidth) / 2 + position.x * scale;
-    const drawY = (outputSize - drawHeight) / 2 + position.y * scale;
-
+    const { drawX, drawY, drawWidth, drawHeight } = calculateDrawParams(img, outputSize, scale);
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 
     return outputCanvas.toDataURL("image/jpeg", outputQuality);
-  }, [zoom, position, cropSize, outputSize, outputQuality]);
+  }, [cropSize, outputSize, outputQuality, calculateDrawParams]);
 
   // Emit cropped image on changes
   useEffect(() => {
