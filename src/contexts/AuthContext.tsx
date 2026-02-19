@@ -455,18 +455,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           twoFactorEnabled: false,
         };
 
-        setUser(authUser);
-        setFirebaseUser(fbUser);
-
         // Set Firebase auth cookie for proxy detection
         setFirebaseAuthCookie(fbUser.uid);
 
-        // Persist to cookie (30d)
-        try {
-          setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-        } catch (err) {
-          console.error("[Auth] Failed to store user in cookie:", err);
-        }
+        // User state is NOT set here to prevent overwriting Firestore profile data.
+        // Firestore is the source of truth for photoURL (custom uploads).
+        // User state is managed by syncToFirestoreProfile and onAuthStateChanged.
 
         return authUser;
       } catch (error) {
@@ -853,13 +847,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (syncError) {
           toast.dismiss("google-signin");
           toast.error("Failed to complete sign-in. Please try again.");
-          console.error("❌ [Auth] Sync error:", syncError);
+          console.error("[Auth] Sync error:", syncError);
           setLoading(false);
         }
       }
     } catch (error) {
       setLoading(false);
-      console.error("❌ [Auth] Sign-in error:", error);
+      console.error("[Auth] Sign-in error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
       toast.error("Sign-in failed", { description: errorMessage });
       // Re-throw to allow calling components to reset their loading states
@@ -1442,7 +1436,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update local state
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+
+      // Strip data URLs from cookie to prevent 4KB cookie size overflow.
+      // Firestore is the source of truth; cookie is for fast initial load.
+      const cookieUser = { ...updatedUser };
+      if (typeof cookieUser.photoURL === "string" && cookieUser.photoURL.startsWith("data:")) {
+        cookieUser.photoURL = undefined;
+        cookieUser.avatar = undefined;
+      }
+      setCookie("user", cookieUser, { maxAge: 60 * 60 * 24 * 30 });
 
       toast.success("Profile updated!");
     } catch (error) {

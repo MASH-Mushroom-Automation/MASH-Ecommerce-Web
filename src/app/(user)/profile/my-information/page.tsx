@@ -21,7 +21,6 @@ import {
   Plus,
   User,
   Mail,
-  Camera,
   Lock,
   Edit,
   AlertTriangle,
@@ -44,8 +43,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
-import { getProfileAvatar, isDiceBearAvatar } from "@/lib/avatar";
+import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 import {
   getAuth,
   updatePassword,
@@ -733,25 +731,15 @@ export default function MyInformationPage() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
-            {/* Profile Picture */}
-            <div className="relative flex-shrink-0">
-              <div className="h-24 w-24 rounded-full overflow-hidden bg-muted border-4 border-background shadow-lg">
-                <Image
-                  src={getProfileAvatar(user)}
-                  alt={`${user?.firstName || "User"} ${user?.lastName || ""}`}
-                  width={96}
-                  height={96}
-                  className="object-cover"
-                  unoptimized={isDiceBearAvatar(getProfileAvatar(user))}
-                />
-              </div>
-              <button
-                className="absolute bottom-0 right-0 p-2 bg-[#1E392A] rounded-full text-white hover:bg-[#2d5a42] transition-colors shadow-lg"
-                suppressHydrationWarning
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Profile Picture with Upload */}
+            <ProfilePictureUpload
+              user={user}
+              onUploadComplete={async (photoURL: string) => {
+                if (updateUserProfile) {
+                  await updateUserProfile({ photoURL, avatar: photoURL });
+                }
+              }}
+            />
 
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
