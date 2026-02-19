@@ -228,3 +228,114 @@ Google Re-login
 | `c028e54` | Canvas-based storage.ts rewrite (data URL approach) |
 | `1fc9490` | PR documentation update |
 | `9f9abd5` | Profile picture persistence fix with 20 new tests |
+
+---
+
+## Update 3: Enhanced Image Crop/Resize UI
+
+### Branch
+
+`develop-profile-picture-upload` (created from `Profile-Picture-Upload`)
+
+### Overview
+
+Complete UI/UX overhaul of the profile picture upload flow. Replaces the single-step upload dialog with a 3-step guided flow featuring a custom Canvas-based circular crop editor with zoom and drag-to-reposition controls.
+
+### New 3-Step Upload Flow
+
+**Step 1 - Select:** Tabbed interface with "Upload New" (drag-and-drop zone) and "Current Photo" (view/remove current photo). Replaces the flat single-view dialog.
+
+**Step 2 - Crop:** Custom `ImageCropEditor` component with circular preview, zoom slider (1x-3x), zoom in/out buttons, drag-to-reposition with pointer capture and constraints, and reset button. Real-time preview comparison at 48px and 64px sizes.
+
+**Step 3 - Uploading:** Animated pulse overlay on the cropped image with progress bar and percentage indicator.
+
+### New Component: ImageCropEditor
+
+```typescript
+interface ImageCropEditorProps {
+  imageSrc: string;
+  onCropComplete: (croppedDataUrl: string) => void;
+  cropSize?: number;       // Default: 220px
+  outputSize?: number;     // Default: 256px
+  outputQuality?: number;  // Default: 0.9
+}
+```
+
+**Features:**
+- Canvas-based circular crop with configurable crop/output sizes
+- Zoom controls: Radix Slider (1x-3x), zoom in/out buttons, zoom percentage display
+- Drag-to-reposition with pointer capture, constrained to keep image within crop area
+- Reset button to restore default zoom and position
+- Image info display (original dimensions + output dimensions)
+- Responsive output as JPEG data URL at configurable quality
+- Real-time `onCropComplete` callback on every zoom/position change
+- Accessible: ARIA labels on all interactive elements
+
+**Test IDs:** `image-crop-editor`, `crop-area`, `zoom-controls`, `zoom-out-btn`, `zoom-slider`, `zoom-in-btn`, `reset-btn`, `image-info`
+
+### UI/UX Improvements
+
+| Before | After |
+|--------|-------|
+| Single flat dialog | 3-step guided flow (select -> crop -> upload) |
+| No image adjustment | Zoom (1x-3x) + drag-to-reposition |
+| No tabs | Tabbed: "Upload New" / "Current Photo" |
+| Static avatar | Hover overlay with camera icon + scale-105 effect |
+| No remove option | "Remove Photo" button in Current Photo tab |
+| No crop preview | Real-time 48px + 64px circular preview comparison |
+| Basic upload button | Context-aware footer (Cancel / Choose Different + Save Photo / Please wait...) |
+| No progress animation | Animated pulse avatar during upload |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/profile/ImageCropEditor.tsx` | **NEW** - Canvas-based circular crop editor (280 lines) |
+| `src/components/profile/__tests__/ImageCropEditor.test.tsx` | **NEW** - 24 unit tests |
+| `src/components/profile/ProfilePictureUpload.tsx` | **REWRITTEN** - 3-step flow with tabs, crop editor integration (420 lines) |
+| `src/components/profile/__tests__/ProfilePictureUpload.test.tsx` | **REWRITTEN** - Updated for 3-step flow |
+| `e2e/tests/profile-picture-upload.spec.ts` | **REWRITTEN** - 16 Playwright e2e tests for new UI structure |
+| `package.json` | Removed unused `react-image-crop` dependency |
+
+### Dependencies
+
+- **Removed:** `react-image-crop` (installed then removed; custom Canvas editor used instead)
+- **Existing (unchanged):** `@radix-ui/react-slider`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `lucide-react`
+
+### Test Coverage
+
+| Suite | Count | Description |
+|-------|-------|-------------|
+| ImageCropEditor.test.tsx | 24 | Rendering, zoom controls, crop complete, canvas drawing, drag, accessibility, props |
+| ProfilePictureUpload.test.tsx | ~36 | Rendering, dialog tabs, file selection, crop step, upload flow, remove photo, errors, drag/drop |
+| profile-picture-upload.spec.ts | 16 | Playwright e2e: avatar display (2), select step (8), crop step (6) |
+| **Full Suite** | **2915** | All passing, 132 suites, zero failures |
+
+### Quality Gates
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Unit Tests | PASS | 2915/2915 passing (132 suites) |
+| Build | PASS | All routes compiled, zero errors |
+| Lint | PASS | Zero warnings, zero errors |
+| TypeScript | PASS | No type errors |
+
+### How to Test
+
+1. Log in and navigate to Profile > My Information
+2. Hover over the avatar - overlay appears with camera icon
+3. Click the avatar or camera badge - upload dialog opens
+4. **Upload New tab:** Drag/drop or click to select an image
+5. **Crop step:** Use zoom slider/buttons to adjust, drag to reposition
+6. Verify 48px and 64px circular previews update in real-time
+7. Click "Choose Different" to go back and select another image
+8. Click "Save Photo" to upload
+9. Verify progress bar, success toast, and avatar update
+10. **Current Photo tab:** View current photo, click "Remove Photo" if custom photo exists
+11. Refresh page - photo should persist
+
+### Commits
+
+| Hash | Description |
+|------|-------------|
+| `80b1e4b` | Enhanced Profile Picture Upload with Image Crop Editor |
