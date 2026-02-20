@@ -1,9 +1,8 @@
 /**
- * Order History - Cancel & Track Actions Tests
- * Story: ORD-001 (Cancel Order Button), ORD-002 (Track Delivery Link)
+ * Order History - Cancel, Track, Reorder & Receipt Actions Tests
+ * Story: ORD-001 (Cancel Order), ORD-002 (Track Delivery), ORD-003 (Reorder), ORD-004 (Receipt)
  *
- * Tests the cancel order and track delivery features in OrderDetailDialog.
- * Uses a simplified test approach since the component is internal to the page.
+ * Tests the cancel order, track delivery, buy again, and receipt features in OrderDetailDialog.
  */
 
 import React from "react";
@@ -11,6 +10,32 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
 import type { OrderStatus } from "@/lib/firebase/orders";
+
+// Mock next/navigation
+const mockRouterPush = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockRouterPush, back: jest.fn(), forward: jest.fn(), refresh: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
+  usePathname: () => "/profile/order-history",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock CartContext
+const mockAddToCart = jest.fn().mockReturnValue(true);
+jest.mock("@/contexts/CartContext", () => ({
+  useCart: () => ({
+    items: [],
+    summary: { items: [], subtotal: 0, tax: 0, shipping: 0, total: 0, itemCount: 0 },
+    loading: false,
+    error: null,
+    addToCart: mockAddToCart,
+    removeFromCart: jest.fn(),
+    updateQuantity: jest.fn(),
+    clearCart: jest.fn(),
+    removeVendorItems: jest.fn(),
+    isInCart: jest.fn().mockReturnValue(false),
+    getItemQuantity: jest.fn().mockReturnValue(0),
+  }),
+}));
 
 // Mock dependencies
 jest.mock("@/lib/firebase/orders", () => ({
@@ -47,6 +72,7 @@ const mockUseAuth = (global as any).__mockUseAuth as jest.Mock;
 const mockToast = (global as any).__mockToast as {
   success: jest.Mock;
   error: jest.Mock;
+  warning: jest.Mock;
 };
 
 // Mocked hooks
@@ -498,6 +524,349 @@ describe("Order History - Cancel & Track Actions", () => {
       });
 
       expect(screen.queryByText("Track Delivery")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Buy Again Button", () => {
+    it("should show Buy Again button for delivered orders", async () => {
+      const order = createMockOrder({ status: "delivered" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Buy Again")).toBeInTheDocument();
+      });
+    });
+
+    it("should show Buy Again button for completed orders", async () => {
+      const order = createMockOrder({ status: "completed" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Buy Again")).toBeInTheDocument();
+      });
+    });
+
+    it("should NOT show Buy Again button for pending orders", async () => {
+      const order = createMockOrder({ status: "pending_approval" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Cancel Order")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Buy Again")).not.toBeInTheDocument();
+    });
+
+    it("should NOT show Buy Again button for shipped orders", async () => {
+      const order = createMockOrder({ status: "shipped", deliveryMethod: "delivery" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Track Delivery")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Buy Again")).not.toBeInTheDocument();
+    });
+
+    it("should add all order items to cart when Buy Again clicked", async () => {
+      mockAddToCart.mockReturnValue(true);
+      const order = createMockOrder({ status: "delivered" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Buy Again")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Buy Again"));
+
+      await waitFor(() => {
+        expect(mockAddToCart).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "product-1",
+            name: "King Oyster Mushroom",
+            price: 120,
+          }),
+          2
+        );
+      });
+
+      expect(mockToast.success).toHaveBeenCalledWith("Added 1 item to cart");
+      expect(mockRouterPush).toHaveBeenCalledWith("/cart");
+    });
+
+    it("should show warning when some items fail to add", async () => {
+      mockAddToCart.mockReturnValueOnce(false);
+      const order = createMockOrder({ status: "completed" });
+      order.items = [
+        { productId: "p1", name: "Item 1", price: 100, quantity: 1, image: "/i1.jpg" },
+        { productId: "p2", name: "Item 2", price: 200, quantity: 1, image: "/i2.jpg" },
+      ];
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Buy Again")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Buy Again"));
+
+      await waitFor(() => {
+        expect(mockToast.warning).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Download Receipt Button", () => {
+    it("should show Receipt button for delivered orders", async () => {
+      const order = createMockOrder({ status: "delivered" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Receipt")).toBeInTheDocument();
+      });
+    });
+
+    it("should show Receipt button for completed orders", async () => {
+      const order = createMockOrder({ status: "completed" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Receipt")).toBeInTheDocument();
+      });
+    });
+
+    it("should NOT show Receipt button for pending orders", async () => {
+      const order = createMockOrder({ status: "pending_approval" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Cancel Order")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Receipt")).not.toBeInTheDocument();
+    });
+
+    it("should open receipt window when Receipt button clicked", async () => {
+      const mockWrite = jest.fn();
+      const mockClose = jest.fn();
+      const mockWindow = { document: { write: mockWrite, close: mockClose } };
+      jest.spyOn(window, "open").mockReturnValue(mockWindow as unknown as Window);
+
+      const order = createMockOrder({ status: "delivered" });
+      order.userName = "Test User";
+      order.userEmail = "test@example.com";
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Receipt")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Receipt"));
+
+      expect(window.open).toHaveBeenCalledWith("", "_blank");
+      expect(mockWrite).toHaveBeenCalledWith(
+        expect.stringContaining("MASH Market")
+      );
+      expect(mockWrite).toHaveBeenCalledWith(
+        expect.stringContaining("MASH-2026-001")
+      );
+      expect(mockClose).toHaveBeenCalled();
+
+      (window.open as jest.Mock).mockRestore();
+    });
+
+    it("should show error toast when popup is blocked", async () => {
+      jest.spyOn(window, "open").mockReturnValue(null);
+
+      const order = createMockOrder({ status: "delivered" });
+      (useFirebaseOrder as jest.Mock).mockReturnValue({
+        order,
+        loading: false,
+        error: null,
+      });
+      (useUserFirebaseOrders as jest.Mock).mockReturnValue({
+        orders: [order],
+        loading: false,
+        error: null,
+        refreshOrders: jest.fn(),
+      });
+
+      const OrderHistoryPage = require("../page").default;
+      render(<OrderHistoryPage />);
+
+      const orderCards = screen.getAllByText("MASH-2026-001");
+      await userEvent.click(orderCards[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText("Receipt")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText("Receipt"));
+
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Please allow popups to download your receipt"
+      );
+
+      (window.open as jest.Mock).mockRestore();
     });
   });
 });

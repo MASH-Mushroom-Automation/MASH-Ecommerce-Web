@@ -79,6 +79,28 @@
 - **Jest Email Template Testing:** @react-email/components render() requires --experimental-vm-modules. Use react-dom/server renderToStaticMarkup instead for Jest tests. Verify React.isValidElement() then renderToStaticMarkup().
 - **Jest File Upload Testing:** userEvent.upload v14+ respects input accept attribute. Use fireEvent.change(input, {target: {files: [file]}}) to test rejection of invalid file types. Mock URL.createObjectURL/revokeObjectURL in beforeEach.
 
+## [2026-02-21 16:00] - ORD-003 + ORD-004 + TEST-007
+**Completed:** Reorder/Buy Again + Downloadable Receipt + Tests
+**Files Changed:**
+- src/app/(user)/profile/order-history/page.tsx (added handleBuyAgain, handleDownloadReceipt, Buy Again + Receipt buttons)
+- src/app/(user)/profile/order-history/__tests__/OrderActions.test.tsx (added 11 new tests for Buy Again and Receipt)
+
+**Implementation Notes:**
+- handleBuyAgain() iterates order items, calls addToCart() for each, shows success/warning/error toast, redirects to /cart
+- Uses productId as slug fallback and quantity*10 as stock placeholder (FirestoreOrderItem lacks slug/stock fields)
+- handleDownloadReceipt() opens new window with print-friendly HTML receipt including MASH branding, order details, items table, totals
+- Receipt auto-calls window.print() on load; error toast if popup blocked
+- Buy Again and Receipt buttons visible only for delivered/completed orders
+
+**Learnings for Future Iterations:**
+- FirestoreOrderItem has no slug or stock fields - use productId as slug and generous stock estimate
+- toast.warning() available in sonner mock (jest.setupMocks.js line 344)
+- Mock order type annotations should include all toast methods used (success, error, warning)
+- createMockOrder() can be extended with ad-hoc properties for specific test cases (e.g., order.userName for receipt tests)
+
+**Tests Passing:** [PASS] Unit (3110/3110) | [PASS] Build | [PASS] Lint
+---
+
 ## [2026-02-15 16:00] - Phone Verification & 2FA PRD Audit and Gap Fill
 **Completed:** Full audit and gap-fill for prd-phone-verification-2fa.json (20 stories)
 **Files Created:**

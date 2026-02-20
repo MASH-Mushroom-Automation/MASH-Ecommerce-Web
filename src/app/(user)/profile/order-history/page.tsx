@@ -7,6 +7,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,8 @@ import {
   ArrowRight,
   Ban,
   Navigation,
+  ShoppingCart,
+  FileText,
 } from "lucide-react";
 import {
   Dialog,
@@ -39,11 +42,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import {
   useUserFirebaseOrders,
   useFirebaseOrder,
 } from "@/hooks/useFirebaseOrders";
 import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
+import type { AddToCartProduct } from "@/types/api";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -635,9 +640,139 @@ function OrderDetailDialog({
 }) {
   const { order, loading, error } = useFirebaseOrder(orderId);
   const { user } = useAuth();
+  const { addToCart } = useCart();
+  const router = useRouter();
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [reordering, setReordering] = useState(false);
+
+  const handleBuyAgain = () => {
+    if (!order) return;
+    setReordering(true);
+
+    let addedCount = 0;
+    let skippedCount = 0;
+
+    for (const item of order.items) {
+      const product: AddToCartProduct = {
+        id: item.productId,
+        name: item.name,
+        price: item.price,
+        image: item.image || PLACEHOLDER_IMAGE,
+        slug: item.productId,
+        stock: item.quantity * 10,
+        grower: item.grower,
+        unit: item.unit,
+      };
+
+      const success = addToCart(product, item.quantity);
+      if (success) {
+        addedCount++;
+      } else {
+        skippedCount++;
+      }
+    }
+
+    if (addedCount > 0 && skippedCount === 0) {
+      toast.success(`Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart`);
+    } else if (addedCount > 0 && skippedCount > 0) {
+      toast.warning(
+        `Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart. ${skippedCount} item${skippedCount > 1 ? "s" : ""} skipped (unavailable).`
+      );
+    } else {
+      toast.error("Could not add any items to cart");
+    }
+
+    setReordering(false);
+
+    if (addedCount > 0) {
+      onClose();
+      router.push("/cart");
+    }
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!order) return;
+
+    const receiptHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Receipt - ${order.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #16a34a; padding-bottom: 20px; }
+    .header h1 { font-size: 24px; color: #16a34a; margin-bottom: 4px; }
+    .header p { color: #666; font-size: 14px; }
+    .order-info { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
+    .order-info div { line-height: 1.6; }
+    .order-info strong { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { background: #f5f5f5; text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
+    td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #eee; }
+    td:last-child, th:last-child { text-align: right; }
+    .totals { width: 300px; margin-left: auto; }
+    .totals tr td { padding: 6px 0; border: none; }
+    .totals .total-row td { font-weight: 700; font-size: 16px; border-top: 2px solid #333; padding-top: 10px; }
+    .delivery-info { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+    .footer { text-align: center; color: #999; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>MASH Market</h1>
+    <p>Order Receipt</p>
+  </div>
+  <div class="order-info">
+    <div>
+      <strong>Order Number:</strong> ${order.orderNumber}<br>
+      <strong>Date:</strong> ${formatShortDate(order.createdAt)}<br>
+      <strong>Status:</strong> ${STATUS_CONFIG[order.status]?.label || order.status}
+    </div>
+    <div style="text-align: right;">
+      <strong>Customer:</strong> ${order.userName}<br>
+      <strong>Email:</strong> ${order.userEmail}<br>
+      <strong>Payment:</strong> ${order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod}
+    </div>
+  </div>
+  <div class="delivery-info">
+    <strong>${order.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}:</strong><br>
+    ${order.deliveryMethod === "pickup" ? `${order.pickupLocation?.name || ""} - ${order.pickupLocation?.address || ""}` : order.deliveryAddress?.address || "N/A"}
+  </div>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      ${order.items.map((item) => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>PHP ${item.price.toFixed(2)}</td><td>PHP ${(item.price * item.quantity).toFixed(2)}</td></tr>`).join("")}
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td>PHP ${order.subtotal.toFixed(2)}</td></tr>
+    <tr><td>Tax</td><td>PHP ${order.tax.toFixed(2)}</td></tr>
+    ${order.deliveryFee > 0 ? `<tr><td>Delivery Fee</td><td>PHP ${order.deliveryFee.toFixed(2)}</td></tr>` : ""}
+    <tr class="total-row"><td>Total</td><td>PHP ${order.total.toFixed(2)}</td></tr>
+  </table>
+  <div class="footer">
+    <p>Thank you for shopping with MASH Market!</p>
+    <p>www.mashmarket.app</p>
+  </div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+    const receiptWindow = window.open("", "_blank");
+    if (receiptWindow) {
+      receiptWindow.document.write(receiptHtml);
+      receiptWindow.document.close();
+    } else {
+      toast.error("Please allow popups to download your receipt");
+    }
+  };
 
   if (loading) {
     return (
@@ -1039,6 +1174,34 @@ function OrderDetailDialog({
                 </Button>
               )}
 
+            {/* Buy Again Button - visible for delivered/completed orders */}
+            {["delivered", "completed"].includes(order.status) && (
+              <Button
+                variant="default"
+                className="flex-1"
+                disabled={reordering}
+                onClick={handleBuyAgain}
+              >
+                {reordering ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                )}
+                Buy Again
+              </Button>
+            )}
+
+            {/* Download Receipt Button - visible for delivered/completed orders */}
+            {["delivered", "completed"].includes(order.status) && (
+              <Button
+                variant="outline"
+                onClick={handleDownloadReceipt}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Receipt
+              </Button>
+            )}
+
             {/* Cancel Order Button - visible for cancellable statuses */}
             {["pending_approval", "approved", "processing"].includes(order.status) &&
               !showCancelConfirm && (
@@ -1056,7 +1219,7 @@ function OrderDetailDialog({
               variant="outline"
               onClick={onClose}
               className={
-                !["pending_approval", "approved", "processing", "shipped", "ready_for_pickup"].includes(order.status)
+                !["pending_approval", "approved", "processing", "shipped", "ready_for_pickup", "delivered", "completed"].includes(order.status)
                   ? "w-full"
                   : ""
               }

@@ -1,8 +1,8 @@
 {
-  "projectName": "MASH E-Commerce - Consumer Side Development v2 (COD-Only)",
-  "version": "5.0.0",
-  "branchName": "feature/consumer-side-v2",
-  "description": "Complete consumer-side features: Wishlist Firebase sync, cancel order, delivery tracking, Lalamove production setup, shop pagination, comprehensive tests. Payment is COD-ONLY.",
+  "projectName": "MASH E-Commerce - Consumer Side Development v3 (COD-Only)",
+  "version": "6.0.0",
+  "branchName": "feature/consumer-side-v3",
+  "description": "Complete all consumer-side features from CONSUMER_SIDE_NEXT_STEPS.md: Reorder, receipts, scheduled delivery, recently viewed, category SEO, dynamic sitemap, cart improvements (stock limits, saved for later, empty cart CTA). Payment is COD-ONLY. Excludes online payment, push notifications, coupons, and tax calculation (out of scope).",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-20",
   "paymentMethod": "COD_ONLY",
@@ -262,6 +262,257 @@
         "Test wishlist page renders wishlisted products",
         "Test empty wishlist state",
         "All tests passing"
+      ]
+    },
+    {
+      "id": "ORD-003",
+      "title": "Reorder / Buy Again from Order History",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "acceptanceCriteria": [
+        "Buy Again button visible on orders with status: delivered, completed",
+        "Button NOT visible on pending, processing, shipped, cancelled, rejected orders",
+        "Clicking Buy Again adds ALL items from that order to the cart",
+        "Uses CartContext.addToCart for each item with original quantities",
+        "Shows toast: Added X items to cart",
+        "If an item is out of stock or unavailable, shows warning toast and skips that item",
+        "Redirects to /cart after successful reorder",
+        "Works for both authenticated and guest users"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "ORD-004",
+      "title": "Downloadable / Printable Order Receipt",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "acceptanceCriteria": [
+        "Download Receipt button visible in OrderDetailDialog for delivered/completed orders",
+        "Generates a print-friendly HTML receipt in a new window",
+        "Receipt includes: order ID, date, items with quantities and prices, subtotal, delivery fee, total",
+        "Receipt includes delivery address and payment method (COD)",
+        "Receipt includes MASH branding (logo, company name)",
+        "window.print() called automatically on the receipt page",
+        "Receipt renders correctly on A4 paper size"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx",
+        "src/components/orders/OrderReceipt.tsx"
+      ]
+    },
+    {
+      "id": "LAL-003",
+      "title": "Scheduled Delivery Option in Checkout",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add Schedule Delivery toggle in checkout Step 1 (delivery options)",
+        "When enabled, show date and time picker for delivery schedule",
+        "Minimum schedule time is 1 hour from now",
+        "Maximum schedule time is 7 days from now",
+        "Pass scheduleAt ISO timestamp to Lalamove quotation API",
+        "Display scheduled time in order summary",
+        "Scheduled orders show scheduled time in order history",
+        "Default is immediate delivery (toggle off)"
+      ],
+      "filesChanged": [
+        "src/components/checkout/LalamoveQuote.tsx",
+        "src/app/(shop)/checkout/page.tsx"
+      ]
+    },
+    {
+      "id": "LAL-004",
+      "title": "Delivery Fee Breakdown in Order Details",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Order detail dialog shows delivery fee breakdown when order has Lalamove delivery",
+        "Shows base fare, distance fee, and total delivery fee",
+        "Shows vehicle type used for delivery",
+        "Shows Lalamove order ID for reference",
+        "If scheduled delivery, shows scheduled date/time",
+        "Non-delivery orders show Pickup label instead"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "title": "Recently Viewed Products",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Track product views in localStorage (max 20 products, FIFO)",
+        "Store product ID and timestamp on each product page visit",
+        "Create RecentlyViewed component showing horizontal scrollable carousel",
+        "Display on product detail page below product info",
+        "Display on shop page sidebar or bottom section",
+        "Each card shows product image, name, price",
+        "Clicking navigates to product detail page",
+        "Clear recently viewed option available",
+        "No duplicates in the list (most recent view wins)"
+      ],
+      "filesChanged": [
+        "src/hooks/useRecentlyViewed.ts",
+        "src/components/products/RecentlyViewed.tsx",
+        "src/app/(shop)/product/[slug]/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "title": "Enhanced Category Landing Pages",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Category page at /category/[slug] has SEO metadata (title, description, OpenGraph)",
+        "generateMetadata fetches category data from Sanity for dynamic meta tags",
+        "Category hero section with category name, description, and image from Sanity",
+        "Product count displayed in category header",
+        "Breadcrumb navigation: Home > Shop > Category Name",
+        "Category page uses server-side pagination (24 products per page)",
+        "Category-specific filters work correctly with pagination"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/category/[slug]/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "title": "Dynamic Sitemap with Product and Category Routes",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Sitemap fetches all published products from Sanity with slugs",
+        "Sitemap fetches all categories from Sanity with slugs",
+        "Sitemap fetches all grower profiles from Sanity with slugs",
+        "Sitemap fetches all blog posts from Sanity with slugs",
+        "Each dynamic route has correct lastModified date from Sanity _updatedAt",
+        "Base URL updated to https://www.mashmarket.app",
+        "Static routes remain in sitemap",
+        "Priority values: homepage 1.0, products 0.8, categories 0.7, blog 0.6"
+      ],
+      "filesChanged": [
+        "src/app/sitemap.ts"
+      ]
+    },
+    {
+      "id": "CART-001",
+      "title": "Stock Limit Visual Indicators in Cart",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Disable + button when quantity equals available stock",
+        "Show Max stock: X tooltip or label near quantity controls when at limit",
+        "Apply same stock limit UI to both cart page and mini-cart dropdown",
+        "Stock data fetched from Sanity product stockQuantity field",
+        "If product stock changes while in cart, update limits reactively",
+        "Out of stock items show Out of Stock badge with option to remove"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/components/layout/cart-dropdown.tsx",
+        "src/contexts/CartContext.tsx"
+      ]
+    },
+    {
+      "id": "CART-002",
+      "title": "Save for Later Feature in Cart",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Save for Later button on each cart item",
+        "Saved items move to a Saved for Later section below the cart",
+        "Saved items stored in localStorage (key: mash-saved-for-later)",
+        "Move to Cart button on saved items moves them back to active cart",
+        "Remove button on saved items removes them from saved list",
+        "Saved items count shown in section header",
+        "Saved items persist across page refreshes",
+        "For authenticated users, sync saved items to Firebase"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/contexts/CartContext.tsx"
+      ]
+    },
+    {
+      "id": "CART-003",
+      "title": "Empty Cart Call-to-Action",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Empty cart shows friendly illustration or icon",
+        "Display message: Your cart is empty",
+        "Show primary CTA button: Continue Shopping linking to /shop",
+        "Show secondary CTA: View Wishlist linking to /wishlist (if wishlist has items)",
+        "Show recently viewed products section below CTA (if available)",
+        "Same empty state applies to mini-cart dropdown"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/components/layout/cart-dropdown.tsx"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "title": "Reorder and Receipt Tests",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "testResults": { "unitTests": 26, "buildSuccess": true, "lintSuccess": true, "typeCheckSuccess": true },
+      "acceptanceCriteria": [
+        "Test Buy Again button visibility for delivered/completed orders",
+        "Test Buy Again NOT visible for non-completed orders",
+        "Test Buy Again adds all order items to cart",
+        "Test Buy Again shows warning for unavailable items",
+        "Test Download Receipt button visibility",
+        "Test receipt content includes all required fields",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/__tests__/OrderActions.test.tsx"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "title": "Recently Viewed and Cart Enhancement Tests",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Test recently viewed products stored in localStorage",
+        "Test max 20 products in recently viewed list",
+        "Test no duplicates in recently viewed",
+        "Test stock limit disables + button at max quantity",
+        "Test empty cart CTA renders with correct links",
+        "Test empty cart shows recently viewed if available",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/hooks/__tests__/useRecentlyViewed.test.ts",
+        "src/app/(shop)/cart/__tests__/page.test.tsx"
+      ]
+    },
+    {
+      "id": "TEST-009",
+      "title": "Scheduled Delivery and Sitemap Tests",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Test scheduled delivery toggle enables date/time picker",
+        "Test minimum schedule time validation (1 hour from now)",
+        "Test scheduleAt passed to Lalamove quotation",
+        "Test dynamic sitemap includes product URLs from Sanity",
+        "Test dynamic sitemap includes category and grower URLs",
+        "Test sitemap uses correct base URL",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/components/checkout/__tests__/LalamoveQuote.test.tsx",
+        "src/app/__tests__/sitemap.test.ts"
       ]
     }
   ]
