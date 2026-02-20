@@ -121,6 +121,8 @@ export interface ProductFilters {
   search?: string;
   tags?: string[]; // Filter by product tags
   sortBy?: 'price-asc' | 'price-desc' | 'name' | 'newest' | 'featured';
+  offset?: number; // Server-side pagination: number of products to skip
+  limit?: number;  // Server-side pagination: max products to return
 }
 
 /**

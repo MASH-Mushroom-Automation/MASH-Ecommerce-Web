@@ -74,6 +74,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState<SelectedAddress | null>(null);
   const [lalamoveQuote, setLalamoveQuote] = useState<LalamoveQuoteResult | null>(null);
+  const [lalamoveServiceType, setLalamoveServiceType] = useState<string>("MOTORCYCLE");
   const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
   const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
@@ -717,6 +718,8 @@ export default function CheckoutPage() {
                                         address: deliveryAddress.formattedAddress,
                                       }}
                                       onQuoteReceived={handleQuoteReceived}
+                                      serviceType={lalamoveServiceType}
+                                      onServiceTypeChange={setLalamoveServiceType}
                                     />
                                   )}
                                 </div>

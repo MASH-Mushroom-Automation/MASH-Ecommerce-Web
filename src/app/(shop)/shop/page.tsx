@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -46,8 +46,11 @@ export default function ProductCatalogPage() {
   const [priceRange, setPriceRange] = useState([0, 12000]);
   const [sort, setSort] = useState<ProductFilters["sortBy"]>(initialSort);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [pageSize, setPageSize] = useState(24);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  
+  // Server-side pagination offset
+  const [currentOffset, setCurrentOffset] = useState(0);
   
   // Quick view state
   const [quickViewProduct, setQuickViewProduct] = useState<TransformedProduct | null>(null);
@@ -100,7 +103,13 @@ export default function ProductCatalogPage() {
     setPriceRange([0, 12000]);
     setSearchQuery("");
     setSort("featured");
+    setCurrentOffset(0);
   };
+
+  // Reset offset when filters change (not on offset/pageSize change itself)
+  useEffect(() => {
+    setCurrentOffset(0);
+  }, [debouncedSearchQuery, selectedCategories, selectedTags, priceRange, sort]);
 
   // Check if any filters are active
   const hasActiveFilters = 
@@ -131,6 +140,8 @@ export default function ProductCatalogPage() {
     isAvailable: true,
     search: debouncedSearchQuery.trim() || undefined,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
+    offset: currentOffset,
+    limit: pageSize,
   };
 
   // Toggle tag selection
@@ -142,15 +153,34 @@ export default function ProductCatalogPage() {
     );
   };
 
-  // Fetch products from Sanity CMS
-  const { products: allProducts, loading, error } = useSanityProducts(filters);
+  // Fetch products from Sanity CMS with server-side pagination
+  const { products: fetchedProducts, loading, error, totalCount } = useSanityProducts(filters);
   
   // Fetch categories from Sanity CMS
   const { categories: sanityCategories } = useSanityCategories();
 
-  // Client-side pagination (showing first N products)
-  const displayedProducts = allProducts.slice(0, itemsPerPage);
-  const hasMoreProducts = allProducts.length > displayedProducts.length;
+  // Accumulate products across pagination loads using a ref
+  const accumulatedRef = useRef<TransformedProduct[]>([]);
+  
+  // Track previous offset to detect Load More vs filter change
+  const prevOffsetRef = useRef(0);
+  
+  // When fetchedProducts change, accumulate or reset
+  const displayedProducts = useMemo(() => {
+    if (currentOffset === 0) {
+      // Fresh query (filters changed or initial load) - reset accumulation
+      accumulatedRef.current = fetchedProducts;
+    } else if (currentOffset !== prevOffsetRef.current) {
+      // Load More - append new products (deduplicate by id)
+      const existingIds = new Set(accumulatedRef.current.map(p => p.id));
+      const newProducts = fetchedProducts.filter(p => !existingIds.has(p.id));
+      accumulatedRef.current = [...accumulatedRef.current, ...newProducts];
+    }
+    prevOffsetRef.current = currentOffset;
+    return accumulatedRef.current;
+  }, [fetchedProducts, currentOffset]);
+
+  const hasMoreProducts = totalCount > displayedProducts.length;
 
   // Batch-fetch ratings for displayed products
   const displayedProductIds = displayedProducts.map((p) => p.id);
@@ -173,7 +203,7 @@ export default function ProductCatalogPage() {
   };
 
   const handleLoadMore = () => {
-    setItemsPerPage((prev) => prev + 12);
+    setCurrentOffset(prev => prev + pageSize);
   };
 
   return (
@@ -222,11 +252,11 @@ export default function ProductCatalogPage() {
                       )}
                     >
                       All Products
-                      <span className="text-xs text-muted-foreground">({allProducts.length})</span>
+                      <span className="text-xs text-muted-foreground">({totalCount})</span>
                     </Label>
                   </div>
                   {categories.map((category) => {
-                    const categoryProductCount = allProducts.filter(p => p.category === category.name).length;
+                    const categoryProductCount = displayedProducts.filter(p => p.category === category.name).length;
                     return (
                       <div key={category.slug} className="flex items-center space-x-3">
                         <Checkbox
@@ -382,7 +412,7 @@ export default function ProductCatalogPage() {
               {debouncedSearchQuery && (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Showing results for &ldquo;<span className="font-medium text-foreground">{debouncedSearchQuery}</span>&rdquo;
-                  {allProducts.length === 0 && !loading && " - No products found"}
+                  {totalCount === 0 && !loading && " - No products found"}
                 </p>
               )}
               
@@ -646,8 +676,8 @@ export default function ProductCatalogPage() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={itemsPerPage.toString()}
-                  onValueChange={(value) => setItemsPerPage(Number(value))}
+                  value={pageSize.toString()}
+                  onValueChange={(value) => setPageSize(Number(value))}
                 >
                   <SelectTrigger className="w-full sm:w-[140px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Items per page" />
@@ -701,7 +731,7 @@ export default function ProductCatalogPage() {
 
             {/* Product Grid */}
             {loading ? (
-              <ProductGridSkeleton count={itemsPerPage} />
+              <ProductGridSkeleton count={pageSize} />
             ) : error ? (
               <div className="text-center py-12">
                 <p className="text-destructive mb-4">
@@ -730,7 +760,7 @@ export default function ProductCatalogPage() {
                 {/* Results Count */}
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{allProducts.length}</span> products
+                    Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{totalCount}</span> products
                     {hasActiveFilters && <span className="ml-1">(filtered)</span>}
                   </p>
                   {hasMoreProducts && (
@@ -760,7 +790,7 @@ export default function ProductCatalogPage() {
                         reviewCount={productRatings[product.id]?.totalReviews}
                         tags={product.productTags || []}
                         description={product.description}
-                        onQuickView={(id) => handleQuickView(id, allProducts)}
+                        onQuickView={(id) => handleQuickView(id, displayedProducts)}
                       />
                     ))}
                   </div>

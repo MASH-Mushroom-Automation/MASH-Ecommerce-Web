@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Truck, Clock, MapPin, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LALAMOVE_VEHICLES, type VehicleType } from "@/lib/lalamove/vehicle-types";
 
 export interface LalamoveQuoteResult {
   quotationId: string;
@@ -35,6 +36,8 @@ interface LalamoveQuoteProps {
     phone?: string;
   };
   onQuoteReceived: (quote: LalamoveQuoteResult | null) => void;
+  serviceType?: string;
+  onServiceTypeChange?: (serviceType: string) => void;
   className?: string;
 }
 
@@ -64,6 +67,8 @@ export function LalamoveQuote({
   pickupAddress,
   deliveryAddress,
   onQuoteReceived,
+  serviceType = "MOTORCYCLE",
+  onServiceTypeChange,
   className,
 }: LalamoveQuoteProps) {
   const [loading, setLoading] = useState(false);
@@ -98,7 +103,7 @@ export function LalamoveQuote({
     }
 
     // Create a unique key for this combination of coordinates
-    const coordsKey = `${pickupAddress.lat},${pickupAddress.lng}|${deliveryAddress.lat},${deliveryAddress.lng}`;
+    const coordsKey = `${pickupAddress.lat},${pickupAddress.lng}|${deliveryAddress.lat},${deliveryAddress.lng}|${serviceType}`;
     
     // Skip if we already fetched for these exact coordinates
     if (lastFetchedRef.current === coordsKey) {
@@ -139,7 +144,7 @@ export function LalamoveQuote({
           dropoffLat: deliveryAddress.lat,
           dropoffLng: deliveryAddress.lng,
           dropoffAddress: deliveryAddress.address,
-          serviceType: "MOTORCYCLE", // Best for small mushroom deliveries
+          serviceType: serviceType.toUpperCase(),
         }),
       });
 
@@ -244,7 +249,7 @@ export function LalamoveQuote({
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [pickupAddress.lat, pickupAddress.lng, pickupAddress.address, deliveryAddress.lat, deliveryAddress.lng, deliveryAddress.address, onQuoteReceived]);
+  }, [pickupAddress.lat, pickupAddress.lng, pickupAddress.address, deliveryAddress.lat, deliveryAddress.lng, deliveryAddress.address, serviceType, onQuoteReceived]);
 
   // Fetch quote when addresses change with debouncing
   useEffect(() => {
@@ -312,8 +317,22 @@ export function LalamoveQuote({
     return null;
   }
 
+  // Find the selected vehicle for display
+  const selectedVehicle = LALAMOVE_VEHICLES.find(
+    (v) => v.id === serviceType.toLowerCase() || v.name.toUpperCase() === serviceType
+  ) || LALAMOVE_VEHICLES[0];
+
   return (
-    <Card className={cn("p-4 bg-green-50 border-green-200", className)}>
+    <div className={cn("space-y-3", className)}>
+      {/* Vehicle Type Selector */}
+      {onServiceTypeChange && (
+        <VehicleTypeSelector
+          selectedType={serviceType}
+          onSelect={onServiceTypeChange}
+        />
+      )}
+
+      <Card className="p-4 bg-green-50 border-green-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-green-100 rounded-full">
@@ -359,6 +378,59 @@ export function LalamoveQuote({
         </Button>
       </div>
     </Card>
+    </div>
+  );
+}
+
+/**
+ * Vehicle Type Selector Component
+ */
+function VehicleTypeSelector({
+  selectedType,
+  onSelect,
+}: {
+  selectedType: string;
+  onSelect: (type: string) => void;
+}) {
+  // Show only the 3 most relevant vehicle types for mushroom deliveries
+  const relevantVehicles = LALAMOVE_VEHICLES.slice(0, 3);
+
+  return (
+    <div>
+      <h4 className="text-sm font-semibold text-foreground mb-2">Vehicle Type</h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {relevantVehicles.map((vehicle) => {
+          const isSelected = selectedType.toLowerCase() === vehicle.id;
+          return (
+            <button
+              key={vehicle.id}
+              type="button"
+              onClick={() => onSelect(vehicle.id.toUpperCase())}
+              className={cn(
+                "p-3 rounded-lg border text-left transition-all",
+                isSelected
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border bg-card hover:border-primary/50"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{vehicle.image}</span>
+                <span className="text-sm font-medium text-foreground">{vehicle.name.split(' ').slice(0, 2).join(' ')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Up to {vehicle.weightLimit}kg
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Base fare: ₱{vehicle.baseFare}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        Default: Motorcycle (best for orders under 20kg)
+      </p>
+    </div>
   );
 }
 

@@ -13,7 +13,7 @@ import { sanityClient, listenSafe } from '@/lib/sanity/client';
 import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
 
 // Memory cache to prevent duplicate API calls (1 minute TTL)
-const productCache = new Map<string, { data: TransformedProduct[]; timestamp: number }>();
+const productCache = new Map<string, { data: TransformedProduct[]; totalCount: number; timestamp: number }>();
 const CACHE_TTL = 60000; // 1 minute
 
 // Clear cache on hot reload during development
@@ -26,6 +26,7 @@ interface UseSanityProductsReturn {
   products: TransformedProduct[];
   loading: boolean;
   error: Error | null;
+  totalCount: number;
   refetch: () => void;
 }
 
@@ -47,6 +48,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
   const [products, setProducts] = useState<TransformedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchProducts = useCallback(async () => {
     console.log('🔍 Fetching products from Sanity with filters:', filters);
@@ -162,8 +164,34 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
 
       // Fetch from Sanity
       console.log('📡 Executing GROQ query:', query.substring(0, 200) + '...');
-      const data: SanityProduct[] = await sanityClient.fetch(query);
+      
+      // Server-side pagination: apply GROQ slice when limit is specified
+      let paginatedQuery = query;
+      if (filters?.limit !== undefined) {
+        const offset = filters.offset || 0;
+        paginatedQuery += ` [${offset}...${offset + filters.limit}]`;
+      }
+      
+      // Build count query from the filter portion (everything before the projection)
+      // Extract the filter part to build a count query
+      let countQuery = '';
+      if (filters?.limit !== undefined) {
+        // Extract filter conditions from the original query (before projection)
+        const projectionStart = query.indexOf('] {');
+        if (projectionStart !== -1) {
+          countQuery = `count(${query.substring(0, projectionStart + 1)})`;
+        }
+      }
+      
+      // Execute queries (paginated query + optional count query)
+      const [data, serverCount] = await Promise.all([
+        sanityClient.fetch<SanityProduct[]>(paginatedQuery),
+        countQuery ? sanityClient.fetch<number>(countQuery) : Promise.resolve(-1),
+      ]);
       console.log('📥 Raw Sanity response:', data.length, 'products');
+      if (serverCount >= 0) {
+        console.log('📊 Total matching products:', serverCount);
+      }
       
       // Client-side price filtering (more flexible than GROQ)
       let filteredData = data;
@@ -187,9 +215,12 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       
       // Store in cache BEFORE setting state (use transformed data directly)
       const cacheKey = JSON.stringify(filters || {});
-      productCache.set(cacheKey, { data: transformedProducts, timestamp: Date.now() });
+      const resolvedTotalCount = serverCount >= 0 ? serverCount : transformedProducts.length;
+      productCache.set(cacheKey, { data: transformedProducts, totalCount: resolvedTotalCount, timestamp: Date.now() });
       
       setProducts(transformedProducts);
+      // Set total count: use server count if available, otherwise use array length
+      setTotalCount(resolvedTotalCount);
     } catch (err) {
       console.error('Error fetching products from Sanity:', err);
       setError(err as Error);
@@ -206,6 +237,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       console.log('📦 Using cached products:', cached.data.length);
       setProducts(cached.data);
+      setTotalCount(cached.totalCount);
       setLoading(false);
       return;
     }
@@ -320,6 +352,8 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     filters?.isAvailable,
     filters?.search,
     filters?.sortBy,
+    filters?.offset,
+    filters?.limit,
     fetchProducts,
   ]);
 
@@ -327,6 +361,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     products,
     loading,
     error,
+    totalCount,
     refetch: fetchProducts,
   };
 }

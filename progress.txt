@@ -46,6 +46,7 @@
 - **useProducts Hook Data:** `useProducts()` returns products with `id` (not `_id`) and `stock` (not `stockQuantity`). When passing to forms expecting `_id`, transform: `{ _id: p.id, stockQuantity: p.stock ?? 0 }`.
 - **Stock Management Products Source:** Use `useSanityProducts()` NOT `useProducts()` for stock management. `useProducts()` fetches from NestJS backend (api.mashmarket.app) which has NO products. Sanity CMS is the source of truth for product data.
 - **useSanityProducts vs useProducts:** `useSanityProducts()` → Sanity CMS (has products). `useProducts()` → NestJS backend (no products). For seller pages showing product data, always use Sanity hooks.
+- **useSanityProducts Pagination:** Pass `offset` and `limit` in ProductFilters for server-side GROQ pagination. Returns `totalCount` for total matching products. Without offset/limit, fetches all (backward compatible). Use `useMemo` + refs (not useEffect) to accumulate products across Load More clicks to avoid extra render cycles.
 - **Cal.com Embed Pattern:** Use unique ID selector (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace="booking"]`). Wait for DOM element to exist BEFORE calling `Cal("inline", {...})`. The Cal.com embed.js initializes `window.Cal` asynchronously - always poll for `Cal.loaded === true || Cal.__css` before use.
 - **Cal.com Embed Script URL:** Use `https://app.cal.com/embed/embed.js` (with `app` subdomain). The script expects `window.Cal` to be pre-initialized with queue pattern before loading. Use `initCalNamespace()` helper to set up the queue structure.
 - **Cal.com Initialization Pattern:** Cal.com uses queue pattern. Initialize `window.Cal` as a function that queues calls BEFORE loading embed.js. Wait for `Cal.loaded === true` or `Cal.__css` to confirm full initialization. Use 8s timeout with 100ms polling.
@@ -3037,3 +3038,34 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Investigate if FirebaseCartService debounce can be mocked/disabled in test environment for faster test execution
 
 **Reference:** Following RALPH autonomous agent workflow - Build-First Development Policy + Quality Gate Validation
+
+---
+
+## [2026-02-21] - Consumer Side v2: SHOP-001, WISH-002, WISH-003, LAL-002
+**Completed:** Server-side pagination, optimized wishlist fetch, move to cart, vehicle type selection
+**Files Changed:**
+- src/hooks/useSanityProducts.ts (added offset/limit pagination, totalCount return)
+- src/types/sanity.ts (added offset/limit to ProductFilters)
+- src/app/(shop)/shop/page.tsx (server-side pagination with useMemo accumulation, 24 per page default)
+- src/app/(shop)/shop/__tests__/page.test.tsx (updated pagination tests for server-side model)
+- src/app/(shop)/wishlist/page.tsx (useWishlistProducts, handleMoveToCart, Move to Cart button)
+- src/app/(shop)/wishlist/__tests__/page.test.tsx (updated mocks, added move-to-cart tests)
+- src/hooks/useWishlistProducts.ts (new hook for targeted GROQ fetch by product IDs)
+- src/lib/sanity/queries.ts (added wishlistProductsQuery)
+- src/components/checkout/LalamoveQuote.tsx (serviceType prop, VehicleTypeSelector component)
+- src/app/(shop)/checkout/page.tsx (lalamoveServiceType state)
+
+**Implementation Notes:**
+- SHOP-001: Replaced client-side slice with GROQ [offset...offset+limit]. Parallel count query for totalCount. useMemo+ref accumulation avoids useEffect render cycle issues. Backward compatible (no limit = fetch all).
+- WISH-002: New wishlistProductsQuery fetches only products matching wishlist IDs. Removed expensive fetch-all-then-filter pattern.
+- WISH-003: handleMoveToCart adds to cart + removes from wishlist + toast. "Add All to Cart" also removes from wishlist.
+- LAL-002: VehicleTypeSelector shows Motorcycle/Sedan/SUV with weight limits and base fares. serviceType prop drives quote fetch.
+
+**Learnings for Future Iterations:**
+- useEffect-based state sync causes extra render cycles in tests (assertions fail on intermediate state). Use useMemo+useRef for synchronous derived state.
+- GROQ count queries: Extract filter portion before projection `count(*[_type == "product" && ...])` for efficient server-side counting.
+- Dynamic mock pattern for hooks with parameters: `jest.fn((ids) => ({ products: allMocks.filter(p => ids.includes(p.id)) }))`
+
+**Tests Passing:** [PASS] All 3099 tests (138 suites) | [PASS] Build | [PASS] Lint
+**PRD Status:** 14/14 stories complete (passes: true)
+---
