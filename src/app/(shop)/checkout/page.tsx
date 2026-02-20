@@ -75,6 +75,7 @@ export default function CheckoutPage() {
   const [deliveryAddress, setDeliveryAddress] = useState<SelectedAddress | null>(null);
   const [lalamoveQuote, setLalamoveQuote] = useState<LalamoveQuoteResult | null>(null);
   const [lalamoveServiceType, setLalamoveServiceType] = useState<string>("MOTORCYCLE");
+  const [lalamoveScheduleAt, setLalamoveScheduleAt] = useState<string | undefined>(undefined);
   const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
   const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
@@ -279,6 +280,9 @@ export default function CheckoutPage() {
             }
           : undefined,
         lalamoveQuotationId: lalamoveQuote?.quotationId,
+        lalamoveScheduleAt: lalamoveScheduleAt || undefined,
+        lalamoveVehicleType: lalamoveServiceType || undefined,
+        lalamoveDistance: lalamoveQuote?.distance || undefined,
         paymentMethod: data.paymentMethod,
       };
 
@@ -720,6 +724,8 @@ export default function CheckoutPage() {
                                       onQuoteReceived={handleQuoteReceived}
                                       serviceType={lalamoveServiceType}
                                       onServiceTypeChange={setLalamoveServiceType}
+                                      scheduleAt={lalamoveScheduleAt}
+                                      onScheduleChange={setLalamoveScheduleAt}
                                     />
                                   )}
                                 </div>
@@ -864,11 +870,24 @@ export default function CheckoutPage() {
                           <div className="flex items-start gap-3">
                             <Truck className="h-5 w-5 text-green-600 mt-0.5" />
                             <div>
-                              <p className="font-medium">Same-Day Delivery via Lalamove</p>
+                              <p className="font-medium">
+                                {lalamoveScheduleAt ? "Scheduled Delivery via Lalamove" : "Same-Day Delivery via Lalamove"}
+                              </p>
                               <p className="text-sm text-muted-foreground">{deliveryAddress?.formattedAddress}</p>
                               {lalamoveQuote && (
                                 <p className="text-sm font-medium text-green-600 mt-1">
                                   Delivery Fee: PHP {lalamoveQuote.price.toFixed(2)}
+                                </p>
+                              )}
+                              {lalamoveScheduleAt && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Scheduled: {new Date(lalamoveScheduleAt).toLocaleString("en-PH", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })}
                                 </p>
                               )}
                             </div>

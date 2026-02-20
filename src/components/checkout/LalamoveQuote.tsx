@@ -5,14 +5,17 @@
  *
  * Displays real-time delivery quote from Lalamove API.
  * Shows price, distance, and estimated delivery time.
+ * Supports scheduled delivery with date/time picker.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2, Truck, Clock, MapPin, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Truck, Clock, MapPin, AlertCircle, RefreshCw, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LALAMOVE_VEHICLES, type VehicleType } from "@/lib/lalamove/vehicle-types";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export interface LalamoveQuoteResult {
   quotationId: string;
@@ -20,6 +23,8 @@ export interface LalamoveQuoteResult {
   distance: string;
   estimatedTime: string;
   expiresAt?: string;
+  scheduleAt?: string;
+  vehicleType?: string;
 }
 
 interface LalamoveQuoteProps {
@@ -38,6 +43,8 @@ interface LalamoveQuoteProps {
   onQuoteReceived: (quote: LalamoveQuoteResult | null) => void;
   serviceType?: string;
   onServiceTypeChange?: (serviceType: string) => void;
+  scheduleAt?: string;
+  onScheduleChange?: (scheduleAt: string | undefined) => void;
   className?: string;
 }
 
@@ -63,12 +70,60 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/**
+ * Format a schedule date for display
+ */
+function formatScheduleDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  return date.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+/**
+ * Get minimum schedule time (1 hour from now)
+ */
+function getMinScheduleTime(): Date {
+  const min = new Date();
+  min.setHours(min.getHours() + 1);
+  min.setMinutes(0, 0, 0);
+  return min;
+}
+
+/**
+ * Get maximum schedule time (7 days from now)
+ */
+function getMaxScheduleTime(): Date {
+  const max = new Date();
+  max.setDate(max.getDate() + 7);
+  max.setHours(20, 0, 0, 0);
+  return max;
+}
+
+/**
+ * Format Date to datetime-local input value
+ */
+function toDatetimeLocalValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const h = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${h}:${mi}`;
+}
+
 export function LalamoveQuote({
   pickupAddress,
   deliveryAddress,
   onQuoteReceived,
   serviceType = "MOTORCYCLE",
   onServiceTypeChange,
+  scheduleAt,
+  onScheduleChange,
   className,
 }: LalamoveQuoteProps) {
   const [loading, setLoading] = useState(false);
@@ -103,7 +158,7 @@ export function LalamoveQuote({
     }
 
     // Create a unique key for this combination of coordinates
-    const coordsKey = `${pickupAddress.lat},${pickupAddress.lng}|${deliveryAddress.lat},${deliveryAddress.lng}|${serviceType}`;
+    const coordsKey = `${pickupAddress.lat},${pickupAddress.lng}|${deliveryAddress.lat},${deliveryAddress.lng}|${serviceType}|${scheduleAt || ""}`;
     
     // Skip if we already fetched for these exact coordinates
     if (lastFetchedRef.current === coordsKey) {
@@ -145,6 +200,7 @@ export function LalamoveQuote({
           dropoffLng: deliveryAddress.lng,
           dropoffAddress: deliveryAddress.address,
           serviceType: serviceType.toUpperCase(),
+          ...(scheduleAt ? { scheduleAt } : {}),
         }),
       });
 
@@ -211,8 +267,10 @@ export function LalamoveQuote({
           quotationId: data.data.quotationId,
           price: totalPrice,
           distance: `${data.data.distance?.value || "?"} ${data.data.distance?.unit || "km"}`,
-          estimatedTime: "30-45 mins", // Lalamove doesn't provide ETA in quote
+          estimatedTime: scheduleAt ? formatScheduleDate(scheduleAt) : "30-45 mins",
           expiresAt: data.data.expiresAt,
+          scheduleAt: scheduleAt || undefined,
+          vehicleType: serviceType,
         };
 
         setQuote(quoteData);
@@ -249,7 +307,7 @@ export function LalamoveQuote({
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [pickupAddress.lat, pickupAddress.lng, pickupAddress.address, deliveryAddress.lat, deliveryAddress.lng, deliveryAddress.address, serviceType, onQuoteReceived]);
+  }, [pickupAddress.lat, pickupAddress.lng, pickupAddress.address, deliveryAddress.lat, deliveryAddress.lng, deliveryAddress.address, serviceType, scheduleAt, onQuoteReceived]);
 
   // Fetch quote when addresses change with debouncing
   useEffect(() => {
@@ -332,6 +390,14 @@ export function LalamoveQuote({
         />
       )}
 
+      {/* Schedule Delivery Toggle */}
+      {onScheduleChange && (
+        <ScheduleDeliverySelector
+          scheduleAt={scheduleAt}
+          onScheduleChange={onScheduleChange}
+        />
+      )}
+
       <Card className="p-4 bg-green-50 border-green-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -340,7 +406,7 @@ export function LalamoveQuote({
           </div>
           <div>
             <p className="font-semibold text-green-900">
-              Lalamove Same-Day Delivery
+              {quote.scheduleAt ? "Lalamove Scheduled Delivery" : "Lalamove Same-Day Delivery"}
             </p>
             <div className="flex items-center gap-4 text-sm text-green-700 mt-1">
               <span className="flex items-center gap-1">
@@ -352,6 +418,12 @@ export function LalamoveQuote({
                 {quote.estimatedTime}
               </span>
             </div>
+            {quote.scheduleAt && (
+              <div className="flex items-center gap-1 text-sm text-green-700 mt-1">
+                <CalendarClock className="h-3 w-3" />
+                <span>Scheduled: {formatScheduleDate(quote.scheduleAt)}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="text-right">
@@ -430,6 +502,103 @@ function VehicleTypeSelector({
       <p className="text-xs text-muted-foreground mt-1">
         Default: Motorcycle (best for orders under 20kg)
       </p>
+    </div>
+  );
+}
+
+/**
+ * Schedule Delivery Selector Component
+ */
+function ScheduleDeliverySelector({
+  scheduleAt,
+  onScheduleChange,
+}: {
+  scheduleAt?: string;
+  onScheduleChange: (scheduleAt: string | undefined) => void;
+}) {
+  const isScheduled = !!scheduleAt;
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const minTime = useMemo(() => getMinScheduleTime(), []);
+  const maxTime = useMemo(() => getMaxScheduleTime(), []);
+
+  const handleToggle = (checked: boolean) => {
+    if (checked) {
+      // Default to minimum schedule time (1 hour from now)
+      const defaultTime = getMinScheduleTime();
+      onScheduleChange(defaultTime.toISOString());
+      setValidationError(null);
+    } else {
+      onScheduleChange(undefined);
+      setValidationError(null);
+    }
+  };
+
+  const handleDateTimeChange = (value: string) => {
+    const selected = new Date(value);
+    const now = new Date();
+    const minAllowed = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+
+    if (selected < minAllowed) {
+      setValidationError("Schedule must be at least 1 hour from now");
+      return;
+    }
+
+    const maxAllowed = getMaxScheduleTime();
+    if (selected > maxAllowed) {
+      setValidationError("Schedule cannot be more than 7 days from now");
+      return;
+    }
+
+    setValidationError(null);
+    onScheduleChange(selected.toISOString());
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-4 w-4 text-primary" />
+          <Label htmlFor="schedule-toggle" className="text-sm font-medium cursor-pointer">
+            Schedule Delivery
+          </Label>
+        </div>
+        <Switch
+          id="schedule-toggle"
+          checked={isScheduled}
+          onCheckedChange={handleToggle}
+        />
+      </div>
+
+      {isScheduled && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Pick a date and time for your delivery (1 hour to 7 days from now)
+          </p>
+          <input
+            type="datetime-local"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            value={scheduleAt ? toDatetimeLocalValue(new Date(scheduleAt)) : ""}
+            min={toDatetimeLocalValue(minTime)}
+            max={toDatetimeLocalValue(maxTime)}
+            onChange={(e) => handleDateTimeChange(e.target.value)}
+          />
+          {validationError && (
+            <p className="text-xs text-destructive">{validationError}</p>
+          )}
+          {scheduleAt && !validationError && (
+            <p className="text-xs text-muted-foreground">
+              Delivery scheduled for: {formatScheduleDate(scheduleAt)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {!isScheduled && (
+        <p className="text-xs text-muted-foreground">
+          Default: Immediate delivery (driver assigned right away)
+        </p>
+      )}
     </div>
   );
 }

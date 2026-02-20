@@ -189,10 +189,10 @@ export function CartDropdown() {
                                   );
                                 }
                               }}
-                              // Disable button when quantity is 1
-                              disabled={item.quantity <= 1}
+                              // Disable button when quantity is 1 or out of stock
+                              disabled={item.quantity <= 1 || item.stock <= 0}
                               className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
-                                item.quantity <= 1
+                                item.quantity <= 1 || item.stock <= 0
                                   ? "opacity-50 cursor-not-allowed" // Disabled styles
                                   : "hover:bg-muted/80" // Active styles
                               }`}
@@ -212,13 +212,30 @@ export function CartDropdown() {
                                   item.quantity + 1,
                                 )
                               }
-                              className="w-8 h-8 flex items-center justify-center hover:bg-muted/80 rounded transition-colors"
+                              disabled={item.quantity >= item.stock}
+                              className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                                item.quantity >= item.stock
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : "hover:bg-muted/80"
+                              }`}
                               aria-label="Increase quantity"
+                              title={item.quantity >= item.stock ? `Max stock: ${item.stock}` : undefined}
                             >
                               <Plus className="h-4 w-4 text-foreground" />
                             </button>
                           </div>
                         </div>
+                        {/* Stock limit indicator */}
+                        {item.stock > 0 && item.quantity >= item.stock && (
+                          <p className="text-xs text-muted-foreground text-right mt-1">
+                            Max: {item.stock}
+                          </p>
+                        )}
+                        {item.stock <= 0 && (
+                          <p className="text-xs text-destructive text-right mt-1 font-medium">
+                            Out of Stock
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

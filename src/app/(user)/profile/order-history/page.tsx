@@ -33,6 +33,7 @@ import {
   Navigation,
   ShoppingCart,
   FileText,
+  CalendarClock,
 } from "lucide-react";
 import {
   Dialog,
@@ -49,6 +50,7 @@ import {
 } from "@/hooks/useFirebaseOrders";
 import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
 import type { AddToCartProduct } from "@/types/api";
+import { LALAMOVE_VEHICLES } from "@/lib/lalamove/vehicle-types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -996,7 +998,7 @@ function OrderDetailDialog({
             <h4 className="text-sm font-semibold text-foreground mb-2">
               Delivery
             </h4>
-            <div className="bg-muted/40 dark:bg-muted/20 rounded-xl p-3.5">
+            <div className="bg-muted/40 dark:bg-muted/20 rounded-xl p-3.5 space-y-3">
               {order.deliveryMethod === "pickup" ? (
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0">
@@ -1011,17 +1013,90 @@ function OrderDetailDialog({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
-                    <Truck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
+                      <Truck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">Lalamove Delivery</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {order.deliveryAddress?.address}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">Lalamove Delivery</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {order.deliveryAddress?.address}
-                    </p>
-                  </div>
-                </div>
+
+                  {/* Delivery Fee Breakdown */}
+                  {order.deliveryFee > 0 && (
+                    <div className="border-t border-border/50 pt-2.5 space-y-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fee Breakdown</p>
+                      {order.lalamoveVehicleType && (() => {
+                        const vehicle = LALAMOVE_VEHICLES.find(
+                          (v) => v.id === order.lalamoveVehicleType?.toLowerCase() || v.name.toUpperCase() === order.lalamoveVehicleType
+                        );
+                        return vehicle ? (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Vehicle: {vehicle.name}</span>
+                            <span className="text-foreground">{vehicle.image}</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Vehicle</span>
+                            <span className="text-foreground">{order.lalamoveVehicleType}</span>
+                          </div>
+                        );
+                      })()}
+                      {order.lalamoveDistance && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Distance</span>
+                          <span className="text-foreground">{order.lalamoveDistance}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-muted-foreground">Delivery Fee</span>
+                        <span className="text-foreground">{formatCurrency(order.deliveryFee)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lalamove Reference IDs */}
+                  {(order.lalamoveQuotationId || order.lalamoveOrderId) && (
+                    <div className="border-t border-border/50 pt-2.5 space-y-1">
+                      {order.lalamoveOrderId && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Lalamove Order ID</span>
+                          <span className="font-mono text-foreground">{order.lalamoveOrderId}</span>
+                        </div>
+                      )}
+                      {order.lalamoveQuotationId && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Quotation ID</span>
+                          <span className="font-mono text-foreground">{order.lalamoveQuotationId}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Scheduled Delivery Time */}
+                  {order.lalamoveScheduleAt && (
+                    <div className="border-t border-border/50 pt-2.5">
+                      <div className="flex items-center gap-2 text-xs">
+                        <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-muted-foreground">Scheduled:</span>
+                        <span className="font-medium text-foreground">
+                          {new Date(order.lalamoveScheduleAt).toLocaleString("en-PH", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

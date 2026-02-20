@@ -57,6 +57,8 @@ import { useChat } from "@/contexts/ChatContext";
 import type { MediaItem } from "@/types/sanity";
 
 import { useStockSync } from "@/hooks/useStockSync";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { RecentlyViewed } from "@/components/products/RecentlyViewed";
 
 // Placeholder image for products without images
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
@@ -144,6 +146,7 @@ export default function ProductDetailPage({ params }: Props) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const { trackView } = useRecentlyViewed();
   const dynamicStock = useStockSync(
     product?.id || "",
     product?.stock || product?.quantityInStock || 0,
@@ -173,8 +176,9 @@ export default function ProductDetailPage({ params }: Props) {
         price: product.price,
         category: product.category,
       });
+      trackView(product.id);
     }
-  }, [product]);
+  }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Chat context
   const { setIsOpen: openChat, sendMessage: sendChatMessage } = useChat();
@@ -930,6 +934,13 @@ export default function ProductDetailPage({ params }: Props) {
               />
             </div>
           </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/*  RECENTLY VIEWED                                             */}
+        {/* ============================================================ */}
+        <section className="mt-14">
+          <RecentlyViewed excludeProductId={product.id} maxDisplay={8} />
         </section>
       </div>
     </div>

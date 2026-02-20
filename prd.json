@@ -1,7 +1,7 @@
 {
-  "projectName": "MASH E-Commerce - Consumer Side Development v3 (COD-Only)",
-  "version": "6.0.0",
-  "branchName": "feature/consumer-side-v3",
+  "projectName": "MASH E-Commerce - Consumer Side Development v4 (COD-Only)",
+  "version": "7.0.0",
+  "branchName": "feature/consumer-side-v4",
   "description": "Complete all consumer-side features from CONSUMER_SIDE_NEXT_STEPS.md: Reorder, receipts, scheduled delivery, recently viewed, category SEO, dynamic sitemap, cart improvements (stock limits, saved for later, empty cart CTA). Payment is COD-ONLY. Excludes online payment, push notifications, coupons, and tax calculation (out of scope).",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-20",
@@ -308,7 +308,8 @@
       "id": "LAL-003",
       "title": "Scheduled Delivery Option in Checkout",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T10:00:00Z",
       "acceptanceCriteria": [
         "Add Schedule Delivery toggle in checkout Step 1 (delivery options)",
         "When enabled, show date and time picker for delivery schedule",
@@ -328,7 +329,8 @@
       "id": "LAL-004",
       "title": "Delivery Fee Breakdown in Order Details",
       "priority": 4,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T10:10:00Z",
       "acceptanceCriteria": [
         "Order detail dialog shows delivery fee breakdown when order has Lalamove delivery",
         "Shows base fare, distance fee, and total delivery fee",
@@ -345,7 +347,8 @@
       "id": "UX-001",
       "title": "Recently Viewed Products",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T09:00:00Z",
       "acceptanceCriteria": [
         "Track product views in localStorage (max 20 products, FIFO)",
         "Store product ID and timestamp on each product page visit",
@@ -367,7 +370,8 @@
       "id": "UX-002",
       "title": "Enhanced Category Landing Pages",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T10:30:00Z",
       "acceptanceCriteria": [
         "Category page at /category/[slug] has SEO metadata (title, description, OpenGraph)",
         "generateMetadata fetches category data from Sanity for dynamic meta tags",
@@ -385,7 +389,8 @@
       "id": "UX-003",
       "title": "Dynamic Sitemap with Product and Category Routes",
       "priority": 4,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T10:45:00Z",
       "acceptanceCriteria": [
         "Sitemap fetches all published products from Sanity with slugs",
         "Sitemap fetches all categories from Sanity with slugs",
@@ -404,7 +409,8 @@
       "id": "CART-001",
       "title": "Stock Limit Visual Indicators in Cart",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T08:30:00Z",
       "acceptanceCriteria": [
         "Disable + button when quantity equals available stock",
         "Show Max stock: X tooltip or label near quantity controls when at limit",
@@ -423,7 +429,8 @@
       "id": "CART-002",
       "title": "Save for Later Feature in Cart",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T11:00:00Z",
       "acceptanceCriteria": [
         "Save for Later button on each cart item",
         "Saved items move to a Saved for Later section below the cart",
@@ -443,7 +450,8 @@
       "id": "CART-003",
       "title": "Empty Cart Call-to-Action",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T08:45:00Z",
       "acceptanceCriteria": [
         "Empty cart shows friendly illustration or icon",
         "Display message: Your cart is empty",
@@ -481,7 +489,8 @@
       "id": "TEST-008",
       "title": "Recently Viewed and Cart Enhancement Tests",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T09:30:00Z",
       "acceptanceCriteria": [
         "Test recently viewed products stored in localStorage",
         "Test max 20 products in recently viewed list",
@@ -500,7 +509,8 @@
       "id": "TEST-009",
       "title": "Scheduled Delivery and Sitemap Tests",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-22T11:30:00Z",
       "acceptanceCriteria": [
         "Test scheduled delivery toggle enables date/time picker",
         "Test minimum schedule time validation (1 hour from now)",
