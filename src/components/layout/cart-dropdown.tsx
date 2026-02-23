@@ -132,7 +132,7 @@ export function CartDropdown() {
 
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md flex flex-col p-0 gap-0"
+        className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden"
       >
         <div className="bg-primary px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

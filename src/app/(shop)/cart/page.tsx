@@ -68,6 +68,10 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
+    if (selectedItems.size === 0) {
+      toast.error("Please select items to checkout");
+      return;
+    }
     router.push("/checkout");
   };
 
@@ -119,6 +123,20 @@ export default function CartPage() {
   };
 
   const selectedCount = selectedItems.size;
+  const selectedCartItems = items.filter((item) =>
+    selectedItems.has(item.productId),
+  );
+  const selectedItemCount = selectedCartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const selectedSubtotal =
+    selectedCount > 0
+      ? selectedCartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      )
+      : 0;
 
   // Loading state
   if (loading) {
@@ -432,10 +450,10 @@ export default function CartPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Subtotal ({summary.itemCount} items)
+                      Subtotal ({selectedItemCount} {selectedItemCount === 1 ? "item" : "items"})
                     </span>
                     <span className="font-medium">
-                      ₱{summary.subtotal.toLocaleString()}
+                      ₱{selectedSubtotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -452,7 +470,7 @@ export default function CartPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total</span>
                   <span className="text-xl font-bold text-primary">
-                    ₱{summary.total.toLocaleString()}
+                    ₱{selectedSubtotal.toLocaleString()}
                   </span>
                 </div>
 
@@ -461,6 +479,7 @@ export default function CartPage() {
                   onClick={handleCheckout}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   size="lg"
+                  disabled={selectedCount === 0}
                 >
                   Proceed to Checkout
                   <ArrowRight className="ml-2 h-4 w-4" />

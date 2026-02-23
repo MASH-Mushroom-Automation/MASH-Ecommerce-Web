@@ -98,11 +98,11 @@ const sidebarLinks = [
     icon: MapPin,
     label: "Address Management",
   },
-  {
-    href: "/seller/handover",
-    icon: Store,
-    label: "Handover Center Pickup",
-  },
+  // {
+  //   href: "/seller/handover",
+  //   icon: Store,
+  //   label: "Handover Center Pickup",
+  // },
   {
     href: "/seller/my-reviews",
     icon: MessageSquare,
@@ -118,11 +118,11 @@ const sidebarLinks = [
     icon: BarChart3,
     label: "Review Analytics",
   },
-  {
-    href: "/seller/refund",
-    icon: RotateCcw,
-    label: "Refund",
-  },
+  // {
+  //   href: "/seller/refund",
+  //   icon: RotateCcw,
+  //   label: "Refund",
+  // },
   {
     href: "/seller/settings",
     icon: Settings,
