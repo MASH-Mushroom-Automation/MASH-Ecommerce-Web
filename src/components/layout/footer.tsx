@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { SocialLinks } from "@/components/common/social-links";
+import { PaymentLogos } from "@/components/common/payment-logos";
 import { useSanitySiteSettings, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 export function Footer() {
@@ -228,6 +229,9 @@ export function Footer() {
           </div>
         </div>
       </nav>
+
+      {/* Payment Method Logos */}
+      <PaymentLogos />
 
       {/* Copyright Bar - Real-time from Sanity CMS */}
       <div className="border-t border-border pt-3 pb-4 text-center text-xs text-muted-foreground">

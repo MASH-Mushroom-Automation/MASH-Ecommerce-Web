@@ -30,6 +30,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { CartItem, AddToCartProduct } from "@/types/api";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
+import { CrossSell } from "@/components/cart/CrossSell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -601,6 +602,9 @@ export default function CartPage() {
             </Card>
           </div>
         </div>
+
+        {/* Cross-Sell Section */}
+        <CrossSell excludeIds={items.map((item) => item.id)} />
       </div>
     </div>
   );

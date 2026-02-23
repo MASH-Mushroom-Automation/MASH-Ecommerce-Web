@@ -13,10 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { FilterSidebar } from "@/components/shop/FilterSidebar";
 import { SlidersHorizontal, Grid, List, Search, X, LayoutGrid, Rows3 } from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
@@ -212,178 +210,26 @@ export function ShopClient() {
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
-            <div className="bg-card rounded-lg shadow-sm p-5 space-y-5 sticky top-4">
-              {/* Filter Header with Clear Button */}
-              <div className="flex items-center justify-between pb-3 border-b border-border">
-                <h2 className="font-bold text-foreground text-lg">Filters</h2>
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-
-              {/* Categories Filter */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
-                  Categories
-                  {selectedCategories.length > 0 && (
-                    <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                      {selectedCategories.length}
-                    </span>
-                  )}
-                </h3>
-                <div className="space-y-2">
-                  {/* All Categories Option */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="category-all"
-                      checked={selectedCategories.length === 0}
-                      onCheckedChange={() => setSelectedCategories([])}
-                    />
-                    <Label
-                      htmlFor="category-all"
-                      className={cn(
-                        "text-sm cursor-pointer font-normal flex items-center justify-between w-full",
-                        selectedCategories.length === 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                      )}
-                    >
-                      All Products
-                      <span className="text-xs text-muted-foreground">({totalCount})</span>
-                    </Label>
-                  </div>
-                  {categories.map((category) => {
-                    const categoryProductCount = displayedProducts.filter(p => p.category === category.name).length;
-                    return (
-                      <div key={category.slug} className="flex items-center space-x-3">
-                        <Checkbox
-                          id={`category-${category.slug}`}
-                          checked={selectedCategories.includes(category.slug)}
-                          onCheckedChange={() => toggleCategory(category.slug)}
-                        />
-                        <Label
-                          htmlFor={`category-${category.slug}`}
-                          className={cn(
-                            "text-sm cursor-pointer font-normal flex items-center justify-between w-full",
-                            selectedCategories.includes(category.slug) ? "text-foreground font-medium" : "text-muted-foreground"
-                          )}
-                        >
-                          {category.name}
-                          <span className="text-xs text-muted-foreground">({categoryProductCount})</span>
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Separator */}
-              <div className="border-t border-border" />
-
-              {/* Price Range Filter */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-3 text-sm">
-                  Price Range
-                  {(priceRange[0] > 0 || priceRange[1] < 12000) && (
-                    <span className="ml-2 text-xs text-primary font-normal">
-                      (₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()})
-                    </span>
-                  )}
-                </h3>
-                <div className="space-y-4">
-                  <Slider
-                    min={0}
-                    max={12000}
-                    step={50}
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    className="w-full"
-                  />
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
-                      <input
-                        type="number"
-                        placeholder="Min"
-                        className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        value={priceRange[0] || ""}
-                        min={0}
-                        max={priceRange[1]}
-                        onChange={(e) => {
-                          const val = Math.max(0, Math.min(Number(e.target.value) || 0, priceRange[1]));
-                          setPriceRange([val, priceRange[1]]);
-                        }}
-                      />
-                    </div>
-                    <span className="text-muted-foreground text-sm">to</span>
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        value={priceRange[1] || ""}
-                        min={priceRange[0]}
-                        max={12000}
-                        onChange={(e) => {
-                          const val = Math.max(priceRange[0], Math.min(Number(e.target.value) || 12000, 12000));
-                          setPriceRange([priceRange[0], val]);
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {(priceRange[0] > 0 || priceRange[1] < 12000) && (
-                    <button
-                      onClick={() => setPriceRange([0, 12000])}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                    >
-                      Reset price
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Separator */}
-              <div className="border-t border-border" />
-
-              {/* Product Tags Filter */}
-              <div>
-                <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
-                  Quick Tags
-                  {selectedTags.length > 0 && (
-                    <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                      {selectedTags.length}
-                    </span>
-                  )}
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {popularTags.map((tag) => (
-                    <button
-                      key={tag.value}
-                      onClick={() => toggleTag(tag.value)}
-                      className={cn(
-                        "px-3 py-1.5 text-xs rounded-full border transition-all duration-200",
-                        selectedTags.includes(tag.value)
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:border-primary/30"
-                      )}
-                    >
-                      {tag.label}
-                    </button>
-                  ))}
-                </div>
-                {selectedTags.length > 0 && (
-                  <button
-                    onClick={() => setSelectedTags([])}
-                    className="mt-3 text-xs text-muted-foreground hover:text-foreground underline"
-                  >
-                    Clear tags
-                  </button>
-                )}
-              </div>
+            <div className="bg-card rounded-lg shadow-sm p-5 sticky top-4">
+              <FilterSidebar
+                variant="desktop"
+                categories={categories}
+                selectedCategories={selectedCategories}
+                toggleCategory={toggleCategory}
+                clearCategories={() => setSelectedCategories([])}
+                selectedTags={selectedTags}
+                toggleTag={toggleTag}
+                clearTags={() => setSelectedTags([])}
+                priceRange={priceRange}
+                setPriceRange={setPriceRange}
+                totalCount={totalCount}
+                hasActiveFilters={hasActiveFilters}
+                clearAllFilters={clearAllFilters}
+                popularTags={popularTags}
+                getCategoryCount={(name) =>
+                  displayedProducts.filter((p) => p.category === name).length
+                }
+              />
             </div>
           </aside>
 
@@ -502,161 +348,25 @@ export function ShopClient() {
                       )}
                     </div>
                     <SheetDescription className="sr-only">Filter products by category, price, and tags</SheetDescription>
-                    <div className="space-y-5">
-                      {/* Categories */}
-                      <div>
-                        <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
-                          Categories
-                          {selectedCategories.length > 0 && (
-                            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                              {selectedCategories.length}
-                            </span>
-                          )}
-                        </h3>
-                        <div className="space-y-2">
-                          {/* All Categories Option */}
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              id="mobile-category-all"
-                              checked={selectedCategories.length === 0}
-                              onCheckedChange={() => setSelectedCategories([])}
-                            />
-                            <Label
-                              htmlFor="mobile-category-all"
-                              className={cn(
-                                "text-sm cursor-pointer font-normal",
-                                selectedCategories.length === 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                              )}
-                            >
-                              All Products
-                            </Label>
-                          </div>
-                          {categories.map((category) => (
-                            <div
-                              key={category.slug}
-                              className="flex items-center space-x-3"
-                            >
-                              <Checkbox
-                                id={`mobile-category-${category.slug}`}
-                                checked={selectedCategories.includes(category.slug)}
-                                onCheckedChange={() => toggleCategory(category.slug)}
-                              />
-                              <Label
-                                htmlFor={`mobile-category-${category.slug}`}
-                                className={cn(
-                                  "text-sm cursor-pointer font-normal",
-                                  selectedCategories.includes(category.slug) ? "text-foreground font-medium" : "text-muted-foreground"
-                                )}
-                              >
-                                {category.name}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Separator */}
-                      <div className="border-t border-border" />
-
-                      {/* Price Range */}
-                      <div>
-                        <h3 className="font-semibold text-foreground mb-3 text-sm">
-                          Price Range
-                        </h3>
-                        <div className="space-y-4">
-                          <Slider
-                            min={0}
-                            max={12000}
-                            step={50}
-                            value={priceRange}
-                            onValueChange={setPriceRange}
-                            className="w-full"
-                          />
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
-                              <input
-                                type="number"
-                                placeholder="Min"
-                                className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background"
-                                value={priceRange[0] || ""}
-                                min={0}
-                                onChange={(e) => {
-                                  const val = Math.max(0, Math.min(Number(e.target.value) || 0, priceRange[1]));
-                                  setPriceRange([val, priceRange[1]]);
-                                }}
-                              />
-                            </div>
-                            <span className="text-muted-foreground text-sm">to</span>
-                            <div className="relative flex-1">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₱</span>
-                              <input
-                                type="number"
-                                placeholder="Max"
-                                className="w-full pl-7 pr-2 py-2 border border-border rounded-md text-sm bg-background"
-                                value={priceRange[1] || ""}
-                                max={12000}
-                                onChange={(e) => {
-                                  const val = Math.max(priceRange[0], Math.min(Number(e.target.value) || 12000, 12000));
-                                  setPriceRange([priceRange[0], val]);
-                                }}
-                              />
-                            </div>
-                          </div>
-                          {(priceRange[0] > 0 || priceRange[1] < 12000) && (
-                            <button
-                              onClick={() => setPriceRange([0, 12000])}
-                              className="text-xs text-muted-foreground hover:text-foreground underline"
-                            >
-                              Reset price
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Separator */}
-                      <div className="border-t border-border" />
-
-                      {/* Product Tags Filter (Mobile) */}
-                      <div>
-                        <h3 className="font-semibold text-foreground mb-3 text-sm flex items-center gap-2">
-                          Quick Tags
-                          {selectedTags.length > 0 && (
-                            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                              {selectedTags.length}
-                            </span>
-                          )}
-                        </h3>
-                        <div className="flex flex-wrap gap-1.5">
-                          {popularTags.map((tag) => (
-                            <button
-                              key={tag.value}
-                              onClick={() => toggleTag(tag.value)}
-                              className={cn(
-                                "px-3 py-1.5 text-xs rounded-full border transition-all duration-200",
-                                selectedTags.includes(tag.value)
-                                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                  : "bg-background text-muted-foreground border-border hover:bg-muted/50"
-                              )}
-                            >
-                              {tag.label}
-                            </button>
-                          ))}
-                        </div>
-                        {selectedTags.length > 0 && (
-                          <button
-                            onClick={() => setSelectedTags([])}
-                            className="mt-3 text-xs text-muted-foreground hover:text-foreground underline"
-                          >
-                            Clear tags
-                          </button>
-                        )}
-                      </div>
-
-                      <Button className="w-full bg-primary hover:bg-primary/90 mt-4">
-                        Apply Filters
-                      </Button>
-                    </div>
+                    <FilterSidebar
+                      variant="mobile"
+                      categories={categories}
+                      selectedCategories={selectedCategories}
+                      toggleCategory={toggleCategory}
+                      clearCategories={() => setSelectedCategories([])}
+                      selectedTags={selectedTags}
+                      toggleTag={toggleTag}
+                      clearTags={() => setSelectedTags([])}
+                      priceRange={priceRange}
+                      setPriceRange={setPriceRange}
+                      totalCount={totalCount}
+                      hasActiveFilters={hasActiveFilters}
+                      clearAllFilters={clearAllFilters}
+                      popularTags={popularTags}
+                    />
+                    <Button className="w-full bg-primary hover:bg-primary/90 mt-4">
+                      Apply Filters
+                    </Button>
                   </div>
                 </SheetContent>
               </Sheet>

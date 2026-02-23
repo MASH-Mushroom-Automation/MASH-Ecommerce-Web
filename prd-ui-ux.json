@@ -5,12 +5,12 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T15:30:00Z",
+  "lastUpdated": "2026-02-24T16:30:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 19,
-  "currentPhase": "2 - Shopping Experience Enhancement",
+  "completedStories": 25,
+  "currentPhase": "3 - Checkout & Auth Redesign",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
@@ -164,6 +164,42 @@
       "completedAt": "2026-02-24T15:15:00Z",
       "filesChanged": ["src/components/common/back-to-top.tsx", "src/app/client-layout.tsx"],
       "summary": "Created BackToTop component with fixed bottom-right position (bottom-20 mobile, lg:bottom-6). Shows after 1vh scroll with fade animation. Smooth scroll to top with ChevronUp icon. Added to client-layout.tsx after MobileBottomNav."
+    },
+    {
+      "storyId": "UIUX-029",
+      "completedAt": "2026-02-24T16:00:00Z",
+      "filesChanged": ["src/components/shop/FilterSidebar.tsx", "src/app/(shop)/shop/ShopClient.tsx"],
+      "summary": "Created FilterSidebar component with variant prop (desktop/mobile). Extracted ~300 lines of duplicated filter logic (categories, price range, tags) from ShopClient. Desktop variant shows product counts per category; mobile variant uses mobile- id prefix. Removed unused Checkbox, Label, Slider imports from ShopClient."
+    },
+    {
+      "storyId": "UIUX-030",
+      "completedAt": "2026-02-24T16:05:00Z",
+      "filesChanged": ["src/components/product/StickyAddToCartBar.tsx", "src/app/(shop)/product/[slug]/ProductDetailClient.tsx"],
+      "summary": "Created StickyAddToCartBar component with IntersectionObserver-based visibility. Fixed bottom-16 (above MobileBottomNav), lg:hidden. Shows product name, price, quantity controls, compact Add button. Wired into ProductDetailClient with useRef on quantity div."
+    },
+    {
+      "storyId": "UIUX-022",
+      "completedAt": "2026-02-24T16:10:00Z",
+      "filesChanged": ["src/components/cart/CrossSell.tsx", "src/app/(shop)/cart/page.tsx"],
+      "summary": "Created CrossSell component using useSanityFeaturedProducts hook. Filters out cart items by ID, renders ProductCard grid (2/3/4 cols responsive). Loading skeleton and empty state handling. Wired into cart page below main grid."
+    },
+    {
+      "storyId": "UIUX-026",
+      "completedAt": "2026-02-24T16:15:00Z",
+      "filesChanged": ["src/components/common/payment-logos.tsx", "src/components/layout/footer.tsx"],
+      "summary": "Created PaymentLogos component with PAYMENT_METHODS array (GCash, Maya, Visa, Mastercard) using Next.js Image. Grayscale-to-color hover effect. COD text badge. Rendered above copyright bar in footer."
+    },
+    {
+      "storyId": "UIUX-027",
+      "completedAt": "2026-02-24T16:20:00Z",
+      "filesChanged": ["src/components/cms/NewsletterSignup.tsx", "src/app/page.tsx"],
+      "summary": "Created NewsletterSignup component with Zod email validation, dynamic Firestore import for newsletter_subscribers collection, duplicate email check. bg-primary section with Mail icon. Rendered after TestimonialsSection on homepage."
+    },
+    {
+      "storyId": "UIUX-028",
+      "completedAt": "2026-02-24T16:25:00Z",
+      "filesChanged": ["src/components/cms/HowItWorks.tsx", "src/app/page.tsx"],
+      "summary": "Created HowItWorks component with 3-step visual guide (Browse/Cart/Delivered). Desktop horizontal connecting line, mobile vertical arrows. Number badges on step circles. Rendered between FeaturedCategories and WhyMASH on homepage."
     }
   ],
   "stories": [
@@ -680,7 +716,8 @@
       "title": "Add Cross-Sell Section to Cart Page",
       "phase": "2.4",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:10:00Z",
       "acceptanceCriteria": [
         "Create src/components/cart/CrossSell.tsx component",
         "Component receives current cart item IDs and fetches related products from Sanity",
@@ -767,7 +804,8 @@
       "title": "Add Payment Method Logos to Footer",
       "phase": "4.3",
       "priority": 5,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:15:00Z",
       "acceptanceCriteria": [
         "Add a row of payment method logos above the copyright in footer.tsx",
         "Include: GCash, GrabPay, Visa, Mastercard, COD badge",
@@ -787,7 +825,8 @@
       "title": "Add Newsletter Signup Section to Homepage",
       "phase": "4.2",
       "priority": 5,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:20:00Z",
       "acceptanceCriteria": [
         "Add a newsletter signup section above the footer on the homepage (src/app/page.tsx)",
         "Design: bg-primary text-primary-foreground with email input and 'Subscribe' button",
@@ -809,7 +848,8 @@
       "title": "Add How-It-Works Section to Homepage",
       "phase": "4.2",
       "priority": 5,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:25:00Z",
       "acceptanceCriteria": [
         "Add a 'How It Works' section to homepage between FeaturedCategories and WhyMASH sections",
         "3-step visual: (1) 'Browse Local Growers' with Search icon, (2) 'Add to Cart' with ShoppingCart icon, (3) 'Delivered Fresh' with Truck icon",
@@ -829,7 +869,8 @@
       "title": "Decompose Shop Page - Extract Shared FilterSidebar",
       "phase": "2.2",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:00:00Z",
       "acceptanceCriteria": [
         "Create src/components/shop/FilterSidebar.tsx with all filter logic (categories, price range, tags)",
         "Component used in both desktop sidebar and mobile Sheet on shop page",
@@ -853,7 +894,8 @@
       "title": "Add Sticky Mobile Add-to-Cart Bar on Product Detail",
       "phase": "2.3",
       "priority": 4,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T16:05:00Z",
       "acceptanceCriteria": [
         "Create src/components/product/StickyAddToCartBar.tsx component",
         "Fixed bottom bar on mobile that appears when the main 'Add to Cart' button scrolls out of view",

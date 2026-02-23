@@ -3351,3 +3351,91 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Renders in client-layout.tsx after MobileBottomNav
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
 ---
+## [2026-02-24 16:00] - UIUX-029
+**Completed:** Decompose Shop Page - Extract Shared FilterSidebar
+**Files Changed:**
+- src/components/shop/FilterSidebar.tsx (NEW ~260 lines)
+- src/app/(shop)/shop/ShopClient.tsx (reduced ~300 lines)
+**Implementation Notes:**
+- Created FilterSidebar component with variant prop (desktop/mobile)
+- Desktop variant: shows product count per category, price range in header, focus:ring styles
+- Mobile variant: uses mobile- id prefix, simpler styling, no product counts
+- Extracted categories, price range slider, tags filter sections into shared component
+- Removed unused Checkbox, Label, Slider imports from ShopClient
+- ShopClient reduced from ~910 to ~610 lines
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24 16:05] - UIUX-030
+**Completed:** Add Sticky Mobile Add-to-Cart Bar on Product Detail
+**Files Changed:**
+- src/components/product/StickyAddToCartBar.tsx (NEW ~115 lines)
+- src/app/(shop)/product/[slug]/ProductDetailClient.tsx (wired ref + import)
+**Implementation Notes:**
+- IntersectionObserver on addToCartRef detects when main CTA scrolls out of view
+- Fixed bottom-16 (above MobileBottomNav), lg:hidden for mobile only
+- Shows product name (truncated), price/unit, quantity +/- controls, compact Add button
+- Smooth translate-y animation on show/hide
+- Uses same addToCart/handleQuantityChange callbacks from parent
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24 16:10] - UIUX-022
+**Completed:** Add Cross-Sell Section to Cart Page
+**Files Changed:**
+- src/components/cart/CrossSell.tsx (NEW ~80 lines)
+- src/app/(shop)/cart/page.tsx (added import + render)
+**Implementation Notes:**
+- Uses useSanityFeaturedProducts hook to fetch recommended products
+- Filters out products already in cart by ID via excludeIds prop
+- Renders responsive ProductCard grid (2/3/4 cols)
+- Loading skeleton with 4 pulse cards
+- Empty state returns null (no section rendered)
+- Placed below main cart grid before footer
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24 16:15] - UIUX-026
+**Completed:** Add Payment Method Logos to Footer
+**Files Changed:**
+- src/components/common/payment-logos.tsx (NEW ~45 lines)
+- src/components/layout/footer.tsx (added import + render)
+**Implementation Notes:**
+- PAYMENT_METHODS array: GCash, Maya, Visa, Mastercard with Next.js Image
+- Grayscale by default (grayscale opacity-60), color on hover (grayscale-0 opacity-100)
+- COD text badge with border-2 rounded styling
+- Rendered above copyright bar in footer via PaymentLogos component
+- Images from public/payment-logos/ directory
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24 16:20] - UIUX-027
+**Completed:** Add Newsletter Signup Section to Homepage
+**Files Changed:**
+- src/components/cms/NewsletterSignup.tsx (NEW ~100 lines)
+- src/app/page.tsx (added import + render after Testimonials)
+**Implementation Notes:**
+- Zod email validation schema with user-friendly error messages
+- Dynamic Firestore import to avoid SSR issues
+- Stores to newsletter_subscribers collection with email, subscribedAt timestamp
+- Duplicate email check via Firestore query before insertion
+- bg-primary text-primary-foreground section with Mail icon
+- Form states: idle, submitting (disabled), success (checkmark), error
+- toast.success on subscribe, toast.error on failure
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24 16:25] - UIUX-028
+**Completed:** Add How-It-Works Section to Homepage
+**Files Changed:**
+- src/components/cms/HowItWorks.tsx (NEW ~80 lines)
+- src/app/page.tsx (added import + render between FeaturedCategories and WhyMASH)
+**Implementation Notes:**
+- 3-step visual: Search (Browse Local Growers), ShoppingCart (Add to Cart), Truck (Delivered Fresh)
+- Desktop: horizontal connecting line between step circles, number badges
+- Mobile: vertical connecting bars (ArrowDown) between steps
+- bg-muted/30 background to differentiate from adjacent sections
+- Step circles: w-20 h-20 rounded-full bg-primary/10 text-primary
+- Number badges: absolute -top-2 -right-2 bg-primary text-primary-foreground
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---

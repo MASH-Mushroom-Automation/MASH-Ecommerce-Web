@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,6 +59,7 @@ import type { MediaItem } from "@/types/sanity";
 import { useStockSync } from "@/hooks/useStockSync";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { RecentlyViewed } from "@/components/products/RecentlyViewed";
+import { StickyAddToCartBar } from "@/components/product/StickyAddToCartBar";
 
 // Placeholder image for products without images
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
@@ -142,6 +143,7 @@ export function ProductDetailClient({ slug }: Props) {
   const { product, loading, error } = useSanityProduct(slug);
   const [quantity, setQuantity] = useState(1);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const addToCartRef = useRef<HTMLDivElement>(null);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const { trackView } = useRecentlyViewed();
@@ -629,7 +631,7 @@ export function ProductDetailClient({ slug }: Props) {
             <div className="h-px bg-border my-5" />
 
             {/* Quantity + Add to Cart */}
-            <div className="space-y-4">
+            <div ref={addToCartRef} className="space-y-4">
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Quantity */}
                 <div className="flex items-center rounded-xl border bg-background shadow-sm">
@@ -941,6 +943,18 @@ export function ProductDetailClient({ slug }: Props) {
           <RecentlyViewed excludeProductId={product.id} maxDisplay={8} />
         </section>
       </div>
+
+      {/* Sticky Mobile Add-to-Cart Bar */}
+      <StickyAddToCartBar
+        productName={product.name}
+        price={product.price}
+        unit={product.unit}
+        stock={dynamicStock}
+        quantity={quantity}
+        setQuantity={setQuantity}
+        onAddToCart={handleAddToCart}
+        targetRef={addToCartRef}
+      />
     </div>
   );
 }
