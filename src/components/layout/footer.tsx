@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, MapPin, Phone, Mail, Youtube, Instagram, Twitter, Linkedin } from "lucide-react";
-import { TikTokIcon } from "@/components/ui/tiktok-icon";
+import { MapPin, Phone, Mail } from "lucide-react";
+import { SocialLinks } from "@/components/common/social-links";
 import { useSanitySiteSettings, useSanityNavigation } from "@/hooks/useSanitySiteSettings";
 
 export function Footer() {
@@ -40,83 +40,7 @@ export function Footer() {
             </div>
 
             {/* Social Media - Real-time from Sanity CMS */}
-            <div className="flex justify-center space-x-4 mt-6">
-              {settings?.socialMedia?.facebook && (
-                <a
-                  href={settings.socialMedia.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary"
-                  aria-label="Facebook"
-                >
-                  <Facebook size={24} />
-                </a>
-              )}
-              {settings?.socialMedia?.instagram && (
-                <a
-                  href={settings.socialMedia.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={24} />
-                </a>
-              )}
-              {settings?.socialMedia?.twitter && (
-                <a
-                  href={settings.socialMedia.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary"
-                  aria-label="Twitter"
-                >
-                  <Twitter size={24} />
-                </a>
-              )}
-              {settings?.socialMedia?.youtube && (
-                <a
-                  href={settings.socialMedia.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary transition-colors"
-                  aria-label="YouTube"
-                >
-                  <Youtube size={24} />
-                </a>
-              )}
-              {settings?.socialMedia?.linkedin && (
-                <a
-                  href={settings.socialMedia.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary transition-colors"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin size={24} />
-                </a>
-              )}
-              {settings?.socialMedia?.tiktok && (
-                <a
-                  href={settings.socialMedia.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-foreground hover:text-primary transition-colors"
-                  aria-label="TikTok"
-                >
-                  <TikTokIcon size={24} />
-                </a>
-              )}
-              {settings?.contactEmail && (
-                <a
-                  href={`mailto:${settings.contactEmail}`}
-                  className="text-foreground hover:text-primary"
-                  aria-label="Email"
-                >
-                  <Mail size={24} />
-                </a>
-              )}
-            </div>
+            <SocialLinks variant="footer" socialMedia={settings?.socialMedia} contactEmail={settings?.contactEmail} className="mt-6" />
           </div>
 
           {/* Column 2: Shop Links - CMS or Fallback */}

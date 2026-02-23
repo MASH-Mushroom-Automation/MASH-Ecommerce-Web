@@ -5,11 +5,11 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T14:00:00Z",
+  "lastUpdated": "2026-02-24T15:30:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 15,
+  "completedStories": 19,
   "currentPhase": "2 - Shopping Experience Enhancement",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
@@ -140,6 +140,30 @@
       "completedAt": "2026-02-24T13:50:00Z",
       "filesChanged": ["src/app/(shop)/product/[slug]/page.tsx", "src/app/(shop)/product/[slug]/ProductDetailClient.tsx"],
       "summary": "Split product detail page into server wrapper with generateMetadata (fetches product from Sanity for title/description/openGraph) + ProductDetailClient.tsx. Added Product JSON-LD and BreadcrumbList JSON-LD structured data."
+    },
+    {
+      "storyId": "UIUX-012",
+      "completedAt": "2026-02-24T15:00:00Z",
+      "filesChanged": ["src/components/common/social-links.tsx", "src/components/layout/header.tsx", "src/components/layout/footer.tsx"],
+      "summary": "Created SocialLinks component with 3 variants (header/mobile/footer). PLATFORMS array + VARIANT_CONFIG for size/style differences. Replaced ~130 lines of duplicated social link blocks in header (desktop + mobile sheet) and footer with single component calls. Removed unused individual social icon imports."
+    },
+    {
+      "storyId": "UIUX-023",
+      "completedAt": "2026-02-24T15:10:00Z",
+      "filesChanged": ["src/app/(shop)/cart/page.tsx"],
+      "summary": "Replaced 'Secure checkout powered by Firebase' text with trust badge row: Lock + Secure Checkout, ShieldCheck + Buyer Protection, Truck + Fast Delivery. Uses text-muted-foreground flex layout centered below checkout button."
+    },
+    {
+      "storyId": "UIUX-024",
+      "completedAt": "2026-02-24T15:10:00Z",
+      "filesChanged": ["src/app/(shop)/cart/page.tsx"],
+      "summary": "Added free shipping progress bar above order summary. Threshold P500. Shows remaining amount with partially filled bg-primary bar or 'You qualify for free delivery!' with CheckCircle when met. Uses bg-muted track."
+    },
+    {
+      "storyId": "UIUX-025",
+      "completedAt": "2026-02-24T15:15:00Z",
+      "filesChanged": ["src/components/common/back-to-top.tsx", "src/app/client-layout.tsx"],
+      "summary": "Created BackToTop component with fixed bottom-right position (bottom-20 mobile, lg:bottom-6). Shows after 1vh scroll with fade animation. Smooth scroll to top with ChevronUp icon. Added to client-layout.tsx after MobileBottomNav."
     }
   ],
   "stories": [
@@ -409,7 +433,8 @@
       "title": "Extract Social Media Links to Shared Component",
       "phase": "2.1",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T15:00:00Z",
       "acceptanceCriteria": [
         "Create src/components/common/social-links.tsx with reusable SocialLinks component",
         "Component accepts 'variant' prop: 'header' (inline row), 'footer' (stacked or inline), 'mobile' (sheet layout)",
@@ -677,7 +702,8 @@
       "title": "Replace Firebase Trust Text with Proper Trust Badges in Cart",
       "phase": "2.4",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T15:10:00Z",
       "acceptanceCriteria": [
         "In src/app/(shop)/cart/page.tsx line 540, remove 'Secure checkout powered by Firebase' text",
         "Replace with trust badge row: Lock icon + 'Secure Checkout', Shield icon + 'Buyer Protection', Truck icon + 'Fast Delivery'",
@@ -696,7 +722,8 @@
       "title": "Add Free Shipping Progress Bar to Cart",
       "phase": "2.4",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T15:10:00Z",
       "acceptanceCriteria": [
         "Add a progress bar component above the order summary in cart/page.tsx",
         "Configurable threshold (default P500 for free delivery)",
@@ -717,7 +744,8 @@
       "title": "Add Back-to-Top Button",
       "phase": "4.3",
       "priority": 5,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T15:15:00Z",
       "acceptanceCriteria": [
         "Create src/components/common/back-to-top.tsx component",
         "Fixed position button in bottom-right corner (above mobile nav if present)",

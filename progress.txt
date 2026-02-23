@@ -3294,3 +3294,60 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Graceful fallback if Sanity fetch fails
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
 ---
+
+## [2026-02-24] - UIUX-012: Extract Social Media Links to Shared Component
+**Completed:** SocialLinks Component + Wiring
+**Files Changed:**
+- src/components/common/social-links.tsx (NEW: reusable SocialLinks component)
+- src/components/layout/header.tsx (replaced desktop + mobile social blocks, removed 5 icon imports)
+- src/components/layout/footer.tsx (replaced footer social block, removed 6 icon imports + TikTokIcon)
+**Implementation Notes:**
+- Created SocialLinks with 3 variants: header (18px inline), mobile (24px with Follow Us label), footer (24px with optional email)
+- PLATFORMS array maps all 6 social platforms; VARIANT_CONFIG stores size/class per variant
+- TikTok uses custom TikTokIcon (Lucide lacks TikTok), rest use Lucide icons
+- Header: hidden sm:flex, hover:text-primary-foreground pattern
+- Mobile: border-t wrapper with Follow Us label, text-foreground hover:text-primary
+- Footer: flex justify-center space-x-4, includes contactEmail Mail link
+- Removed ~130 lines of duplicated inline social link blocks across 3 locations
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-023: Trust Badges in Cart
+**Completed:** Replace Firebase Text with Trust Badge Row
+**Files Changed:**
+- src/app/(shop)/cart/page.tsx
+**Implementation Notes:**
+- Removed "Secure checkout powered by Firebase" text
+- Added trust badge row: Lock + Secure Checkout, ShieldCheck + Buyer Protection, Truck + Fast Delivery
+- Uses flex-wrap justify-center gap-4, text-xs text-muted-foreground
+- Added Lock, ShieldCheck, Truck, CheckCircle to lucide-react imports
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-024: Free Shipping Progress Bar
+**Completed:** Add Free Delivery Progress Bar to Cart
+**Files Changed:**
+- src/app/(shop)/cart/page.tsx
+**Implementation Notes:**
+- Added progress bar section above Order Summary heading
+- Threshold: P500 for free delivery
+- Below threshold: "You're P{remaining} away from free delivery!" with partially filled bg-primary bar
+- At/above threshold: "You qualify for free delivery!" with CheckCircle and full green bar
+- Uses bg-muted rounded-full track with bg-primary fill, max-width capped at 100%
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-025: Back-to-Top Button
+**Completed:** Global Back-to-Top Component
+**Files Changed:**
+- src/components/common/back-to-top.tsx (NEW)
+- src/app/client-layout.tsx (added import + render)
+**Implementation Notes:**
+- Fixed position button: bottom-20 right-4 on mobile (above MobileBottomNav), lg:bottom-6 on desktop
+- Shows after scrolling past 1 viewport height via scroll event listener
+- Smooth scroll to top via window.scrollTo({ top: 0, behavior: 'smooth' })
+- ChevronUp icon, bg-primary text-primary-foreground rounded-full shadow-lg
+- Fade in/out via opacity/scale transition (duration-300)
+- Renders in client-layout.tsx after MobileBottomNav
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---

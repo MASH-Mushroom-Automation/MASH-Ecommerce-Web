@@ -8,6 +8,7 @@ import {
   MobileBottomNav,
   MobileBottomNavSpacer,
 } from "@/components/layout/mobile-bottom-nav";
+import { BackToTop } from "@/components/common/back-to-top";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -103,6 +104,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     </main>
                     <Footer />
                     <MobileBottomNav />
+                    <BackToTop />
                     <Toaster position="bottom-center" richColors closeButton />
                     <Chatbot />
                   </div>

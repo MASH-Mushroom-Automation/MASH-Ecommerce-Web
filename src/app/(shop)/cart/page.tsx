@@ -13,6 +13,10 @@ import {
   ShoppingBag,
   Tag,
   AlertTriangle,
+  Lock,
+  ShieldCheck,
+  Truck,
+  CheckCircle,
   Heart,
   Bookmark,
   BookmarkCheck,
@@ -513,6 +517,33 @@ export default function CartPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Free Shipping Progress Bar */}
+                {(() => {
+                  const FREE_DELIVERY_THRESHOLD = 500;
+                  const progress = Math.min((summary.subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
+                  const remaining = FREE_DELIVERY_THRESHOLD - summary.subtotal;
+                  return (
+                    <div className="space-y-2">
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      {remaining > 0 ? (
+                        <p className="text-xs text-muted-foreground text-center">
+                          You are <span className="font-semibold text-foreground">₱{remaining.toLocaleString()}</span> away from free delivery!
+                        </p>
+                      ) : (
+                        <p className="text-xs text-primary text-center font-medium flex items-center justify-center gap-1">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          You qualify for free delivery!
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Summary Lines */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -551,10 +582,20 @@ export default function CartPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
 
-                {/* Additional Info */}
-                <div className="text-xs text-muted-foreground text-center space-y-1">
-                  <p>Secure checkout powered by Firebase</p>
-                  <p>Delivery fees calculated at checkout</p>
+                {/* Trust Badges */}
+                <div className="flex items-center justify-center gap-4 pt-2">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Lock className="h-3.5 w-3.5" />
+                    <span className="text-xs">Secure Checkout</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span className="text-xs">Buyer Protection</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Truck className="h-3.5 w-3.5" />
+                    <span className="text-xs">Fast Delivery</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

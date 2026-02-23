@@ -21,11 +21,6 @@ import {
   Package,
   ChevronDown,
   Menu,
-  Facebook,
-  Instagram,
-  Youtube,
-  Twitter,
-  Linkedin,
   Store,
   Search,
 } from "lucide-react";
@@ -57,7 +52,7 @@ import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import { TikTokIcon } from "@/components/ui/tiktok-icon";
+import { SocialLinks } from "@/components/common/social-links";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import {
   useSanitySiteSettings,
@@ -112,74 +107,7 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
             CONTACT US
           </Link>
           <span className="hidden sm:inline opacity-50">•</span>
-          <div className="hidden sm:flex items-center gap-2">
-            {settings?.socialMedia?.facebook && (
-              <a
-                href={settings.socialMedia.facebook}
-                aria-label="Facebook"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Facebook size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.youtube && (
-              <a
-                href={settings.socialMedia.youtube}
-                aria-label="YouTube"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Youtube size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.instagram && (
-              <a
-                href={settings.socialMedia.instagram}
-                aria-label="Instagram"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Instagram size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.twitter && (
-              <a
-                href={settings.socialMedia.twitter}
-                aria-label="Twitter"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Twitter size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.linkedin && (
-              <a
-                href={settings.socialMedia.linkedin}
-                aria-label="LinkedIn"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Linkedin size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.tiktok && (
-              <a
-                href={settings.socialMedia.tiktok}
-                aria-label="TikTok"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <TikTokIcon size={18} />
-              </a>
-            )}
-          </div>
+          <SocialLinks variant="header" socialMedia={settings?.socialMedia} />
         </div>
       </div>
     </div>
@@ -664,68 +592,7 @@ export function Header() {
                   </div>
 
                   {/* Social Media Links - Mobile */}
-                  <div className="border-t border-border pt-4 mt-4">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Follow Us
-                    </p>
-                    <div className="flex items-center gap-4">
-                      {settings?.socialMedia?.facebook && (
-                        <a
-                          href={settings.socialMedia.facebook}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Facebook"
-                        >
-                          <Facebook size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.youtube && (
-                        <a
-                          href={settings.socialMedia.youtube}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="YouTube"
-                        >
-                          <Youtube size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.instagram && (
-                        <a
-                          href={settings.socialMedia.instagram}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Instagram"
-                        >
-                          <Instagram size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.twitter && (
-                        <a
-                          href={settings.socialMedia.twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Twitter"
-                        >
-                          <Twitter size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.tiktok && (
-                        <a
-                          href={settings.socialMedia.tiktok}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="TikTok"
-                        >
-                          <TikTokIcon size={24} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <SocialLinks variant="mobile" socialMedia={settings?.socialMedia} />
                 </div>
               </SheetContent>
             </Sheet>
