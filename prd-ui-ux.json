@@ -1,0 +1,741 @@
+{
+  "projectName": "MASH UI/UX Improvement Plan",
+  "version": "1.1.0",
+  "branchName": "feature/ui-ux-improvements",
+  "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
+  "owner": "AI Agent (Ralph)",
+  "startedDate": "2026-02-24",
+  "lastUpdated": "2026-02-24T00:00:00Z",
+  "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
+  "progressDocument": "progress.txt",
+  "totalStories": 30,
+  "completedStories": 0,
+  "currentPhase": "1 - Critical Fixes & Foundation",
+  "successMetrics": {
+    "build": "npm run build passes with zero errors",
+    "tests": "All test suites pass with 0 failures",
+    "lint": "npm run lint passes with zero warnings",
+    "typecheck": "npx tsc --noEmit passes with zero errors in src/",
+    "lighthouseSEO": "> 90",
+    "lighthouseAccessibility": "> 90",
+    "lighthousePerformance": "> 85",
+    "noFileOver300Lines": "No single page/component file exceeds 300 lines (after Phase 3)"
+  },
+  "qualityGates": {
+    "beforeCommit": [
+      "npm run build (zero errors)",
+      "npm run lint (zero warnings)",
+      "npm run test (all passing)"
+    ],
+    "afterStory": [
+      "Update prd-ui-ux.json: set story passes=true, add completedAt timestamp",
+      "Append implementation entry to progress.txt",
+      "Update .github/UI_UX_IMPROVEMENT_PLAN.md: check off completed tasks",
+      "Update completedStories count in this file",
+      "Update lastUpdated timestamp in this file"
+    ]
+  },
+  "phaseOrder": [
+    { "phase": "1.2", "name": "Mobile Navigation Fix", "storyIds": ["UIUX-001", "UIUX-002"] },
+    { "phase": "1.1", "name": "Design System Cleanup", "storyIds": ["UIUX-003", "UIUX-004", "UIUX-005", "UIUX-006", "UIUX-009", "UIUX-010", "UIUX-014"] },
+    { "phase": "1.3", "name": "SEO Foundation", "storyIds": ["UIUX-013", "UIUX-015", "UIUX-016"] },
+    { "phase": "1.4", "name": "Accessibility Foundation", "storyIds": ["UIUX-007", "UIUX-008", "UIUX-011"] },
+    { "phase": "2.1", "name": "Header & Navigation Redesign", "storyIds": ["UIUX-012"] },
+    { "phase": "2.2", "name": "Shop Page Enhancement", "storyIds": ["UIUX-029"] },
+    { "phase": "2.3", "name": "Product Detail Polish", "storyIds": ["UIUX-017", "UIUX-030"] },
+    { "phase": "2.4", "name": "Cart Optimization", "storyIds": ["UIUX-022", "UIUX-023", "UIUX-024"] },
+    { "phase": "3.1", "name": "Checkout Redesign", "storyIds": ["UIUX-018", "UIUX-020"] },
+    { "phase": "3.2", "name": "Auth UX Improvement", "storyIds": ["UIUX-021"] },
+    { "phase": "3.3", "name": "Profile Redesign", "storyIds": ["UIUX-019"] },
+    { "phase": "4.2", "name": "Homepage Redesign", "storyIds": ["UIUX-027", "UIUX-028"] },
+    { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] }
+  ],
+  "progressLog": [],
+  "stories": [
+    {
+      "id": "UIUX-001",
+      "title": "Fix Mobile Cart Link Bug (checkout -> cart)",
+      "phase": "1.2",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In src/components/layout/header.tsx line 617, change href from '/checkout' to '/cart'",
+        "Mobile sheet 'Cart' link navigates to /cart page",
+        "Verify the ShoppingCart icon and 'Cart' label remain unchanged",
+        "Build passes with zero errors",
+        "Manual: Tap Cart in mobile menu -> lands on /cart page"
+      ],
+      "implementationContext": {
+        "file": "src/components/layout/header.tsx",
+        "line": 617,
+        "currentCode": "<Link href=\"/checkout\" className=\"flex items-center space-x-2 ...\">",
+        "targetCode": "<Link href=\"/cart\" className=\"flex items-center space-x-2 ...\">",
+        "effort": "5 minutes"
+      }
+    },
+    {
+      "id": "UIUX-002",
+      "title": "Add Cart Icon with Badge to Mobile Bottom Nav",
+      "phase": "1.2",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Import useCart from @/contexts/CartContext and ShoppingCart from lucide-react in mobile-bottom-nav.tsx",
+        "Add a 5th nav item for Cart (/cart) with ShoppingCart icon between Shop and Growers",
+        "Display red badge with item count when cart has items (count > 0)",
+        "Badge uses absolute positioning on the icon with bg-red-500 text-white text-xs rounded-full",
+        "Remove unused Bell import from lucide-react",
+        "Cart nav item hidden on checkout page (already in hide list)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/layout/mobile-bottom-nav.tsx",
+        "totalLines": 105,
+        "navItemsArray": "lines 29-49",
+        "currentItems": ["/ (Home)", "/shop (Shop)", "/grower (Growers)", "/profile (Account)"],
+        "unusedImport": "Bell at line 6",
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-003",
+      "title": "Remove Footer Hardcoded Font",
+      "phase": "1.1",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In src/components/layout/footer.tsx line 16, remove font-['Roboto'] from the footer className",
+        "Footer inherits font-sans from the body/theme system",
+        "Visual appearance unchanged (Roboto is already the app font via layout.tsx)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/layout/footer.tsx",
+        "line": 16,
+        "currentCode": "<footer className=\"bg-muted text-foreground border-t border-border font-['Roboto']\">",
+        "targetCode": "<footer className=\"bg-muted text-foreground border-t border-border\">",
+        "effort": "5 minutes"
+      }
+    },
+    {
+      "id": "UIUX-004",
+      "title": "Replace Emoji with Lucide Icons in ProductCard Badges",
+      "phase": "1.1",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Import Sparkles, Leaf, Droplets icons from lucide-react in ProductCard.tsx",
+        "Replace emoji '✨' at line 228 with <Sparkles className='w-3 h-3' /> for 'New' badge",
+        "Replace emoji '🌿' at line 234 with <Leaf className='w-3 h-3' /> for 'Organic' badge",
+        "Replace emoji '🌊' at line 240 with <Droplets className='w-3 h-3' /> for 'Fresh' badge",
+        "Badge text and styling remain the same (only icon changes)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/product/ProductCard.tsx",
+        "totalLines": 416,
+        "emojiLocations": [
+          { "line": 228, "emoji": "✨", "replacement": "<Sparkles className='w-3 h-3' />" },
+          { "line": 234, "emoji": "🌿", "replacement": "<Leaf className='w-3 h-3' />" },
+          { "line": 240, "emoji": "🌊", "replacement": "<Droplets className='w-3 h-3' />" }
+        ],
+        "effort": "15 minutes"
+      }
+    },
+    {
+      "id": "UIUX-005",
+      "title": "Replace Emoji with Lucide Icons in Shop Sort Options",
+      "phase": "1.1",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In src/app/(shop)/shop/page.tsx lines 671-676, remove all emoji from sort option labels",
+        "Replace '⭐ Featured First' with 'Featured First'",
+        "Replace '🆕 Newest Arrivals' with 'Newest Arrivals'",
+        "Replace '💰 Price: Low to High' with 'Price: Low to High'",
+        "Replace '💎 Price: High to Low' with 'Price: High to Low'",
+        "Replace '🔤 Name: A to Z' with 'Name: A to Z'",
+        "Optionally prepend matching Lucide icons inline in the SelectItem content",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/app/(shop)/shop/page.tsx",
+        "totalLines": 910,
+        "emojiLocations": "lines 671-676",
+        "effort": "15 minutes"
+      }
+    },
+    {
+      "id": "UIUX-006",
+      "title": "Remove Artificial 300ms Delay in ProductCard Add-to-Cart",
+      "phase": "1.1",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In src/components/product/ProductCard.tsx line 117, remove the 300ms setTimeout delay",
+        "addToCart() is called immediately after setting isAddingToCart to true",
+        "The justAdded green checkmark animation still works (it has its own 2000ms timer)",
+        "No perceivable regression in add-to-cart UX",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/product/ProductCard.tsx",
+        "line": 117,
+        "currentCode": "await new Promise(resolve => setTimeout(resolve, 300));",
+        "targetAction": "Remove this line entirely",
+        "effort": "5 minutes"
+      }
+    },
+    {
+      "id": "UIUX-007",
+      "title": "Add Skip-to-Content Link and Main ID",
+      "phase": "1.4",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add id='main-content' to the <main> element in src/app/client-layout.tsx line 96",
+        "Add a visually hidden skip-to-content link as the first child of the layout wrapper div (before Header)",
+        "Link text: 'Skip to main content', href: '#main-content'",
+        "Link is invisible until focused (uses sr-only + focus:not-sr-only pattern)",
+        "On focus, link appears at top of page with high z-index, styled with bg-primary text-primary-foreground padding",
+        "Pressing Enter on the skip link moves focus to main content",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/app/client-layout.tsx",
+        "totalLines": 113,
+        "mainElementLine": 96,
+        "currentMainTag": "<main className=\"flex-1\">",
+        "targetMainTag": "<main id=\"main-content\" className=\"flex-1\" tabIndex={-1}>",
+        "insertSkipLinkBefore": "Line 95 (before Header component)",
+        "effort": "20 minutes"
+      }
+    },
+    {
+      "id": "UIUX-008",
+      "title": "Add ARIA Labels to Navigation Landmarks",
+      "phase": "1.4",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add aria-label='Main Navigation' to the desktop <nav> in header.tsx",
+        "Add aria-label='Mobile Navigation' to the mobile bottom nav in mobile-bottom-nav.tsx",
+        "Add aria-label='Footer Navigation' to any <nav> in footer.tsx",
+        "Add aria-live='polite' to the announcement bar section in header.tsx (around line 419-435)",
+        "Verify screen reader announces landmark labels correctly",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "files": [
+          "src/components/layout/header.tsx",
+          "src/components/layout/mobile-bottom-nav.tsx",
+          "src/components/layout/footer.tsx"
+        ],
+        "effort": "20 minutes"
+      }
+    },
+    {
+      "id": "UIUX-009",
+      "title": "Fix Hero Carousel Height Mismatch (CLS Fix)",
+      "phase": "1.1",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In SanityHeroCarousel.tsx, update loading state (line 53) to use min-h-[400px] md:min-h-[500px] lg:min-h-[600px]",
+        "Update error state (line 80) to use same min-h values",
+        "Update no-slides fallback (line 95) to use same min-h values",
+        "Content slides (line 157) already use these min-h values - no change needed",
+        "CLS (Cumulative Layout Shift) reduced because loading/error placeholders match content height",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/hero/SanityHeroCarousel.tsx",
+        "totalLines": 331,
+        "loadingHeight": { "line": 53, "current": "h-[300px] md:h-[350px] lg:h-[400px]", "target": "min-h-[400px] md:min-h-[500px] lg:min-h-[600px]" },
+        "errorHeight": { "line": 80, "current": "h-[300px] md:h-[350px] lg:h-[400px]", "target": "min-h-[400px] md:min-h-[500px] lg:min-h-[600px]" },
+        "noSlidesHeight": { "line": 95, "current": "h-[300px] md:h-[350px] lg:h-[400px]", "target": "min-h-[400px] md:min-h-[500px] lg:min-h-[600px]" },
+        "contentHeight": { "line": 157, "current": "min-h-[400px] md:min-h-[500px] lg:min-h-[600px]", "noChange": true },
+        "effort": "10 minutes",
+        "note": "Update progress.txt Hero Carousel Heights pattern after this change"
+      }
+    },
+    {
+      "id": "UIUX-010",
+      "title": "Fix globals.css Brand Color Conflict",
+      "phase": "1.1",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Resolve conflict between @theme inline --color-primary: #2e7d32 (line 44) and :root --primary: oklch(0.205 0 0) (line 57)",
+        "Set :root --primary to oklch equivalent of #2e7d32 (approximately oklch(0.46 0.15 145))",
+        "Add --primary-hover (darker green), --primary-light (light green tint), --primary-dark (darkest green) to :root",
+        "Map --color-primary-hover, --color-primary-light, --color-primary-dark in @theme inline block",
+        "Update .dark theme --primary to a lighter green variant for dark mode visibility",
+        "Verify primary buttons render as green (not black) across the site",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/app/globals.css",
+        "totalLines": 221,
+        "conflict": "@theme inline line 44 defines #2e7d32, but :root line 57 overrides with oklch(0.205 0 0) which is near-black",
+        "missingVars": ["--primary-hover", "--primary-light", "--primary-dark"],
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-011",
+      "title": "Add Product Card ARIA Labels",
+      "phase": "1.4",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add aria-label to the product card root element in ProductCard.tsx",
+        "Label format: '{name} - P{price} per {unit}'",
+        "Add aria-label='Add {name} to cart' on the add-to-cart button",
+        "Add aria-label='Add {name} to wishlist' on the wishlist heart button",
+        "Screen readers announce complete product info when navigating cards",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/product/ProductCard.tsx",
+        "totalLines": 416,
+        "effort": "20 minutes"
+      }
+    },
+    {
+      "id": "UIUX-012",
+      "title": "Extract Social Media Links to Shared Component",
+      "phase": "2.1",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/common/social-links.tsx with reusable SocialLinks component",
+        "Component accepts 'variant' prop: 'header' (inline row), 'footer' (stacked or inline), 'mobile' (sheet layout)",
+        "Pulls social URLs from Sanity CMS site settings (with hardcoded fallbacks)",
+        "Replace social links block in header.tsx (lines 120-165) with <SocialLinks variant='header' />",
+        "Replace social links block in footer.tsx with <SocialLinks variant='footer' />",
+        "Replace social links block in header.tsx mobile sheet (lines 700-730) with <SocialLinks variant='mobile' />",
+        "Social icon rendering is identical before/after (visual regression: none)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "duplicatedIn": [
+          { "file": "src/components/layout/header.tsx", "lines": "120-165", "context": "Seller info bar social icons" },
+          { "file": "src/components/layout/footer.tsx", "context": "Footer social icons section" },
+          { "file": "src/components/layout/header.tsx", "lines": "700-730", "context": "Mobile sheet social icons" }
+        ],
+        "effort": "45 minutes"
+      }
+    },
+    {
+      "id": "UIUX-013",
+      "title": "Create Reusable JsonLd Component for Structured Data",
+      "phase": "1.3",
+      "priority": 2,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/common/json-ld.tsx with generic JsonLd component",
+        "Component accepts a 'data' prop typed as Record<string, unknown>",
+        "Renders a <script type='application/ld+json'> tag with JSON.stringify(data)",
+        "Export typed helper functions: productJsonLd(product), breadcrumbJsonLd(items), organizationJsonLd()",
+        "Product JSON-LD includes: @type Product, name, image, description, offers (price, priceCurrency: PHP, availability), aggregateRating",
+        "Build passes with zero errors",
+        "Unit test: JsonLd component renders valid JSON-LD script tag"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/common/json-ld.tsx",
+        "schema": "https://schema.org",
+        "currency": "PHP",
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-014",
+      "title": "Hardcoded Color Audit and Fix (Site-Wide)",
+      "phase": "1.1",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Grep entire src/ for text-gray-, bg-gray-, bg-white, text-white that should be semantic tokens",
+        "Replace text-gray-700/600/500 with text-foreground or text-muted-foreground",
+        "Replace bg-white with bg-background or bg-card",
+        "Replace bg-gray-* with bg-muted or bg-accent",
+        "Exceptions allowed: gradient stops, specific design requirements documented in comments",
+        "Create a list of all changes made for review",
+        "Dark mode still renders correctly after changes",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "searchPatterns": ["text-gray-", "bg-gray-", "bg-white/", "text-white"],
+        "replacementMap": {
+          "text-gray-700": "text-foreground",
+          "text-gray-600": "text-foreground",
+          "text-gray-500": "text-muted-foreground",
+          "text-gray-400": "text-muted-foreground",
+          "bg-white": "bg-background",
+          "bg-gray-50": "bg-muted",
+          "bg-gray-100": "bg-muted",
+          "bg-gray-200": "bg-accent"
+        },
+        "effort": "2 hours",
+        "note": "Run grep_search first, categorize results, then apply changes in batches"
+      }
+    },
+    {
+      "id": "UIUX-015",
+      "title": "Add generateMetadata to Product Detail Page",
+      "phase": "1.3",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create a server component wrapper at src/app/(shop)/product/[slug]/page.tsx that exports generateMetadata",
+        "Move current client component to src/app/(shop)/product/[slug]/ProductDetailClient.tsx",
+        "generateMetadata fetches product from Sanity by slug and returns title, description, openGraph image",
+        "Server component renders <ProductDetailClient slug={params.slug} /> plus <JsonLd> for product structured data",
+        "Product JSON-LD includes @type Product, name, image, description, offers, aggregateRating",
+        "Page still works identically for users (no visual regression)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "currentFile": "src/app/(shop)/product/[slug]/page.tsx",
+        "currentLines": 949,
+        "approach": "Split into server wrapper (page.tsx ~50 lines) + client component (ProductDetailClient.tsx ~900 lines then decompose further)",
+        "sanityFetch": "Use sanityClient.fetch() with product slug to get name, description, image for metadata",
+        "effort": "1.5 hours",
+        "dependsOn": ["UIUX-013"]
+      }
+    },
+    {
+      "id": "UIUX-016",
+      "title": "Add generateMetadata to Shop Page",
+      "phase": "1.3",
+      "priority": 1,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create a server component wrapper at src/app/(shop)/shop/page.tsx that exports generateMetadata",
+        "Move current client component to src/app/(shop)/shop/ShopClient.tsx",
+        "generateMetadata returns static metadata: title 'Shop All Products | MASH Marketplace', description, openGraph",
+        "Server component renders <ShopClient /> (all existing functionality preserved)",
+        "Page still works identically for users (no visual regression)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "currentFile": "src/app/(shop)/shop/page.tsx",
+        "currentLines": 910,
+        "approach": "Thin server wrapper (page.tsx ~30 lines with metadata) + ShopClient.tsx with 'use client' (all existing code)",
+        "effort": "45 minutes"
+      }
+    },
+    {
+      "id": "UIUX-017",
+      "title": "Decompose Product Detail Page into Sub-Components",
+      "phase": "2.3",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Extract ProductGallery component (image gallery + video support) to src/components/product/ProductGallery.tsx",
+        "Extract ProductInfo component (name, price, variant selector, add-to-cart, trust badges) to src/components/product/ProductInfo.tsx",
+        "Extract ProductTabs component (description, info pills, reviews trigger) to src/components/product/ProductTabs.tsx",
+        "Extract SuggestedProducts component (recently viewed, related products) to src/components/product/SuggestedProducts.tsx",
+        "Main ProductDetailClient.tsx orchestrates sub-components (< 200 lines)",
+        "Each sub-component < 300 lines",
+        "No visual regression - page looks and works identically",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "sourceFile": "src/app/(shop)/product/[slug]/ProductDetailClient.tsx",
+        "targetFiles": [
+          "src/components/product/ProductGallery.tsx",
+          "src/components/product/ProductInfo.tsx",
+          "src/components/product/ProductTabs.tsx",
+          "src/components/product/SuggestedProducts.tsx"
+        ],
+        "effort": "3 hours",
+        "dependsOn": ["UIUX-015"]
+      }
+    },
+    {
+      "id": "UIUX-018",
+      "title": "Decompose Checkout Page into Step Components",
+      "phase": "3.1",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Extract CheckoutStep1Delivery.tsx (address picker, delivery method) to src/components/checkout/",
+        "Extract CheckoutStep2Contact.tsx (contact info form) to src/components/checkout/",
+        "Extract CheckoutStep3Payment.tsx (payment method selection) to src/components/checkout/",
+        "Extract OrderSummary.tsx (cart items, totals sidebar) to src/components/checkout/",
+        "Extract CheckoutProgress.tsx (step indicator) to src/components/checkout/",
+        "Main checkout/page.tsx orchestrates components (< 200 lines)",
+        "Each sub-component < 300 lines",
+        "No visual regression - checkout works identically",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "sourceFile": "src/app/(shop)/checkout/page.tsx",
+        "currentLines": 1248,
+        "targetDir": "src/components/checkout/",
+        "effort": "4 hours"
+      }
+    },
+    {
+      "id": "UIUX-019",
+      "title": "Decompose Profile My-Information Page",
+      "phase": "3.3",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Extract ProfileInfoCard.tsx (avatar, name, email display) to src/components/profile/",
+        "Extract AddressManager.tsx (address CRUD with Google Maps) to src/components/profile/",
+        "Extract PasswordManager.tsx (change password / link password) to src/components/profile/",
+        "Extract PhoneVerification.tsx (phone number OTP flow) to src/components/profile/",
+        "Main my-information/page.tsx uses tab layout to organize sections (< 200 lines)",
+        "Each sub-component < 300 lines",
+        "No visual regression",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "sourceFile": "src/app/(user)/profile/my-information/page.tsx",
+        "currentLines": 1549,
+        "targetDir": "src/components/profile/",
+        "effort": "5 hours"
+      }
+    },
+    {
+      "id": "UIUX-020",
+      "title": "Add Persistent Order Summary Sidebar to Checkout",
+      "phase": "3.1",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "OrderSummary component (from UIUX-018) is visible during ALL checkout steps",
+        "Desktop: sticky sidebar on the right showing cart items, quantities, subtotal, delivery fee, total",
+        "Mobile: collapsible panel at top with 'Order Summary (3 items)' that expands to show details",
+        "Summary updates dynamically when delivery fee is calculated in Step 1",
+        "Summary shows applied coupon discount if coupon feature is implemented",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "dependsOn": ["UIUX-018"],
+        "effort": "2 hours"
+      }
+    },
+    {
+      "id": "UIUX-021",
+      "title": "Extract Login Logic to useLogin Hook",
+      "phase": "3.2",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/hooks/useLogin.ts with all auth logic extracted from login/page.tsx",
+        "Hook manages: email/password state, validation, submission, Google login, 2FA flow, error handling",
+        "Login page.tsx only handles rendering (< 300 lines)",
+        "Extract TwoFactorModal to src/components/auth/TwoFactorModal.tsx",
+        "No visual or functional regression",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "sourceFile": "src/app/(auth)/login/page.tsx",
+        "currentLines": 805,
+        "targetFiles": [
+          "src/hooks/useLogin.ts",
+          "src/components/auth/TwoFactorModal.tsx"
+        ],
+        "effort": "2 hours"
+      }
+    },
+    {
+      "id": "UIUX-022",
+      "title": "Add Cross-Sell Section to Cart Page",
+      "phase": "2.4",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/cart/CrossSell.tsx component",
+        "Component receives current cart item IDs and fetches related products from Sanity",
+        "Shows 'You May Also Like' horizontal scroll strip below cart items",
+        "Uses existing ProductCard component for consistency",
+        "Limits to 4-8 products from same/related categories",
+        "Each product has 'Add to Cart' button",
+        "Does not show products already in cart",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/cart/CrossSell.tsx",
+        "dataSource": "Sanity CMS - fetch products from same categories as cart items",
+        "effort": "1.5 hours"
+      }
+    },
+    {
+      "id": "UIUX-023",
+      "title": "Replace Firebase Trust Text with Proper Trust Badges in Cart",
+      "phase": "2.4",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "In src/app/(shop)/cart/page.tsx line 540, remove 'Secure checkout powered by Firebase' text",
+        "Replace with trust badge row: Lock icon + 'Secure Checkout', Shield icon + 'Buyer Protection', Truck icon + 'Fast Delivery'",
+        "Use Lucide icons (Lock, ShieldCheck, Truck) with text-muted-foreground styling",
+        "Badges are centered below the checkout button in the order summary",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/app/(shop)/cart/page.tsx",
+        "line": 540,
+        "effort": "20 minutes"
+      }
+    },
+    {
+      "id": "UIUX-024",
+      "title": "Add Free Shipping Progress Bar to Cart",
+      "phase": "2.4",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add a progress bar component above the order summary in cart/page.tsx",
+        "Configurable threshold (default P500 for free delivery)",
+        "When cart total < threshold: show 'You are P{remaining} away from free delivery!' with partially filled bar",
+        "When cart total >= threshold: show 'You qualify for free delivery!' with full green bar and checkmark",
+        "Progress bar uses Tailwind bg-primary for fill, bg-muted for track",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/app/(shop)/cart/page.tsx",
+        "freeDeliveryThreshold": 500,
+        "currency": "PHP (P)",
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-025",
+      "title": "Add Back-to-Top Button",
+      "phase": "4.3",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/common/back-to-top.tsx component",
+        "Fixed position button in bottom-right corner (above mobile nav if present)",
+        "Only visible after scrolling past 1 viewport height (use IntersectionObserver or scroll event)",
+        "Smooth scroll to top on click",
+        "Uses ChevronUp Lucide icon with bg-primary text-primary-foreground rounded-full shadow-lg",
+        "Fade in/out animation on show/hide",
+        "Add to client-layout.tsx for site-wide availability",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/common/back-to-top.tsx",
+        "addTo": "src/app/client-layout.tsx",
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-026",
+      "title": "Add Payment Method Logos to Footer",
+      "phase": "4.3",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add a row of payment method logos above the copyright in footer.tsx",
+        "Include: GCash, GrabPay, Visa, Mastercard, COD badge",
+        "Use images from /public/payment-logos/ (create directory and add logo images if not present)",
+        "Logos are grayscale by default, color on hover",
+        "Row is centered with flex gap",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "file": "src/components/layout/footer.tsx",
+        "imageDir": "public/payment-logos/",
+        "effort": "30 minutes"
+      }
+    },
+    {
+      "id": "UIUX-027",
+      "title": "Add Newsletter Signup Section to Homepage",
+      "phase": "4.2",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add a newsletter signup section above the footer on the homepage (src/app/page.tsx)",
+        "Design: bg-primary text-primary-foreground with email input and 'Subscribe' button",
+        "Heading: 'Get Fresh Deals Delivered to Your Inbox'",
+        "Subtext: 'Join our newsletter for exclusive offers and mushroom tips'",
+        "Email validation with Zod before submission",
+        "Toast notification on success: 'Thanks for subscribing!'",
+        "Store email in Firestore 'newsletter_subscribers' collection",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/cms/NewsletterSignup.tsx",
+        "addTo": "src/app/page.tsx (before closing </main>)",
+        "effort": "1 hour"
+      }
+    },
+    {
+      "id": "UIUX-028",
+      "title": "Add How-It-Works Section to Homepage",
+      "phase": "4.2",
+      "priority": 5,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Add a 'How It Works' section to homepage between FeaturedCategories and WhyMASH sections",
+        "3-step visual: (1) 'Browse Local Growers' with Search icon, (2) 'Add to Cart' with ShoppingCart icon, (3) 'Delivered Fresh' with Truck icon",
+        "Each step has icon, title, and short description",
+        "Steps connected by horizontal line/arrow on desktop, vertical on mobile",
+        "Uses bg-muted/30 background to differentiate from adjacent sections",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/cms/HowItWorks.tsx",
+        "addTo": "src/app/page.tsx",
+        "effort": "45 minutes"
+      }
+    },
+    {
+      "id": "UIUX-029",
+      "title": "Decompose Shop Page - Extract Shared FilterSidebar",
+      "phase": "2.2",
+      "priority": 3,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/shop/FilterSidebar.tsx with all filter logic (categories, price range, tags)",
+        "Component used in both desktop sidebar and mobile Sheet on shop page",
+        "Currently duplicated at lines 228-372 (desktop) and 476-665 (mobile) in shop/page.tsx",
+        "Single FilterSidebar component accepts 'variant' prop: 'desktop' | 'mobile'",
+        "Mobile variant wraps in Sheet, desktop renders inline",
+        "Shop page reduced by ~300 lines after extraction",
+        "No visual or functional regression",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "sourceFile": "src/app/(shop)/shop/page.tsx",
+        "currentLines": 910,
+        "duplicatedBlocks": ["lines 228-372 (desktop)", "lines 476-665 (mobile)"],
+        "newFile": "src/components/shop/FilterSidebar.tsx",
+        "effort": "2 hours"
+      }
+    },
+    {
+      "id": "UIUX-030",
+      "title": "Add Sticky Mobile Add-to-Cart Bar on Product Detail",
+      "phase": "2.3",
+      "priority": 4,
+      "passes": false,
+      "acceptanceCriteria": [
+        "Create src/components/product/StickyAddToCartBar.tsx component",
+        "Fixed bottom bar on mobile that appears when the main 'Add to Cart' button scrolls out of view",
+        "Shows: product name (truncated), price, quantity selector, 'Add to Cart' button",
+        "Uses IntersectionObserver to detect when main CTA is not visible",
+        "Smooth slide-up animation when appearing, slide-down when disappearing",
+        "Only visible on mobile (hidden md:hidden lg:hidden)",
+        "Does not overlap with MobileBottomNav (positioned above it)",
+        "Build passes with zero errors"
+      ],
+      "implementationContext": {
+        "newFile": "src/components/product/StickyAddToCartBar.tsx",
+        "addTo": "Product detail page (after UIUX-015 split)",
+        "effort": "1 hour",
+        "dependsOn": ["UIUX-015"]
+      }
+    }
+  ]
+}
