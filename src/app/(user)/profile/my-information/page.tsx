@@ -51,7 +51,6 @@ import {
   EmailAuthProvider,
   linkWithCredential,
 } from "firebase/auth";
-import { FirebaseUserService } from "@/lib/firebase";
 import { UserApi } from "@/lib/api/user";
 import { PhoneNumberInput } from "@/components/profile/PhoneNumberInput";
 import { OTPVerificationModal } from "@/components/profile/OTPVerificationModal";
@@ -656,10 +655,10 @@ export default function MyInformationPage() {
 
     if (authProvider === "google" && !hasPassword) {
       return (
-        <Alert className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
-          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertDescription className="text-blue-900 dark:text-blue-100">
-            <div className="flex items-center justify-between">
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="font-medium mb-1">
                   Enhance Your Account Security
@@ -672,7 +671,7 @@ export default function MyInformationPage() {
               <Button
                 onClick={() => setShowLinkPasswordDialog(true)}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white ml-4 flex-shrink-0"
+                className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto flex-shrink-0"
               >
                 <Key className="h-4 w-4 mr-2" />
                 Add Password
@@ -715,17 +714,17 @@ export default function MyInformationPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-3xl font-bold text-primary">My Profile</h1>
+        <p className="text-foreground mt-1">
           Manage your account information and delivery addresses
         </p>
       </div>
 
       {/* User Profile Card */}
       <Card className="shadow-sm">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border-gray-100">
           <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+            <User className="h-5 w-5 text-foreground" />
             Account Information
           </CardTitle>
         </CardHeader>
@@ -782,15 +781,15 @@ export default function MyInformationPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Name */}
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">
+                  <Label className="text-sm font-medium text-foreground">
                     Full Name
                   </Label>
-                  <div className="mt-1 flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="mt-1 flex items-center gap-2 p-3 rounded-lg border">
                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground">
+                    <span className="text-muted-foreground">
                       {profileLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin inline" />
                       ) : (
@@ -807,12 +806,12 @@ export default function MyInformationPage() {
 
                 {/* Email */}
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">
+                  <Label className="text-sm font-medium text-foreground">
                     Email Address
                   </Label>
-                  <div className="mt-1 flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="mt-1 flex items-center gap-2 p-3 rounded-lg border">
                     <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground truncate">
+                    <span className="text-muted-foreground truncate">
                       {profileLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin inline" />
                       ) : (
@@ -822,6 +821,15 @@ export default function MyInformationPage() {
                   </div>
                 </div>
 
+                {/* Phone Number */}
+                <div className="sm:col-span-2">
+                  <Label className="text-sm font-medium text-foreground">
+                    Phone Number
+                    <span className="text-red-500 ml-1">*</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (Required for delivery)
+                    </span>
+                  </Label>
                 {/* Phone Number with Verification */}
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-1">
@@ -916,16 +924,82 @@ export default function MyInformationPage() {
                         >
                           Cancel
                         </Button>
+                    <div className="mt-1 space-y-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <div className="flex-1 flex items-center gap-2 p-2 rounded-lg border">
+                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <Input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={handlePhoneChange}
+                            placeholder="09171234567"
+                            className="border-0 p-0 h-auto focus-visible:ring-0"
+                            maxLength={11}
+                          />
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button
+                            onClick={handleSavePhone}
+                            disabled={phoneLoading}
+                            size="sm"
+                            className="bg-primary flex-1 sm:flex-none"
+                          >
+                            {phoneLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Save"
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setIsEditingPhone(false);
+                              setPhoneNumber(user?.phone || "");
+                            }}
+                            disabled={phoneLoading}
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 sm:flex-none"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Real-time validation feedback */}
+                      {phoneNumber && (
+                        <div className="text-xs">
+                          {phoneNumber.length === 11 &&
+                            phoneNumber.startsWith("09") ? (
+                            <p className="text-green-600 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Valid Philippine phone number
+                            </p>
+                          ) : (
+                            <div className="space-y-1">
+                              <p className="text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Must be 11 digits starting with 09
+                              </p>
+                              <p className="text-gray-500">
+                                Format: 09XXXXXXXXX ({phoneNumber.length}/11
+                                digits)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="mt-1 flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                    <div className="mt-1 flex items-center justify-between rounded-lg border">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <span className="text-foreground">
                           {phoneNumber
                             ? maskPhoneNumber(phoneNumber)
                             : "No phone number set"}
+                        <Phone className="ml-2 h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {phoneNumber || "No phone number set"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -965,7 +1039,7 @@ export default function MyInformationPage() {
               </div>
 
               {/* Password Management Section */}
-              <div className="pt-2 border-t border-border">
+              <div className="pt-4 border-t border-gray-100">
                 {renderPasswordSection()}
               </div>
             </div>
@@ -974,11 +1048,11 @@ export default function MyInformationPage() {
       </Card>
 
       {/* Addresses Card */}
-      <Card className="shadow-sm">
-        <CardHeader className="border-b border-border">
-          <div className="flex items-center justify-between">
+      <Card className=" shadow-sm">
+        <CardHeader className="border-b border-border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+              <MapPin className="h-5 w-5 text-foreground" />
               <CardTitle className="text-lg">Delivery Addresses</CardTitle>
             </div>
             <Button
@@ -988,7 +1062,7 @@ export default function MyInformationPage() {
                 setLandmark("");
                 setShowMapPicker(true);
               }}
-              className="bg-[#1E392A] hover:bg-[#2d5a42] text-white"
+              className="bg-primary hover:bg-primary/90 text-white w-full sm:w-auto"
               disabled={addressMutating}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -1007,7 +1081,7 @@ export default function MyInformationPage() {
             </div>
           ) : savedAddresses.length === 0 ? (
             <div className="text-center py-12">
-              <MapPin className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No saved addresses yet</p>
               <Button
                 onClick={() => {
@@ -1017,7 +1091,6 @@ export default function MyInformationPage() {
                   setShowMapPicker(true);
                 }}
                 variant="outline"
-                className="border-[#1E392A] text-[#1E392A] hover:bg-[#1E392A] hover:text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Address
@@ -1028,15 +1101,14 @@ export default function MyInformationPage() {
               {savedAddresses.map((addr) => (
                 <div
                   key={addr.id}
-                  className={`relative p-4 rounded-lg border-2 transition-all ${
-                    addr.isDefault
-                      ? "border-[#1E392A] dark:border-emerald-600 bg-[#1E392A]/5 dark:bg-emerald-950/20"
-                      : "border-border bg-card hover:border-muted-foreground/30"
-                  }`}
+                  className={`relative p-4 rounded-lg border-2 transition-all ${addr.isDefault
+                    ? "border-primary"
+                    : "border"
+                    }`}
                 >
                   {/* Default badge */}
                   {addr.isDefault && (
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 sm:right-3">.
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#1E392A] text-white text-xs font-medium">
                         <Star className="h-3 w-3 fill-white" />
                         Default
@@ -1044,7 +1116,7 @@ export default function MyInformationPage() {
                     </div>
                   )}
 
-                  <div className="pr-32">
+                  <div className="pr-4 sm:pr-32">
                     {/* Label */}
                     <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
@@ -1076,7 +1148,7 @@ export default function MyInformationPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                  <div className="mt-4 sm:mt-0 sm:absolute sm:bottom-3 sm:right-3 flex items-center justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-200">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1120,8 +1192,8 @@ export default function MyInformationPage() {
       {/* Info Card */}
       <Card className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
                 Delivery Instructions Help Riders Find You
@@ -1164,7 +1236,7 @@ export default function MyInformationPage() {
           </DialogHeader>
 
           <div className="space-y-4 mb-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="address-label">Address Label *</Label>
               <Input
                 id="address-label"
@@ -1176,7 +1248,7 @@ export default function MyInformationPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="landmark">
                 Delivery Instructions (Landmark) *
               </Label>
@@ -1479,7 +1551,7 @@ export default function MyInformationPage() {
             {linkPasswordForm.newPassword &&
               linkPasswordForm.confirmPassword &&
               linkPasswordForm.newPassword !==
-                linkPasswordForm.confirmPassword && (
+              linkPasswordForm.confirmPassword && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>Passwords do not match</AlertDescription>
