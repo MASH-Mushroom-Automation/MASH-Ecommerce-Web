@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, Star, Eye, Plus, Check, Loader2 } from "lucide-react";
+import { ShoppingCart, Heart, Star, Eye, Plus, Check, Loader2, Sparkles, Leaf, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
@@ -112,9 +112,6 @@ export function ProductCard({
     if (isAddingToCart || justAdded) return;
     
     setIsAddingToCart(true);
-    
-    // Small delay for better UX feedback
-    await new Promise(resolve => setTimeout(resolve, 300));
 
     const success = addToCart({
       id,
@@ -224,20 +221,20 @@ export function ProductCard({
           )}
           {/* New Badge */}
           {isNew && !isBestSeller && (
-            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md shadow-lg">
-              ✨ New
+            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> New
             </span>
           )}
           {/* Organic Badge */}
           {isOrganic && (
             <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
-              🌿 Organic
+              <Leaf className="w-3 h-3" /> Organic
             </span>
           )}
           {/* Fresh Badge */}
           {isFresh && !isOrganic && (
-            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg">
-              🌊 Fresh
+            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+              <Droplets className="w-3 h-3" /> Fresh
             </span>
           )}
           {/* Low Stock Warning */}

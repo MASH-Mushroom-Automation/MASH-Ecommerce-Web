@@ -5,11 +5,11 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T00:00:00Z",
+  "lastUpdated": "2026-02-24T12:00:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 0,
+  "completedStories": 6,
   "currentPhase": "1 - Critical Fixes & Foundation",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
@@ -50,14 +50,52 @@
     { "phase": "4.2", "name": "Homepage Redesign", "storyIds": ["UIUX-027", "UIUX-028"] },
     { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] }
   ],
-  "progressLog": [],
+  "progressLog": [
+    {
+      "storyId": "UIUX-001",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/components/layout/header.tsx"],
+      "summary": "Changed mobile sheet Cart link href from /checkout to /cart"
+    },
+    {
+      "storyId": "UIUX-002",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/components/layout/mobile-bottom-nav.tsx"],
+      "summary": "Added ShoppingCart icon with cart count badge as 5th nav item between Shop and Growers. Removed unused Bell import. Integrated useCart context."
+    },
+    {
+      "storyId": "UIUX-003",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/components/layout/footer.tsx"],
+      "summary": "Removed hardcoded font-['Roboto'] from footer element; inherits font-sans from theme"
+    },
+    {
+      "storyId": "UIUX-004",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/components/product/ProductCard.tsx"],
+      "summary": "Replaced emoji badges with Lucide icons: Sparkles (New), Leaf (Organic), Droplets (Fresh). Added flex+gap layout to New badge span."
+    },
+    {
+      "storyId": "UIUX-005",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/app/(shop)/shop/page.tsx"],
+      "summary": "Removed all emoji from sort SelectItem labels: Featured First, Newest Arrivals, Price Low/High, Name A-Z"
+    },
+    {
+      "storyId": "UIUX-006",
+      "completedAt": "2026-02-24T12:00:00Z",
+      "filesChanged": ["src/components/product/ProductCard.tsx"],
+      "summary": "Removed artificial 300ms setTimeout delay in handleAddToCart. Cart action is now immediate."
+    }
+  ],
   "stories": [
     {
       "id": "UIUX-001",
       "title": "Fix Mobile Cart Link Bug (checkout -> cart)",
       "phase": "1.2",
       "priority": 1,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "In src/components/layout/header.tsx line 617, change href from '/checkout' to '/cart'",
         "Mobile sheet 'Cart' link navigates to /cart page",
@@ -78,7 +116,8 @@
       "title": "Add Cart Icon with Badge to Mobile Bottom Nav",
       "phase": "1.2",
       "priority": 1,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "Import useCart from @/contexts/CartContext and ShoppingCart from lucide-react in mobile-bottom-nav.tsx",
         "Add a 5th nav item for Cart (/cart) with ShoppingCart icon between Shop and Growers",
@@ -102,7 +141,8 @@
       "title": "Remove Footer Hardcoded Font",
       "phase": "1.1",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "In src/components/layout/footer.tsx line 16, remove font-['Roboto'] from the footer className",
         "Footer inherits font-sans from the body/theme system",
@@ -122,7 +162,8 @@
       "title": "Replace Emoji with Lucide Icons in ProductCard Badges",
       "phase": "1.1",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "Import Sparkles, Leaf, Droplets icons from lucide-react in ProductCard.tsx",
         "Replace emoji '✨' at line 228 with <Sparkles className='w-3 h-3' /> for 'New' badge",
@@ -147,7 +188,8 @@
       "title": "Replace Emoji with Lucide Icons in Shop Sort Options",
       "phase": "1.1",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "In src/app/(shop)/shop/page.tsx lines 671-676, remove all emoji from sort option labels",
         "Replace '⭐ Featured First' with 'Featured First'",
@@ -170,7 +212,8 @@
       "title": "Remove Artificial 300ms Delay in ProductCard Add-to-Cart",
       "phase": "1.1",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:00:00Z",
       "acceptanceCriteria": [
         "In src/components/product/ProductCard.tsx line 117, remove the 300ms setTimeout delay",
         "addToCart() is called immediately after setting isAddingToCart to true",

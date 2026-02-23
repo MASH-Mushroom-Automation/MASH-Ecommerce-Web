@@ -611,7 +611,7 @@ export function Header() {
                   </nav>
                   <div className="border-t border-border pt-4 space-y-2">
                     <Link
-                      href="/checkout"
+                      href="/cart"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
                       <ShoppingCart className="h-5 w-5" />

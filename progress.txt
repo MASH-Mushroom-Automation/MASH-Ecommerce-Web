@@ -3091,3 +3091,79 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 **Tests Passing:** [PASS] All 3099 tests (138 suites) | [PASS] Build | [PASS] Lint
 **PRD Status:** 14/14 stories complete (passes: true)
 ---
+
+## [2026-02-24] - UIUX-001: Fix Mobile Cart Link Bug
+**Completed:** Fix Mobile Cart Link Bug (checkout -> cart)
+**Files Changed:**
+- src/components/layout/header.tsx (changed href from /checkout to /cart at line 615)
+**Implementation Notes:**
+- Mobile sheet Cart link was pointing to /checkout instead of /cart
+- Single character change: href="/checkout" -> href="/cart"
+**Learnings for Future Iterations:**
+- Mobile sheet navigation links in header.tsx are in the border-t section starting around line 613
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
+
+## [2026-02-24] - UIUX-002: Add Cart Icon with Badge to Mobile Bottom Nav
+**Completed:** Add Cart Icon with Badge to Mobile Bottom Nav
+**Files Changed:**
+- src/components/layout/mobile-bottom-nav.tsx (added ShoppingCart nav item, removed Bell import, integrated useCart)
+**Implementation Notes:**
+- Added ShoppingCart from lucide-react, useCart from CartContext
+- Inserted Cart nav item between Shop and Growers (now 5 items: Home, Shop, Cart, Growers, Account)
+- Cart badge displays red count badge using existing badge infrastructure in NavItem interface
+- Removed unused Bell import
+**Learnings for Future Iterations:**
+- MobileBottomNav already had badge support via NavItem.badge prop - just needed to use it
+- Cart count calculated as sum of item quantities: items.reduce((sum, item) => sum + item.quantity, 0)
+- Nav hides on login, signup, seller, checkout, onboarding pages
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
+
+## [2026-02-24] - UIUX-003: Remove Footer Hardcoded Font
+**Completed:** Remove Footer Hardcoded Font
+**Files Changed:**
+- src/components/layout/footer.tsx (removed font-['Roboto'] from footer element className)
+**Implementation Notes:**
+- Footer now inherits font-sans from the body/theme system (Roboto set via next/font in layout.tsx)
+- Visual appearance unchanged since Roboto is the app-wide font
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
+
+## [2026-02-24] - UIUX-004: Replace Emoji with Lucide Icons in ProductCard Badges
+**Completed:** Replace Emoji with Lucide Icons in ProductCard Badges
+**Files Changed:**
+- src/components/product/ProductCard.tsx (replaced emoji badges with Sparkles, Leaf, Droplets Lucide icons)
+**Implementation Notes:**
+- Imported Sparkles, Leaf, Droplets from lucide-react
+- New badge: Sparkles w-3 h-3 (was emoji), added flex items-center gap-1 layout
+- Organic badge: Leaf w-3 h-3 (was emoji), already had flex layout
+- Fresh badge: Droplets w-3 h-3 (was emoji), added flex items-center gap-1 layout
+**Learnings for Future Iterations:**
+- ProductCard badges are in the absolute top-left overlay div (lines ~215-248)
+- Best Seller and Discount badges already used Lucide icons (Star), only New/Organic/Fresh used emoji
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
+
+## [2026-02-24] - UIUX-005: Replace Emoji in Shop Sort Options
+**Completed:** Replace Emoji with Lucide Icons in Shop Sort Options
+**Files Changed:**
+- src/app/(shop)/shop/page.tsx (removed emoji from sort SelectItem labels at lines 671-675)
+**Implementation Notes:**
+- Removed all emoji prefixes from sort dropdown
+- Sort options now clean text only: Featured First, Newest Arrivals, Price: Low to High, Price: High to Low, Name: A to Z
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (31/31 shop tests)
+---
+
+## [2026-02-24] - UIUX-006: Remove Artificial 300ms Delay in ProductCard
+**Completed:** Remove Artificial 300ms Delay in ProductCard Add-to-Cart
+**Files Changed:**
+- src/components/product/ProductCard.tsx (removed await setTimeout(300ms) from handleAddToCart)
+**Implementation Notes:**
+- Removed the line: await new Promise(resolve => setTimeout(resolve, 300))
+- addToCart() now executes immediately after setting isAddingToCart=true
+- justAdded green checkmark animation (2000ms timer) still works independently
+**Learnings for Future Iterations:**
+- UI/UX Pattern: Never add artificial delays to user actions. The loading spinner (isAddingToCart) and success animation (justAdded) provide sufficient feedback without fake waiting.
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---

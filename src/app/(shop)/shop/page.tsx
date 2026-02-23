@@ -668,11 +668,11 @@ export default function ProductCatalogPage() {
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="featured">⭐ Featured First</SelectItem>
-                    <SelectItem value="newest">🆕 Newest Arrivals</SelectItem>
-                    <SelectItem value="price-asc">💰 Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">💎 Price: High to Low</SelectItem>
-                    <SelectItem value="name">🔤 Name: A to Z</SelectItem>
+                    <SelectItem value="featured">Featured First</SelectItem>
+                    <SelectItem value="newest">Newest Arrivals</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    <SelectItem value="name">Name: A to Z</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select

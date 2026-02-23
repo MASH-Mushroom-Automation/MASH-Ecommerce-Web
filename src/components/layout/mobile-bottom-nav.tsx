@@ -3,8 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, User, Sprout, Bell } from "lucide-react";
+import { Home, ShoppingBag, ShoppingCart, User, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/contexts/CartContext";
 
 interface NavItem {
   href: string;
@@ -15,6 +16,8 @@ interface NavItem {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { items } = useCart();
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Don't show on auth pages, seller pages, or checkout
   const hideNav = pathname.startsWith("/login") || 
@@ -35,6 +38,12 @@ export function MobileBottomNav() {
       href: "/shop",
       label: "Shop",
       icon: ShoppingBag,
+    },
+    {
+      href: "/cart",
+      label: "Cart",
+      icon: ShoppingCart,
+      badge: cartCount,
     },
     {
       href: "/grower",
