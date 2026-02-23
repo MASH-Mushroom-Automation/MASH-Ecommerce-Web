@@ -5,11 +5,11 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T12:00:00Z",
+  "lastUpdated": "2026-02-24T12:30:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 6,
+  "completedStories": 8,
   "currentPhase": "1 - Critical Fixes & Foundation",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
@@ -86,6 +86,18 @@
       "completedAt": "2026-02-24T12:00:00Z",
       "filesChanged": ["src/components/product/ProductCard.tsx"],
       "summary": "Removed artificial 300ms setTimeout delay in handleAddToCart. Cart action is now immediate."
+    },
+    {
+      "storyId": "UIUX-009",
+      "completedAt": "2026-02-24T12:30:00Z",
+      "filesChanged": ["src/components/hero/SanityHeroCarousel.tsx"],
+      "summary": "Updated loading/error/no-slides states from h-[300px] to min-h-[400px] (matching content slides) to eliminate CLS"
+    },
+    {
+      "storyId": "UIUX-010",
+      "completedAt": "2026-02-24T12:30:00Z",
+      "filesChanged": ["src/app/globals.css"],
+      "summary": "Fixed primary color from near-black oklch(0.205 0 0) to green oklch(0.462 0.141 145.2). Added --primary-hover, --primary-light, --primary-dark vars. Updated dark mode primary to lighter green. Removed duplicate hardcoded color overrides from @theme inline."
     }
   ],
   "stories": [
@@ -282,7 +294,8 @@
       "title": "Fix Hero Carousel Height Mismatch (CLS Fix)",
       "phase": "1.1",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:30:00Z",
       "acceptanceCriteria": [
         "In SanityHeroCarousel.tsx, update loading state (line 53) to use min-h-[400px] md:min-h-[500px] lg:min-h-[600px]",
         "Update error state (line 80) to use same min-h values",
@@ -307,7 +320,8 @@
       "title": "Fix globals.css Brand Color Conflict",
       "phase": "1.1",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T12:30:00Z",
       "acceptanceCriteria": [
         "Resolve conflict between @theme inline --color-primary: #2e7d32 (line 44) and :root --primary: oklch(0.205 0 0) (line 57)",
         "Set :root --primary to oklch equivalent of #2e7d32 (approximately oklch(0.46 0.15 145))",

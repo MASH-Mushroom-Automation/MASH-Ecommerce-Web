@@ -3167,3 +3167,33 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - UI/UX Pattern: Never add artificial delays to user actions. The loading spinner (isAddingToCart) and success animation (justAdded) provide sufficient feedback without fake waiting.
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
 ---
+
+## [2026-02-24] - UIUX-009: Fix Hero Carousel Height Mismatch (CLS Fix)
+**Completed:** Fix Hero Carousel Height Mismatch
+**Files Changed:**
+- src/components/hero/SanityHeroCarousel.tsx (loading, error, no-slides states updated)
+**Implementation Notes:**
+- Changed loading/error/no-slides states from h-[300px] md:h-[350px] lg:h-[400px] to min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
+- Content slides already used min-h - no change needed
+**Learnings for Future Iterations:**
+- CLS Pattern: Loading/placeholder states must match content dimensions using min-h (not h)
+- Hero carousel states are at lines ~52 (loading), ~80 (error), ~95 (no-slides), ~157 (content)
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
+
+## [2026-02-24] - UIUX-010: Fix globals.css Brand Color Conflict
+**Completed:** Fix globals.css Brand Color Conflict
+**Files Changed:**
+- src/app/globals.css (unified primary color system)
+**Implementation Notes:**
+- Fixed :root --primary from oklch(0.205 0 0) (near-black) to oklch(0.462 0.141 145.2) (green #2e7d32)
+- Added --primary-hover, --primary-light, --primary-dark CSS vars
+- Mapped new vars in @theme inline
+- Fixed secondary to green tint, updated dark mode primary to lighter green
+- Removed duplicate hardcoded hex values from @theme inline
+**Learnings for Future Iterations:**
+- Color System: @theme inline maps Tailwind colors to CSS vars. :root defines actual values. Never hardcode hex in @theme inline.
+- oklch(0.462 0.141 145.2) = #2e7d32 (MASH brand green)
+- Dark mode primary needs higher L value for readability
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
+---
