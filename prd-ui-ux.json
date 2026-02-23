@@ -5,12 +5,12 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T12:30:00Z",
+  "lastUpdated": "2026-02-24T14:00:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 8,
-  "currentPhase": "1 - Critical Fixes & Foundation",
+  "completedStories": 15,
+  "currentPhase": "2 - Shopping Experience Enhancement",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
@@ -98,6 +98,48 @@
       "completedAt": "2026-02-24T12:30:00Z",
       "filesChanged": ["src/app/globals.css"],
       "summary": "Fixed primary color from near-black oklch(0.205 0 0) to green oklch(0.462 0.141 145.2). Added --primary-hover, --primary-light, --primary-dark vars. Updated dark mode primary to lighter green. Removed duplicate hardcoded color overrides from @theme inline."
+    },
+    {
+      "storyId": "UIUX-014",
+      "completedAt": "2026-02-24T13:00:00Z",
+      "filesChanged": ["src/components/product/ProductCard.tsx", "src/components/hero/SanityHeroCarousel.tsx", "src/app/(shop)/checkout/page.tsx"],
+      "summary": "Replaced 7 hardcoded color instances across 3 files: fill-gray-200->fill-muted (stars), bg-gray-100->bg-muted (sold-out btn), bg-gray-100->bg-muted (hero error), text-red-600->text-destructive (hero error), bg-white dark:bg-gray-800->bg-card, border-gray-*->border-border, border-gray-300->border-muted-foreground (checkout vendor selector)"
+    },
+    {
+      "storyId": "UIUX-007",
+      "completedAt": "2026-02-24T13:20:00Z",
+      "filesChanged": ["src/app/client-layout.tsx"],
+      "summary": "Added skip-to-content link as first child before Header with sr-only focus:not-sr-only pattern. Added id=main-content and tabIndex=-1 to main element."
+    },
+    {
+      "storyId": "UIUX-008",
+      "completedAt": "2026-02-24T13:20:00Z",
+      "filesChanged": ["src/components/layout/header.tsx", "src/components/layout/mobile-bottom-nav.tsx", "src/components/layout/footer.tsx"],
+      "summary": "Added aria-label=Main Navigation to desktop nav, aria-label=Mobile Navigation to mobile sheet nav and bottom nav, aria-label=Footer Navigation to footer nav wrapper, role=status aria-live=polite to announcement bar, role=contentinfo to footer."
+    },
+    {
+      "storyId": "UIUX-011",
+      "completedAt": "2026-02-24T13:20:00Z",
+      "filesChanged": ["src/components/product/ProductCard.tsx"],
+      "summary": "Added aria-label to product card root (name + price + unit), aria-label=Add {name} to cart on add-to-cart button. Wishlist button already had aria-label."
+    },
+    {
+      "storyId": "UIUX-013",
+      "completedAt": "2026-02-24T13:30:00Z",
+      "filesChanged": ["src/components/common/json-ld.tsx"],
+      "summary": "Created reusable JsonLd component with script type=application/ld+json. Added typed helpers: productJsonLd(), breadcrumbJsonLd(), organizationJsonLd(). Schema.org compliant with PHP currency."
+    },
+    {
+      "storyId": "UIUX-016",
+      "completedAt": "2026-02-24T13:40:00Z",
+      "filesChanged": ["src/app/(shop)/shop/page.tsx", "src/app/(shop)/shop/ShopClient.tsx"],
+      "summary": "Split shop page into server wrapper (page.tsx with generateMetadata) + ShopClient.tsx client component. Metadata includes title, description, openGraph, canonical URL."
+    },
+    {
+      "storyId": "UIUX-015",
+      "completedAt": "2026-02-24T13:50:00Z",
+      "filesChanged": ["src/app/(shop)/product/[slug]/page.tsx", "src/app/(shop)/product/[slug]/ProductDetailClient.tsx"],
+      "summary": "Split product detail page into server wrapper with generateMetadata (fetches product from Sanity for title/description/openGraph) + ProductDetailClient.tsx. Added Product JSON-LD and BreadcrumbList JSON-LD structured data."
     }
   ],
   "stories": [
@@ -246,7 +288,8 @@
       "title": "Add Skip-to-Content Link and Main ID",
       "phase": "1.4",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:20:00Z",
       "acceptanceCriteria": [
         "Add id='main-content' to the <main> element in src/app/client-layout.tsx line 96",
         "Add a visually hidden skip-to-content link as the first child of the layout wrapper div (before Header)",
@@ -271,7 +314,8 @@
       "title": "Add ARIA Labels to Navigation Landmarks",
       "phase": "1.4",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:20:00Z",
       "acceptanceCriteria": [
         "Add aria-label='Main Navigation' to the desktop <nav> in header.tsx",
         "Add aria-label='Mobile Navigation' to the mobile bottom nav in mobile-bottom-nav.tsx",
@@ -344,7 +388,8 @@
       "title": "Add Product Card ARIA Labels",
       "phase": "1.4",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:20:00Z",
       "acceptanceCriteria": [
         "Add aria-label to the product card root element in ProductCard.tsx",
         "Label format: '{name} - P{price} per {unit}'",
@@ -389,7 +434,8 @@
       "title": "Create Reusable JsonLd Component for Structured Data",
       "phase": "1.3",
       "priority": 2,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:30:00Z",
       "acceptanceCriteria": [
         "Create src/components/common/json-ld.tsx with generic JsonLd component",
         "Component accepts a 'data' prop typed as Record<string, unknown>",
@@ -411,7 +457,8 @@
       "title": "Hardcoded Color Audit and Fix (Site-Wide)",
       "phase": "1.1",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:00:00Z",
       "acceptanceCriteria": [
         "Grep entire src/ for text-gray-, bg-gray-, bg-white, text-white that should be semantic tokens",
         "Replace text-gray-700/600/500 with text-foreground or text-muted-foreground",
@@ -443,7 +490,8 @@
       "title": "Add generateMetadata to Product Detail Page",
       "phase": "1.3",
       "priority": 1,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:50:00Z",
       "acceptanceCriteria": [
         "Create a server component wrapper at src/app/(shop)/product/[slug]/page.tsx that exports generateMetadata",
         "Move current client component to src/app/(shop)/product/[slug]/ProductDetailClient.tsx",
@@ -467,7 +515,8 @@
       "title": "Add generateMetadata to Shop Page",
       "phase": "1.3",
       "priority": 1,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T13:40:00Z",
       "acceptanceCriteria": [
         "Create a server component wrapper at src/app/(shop)/shop/page.tsx that exports generateMetadata",
         "Move current client component to src/app/(shop)/shop/ShopClient.tsx",

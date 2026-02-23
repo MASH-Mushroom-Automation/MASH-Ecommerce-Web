@@ -386,6 +386,8 @@ export function Header() {
       {announcementBar?.enabled && announcementBar?.message && (
         <div
           className="text-center py-2 px-4 text-sm font-medium flex items-center justify-center gap-2"
+          role="status"
+          aria-live="polite"
           style={{
             backgroundColor: announcementBar.backgroundColor || "#6A994E",
             color: announcementBar.textColor || "#ffffff",
@@ -550,7 +552,7 @@ export function Header() {
                     />
                   </div>
 
-                  <nav className="flex flex-col space-y-2">
+                  <nav className="flex flex-col space-y-2" aria-label="Mobile Navigation">
                     {/* CMS-driven navigation for mobile */}
                     {headerNav?.items?.length ? (
                       headerNav.items.map((item) => (
@@ -730,7 +732,7 @@ export function Header() {
           </div>
         </div>
 
-        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
+        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur" aria-label="Main Navigation">
           <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
             {/* Fallback navigation when CMS is loading or unavailable */}
             {navLoading || !headerNav?.items?.length ? (

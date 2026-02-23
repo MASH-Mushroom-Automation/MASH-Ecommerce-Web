@@ -13,8 +13,8 @@ export function Footer() {
   const { menu: aboutNav } = useSanityNavigation('footer-about');
 
   return (
-    <footer className="bg-muted text-foreground border-t border-border">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <footer className="bg-muted text-foreground border-t border-border" role="contentinfo">
+      <nav aria-label="Footer Navigation" className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Main Content Grid: Logo/Info (col-1), Shop (col-2), Customer Service (col-3), About MASH (col-4) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-16 gap-y-10">
           {/* Column 1: MASH Logo/Brand Info and Social Media - Real-time from Sanity CMS */}
@@ -303,7 +303,7 @@ export function Footer() {
             </div>
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* Copyright Bar - Real-time from Sanity CMS */}
       <div className="border-t border-border pt-3 pb-4 text-center text-xs text-muted-foreground">

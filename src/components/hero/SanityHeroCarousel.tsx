@@ -78,9 +78,9 @@ export const SanityHeroCarousel: React.FC = () => {
   if (error) {
     return (
       <section className="relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden">
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error loading hero carousel</p>
+            <p className="text-destructive mb-4">Error loading hero carousel</p>
             <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>

@@ -153,6 +153,7 @@ export function ProductCard({
         "hover:border-primary/30 hover:-translate-y-1",
         !inStock && "opacity-80"
       )}
+      aria-label={`${name} - \u20B1${price.toLocaleString('en-PH')} per ${unit ?? 'unit'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -328,7 +329,7 @@ export function ProductCard({
                       ? "fill-amber-400 text-amber-400"
                       : i < rating
                       ? "fill-amber-400/50 text-amber-400"
-                      : "fill-gray-200 text-gray-200"
+                      : "fill-muted text-muted"
                   )}
                 />
               ))}
@@ -384,10 +385,11 @@ export function ProductCard({
                 ? "bg-green-500 hover:bg-green-600" 
                 : inStock 
                   ? "bg-primary hover:bg-primary/90 hover:shadow-md active:scale-95" 
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
             onClick={handleAddToCart}
             disabled={!inStock || isAddingToCart}
+            aria-label={`Add ${name} to cart`}
           >
             {isAddingToCart ? (
               <Loader2 className="h-4 w-4 animate-spin" />

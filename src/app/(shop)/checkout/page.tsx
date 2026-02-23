@@ -437,7 +437,7 @@ export default function CheckoutPage() {
                     )}
                   </p>
                   
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                  <div className="bg-card rounded-lg p-4 border border-amber-200 dark:border-amber-700">
                     <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-3">
                       Select vendor to checkout:
                     </p>
@@ -456,14 +456,14 @@ export default function CheckoutPage() {
                               "text-left p-3 rounded-lg border-2 transition-all",
                               selectedVendor === vendor
                                 ? "border-primary bg-primary/5 shadow-md"
-                                : "border-gray-200 dark:border-gray-700 hover:border-primary/50"
+                                : "border-border hover:border-primary/50"
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className={cn(
                                   "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                  selectedVendor === vendor ? "border-primary" : "border-gray-300"
+                                  selectedVendor === vendor ? "border-primary" : "border-muted-foreground"
                                 )}>
                                   {selectedVendor === vendor && (
                                     <div className="w-2 h-2 rounded-full bg-primary" />

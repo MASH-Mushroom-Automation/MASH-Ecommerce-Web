@@ -3197,3 +3197,100 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Dark mode primary needs higher L value for readability
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] Tests (3779 passing)
 ---
+## [2026-02-24] - UIUX-014: Hardcoded Color Audit and Fix (Site-Wide)
+**Completed:** Hardcoded Color Audit and Fix
+**Files Changed:**
+- src/components/product/ProductCard.tsx (star ratings: fill-gray-200->fill-muted, sold-out button: bg-gray-100->bg-muted)
+- src/components/hero/SanityHeroCarousel.tsx (error state: bg-gray-100->bg-muted, text-red-600->text-destructive)
+- src/app/(shop)/checkout/page.tsx (vendor selector: bg-white dark:bg-gray-800->bg-card, border-gray-*->border-border, border-gray-300->border-muted-foreground)
+**Implementation Notes:**
+- Audited all key layout and component files for hardcoded gray/white colors
+- Applied 7 targeted replacements across 3 files
+- Preserved intentional hardcoded colors (gradient stops, badge contrast, glass effects)
+**Learnings for Future Iterations:**
+- Color Audit: bg-white should become bg-background or bg-card (no manual dark: variant needed)
+- border-gray-* should become border-border (adapts to both themes)
+- text-red-600 for errors should use text-destructive semantic token
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-007: Add Skip-to-Content Link and Main ID
+**Completed:** Skip-to-Content Accessibility Link
+**Files Changed:**
+- src/app/client-layout.tsx (added skip link + main id)
+**Implementation Notes:**
+- Added skip-to-content link as first child of regular layout div (before Header)
+- Link uses sr-only focus:not-sr-only pattern with high z-index
+- Styled with bg-primary text-primary-foreground when focused
+- Added id="main-content" and tabIndex={-1} to main element
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-008: Add ARIA Labels to Navigation Landmarks
+**Completed:** ARIA Navigation Landmark Labels
+**Files Changed:**
+- src/components/layout/header.tsx (aria-label on desktop nav, mobile sheet nav, aria-live on announcement bar)
+- src/components/layout/mobile-bottom-nav.tsx (aria-label on bottom nav)
+- src/components/layout/footer.tsx (aria-label on footer nav wrapper, role=contentinfo on footer)
+**Implementation Notes:**
+- Desktop nav: aria-label="Main Navigation"
+- Mobile sheet nav: aria-label="Mobile Navigation"
+- Mobile bottom nav: aria-label="Mobile Navigation"
+- Footer: Wrapped link columns in nav aria-label="Footer Navigation", added role="contentinfo" to footer
+- Announcement bar: Added role="status" and aria-live="polite"
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-011: Add Product Card ARIA Labels
+**Completed:** ProductCard ARIA Labels
+**Files Changed:**
+- src/components/product/ProductCard.tsx (aria-label on root div and add-to-cart button)
+**Implementation Notes:**
+- Root div: aria-label="{name} - P{price} per {unit}"
+- Add-to-cart button: aria-label="Add {name} to cart"
+- Wishlist button already had aria-label (no change needed)
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-013: Create Reusable JsonLd Component
+**Completed:** JSON-LD Structured Data Component
+**Files Changed:**
+- src/components/common/json-ld.tsx (new file)
+**Implementation Notes:**
+- Created generic JsonLd component rendering script type="application/ld+json"
+- Helper: productJsonLd() - @type Product with name, image, offers (PHP currency), aggregateRating
+- Helper: breadcrumbJsonLd() - @type BreadcrumbList with position-indexed items
+- Helper: organizationJsonLd() - MASH Marketplace org data
+- All schema.org compliant
+**Learnings for Future Iterations:**
+- JSON-LD: Use dangerouslySetInnerHTML with JSON.stringify for script tags
+- Keep structured data helpers typed but accepting Record<string, unknown>
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-016: Add generateMetadata to Shop Page
+**Completed:** Shop Page SEO Server Wrapper
+**Files Changed:**
+- src/app/(shop)/shop/page.tsx (new server wrapper with metadata)
+- src/app/(shop)/shop/ShopClient.tsx (moved client component)
+**Implementation Notes:**
+- Split page.tsx into server wrapper + ShopClient.tsx client component
+- Server wrapper exports generateMetadata with title, description, openGraph, canonical URL
+- Client component wrapped in Suspense boundary for useSearchParams
+- Zero visual regression - all functionality preserved
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
+
+## [2026-02-24] - UIUX-015: Add generateMetadata to Product Detail Page
+**Completed:** Product Detail Page SEO + JSON-LD
+**Files Changed:**
+- src/app/(shop)/product/[slug]/page.tsx (new server wrapper with generateMetadata + JSON-LD)
+- src/app/(shop)/product/[slug]/ProductDetailClient.tsx (moved client component, accepts slug prop)
+**Implementation Notes:**
+- Server wrapper fetches product from Sanity for metadata (lightweight query)
+- generateMetadata returns title, description, openGraph with product image, canonical URL
+- Adds Product JSON-LD and BreadcrumbList JSON-LD structured data
+- Client component receives slug as prop instead of params Promise
+- Graceful fallback if Sanity fetch fails
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
+---
