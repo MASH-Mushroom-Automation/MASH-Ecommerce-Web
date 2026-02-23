@@ -3,6 +3,8 @@
  * Google Analytics 4 integration for tracking user behavior and e-commerce events
  */
 
+import { logger } from "@/lib/logger";
+
 // Check if GA is available and enabled
 const isGAEnabled = () => {
   return (
@@ -42,7 +44,7 @@ interface EcommerceEventParams {
  */
 export const initGA = () => {
   if (!isGAEnabled()) {
-    console.log("GA not initialized: Missing or invalid measurement ID");
+    logger.warn("GA not initialized: Missing or invalid measurement ID");
     return;
   }
 
@@ -52,7 +54,6 @@ export const initGA = () => {
       const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
       if (measurementId) {
         ReactGA.default.initialize(measurementId);
-        console.log("GA initialized with ID:", measurementId);
       }
     });
   } catch (error) {
@@ -70,7 +71,6 @@ export const logPageView = (url: string) => {
   try {
     import("react-ga4").then((ReactGA) => {
       ReactGA.default.send({ hitType: "pageview", page: url });
-      console.log("GA Page View:", url);
     });
   } catch (error) {
     console.error("Failed to log page view:", error);
@@ -92,7 +92,6 @@ export const logEvent = (event: GAEvent) => {
         label: event.label,
         value: event.value,
       });
-      console.log("GA Event:", event);
     });
   } catch (error) {
     console.error("Failed to log event:", error);
@@ -112,7 +111,6 @@ export const logEcommerceEvent = (
   try {
     import("react-ga4").then((ReactGA) => {
       ReactGA.default.event(eventName, params);
-      console.log("GA E-commerce Event:", eventName, params);
     });
   } catch (error) {
     console.error("Failed to log ecommerce event:", error);

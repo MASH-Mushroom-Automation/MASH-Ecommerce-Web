@@ -14,6 +14,7 @@ import { useAuth } from "./AuthContext";
 import { FirebaseCartService } from "@/lib/firebase/cart";
 import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
 import { stockSync } from "@/lib/product/stock-sync";
+import { logger } from "@/lib/logger";
 
 interface CartContextType {
   items: CartItem[];
@@ -41,39 +42,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from cookie on mount
   useEffect(() => {
-    console.debug("[CartContext] Loading cart from cookie...");
     const savedCart = getCartCookie();
-    console.debug("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
-        console.debug("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
         if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
-          console.debug("[CartContext] Loading", savedCart.items.length, "items");
           setItems(savedCart.items);
         } else {
           // Old cart format - clear it
-          console.debug("Old cart format detected, clearing cart");
           clearCartCookie();
         }
       } catch (error) {
-        console.error("Failed to load cart from cookie:", error);
+        logger.error("[CartContext] Failed to load cart from cookie", error);
       }
     }
     setIsLoaded(true);
-    console.debug("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.debug("[CartContext] Saving to cookie, items:", items.length);
       setCartCookie({
         version: 2,
         items,
         updatedAt: new Date().toISOString(),
       });
-      console.debug("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
@@ -172,7 +165,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-    console.debug("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
     
     // Validate stock
     if (product.stock < quantity) {

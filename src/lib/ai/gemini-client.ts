@@ -18,6 +18,7 @@ import {
   getGeminiUrl,
 } from './config';
 import { generateResponseNative } from './gemini-native';
+import { logger } from '@/lib/logger';
 import type { AIResponse, Message } from '@/types/chatbot';
 
 // Retry configuration
@@ -124,12 +125,12 @@ export async function generateResponse(
   };
 
   if (CHATBOT_DEBUG) {
-    console.log('[Gemini] Request:', requestBody);
+    logger.debug('[Gemini] Request', requestBody);
   }
 
   // FIRST: Try server-side proxy (bypasses VPN/DNS issues)
   try {
-    console.log('[Gemini] Trying server-side proxy first...');
+    logger.debug('[Gemini] Trying server-side proxy first...');
     
     const proxyResponse = await fetch('/api/ai/gemini', {
       method: 'POST',
@@ -143,7 +144,7 @@ export async function generateResponse(
       
       if (generatedText) {
         const processingTime = Date.now() - startTime;
-        console.log('[Gemini] Server proxy succeeded in', processingTime, 'ms');
+        logger.perf('[Gemini] Server proxy succeeded', processingTime);
         
         return {
           content: generatedText,

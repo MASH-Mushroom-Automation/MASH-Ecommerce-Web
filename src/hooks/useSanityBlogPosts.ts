@@ -134,17 +134,14 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
       setError(null);
       
       const query = buildQuery();
-      console.log('📚 Fetching blog posts with query:', query);
-      
       const data = await sanityClient.fetch<SanityPost[]>(query);
       
       // Transform posts for display
       const transformedPosts = data.map(transformBlogPost);
       
       setPosts(transformedPosts);
-      console.log(`✅ Fetched ${transformedPosts.length} blog posts`);
     } catch (err) {
-      console.error('❌ Error fetching blog posts:', err);
+      console.error('Error fetching blog posts:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -158,12 +155,8 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
     // Set up real-time subscription
     const query = buildQuery();
     
-    console.debug('🔌 Setting up blog posts real-time subscription');
-    
     const subscription = listenSafe(query, {}, { includeResult: true })
       .subscribe((update) => {
-        console.debug('📡 Blog posts mutation event received:', update.type);
-        
         if (update.type === 'mutation' && update.result) {
           const data = update.result as unknown as SanityPost | SanityPost[];
           const postsArray = Array.isArray(data) ? data : [data];
@@ -171,15 +164,12 @@ export function useSanityBlogPosts(filters?: BlogPostFilters) {
           // Transform and update state
           const transformedPosts = postsArray.map(transformBlogPost);
           setPosts(transformedPosts);
-          
-          console.info(`🔄 Blog posts updated in real-time! Count: ${transformedPosts.length}`);
         }
       });
 
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
-      console.debug('🧹 Blog posts subscription cleaned up');
     };
   }, [fetchPosts, buildQuery]);
 
@@ -235,20 +225,16 @@ export function useSanityBlogPost(slug: string) {
         }
       }`;
       
-      console.log(`📄 Fetching blog post: ${slug}`);
-      
       const data = await sanityClient.fetch<SanityPost>(query, { slug });
       
       if (data) {
         const transformedPost = transformBlogPost(data);
         setPost(transformedPost);
-        console.log(`✅ Fetched blog post: ${transformedPost.title}`);
       } else {
         setPost(null);
-        console.warn(`⚠️ Blog post not found: ${slug}`);
       }
     } catch (err) {
-      console.error(`❌ Error fetching blog post ${slug}:`, err);
+      console.error(`Error fetching blog post ${slug}:`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -264,25 +250,18 @@ export function useSanityBlogPost(slug: string) {
     // Set up real-time subscription for single post
     const query = `*[_type == "post" && slug.current == $slug && !(_id in path("drafts.**"))][0]`;
     
-    console.log(`🔌 Setting up real-time subscription for blog post: ${slug}`);
-    
     const subscription = listenSafe(query, { slug }, { includeResult: true })
       .subscribe((update) => {
-        console.log(`📡 Blog post "${slug}" mutation event:`, update.type);
-        
         if (update.type === 'mutation' && update.result) {
           const data = update.result as unknown as SanityPost;
           const transformedPost = transformBlogPost(data);
           setPost(transformedPost);
-          
-          console.log(`🔄 Blog post "${slug}" updated in real-time!`);
         }
       });
 
     // Cleanup subscription
     return () => {
       subscription.unsubscribe();
-      console.log(`🧹 Blog post "${slug}" subscription cleaned up`);
     };
   }, [slug, fetchPost]);
 
@@ -333,15 +312,12 @@ export function useSanityFeaturedBlogPosts(limit: number = 3) {
         }
       }`;
       
-      console.log(`⭐ Fetching ${limit} featured blog posts`);
-      
       const data = await sanityClient.fetch<SanityPost[]>(query);
       const transformedPosts = data.map(transformBlogPost);
       
       setPosts(transformedPosts);
-      console.log(`✅ Fetched ${transformedPosts.length} featured blog posts`);
     } catch (err) {
-      console.error('❌ Error fetching featured blog posts:', err);
+      console.error('Error fetching featured blog posts:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -356,24 +332,17 @@ export function useSanityFeaturedBlogPosts(limit: number = 3) {
     const featuredQuery = `*[_type == "post" && !(_id in path("drafts.**")) && publishedAt < now()] 
       | order(publishedAt desc) [0...${limit}]`;
     
-    console.debug('🔌 Setting up featured blog posts real-time subscription');
-    
     const subscription = listenSafe(featuredQuery, {}, { includeResult: true })
       .subscribe((update) => {
-        console.log('📡 Featured blog posts mutation event:', update.type);
-        
         if (update.type === 'mutation' && update.result) {
           const data = update.result as unknown as SanityPost[];
           const transformedPosts = data.map(transformBlogPost);
           setPosts(transformedPosts);
-          
-          console.log(`🔄 Featured blog posts updated in real-time! Count: ${transformedPosts.length}`);
         }
       });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Featured blog posts subscription cleaned up');
     };
   }, [limit, fetchFeaturedPosts]);
 

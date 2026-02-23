@@ -34,7 +34,9 @@ export default function ShippingInfoPage() {
               <h3 className="font-semibold text-foreground mb-1">
                 Safe Packaging
               </h3>
-              <p className="text-sm text-muted-foreground">Specially designed</p>
+              <p className="text-sm text-muted-foreground">
+                Specially designed
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -60,7 +62,9 @@ export default function ShippingInfoPage() {
             <CardContent className="space-y-4">
               <div className="border-l-4 border-accent pl-4">
                 <div className="flex items-start gap-3">
-                  <Badge className="bg-accent text-accent-foreground mt-1">Metro Manila</Badge>
+                  <Badge className="bg-accent text-accent-foreground mt-1">
+                    Metro Manila
+                  </Badge>
                   <div>
                     <h4 className="font-semibold text-foreground mb-1">
                       2-3 Business Days
@@ -75,7 +79,9 @@ export default function ShippingInfoPage() {
 
               <div className="border-l-4 border-accent pl-4">
                 <div className="flex items-start gap-3">
-                  <Badge className="bg-accent text-accent-foreground mt-1">Luzon</Badge>
+                  <Badge className="bg-accent text-accent-foreground mt-1">
+                    Luzon
+                  </Badge>
                   <div>
                     <h4 className="font-semibold text-foreground mb-1">
                       3-5 Business Days
@@ -135,11 +141,17 @@ export default function ShippingInfoPage() {
                   <span className="font-semibold text-foreground">₱100</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b">
-                  <span className="text-muted-foreground">Other Luzon Areas</span>
-                  <span className="font-semibold text-foreground">₱150-200</span>
+                  <span className="text-muted-foreground">
+                    Other Luzon Areas
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    ₱150-200
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Visayas & Mindanao</span>
+                  <span className="text-muted-foreground">
+                    Visayas & Mindanao
+                  </span>
                   <span className="font-semibold text-foreground">
                     Contact Us
                   </span>
@@ -318,13 +330,13 @@ export default function ShippingInfoPage() {
               </p>
               <div className="space-y-1 text-sm">
                 <p>
-                  Email: <strong>delivery@mash.ph</strong>
+                  Email: <strong>MASH.Mushroom.Automation@gmail.com</strong>
                 </p>
                 <p>
-                  Phone: <strong>+63 917 123 4567</strong>
+                  Phone: <strong>09272533969</strong>
                 </p>
                 <p>
-                  Hours: <strong>Monday-Saturday, 8AM-6PM</strong>
+                  Hours: <strong>Monday-Saturday, 9AM-6PM</strong>
                 </p>
               </div>
             </CardContent>

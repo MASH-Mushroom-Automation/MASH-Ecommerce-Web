@@ -198,7 +198,7 @@ export function useInventoryData(options: {
     enabled,
     filters: DEFAULT_LOW_STOCK_FILTERS,
     page: 1,
-    pageSize: 10,
+    pageSize: 5,
   });
 
   /**
@@ -319,28 +319,28 @@ export function useInvalidateInventory() {
   const invalidateAll = useCallback(async () => {
     // Remove existing cached data to ensure fresh fetch
     await queryClient.removeQueries({ queryKey: ['inventory'] });
-    
+
     // Refetch with fresh data (bypasses CDN)
     await queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.inventoryStats,
       queryFn: () => getInventoryStats(10, { skipCache: true }),
     });
-    
+
     await queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.stockValue,
       queryFn: () => getStockValue({ skipCache: true }),
     });
-    
+
     await queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.categoryDistribution,
       queryFn: () => getCategoryInventoryDistribution({ skipCache: true }),
     });
-    
+
     await queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.lowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1),
-      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 10, { skipCache: true }),
+      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 5, { skipCache: true }),
     });
-    
+
     // Invalidate to trigger component re-renders
     await queryClient.invalidateQueries({ queryKey: ['inventory'] });
   }, [queryClient]);
@@ -358,7 +358,7 @@ export function useInvalidateInventory() {
     await queryClient.removeQueries({ queryKey: ['inventory', 'lowStock'] });
     await queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.lowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1),
-      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 10, { skipCache: true }),
+      queryFn: () => getLowStockProducts(DEFAULT_LOW_STOCK_FILTERS, 1, 5, { skipCache: true }),
     });
     await queryClient.invalidateQueries({ queryKey: ['inventory', 'lowStock'] });
   }, [queryClient]);

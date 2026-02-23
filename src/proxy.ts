@@ -24,6 +24,7 @@ const protectedRoutes = [
   "/profile/my-information",
   "/profile/order-history",
   "/wishlist",
+  "/start-selling", // Seller registration requires login
 ];
 
 // Define auth routes that authenticated users shouldn't access
@@ -111,14 +112,15 @@ export function proxy(request: NextRequest) {
  */
 function addSecurityHeaders(response: NextResponse): NextResponse {
   // Content Security Policy (CSP) - Prevents XSS attacks
+  // Note: cal.com added for Cal.com appointment booking embed
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://cdn.sanity.io",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https: blob:",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.google.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.sanity.io https://cal.com https://*.cal.com https://widget.cloudinary.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cal.com https://*.cal.com",
+    "img-src 'self' data: https: blob: https://*.cloudinary.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' http://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.cloudinary.com https://res.cloudinary.com",
-    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps",
+    "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://www.google-analytics.com https://stats.g.doubleclick.net https://tagmanager.google.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.cloudinary.com https://cal.com https://*.cal.com https://app.cal.com https://generativelanguage.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
+    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com https://app.cal.com https://www.google.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

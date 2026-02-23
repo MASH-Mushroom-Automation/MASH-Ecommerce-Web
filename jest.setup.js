@@ -5,6 +5,43 @@
 
 require('@testing-library/jest-dom');
 
+// Suppress console logs in tests (keep errors and warnings for debugging)
+global.console = {
+  ...console,
+  log: jest.fn(), // Suppress info logs
+  debug: jest.fn(), // Suppress debug logs
+  info: jest.fn(), // Suppress info logs
+  // Keep error and warn for test debugging
+};
+
+// Polyfill global fetch for Node.js environment (required for Firebase Auth in tests)
+if (typeof global.fetch === 'undefined') {
+  global.fetch = jest.fn(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    status: 200,
+  }));
+  global.Response = class Response {
+    constructor(body, init) {
+      this.body = body;
+      this.ok = init?.status >= 200 && init?.status < 300;
+      this.status = init?.status || 200;
+    }
+    json() { return Promise.resolve(JSON.parse(this.body || '{}')); }
+    text() { return Promise.resolve(this.body || ''); }
+  };
+  global.Request = class Request {
+    constructor(url, init) {
+      this.url = url;
+      this.method = init?.method || 'GET';
+      this.headers = init?.headers || {};
+      this.body = init?.body;
+    }
+  };
+  console.log('[jest.setup] Polyfilled global fetch for Node.js');
+}
+
 // Add TextEncoder/TextDecoder for Node environment
 if (typeof TextEncoder === 'undefined') {
   const util = require('util');
@@ -64,7 +101,7 @@ if (typeof Request === 'undefined') {
 
 // Mock Firebase Auth to prevent initialization errors in tests
 jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(() => ({})),
+  getAuth: jest.fn(() => ({ currentUser: null })),
   GoogleAuthProvider: jest.fn(() => ({
     addScope: jest.fn(),
     setCustomParameters: jest.fn(),
@@ -85,6 +122,26 @@ jest.mock('firebase/auth', () => ({
   signInWithEmailLink: jest.fn(() => Promise.resolve({ user: {} })),
   sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
   updateProfile: jest.fn(() => Promise.resolve()),
+  // Firebase Phone Auth
+  RecaptchaVerifier: jest.fn(() => ({
+    clear: jest.fn(),
+    render: jest.fn(() => Promise.resolve()),
+    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
+  })),
+  PhoneAuthProvider: Object.assign(
+    jest.fn(() => ({
+      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
+    })),
+    {
+      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
+      PROVIDER_ID: 'phone',
+    },
+  ),
+  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  updatePhoneNumber: jest.fn(() => Promise.resolve()),
+  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
+  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock Firebase App
@@ -94,25 +151,7 @@ jest.mock('firebase/app', () => ({
   getApp: jest.fn(() => ({})),
 }));
 
-// Mock Firebase/Firestore for analytics
-jest.mock('firebase/firestore', () => ({
-  getFirestore: jest.fn(() => ({})),
-  collection: jest.fn(),
-  addDoc: jest.fn(() => Promise.resolve({ id: 'mock-id' })),
-  query: jest.fn(),
-  where: jest.fn(),
-  getDocs: jest.fn(() => Promise.resolve({ docs: [] })),
-  orderBy: jest.fn(),
-  limit: jest.fn(),
-  Timestamp: {
-    now: jest.fn(() => ({ seconds: Date.now() / 1000 })),
-    fromDate: jest.fn((date) => ({ seconds: date.getTime() / 1000 })),
-  },
-  serverTimestamp: jest.fn(() => ({ _methodName: 'serverTimestamp' })),
-  updateDoc: jest.fn(() => Promise.resolve()),
-  doc: jest.fn(),
-  increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
-}));
+// firebase/firestore is mocked in the FIREBASE MOCKS section below - see line ~411
 
 // NOTE: js-cookie is mocked via __mocks__/js-cookie.js manual mock file
 // That mock uses an in-memory store and exposes it via __cookieStore
@@ -368,10 +407,18 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(() => Promise.resolve()),
   doc: jest.fn(),
   increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
+  arrayUnion: jest.fn((...args) => args),
+  arrayRemove: jest.fn((...args) => args),
   getDoc: jest.fn(() => Promise.resolve({ exists: () => false })),
   setDoc: jest.fn(() => Promise.resolve()),
   deleteDoc: jest.fn(() => Promise.resolve()),
-  onSnapshot: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+  writeBatch: jest.fn(() => ({
+    set: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    commit: jest.fn(() => Promise.resolve()),
+  })),
 }));
 
 // ============================================================================

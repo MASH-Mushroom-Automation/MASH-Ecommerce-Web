@@ -94,10 +94,10 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
-          <Link href="/blog" className="hover:underline whitespace-nowrap">
+          {/* <Link href="/blog" className="hover:underline whitespace-nowrap">
             BLOG
           </Link>
-          <span className="hidden sm:inline opacity-50">•</span>
+          <span className="hidden sm:inline opacity-50">•</span> */}
           <Link
             href="/faq"
             className="hidden sm:inline hover:underline whitespace-nowrap"
@@ -264,6 +264,7 @@ export function SellerHeader() {
               width={150}
               height={50}
               className="h-16 w-auto sm:h-20"
+              style={{ width: 'auto', height: 'auto' }}
               priority
             />
           )}
@@ -308,8 +309,7 @@ export function SimpleHeader() {
               alt="MASH Logo"
               width={150}
               height={50}
-              className="h-10 w-auto sm:h-12"
-              priority
+              className="h-10 w-auto sm:h-12"              style={{ width: 'auto', height: 'auto' }}              priority
             />
           )}
         </Link>
@@ -421,6 +421,7 @@ export function Header() {
                 width={150}
                 height={50}
                 className="h-10 w-auto sm:h-12"
+                style={{ width: 'auto', height: 'auto' }}
                 priority
               />
             )}

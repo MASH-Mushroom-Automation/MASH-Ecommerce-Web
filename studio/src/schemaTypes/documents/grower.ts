@@ -409,6 +409,24 @@ export const grower = defineType({
       },
     }),
 
+    // Theme preference for Cal.com embed
+    defineField({
+      name: 'calcomTheme',
+      title: 'Cal.com Widget Theme',
+      type: 'string',
+      group: 'appointments',
+      description: 'Theme for the Cal.com booking widget. Auto follows the user\'s system theme.',
+      hidden: ({parent}) => !parent?.calendlyEnabled,
+      initialValue: 'auto',
+      options: {
+        list: [
+          {title: 'Auto (Follow System Theme)', value: 'auto'},
+          {title: 'Light Mode', value: 'light'},
+          {title: 'Dark Mode', value: 'dark'},
+        ],
+      },
+    }),
+
     // Editor-customizable CTA text for Cal.com appointment buttons
     defineField({
       name: 'calcomButtonText',

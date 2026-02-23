@@ -102,8 +102,8 @@ describe('ProductDetailPage (storefront)', () => {
     // Grower card should be rendered
     expect(screen.getByTestId('grower-card')).toBeInTheDocument();
 
-    // Highly rated badge (4.5+) should be visible
-    expect(await screen.findByText(/Highly rated/i)).toBeInTheDocument();
+    // Top Rated badge (4.5+) should be visible
+    expect(await screen.findByText(/Top Rated/i)).toBeInTheDocument();
 
     // Cal.com contact button should be present
     expect(await screen.findByTestId('calcom-btn')).toBeInTheDocument();

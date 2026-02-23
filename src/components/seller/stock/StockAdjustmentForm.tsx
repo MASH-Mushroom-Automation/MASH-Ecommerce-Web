@@ -249,6 +249,8 @@ export const StockAdjustmentForm = React.memo<StockAdjustmentFormProps>(
     
     const currentStock = selectedProduct?.stockQuantity ?? 0;
     const newStock = calculateNewStock(currentStock, quantityChange);
+    // Use raw (unclamped) value for warning and submit-disable logic
+    const rawNewStock = currentStock + (quantityChange || 0);
     
     // ========================================================================
     // Dynamic Reasons
@@ -535,7 +537,7 @@ export const StockAdjustmentForm = React.memo<StockAdjustmentFormProps>(
                 </div>
               )}
               
-              {newStock < 0 && (
+              {rawNewStock < 0 && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
                   <AlertTriangle className="h-4 w-4" />
                   Warning: This adjustment would result in negative stock
@@ -618,7 +620,7 @@ export const StockAdjustmentForm = React.memo<StockAdjustmentFormProps>(
             )}
             <Button
               type="submit"
-              disabled={isFormLoading || newStock < 0}
+              disabled={isFormLoading || rawNewStock < 0}
             >
               {isSubmitting ? (
                 <>

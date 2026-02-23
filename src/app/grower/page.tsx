@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, MapPin, Phone, Clock, Send, Store, X } from "lucide-react";
+import { Search, MapPin, Phone, Clock, Send, Store, X, Star } from "lucide-react";
 import { useSanityGrowers } from "@/hooks/useSanityGrowers";
+import { useGrowerRatings } from "@/hooks/useGrowerRatings";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { isAuthenticated } from "@/lib/auth";
@@ -62,6 +63,11 @@ export default function GrowersPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [displayCount, setDisplayCount] = useState(8);
+  const [sortBy, setSortBy] = useState<"name" | "highest-rated">("name");
+
+  // Batch-fetch ratings for all grower IDs
+  const growerIds = useMemo(() => growers.map((g) => g.id), [growers]);
+  const { ratings: growerRatings, loading: ratingsLoading } = useGrowerRatings(growerIds);
 
   // Extract unique regions from growers
   const regions = useMemo(() => {
@@ -87,17 +93,29 @@ export default function GrowersPage() {
   }, [growers, selectedGrower]);
 
   // Filter growers by search term and region
-  const filteredGrowers = growers.filter((grower) => {
-    const matchesSearch =
-      grower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      grower.location?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredGrowers = useMemo(() => {
+    const filtered = growers.filter((grower) => {
+      const matchesSearch =
+        grower.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        grower.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const growerRegion =
-      grower.region || grower.location?.split(",").pop()?.trim() || "Other";
-    const matchesRegion = !selectedRegion || growerRegion === selectedRegion;
+      const growerRegion =
+        grower.region || grower.location?.split(",").pop()?.trim() || "Other";
+      const matchesRegion = !selectedRegion || growerRegion === selectedRegion;
 
-    return matchesSearch && matchesRegion;
-  });
+      return matchesSearch && matchesRegion;
+    });
+
+    if (sortBy === "highest-rated") {
+      return [...filtered].sort((a, b) => {
+        const rA = growerRatings[a.id]?.averageRating || 0;
+        const rB = growerRatings[b.id]?.averageRating || 0;
+        return rB - rA;
+      });
+    }
+
+    return filtered;
+  }, [growers, searchTerm, selectedRegion, sortBy, growerRatings]);
 
   if (loading) {
     return (
@@ -234,8 +252,20 @@ export default function GrowersPage() {
               Showing {Math.min(displayCount, filteredGrowers.length)} of{" "}
               {filteredGrowers.length} growers
             </p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Show:</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "name" | "highest-rated")}
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                >
+                  <option value="name">Name</option>
+                  <option value="highest-rated">Highest Rated</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -250,6 +280,7 @@ export default function GrowersPage() {
                 <option value={24}>24 per page</option>
                 <option value={50}>50 per page</option>
               </select>
+              </div>
             </div>
           </div>
 
@@ -304,6 +335,25 @@ export default function GrowersPage() {
                         icon={Store}
                         text={grower.specialties.slice(0, 2).join(", ")}
                       />
+                    )}
+                  </div>
+
+                  {/* Rating Badge */}
+                  <div className="mt-3">
+                    {ratingsLoading ? (
+                      <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+                    ) : growerRatings[grower.id] && growerRatings[grower.id].totalReviews > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-semibold text-foreground">
+                          {growerRatings[grower.id].averageRating.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({growerRatings[grower.id].totalReviews} {growerRatings[grower.id].totalReviews === 1 ? "review" : "reviews"})
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No reviews yet</span>
                     )}
                   </div>
 

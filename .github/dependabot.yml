@@ -1,0 +1,117 @@
+# Dependabot Configuration for MASH E-Commerce
+# Automated dependency updates and security patches
+
+version: 2
+updates:
+  # NPM Dependencies (Main Project)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "MASH-Mushroom-Automation/maintainers"
+    assignees:
+      - "MASH-Mushroom-Automation/maintainers"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    versioning-strategy: increase
+    allow:
+      - dependency-type: "production"
+      - dependency-type: "development"
+    ignore:
+      # Ignore major version updates for critical packages
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group related dependencies
+      next-ecosystem:
+        patterns:
+          - "next"
+          - "@next/*"
+        update-types:
+          - "minor"
+          - "patch"
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "jest"
+          - "@testing-library/*"
+          - "@jest/*"
+          - "playwright"
+          - "@playwright/*"
+        update-types:
+          - "minor"
+          - "patch"
+      firebase:
+        patterns:
+          - "firebase"
+          - "firebase-admin"
+        update-types:
+          - "minor"
+          - "patch"
+      sanity:
+        patterns:
+          - "sanity"
+          - "@sanity/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # NPM Dependencies (Sanity Studio)
+  - package-ecosystem: "npm"
+    directory: "/studio"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(studio-deps):"
+    labels:
+      - "dependencies"
+      - "studio"
+      - "automated"
+    groups:
+      sanity-studio:
+        patterns:
+          - "sanity"
+          - "@sanity/*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(ci):"
+    labels:
+      - "ci/cd"
+      - "dependencies"
+      - "automated"
+    groups:
+      github-actions:
+        patterns:
+          - "actions/*"
+          - "github/*"

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
             message: "Authentication required",
           },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Forward the multipart/form-data body directly to the backend
+    const cookieHeader = request.headers.get("cookie") || "";
     const res = await fetch(`${API_BASE_URL}/api/users/avatar`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         // Don't set Content-Type - let fetch set it with boundary for multipart
       },
       body: formData,
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
             details: json,
           },
         },
-        { status: res.status }
+        { status: res.status },
       );
     }
 
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
         },
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

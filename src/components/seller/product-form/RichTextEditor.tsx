@@ -134,7 +134,8 @@ export function RichTextEditor({
     return null;
   }
 
-  const characterCount = editor.storage.characterCount?.characters() || 0;
+  // Calculate character count from editor text (strip HTML)
+  const characterCount = editor.getText().length;
   const isOverLimit = maxLength && characterCount > maxLength;
 
   return (

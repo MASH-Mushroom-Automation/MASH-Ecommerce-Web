@@ -80,7 +80,6 @@ export function LalamoveQuote({
   const fetchQuote = useCallback(async () => {
     // Prevent duplicate simultaneous requests
     if (isFetchingRef.current) {
-      console.log("[LalamoveQuote] Already fetching, skipping...");
       return;
     }
 
@@ -103,7 +102,6 @@ export function LalamoveQuote({
     
     // Skip if we already fetched for these exact coordinates
     if (lastFetchedRef.current === coordsKey) {
-      console.log("[LalamoveQuote] Already have quote for these coordinates, skipping...");
       return;
     }
 
@@ -129,11 +127,6 @@ export function LalamoveQuote({
     lastFetchedRef.current = coordsKey;
     setLoading(true);
     setError(null);
-
-    console.log("[LalamoveQuote] Fetching quote for:", {
-      pickup: `${pickupAddress.lat}, ${pickupAddress.lng}`,
-      delivery: `${deliveryAddress.lat}, ${deliveryAddress.lng}`
-    });
 
     try {
       const response = await fetch("/api/lalamove/quotation", {
@@ -217,7 +210,6 @@ export function LalamoveQuote({
           expiresAt: data.data.expiresAt,
         };
 
-        console.log("[LalamoveQuote] Quote received:", quoteData);
         setQuote(quoteData);
         onQuoteReceived(quoteData);
       } else {

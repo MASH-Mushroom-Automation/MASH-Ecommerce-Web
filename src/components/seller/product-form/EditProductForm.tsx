@@ -406,7 +406,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       {/* Form Tabs - Reuse from AddProductForm */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
+          <TabsTrigger value="basic" className="flex justify-center text-center">Basic Info</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
           <TabsTrigger value="variants">Variants</TabsTrigger>

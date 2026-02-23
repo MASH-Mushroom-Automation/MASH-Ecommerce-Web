@@ -43,23 +43,19 @@ export interface SellerApplicationResponse {
 }
 
 // API function to submit seller application via direct backend call
-async function submitSellerApplication(
+
+// API function to submit seller application via internal proxy
+export async function submitSellerApplication(
   payload: SellerApplicationPayload,
 ): Promise<SellerApplicationResponse> {
-  // No need to get token manually - browser will send HttpOnly cookie
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me/apply-as-seller`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Authorization header is no longer needed
-      },
-      credentials: "include", // This tells the browser to send cookies
-      body: JSON.stringify(payload),
+  const response = await fetch("/api/user/apply-as-seller", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
 
   const data = await response.json();
 

@@ -976,7 +976,10 @@ function OrderDetailDialog({
                     <p className="font-medium truncate">{item.name}</p>
                     {item.grower && (
                       <p className="text-sm text-muted-foreground">
-                        by @{item.grower}
+                        by @
+                        {typeof item.grower === "object"
+                          ? (item.grower as { name?: string }).name
+                          : item.grower}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground">

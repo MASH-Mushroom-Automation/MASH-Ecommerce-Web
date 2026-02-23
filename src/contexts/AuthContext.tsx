@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -48,6 +49,7 @@ import {
 } from "@/lib/token-refresh";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api-client";
 
 // ============================================================================
 // Firebase Auth Cookie Helpers (for proxy/middleware detection)
@@ -68,7 +70,6 @@ function setFirebaseAuthCookie(userId: string): void {
   // Set cookie with 30 day expiry
   const maxAge = 60 * 60 * 24 * 30;
   document.cookie = `firebase-auth=${userId}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-  console.log("[Auth] Firebase auth cookie set for user:", userId);
 }
 
 /**
@@ -77,7 +78,6 @@ function setFirebaseAuthCookie(userId: string): void {
 function clearFirebaseAuthCookie(): void {
   if (typeof document === "undefined") return;
   document.cookie = "firebase-auth=; Path=/; Max-Age=0";
-  console.log("[Auth] Firebase auth cookie cleared");
 }
 
 // User type that works for both Firebase and traditional auth
@@ -96,6 +96,8 @@ export interface AuthUser {
   emailVerified: boolean;
   onboardingCompleted?: boolean;
   preferences?: FirestoreUserProfile["preferences"];
+  twoFactorEnabled: boolean;
+  twoFactorMethod?: "SMS";
 }
 
 interface AuthContextType {
@@ -140,6 +142,12 @@ interface AuthContextType {
     hasToken: boolean;
     expiresIn: string | null;
   }>;
+
+  // Two-Factor Authentication
+  enable2FA: () => Promise<void>;
+  disable2FA: () => Promise<void>;
+  verify2FA: (code: string) => Promise<void>;
+  requiresTwoFactor: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const tempTokenRef = useRef<string | null>(null);
   const router = useRouter();
 
   /**
@@ -159,7 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Only start token refresh for email/password users with backend tokens
     // Google OAuth users don't have backend JWT tokens
     if (user && user.provider === "email") {
-      console.log("[Auth] Starting token refresh monitoring for email user...");
       startTokenRefreshCheck();
     } else {
       stopTokenRefreshCheck();
@@ -192,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailVerified: profile.emailVerified,
         onboardingCompleted: profile.onboardingCompleted,
         preferences: profile.preferences,
+        twoFactorEnabled: (profile as unknown as Record<string, unknown>).twoFactorEnabled === true,
+        twoFactorMethod: (profile as unknown as Record<string, unknown>).twoFactorEnabled ? "SMS" : undefined,
       };
     },
     [],
@@ -208,8 +219,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       additionalData?: Partial<AuthUser>,
     ): Promise<AuthUser> => {
       try {
-        console.log("[Auth Context] Syncing to Firestore profile...");
-
         // Parse name properly (handle "Last, First" format from Google)
         let firstName = additionalData?.firstName;
         let lastName = additionalData?.lastName;
@@ -275,7 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("Failed to set user cookie:", e);
         }
 
-        console.log("[Auth Context] Profile synced to Firestore successfully");
         return authUser;
       } catch (error) {
         console.error("[Auth Context] Firestore sync error:", error);
@@ -310,6 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: fbUser.photoURL || undefined,
           provider,
           emailVerified: fbUser.emailVerified,
+          twoFactorEnabled: false,
         };
 
         setUser(authUser);
@@ -350,12 +359,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncFirebaseUserToBackend = useCallback(
     async (fbUser: FirebaseUser): Promise<AuthUser | null> => {
       try {
-        console.log("[Auth] Syncing Firebase user to backend...");
-        console.log("[Auth] Firebase user:", {
-          uid: fbUser.uid,
-          email: fbUser.email,
-          displayName: fbUser.displayName,
-        });
 
         // Get Firebase ID token for backend verification
         const idToken = await fbUser.getIdToken(true); // Force refresh to ensure valid token
@@ -365,28 +368,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        console.log("[Auth] Got Firebase ID token, length:", idToken.length);
-        console.log("[Auth] Token preview:", idToken.substring(0, 50) + "...");
-
         // Only send idToken - backend extracts user info from the verified Firebase token
         const requestBody = {
           idToken: idToken,
         };
 
-        console.log("[Auth] Request body:", requestBody);
-
         // If no backend URL configured, skip backend sync quietly (useful in local/dev)
         if (!process.env.NEXT_PUBLIC_API_URL) {
-          console.info(
-            "[Auth] Skipping backend sync: NEXT_PUBLIC_API_URL not configured",
-          );
           return null;
         }
-
-        console.log(
-          "[Auth] Sending to:",
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/firebase-sync`,
-        );
 
         // Call backend API with Firebase ID token in request body
         // Backend will verify this token with Firebase Admin SDK
@@ -413,10 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        console.log("[Auth] Backend response status:", response.status);
-
         const data = await response.json().catch(() => ({}));
-        console.log("[Auth] Backend response data:", data);
 
         if (!response.ok) {
           console.error("[Auth] Backend Firebase sync failed:", data);
@@ -424,30 +411,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        console.log("[Auth] Backend Firebase sync successful:", {
-          userId: data.user?.id,
-          email: data.user?.email,
-          firebaseUid: data.user?.firebaseUid,
-          hasAccessToken: !!data.accessToken || !!data.tokens?.accessToken,
-        });
+        // Normalize backend response: some backends return an envelope { success, statusCode, data: { ... } }
+        const payload =
+          data && (data.data || data.payload)
+            ? data.data || data.payload
+            : data;
 
         // Backend may set HTTP-only cookie automatically, but also handle token in response
-        const accessToken = data.accessToken || data.tokens?.accessToken;
-        const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+        const accessToken = payload.accessToken || payload.tokens?.accessToken;
+        const refreshToken =
+          payload.refreshToken || payload.tokens?.refreshToken;
 
         if (accessToken) {
-          console.log("[Auth] Setting backend JWT token from response...");
           setAuthToken(accessToken, refreshToken, true);
         }
         // Refresh token is managed via HTTP-only cookies set by setAuthToken()
         if (refreshToken) {
-          console.log(
-            "[Auth] Refresh token handled via HTTP-only cookie (setAuthToken)",
-          );
         }
 
         // Build unified auth user object with backend-verified data
-        const backendUser = data.user;
+        const backendUser =
+          payload.user || (payload.data ? payload.data.user : undefined);
 
         // Parse name from displayName if backend doesn't provide it
         const nameParts = (fbUser.displayName || "").split(" ");
@@ -455,7 +439,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fallbackLastName = nameParts.slice(1).join(" ") || "";
 
         const authUser: AuthUser = {
-          id: backendUser?.id || fbUser.uid,
+          // IMPORTANT: Always use Firebase UID for id - Firestore rules validate against request.auth.uid
+          id: fbUser.uid,
           email: backendUser?.email || fbUser.email || "",
           firstName: backendUser?.firstName || fallbackFirstName,
           lastName: backendUser?.lastName || fallbackLastName,
@@ -467,21 +452,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: backendUser?.imageUrl || fbUser.photoURL || undefined,
           provider: "google",
           emailVerified: true, // Verified by Firebase
+          twoFactorEnabled: false,
         };
-
-        setUser(authUser);
-        setFirebaseUser(fbUser);
 
         // Set Firebase auth cookie for proxy detection
         setFirebaseAuthCookie(fbUser.uid);
 
-        // Persist to cookie (30d)
-        try {
-          setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-          console.log("[Auth] User data persisted to cookie");
-        } catch (err) {
-          console.error("[Auth] Failed to store user in cookie:", err);
-        }
+        // User state is NOT set here to prevent overwriting Firestore profile data.
+        // Firestore is the source of truth for photoURL (custom uploads).
+        // User state is managed by syncToFirestoreProfile and onAuthStateChanged.
 
         return authUser;
       } catch (error) {
@@ -509,7 +488,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         !parsed.email || (parsed.firstName && parsed.firstName.includes(","));
 
       if (needsMigration && fbUser.email) {
-        console.log("[Auth Context] Migrating old user data...");
 
         // Fix email
         if (!parsed.email) {
@@ -528,7 +506,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Save migrated data to cookie
         setCookie("user", parsed, { maxAge: 60 * 60 * 24 * 30 });
-        console.log("[Auth Context] User data migrated successfully");
         return true;
       }
 
@@ -547,7 +524,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
 
       if (fbUser) {
-        console.log("[Auth Context] Firebase user detected:", fbUser.email);
 
         // Migrate old cached data if needed
         const wasMigrated = migrateOldUserData(fbUser);
@@ -558,8 +534,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedUser) {
             const parsed = storedUser;
             if (parsed.id === fbUser.uid || parsed.email === fbUser.email) {
-              console.log("[Auth Context] User loaded from cookie");
-
               // Use migrated data if available, otherwise use stored data
               setUser(parsed);
               setLoading(false);
@@ -578,9 +552,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               // If data was migrated or missing email, fetch fresh from Firestore
               if (wasMigrated || !parsed.email) {
-                console.log(
-                  "[Auth Context] Fetching fresh data from Firestore after migration...",
-                );
                 const profile = await FirebaseUserService.getProfile(
                   fbUser.uid,
                 );
@@ -595,9 +566,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-                  console.log(
-                    "[Auth Context] User profile updated from Firestore",
-                  );
                 }
                 return;
               }
@@ -619,9 +587,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                   setUser(authUser);
                   setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
-                  console.log(
-                    "[Auth Context] User profile refreshed from Firestore",
-                  );
                 }
               } catch (error) {
                 console.warn(
@@ -641,7 +606,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // If not in localStorage, load from Firestore
         try {
-          console.log("[Auth Context] Loading profile from Firestore...");
           const profile = await FirebaseUserService.getProfile(fbUser.uid);
 
           if (profile) {
@@ -666,17 +630,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (e) {
               console.error("Failed to set user cookie:", e);
             }
-            console.log("[Auth Context] User profile loaded from Firestore:", {
-              id: authUser.id,
-              email: authUser.email,
-              name: `${authUser.firstName} ${authUser.lastName}`,
-              provider: authUser.provider,
-            });
           } else {
             // Profile doesn't exist, create it
-            console.log(
-              "[Auth Context] No Firestore profile found, creating one...",
-            );
             await syncToFirestoreProfile(fbUser, "google");
           }
         } catch (error) {
@@ -709,6 +664,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatar: fbUser.photoURL || undefined,
             provider: "google",
             emailVerified: fbUser.emailVerified,
+            twoFactorEnabled: false,
           };
           setUser(authUser);
           setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
@@ -801,8 +757,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      console.log("[Auth] Starting Google sign-in...");
-
       // Capture redirect at the beginning to avoid it being cleared during async work
       const _preSignRedirect =
         sessionStorage.getItem("auth-redirect-url") ||
@@ -816,12 +770,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.loading("Signing you in...", { id: "google-signin" });
 
         try {
-          console.log("[Auth] Google sign-in successful:", {
-            uid: result.uid,
-            email: result.email,
-            displayName: result.displayName,
-          });
-
           // First sync to Firestore profile (local Firebase storage)
           const firestoreUser = await syncToFirestoreProfile(result, "google");
 
@@ -829,15 +777,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // This sends the Firebase ID token to backend for verification
           let authUser = firestoreUser;
           try {
-            console.log("[Auth] Attempting backend sync...");
             const backendUser = await syncFirebaseUserToBackend(result);
             if (backendUser) {
               authUser = backendUser;
-              console.log("[Auth] Backend sync successful");
-            } else {
-              console.log(
-                "[Auth] Backend sync skipped/failed, using Firebase-only auth",
-              );
             }
           } catch (backendError) {
             console.warn(
@@ -845,13 +787,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               backendError,
             );
           }
-
-          console.log("[Auth] Google sign-in complete - user profile:", {
-            id: authUser.id,
-            email: authUser.email,
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
-          });
 
           toast.dismiss("google-signin");
           toast.success(`Welcome, ${result.displayName || result.email}!`);
@@ -912,13 +847,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (syncError) {
           toast.dismiss("google-signin");
           toast.error("Failed to complete sign-in. Please try again.");
-          console.error("❌ [Auth] Sync error:", syncError);
+          console.error("[Auth] Sync error:", syncError);
           setLoading(false);
         }
       }
     } catch (error) {
       setLoading(false);
-      console.error("❌ [Auth] Sign-in error:", error);
+      console.error("[Auth] Sign-in error:", error);
       const errorMessage = getFirebaseErrorMessage(error);
       toast.error("Sign-in failed", { description: errorMessage });
       // Re-throw to allow calling components to reset their loading states
@@ -1008,8 +943,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncToFirestoreProfile(fbUser, "email");
 
       // Optional: try to sync to backend for JWT (non-blocking)
+      // Also check if 2FA is required from the backend response
       try {
-        await syncFirebaseUserToBackend(fbUser);
+        const backendResult = await syncFirebaseUserToBackend(fbUser);
+
+        // Check if the backend response indicates 2FA is required
+        // The syncFirebaseUserToBackend may return user data with 2FA flag
+        if (backendResult && (backendResult as AuthUser & { requiresTwoFactor?: boolean; tempToken?: string }).requiresTwoFactor) {
+          const twoFactorResult = backendResult as AuthUser & { requiresTwoFactor: boolean; tempToken: string };
+          // Store tempToken in memory only (useRef - never in storage)
+          tempTokenRef.current = twoFactorResult.tempToken;
+          setRequiresTwoFactor(true);
+          setLoading(false);
+          toast.dismiss("email-signin");
+          toast.info("Two-factor authentication required", {
+            description: "Please enter the verification code sent to your phone.",
+          });
+          return;
+        }
       } catch {
         // Backend sync failed, but Firestore profile is still saved
         console.warn("Backend sync failed, using Firebase only");
@@ -1022,6 +973,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           displayName: fbUser.displayName || undefined,
           provider: "email",
           emailVerified: fbUser.emailVerified,
+          twoFactorEnabled: false,
         };
 
         setUser(authUser);
@@ -1134,6 +1086,159 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw handledError;
     }
   };
+
+  // ============================================================================
+  // TWO-FACTOR AUTHENTICATION HANDLERS
+  // ============================================================================
+
+  /**
+   * Enable 2FA for the current user
+   * Requires phone to be verified before enabling
+   */
+  const handleEnable2FA = useCallback(async () => {
+    if (!user) {
+      throw new Error("No user logged in");
+    }
+    if (!user.phone) {
+      toast.error("Phone verification required", {
+        description: "Please verify your phone number before enabling 2FA.",
+      });
+      throw new Error("Phone not verified");
+    }
+
+    try {
+      await apiRequest("/auth/2fa/enable", {
+        method: "POST",
+      });
+      const updatedUser: AuthUser = {
+        ...user,
+        twoFactorEnabled: true,
+        twoFactorMethod: "SMS",
+      };
+      setUser(updatedUser);
+      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+      toast.success("Two-factor authentication enabled");
+    } catch (error: unknown) {
+      console.error("[Auth] Enable 2FA error:", error);
+      const message = error instanceof Error ? error.message : "Failed to enable 2FA";
+      toast.error("Failed to enable 2FA", { description: message });
+      throw error;
+    }
+  }, [user]);
+
+  /**
+   * Disable 2FA for the current user
+   */
+  const handleDisable2FA = useCallback(async () => {
+    if (!user) {
+      throw new Error("No user logged in");
+    }
+
+    try {
+      await apiRequest("/auth/2fa/disable", {
+        method: "POST",
+      });
+      const updatedUser: AuthUser = {
+        ...user,
+        twoFactorEnabled: false,
+        twoFactorMethod: undefined,
+      };
+      setUser(updatedUser);
+      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+      toast.success("Two-factor authentication disabled");
+    } catch (error: unknown) {
+      console.error("[Auth] Disable 2FA error:", error);
+      const message = error instanceof Error ? error.message : "Failed to disable 2FA";
+      toast.error("Failed to disable 2FA", { description: message });
+      throw error;
+    }
+  }, [user]);
+
+  /**
+   * Verify 2FA OTP code during login
+   * Uses tempToken stored in useRef (never persisted to storage)
+   */
+  const handleVerify2FA = useCallback(async (code: string) => {
+    const tempToken = tempTokenRef.current;
+    if (!tempToken) {
+      throw new Error("No pending 2FA verification");
+    }
+
+    try {
+      toast.loading("Verifying code...", { id: "2fa-verify" });
+
+      const response = await apiRequest<{
+        data: {
+          user: {
+            id: string;
+            email: string;
+            firstName?: string;
+            lastName?: string;
+            username?: string;
+            phone?: string;
+            imageUrl?: string;
+            twoFactorEnabled?: boolean;
+          };
+          accessToken: string;
+          refreshToken?: string;
+        };
+      }>("/auth/2fa/verify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tempToken}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      // Clear tempToken immediately after successful verification
+      tempTokenRef.current = null;
+      setRequiresTwoFactor(false);
+
+      const payload = response.data;
+
+      // Set auth tokens
+      if (payload.accessToken) {
+        setAuthToken(payload.accessToken, payload.refreshToken, true);
+      }
+
+      // Build user from response
+      const backendUser = payload.user;
+      const authUser: AuthUser = {
+        id: backendUser.id,
+        email: backendUser.email,
+        firstName: backendUser.firstName,
+        lastName: backendUser.lastName,
+        username: backendUser.username,
+        phone: backendUser.phone,
+        imageUrl: backendUser.imageUrl,
+        provider: "email",
+        emailVerified: true,
+        twoFactorEnabled: backendUser.twoFactorEnabled ?? true,
+        twoFactorMethod: "SMS",
+      };
+
+      setUser(authUser);
+      setCookie("user", authUser, { maxAge: 60 * 60 * 24 * 30 });
+
+      toast.dismiss("2fa-verify");
+      toast.success(`Welcome back, ${authUser.firstName || authUser.email}!`);
+
+      // Redirect after successful 2FA
+      const redirectUrl =
+        sessionStorage.getItem("auth-redirect-url") ||
+        sessionStorage.getItem("redirectUrl") ||
+        "/";
+      sessionStorage.removeItem("auth-redirect-url");
+      sessionStorage.removeItem("redirectUrl");
+      window.location.href = redirectUrl;
+    } catch (error: unknown) {
+      toast.dismiss("2fa-verify");
+      console.error("[Auth] 2FA verification error:", error);
+      const message = error instanceof Error ? error.message : "Invalid verification code";
+      toast.error("Verification failed", { description: message });
+      throw error;
+    }
+  }, []);
 
   // ============================================================================
   // EMAIL LINK (PASSWORDLESS) AUTHENTICATION HANDLERS
@@ -1331,7 +1436,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update local state
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      setCookie("user", updatedUser, { maxAge: 60 * 60 * 24 * 30 });
+
+      // Strip data URLs from cookie to prevent 4KB cookie size overflow.
+      // Firestore is the source of truth; cookie is for fast initial load.
+      const cookieUser = { ...updatedUser };
+      if (typeof cookieUser.photoURL === "string" && cookieUser.photoURL.startsWith("data:")) {
+        cookieUser.photoURL = undefined;
+        cookieUser.avatar = undefined;
+      }
+      setCookie("user", cookieUser, { maxAge: 60 * 60 * 24 * 30 });
 
       toast.success("Profile updated!");
     } catch (error) {
@@ -1390,6 +1503,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Phase 5: Session Management
     signOutEverywhere: handleSignOutEverywhere,
     getSessionInfo: handleGetSessionInfo,
+    // Two-Factor Authentication
+    enable2FA: handleEnable2FA,
+    disable2FA: handleDisable2FA,
+    verify2FA: handleVerify2FA,
+    requiresTwoFactor,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

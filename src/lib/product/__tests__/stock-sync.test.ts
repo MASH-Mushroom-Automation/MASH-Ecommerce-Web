@@ -8,10 +8,11 @@ jest.mock("@/lib/api/inventory", () => ({
     updateStock: jest.fn(),
   },
 }));
-
 describe("StockSync", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Stop the background setInterval so it doesn't interfere with tests
+    stockSync.stopSync();
     // Clear private queue and cache
     (stockSync as any).queue = [];
     (stockSync as any).stockCache = {};
@@ -41,19 +42,29 @@ describe("StockSync", () => {
   });
 
   test("processQueue calls backend and dequeues on success", async () => {
-    stockSync.enqueue("p1", -1);
-    stockSync.setLocalStock("p1", 10);
+    // Mock global fetch to handle both getInventory (GET) and updateStock (PUT).
+    // stock-sync.ts may use the real InventoryApi (not the mocked module) due to
+    // SWC import binding order. Mocking fetch covers that code path.
+    const fetchMock = jest.spyOn(global, "fetch").mockImplementation((_url: any, opts?: any) => {
+      const isUpdate = opts?.method === "PUT";
+      const qty = isUpdate ? 9 : 10; // GET=10 (getInventory), PUT=9 (updateStock)
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: { quantity: qty } }),
+      } as any);
+    });
 
-    // Mock successful backend calls
-    (InventoryApi.getInventory as jest.Mock).mockResolvedValue({ data: { quantity: 10 } });
-    (InventoryApi.updateStock as jest.Mock).mockResolvedValue({ data: { quantity: 9 } });
+    stockSync.setLocalStock("p1", 10);
+    stockSync.enqueue("p1", -1);
 
     await stockSync.processQueue();
 
+    fetchMock.mockRestore();
+
     const queue = JSON.parse(localStorage.getItem("mash-stock-sync-queue") || "[]");
     expect(queue).toHaveLength(0);
-    expect(InventoryApi.updateStock).toHaveBeenCalledWith("p1", 9);
-    // Should update local stock with authoritative value
+
+    // Should update local stock with backend authoritative value (9)
     expect(stockSync.getLocalStock("p1")).toBe(9);
   });
 

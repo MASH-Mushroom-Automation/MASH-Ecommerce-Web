@@ -15,23 +15,24 @@ export async function GET(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required"
-          }
+            message: "Authentication required",
+          },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Call real backend API
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Call real backend API (forward HTTP-only cookies to backend)
     const response = await apiRequest<ApiResponse<any>>(
       "/api/users/onboarding",
-      { method: "GET" }
+      { method: "GET", headers: { Cookie: cookieHeader } },
     );
 
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -39,11 +40,14 @@ export async function GET(request: NextRequest) {
         success: false,
         error: {
           code: "FETCH_ERROR",
-          message: error instanceof Error ? error.message : "Failed to fetch onboarding data"
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch onboarding data",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,28 +64,30 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required"
-          }
+            message: "Authentication required",
+          },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const data = await request.json();
 
-    // Call real backend API
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Call real backend API (forward HTTP-only cookies to backend)
     const response = await apiRequest<ApiResponse<any>>(
       "/api/users/onboarding",
       {
         method: "PUT",
         body: JSON.stringify(data),
-      }
+        headers: { Cookie: cookieHeader },
+      },
     );
 
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -89,11 +95,14 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: {
           code: "UPDATE_ERROR",
-          message: error instanceof Error ? error.message : "Failed to update onboarding data"
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update onboarding data",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -110,23 +119,24 @@ export async function POST(request: NextRequest) {
           success: false,
           error: {
             code: "UNAUTHORIZED",
-            message: "Authentication required"
-          }
+            message: "Authentication required",
+          },
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Call real backend API
+    const cookieHeader = request.headers.get("cookie") || "";
+    // Call real backend API (forward HTTP-only cookies to backend)
     const response = await apiRequest<ApiResponse<any>>(
       "/api/users/onboarding/complete",
-      { method: "POST" }
+      { method: "POST", headers: { Cookie: cookieHeader } },
     );
 
     return NextResponse.json({
       ...response,
       timestamp: new Date().toISOString(),
-      requestId: `req_${Date.now()}`
+      requestId: `req_${Date.now()}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -134,11 +144,14 @@ export async function POST(request: NextRequest) {
         success: false,
         error: {
           code: "COMPLETE_ERROR",
-          message: error instanceof Error ? error.message : "Failed to complete onboarding"
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to complete onboarding",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

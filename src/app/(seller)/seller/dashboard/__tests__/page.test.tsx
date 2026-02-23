@@ -681,9 +681,8 @@ describe('SellerDashboard', () => {
       expect(screen.getByText(/Seller API error/)).toBeInTheDocument();
     });
 
-    // Note: Skipping window.location.reload test due to jsdom limitations
-    // Browser reload functionality is tested manually in E2E tests
-    it.skip('allows retry on error via "Try Again" button (manual E2E test required)', () => {
+    // Note: Testing error retry behavior
+    it('allows retry on error via "Try Again" button', () => {
       mockSellerDashboard.mockReturnValue({
         salesData: [],
         productPerformance: [],

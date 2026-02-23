@@ -42,13 +42,11 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   // Save wishlist to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      console.debug("[WishlistContext] Saving to cookie, items:", wishlistIds.length);
       setWishlistCookie({
         version: 2,
         items: wishlistIds,
         updatedAt: new Date().toISOString(),
       });
-      console.debug("[WishlistContext] Saved to cookie");
     }
   }, [wishlistIds, isLoaded]);
 

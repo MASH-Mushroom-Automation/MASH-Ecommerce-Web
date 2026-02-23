@@ -1,0 +1,40 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
+  workflow_dispatch:
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking
+
+    # avoid running multiple concurrent security scans for the same PR
+    concurrency:
+      group: security-${{ github.ref }}
+      cancel-in-progress: true
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - run: npm ci
+      
+      - name: NPM Audit
+        run: |
+          echo "🔒 Running security audit..."
+          npm audit --json > audit.json || true
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit.json)
+          echo "Critical: $CRITICAL, High: $HIGH"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::$CRITICAL critical vulnerabilities found"
+          fi

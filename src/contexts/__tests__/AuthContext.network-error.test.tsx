@@ -1,11 +1,25 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// Unmock AuthContext to use the real implementation for testing
+jest.unmock('@/contexts/AuthContext');
+
 import { AuthProvider } from '../AuthContext';
 import { mockUser as fbUserMock } from '@/__mocks__/firebase';
 import * as firebaseAuth from '@/lib/firebase/auth';
 
 jest.mock('@/lib/firebase/auth');
+jest.mock('@/lib/firebase/users');
+jest.mock('@/lib/auth');
+jest.mock('@/lib/token-refresh');
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    refresh: jest.fn(),
+    replace: jest.fn(),
+  }),
+}));
 
 import { useAuth } from '../AuthContext';
 

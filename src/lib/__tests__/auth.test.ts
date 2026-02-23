@@ -142,14 +142,19 @@ describe('logoutEverywhere', () => {
     const result = await logoutEverywhere();
 
     expect(result).toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:30000/api/v1/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ logoutAll: true }),
-    });
+    // Check that the logout endpoint was called with correct params
+    // URL varies based on NEXT_PUBLIC_API_URL env var
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        credentials: 'include',
+        body: JSON.stringify({ logoutAll: true }),
+      })
+    );
   });
 
   it('should handle backend logout failure', async () => {
