@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
 import type { OrderStatus } from "@/lib/firebase/orders";
@@ -323,7 +323,7 @@ describe("Order History - Cancel & Track Actions", () => {
       const reasonInput = screen.getByPlaceholderText(
         "Reason for cancellation (optional)"
       );
-      await userEvent.type(reasonInput, "Changed my mind");
+      fireEvent.change(reasonInput, { target: { value: "Changed my mind" } });
 
       // Confirm cancel
       await userEvent.click(screen.getByText("Confirm Cancel"));
