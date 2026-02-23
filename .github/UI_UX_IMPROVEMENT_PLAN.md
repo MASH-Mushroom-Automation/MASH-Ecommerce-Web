@@ -596,14 +596,14 @@ When ALL stories in a phase are complete:
 | 1.4 Accessibility Foundation | 3 | 3 | COMPLETE |
 | 2.1 Header Redesign | 1 | 1 | COMPLETE |
 | 2.2 Shop Enhancement | 1 | 1 | COMPLETE |
-| 2.3 Product Detail Polish | 2 | 1 | In Progress (UIUX-017 remaining) |
+| 2.3 Product Detail Polish | 2 | 2 | COMPLETE |
 | 2.4 Cart Optimization | 3 | 3 | COMPLETE |
 | 3.1 Checkout Redesign | 2 | 0 | Not Started |
 | 3.2 Auth UX | 1 | 0 | Not Started |
 | 3.3 Profile Redesign | 1 | 0 | Not Started |
 | 4.2 Homepage Redesign | 2 | 2 | COMPLETE |
 | 4.3 Footer & Global Polish | 2 | 2 | COMPLETE |
-| **TOTAL** | **30** | **25** | **83%** |
+| **TOTAL** | **30** | **26** | **87%** |
 
 ---
 

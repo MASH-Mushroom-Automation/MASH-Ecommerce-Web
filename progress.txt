@@ -3439,3 +3439,27 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Number badges: absolute -top-2 -right-2 bg-primary text-primary-foreground
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint
 ---
+
+## [2026-02-24 17:00] - UIUX-017
+**Completed:** Decompose Product Detail Page into Sub-Components
+**Files Created:**
+- src/components/product/ProductGallery.tsx (~250 lines) - Gallery with buildGallery, video helpers, thumbnail strip
+- src/components/product/ProductInfoSection.tsx (~290 lines) - Product info column with InfoPill, TrustBadges, GrowerCard
+- src/components/product/ProductDetailCards.tsx (~170 lines) - Storage, Cooking, Nutrition info cards grid
+- src/components/product/SuggestedProducts.tsx (~110 lines) - You May Also Like section with ProductCard grid
+**Files Modified:**
+- src/app/(shop)/product/[slug]/ProductDetailClient.tsx (961 -> 282 lines, -71% reduction)
+**Implementation Notes:**
+- Extracted 4 sub-components from monolithic product detail page
+- ProductGallery: image/video gallery with buildGallery helper, YouTube/Vimeo video ID extractors, thumbnail navigation
+- ProductInfoSection: category, name, grower link, price, stock, info pills, description, quantity selector, add-to-cart, trust badges, grower card
+- ProductDetailCards: storage/freshness, cooking/preparation, nutrition/details cards with conditional rendering
+- SuggestedProducts: related products grid with grower context and View All link
+- Main file retains: breadcrumb, product tags, reviews section, recently viewed, sticky bar orchestration
+- All state management remains in parent, passed as props to sub-components
+**Learnings:**
+- Large component decomposition: keep state/handlers in parent, pass as props
+- buildGallery helper exported separately for reuse
+- Sub-components under 300-line threshold
+**Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint (zero warnings)
+---

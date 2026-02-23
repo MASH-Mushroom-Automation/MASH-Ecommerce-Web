@@ -9,7 +9,7 @@
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 25,
+  "completedStories": 26,
   "currentPhase": "3 - Checkout & Auth Redesign",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
@@ -598,7 +598,8 @@
       "title": "Decompose Product Detail Page into Sub-Components",
       "phase": "2.3",
       "priority": 3,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T17:00:00Z",
       "acceptanceCriteria": [
         "Extract ProductGallery component (image gallery + video support) to src/components/product/ProductGallery.tsx",
         "Extract ProductInfo component (name, price, variant selector, add-to-cart, trust badges) to src/components/product/ProductInfo.tsx",
