@@ -3463,3 +3463,30 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Sub-components under 300-line threshold
 **Quality Gates:** [PASS] Build (152 routes) | [PASS] Lint (zero warnings)
 ---
+
+## [2026-02-24 18:45] - UIUX-018
+**Completed:** Decompose Checkout Page into Step Components
+**Files Created:**
+- src/components/checkout/checkout-schemas.ts (Zod schemas + types extracted)
+- src/components/checkout/CheckoutProgress.tsx (step indicator with numbered circles)
+- src/components/checkout/CheckoutStep1Delivery.tsx (delivery method: pickup/lalamove with saved addresses)
+- src/components/checkout/CheckoutStep2Contact.tsx (contact form + delivery summary)
+- src/components/checkout/CheckoutStep3Payment.tsx (payment method + order review)
+- src/components/checkout/OrderSummary.tsx (cart items sidebar with totals)
+- src/components/checkout/CheckoutSuccessModal.tsx (success modal with multi-vendor support)
+**Files Modified:**
+- src/app/(shop)/checkout/page.tsx (1248 -> 566 lines, -55% reduction)
+**Implementation Notes:**
+- Extracted 7 components from monolithic 1248-line checkout page
+- Main page retains orchestration logic (state, handlers, form setup)
+- Render block replaced with clean component composition
+- All props properly typed with UseFormReturn generics
+- Shared schemas moved to checkout-schemas.ts for DRY
+- getSelectedPickupLocation duplicated to Step2/Step3 (small utility)
+- Multi-vendor banner and empty cart kept inline (tightly coupled to main state)
+**Learnings for Future Iterations:**
+- Form state (useForm) should stay in parent; pass form object as prop
+- Zod schemas can be extracted to shared files for reuse across components
+- Complex checkout needs ~300 lines of orchestration even after decomposition
+**Tests Passing:** [PASS] Build (152 routes) | [PASS] Lint | [PASS] TypeCheck
+---

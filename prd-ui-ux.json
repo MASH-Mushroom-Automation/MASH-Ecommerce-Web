@@ -9,7 +9,7 @@
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
   "totalStories": 30,
-  "completedStories": 26,
+  "completedStories": 27,
   "currentPhase": "3 - Checkout & Auth Redesign",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
@@ -627,7 +627,8 @@
       "title": "Decompose Checkout Page into Step Components",
       "phase": "3.1",
       "priority": 4,
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-02-24T18:45:00Z",
       "acceptanceCriteria": [
         "Extract CheckoutStep1Delivery.tsx (address picker, delivery method) to src/components/checkout/",
         "Extract CheckoutStep2Contact.tsx (contact info form) to src/components/checkout/",
