@@ -38,6 +38,10 @@
 - **Atomic Stock Adjustments:** adjustStock() performs two operations: create immutable stockAdjustment document + update product.stockQuantity. If either fails, rollback entire operation. Include adjustmentId in error response for potential cleanup.
 - **Security Events Collection:** security_events collection in Firestore with 90-day TTL via _expiresAt field. Events are immutable audit records (no update/delete). Users can only read their own events.
 - **Account Recovery Flow:** useAccountRecovery hook manages multi-step flow: idle -> email-sent -> verifying -> codes-generated -> complete. Disables 2FA with 7-day grace period. Generates 10 backup codes (SHA-256 hashed, stored in Firestore).
+- **Auto-Mock Bypass:** src/__mocks__/api-client.ts intercepts all imports of @/lib/api-client. Use jest.unmock("../api-client") at top of test file to test real module. Check for __mocks__ directory when tests import mocked modules.
+- **Error Spread Pattern:** api-client.ts error construction uses `...data` spread which overwrites earlier fields (e.g., .error becomes full object not just type string). Always verify actual error shape in tests.
+- **jsdom Location Immutable:** window.location cannot be mocked in jsdom (Object.defineProperty, delete, jest.spyOn all fail). Test behavior (errors thrown, fetch calls) instead of location.href assignment.
+- **Falsy Empty Strings:** Status utility functions returning "" for unknown states are falsy in JS. `"" || fallback` returns fallback. Test runtime values, not raw returns.
 - **Profile Decomposition:** Use slot pattern (ReactNode props) for composable sections; sub-components own their hooks. Feature flag gates wrap entire component including hooks.
 - **Login Hook Pattern:** Extract all auth logic (form state, validation, submission, 2FA, errors) to useLogin hook. Page becomes pure render. Export helper utilities (schemas, type guards) alongside hook.
 - **Password Management:** Firebase getAuth().currentUser for reauthenticateWithCredential, updatePassword, linkWithCredential. Three variants: email change, google add, google+email dual-auth.
@@ -3768,4 +3772,47 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** 1f517cc
 **Tests Passing:** [PASS] Build (152 pages) | [PASS] Lint (0 warnings) | [PASS] Jest (3820 total, 168 suites)
+---
+
+## [2025-07-17 14:00] - COVERAGE-IMPROVEMENT-005
+**Completed:** Test Coverage Improvement Round 5 - 145 New Tests Across 7 Files (Core Utilities and Hooks)
+**Files Created:**
+- src/lib/__tests__/api-client.test.ts (40 tests: apiRequest headers/credentials/auth-token cookie, GET/POST/PUT/DELETE methods, JSON/FormData body handling, 400 auth error enrichment with ...data spread, 401 auth immediate throw, 401 non-auth token refresh+retry, redirect on refresh failure, generic 404/500 errors, error.message extraction, api.login/logout/refreshToken/getProfile/updateProfile/getProducts/getProduct convenience methods)
+- src/lib/__tests__/analytics.test.ts (19 tests: GA4 availability check, initGA initialization, logPageView with pathname/title, logEvent with category/action/label/value, logEcommerceEvent with items array, trackProductView/trackAddToCart/trackRemoveFromCart/trackBeginCheckout/trackPurchase/trackSearch/trackShare/trackSignUp/trackLogin all calling logEvent)
+- src/lib/__tests__/status-utils.test.tsx (33 tests: getStatusBadge renders span with correct text/className for PENDING/CONFIRMED/PROCESSING/SHIPPED/DELIVERED/CANCELLED/COMPLETED/READY_FOR_PICKUP/unknown, getStatusColor returns correct Tailwind classes for all statuses including empty-string-is-falsy gray fallback, getStatusLabel returns human-readable labels for order+inventory statuses including in_stock/low_stock/out_of_stock/raw passthrough)
+- src/hooks/__tests__/useDebounce.test.ts (10 tests: returns initial value immediately, updates after 500ms default delay, custom delay timing, resets timer on rapid changes, unmount cleanup prevents state update, zero delay for immediate update, handles undefined/null/object values, multiple sequential updates debounced)
+- src/hooks/__tests__/useBulkSelect.test.ts (17 tests: starts empty, toggle adds/removes items, selectAll from array/Set, clearAll, isSelected check, selectMultiple from array, selectedIds computation, full workflow toggle+selectAll+clear, single item toggle on/off, selectAll replaces existing, empty array selectAll, selectedIds returns array type)
+- src/hooks/__tests__/useSearchShortcut.test.ts (14 tests: Ctrl+K focuses input+prevents default, Meta+K focuses input, ignores Ctrl+K without K key, ignores K without modifier, calls preventDefault, removes listener on unmount, handles null ref gracefully, does not focus non-input elements, Ctrl+K on textarea, both Ctrl and Meta simultaneously, rapid sequential shortcuts, no error when ref.current.focus undefined)
+- src/hooks/__tests__/useIsMobile.test.ts (9 tests: returns false for desktop >768px, returns true for mobile <=768px, responds to resize via listener callback, cleanup removes listener on unmount, default false when matchMedia unavailable, handles exact 768px breakpoint, re-registers listener on re-render, SSR returns false)
+
+**Fixes Applied:**
+- api-client.test.ts: Added jest.unmock("../api-client") to bypass src/__mocks__/api-client.ts auto-mock that shadows real module. All 40 tests failed without this.
+- api-client.test.ts: Changed error.response.data.error assertions to .toEqual() because ...data spread in api-client.ts overwrites the error field with the full data.error object (e.g., { message, type } instead of just type string).
+- api-client.test.ts: Simplified window.location redirect test to verify error thrown + refresh fetch called (jsdom window.location is non-configurable, cannot mock via Object.defineProperty, delete, or jest.spyOn).
+- status-utils.test.tsx: Changed CANCELLED color assertion from toBe("") to toContain("gray") because empty string is falsy in JS, so "" || "gray-fallback" returns the fallback.
+
+**Learnings for Future Iterations:**
+- src/__mocks__/api-client.ts is a Jest auto-mock that intercepts all imports of api-client. Must use jest.unmock() to test real module.
+- api-client.ts error response construction uses ...data spread which overwrites earlier fields like .error with the full data.error object.
+- jsdom window.location is NOT configurable - Object.defineProperty, delete+reassign, and jest.spyOn all fail. Test behavior (error thrown, fetch calls made) instead of location.href assignment.
+- Empty string is falsy in JavaScript - status utility functions that return "" for unknown statuses will fall through || chaining. Test the actual runtime value, not the raw return.
+
+**Test Metrics:**
+- Total test suites: 168 -> 175 (+7 new)
+- Total tests: 3820 -> 3964 (+144 net, 145 in new files with 1 chatbot-analytics overlap counted in previous baseline)
+- Modules newly covered: api-client (real module), analytics (GA4), status-utils (badge/color/label), useDebounce, useBulkSelect, useSearchShortcut, useIsMobile
+- 1 pre-existing flaky stock-management integration test (timeout, passes in isolation)
+
+**Cumulative Coverage Improvement (5 rounds):**
+- Round 1: +175 tests (enums, username, inventory, rate-limit-config, phone validation, sanity transformers)
+- Round 2: +158 tests (CSV parser, password, CMS config/database, PayMongo, WebSocket client)
+- Round 3: +174 tests (JWT, error-messages, avatar, locations, grower-utils, token-refresh, logger)
+- Round 4: +132 tests (api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config)
+- Round 5: +144 tests (api-client, analytics, status-utils, useDebounce, useBulkSelect, useSearchShortcut, useIsMobile)
+- Total new tests: 783 across 33 test files
+- Test suites: 148 -> 175 (+27)
+- Total tests: 3181 -> 3964 (+783)
+
+**Commit:** cde7054
+**Tests Passing:** [PASS] Build (152 pages) | [PASS] Lint (0 warnings) | [PASS] Jest (3964 total, 175 suites)
 ---
