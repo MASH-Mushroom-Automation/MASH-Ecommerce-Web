@@ -432,6 +432,7 @@ export function Header() {
               placeholder="Search mushrooms, kits, dried..."
               showRecent={true}
               showTrending={true}
+              autoFocus={false}
             />
           </div>
 
