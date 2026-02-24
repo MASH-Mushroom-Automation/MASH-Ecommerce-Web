@@ -80,6 +80,10 @@
 - **Seller Response Pattern:** SellerResponseModal uses useAuth() for seller identity + FirebaseReviewService for add/edit/delete response. Response stored in review.sellerResponse + sellerResponseDate fields. Modal has add/edit/delete modes based on existing response.
 - **Email Notification Trigger Pattern:** Fire-and-forget via sendRawEmail({to, subject, html}). Templates in src/lib/email/templates/. No await needed in calling code - logs errors silently. Gmail SMTP via nodemailer.
 - **Cloudinary Image Upload Pattern:** ReviewImageUpload uses NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME (drkcpvmfc) + UPLOAD_PRESET (Mash-Automation). Upload URL: https://api.cloudinary.com/v1_1/{CLOUD_NAME}/image/upload. FormData with file + upload_preset + folder fields.
+- **Test Coverage Strategy:** Global coverage at 29.94% vs 80% threshold. Prioritize pure-logic utility files (enums.ts, username.ts, inventory.ts, rate-limit-config.ts, phone validation schemas, sanity transformers) for highest ROI testing. Page-level components and Firebase-dependent code require integration/E2E tests instead.
+- **Enum Conversion:** toBackendEnum uses `\s+` regex (collapses multiple spaces to single underscore), NOT character-by-character replacement. toDisplayEnum title-cases each underscore-delimited segment.
+- **Sanity Transformer Testing:** Use factory functions (minimalSanityProduct, minimalSanityCategory) with typed overrides for clean test data. Always test null filtering in arrays (complementaryProducts, images, media) and slug format variants (string vs {current}).
+- **Zod Schema Testing:** Use safeParse for rejection tests (returns {success: false}), parse() with expect().not.toThrow() for acceptance tests. Test both valid/invalid inputs + boundary lengths.
 - **Review Analytics Pattern:** recharts for all charts. Data aggregation done client-side from Firestore reviews array. CSV export via Blob + download link. Sentiment derived from rating (1-2=negative, 3=neutral, 4-5=positive).
 - **Jest NextRequest Workaround:** jest.setupMocks.js Request polyfill uses this.url=url (setter) which conflicts with NextRequest getter-only url. Solution: pass plain {url: string} object cast to handler parameter type.
 - **Jest Email Template Testing:** @react-email/components render() requires --experimental-vm-modules. Use react-dom/server renderToStaticMarkup instead for Jest tests. Verify React.isValidElement() then renderToStaticMarkup().
@@ -3625,4 +3629,30 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Full suite intermittent timeouts need 15s+ timeout on async tests with userEvent interactions
 - Sanity client global mock must export ALL named exports (listenSafe, urlFor, getImageUrl, etc.) to prevent transitive failures
 **Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] Jest (3181/3181 - 0 failures)
+---
+
+## [2026-02-24 18:00] - COVERAGE-IMPROVEMENT-001
+**Completed:** Add 175 unit tests for 6 untested pure-logic utility/type modules
+**Files Created:**
+- src/lib/utils/__tests__/enums.test.ts (39 tests: toBackendEnum, toDisplayEnum, isValidBackendEnum, convertEnumsToBackend, convertEnumsToDisplay, prepareOrderForApi, formatOrderForDisplay, validateAndConvertEnums, 8 enum type definitions)
+- src/lib/utils/__tests__/username.test.ts (25 tests: generateUsername, generateUniqueUsername, validateUsername, formatUsername, extractUsername, roundtrip)
+- src/types/inventory.test.ts (35 tests: isInventoryStockStatus, calculateUrgencyLevel, calculateStockStatus, formatCurrency, calculateInventoryStats, generateStockLevelData, DEFAULT_LOW_STOCK_FILTERS)
+- src/lib/security/__tests__/rate-limit-config.test.ts (27 tests: RATE_LIMITS 5 configs, getBackoffDelay exponential backoff, buildRateLimitKey)
+- src/lib/validation/__tests__/phone.test.ts (25 tests: phoneNumberSchema, phoneNumberOptionalSchema, otpCodeSchema, phoneVerificationSchema, profileWithPhoneSchema)
+- src/types/sanity.test.ts (24 tests: transformSanityProduct 18 cases including images/slug/category/grower/media/complementary, transformSanityCategory 4 cases)
+
+**Implementation Notes:**
+- Targeted highest-ROI test targets: pure logic files with 0% coverage and zero external dependencies
+- Global coverage was 29.94% statements (threshold 80%) - these tests cover 26 pure functions/schemas across 6 modules
+- Used factory helper functions (minimalSanityProduct, minimalSanityCategory) for clean test data creation
+- Tested edge cases: empty strings, null values, boundary conditions, type coercion, array filtering
+- Verified regex behavior in toBackendEnum (\s+ collapses multiple spaces to single underscore)
+
+**Learnings for Future Iterations:**
+- Test pure logic first: utility functions, type guards, transformers, Zod schemas give highest coverage per test line
+- Intl.NumberFormat in formatCurrency uses locale-specific formatting - test for contained substrings not exact strings
+- Sanity product transformers filter null from arrays - always test null/undefined in collection inputs
+- \s+ regex replaces ALL consecutive whitespace with single replacement (not one-to-one character replacement)
+
+**Tests Passing:** [PASS] Build | [PASS] Lint | [PASS] Jest (3356/3356 - 0 failures, +175 from 3181)
 ---
