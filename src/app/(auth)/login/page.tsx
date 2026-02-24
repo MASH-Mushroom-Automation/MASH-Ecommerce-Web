@@ -3,13 +3,15 @@
 /**
  * Login Page - Backend & Firebase Authentication
  *
- *
  * Supports two sign-in methods:
  * - Email/Password (via NestJS Backend)
  * - Google OAuth (via Firebase)
+ *
+ * All auth logic is extracted to useLogin hook.
+ * 2FA modal is extracted to TwoFactorModal component.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,441 +28,43 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Shield,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { AuthApi } from "@/lib/api/auth";
-import { setAuthToken } from "@/lib/auth";
-import { toast } from "sonner";
-import { OTPVerificationModal } from "@/components/profile/OTPVerificationModal";
-import { apiRequest } from "@/lib/api-client";
-
-const getEmailStatus = (email: string) => {
-  if (!email) {
-    return {
-      isValid: false,
-      message: "Enter email address",
-    };
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (emailRegex.test(email)) {
-    return { isValid: true, message: "Valid email" };
-  }
-
-  return {
-    isValid: false,
-    message: "Please enter a valid email address",
-  };
-};
-
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address")
-    .transform((val) => val.trim().toLowerCase()),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
-  rememberMe: z.boolean(),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+import { Controller } from "react-hook-form";
+import { TwoFactorModal } from "@/components/auth/TwoFactorModal";
+import { useLogin, getEmailStatus } from "@/hooks/useLogin";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect");
-  const verifyParam = searchParams.get("verify");
-  const verifiedParam = searchParams.get("verified");
-
-  const {
-    user,
-    isAuthenticated,
-    signInWithEmailPassword,
-    resendVerificationEmail,
-    verify2FA,
-    loading: authLoading,
-  } = useAuth();
-
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [hasError, setHasError] = useState(false);
-
-  // Two-Factor Authentication state
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [twoFAPhoneNumber, setTwoFAPhoneNumber] = useState("");
-  const [twoFAError, setTwoFAError] = useState("");
-  const [twoFAAttempts, setTwoFAAttempts] = useState(0);
-  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
-  const [rememberDevice, setRememberDevice] = useState(false);
-  const tempTokenRef = useRef<string | null>(null);
-  const MAX_2FA_ATTEMPTS = 3;
-
-  // Redirect authenticated users away from login page
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const storedRedirect = sessionStorage.getItem("auth-redirect-url");
-      const destination = storedRedirect || redirectUrl || "/";
-
-      // Clean up stored redirect
-      if (storedRedirect) {
-        sessionStorage.removeItem("auth-redirect-url");
-      }
-
-      // Use window.location for reliable redirect
-      window.location.href = destination;
-    }
-  }, [isAuthenticated, user, redirectUrl]);
-
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isSubmitting },
+    errors,
+    isSubmitting,
     setValue,
     clearErrors,
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
-    mode: "onChange", // Validate on change for better UX
-  });
-
-  // Store redirect URL
-  useEffect(() => {
-    if (redirectUrl && typeof window !== "undefined") {
-      sessionStorage.setItem("auth-redirect-url", redirectUrl);
-    }
-  }, [redirectUrl]);
-
-  // Get contextual message based on redirect URL
-  const getContextualMessage = () => {
-    if (verifyParam === "true") {
-      return "Please verify your email before signing in. Check your inbox.";
-    }
-    if (verifiedParam === "true") {
-      return "Email verified! You can now sign in.";
-    }
-    if (!redirectUrl) return null;
-
-    if (redirectUrl.includes("/checkout")) {
-      return "Please sign in to complete your checkout";
-    }
-    if (redirectUrl.includes("/profile")) {
-      return "Please sign in to access your profile";
-    }
-    if (redirectUrl.includes("/wishlist")) {
-      return "Please sign in to view your wishlist";
-    }
-    if (redirectUrl.includes("/seller")) {
-      return "Please sign in to access the seller dashboard";
-    }
-    if (redirectUrl.includes("/onboarding")) {
-      return "Please sign in to continue your onboarding";
-    }
-    return "Please sign in to continue";
-  };
-
-  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
-    // Reset error state
-    setHasError(false);
-
-    try {
-      // Use backend API for email/password login
-      const response = await AuthApi.login({
-        email: data.email.trim(),
-        password: data.password,
-        rememberMe: data.rememberMe || false,
-      });
-      // Check if 2FA is required
-      const requires2FA = response.requiresTwoFactor || response.data?.requiresTwoFactor;
-      if (requires2FA) {
-        const twoFATempToken = response.tempToken || response.data?.tempToken;
-        const phoneNum = response.phoneNumber || response.data?.phoneNumber || "";
-        // Store tempToken in memory only (never persisted)
-        tempTokenRef.current = twoFATempToken || null;
-        setTwoFAPhoneNumber(phoneNum);
-        setTwoFAError("");
-        setTwoFAAttempts(0);
-        setShow2FAModal(true);
-
-        // Auto-send OTP to phone
-        try {
-          await apiRequest("/auth/2fa/send", {
-            method: "POST",
-            headers: twoFATempToken ? { Authorization: `Bearer ${twoFATempToken}` } : undefined,
-          });
-          toast.info("Verification code sent", {
-            description: `A code has been sent to ${phoneNum || "your phone"}.`,
-          });
-        } catch (sendError) {
-          console.warn("[Login] [2FA] Failed to auto-send OTP:", sendError);
-          // Don't block the modal - user can resend manually
-        }
-
-        return;
-      }
-
-      // Handle both response formats (nested data or direct)
-      const user = response.data?.user || response.user;
-      const accessToken = response.data?.accessToken || response.accessToken;
-      const refreshToken = response.data?.refreshToken || response.refreshToken;
-
-      if (!user) {
-        throw new Error("Invalid response from server. Please try again.");
-      }
-
-      // Check if email is verified
-      if (!user.emailVerified) {
-        console.warn("[Login] Email not verified");
-        setHasError(true); // Mark as error to prevent navigation
-        sessionStorage.setItem("pendingVerificationEmail", data.email);
-
-        toast.warning("Email Verification Required", {
-          description: "Please verify your email address to continue.",
-          duration: 5000,
-          action: {
-            label: "Verify Now",
-            onClick: () => router.push("/verify-otp"),
-          },
-        });
-        return;
-      }
-
-      // Store tokens if available
-      if (accessToken) {
-        // Also store refresh token if available
-        if (refreshToken) {
-          setAuthToken(accessToken, refreshToken, data.rememberMe); // Use proper cookie storage
-        } else {
-          setAuthToken(accessToken, undefined, data.rememberMe); // Use proper cookie storage without refresh token
-          // Refresh token not stored in localStorage; managed via HTTP-only cookies
-        }
-      }
-
-      // Success notification
-      const displayName = user.firstName || user.email.split("@")[0];
-      toast.success("Login Successful!", {
-        description: `Welcome back, ${displayName}!`,
-        duration: 3000,
-      });
-      // Small delay for toast to show before navigation
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Only navigate if no errors occurred
-      if (!hasError) {
-        // Redirect to stored URL or home (NO page refresh)
-        const redirectUrl = sessionStorage.getItem("auth-redirect-url");
-        if (redirectUrl) {
-          sessionStorage.removeItem("auth-redirect-url");
-          router.push(redirectUrl);
-        } else {
-          router.push("/");
-        }
-      }
-    } catch (error: any) {
-      // Set error flag to prevent navigation
-      setHasError(true);
-      console.error("[Login] Error:", error);
-      console.error("[Login] Error details:", {
-        message: error?.message,
-        response: error?.response,
-        status: error?.response?.status,
-        fullError: error?.response?.data,
-      });
-
-      // Extract error message from all possible paths (backend sends: data.error.message)
-      let errorMessage = "Unable to sign in. Please try again.";
-      let errorTitle = "Login Failed";
-
-      // Try nested error.message path first (correct backend structure)
-      if (error?.response?.data?.error?.message) {
-        errorMessage = error.response.data.error.message;
-      } else if (error?.response?.data?.details?.message) {
-        errorMessage = error.response.data.details.message;
-      } else if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message && typeof error.message === "string") {
-        errorMessage = error.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      // Ensure errorMessage is a string before calling string methods
-      if (typeof errorMessage !== "string") {
-        console.warn("[Login] errorMessage is not a string:", errorMessage);
-        errorMessage = JSON.stringify(errorMessage);
-      }
-      // Handle specific error cases (now safe to call .toLowerCase())
-      const lowerMsg = errorMessage.toLowerCase();
-      const statusCode = error?.response?.status || error?.response?.statusCode;
-
-      // Handle validation errors (400 Bad Request)
-      if (statusCode === 400 || lowerMsg.includes("validation")) {
-        toast.error("Invalid Request", {
-          description: "Please check your login information and try again.",
-          duration: 5000,
-        });
-        return;
-      }
-
-      if (
-        lowerMsg.includes("not verified") ||
-        lowerMsg.includes("email verification")
-      ) {
-        sessionStorage.setItem("pendingVerificationEmail", data.email);
-        toast.error("Email Not Verified", {
-          description: "Please verify your email address to continue.",
-          duration: 6000,
-          action: {
-            label: "Verify Email",
-            onClick: () => router.push("/verify-otp"),
-          },
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      } else if (
-        lowerMsg.includes("invalid") ||
-        lowerMsg.includes("incorrect") ||
-        lowerMsg.includes("wrong") ||
-        lowerMsg.includes("credentials")
-      ) {
-        toast.error("Invalid Credentials", {
-          description:
-            "The email or password you entered is incorrect. Please try again.",
-          duration: 5000,
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      } else if (
-        lowerMsg.includes("not found") ||
-        lowerMsg.includes("no user") ||
-        lowerMsg.includes("doesn't exist")
-      ) {
-        toast.error("Account Not Found", {
-          description:
-            "No account exists with this email. Would you like to sign up?",
-          duration: 6000,
-          action: {
-            label: "Sign Up",
-            onClick: () => router.push("/signup"),
-          },
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
-        toast.error("Connection Error", {
-          description:
-            "Unable to reach the server. Please check your internet connection.",
-          duration: 5000,
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      } else if (
-        lowerMsg.includes("too many") ||
-        lowerMsg.includes("rate limit")
-      ) {
-        toast.error("Too Many Attempts", {
-          description: "Please wait a few minutes before trying again.",
-          duration: 5000,
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      } else {
-        // Generic error with actual message
-        toast.error(errorTitle, {
-          description: errorMessage,
-          duration: 5000,
-        });
-        return; // CRITICAL: Stop execution, don't navigate
-      }
-    } finally {
-      // Always log completion
-    }
-  };
-
-  const contextualMessage = getContextualMessage();
-
-  /**
-   * Handle 2FA OTP verification success
-   * Called when user enters correct OTP code
-   */
-  const handle2FAVerifySuccess = useCallback(async (code: string) => {
-    if (twoFAAttempts >= MAX_2FA_ATTEMPTS) {
-      setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
-      return;
-    }
-
-    setIsVerifying2FA(true);
-    setTwoFAError("");
-    const currentAttempt = twoFAAttempts + 1;
-    setTwoFAAttempts(currentAttempt);
-    try {
-      // Use AuthContext verify2FA which handles token storage + redirect
-      await verify2FA(code);
-      // Store remember device preference if checked
-      if (rememberDevice) {
-        // Trusted device cookie will be set by backend in a separate story
-        // For now, store preference in sessionStorage
-        sessionStorage.setItem("2fa-remember-device", "true");
-      }
-
-      setShow2FAModal(false);
-      tempTokenRef.current = null;
-      // verify2FA in AuthContext handles the redirect
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Invalid verification code. Please try again.";
-      console.error("[Login] [2FA] FAILED - Attempt:", currentAttempt, "Error:", message);
-
-      if (currentAttempt >= MAX_2FA_ATTEMPTS) {
-        setTwoFAError("Maximum verification attempts exceeded. Please try logging in again.");
-      } else {
-        const remaining = MAX_2FA_ATTEMPTS - currentAttempt;
-        setTwoFAError(`${message} (${remaining} attempt${remaining === 1 ? "" : "s"} remaining)`);
-      }
-    } finally {
-      setIsVerifying2FA(false);
-    }
-  }, [twoFAAttempts, verify2FA, rememberDevice]);
-
-  /**
-   * Handle 2FA OTP resend
-   */
-  const handle2FAResend = useCallback(async () => {
-    try {
-      await apiRequest("/auth/2fa/send", {
-        method: "POST",
-        headers: tempTokenRef.current ? { Authorization: `Bearer ${tempTokenRef.current}` } : undefined,
-      });
-      setTwoFAError("");
-      toast.info("New code sent", {
-        description: `A new verification code has been sent to ${twoFAPhoneNumber || "your phone"}.`,
-      });
-    } catch (error) {
-      console.error("[Login] [2FA] Failed to resend OTP:", error);
-      toast.error("Failed to resend code", {
-        description: "Please try again in a moment.",
-      });
-    }
-  }, [twoFAPhoneNumber]);
-
-  /**
-   * Handle 2FA modal close
-   */
-  const handle2FAClose = useCallback(() => {
-    setShow2FAModal(false);
-    setTwoFAError("");
-    setTwoFAAttempts(0);
-    tempTokenRef.current = null;
-  }, []);
+    onSubmit,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
+    authLoading,
+    contextualMessage,
+    verifyParam,
+    verifiedParam,
+    resendVerificationEmail,
+    show2FAModal,
+    twoFAPhoneNumber,
+    twoFAError,
+    isVerifying2FA,
+    rememberDevice,
+    setRememberDevice,
+    handle2FAVerifySuccess,
+    handle2FAResend,
+    handle2FAClose,
+  } = useLogin();
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-6 sm:py-8 md:py-12">
@@ -558,6 +162,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
+
               {/* Email Input */}
               <div>
                 <label
@@ -574,7 +179,6 @@ export default function LoginPage() {
                     const value = e.currentTarget.value;
                     setEmail(value);
                     setValue("email", value, { shouldValidate: true });
-                    // Clear errors when user starts typing
                     if (errors.email && value) {
                       clearErrors("email");
                     }
@@ -606,7 +210,6 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* Error Message */}
                 {errors.email && (
                   <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                     {String(errors.email.message)}
@@ -630,7 +233,6 @@ export default function LoginPage() {
                     onInput={(e) => {
                       const value = e.currentTarget.value;
                       setPassword(value);
-                      // Clear errors when user starts typing
                       if (errors.password && value) {
                         clearErrors("password");
                       }
@@ -657,7 +259,6 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                {/* Error Message */}
                 {errors.password && (
                   <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                     {String(errors.password.message)}
@@ -751,54 +352,18 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Two-Factor Authentication OTP Modal */}
-      <OTPVerificationModal
+      {/* Two-Factor Authentication Modal */}
+      <TwoFactorModal
         open={show2FAModal}
-        onClose={handle2FAClose}
         phoneNumber={twoFAPhoneNumber}
-        onVerifySuccess={handle2FAVerifySuccess}
-        onResendOTP={handle2FAResend}
         errorMessage={twoFAError}
         isVerifying={isVerifying2FA}
+        rememberDevice={rememberDevice}
+        onRememberDeviceChange={setRememberDevice}
+        onVerifySuccess={handle2FAVerifySuccess}
+        onResend={handle2FAResend}
+        onClose={handle2FAClose}
       />
-
-      {/* 2FA Additional Options (rendered inside modal via portal) */}
-      {show2FAModal && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center pb-32 pointer-events-none"
-          aria-hidden="true"
-        >
-          <div className="pointer-events-auto bg-card border border-border rounded-lg shadow-lg p-4 max-w-sm w-full mx-4 space-y-3">
-            {/* Remember Device */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember-device"
-                checked={rememberDevice}
-                onCheckedChange={(checked) => setRememberDevice(!!checked)}
-                data-testid="remember-device-checkbox"
-              />
-              <label
-                htmlFor="remember-device"
-                className="text-xs sm:text-sm text-muted-foreground cursor-pointer"
-              >
-                <Shield className="w-3 h-3 inline mr-1" />
-                Remember this device for 30 days
-              </label>
-            </div>
-
-            {/* Recovery Link */}
-            <div className="text-center">
-              <Link
-                href="/account-recovery"
-                className="text-xs text-primary hover:underline"
-                data-testid="2fa-recovery-link"
-              >
-                Can&apos;t access your phone?
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

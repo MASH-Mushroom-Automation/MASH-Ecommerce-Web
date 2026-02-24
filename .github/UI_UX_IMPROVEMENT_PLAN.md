@@ -598,12 +598,12 @@ When ALL stories in a phase are complete:
 | 2.2 Shop Enhancement | 1 | 1 | COMPLETE |
 | 2.3 Product Detail Polish | 2 | 2 | COMPLETE |
 | 2.4 Cart Optimization | 3 | 3 | COMPLETE |
-| 3.1 Checkout Redesign | 2 | 1 | In Progress |
-| 3.2 Auth UX | 1 | 0 | Not Started |
-| 3.3 Profile Redesign | 1 | 0 | Not Started |
+| 3.1 Checkout Redesign | 2 | 2 | COMPLETE |
+| 3.2 Auth UX | 1 | 1 | COMPLETE |
+| 3.3 Profile Redesign | 1 | 1 | COMPLETE |
 | 4.2 Homepage Redesign | 2 | 2 | COMPLETE |
 | 4.3 Footer & Global Polish | 2 | 2 | COMPLETE |
-| **TOTAL** | **30** | **27** | **90%** |
+| **TOTAL** | **30** | **30** | **100%** |
 
 ---
 
