@@ -3736,3 +3736,36 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 **Commit:** e8f7443
 **Tests Passing:** [PASS] Build (152 pages) | [PASS] Lint (0 warnings) | [PASS] Jest (3688 total, 161 suites)
 ---
+
+## [2026-02-24 22:30] - COVERAGE-IMPROVEMENT-004
+**Completed:** Test Coverage Improvement Round 4 - 132 New Tests Across 7 Lib Modules
+**Files Created:**
+- src/lib/__tests__/api-interceptor.test.ts (29 tests: ApiError class, URL routing, header creation with auth token/skipAuth, JSON and text response parsing, error extraction from multiple response formats, network TypeError handling, 401 token refresh retry with logout fallback, proactive token refresh for expiring tokens, request timeout 408, apiClient.get/post/put/patch/delete convenience methods)
+- src/lib/__tests__/cloudinary.test.ts (27 tests: validateFile size limits/MIME types/custom limits/boundary/zero-byte/disallowed formats, uploadToCloudinary env validation/FormData construction/folder+tags options/error handling/generic error, uploadMultipleToCloudinary parallel uploads/empty array)
+- src/lib/__tests__/products.test.ts (18 tests: PRODUCTS data integrity unique IDs/required fields/positive prices/images array/grower references/tag validation/inStock boolean, getProductById valid IDs 1/4/9/nonexistent/empty)
+- src/lib/__tests__/themes.test.ts (14 tests: themes array structure/name+label fields/light+dark CSS vars/key symmetry/essential keys/non-empty values/unique names/nature theme/oklch format, getThemeByName found/not-found/empty/case-sensitive/complete vars)
+- src/lib/__tests__/colors.test.ts (20 tests: primary hex format dark/medium/light/specific values, neutral white/background/border/divider hex, text primary/secondary/tertiary/inverse hex, status success/error/warning/info hex/specific values, opacity numeric ranges, tailwindColors mapping 7 properties)
+- src/lib/__tests__/exportCsv.test.ts (12 tests: CSV header generation from row keys, filename default/custom, empty array/null handling, quote escaping, numeric/boolean/object/array/null values, single row/wide columns, DOM createElement+click trigger)
+- src/lib/__tests__/maps-config.test.ts (12 tests: MAPS_CONFIG structure, apiKey string, Manila coordinates lat/lng/valid ranges, defaultZoom positive/valid range/city-level, mapOptions zoomControl/streetView/fullscreen/mapType, libraries places+geometry count)
+
+**Fixes Applied:**
+- api-interceptor.test.ts: Used mockReset() instead of clearAllMocks() in beforeEach to prevent mockResolvedValueOnce queue leakage between describe blocks (clearAllMocks only clears call history, not queued implementations)
+
+**Test Metrics:**
+- Total test suites: 161 -> 168 (+7 new)
+- Total tests: 3688 -> 3820 (+132 new)
+- Modules newly covered: api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config
+- 1 pre-existing flaky stock-management integration test (passes in isolation)
+
+**Cumulative Coverage Improvement (4 rounds):**
+- Round 1: +175 tests (enums, username, inventory, rate-limit-config, phone validation, sanity transformers)
+- Round 2: +158 tests (CSV parser, password, CMS config/database, PayMongo, WebSocket client)
+- Round 3: +174 tests (JWT, error-messages, avatar, locations, grower-utils, token-refresh, logger)
+- Round 4: +132 tests (api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config)
+- Total new tests: 639 across 26 test files
+- Test suites: 148 -> 168 (+20)
+- Total tests: 3181 -> 3820 (+639)
+
+**Commit:** 1f517cc
+**Tests Passing:** [PASS] Build (152 pages) | [PASS] Lint (0 warnings) | [PASS] Jest (3820 total, 168 suites)
+---
