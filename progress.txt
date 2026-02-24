@@ -58,6 +58,9 @@
 - **useSanityProducts vs useProducts:** `useSanityProducts()` → Sanity CMS (has products). `useProducts()` → NestJS backend (no products). For seller pages showing product data, always use Sanity hooks.
 - **useSanityProducts Pagination:** Pass `offset` and `limit` in ProductFilters for server-side GROQ pagination. Returns `totalCount` for total matching products. Without offset/limit, fetches all (backward compatible). Use `useMemo` + refs (not useEffect) to accumulate products across Load More clicks to avoid extra render cycles.
 - **Cal.com Embed Pattern:** Use unique ID selector (`#cal-embed-{id}`) instead of attribute selectors (`[data-cal-namespace="booking"]`). Wait for DOM element to exist BEFORE calling `Cal("inline", {...})`. The Cal.com embed.js initializes `window.Cal` asynchronously - always poll for `Cal.loaded === true || Cal.__css` before use.
+- **Async Timer Sequencing:** When testing code with fetch().then(delay()), use `jest.advanceTimersByTimeAsync()` instead of `jest.advanceTimersByTime()`. The async version properly resolves microtasks (fetch/Promise) between macrotask (setTimeout) ticks.
+- **Module Scope Env Vars:** Use `jest.isolateModules()` to test modules that read process.env at import time (e.g., client.ts reads NEXT_PUBLIC_API_URL at module scope). Each isolateModules block gets fresh module evaluation with current env state.
+- **API Mock Fallback Pattern:** OrdersApi and similar classes use tryFetch() for real API then delay()+mock for fallback. Real-success tests need no timer advancement; mock-fallback tests need advanceTimersByTimeAsync(15000) to cover both AbortController timeout and delay.
 - **Cal.com Embed Script URL:** Use `https://app.cal.com/embed/embed.js` (with `app` subdomain). The script expects `window.Cal` to be pre-initialized with queue pattern before loading. Use `initCalNamespace()` helper to set up the queue structure.
 - **Cal.com Initialization Pattern:** Cal.com uses queue pattern. Initialize `window.Cal` as a function that queues calls BEFORE loading embed.js. Wait for `Cal.loaded === true` or `Cal.__css` to confirm full initialization. Use 8s timeout with 100ms polling.
 - **React Query v5 Callbacks:** Mutation callbacks receive options object `{ onSuccess?: (options) => void }`, not positional args `(data, vars, ctx)`. Test with `expect(onSuccess).toHaveBeenCalled()` not specific args.
@@ -3815,4 +3818,58 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** cde7054
 **Tests Passing:** [PASS] Build (152 pages) | [PASS] Lint (0 warnings) | [PASS] Jest (3964 total, 175 suites)
+---
+
+## [2025-06-25] COVERAGE-006: API Service Layer Test Coverage
+**Completed:** Test Coverage Improvement Round 6 - API Service Layer (src/lib/api/)
+**Files Created (7 test files, 108 tests):**
+- src/lib/api/__tests__/client.test.ts (21 tests) - Axios instance creation, request/response interceptor testing
+- src/lib/api/__tests__/auth.test.ts (24 tests) - All AuthApi methods with auto-mock verification
+- src/lib/api/__tests__/addresses.test.ts (14 tests) - Pure mock address CRUD operations
+- src/lib/api/__tests__/inventory.test.ts (8 tests) - Raw fetch API with success/failure paths
+- src/lib/api/__tests__/notifications.test.ts (11 tests) - Mock data filtering with fake timers
+- src/lib/api/__tests__/main.test.ts (15 tests) - Home page, growers, about, FAQ mock data
+- src/lib/api/__tests__/orders.test.ts (18 tests - 3 fewer than planned, more focused) - Real API + mock fallback paths
+
+**Implementation Notes:**
+- client.test.ts: Mocked axios.create() with jest.mock('axios'), used jest.isolateModules() for env var testing (baseURL, timeout defaults)
+- auth.test.ts: Leveraged auto-mock at src/__mocks__/api-client.ts for apiRequest, verified call args and token storage flows
+- addresses.test.ts: No mocks needed - tested pure mock CRUD implementations directly
+- inventory.test.ts: Mocked global.fetch for raw fetch API, tested all 4 InventoryApi methods with success/failure
+- notifications.test.ts: Used jest.useFakeTimers() + jest.advanceTimersByTime() for delay() simulation, tested filtering by type/read status
+- main.test.ts: Used fake timers for delay(), tested all MainApi methods (home page, growers, about, FAQ)
+- orders.test.ts: Used jest.advanceTimersByTimeAsync() for async timer handling (fetch microtask resolves THEN delay schedules setTimeout), mocked global.fetch for tryFetch helper
+
+**Key Patterns Discovered:**
+- jest.advanceTimersByTimeAsync() handles microtask+macrotask sequencing (fetch resolves via microtask, then delay() creates setTimeout)
+- jest.isolateModules() enables testing modules that read env vars at import time (client.ts reads NEXT_PUBLIC_API_URL at module scope)
+- src/__mocks__/api-client.ts auto-mock is useful for testing modules that import apiRequest - provides jest.fn() with endpoint-based defaults
+- OrdersApi.tryFetch() uses AbortController with setTimeout for timeout - fake timers must advance enough to cover both timeout and delay
+- API files with mock fallback pattern (try real API, catch, return mock) need separate timer strategies for real-success vs mock-fallback paths
+
+**Learnings for Future Iterations:**
+- When testing code with fetch().then().then(delay()), use advanceTimersByTimeAsync() instead of advanceTimersByTime() to properly sequence microtask and macrotask resolution
+- For Axios mock testing, jest.mock('axios') returns the mock module but interceptors.request.use and interceptors.response.use need to capture callbacks at module load time
+- Pure mock API files (addresses, notifications, main) are easiest to test - just call methods and verify response shapes
+- Mixed real/mock API files (orders) require conditional timer strategies: real API success path needs no timer advancement, mock fallback path needs async timer advancement
+
+**Test Metrics:**
+- Total test suites: 175 -> 182 (+7 new)
+- Total tests: 3964 -> 4072 (+108 net)
+- Modules newly covered: client (Axios interceptors), auth (AuthApi), addresses (CRUD), inventory (raw fetch), notifications (filtered mock), main (home/growers), orders (real+mock API)
+- 1 pre-existing flaky stock-management integration test (timeout, passes in isolation)
+
+**Cumulative Coverage Improvement (6 rounds):**
+- Round 1: +175 tests (enums, username, inventory, rate-limit-config, phone validation, sanity transformers)
+- Round 2: +158 tests (CSV parser, password, CMS config/database, PayMongo, WebSocket client)
+- Round 3: +174 tests (JWT, error-messages, avatar, locations, grower-utils, token-refresh, logger)
+- Round 4: +132 tests (api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config)
+- Round 5: +144 tests (api-client, analytics, status-utils, useDebounce, useBulkSelect, useSearchShortcut, useIsMobile)
+- Round 6: +108 tests (client, auth, addresses, inventory, notifications, main, orders)
+- Total new tests: 891 across 40 test files
+- Test suites: 148 -> 182 (+34)
+- Total tests: 3181 -> 4072 (+891)
+
+**Commit:** 959e8db
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (4072 total, 182 suites)
 ---
