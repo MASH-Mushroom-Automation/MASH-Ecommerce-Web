@@ -428,7 +428,45 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('@/lib/sanity/client', () => ({
   sanityClient: {
     fetch: jest.fn(() => Promise.resolve([])),
+    listen: jest.fn(() => ({
+      subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
+    })),
   },
+  listenSafe: jest.fn(() => ({
+    subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
+  })),
+  urlFor: jest.fn(() => ({
+    width: jest.fn().mockReturnThis(),
+    height: jest.fn().mockReturnThis(),
+    format: jest.fn().mockReturnThis(),
+    quality: jest.fn().mockReturnThis(),
+    fit: jest.fn().mockReturnThis(),
+    url: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
+    image: jest.fn().mockReturnThis(),
+  })),
+  getImageUrl: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
+  getClient: jest.fn(() => ({
+    fetch: jest.fn(() => Promise.resolve([])),
+  })),
+  previewClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+  },
+  sanityWriteClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+    create: jest.fn(() => Promise.resolve({})),
+    patch: jest.fn(() => ({
+      set: jest.fn().mockReturnThis(),
+      commit: jest.fn(() => Promise.resolve({})),
+    })),
+  },
+  sanityFreshClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+  },
+  isSanityConfigured: jest.fn(() => true),
+  isWriteConfigured: jest.fn(() => false),
+  projectId: 'test-project-id',
+  dataset: 'production',
+  apiVersion: '2024-11-26',
 }));
 
 // ============================================================================

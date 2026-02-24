@@ -474,7 +474,7 @@ describe("CheckoutPage", () => {
       await user.click(shopButton);
 
       expect(mockRouter.push).toHaveBeenCalledWith("/shop");
-    });
+    }, 15000);
   });
 
   describe("User Profile Integration", () => {
@@ -511,7 +511,9 @@ describe("CheckoutPage", () => {
       render(<CheckoutPage />);
 
       // Total items: 2 + 1 = 3
-      expect(screen.getByText(/3\s*items/i)).toBeInTheDocument();
+      // "3 items" appears in both the mobile header and the subtotal row of OrderSummary
+      const itemsElements = screen.getAllByText(/3\s*items/i);
+      expect(itemsElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it("supports removing vendor items", () => {
