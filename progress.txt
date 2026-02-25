@@ -3932,3 +3932,54 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 **Commit:** fcbc067
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (4315 total, 190 suites, 0 failures)
 ---
+
+## [2025-07-12] - COVERAGE-008
+**Completed:** Sanity Service Layer Test Coverage
+**Files Changed:**
+- src/lib/sanity/__tests__/stores.test.ts (NEW - 33 tests)
+- src/lib/sanity/__tests__/growers.test.ts (NEW - 37 tests)
+- src/lib/sanity/__tests__/queries.test.ts (NEW - 40 tests)
+- src/lib/sanity/__tests__/client.test.ts (NEW - 22 tests)
+- src/lib/sanity/__tests__/siteSettings.test.ts (NEW - 11 tests)
+- src/lib/sanity/__tests__/stock-management.test.ts (NEW - 52 tests)
+- Also staged: 3 API test files + stock-history-service.test.ts + coverage-report.txt
+
+**Implementation Notes:**
+- Tested all Sanity CMS data-fetching services: stores, growers, queries, client config, site settings, stock mutations
+- stores.test.ts: Full coverage of fetchStores/fetchStoreBySlug/fetchFeaturedStores with transformation logic (address building, google maps URL, whatsapp URL, service labels, image URL from refs, gallery, grower data, operating hours, store types, defaults)
+- growers.test.ts: Full coverage of fetchGrowers/fetchGrowerBySlug/fetchFeaturedGrowers/fetchGrowerSlugs/fetchGrowerForMetadata with transformation logic (specialty labels, certification labels, coordinates, logo/cover images, products/suppliesTo mapping, social links, defaults, timestamps)
+- queries.test.ts: Validates all 14 GROQ query constants exist, use coalesce pattern for images, apply draft filtering where appropriate, have correct type filters, parameter placeholders, ordering/limits, and field projections
+- client.test.ts: Uses jest.unmock to test real module against globally mocked next-sanity. Tests config exports, 4 client instances, getClient(draftMode), isSanityConfigured, isWriteConfigured, urlFor, getImageUrl, listenSafe with env toggle and error fallback
+- siteSettings.test.ts: Tests getSiteSettingsForMetadata and getFullSiteSettings with success/null/error scenarios, revalidate cache option, GROQ query projections
+- stock-management.test.ts: Tests ValidationError/StockAdjustmentError classes, all validation paths (productId, adjustmentType, quantityChange sign/range/max, reason, notes, adjustedBy), productExists, getCurrentStock, adjustStock with retry/backoff and API error codes (404/409/400), toast notifications, optimistic locking, server-only function throws
+
+**Learnings for Future Iterations:**
+- jest.setup.js globally mocks @/lib/sanity/client (line 465) with specific exports. To test the real client module, use jest.unmock in the test file
+- The global mock for @/lib/sanity/client includes listen, urlFor, getImageUrl, getClient, all client instances, and config values
+- When testing client.ts directly, @sanity/image-url still needs a test-level mock since there is no global mock for it
+- GROQ queries: productBySlugQuery and postBySlugQuery do NOT include draft filtering - only list/collection queries filter drafts
+- JavaScript drops trailing .0 from float coordinates (121.0 becomes 121) - use partial string matching for coordinate assertions
+- createStockAdjustmentRecord and updateProductStockQuantity always throw server-only errors - they are API route stubs
+
+**Test Metrics:**
+- Total test suites: 190 -> 200 (+10 new, including 4 API test files from prior session)
+- Total tests: 4315 -> 4638 (+323 net, including prior session API tests)
+- Sanity-specific new tests: 195 across 6 test files
+- Pre-existing flaky failure: PhoneChangeFlow timer issue (documented since round 7)
+
+**Cumulative Coverage Improvement (8 rounds):**
+- Round 1: +175 tests (enums, username, inventory, rate-limit-config, phone validation, sanity transformers)
+- Round 2: +158 tests (CSV parser, password, CMS config/database, PayMongo, WebSocket client)
+- Round 3: +174 tests (JWT, error-messages, avatar, locations, grower-utils, token-refresh, logger)
+- Round 4: +132 tests (api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config)
+- Round 5: +144 tests (api-client, analytics, status-utils, useDebounce, useBulkSelect, useSearchShortcut, useIsMobile)
+- Round 6: +108 tests (client, auth, addresses, inventory, notifications, main, orders)
+- Round 7: +243 tests (Firebase auth, phone-auth, phone-change, wishlist, cart, orders, notifications, addresses) + 53 pre-existing fixes
+- Round 8: +323 tests (Sanity stores, growers, queries, client, siteSettings, stock-management + API services)
+- Total new tests: 1457 across 58 test files
+- Test suites: 148 -> 200 (+52)
+- Total tests: 3181 -> 4638 (+1457)
+
+**Commit:** 07f9989
+**Tests Passing:** [PASS] Build (152 routes) | [PASS] Lint (0 warnings) | [PASS] Jest (4638 total, 200 suites, 1 pre-existing flaky)
+---
