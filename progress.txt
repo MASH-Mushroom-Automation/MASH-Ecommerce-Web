@@ -3873,3 +3873,62 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 **Commit:** 959e8db
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (4072 total, 182 suites)
 ---
+
+## [2025-07-18] COVERAGE-007: Firebase Services Test Coverage + Mock Infrastructure Fixes
+**Completed:** Test Coverage Improvement Round 7 - Firebase Services (src/lib/firebase/) + Mock Fixes
+**Files Created (8 test files, +243 new tests):**
+- src/lib/firebase/__tests__/wishlist.test.ts (27 tests) - FirebaseWishlistService: addItem, getWishlist, isInWishlist, getWishlistCount, removeItem, clearWishlist, subscribeToWishlist, mergeLocalStorageWishlist
+- src/lib/firebase/__tests__/phone-change-service.test.ts (21 tests) - logPhoneChangeAudit, getPhoneChangeHistory, executePhoneChange
+- src/lib/firebase/__tests__/phone-auth.test.ts (26 tests) - ensureE164, getRecaptchaVerifier, clearRecaptchaVerifier, sendFirebasePhoneVerification, verifyFirebasePhoneCode, isFirebasePhoneAuthAvailable
+- src/lib/firebase/__tests__/auth.test.ts (26 tests) - createUserWithEmail, signInWithEmail, sendPasswordReset, resendEmailVerification, signInWithGoogle, signOutFirebase, getCurrentUser, getFirebaseIdToken, onFirebaseAuthStateChanged, updateUserProfile
+- src/lib/firebase/__tests__/addresses.test.ts - Firebase address service CRUD operations
+- src/lib/firebase/__tests__/cart.test.ts - Firebase cart service operations
+- src/lib/firebase/__tests__/notifications.test.ts - Firebase notification service
+- src/lib/firebase/__tests__/orders.test.ts (58 tests) - Firebase orders service (createOrder, getOrder, getByNumber, getPending, getAll, updateStatus, setLalamoveId, updatePayment)
+
+**Files Modified (3 files, fixing pre-existing failures):**
+- jest.setup.js: Completed second firebase/auth mock (added 7 missing functions), completed second firebase/firestore mock (added runTransaction with full transaction mock)
+- jest.setupMocks.js: Added phone auth functions to first firebase/auth mock
+- src/lib/sanity/mutations/inventory.test.ts: Added jest.setTimeout(30000) for retry/backoff tests, fixed timeout failures during parallel runs
+
+**Pre-existing Failures Fixed (53 previously-failing tests now pass):**
+- auth.test.ts (26 tests): Fixed "Cannot redefine property: window" by removing Object.defineProperty(global, 'window') and using document.cookie-only mocking (jsdom compatibility)
+- orders.test.ts (25 tests): Fixed "runTransaction is not a function" by adding runTransaction to second firebase/firestore mock in jest.setup.js
+- inventory.test.ts (2 tests): Fixed timeout failures during parallel runs by adding 30s timeout for exponential backoff retry tests
+
+**Key Patterns Discovered:**
+- DUAL MOCK LAYERS: jest.setupMocks.js (setupFiles) runs FIRST, jest.setup.js (setupFilesAfterEnv) OVERRIDES with second mock. The second mock is what tests actually see
+- When both files mock the same module, always update the SECOND mock in jest.setup.js
+- jsdom environment: Cannot redefine global.window via Object.defineProperty; use document-level mocking instead
+- Phone auth testing: Use jest.requireMock("firebase/auth") to access mock internals, use Proxy for auth.currentUser control
+- Retry tests with real setTimeout delays need generous timeouts (30s) for parallel CI environments
+
+**Learnings for Future Iterations:**
+- Always check BOTH jest.setup.js and jest.setupMocks.js when debugging mock issues (the later file wins)
+- The second firebase/auth mock at jest.setup.js line 374 is the authoritative one - any new firebase/auth exports must be added here
+- The second firebase/firestore mock at jest.setup.js line 420 is the authoritative one - same rule applies
+- jsdom's window is non-configurable; for SSR-style tests, consider using separate test files with node testEnvironment
+- Exponential backoff tests (1s, 2s, 4s delays) can timeout during parallel test runs; add explicit jest.setTimeout or per-test timeout
+
+**Test Metrics:**
+- Total test suites: 182 -> 190 (+8 new)
+- Total tests: 4072 -> 4315 (+243 net)
+- Pre-existing failures fixed: 53 tests across 3 suites
+- Net result: 190 suites, 4315 tests, ALL PASSING (zero failures)
+- Firebase __tests__ directory: 14 suites, 422 tests total
+
+**Cumulative Coverage Improvement (7 rounds):**
+- Round 1: +175 tests (enums, username, inventory, rate-limit-config, phone validation, sanity transformers)
+- Round 2: +158 tests (CSV parser, password, CMS config/database, PayMongo, WebSocket client)
+- Round 3: +174 tests (JWT, error-messages, avatar, locations, grower-utils, token-refresh, logger)
+- Round 4: +132 tests (api-interceptor, cloudinary, products, themes, colors, exportCsv, maps-config)
+- Round 5: +144 tests (api-client, analytics, status-utils, useDebounce, useBulkSelect, useSearchShortcut, useIsMobile)
+- Round 6: +108 tests (client, auth, addresses, inventory, notifications, main, orders)
+- Round 7: +243 tests (Firebase auth, phone-auth, phone-change, wishlist, cart, orders, notifications, addresses) + 53 pre-existing fixes
+- Total new tests: 1134 across 48 test files
+- Test suites: 148 -> 190 (+42)
+- Total tests: 3181 -> 4315 (+1134)
+
+**Commit:** fcbc067
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (4315 total, 190 suites, 0 failures)
+---
