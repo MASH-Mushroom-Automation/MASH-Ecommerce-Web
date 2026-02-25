@@ -211,6 +211,7 @@ jest.mock('next-sanity', () => ({
     fetch: jest.fn(() => Promise.resolve([])),
   }),
   createImageUrlBuilder: () => ({ url: () => '' }),
+  groq: (strings, ...values) => String.raw(strings, ...values),
 }));
 
 
