@@ -3983,3 +3983,41 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 **Commit:** 07f9989
 **Tests Passing:** [PASS] Build (152 routes) | [PASS] Lint (0 warnings) | [PASS] Jest (4638 total, 200 suites, 1 pre-existing flaky)
 ---
+---
+## [2026-02-25 20:37] - COVERAGE-009
+**Completed:** Service Layer Test Coverage (8 Files, 198 Tests)
+**Files Created:**
+- src/lib/sanity/__tests__/products.test.ts (35 tests - uploadImage, generateSlug, CRUD, categories, seller products)
+- src/lib/__tests__/lalamove.test.ts (40 tests - vehicle types, weight matching, fee calculation all tiers)
+- src/lib/email/__tests__/gmail-smtp.test.ts (14 tests - SMTP config defaults, unconfigured state, send/verify)
+- src/lib/email/__tests__/send-email.test.ts (20 tests - email dispatch to 5 types, convenience wrappers)
+- src/lib/sanity/__tests__/realtime.test.ts (20 tests - SubscriptionManager subscribe/unsubscribe, dedup, debounce)
+- src/lib/sanity/mutations/__tests__/inventory.test.ts (32 tests - validation, retry with exponential backoff, batch/adjust)
+- src/lib/ai/__tests__/gemini-native.test.ts (15 tests - generateResponseNative, HTTPS mock, API errors, timeout)
+- src/lib/ai/__tests__/sanity-rag.test.ts (31 tests - RAG fetch functions, SanityRAGCache TTL, getAllRAGData)
+
+**Files Modified:**
+- jest.setup.js (added groq tagged template mock to next-sanity global mock)
+
+**Implementation Notes:**
+- jest.mock hoisting pattern: inline jest.fn() in factory, get mock ref post-import via casting
+- Module-level env capture pattern (gmail-smtp): jest.resetModules() + doMock + dynamic import()
+- Global mock override (sanity-rag): jest.unmock('@/lib/ai/sanity-rag') to bypass setupMocks mock
+- Fake timers pattern (inventory): jest.useFakeTimers + advanceTimersByTimeAsync for retry/backoff
+- HTTPS mocking pattern (gemini-native): simulateHttpsResponse helper for Node.js https module
+
+**Learnings for Future Iterations:**
+- jest.setupMocks.js globally mocks @/lib/ai/sanity-rag with only getAllRAGData - use jest.unmock() in tests
+- const declarations are NOT hoisted above jest.mock() factories - use inline jest.fn() instead
+- Modules capturing process.env at load time (GMAIL_CONFIG) need jest.resetModules + dynamic import
+- Global next-sanity mock needs groq: (strings, ...values) => String.raw(strings, ...values) for RAG
+- Inventory retry tests need 15s timeout and jest.advanceTimersByTimeAsync for exponential backoff
+
+**Test Results:**
+- New tests: 8 suites, 198 tests (all passing)
+- Full suite: 208 suites, 4836 tests (all passing)
+- Baseline (pre-COVERAGE-009): 200 suites, 4638 tests
+- Delta: +8 suites, +198 tests
+
+**Commit:** a752ab0
+**Tests Passing:** [PASS] Build (152 routes, 34.0s) | [PASS] Lint (0 warnings) | [PASS] Jest (4836 total, 208 suites)
