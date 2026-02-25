@@ -374,6 +374,7 @@ jest.mock('firebase/app', () => ({
 jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({
     currentUser: null,
+    settings: {},
   })),
   signInWithPopup: jest.fn(),
   GoogleAuthProvider: jest.fn(() => ({
@@ -385,9 +386,36 @@ jest.mock('firebase/auth', () => ({
     callback(null);
     return jest.fn(); // Unsubscribe function
   }),
+  setPersistence: jest.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
+  createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  sendEmailVerification: jest.fn(() => Promise.resolve()),
   sendSignInLinkToEmail: jest.fn(),
   isSignInWithEmailLink: jest.fn(() => false),
   signInWithEmailLink: jest.fn(),
+  sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
+  updateProfile: jest.fn(() => Promise.resolve()),
+  // Phone Auth functions
+  RecaptchaVerifier: jest.fn(() => ({
+    clear: jest.fn(),
+    render: jest.fn(() => Promise.resolve()),
+    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
+  })),
+  PhoneAuthProvider: Object.assign(
+    jest.fn(() => ({
+      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
+    })),
+    {
+      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
+      PROVIDER_ID: 'phone',
+    },
+  ),
+  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  updatePhoneNumber: jest.fn(() => Promise.resolve()),
+  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
+  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -419,6 +447,15 @@ jest.mock('firebase/firestore', () => ({
     delete: jest.fn(),
     commit: jest.fn(() => Promise.resolve()),
   })),
+  runTransaction: jest.fn((db, updateFn) => {
+    const mockTransaction = {
+      get: jest.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
+      set: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+    return updateFn(mockTransaction);
+  }),
 }));
 
 // ============================================================================
