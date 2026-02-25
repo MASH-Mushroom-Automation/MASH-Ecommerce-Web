@@ -4060,3 +4060,43 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** 0006ad6
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (4933 total, 212 suites)
+
+---
+
+## [2025-07-26] - COVERAGE-011: Sanity Hook Test Coverage Batch 2
+**Completed:** Test coverage for 5 large untested hooks (useCMS, useSanityGrowers, useSanityAboutPage, useSanityContactPage, useSanityBanners)
+
+**Files Created/Modified:**
+- src/hooks/__tests__/useCMS.test.tsx (30 tests) - 6 CMS hooks using global fetch()
+- src/hooks/__tests__/useSanityGrowers.test.tsx (16 tests) - 5 grower hooks with listenSafe, fixed empty input tests
+- src/hooks/__tests__/useSanityAboutPage.test.tsx (19 tests) - 3 about page hooks with parallel fetch + imageUrlBuilder
+- src/hooks/__tests__/useSanityContactPage.test.tsx (21 tests) - 3 contact page hooks with icon mapping + day sorting
+- src/hooks/__tests__/useSanityBanners.test.tsx (50 tests) - 4 hooks + 3 server fns + 6 pure utility fns
+
+**Implementation Notes:**
+- useCMS hooks use global fetch() targeting /api/cms/* endpoints (NOT sanityClient) - mock global.fetch
+- useSanityContactPage transforms include computed fields: icon mapping (CONTACT_TYPE_ICONS/SOCIAL_PLATFORM_ICONS), dayLabel formatting (capitalized), displayTime formatting, address assembly
+- useSanityBanners has 6 pure utility functions (getBannerHeightClass, getTextColorClass, etc.) testable without any mocking
+- transformBanner() computes isScheduled/isExpired from dates; filterActiveBanners() removes inactive/scheduled/expired
+- useHomepageBanners splits banners by position into topBanners/middleBanners/bottomBanners
+- fetchBanners server-side functions catch errors and return empty array (graceful degradation)
+- 3 test files (useCMS, useSanityGrowers, useSanityAboutPage) from interrupted previous session fixed and validated
+
+**Learnings for Future Iterations:**
+- useCMS hooks use global fetch(), not sanityClient - different mock approach needed
+- useAboutContent and useContactContent return STATIC hardcoded data (no API call) - just test the shape
+- @sanity/image-url has NO global mock - must mock inline in each test: jest.mock("@sanity/image-url", () => ({ default: () => ({ image: () => ({ width: () => ({ height: () => ({ url: () => "https://test-url" }) }) }) }) }))
+- Pure utility functions (getBannerHeightClass, isBannerActive, getTimeRemaining) need zero mocking - test directly
+- Banner scheduling: isScheduled = startDate is in the future, isExpired = endDate is in the past
+- filterActiveBanners checks isActive + not isScheduled + not isExpired + device visibility
+- Server-side functions (fetchBanners etc.) swallow errors and return empty arrays - test both paths
+
+**Test Results:**
+- New tests: 5 suites, 136 tests (all passing)
+- Full suite: 217 suites, 5069 tests (5067 passing, 2 pre-existing failures)
+- Baseline (pre-COVERAGE-011): 212 suites, 4933 tests
+- Delta: +5 suites, +136 tests
+- Pre-existing failures: inventory.test.ts (1), PhoneChangeFlow.test.tsx (1) - unchanged
+
+**Commit:** 80e48b1
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5069 total, 217 suites)
