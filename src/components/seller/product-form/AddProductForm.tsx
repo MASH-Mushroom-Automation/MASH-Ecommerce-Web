@@ -49,7 +49,12 @@ const productFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   category: z.string().min(1, "Category is required"),
   price: z.number().min(0.01, "Price must be greater than 0"),
-  compareAtPrice: z.number().optional(),
+  compareAtPrice: z.preprocess((val) => {
+    // Normalize empty and NaN values to undefined so compare price is optional
+    if (val === "" || val === null) return undefined;
+    if (typeof val === "number" && isNaN(val)) return undefined;
+    return val;
+  }, z.number().optional()),
   quantity: z.number().int().min(0, "Quantity must be 0 or greater"),
   trackInventory: z.boolean(),
   hasVariants: z.boolean(),
@@ -83,7 +88,7 @@ export function AddProductForm() {
     formState: { errors },
     reset,
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
+    resolver: zodResolver(productFormSchema) as any,
     defaultValues: {
       name: "",
       description: "",
@@ -124,9 +129,19 @@ export function AddProductForm() {
     const draftData = localStorage.getItem(DRAFT_KEY);
     if (draftData) {
       try {
-        const draft = JSON.parse(draftData);
-        setSavedDraft(draft);
-        setShowDraftDialog(true);
+        const draft = JSON.parse(savedDraft);
+        const shouldRestore = window.confirm(
+          "You have an unsaved draft. Would you like to restore it?",
+        );
+        if (shouldRestore) {
+          reset(draft);
+          if (draft.images) setImages(draft.images);
+          if (draft.variants) setVariants(draft.variants);
+          setLastSaved(new Date());
+          toast.info("Draft restored");
+        } else {
+          localStorage.removeItem(DRAFT_KEY);
+        }
       } catch (error) {
         console.error("Error loading draft:", error);
       }
@@ -190,7 +205,7 @@ export function AddProductForm() {
     try {
       // Step 1: Upload images that haven't been uploaded yet
       const imagesToUpload = images.filter(
-        (img) => img.file && !img.sanityAssetId
+        (img) => img.file && !img.sanityAssetId,
       );
       const uploadedImages = [...images];
 
@@ -209,13 +224,13 @@ export function AddProductForm() {
                 {
                   method: "POST",
                   body: formData,
-                }
+                },
               );
 
               if (!uploadResponse.ok) {
                 const errorData = await uploadResponse.json();
                 throw new Error(
-                  errorData.error?.message || "Failed to upload image"
+                  errorData.error?.message || "Failed to upload image",
                 );
               }
 
@@ -223,7 +238,7 @@ export function AddProductForm() {
 
               // Update the image with the asset ID
               const imageIndex = uploadedImages.findIndex(
-                (img) => img.id === image.id
+                (img) => img.id === image.id,
               );
               if (imageIndex !== -1) {
                 uploadedImages[imageIndex] = {
@@ -235,8 +250,9 @@ export function AddProductForm() {
             } catch (error) {
               console.error("Error uploading image:", error);
               throw new Error(
-                `Failed to upload image ${image.file.name}: ${error instanceof Error ? error.message : "Unknown error"
-                }`
+                `Failed to upload image ${image.file.name}: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`,
               );
             }
           }
@@ -251,14 +267,21 @@ export function AddProductForm() {
         description: data.description,
         category: data.category,
         price: data.price,
-        compareAtPrice: data.compareAtPrice,
+        // Ensure optional numeric fields are undefined instead of null
+        compareAtPrice:
+          typeof data.compareAtPrice === "number" && !isNaN(data.compareAtPrice)
+            ? data.compareAtPrice
+            : undefined,
         quantity: data.quantity,
         trackInventory: data.trackInventory,
         hasVariants: data.hasVariants,
         variants: data.hasVariants ? variants : undefined,
         images: uploadedImages,
         sku: data.sku,
-        weight: data.weight,
+        weight:
+          typeof data.weight === "number" && !isNaN(data.weight)
+            ? data.weight
+            : undefined,
         seo: {
           metaTitle: data.metaTitle,
           metaDescription: data.metaDescription,
