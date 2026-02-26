@@ -379,11 +379,7 @@ export default function SellerDashboard() {
                     <TableCell className="text-right">{order.items}</TableCell>
                     <TableCell className="text-right">₱{order.total.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={order.status === "DELIVERED" ? "default" : order.status === "CANCELLED" ? "destructive" : "outline"}
-                      >
-                        {order.status}
-                      </Badge>
+                      <OrderStatusBadge status={order.status} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -401,6 +397,25 @@ export default function SellerDashboard() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+const ORDER_STATUS_STYLES: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  CONFIRMED: { label: "Confirmed", className: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400" },
+  PROCESSING: { label: "Processing", className: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400" },
+  SHIPPED: { label: "Shipped", className: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400" },
+  DELIVERED: { label: "Delivered", className: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400" },
+  CANCELLED: { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400" },
+  REFUNDED: { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400" },
+};
+
+function OrderStatusBadge({ status }: { status: string }) {
+  const style = ORDER_STATUS_STYLES[status] ?? { label: status, className: "bg-muted text-muted-foreground border-border" };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style.className}`}>
+      {style.label}
+    </span>
   );
 }
 
