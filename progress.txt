@@ -4133,3 +4133,58 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** 5ccdc1d
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5244 total, 222 suites)
+---
+## [2026-02-26] - COVERAGE-013
+**Completed:** Hook Test Coverage Batch 4 - 5 Hooks, 152 Tests
+**Files Changed:**
+- src/hooks/__tests__/useSanityBundles.test.tsx (new, 473 lines, 25 tests)
+- src/hooks/__tests__/useSanityBlogPosts.test.tsx (new, 403 lines, 27 tests)
+- src/hooks/__tests__/useSanityFeatures.test.tsx (new, 323 lines, 19 tests)
+- src/hooks/__tests__/useFirebaseOrders.test.tsx (new, 672 lines, 36 tests)
+- src/hooks/__tests__/useSanityMarketing.test.tsx (new, 706 lines, 45 tests)
+- src/hooks/useSanityBundles.ts (bug fix: hoisted block-scoped variables)
+
+**Implementation Notes:**
+- useSanityBundles: Tests cover loading, fetch +/- productId, savings calculation,
+  availability date filtering, summary computation (totalBundles, activeBundles,
+  featuredBundles, totalSavings, averageDiscount), real-time subscription via
+  sanityClient.listen, getFeaturedBundles, getBundlesByBadge, calculateSavings
+- useSanityBlogPosts: Tests cover useSanityBlogPosts (filters: category, author,
+  limit), useSanityBlogPost (single by slug, empty slug guard), useSanityFeaturedBlogPosts
+  (default/custom limit). ReadTime calculation, listenSafe real-time mutations
+- useSanityFeatures: Tests cover useSanityFeatures (homepageOnly default/false),
+  useSanityFeatureSection (single slug), getFeatureSections server function.
+  Module-level featureCache Map with 5-minute TTL handled by Date.now() mock
+- useFirebaseOrders: Tests cover useFirebaseOrders (fetch all/by status, stats
+  with 10 status counts + revenue + today metrics, real-time on/off/filter/error),
+  useFirebaseOrder (single subscription), useUserFirebaseOrders (user subscription).
+  Action tests: approveOrder, rejectOrder, updateOrderStatus (success + failure)
+- useSanityMarketing: Tests cover useSanityCoupons (CRUD + validateCoupon with 7
+  scenarios), useSanityPromotions (filters + getActive/getHomepage), useSanityPromotion
+  (single slug), useSanityEmailCampaigns (getSummary with open/click rates)
+
+**Bug Fixes:**
+- useSanityBundles.ts: Variables featured and avgDiscount were block-scoped with
+  const inside if(availableBundles.length > 0) but referenced in console.log()
+  outside the block. Hoisted to let declarations before the if-block.
+
+**Learnings for Future Iterations:**
+- Mock strategy: Use mockClear() instead of mockReset() in Sanity hook tests.
+  mockReset() removes the global jest.setup.js implementation, causing
+  sanityClient.fetch to return undefined in full suite runs (cross-test contamination).
+  mockClear() preserves the global () => Promise.resolve([]) implementation.
+- Loading state tests: Use mockReturnValueOnce(new Promise(() => {})) not
+  mockReturnValue() to prevent never-resolving promise from persisting via mockClear.
+- Module-level cache (useSanityFeatures): Advance Date.now() by 10 minutes between
+  tests to expire the 5-minute TTL cache. Use jest.spyOn(Date, "now") pattern.
+- useFirebaseOrders: Uses manual jest.mock("@/lib/firebase/orders") with individual
+  mock functions for static methods (getAllOrders, subscribeToAllOrders, etc.)
+
+**Test Results:**
+- New tests: 5 suites, 152 tests (25 + 27 + 19 + 36 + 45)
+- Full suite: 227 suites, 5396 tests (all passing)
+- Baseline (pre-COVERAGE-013): 222 suites, 5244 tests
+- Delta: +5 suites, +152 tests
+
+**Commit:** 7c9eeff
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5396 total, 227 suites)
