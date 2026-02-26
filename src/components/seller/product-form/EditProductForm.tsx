@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,9 +32,7 @@ import { VariantManager, ProductVariant } from "./VariantManager";
 import { CategorySelector } from "./CategorySelector";
 import { SeoFields } from "./SeoFields";
 import { ProductFormData } from "@/lib/sanity/products";
-import { useSellerProduct, useUpdateSellerProduct } from "@/hooks/useSeller";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 
 // Form validation schema
@@ -43,12 +41,7 @@ const productFormSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   category: z.string().min(1, "Category is required"),
   price: z.number().min(0.01, "Price must be greater than 0"),
-  compareAtPrice: z.preprocess((val) => {
-    // Normalize empty and NaN values to undefined so compare price is optional
-    if (val === "" || val === null) return undefined;
-    if (typeof val === "number" && isNaN(val)) return undefined;
-    return val;
-  }, z.number().optional()),
+  compareAtPrice: z.number().optional(),
   quantity: z.number().int().min(0, "Quantity must be 0 or greater"),
   trackInventory: z.boolean(),
   hasVariants: z.boolean(),
@@ -62,44 +55,17 @@ const productFormSchema = z.object({
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 interface EditProductFormProps {
-  productId?: string;
+  productId: string;
 }
 
 export function EditProductForm({ productId }: EditProductFormProps) {
-  // Support either receiving productId as a prop or reading it from the URL
-  const params = useParams();
-  const effectiveProductId = productId ?? (params?.id as string | undefined);
-
-  if (!effectiveProductId) {
-    return (
-      <div className="text-center py-12">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Product ID is missing from the URL or props.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
   const router = useRouter();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  // Use custom hooks for product data and updates
-  const {
-    product,
-    loading: isLoading,
-    error: fetchError,
-    refetch,
-  } = useSellerProduct(effectiveProductId);
-
-  const updateMutation = useUpdateSellerProduct();
-  const queryClient = useQueryClient();
-  const isSubmitting = updateMutation.isPending;
 
   const {
     register,
@@ -109,7 +75,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
     formState: { errors },
     reset,
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema) as any,
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -125,44 +91,52 @@ export function EditProductForm({ productId }: EditProductFormProps) {
   const formData = watch();
   const hasVariants = watch("hasVariants");
 
-  // Load product data into form when fetched
+  // Load product data
   useEffect(() => {
-    if (product) {
-      // Populate form with product data (convert null optional fields to undefined)
-      reset({
-        name: product.name,
-        description: product.description || "",
-        category: product.category,
-        price: product.price,
-        compareAtPrice:
-          typeof product.compareAtPrice === "number"
-            ? product.compareAtPrice
-            : undefined,
-        quantity: product.stock || 0,
-        trackInventory: true,
-        hasVariants: product.hasVariants || false,
-        sku: product.sku || undefined,
-        weight: typeof product.weight === "number" ? product.weight : undefined,
-        metaTitle: product.seo?.metaTitle || undefined,
-        metaDescription: product.seo?.metaDescription || undefined,
-        isAvailable: product.isAvailable !== false,
-      });
+    async function loadProduct() {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Load images (handle both legacy string arrays and newer {url, assetId} objects)
-      const productImages: UploadedImage[] = [];
-      if (product.image) {
-        productImages.push({
-          id: "existing-main",
-          url: product.image,
-          alt: product.name,
-          isPrimary: true,
-          sanityAssetId: product.imageAssetId ?? undefined,
+        const response = await fetch(`/api/seller/products/${productId}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || "Failed to load product");
+        }
+
+        const result = await response.json();
+        const product = result.data;
+
+        // Populate form with product data
+        reset({
+          name: product.name,
+          description: product.description || "",
+          category: product.category,
+          price: product.price,
+          compareAtPrice: product.compareAtPrice,
+          quantity: product.stock || 0,
+          trackInventory: true,
+          hasVariants: product.hasVariants || false,
+          sku: product.sku,
+          weight: product.weight,
+          metaTitle: product.seo?.metaTitle,
+          metaDescription: product.seo?.metaDescription,
+          isAvailable: product.isAvailable !== false,
         });
-      }
 
-      if (product.images && product.images.length > 0) {
-        product.images.forEach((img: any, index: number) => {
-          if (typeof img === "string") {
+        // Load images
+        const productImages: UploadedImage[] = [];
+        if (product.image) {
+          productImages.push({
+            id: "existing-main",
+            url: product.image,
+            alt: product.name,
+            isPrimary: true,
+            sanityAssetId: undefined, // Will be preserved if not changed
+          });
+        }
+        if (product.images && product.images.length > 0) {
+          product.images.forEach((img: string, index: number) => {
             productImages.push({
               id: `existing-${index}`,
               url: img,
@@ -170,26 +144,29 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               isPrimary: false,
               sanityAssetId: undefined,
             });
-          } else {
-            productImages.push({
-              id: `existing-${index}`,
-              url: img.url,
-              alt: `${product.name} - Image ${index + 1}`,
-              isPrimary: false,
-              sanityAssetId: img.assetId ?? undefined,
-            });
-          }
+          });
+        }
+        setImages(productImages);
+
+        // Load variants if any
+        if (product.variants) {
+          setVariants(product.variants);
+        }
+      } catch (err) {
+        console.error("Error loading product:", err);
+        setError(err instanceof Error ? err.message : "Failed to load product");
+        toast.error("Failed to load product", {
+          description: err instanceof Error ? err.message : "Please try again",
         });
-      }
-
-      setImages(productImages);
-
-      // Load variants if any
-      if (product.variants) {
-        setVariants(product.variants);
+      } finally {
+        setIsLoading(false);
       }
     }
-  }, [product, reset]);
+
+    if (productId) {
+      loadProduct();
+    }
+  }, [productId, reset]);
 
   const onSubmit = async (data: ProductFormValues) => {
     // Validate images
@@ -206,16 +183,16 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       // Step 1: Upload new images that haven't been uploaded yet
-      const imagesToUpload = images.filter(
-        (img) => img.file && !img.sanityAssetId,
-      );
+      const imagesToUpload = images.filter((img) => img.file && !img.sanityAssetId);
       const uploadedImages = [...images];
 
       if (imagesToUpload.length > 0) {
         toast.loading("Uploading images...", { id: "upload-images" });
-
+        
         for (const image of imagesToUpload) {
           if (image.file) {
             try {
@@ -223,27 +200,20 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               formData.append("file", image.file);
               formData.append("alt", image.alt || "");
 
-              const uploadResponse = await fetch(
-                "/api/seller/products/upload-image",
-                {
-                  method: "POST",
-                  body: formData,
-                },
-              );
+              const uploadResponse = await fetch("/api/seller/products/upload-image", {
+                method: "POST",
+                body: formData,
+              });
 
               if (!uploadResponse.ok) {
                 const errorData = await uploadResponse.json();
-                throw new Error(
-                  errorData.error?.message || "Failed to upload image",
-                );
+                throw new Error(errorData.error?.message || "Failed to upload image");
               }
 
               const uploadData = await uploadResponse.json();
-
+              
               // Update the image with the asset ID
-              const imageIndex = uploadedImages.findIndex(
-                (img) => img.id === image.id,
-              );
+              const imageIndex = uploadedImages.findIndex((img) => img.id === image.id);
               if (imageIndex !== -1) {
                 uploadedImages[imageIndex] = {
                   ...uploadedImages[imageIndex],
@@ -256,12 +226,12 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               throw new Error(
                 `Failed to upload image ${image.file.name}: ${
                   error instanceof Error ? error.message : "Unknown error"
-                }`,
+                }`
               );
             }
           }
         }
-
+        
         toast.dismiss("upload-images");
       }
 
@@ -271,21 +241,14 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         description: data.description,
         category: data.category,
         price: data.price,
-        // Convert nullable numeric inputs to undefined for validation
-        compareAtPrice:
-          typeof data.compareAtPrice === "number" && !isNaN(data.compareAtPrice)
-            ? data.compareAtPrice
-            : undefined,
+        compareAtPrice: data.compareAtPrice,
         quantity: data.quantity,
         trackInventory: data.trackInventory,
         hasVariants: data.hasVariants,
         variants: data.hasVariants ? variants : undefined,
         images: uploadedImages,
         sku: data.sku,
-        weight:
-          typeof data.weight === "number" && !isNaN(data.weight)
-            ? data.weight
-            : undefined,
+        weight: data.weight,
         seo: {
           metaTitle: data.metaTitle,
           metaDescription: data.metaDescription,
@@ -293,22 +256,24 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         isAvailable: data.isAvailable,
       };
 
-      // Step 3: Update product via hook (with optimistic updates)
+      // Step 3: Update product via API route
       toast.loading("Updating product...", { id: "update-product" });
-
-      await updateMutation.mutateAsync({
-        productId: effectiveProductId,
-        data: productData,
+      
+      const response = await fetch(`/api/seller/products/${productId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
       });
 
-      // Ensure product list is refreshed before navigating back
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["seller-products"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["seller-product", effectiveProductId],
-        }),
-      ]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to update product");
+      }
 
+      const result = await response.json();
+      
       toast.dismiss("update-product");
       toast.success("Product updated successfully!", {
         description: `${data.name} has been updated.`,
@@ -324,6 +289,8 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         description:
           error instanceof Error ? error.message : "Please try again",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -338,12 +305,12 @@ export function EditProductForm({ productId }: EditProductFormProps) {
     );
   }
 
-  if (fetchError) {
+  if (error) {
     return (
       <div className="text-center py-12">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{fetchError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
         <Button onClick={() => router.back()} className="mt-4">
           Go Back
@@ -655,3 +622,4 @@ export function EditProductForm({ productId }: EditProductFormProps) {
     </form>
   );
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -78,7 +78,7 @@ export function RichTextEditor({
       attributes: {
         class: cn(
           "prose prose-sm max-w-none min-h-[200px] px-4 py-3 focus:outline-none",
-          error && "border-destructive",
+          error && "border-destructive"
         ),
       },
     },
@@ -87,23 +87,6 @@ export function RichTextEditor({
       onChange(html);
     },
   });
-
-  // Keep editor content in sync when `value` prop changes (avoid requiring tab switch)
-  useEffect(() => {
-    if (!editor) return;
-
-    try {
-      const current = editor.getHTML();
-      if ((value || "") !== (current || "")) {
-        // setContent without emitting onUpdate to avoid cycle
-        editor.commands.setContent(value || "", false);
-      }
-    } catch (err) {
-      // ignore errors when editor not fully initialized
-      // (we do not want to crash the page for simple sync issues)
-      // console.debug("RichTextEditor sync error:", err);
-    }
-  }, [value, editor]);
 
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -261,7 +244,7 @@ export function RichTextEditor({
       <div
         className={cn(
           "border rounded-lg bg-background min-h-[200px] overflow-y-auto max-h-[400px]",
-          error && "border-destructive",
+          error && "border-destructive"
         )}
       >
         <EditorContent editor={editor} />
@@ -273,7 +256,7 @@ export function RichTextEditor({
         <div
           className={cn(
             "text-muted-foreground",
-            isOverLimit && "text-destructive font-medium",
+            isOverLimit && "text-destructive font-medium"
           )}
         >
           {characterCount}
@@ -350,7 +333,7 @@ function ToolbarButton({
       title={tooltip}
       className={cn(
         "h-8 w-8 p-0",
-        isActive && "bg-primary text-primary-foreground",
+        isActive && "bg-primary text-primary-foreground"
       )}
     >
       {children}

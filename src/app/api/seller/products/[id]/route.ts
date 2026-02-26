@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import {
-  fetchProductById,
-  updateProduct,
-  ProductFormData,
-} from "@/lib/sanity/products";
+import { fetchProductById, updateProduct, ProductFormData } from "@/lib/sanity/products";
 import type { UploadedImage } from "@/components/seller/product-form/ImageUploader";
 import type { ProductVariant } from "@/components/seller/product-form/VariantManager";
 import { getUserIdFromToken } from "@/lib/jwt";
@@ -31,7 +27,7 @@ async function getCurrentUserId(): Promise<string | null> {
 // GET /api/seller/products/[id] - Get single product by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -46,12 +42,12 @@ export async function GET(
             message: "Authentication required",
           },
         },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
     const { id } = await params;
-
+    
     // Get current user ID to verify ownership
     const sellerId = await getCurrentUserId();
     if (!sellerId) {
@@ -63,7 +59,7 @@ export async function GET(
             message: "Unable to identify seller account",
           },
         },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -71,54 +67,19 @@ export async function GET(
     const product = await fetchProductById(id, sellerId);
 
     if (!product) {
-      // Check if the product exists at all (without seller verification)
-      const exists = await fetchProductById(id);
-      if (exists) {
-        // Product exists but belongs to a different seller
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "FORBIDDEN",
-              message:
-                "Product exists but does not belong to your seller account",
-            },
-          },
-          { status: 403 },
-        );
-      }
-
-      // Product truly not found
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "NOT_FOUND",
-            message: "Product not found",
+            message: "Product not found or you don't have permission to view it",
           },
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     // Transform to match expected format
-    // Main image can be from mainImage or first image
-    const mainImageUrl = product.mainImage || product.images?.[0]?.url || "";
-    const mainImageAssetId =
-      product.mainImageAssetId || product.images?.[0]?.assetId;
-
-    // Map variants to client-friendly shape
-    const mappedVariants = (product.variants || []).map((v: any) => ({
-      id: v._id,
-      type: v.variantType || "Size",
-      value: v.variantValue || "",
-      sku: v.sku || "",
-      price: v.price || 0,
-      compareAtPrice: v.compareAtPrice,
-      quantityInStock: v.quantityInStock ?? v.inventory?.quantityInStock ?? 0,
-      isAvailable: v.isAvailable ?? true,
-    }));
-
     return NextResponse.json({
       success: true,
       data: {
@@ -133,9 +94,7 @@ export async function GET(
         weight: product.weight,
         isAvailable: product.isAvailable,
         hasVariants: product.hasVariants,
-        variants: mappedVariants,
-        image: mainImageUrl,
-        imageAssetId: mainImageAssetId,
+        image: product.mainImage || product.images?.[0] || "",
         images: product.images || [],
         slug: product.slug,
         seo: product.seo,
@@ -149,12 +108,11 @@ export async function GET(
         success: false,
         error: {
           code: "FETCH_ERROR",
-          message:
-            error instanceof Error ? error.message : "Failed to fetch product",
+          message: error instanceof Error ? error.message : "Failed to fetch product",
         },
         timestamp: new Date().toISOString(),
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -162,7 +120,7 @@ export async function GET(
 // PUT /api/seller/products/[id] - Update product
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -177,7 +135,7 @@ export async function PUT(
             message: "Authentication required to update products",
           },
         },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -194,7 +152,7 @@ export async function PUT(
             message: "Unable to identify seller account",
           },
         },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -202,22 +160,16 @@ export async function PUT(
     const body = await request.json();
 
     // Validate required fields
-    if (
-      !body.name ||
-      !body.description ||
-      !body.category ||
-      body.price === undefined
-    ) {
+    if (!body.name || !body.description || !body.category || body.price === undefined) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "VALIDATION_ERROR",
-            message:
-              "Missing required fields: name, description, category, or price",
+            message: "Missing required fields: name, description, category, or price",
           },
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -248,16 +200,12 @@ export async function PUT(
         data: {
           id: result._id,
           slug: result.slug,
-          message:
-            result.warnings && result.warnings.length > 0
-              ? "Product updated with warnings: some images could not be imported. Existing images preserved."
-              : "Product updated successfully",
-          warnings: result.warnings,
+          message: "Product updated successfully",
         },
         timestamp: new Date().toISOString(),
         requestId: `req_${Date.now()}`,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.error("Error updating product:", error);
@@ -271,7 +219,8 @@ export async function PUT(
         },
         timestamp: new Date().toISOString(),
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
+

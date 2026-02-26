@@ -281,18 +281,7 @@ export interface SellerProduct {
   category: string;
   status: "Active" | "Inactive" | "Out of Stock"; // Frontend display status
   description?: string;
-  weight?: string | number;
-  sku?: string;
-  compareAtPrice?: number;
-  hasVariants?: boolean;
-  variants?: any[];
-  images?: any[];
-  seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-  };
-  isAvailable?: boolean;
-  imageAssetId?: string;
+  weight?: string;
 
   // Backend flags (different from display status)
   isActive?: boolean; // Backend flag - product is published/visible
