@@ -108,11 +108,11 @@ const sidebarLinks = [
     icon: MessageSquare,
     label: "My Reviews",
   },
-  {
-    href: "/seller/reviews",
-    icon: MessageSquare,
-    label: "Review Moderation",
-  },
+  // {
+  //   href: "/seller/reviews",
+  //   icon: MessageSquare,
+  //   label: "Review Moderation",
+  // },
   {
     href: "/seller/analytics/reviews",
     icon: BarChart3,

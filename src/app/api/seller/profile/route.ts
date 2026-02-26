@@ -22,10 +22,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Forward cookies and auth token to backend
+    const cookieHeader = request.headers.get("cookie") || "";
+
     // Call real backend API
     const response = await apiRequest<ApiResponse<any>>(
-      "/api/seller/profile",
-      { method: "GET" }
+      "/seller/profile",
+      {
+        method: "GET",
+        headers: {
+          Cookie: cookieHeader,
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
     return NextResponse.json({
@@ -69,12 +78,19 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
+    // Forward cookies and auth token to backend
+    const cookieHeader = request.headers.get("cookie") || "";
+
     // Call real backend API
     const response = await apiRequest<ApiResponse<any>>(
-      "/api/seller/profile",
+      "/seller/profile",
       {
         method: "PUT",
         body: JSON.stringify(body),
+        headers: {
+          Cookie: cookieHeader,
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
 
