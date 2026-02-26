@@ -1,7 +1,7 @@
 {
   "projectName": "MASH UI/UX Improvement Plan",
   "version": "1.3.0",
-  "branchName": "feature/ui-ux-phase-6.2-design-system",
+  "branchName": "feature/design-system-rollout",
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",

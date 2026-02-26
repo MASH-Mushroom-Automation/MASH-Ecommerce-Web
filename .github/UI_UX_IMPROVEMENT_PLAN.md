@@ -819,7 +819,7 @@ Use subagents (runSubagent) for complex stories to conserve context window.
 
 ### Branch & PR
 
-- **Branch**: `feature/ui-ux-phase-6.2-design-system`
+- **Branch**: `feature/design-system-rollout`
 - **Target**: `develop`
 - **PR Doc**: [PR-PHASE-6.2-DESIGN-SYSTEM.md](PR-PHASE-6.2-DESIGN-SYSTEM.md)
 
