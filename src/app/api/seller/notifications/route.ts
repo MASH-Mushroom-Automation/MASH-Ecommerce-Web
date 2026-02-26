@@ -9,7 +9,11 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get("auth-token")?.value;
     if (!token) return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } }, { status: 401 });
 
-    const response = await apiRequest<ApiResponse<any>>("/api/seller/notifications", { method: "GET" });
+    const cookieHeader = request.headers.get("cookie") || "";
+    const response = await apiRequest<ApiResponse<any>>("/seller/notifications", {
+      method: "GET",
+      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
+    });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(
@@ -26,7 +30,11 @@ export async function POST(request: NextRequest) {
     if (!token) return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } }, { status: 401 });
 
     const { id } = await request.json();
-    const response = await apiRequest<ApiResponse<any>>(`/api/seller/notifications/${id}/read`, { method: "POST" });
+    const cookieHeader = request.headers.get("cookie") || "";
+    const response = await apiRequest<ApiResponse<any>>(`/seller/notifications/${id}/read`, {
+      method: "POST",
+      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
+    });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(
