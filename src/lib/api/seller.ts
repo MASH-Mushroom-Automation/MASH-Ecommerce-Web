@@ -53,7 +53,7 @@ export class SellerApi {
   // ── Products ──────────────────────────────────────────────────────────────
 
   static async getProducts(
-    params: { page?: number; limit?: number; search?: string } = {}
+    params: { page?: number; limit?: number; search?: string } = {},
   ): Promise<ApiResponse<SellerProduct[]>> {
     const qs = new URLSearchParams();
     if (params.page) qs.set("page", String(params.page));
@@ -103,7 +103,7 @@ export class SellerApi {
 
   static async updateOrderStatus(
     id: string,
-    status: SellerOrderStatus
+    status: SellerOrderStatus,
   ): Promise<ApiResponse<SellerOrderDetail | null>> {
     return apiFetch<SellerOrderDetail | null>(`/api/seller/orders/${id}/status`, {
       method: "PATCH",
@@ -145,7 +145,7 @@ export class SellerApi {
   }
 
   static async createAddress(
-    address: Omit<SellerAddress, "id">
+    address: Omit<SellerAddress, "id">,
   ): Promise<ApiResponse<SellerAddress>> {
     return apiFetch<SellerAddress>("/api/seller/addresses", {
       method: "POST",
@@ -155,7 +155,7 @@ export class SellerApi {
 
   static async updateAddress(
     id: string,
-    address: Partial<SellerAddress>
+    address: Partial<SellerAddress>,
   ): Promise<ApiResponse<SellerAddress>> {
     // Existing route expects { id, ...address } in the PUT body
     return apiFetch<SellerAddress>("/api/seller/addresses", {
