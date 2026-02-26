@@ -42,7 +42,11 @@
 - **Atomic Stock Adjustments:** adjustStock() performs two operations: create immutable stockAdjustment document + update product.stockQuantity. If either fails, rollback entire operation. Include adjustmentId in error response for potential cleanup.
 - **Security Events Collection:** security_events collection in Firestore with 90-day TTL via _expiresAt field. Events are immutable audit records (no update/delete). Users can only read their own events.
 - **Account Recovery Flow:** useAccountRecovery hook manages multi-step flow: idle -> email-sent -> verifying -> codes-generated -> complete. Disables 2FA with 7-day grace period. Generates 10 backup codes (SHA-256 hashed, stored in Firestore).
-- **Auto-Mock Bypass:** src/__mocks__/api-client.ts intercepts all imports of @/lib/api-client. Use jest.unmock("../api-client") at top of test file to test real module. Check for __mocks__ directory when tests import mocked modules.
+- **Getter-Based Mock Pattern (export const objects):** When API is `export const` (not class), use module-level `const mockFn = jest.fn()` with getter-based mock: `jest.mock("mod", () => ({ Api: { get method() { return mockFn; } } }))`. Inline factory + jest.requireMock fails because clearMocks: true nullifies the const reference.
+- **Error Rethrow Testing Pattern:** When hook does `setError(msg); throw err;`, cannot use `await expect(act(...)).rejects.toThrow()` because it catches before React flushes state. Use: `let thrown; await act(async () => { try { await fn(); } catch(e) { thrown = e; } }); expect(thrown).toBeInstanceOf(Error);`
+- **Hook Error Message Behavior:** Hooks using `err instanceof Error ? err.message : 'fallback'` set error state to the Error's own message, not the fallback string. Test expectations must match err.message.
+- **Never-Resolving Promise Leak:** `mockReturnValue(new Promise(() => {}))` in loading state tests leaks pending promises that prevent worker process clean exit. Use `mockResolvedValueOnce({...})` instead - first synchronous render still shows loading before effect/query fires.
+- **CPU Contention Timeouts:** Under multi-worker Jest execution, setTimeout-based waitFor (default 1000ms) and Jest test timeouts (default 5000ms) can be delayed significantly by CPU contention. Add explicit `waitFor({ timeout: 10000 })` and Jest test timeout `it("...", async () => {...}, 30000)` for async resolution tests.
 - **Error Spread Pattern:** api-client.ts error construction uses `...data` spread which overwrites earlier fields (e.g., .error becomes full object not just type string). Always verify actual error shape in tests.
 - **jsdom Location Immutable:** window.location cannot be mocked in jsdom (Object.defineProperty, delete, jest.spyOn all fail). Test behavior (errors thrown, fetch calls) instead of location.href assignment.
 - **Falsy Empty Strings:** Status utility functions returning "" for unknown states are falsy in JS. `"" || fallback` returns fallback. Test runtime values, not raw returns.
@@ -4337,3 +4341,60 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** f356882
 **Tests Passing:** [PASS] Build (compiled successfully, 30.7s) | [PASS] Lint (0 warnings) | [PASS] Jest (5739 total, 242 suites, 2 pre-existing failures)
+
+---
+
+## [2025-07-11] - COVERAGE-017
+**Completed:** Hook Test Coverage Batch 8 (useNotifications, useTopPerformingProducts, useAdminDashboard, useInventory, useGrowerRatings) + Concurrency Fixes
+**Files Changed:**
+- src/hooks/__tests__/useNotifications.test.tsx (NEW - 20 tests)
+- src/hooks/__tests__/useTopPerformingProducts.test.tsx (NEW - 7 tests)
+- src/hooks/__tests__/useAdminDashboard.test.tsx (NEW - 9 tests)
+- src/hooks/__tests__/useInventory.test.tsx (NEW - 19 tests)
+- src/hooks/__tests__/useGrowerRatings.test.tsx (NEW - 10 tests)
+- src/hooks/__tests__/useRecentOrders.test.tsx (MODIFIED - concurrency fix)
+- src/hooks/__tests__/useProducts.test.tsx (MODIFIED - concurrency fix)
+
+**Implementation Notes:**
+- useNotifications: NotificationsApi is a class with static methods. Uses jest.mock inline factory + jest.requireMock.
+  Response shape: { success: boolean, data: { notifications: [], unreadCount: number } }.
+  Tests optimistic state updates for markAsRead/markAllAsRead/removeNotification.
+- useTopPerformingProducts: TanStack Query hook with retry:2, staleTime:2min. Response nested:
+  { data: { data: TopPerformingProduct[], meta: {...} } }. fetchTopPerformingProducts adds dev
+  token headers. Silences console.log/error via jest.spyOn.
+- useAdminDashboard: Two exports (useAdminDashboard + useAdminDashboardWithInterval). Both share
+  queryKey ["admin","dashboard"]. fetchAdminDashboard checks response.success field and throws
+  on false. staleTime:1min, refetchInterval:5min for interval variant.
+- useInventory: InventoryApi is export const (NOT class). Required getter-based mock pattern.
+  Lazy hook (loading starts false, no auto-fetch). updateStock/setStockAlert/getLowStockProducts
+  all throw after setError. Required 3 rounds of fixes: (1) mock nullification, (2) error
+  rethrow state race, (3) error message mismatch.
+- useGrowerRatings: Uses FirebaseReviewService.getReviews("grower", id). Batch-fetches via
+  Promise.all. Uses fetchedRef (useRef<Set>) to cache fetched IDs. Returns default zero-stats
+  on individual fetch failure. Cleanup via cancelled flag.
+
+**Concurrency Fixes:**
+- useRecentOrders: Changed gcTime:Infinity to 0, added afterEach queryClient.clear(),
+  replaced never-resolving promise with mockResolvedValueOnce, added explicit timeouts.
+- useProducts: Replaced never-resolving promise with mockResolvedValueOnce, added explicit timeouts.
+- useNotifications: Replaced beforeEach mockReturnValue(new Promise(() => {})) with
+  mockResolvedValue, added explicit timeouts to fetch test.
+- Root cause: CPU contention under multi-worker Jest delays setTimeout-based timers,
+  causing waitFor (1000ms default) to not fire before Jest test timeout (5000ms).
+
+**Learnings for Future Iterations:**
+- export const API objects need getter-based mock pattern (module-level jest.fn() vars)
+- Error rethrow testing: try/catch inside act() instead of expect().rejects.toThrow()
+- Hook error state uses err.message for Error instances, not fallback strings
+- Never-resolving promises leak workers; use mockResolvedValueOnce for loading state tests
+- CPU contention fix: add waitFor({timeout:10000}) + Jest test timeout 30000ms
+- Hook coverage progress: 54/60 hooks tested (90%), 6 remaining
+
+**Test Results:**
+- New tests: 5 suites, 65 tests (20 + 7 + 9 + 19 + 10)
+- Full suite: 247 suites, 5803 tests, 0 failures
+- Baseline (pre-COVERAGE-017): 242 suites, 5739 tests
+- Delta: +5 suites, +64 tests
+
+**Commit:** a77f29d
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5803 total, 247 suites, 0 failures)
