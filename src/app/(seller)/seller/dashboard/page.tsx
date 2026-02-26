@@ -283,7 +283,7 @@ export default function SellerDashboard() {
         <CardHeader>
           <CardTitle className="text-lg">Top Performing Products</CardTitle>
           <CardDescription>
-            Products with the highest sales and revenue
+            Top 5 products by units sold
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -295,6 +295,7 @@ export default function SellerDashboard() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-foreground w-10">#</TableHead>
                   <TableHead className="text-foreground">Product Name</TableHead>
                   <TableHead className="text-right text-foreground">Units Sold</TableHead>
                   <TableHead className="text-right text-foreground">Stock</TableHead>
@@ -302,10 +303,11 @@ export default function SellerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productPerformance.map((product) => (
+                {productPerformance.map((product, index) => (
                   <TableRow key={product.name} className="hover:bg-muted/50">
+                    <TableCell className="text-muted-foreground font-medium">{index + 1}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="text-right">{product.sales}</TableCell>
+                    <TableCell className="text-right font-semibold text-foreground">{product.sales}</TableCell>
                     <TableCell className="text-right">
                       {product.stock === 0 ? (
                         <Badge
@@ -322,10 +324,10 @@ export default function SellerDashboard() {
                           Low: {product.stock}
                         </Badge>
                       ) : (
-                        product.stock
+                        <span className="text-foreground">{product.stock}</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">₱{product.revenue.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-foreground">₱{product.revenue.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -341,6 +343,7 @@ export default function SellerDashboard() {
           </Link>
         </CardFooter>
       </Card>
+
 
       {/* Recent Orders */}
       <Card>
