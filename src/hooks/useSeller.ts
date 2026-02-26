@@ -1,6 +1,8 @@
 // Custom hooks for seller data fetching
 import { useState, useEffect, useCallback } from "react";
 import { SellerApi } from "@/lib/api/seller";
+import { FirebaseOrdersService } from "@/lib/firebase/orders";
+import { fetchSellerProducts } from "@/lib/sanity/products";
 import {
   SellerDashboardStats,
   SellerSalesData,
@@ -14,6 +16,29 @@ import {
   SellerAddress,
   ApiResponse,
 } from "@/types/api";
+
+// Firebase order statuses → SellerOrder status mapping
+const FIREBASE_TO_SELLER_STATUS: Record<string, SellerOrderStatus> = {
+  pending_approval: "PENDING",
+  approved: "CONFIRMED",
+  processing: "PROCESSING",
+  ready_for_pickup: "PROCESSING",
+  shipped: "SHIPPED",
+  delivered: "DELIVERED",
+  completed: "DELIVERED",
+  cancelled: "CANCELLED",
+  rejected: "CANCELLED",
+};
+
+const COMPLETED_STATUSES = ["delivered", "completed"];
+const EXCLUDED_STATUSES = ["cancelled", "rejected"];
+
+/** Convert a Firestore Timestamp (or anything) to a JS Date */
+function toDate(ts: any): Date {
+  if (!ts) return new Date(0);
+  if (typeof ts.toDate === "function") return ts.toDate();
+  return new Date(ts);
+}
 
 // Dashboard hooks
 export function useSellerDashboard() {
@@ -29,18 +54,154 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      const [statsResponse, salesResponse, performanceResponse, ordersResponse] =
-        await Promise.all([
-          SellerApi.getDashboardStats(),
-          SellerApi.getSalesData(),
-          SellerApi.getProductPerformance(),
-          SellerApi.getOrders({ limit: 5 }),
-        ]);
+      // Fetch Firebase orders + Sanity products concurrently
+      const [allOrders, sanityResult] = await Promise.all([
+        FirebaseOrdersService.getAllOrders(),
+        fetchSellerProducts({ limit: 1000 }),
+      ]);
+      const sanityProducts = sanityResult.products;
 
-      setStats(statsResponse.data);
-      setSalesData(salesResponse.data);
-      setProductPerformance(performanceResponse.data);
-      setRecentOrders(ordersResponse.data);
+      // ── Date Boundaries ──────────────────────────────────────────
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      // ── Stats ────────────────────────────────────────────────────
+      const currentMonthOrders = allOrders.filter(
+        (o) => toDate(o.createdAt) >= startOfMonth
+      );
+      const lastMonthOrders = allOrders.filter((o) => {
+        const d = toDate(o.createdAt);
+        return d >= startOfLastMonth && d <= endOfLastMonth;
+      });
+
+      const currentRevenue = currentMonthOrders
+        .filter((o) => COMPLETED_STATUSES.includes(o.status))
+        .reduce((sum, o) => sum + (o.total || 0), 0);
+
+      const lastRevenue = lastMonthOrders
+        .filter((o) => COMPLETED_STATUSES.includes(o.status))
+        .reduce((sum, o) => sum + (o.total || 0), 0);
+
+      const totalSales = allOrders
+        .filter((o) => !EXCLUDED_STATUSES.includes(o.status))
+        .reduce(
+          (sum, o) =>
+            sum +
+            (o.items || []).reduce(
+              (s: number, item: any) => s + (item.quantity || 0),
+              0
+            ),
+          0
+        );
+
+      const orderGrowth =
+        lastMonthOrders.length > 0
+          ? ((currentMonthOrders.length - lastMonthOrders.length) /
+            lastMonthOrders.length) *
+          100
+          : 0;
+      const revenueGrowth =
+        lastRevenue > 0
+          ? ((currentRevenue - lastRevenue) / lastRevenue) * 100
+          : 0;
+
+      const computedStats: SellerDashboardStats = {
+        totalSales,
+        totalOrders: allOrders.length,
+        totalProducts: sanityProducts.length,
+        totalRevenue: currentRevenue,
+        salesGrowth: Math.round(orderGrowth * 10) / 10,
+        orderGrowth: Math.round(orderGrowth * 10) / 10,
+        revenueGrowth: Math.round(revenueGrowth * 10) / 10,
+      };
+
+      // ── Sales Chart (last 7 days) ─────────────────────────────────
+      const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const computedSalesData: SellerSalesData[] = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+        const dayOrders = allOrders.filter((o) => {
+          const created = toDate(o.createdAt);
+          return created >= dayStart && created <= dayEnd;
+        });
+
+        const daySales = dayOrders
+          .filter((o) => !EXCLUDED_STATUSES.includes(o.status))
+          .reduce(
+            (sum, o) =>
+              sum +
+              (o.items || []).reduce(
+                (s: number, item: any) => s + (item.quantity || 0),
+                0
+              ),
+            0
+          );
+
+        const dayRevenue = dayOrders
+          .filter((o) => COMPLETED_STATUSES.includes(o.status))
+          .reduce((sum, o) => sum + (o.total || 0), 0);
+
+        computedSalesData.push({
+          name: daysOfWeek[dayStart.getDay()],
+          sales: daySales,
+          revenue: dayRevenue,
+        });
+      }
+
+      // ── Recent Orders (last 5) ───────────────────────────────────
+      const sortedOrders = [...allOrders].sort(
+        (a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()
+      );
+
+      const computedRecentOrders: SellerOrder[] = sortedOrders
+        .slice(0, 5)
+        .map((o) => ({
+          id: o.orderNumber || o.id,
+          date: toDate(o.createdAt).toISOString().split("T")[0],
+          customer: o.userName || o.userEmail || "Unknown",
+          items: (o.items || []).length,
+          total: o.total || 0,
+          status: FIREBASE_TO_SELLER_STATUS[o.status] || "PENDING",
+        }));
+
+      // ── Product Performance (Sanity products × Firebase orders) ──
+      const productStats = new Map<string, { sales: number; revenue: number }>();
+
+      for (const order of allOrders) {
+        if (EXCLUDED_STATUSES.includes(order.status)) continue;
+        for (const item of order.items || []) {
+          if (!item.productId) continue;
+          const existing = productStats.get(item.productId) || { sales: 0, revenue: 0 };
+          existing.sales += item.quantity || 0;
+          existing.revenue += (item.price || 0) * (item.quantity || 0);
+          productStats.set(item.productId, existing);
+        }
+      }
+
+      const computedProductPerformance: SellerProductPerformance[] = sanityProducts
+        .map((p) => {
+          const ps = productStats.get(p.id) || { sales: 0, revenue: 0 };
+          return {
+            name: p.name,
+            sales: ps.sales,
+            stock: p.stock || 0,
+            revenue: ps.revenue,
+          };
+        })
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 5);
+
+      setStats(computedStats);
+      setSalesData(computedSalesData);
+      setProductPerformance(computedProductPerformance);
+      setRecentOrders(computedRecentOrders);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
     } finally {
@@ -62,6 +223,7 @@ export function useSellerDashboard() {
     refetch: fetchDashboardData,
   };
 }
+
 
 export function useSellerOrderDetail(orderId?: string) {
   const [order, setOrder] = useState<SellerOrderDetail | null>(null);

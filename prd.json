@@ -1,756 +1,529 @@
 {
-  "projectName": "MASH E-Commerce - Comprehensive Testing, Security & Cal.com Migration",
-  "version": "3.0.0",
-  "branchName": "feature/calcom-migration",
-  "description": "Migrate appointment booking system from Calendly to Cal.com while maintaining comprehensive test coverage and enterprise-grade security",
+  "projectName": "MASH E-Commerce - Consumer Side Development v4 (COD-Only)",
+  "version": "7.0.0",
+  "branchName": "feature/consumer-side-v4",
+  "description": "Complete all consumer-side features from CONSUMER_SIDE_NEXT_STEPS.md: Reorder, receipts, scheduled delivery, recently viewed, category SEO, dynamic sitemap, cart improvements (stock limits, saved for later, empty cart CTA). Payment is COD-ONLY. Excludes online payment, push notifications, coupons, and tax calculation (out of scope).",
   "owner": "AI Agent (Ralph)",
-  "startedDate": "2026-01-22",
-  "targetCompletion": "2026-01-24",
+  "startedDate": "2026-02-20",
+  "paymentMethod": "COD_ONLY",
   "successMetrics": {
-    "testCoverage": "80%+ code coverage across all modules",
-    "security": "Zero localStorage usage, HTTP-only cookies for sensitive data",
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
-    "performance": "Test execution < 60s for full suite",
-    "documentation": "100% of changes documented"
+    "lint": "npm run lint passes with zero warnings",
+    "typecheck": "npx tsc --noEmit passes with zero errors in src/"
   },
   "stories": [
     {
-      "id": "STORY-TEST-001",
-      "title": "Testing Infrastructure Setup",
+      "id": "WISH-001",
+      "title": "Wishlist Firebase Sync for Authenticated Users",
       "priority": 1,
-      "phase": "Phase 1: Foundation & Planning",
-      "status": "Complete",
       "passes": true,
-      "completedAt": "2026-01-22T14:30:00Z",
+      "completedAt": "2026-02-20T14:00:00Z",
       "acceptanceCriteria": [
-        "Jest configuration optimized for Next.js 16",
-        "React Testing Library installed and configured",
-        "MSW (Mock Service Worker) set up for API mocking",
-        "Test utilities created (custom renders, mock factories)",
-        "Coverage reporting configured (80% threshold)",
-        "Test scripts added to package.json"
-      ],
-      "filesChanged": [
-        "jest.config.js",
-        "jest.setup.js",
-        "src/test-utils/index.tsx",
-        "src/test-utils/factories.ts",
-        "src/__mocks__/firebase.ts",
-        "src/__mocks__/api-client.ts",
-        "src/__mocks__/sanity.ts",
-        "package.json"
-      ],
-      "testResults": {
-        "testSuites": 3,
-        "testsTotal": 87,
-        "testsPassed": 60,
-        "testsFailed": 27,
-        "passRate": "69%"
-      }
-    },
-    {
-      "id": "STORY-TEST-002",
-      "title": "Cookie Management System",
-      "priority": 1,
-      "phase": "Phase 1: Foundation & Planning",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T02:30:00Z",
-      "acceptanceCriteria": [
-        "Install js-cookie package",
-        "Create src/lib/cookies.ts utility module",
-        "Implement secure cookie helpers (set, get, remove)",
-        "Add HTTP-only cookie API routes for auth tokens",
-        "Document cookie security settings"
-      ],
-      "filesChanged": [
-        "src/lib/cookies.ts",
-        "src/app/api/auth/set-cookie/route.ts",
-        "src/app/api/auth/clear-cookie/route.ts",
-        "src/lib/__tests__/cookies.test.ts",
-        "package.json"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 23,
-        "testsPassed": 23,
-        "testsFailed": 0,
-        "passRate": "100%",
-        "coverage": "100%"
-      }
-    },
-    {
-      "id": "STORY-TEST-003",
-      "title": "Auth Context Unit Tests",
-      "priority": 2,
-      "phase": "Phase 2: Authentication & Security Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T15:00:00Z",
-      "acceptanceCriteria": [
-        "Test Google OAuth flow (Firebase)",
-        "Test email/password registration flow (Backend)",
-        "Test login/logout functionality",
-        "Test token refresh mechanism",
-        "Test protected route redirects",
-        "Coverage: 74%+ for AuthContext (29/39 tests passing)"
-      ],
-      "filesChanged": [
-        "src/contexts/__tests__/AuthContext.test.tsx",
-        "src/__mocks__/firebase.ts",
-        "src/__mocks__/api-client.ts",
-        "package.json"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 39,
-        "testsPassed": 29,
-        "testsFailed": 10,
-        "passRate": "74%"
-      }
-    },
-    {
-      "id": "STORY-TEST-004",
-      "title": "Migrate Auth Tokens to Cookies",
-      "priority": 1,
-      "phase": "Phase 2: Authentication & Security Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T16:30:00Z",
-      "acceptanceCriteria": [
-        "Remove all localStorage.setItem('refreshToken') calls",
-        "Replace with HTTP-only cookie storage via API routes",
-        "Update src/lib/auth.ts to use secure cookie APIs",
-        "Update src/proxy.ts to read auth from cookies",
-        "Update API client to send cookies automatically (credentials: 'include')",
-        "Migrate token refresh logic to use cookie-based tokens",
-        "All auth flows tested and working",
-        "Build passes with zero errors"
-      ],
-      "filesChanged": [
-        "src/app/api/auth/set-token/route.ts",
-        "src/app/api/auth/get-token/route.ts",
-        "src/app/api/auth/clear-tokens/route.ts",
-        "src/lib/auth.ts",
-        "src/lib/token-refresh.ts",
-        "src/lib/api/auth.ts"
-      ],
-      "testResults": {
-        "buildStatus": "SUCCESS",
-        "errors": 0,
-        "routes": 143
-      }
-    },
-    {
-      "id": "STORY-TEST-005",
-      "title": "Cart Context Unit Tests",
-      "priority": 2,
-      "phase": "Phase 3: Cart & Checkout Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T17:15:00Z",
-      "acceptanceCriteria": [
-        "Test add to cart (guest & authenticated)",
-        "Test remove from cart",
-        "Test update quantity",
-        "Test clear cart",
-        "Test cart sync to Firebase",
-        "Test cart v2 format validation",
-        "Coverage: 96.5%+ for CartContext (28/29 passing)"
-      ],
-      "filesChanged": [
-        "src/contexts/__tests__/CartContext.test.tsx"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 29,
-        "testsPassed": 28,
-        "testsFailed": 1,
-        "passRate": "96.5%"
-      }
-    },
-    {
-      "id": "STORY-TEST-006",
-      "title": "Migrate Cart to Cookies",
-      "priority": 2,
-      "phase": "Phase 3: Cart & Checkout Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T19:00:00Z",
-      "acceptanceCriteria": [
-        "Remove localStorage.setItem('mash-cart') calls",
-        "Implement cookie-based cart storage (non-HTTP-only, needs client access)",
-        "Update CartContext to use cookies",
-        "Test cart persistence across sessions",
-        "Test cart v2 format in cookies"
-      ],
-      "filesChanged": [
-        "src/contexts/CartContext.tsx",
-        "src/contexts/__tests__/CartContext.test.tsx"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 29,
-        "testsPassed": 29,
-        "testsFailed": 0,
-        "passRate": "100%"
-      }
-    },
-    {
-      "id": "STORY-TEST-007",
-      "title": "Checkout Flow Integration Tests",
-      "priority": 2,
-      "phase": "Phase 3: Cart & Checkout Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T23:30:00Z",
-      "acceptanceCriteria": [
-        "Test address selection/validation",
-        "Test Lalamove quote generation",
-        "Test PayMongo payment flow",
-        "Test order creation",
-        "Test order confirmation",
-        "Coverage: 80%+ for checkout components"
-      ],
-      "filesChanged": [
-        "src/app/(shop)/checkout/__tests__/page.test.tsx",
-        "src/__mocks__/lalamove.ts",
-        "src/__mocks__/paymongo.ts"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 19,
-        "testsPassed": 19,
-        "testsFailed": 0,
-        "passRate": "100%",
-        "coverage": "100%"
-      }
-    },
-    {
-      "id": "STORY-TEST-008",
-      "title": "Product Components Unit Tests",
-      "priority": 3,
-      "phase": "Phase 4: Product & Wishlist Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T23:45:00Z",
-      "acceptanceCriteria": [
-        "Test ProductCard rendering",
-        "Test product image with fallback",
-        "Test add to cart button",
-        "Test wishlist integration",
-        "Test product badges and ratings",
-        "Coverage: 75%+ for product components"
-      ],
-      "filesChanged": [
-        "src/components/product/__tests__/ProductCard.test.tsx"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 33,
-        "testsPassed": 33,
-        "testsFailed": 0,
-        "passRate": "100%",
-        "coverage": "100%"
-      }
-    },
-    {
-      "id": "STORY-TEST-009",
-      "title": "Wishlist Context Unit Tests",
-      "priority": 3,
-      "phase": "Phase 4: Product & Wishlist Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-22T21:30:00Z",
-      "acceptanceCriteria": [
-        "Test add to wishlist",
-        "Test remove from wishlist",
-        "Test check if product in wishlist",
-        "Test clear wishlist",
-        "Test localStorage persistence",
-        "Test cross-tab synchronization",
-        "Test wishlist count",
-        "Coverage: 100% for WishlistContext"
-      ],
-      "filesChanged": [
-        "src/contexts/__tests__/WishlistContext.test.tsx"
-      ],
-      "testResults": {
-        "testSuites": 1,
-        "testsTotal": 30,
-        "testsPassed": 30,
-        "testsFailed": 0,
-        "passRate": "100%",
-        "coverage": "100%"
-      }
-    },
-    {
-      "id": "STORY-TEST-010",
-      "title": "Migrate Wishlist to Cookies",
-      "priority": 3,
-      "phase": "Phase 4: Product & Wishlist Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-23T08:15:00Z",
-      "acceptanceCriteria": [
-        "Remove localStorage.setItem('mash-wishlist') calls",
-        "Implement cookie-based wishlist storage",
-        "Update WishlistContext to use cookies",
-        "Test wishlist persistence",
-        "Update tests to use cookie mocks instead of localStorage"
+        "WishlistContext uses useAuth to detect logged-in users",
+        "On login: merge cookie wishlist IDs into Firestore via FirebaseWishlistService.mergeLocalStorageWishlist",
+        "Subscribe to real-time Firestore wishlist updates via subscribeToWishlist",
+        "On wishlist change (add/remove): sync to Firestore with 500ms debounce",
+        "On logout: unsubscribe from Firestore listener, keep cookie wishlist",
+        "Guest users continue using cookie-only wishlist (no regression)",
+        "Cross-tab sync still works via cookie polling for guests"
       ],
       "filesChanged": [
         "src/contexts/WishlistContext.tsx",
+        "jest.setupMocks.js"
+      ]
+    },
+    {
+      "id": "ORD-001",
+      "title": "Cancel Order Button in Order History",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-20T14:00:00Z",
+      "acceptanceCriteria": [
+        "Cancel button visible on orders with status: pending_approval, approved, processing",
+        "Cancel button NOT visible on shipped, delivered, completed, cancelled, rejected orders",
+        "Confirmation dialog before cancellation with optional reason input",
+        "Calls FirebaseOrdersService.cancelOrder(orderId, userId, reason)",
+        "Toast notification on success/failure",
+        "Order status updates in real-time after cancellation"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "ORD-002",
+      "title": "Track Order Link in Order Detail Dialog",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-20T14:00:00Z",
+      "acceptanceCriteria": [
+        "Track Delivery button visible in OrderDetailDialog for shipped/processing/ready_for_pickup orders with delivery method",
+        "Links to existing /profile/orders/[orderId]/track page",
+        "Button not visible for pickup orders or non-trackable statuses"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "TEST-001",
+      "title": "Wishlist Firebase Sync Unit Tests",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-20T15:00:00Z",
+      "acceptanceCriteria": [
+        "Test merge on login (cookie items synced to Firestore)",
+        "Test real-time subscription updates wishlist state",
+        "Test unsubscribe on logout",
+        "Test guest mode still works (cookie-only)",
+        "Test clear Firebase wishlist for authenticated users",
+        "All 36 tests passing"
+      ],
+      "filesChanged": [
         "src/contexts/__tests__/WishlistContext.test.tsx"
-      ],
-      "identifiedLocalStorageUsage": [
-        "localStorage.getItem('mash-wishlist') - Load on mount",
-        "localStorage.setItem('mash-wishlist', ...) - Save on change",
-        "localStorage.removeItem('mash-wishlist') - Clear operation",
-        "StorageEvent listener for cross-tab sync"
       ]
     },
     {
-      "id": "STORY-TEST-011",
-      "title": "Admin Order Management Tests",
-      "priority": 3,
-      "phase": "Phase 5: Admin & Seller Tests",
-      "status": "Complete",
-      "passes": true,
-      "completedAt": "2026-01-23T12:00:00Z",
-      "acceptanceCriteria": [
-        "Test order list rendering - Validated via Lalamove integration tests",
-        "Test order status updates - Validated via Firebase integration tests",
-        "Test Lalamove delivery creation - 22 passing tests (comprehensive suite)",
-        "Test order filtering/search - Logic validated via integration tests",
-        "Coverage: 100% for Lalamove integration (API-level)"
-      ],
-      "filesChanged": [
-        "src/app/(seller)/seller/orders/__tests__/page.test.tsx",
-        "src/app/(seller)/seller/orders/__tests__/lalamove-integration.test.tsx"
-      ],
-      "testResults": {
-        "testSuites": 2,
-        "testsTotal": 23,
-        "testsPassed": 22,
-        "testsSkipped": 1,
-        "testsFailed": 0,
-        "passRate": "100%",
-        "coverage": "100% (integration tests)"
-      },
-      "notes": "UI component tests skipped due to Radix UI/shadcn mocking complexity. Comprehensive integration tests provide full API-level validation. See page.test.tsx for technical details."
-    },
-    {
-      "id": "STORY-TEST-012",
-      "title": "Seller Dashboard Tests",
-      "priority": 3,
-      "phase": "Phase 5: Admin & Seller Tests",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-24T00:35:00Z",
-      "completedAt": "2026-01-24T01:15:00Z",
-      "acceptanceCriteria": [
-        "✅ Test sales analytics display (charts, metrics, trends)",
-        "✅ Test product management (stock alerts, revenue display)",
-        "✅ Test order fulfillment workflow (recent orders, status, customer info)",
-        "✅ Coverage: 73.91% for seller dashboard (exceeds 70% target)"
-      ],
-      "filesChanged": [
-        "src/app/(seller)/seller/dashboard/__tests__/page.test.tsx"
-      ],
-      "testSummary": {
-        "total": 46,
-        "passed": 45,
-        "skipped": 1,
-        "coverage": "73.91%"
-      }
-    },
-    {
-      "id": "STORY-TEST-013",
-      "title": "Security Audit & Fixes",
+      "id": "TEST-002",
+      "title": "Cancel Order and Tracking Link Tests",
       "priority": 1,
-      "phase": "Phase 6: Security Hardening",
-      "status": "Complete",
       "passes": true,
-      "startedAt": "2026-01-23T12:15:00Z",
-      "completedAt": "2026-01-23T14:00:00Z",
+      "completedAt": "2026-02-20T15:30:00Z",
       "acceptanceCriteria": [
-        "✅ No localStorage usage for sensitive data (2 issues fixed)",
-        "✅ All auth tokens in HTTP-only cookies (verified)",
-        "✅ CSRF protection enabled (sameSite=lax on all cookies)",
-        "✅ XSS protection (CSP headers implemented in proxy.ts)",
-        "⚠️ Rate limiting deferred to STORY-TEST-016",
-        "✅ Input validation on all forms (Zod + React Hook Form)"
+        "Test cancel button visibility for cancellable statuses (pending_approval, approved, processing)",
+        "Test cancel button NOT visible for non-cancellable statuses (shipped, delivered, cancelled, rejected, ready_for_pickup)",
+        "Test confirmation dialog flow with reason input",
+        "Test FirebaseOrdersService.cancelOrder called with correct args",
+        "Test error toast on cancel failure",
+        "Test track delivery link for shipped delivery orders",
+        "Test track NOT shown for pickup orders",
+        "All 15 tests passing"
       ],
       "filesChanged": [
-        "src/proxy.ts",
-        ".github/SECURITY_AUDIT_REPORT.md"
-      ],
-      "securityIssuesFixed": [
-        "src/lib/api/client.ts - Removed auth token localStorage (XSS vulnerability)",
-        "src/hooks/useUser.ts - Deprecated (user data localStorage vulnerability)",
-        "src/proxy.ts - Added CSP headers for XSS protection",
-        "src/proxy.ts - Added X-Frame-Options, X-Content-Type-Options, Referrer-Policy"
-      ],
-      "securityChecklist": {
-        "localStorage": "✅ Zero sensitive data in localStorage",
-        "httpOnlyCookies": "✅ All auth cookies are HTTP-only",
-        "secureCookies": "✅ All cookies use secure: true in production",
-        "sameSiteCookies": "✅ All cookies use sameSite: lax (CSRF protection)",
-        "cspHeaders": "✅ Content-Security-Policy implemented",
-        "xssProtection": "✅ X-XSS-Protection header enabled",
-        "clickjacking": "✅ X-Frame-Options: DENY",
-        "inputValidation": "✅ Zod schemas on all forms",
-        "environmentVariables": "✅ No secrets exposed to client",
-        "firestoreRules": "✅ Security rules enforced"
-      },
-      "testResults": {
-        "buildStatus": "SUCCESS",
-        "errors": 0,
-        "routes": 143,
-        "securityAuditComplete": true
-      }
+        "src/app/(user)/profile/order-history/__tests__/OrderActions.test.tsx"
+      ]
     },
     {
-      "id": "STORY-TEST-014",
-      "title": "Penetration Testing",
+      "id": "LAL-001",
+      "title": "Lalamove Production Setup Guide and Environment Configuration",
       "priority": 2,
-      "phase": "Phase 6: Security Hardening",
-      "status": "Complete",
       "passes": true,
-      "startedAt": "2026-01-23T16:45:00Z",
-      "completedAt": "2026-01-23T17:15:00Z",
+      "completedAt": "2026-02-20T16:00:00Z",
       "acceptanceCriteria": [
-        "XSS vulnerability testing (test CSP headers)",
-        "CSRF vulnerability testing (test sameSite cookies)",
-        "SQL injection testing (API route validation)",
-        "Authentication bypass testing (verify proxy.ts)",
-        "Session fixation testing (cookie security)",
-        "Rate limiting effectiveness (verify 429 responses)",
-        "Document findings in PENETRATION_TEST_REPORT.md"
+        "Create comprehensive Lalamove production setup guide at .github/LALAMOVE_PRODUCTION_GUIDE.md",
+        "Document step-by-step process to get production API keys from Lalamove",
+        "Document .env variable changes needed (LALAMOVE_HOST, LALAMOVE_API_KEY, LALAMOVE_API_SECRET)",
+        "Document Railway dashboard environment variable updates",
+        "Include API endpoint differences between sandbox and production",
+        "Include testing checklist for production validation",
+        "Document vehicle type selection already available in vehicle-types.ts",
+        "Include troubleshooting guide for common HMAC signature errors"
       ],
       "filesChanged": [
-        ".github/PENETRATION_TEST_REPORT.md",
-        "src/__tests__/security/penetration-tests.test.ts"
+        ".github/LALAMOVE_PRODUCTION_GUIDE.md"
       ]
     },
     {
-      "id": "STORY-TEST-015",
-      "title": "GitHub Actions CI/CD",
-      "priority": 2,
-      "phase": "Phase 7: CI/CD & Build Optimization",
-      "status": "Complete",
+      "id": "LAL-002",
+      "title": "Add Vehicle Type Selection to Checkout Delivery",
+      "priority": 3,
       "passes": true,
-      "startedAt": "2026-01-23T17:20:00Z",
-      "completedAt": "2026-01-24T00:30:00Z",
+      "completedAt": "2026-02-21T12:15:00Z",
+      "filesChanged": ["src/components/checkout/LalamoveQuote.tsx", "src/app/(shop)/checkout/page.tsx"],
       "acceptanceCriteria": [
-        "GitHub Actions workflow for tests",
-        "Auto-run tests on PR",
-        "Block merge if tests fail",
-        "Coverage reports in PR comments",
-        "Build check on every commit",
-        "Setup guide created for repository configuration"
-      ],
-      "filesChanged": [
-        ".github/workflows/test.yml",
-        ".github/workflows/build.yml",
-        ".github/GITHUB_SETUP_GUIDE.md"
-      ],
-      "setupGuide": ".github/GITHUB_SETUP_GUIDE.md",
-      "requiredSecrets": 11,
-      "branchProtectionConfigured": false,
-      "notes": "Workflows created. Manual setup required: Add 11 GitHub secrets + Configure branch protection rules. See GITHUB_SETUP_GUIDE.md for step-by-step instructions."
-    },
-    {
-      "id": "STORY-TEST-016",
-      "title": "Production Build Validation",
-      "priority": 1,
-      "phase": "Phase 7: CI/CD & Build Optimization",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-23T14:05:00Z",
-      "completedAt": "2026-01-23T16:30:00Z",
-      "acceptanceCriteria": [
-        "npm run build passes with 0 errors",
-        "All TypeScript errors resolved",
-        "All ESLint errors resolved",
-        "Bundle size optimized (< 500KB initial load)",
-        "All environment variables validated",
-        "Rate limiting implemented on critical API routes"
-      ],
-      "filesChanged": [
-        "scripts/validate-build.js",
-        "src/middleware/rate-limit.ts",
-        "src/proxy.ts",
-        "src/app/(auth)/login/page.tsx",
-        "src/app/(auth)/verify-otp/page.tsx",
-        "src/contexts/AuthContext.tsx",
-        "eslint.config.mjs"
-      ]    },
-    {
-      "id": "STORY-TEST-017",
-      "title": "Migrate CalendlyButton to Cal.com",
-      "priority": 1,
-      "phase": "Phase 8: Cal.com Migration",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-24T22:00:00Z",
-      "completedAt": "2026-01-24T22:30:00Z",
-      "acceptanceCriteria": [
-        "Replace Calendly button with Cal.com booking button",
-        "Support 4 event types (1hr, 30min, 15min, secret)",
-        "Update URLs to Cal.com format (/mash-mushroom/event-slug)",
-        "Preserve authentication integration (useAuth)",
-        "Maintain UI/UX patterns (icons, cards, styling)",
-        "All 41 tests passing (100% coverage)"
-      ],
-      "filesChanged": [
-        "src/components/appointments/CalendlyButton.tsx",
-        "src/components/appointments/__tests__/CalendlyButton.test.tsx"
+        "Show vehicle type options during Lalamove delivery selection in checkout",
+        "Display vehicle name, weight limit, size limit, and estimated base fare",
+        "Default to Motorcycle for orders under 20kg",
+        "Pass selected serviceType to Lalamove quotation API",
+        "Update checkout state to include selected vehicle type",
+        "Vehicle selection persists during checkout flow"
       ]
     },
     {
-      "id": "STORY-TEST-018",
-      "title": "Migrate CalendlyEmbed to Cal.com",
-      "priority": 1,
-      "phase": "Phase 8: Cal.com Migration",
-      "status": "Complete",
+      "id": "SHOP-001",
+      "title": "Optimize Shop Page with Server-Side Pagination",
+      "priority": 3,
       "passes": true,
-      "startedAt": "2026-01-24T22:30:00Z",
-      "completedAt": "2026-01-24T22:45:00Z",
-      "acceptanceCriteria": [
-        "Replace react-calendly with Cal.com embed widget",
-        "Integrate Cal.com embed script/API",
-        "Maintain prefill functionality (user email, name)",
-        "Preserve responsive height styling",
-        "Support all 4 event types",
-        "All 19 tests passing (100% coverage)"
-      ],
-      "filesChanged": [
-        "src/components/appointments/CalendlyEmbed.tsx",
-        "src/components/appointments/__tests__/CalendlyEmbed.test.tsx"
-      ]
-    },
-    {
-      "id": "STORY-TEST-019",
-      "title": "Update Cal.com Integration Tests",
-      "priority": 1,
-      "phase": "Phase 8: Cal.com Migration",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-24T22:45:00Z",
-      "completedAt": "2026-01-24T23:00:00Z",
-      "acceptanceCriteria": [
-        "Update integration tests for Cal.com booking flow",
-        "Test all 4 event types end-to-end",
-        "Verify grower page navigation with Cal.com URLs",
-        "Test authentication flow with Cal.com",
-        "All 30 integration tests passing (100% coverage)"
-      ],
-      "filesChanged": [
-        "src/components/appointments/__tests__/integration.test.tsx"
-      ]
-    },
-    {
-      "id": "STORY-TEST-020",
-      "title": "Cal.com Migration - Build & Documentation",
-      "priority": 1,
-      "phase": "Phase 8: Cal.com Migration",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-24T23:00:00Z",
-      "completedAt": "2026-01-24T23:15:00Z",
-      "acceptanceCriteria": [
-        "npm test passes with 0 failures (all appointment tests)",
-        "npm run build passes with 0 errors (143 routes)",
-        "Overall test pass rate maintained at 96.3%+",
-        "Update COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md",
-        "Document Cal.com migration completion",
-        "Update version to 3.0.0"
-      ],
-      "filesChanged": [
-        ".github/COMPREHENSIVE_TESTING_AND_SECURITY_PLAN.md",
-        "prd.json"
-      ]    },
-    {
-      "id": "STORY-TEST-021",
-      "title": "Finalize Cookie Migration & Stabilize Tests",
-      "priority": 1,
-      "phase": "Phase 1-2: Finalization & Stabilization",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-01-24T23:30:00Z",
-      "inProgressAt": "2026-01-24T23:45:00Z",
-      "completedAt": "2026-01-25T10:00:00Z",
-      "acceptanceCriteria": [
-        "Find and migrate remaining localStorage usages or document exceptions",
-        "Ensure all tests pass consistently (fix flaky AuthContext tests)",
-        "Run full build and test cycle until green",
-        "Update PRD with final status and test/build artifacts",
-        "Prepare migration run plan for Sanity (non-dry-run)"
-      ],
-      "notes": "Stabilization progress: Ran full test diagnostics ( --runInBand --detectOpenHandles ) and isolated OOM/leak originating from Cal.com embed usage. Implemented two fixes: (1) Added an idempotent, deduplicating unhandledRejection handler in jest.setup.js to avoid log flooding and stack overflows during tests; (2) Hardened src/components/appointments/CalendlyEmbed.tsx with try/catch and a guard to handle non-callable getCalApi returns, preventing unhandled promise rejections. Re-ran full suite — all tests pass (356 total, 0 failures). Next steps: run npm run build, add CI job to run jest --runInBand --detectOpenHandles on PRs, and finalize cookie migration sweep.",
-      "filesChanged": [
-        "src/contexts/AuthContext.tsx",
-        "src/lib/cookies.ts",
-        "src/hooks/useUser.ts",
-        "src/hooks/use-color-theme.ts",
-        "src/app/grower/[id]/book/page.tsx",
-        "studio/src/schemaTypes/documents/grower.ts",
-        "scripts/migrate-calendly-to-calcom.js",
-        "src/contexts/__tests__/AuthContext.test.tsx",
-        "src/lib/__tests__/cookies.test.ts"
-      ],
-      "notes": "Currently stabilizing failing AuthContext tests and completing a final sweep for remaining localStorage usages. After stabilization, run migration script in live mode upon user approval."
-    },
-    {
-      "id": "STORY-TEST-022",
-      "title": "Comprehensive Unit Test Expansion",
-      "priority": 1,
-      "phase": "Phase 9: Test Coverage Expansion",
-      "status": "Complete",
-      "passes": true,
-      "startedAt": "2026-02-01T20:00:00Z",
-      "completedAt": "2026-02-01T21:30:00Z",
-      "acceptanceCriteria": [
-        "Create unit tests for ErrorBoundary component (error catching, fallback UI)",
-        "Create unit tests for LoadingStates (PageLoader, Spinner, Skeletons)",
-        "Create unit tests for Breadcrumbs (navigation, auto-generation)",
-        "Create unit tests for OrderCard (rendering, status badges, approval/rejection)",
-        "Create unit tests for OrderRejectionModal (dialog, reason selection)",
-        "Create unit tests for SearchComponents (SearchTrigger, SearchDialog)",
-        "All new tests passing (141 new tests)",
-        "Build passes with 0 errors"
-      ],
-      "filesChanged": [
-        "src/components/common/__tests__/error-boundary.test.tsx",
-        "src/components/common/__tests__/loading-states.test.tsx",
-        "src/components/common/__tests__/breadcrumbs.test.tsx",
-        "src/components/orders/__tests__/OrderCard.test.tsx",
-        "src/components/orders/__tests__/OrderRejectionModal.test.tsx",
-        "src/components/search/__tests__/SearchComponents.test.tsx"
-      ],
+      "completedAt": "2026-02-21T13:00:00Z",
+      "filesChanged": ["src/hooks/useSanityProducts.ts", "src/types/sanity.ts", "src/app/(shop)/shop/page.tsx", "src/app/(shop)/shop/__tests__/page.test.tsx"],
       "testResults": {
-        "previousTotal": 730,
-        "newTotal": 871,
-        "newTestsAdded": 141,
-        "allPassing": true,
-        "passRate": "100%"
+        "unitTests": 31,
+        "buildSuccess": true,
+        "lintSuccess": true,
+        "typeCheckSuccess": true
       },
-      "learnings": [
-        "Radix UI components use portals - test UI presence not complex interactions",
-        "window.location.reload cannot be mocked in JSDOM - test button existence instead",
-        "Promise.all mocks need callCount-based implementation for parallel calls"
+      "acceptanceCriteria": [
+        "Replace fetch-all-then-slice with GROQ pagination using offset/limit",
+        "Load 24 products per page initially",
+        "Load More button fetches next 24 products",
+        "Maintain total product count display",
+        "Existing filters (category, price, sort) still work with pagination",
+        "Loading skeleton shown during page load"
+      ]
+    },
+    {
+      "id": "WISH-002",
+      "title": "Optimize Wishlist Page Product Fetching",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-21T12:30:00Z",
+      "filesChanged": ["src/lib/sanity/queries.ts", "src/hooks/useWishlistProducts.ts", "src/app/(shop)/wishlist/page.tsx"],
+      "acceptanceCriteria": [
+        "Replace fetch-ALL-products-then-filter with targeted GROQ query",
+        "Add wishlistProductsQuery to queries.ts: fetch only products matching wishlist IDs",
+        "Wishlist page passes wishlist IDs to Sanity query",
+        "Performance improvement: only fetches products the user has wishlisted"
+      ]
+    },
+    {
+      "id": "WISH-003",
+      "title": "Add Move to Cart from Wishlist",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-21T12:00:00Z",
+      "filesChanged": ["src/app/(shop)/wishlist/page.tsx", "src/app/(shop)/wishlist/__tests__/page.test.tsx"],
+      "acceptanceCriteria": [
+        "When user clicks Add to Cart on wishlisted item, also remove from wishlist",
+        "Show toast: Moved to cart",
+        "Wishlist count decrements, cart count increments",
+        "Works for both guest and authenticated users"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "title": "Lalamove Client Unit Tests",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-21T10:00:00Z",
+      "testResults": { "unitTests": 34, "buildSuccess": true },
+      "filesChanged": ["src/lib/lalamove/__tests__/client.test.ts"],
+      "acceptanceCriteria": [
+        "Test HMAC signature generation with known values",
+        "Test getQuotation request formatting",
+        "Test placeOrder request formatting",
+        "Test error handling for API failures",
+        "Test vehicle type selection passed to quotation",
+        "Mock fetch for all API calls",
+        "All tests passing"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "title": "Delivery Tracking Page Unit Tests",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-21T10:30:00Z",
+      "testResults": { "unitTests": 25, "buildSuccess": true },
+      "filesChanged": ["src/app/(user)/profile/orders/[orderId]/track/__tests__/page.test.tsx"],
+      "acceptanceCriteria": [
+        "Test page renders with order data",
+        "Test auth redirect for unauthenticated users",
+        "Test order not found state",
+        "Test order status display with correct badges",
+        "Test Lalamove status timeline rendering",
+        "Test driver details card when driver assigned",
+        "Test auto-refresh polling for active deliveries",
+        "Test back to orders navigation",
+        "All tests passing"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "title": "StatusTimeline Component Unit Tests",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-21T10:15:00Z",
+      "testResults": { "unitTests": 19, "buildSuccess": true },
+      "filesChanged": ["src/components/delivery/__tests__/StatusTimeline.test.tsx"],
+      "acceptanceCriteria": [
+        "Test all 4 stages render correctly",
+        "Test ASSIGNING_DRIVER shows first stage as current",
+        "Test ON_GOING shows second stage as current, first completed",
+        "Test PICKED_UP shows third stage as current",
+        "Test COMPLETED shows all stages completed",
+        "Test CANCELED shows special canceled state",
+        "Test mobile and desktop timeline variants",
+        "All tests passing"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "title": "Shop Page and Wishlist Page Tests",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-21T11:00:00Z",
+      "testResults": { "unitTests": 45, "buildSuccess": true },
+      "filesChanged": ["src/app/(shop)/shop/__tests__/page.test.tsx", "src/app/(shop)/wishlist/__tests__/page.test.tsx"],
+      "acceptanceCriteria": [
+        "Test shop page renders product grid",
+        "Test Load More button loads additional products",
+        "Test filter controls work",
+        "Test wishlist page renders wishlisted products",
+        "Test empty wishlist state",
+        "All tests passing"
+      ]
+    },
+    {
+      "id": "ORD-003",
+      "title": "Reorder / Buy Again from Order History",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "acceptanceCriteria": [
+        "Buy Again button visible on orders with status: delivered, completed",
+        "Button NOT visible on pending, processing, shipped, cancelled, rejected orders",
+        "Clicking Buy Again adds ALL items from that order to the cart",
+        "Uses CartContext.addToCart for each item with original quantities",
+        "Shows toast: Added X items to cart",
+        "If an item is out of stock or unavailable, shows warning toast and skips that item",
+        "Redirects to /cart after successful reorder",
+        "Works for both authenticated and guest users"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "ORD-004",
+      "title": "Downloadable / Printable Order Receipt",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "acceptanceCriteria": [
+        "Download Receipt button visible in OrderDetailDialog for delivered/completed orders",
+        "Generates a print-friendly HTML receipt in a new window",
+        "Receipt includes: order ID, date, items with quantities and prices, subtotal, delivery fee, total",
+        "Receipt includes delivery address and payment method (COD)",
+        "Receipt includes MASH branding (logo, company name)",
+        "window.print() called automatically on the receipt page",
+        "Receipt renders correctly on A4 paper size"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx",
+        "src/components/orders/OrderReceipt.tsx"
+      ]
+    },
+    {
+      "id": "LAL-003",
+      "title": "Scheduled Delivery Option in Checkout",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-22T10:00:00Z",
+      "acceptanceCriteria": [
+        "Add Schedule Delivery toggle in checkout Step 1 (delivery options)",
+        "When enabled, show date and time picker for delivery schedule",
+        "Minimum schedule time is 1 hour from now",
+        "Maximum schedule time is 7 days from now",
+        "Pass scheduleAt ISO timestamp to Lalamove quotation API",
+        "Display scheduled time in order summary",
+        "Scheduled orders show scheduled time in order history",
+        "Default is immediate delivery (toggle off)"
+      ],
+      "filesChanged": [
+        "src/components/checkout/LalamoveQuote.tsx",
+        "src/app/(shop)/checkout/page.tsx"
+      ]
+    },
+    {
+      "id": "LAL-004",
+      "title": "Delivery Fee Breakdown in Order Details",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-22T10:10:00Z",
+      "acceptanceCriteria": [
+        "Order detail dialog shows delivery fee breakdown when order has Lalamove delivery",
+        "Shows base fare, distance fee, and total delivery fee",
+        "Shows vehicle type used for delivery",
+        "Shows Lalamove order ID for reference",
+        "If scheduled delivery, shows scheduled date/time",
+        "Non-delivery orders show Pickup label instead"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "title": "Recently Viewed Products",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-22T09:00:00Z",
+      "acceptanceCriteria": [
+        "Track product views in localStorage (max 20 products, FIFO)",
+        "Store product ID and timestamp on each product page visit",
+        "Create RecentlyViewed component showing horizontal scrollable carousel",
+        "Display on product detail page below product info",
+        "Display on shop page sidebar or bottom section",
+        "Each card shows product image, name, price",
+        "Clicking navigates to product detail page",
+        "Clear recently viewed option available",
+        "No duplicates in the list (most recent view wins)"
+      ],
+      "filesChanged": [
+        "src/hooks/useRecentlyViewed.ts",
+        "src/components/products/RecentlyViewed.tsx",
+        "src/app/(shop)/product/[slug]/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "title": "Enhanced Category Landing Pages",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-22T10:30:00Z",
+      "acceptanceCriteria": [
+        "Category page at /category/[slug] has SEO metadata (title, description, OpenGraph)",
+        "generateMetadata fetches category data from Sanity for dynamic meta tags",
+        "Category hero section with category name, description, and image from Sanity",
+        "Product count displayed in category header",
+        "Breadcrumb navigation: Home > Shop > Category Name",
+        "Category page uses server-side pagination (24 products per page)",
+        "Category-specific filters work correctly with pagination"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/category/[slug]/page.tsx"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "title": "Dynamic Sitemap with Product and Category Routes",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-22T10:45:00Z",
+      "acceptanceCriteria": [
+        "Sitemap fetches all published products from Sanity with slugs",
+        "Sitemap fetches all categories from Sanity with slugs",
+        "Sitemap fetches all grower profiles from Sanity with slugs",
+        "Sitemap fetches all blog posts from Sanity with slugs",
+        "Each dynamic route has correct lastModified date from Sanity _updatedAt",
+        "Base URL updated to https://www.mashmarket.app",
+        "Static routes remain in sitemap",
+        "Priority values: homepage 1.0, products 0.8, categories 0.7, blog 0.6"
+      ],
+      "filesChanged": [
+        "src/app/sitemap.ts"
+      ]
+    },
+    {
+      "id": "CART-001",
+      "title": "Stock Limit Visual Indicators in Cart",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-22T08:30:00Z",
+      "acceptanceCriteria": [
+        "Disable + button when quantity equals available stock",
+        "Show Max stock: X tooltip or label near quantity controls when at limit",
+        "Apply same stock limit UI to both cart page and mini-cart dropdown",
+        "Stock data fetched from Sanity product stockQuantity field",
+        "If product stock changes while in cart, update limits reactively",
+        "Out of stock items show Out of Stock badge with option to remove"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/components/layout/cart-dropdown.tsx",
+        "src/contexts/CartContext.tsx"
+      ]
+    },
+    {
+      "id": "CART-002",
+      "title": "Save for Later Feature in Cart",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-22T11:00:00Z",
+      "acceptanceCriteria": [
+        "Save for Later button on each cart item",
+        "Saved items move to a Saved for Later section below the cart",
+        "Saved items stored in localStorage (key: mash-saved-for-later)",
+        "Move to Cart button on saved items moves them back to active cart",
+        "Remove button on saved items removes them from saved list",
+        "Saved items count shown in section header",
+        "Saved items persist across page refreshes",
+        "For authenticated users, sync saved items to Firebase"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/contexts/CartContext.tsx"
+      ]
+    },
+    {
+      "id": "CART-003",
+      "title": "Empty Cart Call-to-Action",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-22T08:45:00Z",
+      "acceptanceCriteria": [
+        "Empty cart shows friendly illustration or icon",
+        "Display message: Your cart is empty",
+        "Show primary CTA button: Continue Shopping linking to /shop",
+        "Show secondary CTA: View Wishlist linking to /wishlist (if wishlist has items)",
+        "Show recently viewed products section below CTA (if available)",
+        "Same empty state applies to mini-cart dropdown"
+      ],
+      "filesChanged": [
+        "src/app/(shop)/cart/page.tsx",
+        "src/components/layout/cart-dropdown.tsx"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "title": "Reorder and Receipt Tests",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-21T16:00:00Z",
+      "testResults": { "unitTests": 26, "buildSuccess": true, "lintSuccess": true, "typeCheckSuccess": true },
+      "acceptanceCriteria": [
+        "Test Buy Again button visibility for delivered/completed orders",
+        "Test Buy Again NOT visible for non-completed orders",
+        "Test Buy Again adds all order items to cart",
+        "Test Buy Again shows warning for unavailable items",
+        "Test Download Receipt button visibility",
+        "Test receipt content includes all required fields",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/app/(user)/profile/order-history/__tests__/OrderActions.test.tsx"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "title": "Recently Viewed and Cart Enhancement Tests",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-22T09:30:00Z",
+      "acceptanceCriteria": [
+        "Test recently viewed products stored in localStorage",
+        "Test max 20 products in recently viewed list",
+        "Test no duplicates in recently viewed",
+        "Test stock limit disables + button at max quantity",
+        "Test empty cart CTA renders with correct links",
+        "Test empty cart shows recently viewed if available",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/hooks/__tests__/useRecentlyViewed.test.ts",
+        "src/app/(shop)/cart/__tests__/page.test.tsx"
+      ]
+    },
+    {
+      "id": "TEST-009",
+      "title": "Scheduled Delivery and Sitemap Tests",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-22T11:30:00Z",
+      "acceptanceCriteria": [
+        "Test scheduled delivery toggle enables date/time picker",
+        "Test minimum schedule time validation (1 hour from now)",
+        "Test scheduleAt passed to Lalamove quotation",
+        "Test dynamic sitemap includes product URLs from Sanity",
+        "Test dynamic sitemap includes category and grower URLs",
+        "Test sitemap uses correct base URL",
+        "All tests passing"
+      ],
+      "filesChanged": [
+        "src/components/checkout/__tests__/LalamoveQuote.test.tsx",
+        "src/app/__tests__/sitemap.test.ts"
       ]
     }
-  ],
-  "buildStatus": {
-    "lastBuildDate": "2026-02-01T21:30:00Z",
-    "status": "PASSING",
-    "errors": 0,
-    "totalRoutes": 143,
-    "staticPages": 143
-  },
-  "testMetrics": {
-    "totalTests": 871,
-    "passingTests": 871,
-    "failingTests": 0,
-    "skippedTests": 2,
-    "overallPassRate": "100%",
-    "appointmentTests": 88,
-    "appointmentPassRate": "100%",
-    "chatbotTests": 216,
-    "chatbotPassRate": "100%",
-    "orderComponentTests": 50,
-    "searchComponentTests": 32,
-    "commonComponentTests": 59,
-    "testExecutionTime": "~30s",
-    "lastUpdated": "2026-02-01T21:30:00Z",
-    "coverageTarget": "90%",
-    "currentCoverage": "95%",
-    "phase0Complete": true,
-    "phase9Complete": true,
-    "phase9Notes": "Added 141 new tests for Order, Search, and Common components"
-  },
-  "securityStatus": {
-    "localStorageUsage": "None - All migrated to cookies",
-    "authTokensSecure": true,
-    "httpOnlyCookies": true,
-    "cartMigratedToCookies": true,
-    "wishlistMigratedToCookies": true,
-    "cspHeadersImplemented": true,
-    "rateLimitingActive": true,
-    "productionReady": true
-  },
-  "calComMigration": {
-    "profileURL": "https://cal.com/mash-mushroom",
-    "eventTypes": [
-      {
-        "name": "1 Hour Meeting",
-        "slug": "1-hour-meeting",
-        "duration": 60,
-        "url": "/mash-mushroom/1-hour-meeting"
-      },
-      {
-        "name": "30 Min Meeting",
-        "slug": "30min",
-        "duration": 30,
-        "url": "/mash-mushroom/30min"
-      },
-      {
-        "name": "15 Min Meeting",
-        "slug": "15min",
-        "duration": 15,
-        "url": "/mash-mushroom/15min"
-      },
-      {
-        "name": "Secret Meeting",
-        "slug": "secret",
-        "duration": 15,
-        "url": "/mash-mushroom/secret"
-      }
-    ]
-  },
-  "infrastructure": {
-    "backendURL": "https://api.mashmarket.app",
-    "frontendURL": "https://www.mashmarket.app",
-    "adminPanelURL": "https://zen.mashmarket.app",
-    "sanityProjectID": "gerattrr",
-    "deploymentStatus": "PRODUCTION_READY",
-    "blockers": [
-      {
-        "id": "INFRA-BLOCKER-001",
-        "title": "Sanity CORS - Add https://api.mashmarket.app",
-        "status": "RESOLVED",
-        "priority": "CRITICAL",
-        "severity": "WAS_BLOCKING_PRODUCTION",
-        "created": "2026-01-24T20:00:00Z",
-        "resolved": "2026-01-24T20:00:00Z",
-        "description": "Backend URL https://api.mashmarket.app added to Sanity CORS allowed origins",
-        "resolution": "Sanity CORS configured successfully"
-      },
-      {
-        "id": "INFRA-BLOCKER-002",
-        "title": "Backend Firebase Sync 403 Error",
-        "status": "NON_BLOCKING",
-        "priority": "LOW",
-        "severity": "OPTIONAL_ENHANCEMENT",
-        "created": "2026-01-24T20:15:00Z",
-        "description": "POST /api/v1/auth/firebase-sync returns 403 Forbidden",
-        "error": "{\"success\":false,\"statusCode\":403,\"error\":{\"type\":\"ForbiddenException\",\"message\":\"An unexpected error occurred\"}}",
-        "impact": "None - Firebase auth works without backend sync, users can sign in with Google",
-        "workaround": "Frontend uses Firebase-only authentication with Firestore profiles (fully functional)",
-        "backendAction": "Backend team should fix CORS or Firebase token validation for firebase-sync endpoint",
-        "resolution": "Optional enhancement - not blocking production deployment",
-        "steps": [
-          "BACKEND TEAM ACTION (Optional):",
-          "1. Check Railway logs: https://railway.app/project/mash-backend/logs",
-          "2. Verify CORS allows https://www.mashmarket.app origin",
-          "3. Verify Firebase Admin SDK initialized correctly",
-          "4. Test firebase-sync endpoint with valid Firebase ID token"
-        ]
-      }
-    ]
-  }
+  ]
 }

@@ -129,6 +129,7 @@ jest.mock('firebase/auth', () => ({
     signInWithPopup: jest.fn(),
     signOut: jest.fn(),
     setPersistence: jest.fn(),
+    settings: {},
   })),
   GoogleAuthProvider: jest.fn(() => ({})),
   signInWithPopup: jest.fn(),
@@ -144,6 +145,13 @@ jest.mock('firebase/auth', () => ({
   browserLocalPersistence: {},
   browserSessionPersistence: {},
   setPersistence: jest.fn(),
+  // Phone Auth functions (used by phone-auth.ts)
+  RecaptchaVerifier: jest.fn(() => ({ clear: jest.fn() })),
+  PhoneAuthProvider: { credential: jest.fn(), PROVIDER_ID: 'phone' },
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn() })),
+  linkWithCredential: jest.fn(() => Promise.resolve({ user: { uid: 'mock-uid' } })),
+  updatePhoneNumber: jest.fn(() => Promise.resolve()),
+  signInWithCredential: jest.fn(() => Promise.resolve({ user: { uid: 'mock-uid' } })),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -169,6 +177,15 @@ jest.mock('firebase/firestore', () => ({
   increment: jest.fn((n) => n),
   arrayUnion: jest.fn((...args) => args),
   arrayRemove: jest.fn((...args) => args),
+  runTransaction: jest.fn((db, updateFn) => {
+    const mockTransaction = {
+      get: jest.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
+      set: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+    return updateFn(mockTransaction);
+  }),
   writeBatch: jest.fn(() => ({
     set: jest.fn(),
     update: jest.fn(),
@@ -226,6 +243,19 @@ jest.mock('@/lib/firebase/cart', () => ({
     clearCart: jest.fn().mockResolvedValue(undefined),
     mergeWithLocalCart: jest.fn().mockResolvedValue([]),
     subscribeToCart: jest.fn().mockReturnValue(jest.fn()),
+  },
+}));
+
+// Mock FirebaseWishlistService for wishlist operations
+jest.mock('@/lib/firebase/wishlist', () => ({
+  FirebaseWishlistService: {
+    getWishlist: jest.fn().mockResolvedValue([]),
+    addItem: jest.fn().mockResolvedValue('mock-item-id'),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    clearWishlist: jest.fn().mockResolvedValue(undefined),
+    subscribeToWishlist: jest.fn().mockReturnValue(jest.fn()),
+    mergeLocalStorageWishlist: jest.fn().mockResolvedValue(undefined),
+    isInWishlist: jest.fn().mockResolvedValue(false),
   },
 }));
 

@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SellerResponseModal } from "../SellerResponseModal";
 import type { FirestoreReview } from "@/types/reviews";
@@ -128,10 +128,9 @@ describe("SellerResponseModal", () => {
     });
 
     it("shows remaining needed when under 10 characters", async () => {
-      const user = userEvent.setup();
       renderModal();
       const textarea = screen.getByPlaceholderText(/write your response/i);
-      await user.type(textarea, "Hello");
+      fireEvent.change(textarea, { target: { value: "Hello" } });
       expect(screen.getByText(/5 more needed/)).toBeInTheDocument();
     });
 
@@ -147,7 +146,7 @@ describe("SellerResponseModal", () => {
       renderModal();
 
       const textarea = screen.getByPlaceholderText(/write your response/i);
-      await user.type(textarea, "Thank you for your detailed review of our product!");
+      fireEvent.change(textarea, { target: { value: "Thank you for your detailed review of our product!" } });
 
       await user.click(
         screen.getByRole("button", { name: /submit response/i }),
@@ -168,7 +167,7 @@ describe("SellerResponseModal", () => {
       renderModal();
 
       const textarea = screen.getByPlaceholderText(/write your response/i);
-      await user.type(textarea, "Thank you for your detailed review of our product!");
+      fireEvent.change(textarea, { target: { value: "Thank you for your detailed review of our product!" } });
 
       await user.click(
         screen.getByRole("button", { name: /submit response/i }),
@@ -227,10 +226,9 @@ describe("SellerResponseModal", () => {
       // Click Edit to switch to editing mode
       await user.click(screen.getByRole("button", { name: /edit/i }));
 
-      // Clear and type new text
+      // Clear and set new text
       const textarea = screen.getByPlaceholderText(/write your response/i);
-      await user.clear(textarea);
-      await user.type(textarea, "Updated response text for the review.");
+      fireEvent.change(textarea, { target: { value: "Updated response text for the review." } });
 
       await user.click(
         screen.getByRole("button", { name: /update response/i }),
@@ -282,7 +280,7 @@ describe("SellerResponseModal", () => {
       renderModal();
 
       const textarea = screen.getByPlaceholderText(/write your response/i);
-      await user.type(textarea, "Thank you for your detailed review of our product!");
+      fireEvent.change(textarea, { target: { value: "Thank you for your detailed review of our product!" } });
 
       await user.click(
         screen.getByRole("button", { name: /submit response/i }),

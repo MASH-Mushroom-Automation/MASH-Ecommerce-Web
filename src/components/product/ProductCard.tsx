@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, Star, Eye, Plus, Check, Loader2 } from "lucide-react";
+import { ShoppingCart, Heart, Star, Eye, Plus, Check, Loader2, Sparkles, Leaf, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
@@ -113,9 +113,6 @@ export function ProductCard({
 
     setIsAddingToCart(true);
 
-    // Small delay for better UX feedback
-    await new Promise(resolve => setTimeout(resolve, 300));
-
     const success = addToCart({
       id,
       name,
@@ -159,6 +156,7 @@ export function ProductCard({
         "hover:border-primary/30 hover:-translate-y-1",
         !inStock && "opacity-80"
       )}
+      aria-label={`${name} - \u20B1${price.toLocaleString('en-PH')} per ${unit ?? 'unit'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -227,20 +225,20 @@ export function ProductCard({
           )}
           {/* New Badge */}
           {isNew && !isBestSeller && (
-            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md shadow-lg">
-              ✨ New
+            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> New
             </span>
           )}
           {/* Organic Badge */}
           {isOrganic && (
             <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
-              🌿 Organic
+              <Leaf className="w-3 h-3" /> Organic
             </span>
           )}
           {/* Fresh Badge */}
           {isFresh && !isOrganic && (
-            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg">
-              🌊 Fresh
+            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] sm:text-xs font-medium px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+              <Droplets className="w-3 h-3" /> Fresh
             </span>
           )}
           {/* Low Stock Warning */}
@@ -333,8 +331,8 @@ export function ProductCard({
                     i < Math.floor(rating)
                       ? "fill-amber-400 text-amber-400"
                       : i < rating
-                        ? "fill-amber-400/50 text-amber-400"
-                        : "fill-gray-200 text-gray-200"
+                      ? "fill-amber-400/50 text-amber-400"
+                      : "fill-muted text-muted"
                   )}
                 />
               ))}
@@ -391,7 +389,7 @@ export function ProductCard({
               ? "bg-green-500 hover:bg-green-600"
               : inStock
                 ? "bg-primary hover:bg-primary/90 hover:shadow-md active:scale-95"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
           )}
           onClick={handleAddToCart}
           disabled={!inStock || isAddingToCart}

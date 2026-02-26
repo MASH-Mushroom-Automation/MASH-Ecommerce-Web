@@ -21,11 +21,6 @@ import {
   Package,
   ChevronDown,
   Menu,
-  Facebook,
-  Instagram,
-  Youtube,
-  Twitter,
-  Linkedin,
   Store,
   Search,
 } from "lucide-react";
@@ -57,7 +52,7 @@ import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import { TikTokIcon } from "@/components/ui/tiktok-icon";
+import { SocialLinks } from "@/components/common/social-links";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import {
   useSanitySiteSettings,
@@ -112,74 +107,7 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
             CONTACT US
           </Link>
           <span className="hidden sm:inline opacity-50">•</span>
-          <div className="hidden sm:flex items-center gap-2">
-            {settings?.socialMedia?.facebook && (
-              <a
-                href={settings.socialMedia.facebook}
-                aria-label="Facebook"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Facebook size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.youtube && (
-              <a
-                href={settings.socialMedia.youtube}
-                aria-label="YouTube"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Youtube size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.instagram && (
-              <a
-                href={settings.socialMedia.instagram}
-                aria-label="Instagram"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Instagram size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.twitter && (
-              <a
-                href={settings.socialMedia.twitter}
-                aria-label="Twitter"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Twitter size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.linkedin && (
-              <a
-                href={settings.socialMedia.linkedin}
-                aria-label="LinkedIn"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Linkedin size={18} />
-              </a>
-            )}
-            {settings?.socialMedia?.tiktok && (
-              <a
-                href={settings.socialMedia.tiktok}
-                aria-label="TikTok"
-                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <TikTokIcon size={18} />
-              </a>
-            )}
-          </div>
+          <SocialLinks variant="header" socialMedia={settings?.socialMedia} />
         </div>
       </div>
     </div>
@@ -385,6 +313,8 @@ export function Header() {
       {announcementBar?.enabled && announcementBar?.message && (
         <div
           className="text-center py-2 px-4 text-sm font-medium flex items-center justify-center gap-2"
+          role="status"
+          aria-live="polite"
           style={{
             backgroundColor: announcementBar.backgroundColor || "#6A994E",
             color: announcementBar.textColor || "#ffffff",
@@ -549,7 +479,7 @@ export function Header() {
                     />
                   </div>
 
-                  <nav className="flex flex-col space-y-2">
+                  <nav className="flex flex-col space-y-2" aria-label="Mobile Navigation">
                     {/* CMS-driven navigation for mobile */}
                     {headerNav?.items?.length ? (
                       headerNav.items.map((item) => (
@@ -610,7 +540,7 @@ export function Header() {
                   </nav>
                   <div className="border-t border-border pt-4 space-y-2">
                     <Link
-                      href="/checkout"
+                      href="/cart"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
                       <ShoppingCart className="sm:h-5 h-4 w-4 sm:w-5" />
@@ -661,75 +591,14 @@ export function Header() {
                   </div>
 
                   {/* Social Media Links - Mobile */}
-                  <div className="border-t border-border pt-4 mt-4">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Follow Us
-                    </p>
-                    <div className="flex items-center gap-4">
-                      {settings?.socialMedia?.facebook && (
-                        <a
-                          href={settings.socialMedia.facebook}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Facebook"
-                        >
-                          <Facebook size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.youtube && (
-                        <a
-                          href={settings.socialMedia.youtube}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="YouTube"
-                        >
-                          <Youtube size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.instagram && (
-                        <a
-                          href={settings.socialMedia.instagram}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Instagram"
-                        >
-                          <Instagram size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.twitter && (
-                        <a
-                          href={settings.socialMedia.twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="Twitter"
-                        >
-                          <Twitter size={24} />
-                        </a>
-                      )}
-                      {settings?.socialMedia?.tiktok && (
-                        <a
-                          href={settings.socialMedia.tiktok}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:text-primary"
-                          aria-label="TikTok"
-                        >
-                          <TikTokIcon size={24} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <SocialLinks variant="mobile" socialMedia={settings?.socialMedia} />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
 
-        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
+        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur" aria-label="Main Navigation">
           <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
             {/* Fallback navigation when CMS is loading or unavailable */}
             {navLoading || !headerNav?.items?.length ? (

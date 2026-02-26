@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await apiRequest<ApiResponse<any>>("/api/seller/payment-info", { method: "GET" });
+    const cookieHeader = request.headers.get("cookie") || "";
+    const response = await apiRequest<ApiResponse<any>>("/seller/payment-info", {
+      method: "GET",
+      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
+    });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     console.error("Error fetching payment info:", error);
@@ -59,7 +63,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const response = await apiRequest<ApiResponse<any>>("/api/seller/payment-info", { method: "PUT", body: JSON.stringify(body) });
+    const cookieHeader = request.headers.get("cookie") || "";
+    const response = await apiRequest<ApiResponse<any>>("/seller/payment-info", {
+      method: "PUT",
+      body: JSON.stringify(body),
+      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
+    });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     console.error("Error updating payment info:", error);

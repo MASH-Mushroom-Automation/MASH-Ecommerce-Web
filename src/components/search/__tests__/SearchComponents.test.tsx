@@ -185,21 +185,19 @@ describe("SearchDialog", () => {
 
   describe("Search Input", () => {
     it("allows typing in search input", async () => {
-      const user = userEvent.setup();
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "lion's mane");
+      fireEvent.change(input, { target: { value: "lion's mane" } });
       
       expect(input).toHaveValue("lion's mane");
     });
 
     it("shows clear button when input has value", async () => {
-      const user = userEvent.setup();
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "test");
+      fireEvent.change(input, { target: { value: "test" } });
       
       // Clear button has X icon (no accessible name, find by presence)
       // Look for any button that contains the X icon after input has content
@@ -213,7 +211,7 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "test");
+      fireEvent.change(input, { target: { value: "test" } });
       
       // Find and click clear button
       const buttons = screen.getAllByRole("button");
@@ -227,7 +225,6 @@ describe("SearchDialog", () => {
 
   describe("Search Results", () => {
     it("shows loading state when searching", async () => {
-      const user = userEvent.setup();
       (sanityClient.fetch as jest.Mock).mockImplementation(
         () => new Promise(resolve => setTimeout(() => resolve([]), 1000))
       );
@@ -235,14 +232,15 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "mushroom");
+      fireEvent.change(input, { target: { value: "mushroom" } });
       
       // Loading indicator should appear
-      expect(screen.getByText(/searching/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/searching/i)).toBeInTheDocument();
+      });
     });
 
     it("displays product results", async () => {
-      const user = userEvent.setup();
       // Mock returns [products, categories] in order of Promise.all calls
       let callCount = 0;
       (sanityClient.fetch as jest.Mock).mockImplementation(() => {
@@ -266,7 +264,7 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "lion");
+      fireEvent.change(input, { target: { value: "lion" } });
       
       await waitFor(() => {
         expect(screen.getByText("Lion's Mane")).toBeInTheDocument();
@@ -274,7 +272,6 @@ describe("SearchDialog", () => {
     });
 
     it("displays category results", async () => {
-      const user = userEvent.setup();
       let callCount = 0;
       (sanityClient.fetch as jest.Mock).mockImplementation(() => {
         callCount++;
@@ -295,7 +292,7 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "fresh");
+      fireEvent.change(input, { target: { value: "fresh" } });
       
       await waitFor(() => {
         expect(screen.getByText("Categories")).toBeInTheDocument();
@@ -303,13 +300,12 @@ describe("SearchDialog", () => {
     });
 
     it("shows no results message when nothing found", async () => {
-      const user = userEvent.setup();
       (sanityClient.fetch as jest.Mock).mockResolvedValue([]);
       
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "nonexistent product xyz");
+      fireEvent.change(input, { target: { value: "nonexistent product xyz" } });
       
       await waitFor(() => {
         expect(screen.getByText(/no results found/i)).toBeInTheDocument();
@@ -317,7 +313,6 @@ describe("SearchDialog", () => {
     });
 
     it("shows product price formatted as peso", async () => {
-      const user = userEvent.setup();
       let callCount = 0;
       (sanityClient.fetch as jest.Mock).mockImplementation(() => {
         callCount++;
@@ -338,7 +333,7 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "test");
+      fireEvent.change(input, { target: { value: "test" } });
       
       await waitFor(() => {
         expect(screen.getByText(/₱1,250/)).toBeInTheDocument();
@@ -391,7 +386,6 @@ describe("SearchDialog", () => {
 
   describe("View All Results", () => {
     it("shows view all results button when results exist", async () => {
-      const user = userEvent.setup();
       let callCount = 0;
       (sanityClient.fetch as jest.Mock).mockImplementation(() => {
         callCount++;
@@ -412,7 +406,7 @@ describe("SearchDialog", () => {
       render(<SearchDialog {...defaultProps} />);
       
       const input = screen.getByRole("textbox");
-      await user.type(input, "product");
+      fireEvent.change(input, { target: { value: "product" } });
       
       await waitFor(() => {
         expect(screen.getByText(/view all results/i)).toBeInTheDocument();

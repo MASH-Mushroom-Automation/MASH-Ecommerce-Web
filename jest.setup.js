@@ -211,6 +211,7 @@ jest.mock('next-sanity', () => ({
     fetch: jest.fn(() => Promise.resolve([])),
   }),
   createImageUrlBuilder: () => ({ url: () => '' }),
+  groq: (strings, ...values) => String.raw(strings, ...values),
 }));
 
 
@@ -374,6 +375,7 @@ jest.mock('firebase/app', () => ({
 jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({
     currentUser: null,
+    settings: {},
   })),
   signInWithPopup: jest.fn(),
   GoogleAuthProvider: jest.fn(() => ({
@@ -385,9 +387,36 @@ jest.mock('firebase/auth', () => ({
     callback(null);
     return jest.fn(); // Unsubscribe function
   }),
+  setPersistence: jest.fn(() => Promise.resolve()),
+  browserLocalPersistence: {},
+  createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
+  sendEmailVerification: jest.fn(() => Promise.resolve()),
   sendSignInLinkToEmail: jest.fn(),
   isSignInWithEmailLink: jest.fn(() => false),
   signInWithEmailLink: jest.fn(),
+  sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
+  updateProfile: jest.fn(() => Promise.resolve()),
+  // Phone Auth functions
+  RecaptchaVerifier: jest.fn(() => ({
+    clear: jest.fn(),
+    render: jest.fn(() => Promise.resolve()),
+    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
+  })),
+  PhoneAuthProvider: Object.assign(
+    jest.fn(() => ({
+      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
+    })),
+    {
+      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
+      PROVIDER_ID: 'phone',
+    },
+  ),
+  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  updatePhoneNumber: jest.fn(() => Promise.resolve()),
+  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
+  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
+  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -419,6 +448,15 @@ jest.mock('firebase/firestore', () => ({
     delete: jest.fn(),
     commit: jest.fn(() => Promise.resolve()),
   })),
+  runTransaction: jest.fn((db, updateFn) => {
+    const mockTransaction = {
+      get: jest.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
+      set: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+    return updateFn(mockTransaction);
+  }),
 }));
 
 // ============================================================================
@@ -428,7 +466,45 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('@/lib/sanity/client', () => ({
   sanityClient: {
     fetch: jest.fn(() => Promise.resolve([])),
+    listen: jest.fn(() => ({
+      subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
+    })),
   },
+  listenSafe: jest.fn(() => ({
+    subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
+  })),
+  urlFor: jest.fn(() => ({
+    width: jest.fn().mockReturnThis(),
+    height: jest.fn().mockReturnThis(),
+    format: jest.fn().mockReturnThis(),
+    quality: jest.fn().mockReturnThis(),
+    fit: jest.fn().mockReturnThis(),
+    url: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
+    image: jest.fn().mockReturnThis(),
+  })),
+  getImageUrl: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
+  getClient: jest.fn(() => ({
+    fetch: jest.fn(() => Promise.resolve([])),
+  })),
+  previewClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+  },
+  sanityWriteClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+    create: jest.fn(() => Promise.resolve({})),
+    patch: jest.fn(() => ({
+      set: jest.fn().mockReturnThis(),
+      commit: jest.fn(() => Promise.resolve({})),
+    })),
+  },
+  sanityFreshClient: {
+    fetch: jest.fn(() => Promise.resolve([])),
+  },
+  isSanityConfigured: jest.fn(() => true),
+  isWriteConfigured: jest.fn(() => false),
+  projectId: 'test-project-id',
+  dataset: 'production',
+  apiVersion: '2024-11-26',
 }));
 
 // ============================================================================

@@ -34,6 +34,38 @@ export const suggestedProductsByGrowerQuery = `*[_type == "product"
 }`;
 
 // Fetch all products with complete details
+// Fetch only products matching given IDs (for wishlist optimization)
+export const wishlistProductsQuery = `*[_type == "product" && _id in $ids && !(_id in path("drafts.**"))] | order(name asc) {
+  _id,
+  _createdAt,
+  _updatedAt,
+  name,
+  slug,
+  description,
+  price,
+  compareAtPrice,
+  stock,
+  sku,
+  weight,
+  unit,
+  isAvailable,
+  isFeatured,
+  "mainImage": coalesce(mainImage.asset->url, image.asset->url),
+  "images": images[].asset->url,
+  category->{
+    _id,
+    name,
+    slug,
+    description
+  },
+  subcategory->{
+    _id,
+    name,
+    slug,
+    description
+  }
+}`;
+
 export const productsQuery = `*[_type == "product" && !(_id in path("drafts.**"))] | order(name asc) {
   _id,
   _createdAt,

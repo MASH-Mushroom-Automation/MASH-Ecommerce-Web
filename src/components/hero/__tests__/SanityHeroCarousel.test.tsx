@@ -90,7 +90,7 @@ describe("SanityHeroCarousel", () => {
       const { container } = render(<SanityHeroCarousel />);
       const section = container.querySelector("section");
 
-      expect(section).toHaveClass("h-[300px]", "md:h-[350px]", "lg:h-[400px]");
+      expect(section).toHaveClass("min-h-[400px]", "md:min-h-[500px]", "lg:min-h-[600px]");
     });
   });
 
@@ -120,7 +120,7 @@ describe("SanityHeroCarousel", () => {
       const { container } = render(<SanityHeroCarousel />);
       const section = container.querySelector("section");
 
-      expect(section).toHaveClass("h-[300px]", "md:h-[350px]", "lg:h-[400px]");
+      expect(section).toHaveClass("min-h-[400px]", "md:min-h-[500px]", "lg:min-h-[600px]");
     });
   });
 
@@ -150,7 +150,7 @@ describe("SanityHeroCarousel", () => {
       const { container } = render(<SanityHeroCarousel />);
       const section = container.querySelector("section");
 
-      expect(section).toHaveClass("h-[300px]", "md:h-[350px]", "lg:h-[400px]");
+      expect(section).toHaveClass("min-h-[400px]", "md:min-h-[500px]", "lg:min-h-[600px]");
     });
   });
 

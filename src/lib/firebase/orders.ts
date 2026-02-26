@@ -111,7 +111,10 @@ export interface FirestoreOrder {
   pickupLocation?: PickupLocation;
   deliveryAddress?: DeliveryAddress;
   lalamoveQuotationId?: string;
+  lalamoveScheduleAt?: string;
   lalamoveOrderId?: string;
+  lalamoveVehicleType?: string;
+  lalamoveDistance?: string;
 
   // Lalamove Tracking (Phase 8)
   lalamoveTracking?: {
@@ -178,6 +181,9 @@ export interface CreateOrderData {
   pickupLocation?: PickupLocation;
   deliveryAddress?: DeliveryAddress;
   lalamoveQuotationId?: string;
+  lalamoveScheduleAt?: string;
+  lalamoveVehicleType?: string;
+  lalamoveDistance?: string;
   paymentMethod: "cod" | "gcash" | "card";
   notes?: string;
 }
@@ -256,6 +262,15 @@ export class FirebaseOrdersService {
       }
       if (data.lalamoveQuotationId) {
         order.lalamoveQuotationId = data.lalamoveQuotationId;
+      }
+      if (data.lalamoveScheduleAt) {
+        order.lalamoveScheduleAt = data.lalamoveScheduleAt;
+      }
+      if (data.lalamoveVehicleType) {
+        order.lalamoveVehicleType = data.lalamoveVehicleType;
+      }
+      if (data.lalamoveDistance) {
+        order.lalamoveDistance = data.lalamoveDistance;
       }
       if (data.notes) {
         order.notes = data.notes;

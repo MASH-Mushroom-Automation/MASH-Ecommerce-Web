@@ -22,9 +22,47 @@ jest.mock("@/components/providers/theme-provider", () => {
 });
 // Mock other heavy dependencies to avoid importing ESM-only libs (next-sanity, etc.)
 jest.mock("@/contexts/ChatContext", () => ({ ChatProvider: ({ children }: any) => children }));
-jest.mock("@/contexts/WishlistContext", () => ({ WishlistProvider: ({ children }: any) => children }));
-jest.mock("@/contexts/CartContext", () => ({ CartProvider: ({ children }: any) => children }));
-jest.mock("@/contexts/AuthContext", () => ({ AuthProvider: ({ children }: any) => children }));
+jest.mock("@/contexts/WishlistContext", () => ({
+  WishlistProvider: ({ children }: any) => children,
+  useWishlist: jest.fn(() => ({
+    wishlistIds: [],
+    items: [],
+    addToWishlist: jest.fn(),
+    removeFromWishlist: jest.fn(),
+    isInWishlist: jest.fn(() => false),
+    toggleWishlist: jest.fn(),
+    clearWishlist: jest.fn(),
+    loading: false,
+  })),
+}));
+jest.mock("@/contexts/CartContext", () => ({
+  CartProvider: ({ children }: any) => children,
+  useCart: jest.fn(() => ({
+    items: [],
+    summary: { subtotal: 0, shipping: 0, tax: 0, total: 0, itemCount: 0 },
+    loading: false,
+    error: null,
+    addToCart: jest.fn(),
+    removeFromCart: jest.fn(),
+    updateQuantity: jest.fn(),
+    clearCart: jest.fn(),
+    removeVendorItems: jest.fn(),
+    isInCart: jest.fn(() => false),
+    getItemQuantity: jest.fn(() => 0),
+  })),
+}));
+jest.mock("@/contexts/AuthContext", () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: jest.fn(() => ({
+    user: null,
+    isAuthenticated: false,
+    loading: false,
+    signInWithGoogle: jest.fn(),
+    signInWithEmailPassword: jest.fn(),
+    signOut: jest.fn(),
+    signOutEverywhere: jest.fn(),
+  })),
+}));
 jest.mock("@/components/providers/query-provider", () => ({ QueryProvider: ({ children }: any) => children }));
 jest.mock("@/components/chatbot", () => ({ Chatbot: () => null }));
 jest.mock("@/components/sanity/VisualEditing", () => ({ SanityVisualEditing: () => null }));
@@ -34,6 +72,13 @@ jest.mock("@/components/layout/header", () => ({ Header: () => null }));
 jest.mock("@/components/layout/simple-header", () => ({ SimpleHeader: () => null }));
 jest.mock("@/components/layout/seller-header", () => ({ SellerHeader: () => null }));
 jest.mock("@/components/layout/footer", () => ({ Footer: () => null }));
+jest.mock("@/components/layout/mobile-bottom-nav", () => ({
+  MobileBottomNav: () => null,
+  MobileBottomNavSpacer: () => null,
+}));
+jest.mock("@/components/common/back-to-top", () => ({ BackToTop: () => null }));
+jest.mock("@/lib/analytics", () => ({ initGA: jest.fn(), logPageView: jest.fn() }));
+jest.mock("nuqs/adapters/next/app", () => ({ NuqsAdapter: ({ children }: any) => children }));
 jest.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
 import { ClientLayout } from "../client-layout";
 import { getThemeCookie, setThemeCookie } from "@/lib/cookies";
