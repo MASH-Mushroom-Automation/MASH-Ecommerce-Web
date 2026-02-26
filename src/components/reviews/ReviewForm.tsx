@@ -172,7 +172,7 @@ export function ReviewForm({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg sm:-mb-6">
             {isEditing ? "Edit Your Review" : "Write a Review"}
           </CardTitle>
           {isEditing && (
@@ -187,9 +187,9 @@ export function ReviewForm({
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
           {/* Star Rating */}
-          <div>
+          <div className="space-y-2">
             <StarRatingInput
               value={rating}
               onChange={setRating}

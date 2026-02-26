@@ -73,7 +73,7 @@ export function MobileBottomNav() {
                 "flex flex-col items-center justify-center flex-1 h-full transition-colors relative",
                 "active:bg-muted",
                 isActive
-                  ? "text-accent"
+                  ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

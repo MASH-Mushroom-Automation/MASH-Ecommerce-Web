@@ -254,9 +254,8 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
   return (
     <Link
       href={path}
-      className={`relative text-base font-semibold ${
-        active ? "text-primary" : "text-muted-foreground"
-      } hover:text-primary transition-colors h-full flex items-center`}
+      className={`relative text-base font-semibold ${active ? "text-primary" : "text-muted-foreground"
+        } hover:text-primary transition-colors h-full flex items-center`}
     >
       {label}
       {active && (
@@ -378,7 +377,7 @@ export function Header() {
                 <Heart size={24} className="group-hover:text-primary" />
                 <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
                 {wishlistCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
+                  <Badge className="absolute rounded-4xl -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
                     {wishlistCount}
                   </Badge>
                 )}
@@ -470,9 +469,9 @@ export function Header() {
                 <SheetDescription className="sr-only">
                   Main navigation menu for mobile devices
                 </SheetDescription>
-                <div className="flex flex-col space-y-4 p-4">
+                <div className="flex flex-col space-y-6 p-4 pt-12">
                   {/* Mobile Search Bar */}
-                  <div className="mb-2">
+                  <div className="mb-4">
                     <SearchAutocomplete
                       placeholder="Search products..."
                       showRecent={true}
@@ -487,7 +486,7 @@ export function Header() {
                         <Link
                           key={item._key}
                           href={item.internalPath || item.externalUrl || "/"}
-                          className="text-lg font-medium text-muted-foreground hover:text-primary"
+                          className="text-base text-muted-foreground hover:text-primary"
                           target={item.openInNewTab ? "_blank" : undefined}
                           rel={
                             item.openInNewTab
@@ -544,7 +543,7 @@ export function Header() {
                       href="/cart"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
-                      <ShoppingCart className="h-5 w-5" />
+                      <ShoppingCart className="sm:h-5 h-4 w-4 sm:w-5" />
                       <span>Cart</span>
                     </Link>
                     {isAuthenticated && (
@@ -552,7 +551,7 @@ export function Header() {
                         href="/wishlist"
                         className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                       >
-                        <Heart className="h-5 w-5" />
+                        <Heart className="sm:h-5 h-4 w-4 sm:w-5" />
                         <span>Wishlist</span>
                       </Link>
                     )}
@@ -560,16 +559,16 @@ export function Header() {
                       href="/seller/dashboard"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
-                      <Store className="h-5 w-5" />
+                      <Store className="sm:h-5 h-4 w-4 sm:w-5" />
                       <span>Seller Dashboard</span>
                     </Link>
                     {isAuthenticated ? (
                       <>
                         <Link
                           href="/profile/my-information"
-                          className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
+                          className="flex items-center space-x-2 text-muted-foreground hover:text-primary pb-2"
                         >
-                          <UserCircle className="h-5 w-5" />
+                          <UserCircle className="sm:h-5 h-4 w-4 sm:w-5" />
                           <span>My Profile</span>
                         </Link>
                         <Button

@@ -26,20 +26,15 @@ import {
   Package,
   ShoppingBag,
   DollarSign,
-  Users,
+  TrendingUp,
   ArrowRight,
   ArrowUpRight,
   ArrowDownRight,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-import { useAdminDashboard } from "@/hooks/useAdminDashboard";
-import { useTopPerformingProducts } from "@/hooks/useTopPerformingProducts";
-import { useRecentOrders } from "@/hooks/useRecentOrders";
 import { useSellerDashboard } from "@/hooks/useSeller";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStatusBadge } from "@/lib/status-utils";
 
 export default function SellerDashboard() {
   // Pull-to-refresh state
@@ -49,55 +44,24 @@ export default function SellerDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use both hooks - admin dashboard for the new API data, seller dashboard for existing tables
+  // Use seller dashboard hook only (no admin endpoints)
   const {
-    data: adminData,
-    isLoading: adminLoading,
-    isError: adminError,
-    refetch: adminRefetch,
-  } = useAdminDashboard();
-
-  // Fetch top performing products from the API
-  const {
-    data: topProducts,
-    isLoading: productsLoading,
-    isError: productsError,
-    refetch: productsRefetch,
-  } = useTopPerformingProducts({ limit: 10, orderBy: "revenue" });
-
-  // Fetch recent orders from the API
-  const {
-    data: recentOrdersData,
-    isLoading: ordersLoading,
-    isError: ordersError,
-    refetch: ordersRefetch,
-  } = useRecentOrders({
-    page: 1,
-    limit: 5,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  });
-
-  const {
+    stats,
     salesData,
     productPerformance,
     recentOrders,
-    loading: sellerLoading,
+    loading,
     error: sellerError,
     refetch: sellerRefetch,
   } = useSellerDashboard();
 
-  const loading =
-    adminLoading || sellerLoading || productsLoading || ordersLoading;
-  const error = adminError || sellerError || productsError || ordersError;
+  const error = !!sellerError;
 
-  // Calculate pending orders count
-  const pendingOrdersCount = adminData?.alert.pendingOrders || 0;
+  // Calculate pending orders count from seller data
+  const pendingOrdersCount =
+    recentOrders?.filter((o) => o.status === "PENDING").length || 0;
 
   const handleRefresh = () => {
-    adminRefetch();
-    productsRefetch();
-    ordersRefetch();
     sellerRefetch?.();
   };
 
@@ -125,12 +89,7 @@ export default function SellerDashboard() {
   const handleTouchEnd = async () => {
     if (pullDistance > 80 && !isRefreshing) {
       setIsRefreshing(true);
-      await Promise.all([
-        adminRefetch(),
-        productsRefetch(),
-        ordersRefetch(),
-        sellerRefetch?.(),
-      ]);
+      await sellerRefetch?.();
       setTimeout(() => {
         setIsRefreshing(false);
       }, 500);
@@ -163,6 +122,7 @@ export default function SellerDashboard() {
     );
   }
 
+
   return (
     <div
       ref={containerRef}
@@ -182,9 +142,8 @@ export default function SellerDashboard() {
         >
           <div className="flex flex-col items-center gap-1">
             <RefreshCw
-              className={`h-5 w-5 text-primary ${
-                isRefreshing || pullDistance > 80 ? "animate-spin" : ""
-              }`}
+              className={`h-5 w-5 text-primary ${isRefreshing || pullDistance > 80 ? "animate-spin" : ""
+                }`}
               style={{
                 transform: isRefreshing
                   ? "rotate(0deg)"
@@ -252,129 +211,70 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>
       ) : (
-        adminData && (
-          <Card className="mb-6 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900">
-            <CardContent className="flex items-center gap-4 pt-6">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <AlertCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-900 dark:text-green-100">
-                  {adminData.alert.message}
-                </h3>
-              </div>
-            </CardContent>
-          </Card>
-        )
+        <Card className="mb-6 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900">
+          <CardContent className="flex items-center gap-4 pt-6">
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <AlertCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-900 dark:text-green-100">
+                All orders are up to date!
+              </h3>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           title="Total Sales"
-          value={
-            adminData
-              ? `${adminData.metrics.totalSales.currency} ${adminData.metrics.totalSales.value.toLocaleString()}`
-              : "₱0"
-          }
-          change={
-            adminData?.metrics.totalSales.change !== undefined
-              ? adminData.metrics.totalSales.change >= 0
-                ? `+${adminData.metrics.totalSales.change}%`
-                : `${adminData.metrics.totalSales.change}%`
-              : "+0%"
-          }
-          trend={
-            (adminData?.metrics.totalSales.change ?? 0) >= 0 ? "up" : "down"
-          }
-          description={
-            adminData?.metrics.totalSales.changeLabel || "vs. last month"
-          }
+          value={stats ? `₱${stats.totalSales.toLocaleString()}` : "₱0"}
+          change={stats ? `+${stats.salesGrowth}%` : "+0%"}
+          trend={(stats?.salesGrowth ?? 0) >= 0 ? "up" : "down"}
+          description="vs. last month"
           icon={<DollarSign className="h-5 w-5" />}
         />
         <StatsCard
           title="Orders"
-          value={adminData?.metrics.orders.value.toString() || "0"}
-          change={
-            adminData?.metrics.orders.change !== undefined
-              ? adminData.metrics.orders.change >= 0
-                ? `+${adminData.metrics.orders.change}%`
-                : `${adminData.metrics.orders.change}%`
-              : "+0%"
-          }
-          trend={(adminData?.metrics.orders.change ?? 0) >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.orders.changeLabel || "vs. last month"
-          }
+          value={stats?.totalOrders.toString() || "0"}
+          change={stats ? `+${stats.orderGrowth}%` : "+0%"}
+          trend={(stats?.orderGrowth ?? 0) >= 0 ? "up" : "down"}
+          description="vs. last month"
           icon={<ShoppingBag className="h-5 w-5" />}
         />
         <StatsCard
           title="Products"
-          value={adminData?.metrics.products.value.toString() || "0"}
-          change={
-            adminData?.metrics.products.change !== undefined
-              ? adminData.metrics.products.change >= 0
-                ? `+${adminData.metrics.products.change}`
-                : `${adminData.metrics.products.change}`
-              : "+0"
-          }
-          trend={(adminData?.metrics.products.change ?? 0) >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.products.changeLabel || "new this month"
-          }
+          value={stats?.totalProducts.toString() || "0"}
+          change="+0"
+          trend="up"
+          description="active listings"
           icon={<Package className="h-5 w-5" />}
         />
         <StatsCard
           title="Revenue"
-          value={
-            adminData
-              ? `${adminData.metrics.revenue.currency} ${adminData.metrics.revenue.value.toLocaleString()}`
-              : "₱0"
-          }
-          change={
-            adminData?.metrics.revenue.change !== undefined
-              ? adminData.metrics.revenue.change >= 0
-                ? `+${adminData.metrics.revenue.change}%`
-                : `${adminData.metrics.revenue.change}%`
-              : "+0%"
-          }
-          trend={(adminData?.metrics.revenue.change ?? 0) >= 0 ? "up" : "down"}
-          description={
-            adminData?.metrics.revenue.changeLabel || "vs. last month"
-          }
-          icon={<Users className="h-5 w-5" />}
+          value={stats ? `₱${stats.totalRevenue.toLocaleString()}` : "₱0"}
+          change={stats ? `+${stats.revenueGrowth}%` : "+0%"}
+          trend={(stats?.revenueGrowth ?? 0) >= 0 ? "up" : "down"}
+          description="vs. last month"
+          icon={<TrendingUp className="h-5 w-5" />}
         />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ChartBarDefault
-          data={
-            adminData?.charts.weeklySales.map((item) => ({
-              month: item.day,
-              desktop: item.sales,
-            })) ||
-            salesData.map((item) => ({
-              month: item.name,
-              desktop: item.sales,
-            }))
-          }
+          data={salesData.map((item) => ({
+            month: item.name,
+            desktop: item.sales,
+          }))}
         />
 
         <LineChartDefault
-          data={
-            adminData?.charts.revenueTrend.map((item) => ({
-              month: item.month,
-              desktop: item.revenue,
-            })) || [
-              { month: "May", desktop: 24000 },
-              { month: "Jun", desktop: 26500 },
-              { month: "Jul", desktop: 32000 },
-              { month: "Aug", desktop: 28000 },
-              { month: "Sep", desktop: 35000 },
-              { month: "Oct", desktop: 42390 },
-            ]
-          }
+          data={salesData.map((item) => ({
+            month: item.name,
+            desktop: item.revenue,
+          }))}
         />
       </div>
 
@@ -383,19 +283,11 @@ export default function SellerDashboard() {
         <CardHeader>
           <CardTitle className="text-lg">Top Performing Products</CardTitle>
           <CardDescription>
-            Products with the highest sales and revenue
+            Top 5 products by units sold
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {productsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <LoadingSpinner size="md" />
-            </div>
-          ) : productsError ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Failed to load products</p>
-            </div>
-          ) : !topProducts || topProducts.length === 0 ? (
+          {!productPerformance || productPerformance.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No products found</p>
             </div>
@@ -403,32 +295,19 @@ export default function SellerDashboard() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-foreground">
-                    Product Name
-                  </TableHead>
-                  <TableHead className="text-right text-foreground">
-                    Units Sold
-                  </TableHead>
-                  <TableHead className="text-right text-foreground">
-                    Stock
-                  </TableHead>
-                  <TableHead className="text-right text-foreground">
-                    Revenue
-                  </TableHead>
+                  <TableHead className="text-foreground w-10">#</TableHead>
+                  <TableHead className="text-foreground">Product Name</TableHead>
+                  <TableHead className="text-right text-foreground">Units Sold</TableHead>
+                  <TableHead className="text-right text-foreground">Stock</TableHead>
+                  <TableHead className="text-right text-foreground">Revenue</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topProducts.map((product) => (
-                  <TableRow
-                    key={product.productId}
-                    className="hover:bg-muted/50"
-                  >
-                    <TableCell className="font-medium">
-                      {product.productName}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {product.unitsSold}
-                    </TableCell>
+                {productPerformance.map((product, index) => (
+                  <TableRow key={product.name} className="hover:bg-muted/50">
+                    <TableCell className="text-muted-foreground font-medium">{index + 1}</TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="text-right font-semibold text-foreground">{product.sales}</TableCell>
                     <TableCell className="text-right">
                       {product.stock === 0 ? (
                         <Badge
@@ -445,12 +324,10 @@ export default function SellerDashboard() {
                           Low: {product.stock}
                         </Badge>
                       ) : (
-                        product.stock
+                        <span className="text-foreground">{product.stock}</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      ₱{product.revenue.toLocaleString()}
-                    </TableCell>
+                    <TableCell className="text-right text-foreground">₱{product.revenue.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -467,6 +344,7 @@ export default function SellerDashboard() {
         </CardFooter>
       </Card>
 
+
       {/* Recent Orders */}
       <Card>
         <CardHeader>
@@ -476,15 +354,7 @@ export default function SellerDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {ordersLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <LoadingSpinner size="md" />
-            </div>
-          ) : ordersError ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Failed to load orders</p>
-            </div>
-          ) : !recentOrdersData || recentOrdersData.length === 0 ? (
+          {!recentOrders || recentOrders.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No orders found</p>
             </div>
@@ -495,38 +365,22 @@ export default function SellerDashboard() {
                   <TableHead className="text-foreground">Order ID</TableHead>
                   <TableHead className="text-foreground">Date</TableHead>
                   <TableHead className="text-foreground">Customer</TableHead>
-                  <TableHead className="text-right text-foreground">
-                    Items
-                  </TableHead>
-                  <TableHead className="text-right text-foreground">
-                    Total
-                  </TableHead>
+                  <TableHead className="text-right text-foreground">Items</TableHead>
+                  <TableHead className="text-right text-foreground">Total</TableHead>
                   <TableHead className="text-foreground">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentOrdersData.map((order) => (
+                {recentOrders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      {order.orderNumber || order.id.slice(0, 8)}
-                    </TableCell>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.date}</TableCell>
+                    <TableCell>{order.customer}</TableCell>
+                    <TableCell className="text-right">{order.items}</TableCell>
+                    <TableCell className="text-right">₱{order.total.toFixed(2)}</TableCell>
                     <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      <OrderStatusBadge status={order.status} />
                     </TableCell>
-                    <TableCell>
-                      {order.user
-                        ? `${order.user.firstName || ""} ${order.user.lastName || ""}`.trim() ||
-                          order.user.email
-                        : "Unknown"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {order.items?.length || 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {order.currency || "₱"}
-                      {order.totalAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -543,6 +397,25 @@ export default function SellerDashboard() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+const ORDER_STATUS_STYLES: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  CONFIRMED: { label: "Confirmed", className: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400" },
+  PROCESSING: { label: "Processing", className: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400" },
+  SHIPPED: { label: "Shipped", className: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400" },
+  DELIVERED: { label: "Delivered", className: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400" },
+  CANCELLED: { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400" },
+  REFUNDED: { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400" },
+};
+
+function OrderStatusBadge({ status }: { status: string }) {
+  const style = ORDER_STATUS_STYLES[status] ?? { label: status, className: "bg-muted text-muted-foreground border-border" };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style.className}`}>
+      {style.label}
+    </span>
   );
 }
 
@@ -580,11 +453,10 @@ function StatsCard({
             <ArrowDownRight className="h-4 w-4 text-destructive mr-1" />
           )}
           <p
-            className={`text-sm ${
-              trend === "up"
-                ? "text-green-600 dark:text-green-500"
-                : "text-destructive"
-            }`}
+            className={`text-sm ${trend === "up"
+              ? "text-green-600 dark:text-green-500"
+              : "text-destructive"
+              }`}
           >
             {change}
           </p>

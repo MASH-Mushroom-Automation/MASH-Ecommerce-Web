@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -219,8 +219,8 @@ export default function MyInformationPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-3xl font-bold text-primary">My Profile</h1>
+        <p className="text-foreground mt-1">
           Manage your account information and delivery addresses
         </p>
       </div>
