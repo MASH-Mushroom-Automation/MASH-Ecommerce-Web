@@ -1,16 +1,16 @@
 {
   "projectName": "MASH UI/UX Improvement Plan",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "branchName": "feature/ui-ux-improvements",
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-06-17T08:00:00Z",
+  "lastUpdated": "2026-02-27T12:00:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
-  "totalStories": 35,
-  "completedStories": 35,
-  "currentPhase": "COMPLETE - All 5 Phases Finished",
+  "totalStories": 38,
+  "completedStories": 38,
+  "currentPhase": "COMPLETE - All Phases Finished + Phase 6 Homepage Refinement",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
@@ -49,7 +49,8 @@
     { "phase": "3.3", "name": "Profile Redesign", "storyIds": ["UIUX-019"] },
     { "phase": "4.2", "name": "Homepage Redesign", "storyIds": ["UIUX-027", "UIUX-028"] },
     { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] },
-    { "phase": "5.1", "name": "Homepage Visual Overhaul", "storyIds": ["UIUX-031", "UIUX-032", "UIUX-033", "UIUX-034", "UIUX-035"] }
+    { "phase": "5.1", "name": "Homepage Visual Overhaul", "storyIds": ["UIUX-031", "UIUX-032", "UIUX-033", "UIUX-034", "UIUX-035"] },
+    { "phase": "6.1", "name": "Homepage Refinement - Clean Design", "storyIds": ["UIUX-036", "UIUX-037", "UIUX-038"] }
   ],
   "progressLog": [
     {
@@ -201,6 +202,24 @@
       "completedAt": "2026-02-24T16:25:00Z",
       "filesChanged": ["src/components/cms/HowItWorks.tsx", "src/app/page.tsx"],
       "summary": "Created HowItWorks component with 3-step visual guide (Browse/Cart/Delivered). Desktop horizontal connecting line, mobile vertical arrows. Number badges on step circles. Rendered between FeaturedCategories and WhyMASH on homepage."
+    },
+    {
+      "storyId": "UIUX-036",
+      "completedAt": "2026-02-27T12:00:00Z",
+      "filesChanged": ["src/app/page.tsx"],
+      "summary": "Removed StatsBar component (1000+ Products, 50+ Local Farms, etc.) and NewsletterSignup from homepage. Cleaned up unused imports (Package, Users, Star, Truck, NewsletterSignup). Simplified Home component render tree."
+    },
+    {
+      "storyId": "UIUX-037",
+      "completedAt": "2026-02-27T12:00:00Z",
+      "filesChanged": ["src/app/page.tsx", "src/components/cms/HowItWorks.tsx", "src/components/cms/TestimonialsSection.tsx"],
+      "summary": "Comprehensive homepage UI refinement: removed all gradient backgrounds, replaced with solid bg-muted/20 and bg-background. Cleaner SectionHeader with border badges. Improved spacing consistency (py-16/20/28). Replaced gradient overlay on CategoryCard with flat bg-black/40. Simplified GrowerCard with bg-primary/10 fallback instead of gradient. Removed decorative blur orbs. Added line-clamp-2 to grower descriptions."
+    },
+    {
+      "storyId": "UIUX-038",
+      "completedAt": "2026-02-27T12:00:00Z",
+      "filesChanged": ["src/components/cms/TestimonialsSection.tsx"],
+      "summary": "Replaced emoji pin icon with MapPin Lucide icon for testimonial locations. Added Testimonials badge and accent line to section header. Added aria-label to pagination dots for accessibility. Improved View All Reviews button with consistent border-2 hover styling."
     }
   ],
   "stories": [
@@ -1001,6 +1020,59 @@
         "Input field has backdrop-blur-sm and rounded-xl",
         "All View More/View All buttons have ArrowRight with translate animation",
         "Buttons use rounded-xl and border-2 styling",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-036",
+      "title": "Remove StatsBar and Newsletter Sections from Homepage",
+      "description": "Remove the StatsBar component (1000+ Products Available, 50+ Local Farms, 4.9/5 Customer Rating, Same-Day Fresh Delivery) and the NewsletterSignup section from the homepage. Clean up unused imports.",
+      "phase": "6.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T12:00:00Z",
+      "acceptanceCriteria": [
+        "StatsBar component removed from homepage render",
+        "NewsletterSignup component removed from homepage render",
+        "Unused imports (Package, Users, Star, Truck, NewsletterSignup) removed",
+        "StatsBar inline component definition removed from page.tsx",
+        "Build passes with zero errors",
+        "Lint passes with zero warnings"
+      ]
+    },
+    {
+      "id": "UIUX-037",
+      "title": "Homepage Clean Design - Remove Gradients and Polish UI",
+      "description": "Replace all gradient backgrounds with solid muted tones. Simplify visual hierarchy with consistent spacing, cleaner badges with subtle borders, and refined card hover interactions. No color gradients, no emojis, no decorative blur orbs.",
+      "phase": "6.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T12:00:00Z",
+      "acceptanceCriteria": [
+        "No gradient classes (bg-gradient-to-*) on homepage sections",
+        "FeaturedCategories uses bg-muted/30 instead of gradient",
+        "GrowerCard fallback uses bg-primary/10 instead of gradient",
+        "HowItWorks uses bg-muted/20 with border-based cards instead of gradient cards",
+        "SectionHeader badges have border border-primary/15 for definition",
+        "Consistent section padding: py-16 sm:py-20 lg:py-28",
+        "CTA buttons use hover:bg-foreground pattern instead of hover:bg-primary",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-038",
+      "title": "Testimonials Section Accessibility and Design Polish",
+      "description": "Replace emoji pin icon with MapPin Lucide icon. Add section badge and accent line to header. Add aria-label to pagination dots. Improve button styling for consistency.",
+      "phase": "6.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T12:00:00Z",
+      "acceptanceCriteria": [
+        "Location emoji replaced with MapPin Lucide icon",
+        "Testimonials section has badge above title",
+        "Pagination dot buttons have aria-label",
+        "View All Reviews button has consistent border-2 hover styling",
+        "Section uses bg-muted/20 background",
         "Build passes with zero errors"
       ]
     }

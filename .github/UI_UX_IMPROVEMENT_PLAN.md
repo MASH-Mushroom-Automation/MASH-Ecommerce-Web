@@ -2,9 +2,9 @@
 
 > **Goal**: Elevate the MASH e-commerce platform from a functional MVP (current score: 6.7/10) to a polished, conversion-optimized, accessible marketplace (target: 9/10)
 >
-> **Status**: In Progress
+> **Status**: Complete (Phases 1-6)
 > **Created**: 2026-02-24
-> **Last Updated**: 2026-02-24
+> **Last Updated**: 2026-02-27
 > **Owner**: Development Team (AI Agent: Ralph)
 > **Platform**: www.mashmarket.app (Next.js 16 + Tailwind CSS + shadcn/Radix UI)
 > **PRD File**: `prd-ui-ux.json` (source of truth for story status)
@@ -764,3 +764,41 @@ Use subagents (runSubagent) for complex stories to conserve context window.
 ---
 
 *This document is the living plan for UI/UX improvements. Updated automatically by Ralph agent after each story completion.*
+
+---
+
+## Phase 6: Homepage Refinement - Clean Design (2026-02-27)
+
+> **Goal**: Strip away visual clutter, remove unnecessary sections, and establish a clean, professional homepage design that follows modern e-commerce best practices. No gradients, no emojis, no decorative orbs.
+
+### 6.1 Homepage Section Cleanup
+
+| Task | File(s) | Details | Status |
+|------|---------|---------|--------|
+| UIUX-036: Remove StatsBar and Newsletter | `src/app/page.tsx` | Removed StatsBar (1000+ Products, 50+ Farms, 4.9/5 Rating, Same-Day) and NewsletterSignup from render. Cleaned up unused imports. | DONE |
+| UIUX-037: Clean design - remove gradients | `src/app/page.tsx`, `src/components/cms/HowItWorks.tsx`, `src/components/cms/TestimonialsSection.tsx` | Replaced all gradient backgrounds with solid muted tones. Consistent spacing py-16/20/28. Flat card designs. Border-defined badges. | DONE |
+| UIUX-038: Testimonials accessibility | `src/components/cms/TestimonialsSection.tsx` | Replaced emoji pin with MapPin icon. Added section badge. aria-label on pagination dots. Consistent button styling. | DONE |
+
+### Design Principles Applied
+
+- **No gradients**: All section backgrounds use flat colors (bg-muted/20, bg-muted/30, bg-background)
+- **No emojis**: All locations use Lucide MapPin icon
+- **No decorative orbs/blur**: Clean card borders with subtle hover shadows
+- **Consistent spacing**: All major sections use py-16 sm:py-20 lg:py-28
+- **Badge pattern**: Badges have border border-primary/15 for subtle definition
+- **CTA pattern**: Outline buttons use hover:bg-foreground hover:text-background for clear interaction
+- **Card pattern**: Cards use border border-border with hover:shadow-md (not shadow-2xl)
+
+### Files Changed
+
+- [src/app/page.tsx](../src/app/page.tsx) - Removed StatsBar, NewsletterSignup, 4 unused Lucide imports. Refactored SectionHeader, CategoryCard, GrowerCard, FeaturedCategoriesSection, FeaturedProductsSection, FeaturedGrowersSection.
+- [src/components/cms/HowItWorks.tsx](../src/components/cms/HowItWorks.tsx) - Replaced gradient step cards with border-based bg-background cards. Solid bg-muted for icon containers. Flat hr-style connecting line.
+- [src/components/cms/TestimonialsSection.tsx](../src/components/cms/TestimonialsSection.tsx) - Added MapPin import. Replaced emoji with icon. Added Testimonials badge. aria-label on pagination. Consistent bg-muted/20.
+
+### Quality Gates
+
+- [x] `npm run build` - Zero errors (152 routes compiled)
+- [x] `npm run lint` - Zero warnings
+- [x] No new TypeScript errors
+
+---

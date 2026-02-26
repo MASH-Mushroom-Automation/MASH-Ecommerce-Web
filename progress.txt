@@ -15,6 +15,7 @@
 - **Test Guards:** Long-running intervals should be disabled in test environment by default. Use opt-in flags: `global.__ENABLE_COOKIE_POLLING_IN_TESTS` and `global.__ENABLE_REALTIME_IN_TESTS`.
 - **Hero Carousel Heights:** Use reduced heights for better UX - loading/error: h-[300px] md:h-[350px] lg:h-[400px], content: min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
 - **Cookie Mock Pattern:** Global mock in `jest.setupMocks.js` via `global.__mockCookies`. Tests access same instance as source code. For cookies.test.ts that tests real implementation, use `jest.unmock('@/lib/cookies')`.
+- **Homepage Design Pattern:** No gradients on section backgrounds. Use bg-muted/20 or bg-muted/30 for alternating sections. Section badges: border border-primary/15 bg-primary/8. CTA buttons: outline variant with hover:bg-foreground hover:text-background. Cards: border border-border hover:shadow-md. Consistent spacing py-16 sm:py-20 lg:py-28.
 - **HTTP Status Codes:** Malformed JSON should return 400 (Bad Request), not 500. Client errors = 4xx, Server errors = 5xx.
 - **Jest Config:** Use `clearMocks: true`, `resetMocks: false`, `restoreMocks: false` to allow persistent mock setup while clearing call history between tests.
 - **AI API Calls:** Server-side AI functions (gemini-client.ts, error-handler.ts) must call external APIs directly, NOT through proxy routes. Proxy routes (/api/ai/*) are for client-side use only.
@@ -4463,3 +4464,33 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** 34e36c2
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5848 total, 253 suites, 0 failures)
+
+---
+## [2026-02-27 12:00] - UIUX-036, UIUX-037, UIUX-038
+**Completed:** Homepage Refinement - Clean Design (Phase 6.1)
+
+**Stories:**
+- UIUX-036: Remove StatsBar and Newsletter Sections from Homepage
+- UIUX-037: Homepage Clean Design - Remove Gradients and Polish UI
+- UIUX-038: Testimonials Section Accessibility and Design Polish
+
+**Files Changed:**
+- src/app/page.tsx - Removed StatsBar component, NewsletterSignup import/render, 4 unused Lucide imports. Refactored SectionHeader (border badges, thinner accent line), CategoryCard (flat overlay, rounded-xl), GrowerCard (flat fallback, line-clamped text), all section wrappers (consistent py-16/20/28 spacing). CTAs use hover:bg-foreground pattern.
+- src/components/cms/HowItWorks.tsx - Replaced gradient step cards with bg-background border-based cards. Solid bg-muted icon containers instead of shadowed gradient boxes. Flat h-px connecting line. Foreground step number badges.
+- src/components/cms/TestimonialsSection.tsx - Added MapPin import, replaced emoji pin with icon. Added Testimonials badge and accent line to section header. Added aria-label to pagination dot buttons. Updated bg from muted/30 to muted/20. Improved View All Reviews button styling.
+
+**Implementation Notes:**
+- Removed gradient classes across all homepage sections (bg-gradient-to-*)
+- Removed decorative blur orbs (absolute positioned white circles with blur-3xl)
+- Established flat color system: bg-background, bg-muted/20, bg-muted/30
+- All section badges now have subtle border (border-primary/15)
+- CTA buttons follow two patterns: primary fill (View All Categories), outline with dark hover (View More Products, View All Growers)
+- Card hover effects reduced from shadow-2xl to shadow-md for subtlety
+
+**Learnings for Future Iterations:**
+- Flat design with consistent spacing reads better than gradient-heavy layouts
+- Border-defined badges are more accessible than background-only badges
+- aria-label on interactive dots/controls is required for WCAG compliance
+- line-clamp-2 prevents card height inconsistency with variable text length
+
+**Tests Passing:** [PASS] Build (152 routes compiled) | [PASS] Lint (0 warnings)
