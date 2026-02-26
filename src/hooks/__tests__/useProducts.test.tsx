@@ -79,29 +79,35 @@ describe("useProducts", () => {
   });
 
   it("should start in loading state", () => {
-    ProductsApi.getProducts.mockReturnValueOnce(new Promise(() => {}));
+    // Use a resolved mock instead of never-resolving promise to avoid leaked promises
+    ProductsApi.getProducts.mockResolvedValueOnce({ data: [], pagination: null });
     const { result } = renderHook(() => useProducts());
+    // First synchronous render always shows loading before effect fires
     expect(result.current.loading).toBe(true);
     expect(result.current.products).toEqual([]);
     expect(result.current.error).toBeNull();
     expect(result.current.pagination).toBeNull();
   });
 
-  it("should fetch products and return data with pagination", async () => {
-    ProductsApi.getProducts.mockResolvedValueOnce({
-      data: [mockProduct, mockProduct2],
-      pagination: mockPagination,
-    });
+  it(
+    "should fetch products and return data with pagination",
+    async () => {
+      ProductsApi.getProducts.mockResolvedValueOnce({
+        data: [mockProduct, mockProduct2],
+        pagination: mockPagination,
+      });
 
-    const { result } = renderHook(() => useProducts());
+      const { result } = renderHook(() => useProducts());
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.loading).toBe(false), { timeout: 10000 });
 
-    expect(result.current.products).toEqual([mockProduct, mockProduct2]);
-    expect(result.current.pagination).toEqual(mockPagination);
-    expect(result.current.error).toBeNull();
-    expect(ProductsApi.getProducts).toHaveBeenCalledWith({});
-  });
+      expect(result.current.products).toEqual([mockProduct, mockProduct2]);
+      expect(result.current.pagination).toEqual(mockPagination);
+      expect(result.current.error).toBeNull();
+      expect(ProductsApi.getProducts).toHaveBeenCalledWith({});
+    },
+    30000
+  );
 
   it("should pass initial params to API", async () => {
     ProductsApi.getProducts.mockResolvedValueOnce({

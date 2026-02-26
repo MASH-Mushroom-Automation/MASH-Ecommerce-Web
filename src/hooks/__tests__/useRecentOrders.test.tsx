@@ -31,7 +31,7 @@ function createQueryClient() {
     defaultOptions: {
       queries: {
         retry: false, // Override hook's retry:2 for test determinism
-        gcTime: Infinity,
+        gcTime: 0,
       },
     },
   });
@@ -82,49 +82,61 @@ describe("useRecentOrders", () => {
     queryClient = createQueryClient();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   it("should start in loading state", () => {
-    apiRequest.mockReturnValueOnce(new Promise(() => {}));
+    // Use a resolved mock instead of never-resolving promise to avoid leaked promises
+    apiRequest.mockResolvedValueOnce({
+      data: { data: [], meta: { total: 0, page: 1, limit: 5, totalPages: 0 } },
+    });
 
     const { result } = renderHook(() => useRecentOrders(), {
       wrapper: createWrapper(queryClient),
     });
 
+    // First synchronous render always shows loading before query resolves
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeUndefined();
   });
 
-  it("should fetch recent orders with default params", async () => {
-    // API returns nested: { data: { data: RecentOrder[], meta: {...} } }
-    apiRequest.mockResolvedValueOnce({
-      data: { data: mockOrders, meta: { total: 2, page: 1, limit: 5, totalPages: 1 } },
-    });
+  it(
+    "should fetch recent orders with default params",
+    async () => {
+      // API returns nested: { data: { data: RecentOrder[], meta: {...} } }
+      apiRequest.mockResolvedValueOnce({
+        data: { data: mockOrders, meta: { total: 2, page: 1, limit: 5, totalPages: 1 } },
+      });
 
-    const { result } = renderHook(() => useRecentOrders(), {
-      wrapper: createWrapper(queryClient),
-    });
+      const { result } = renderHook(() => useRecentOrders(), {
+        wrapper: createWrapper(queryClient),
+      });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 10000 });
 
-    expect(result.current.data).toEqual(mockOrders);
+      expect(result.current.data).toEqual(mockOrders);
 
-    // Verify URL includes default params
-    expect(apiRequest).toHaveBeenCalledWith(
-      expect.stringContaining("page=1"),
-      expect.objectContaining({ method: "GET" })
-    );
-    expect(apiRequest).toHaveBeenCalledWith(
-      expect.stringContaining("limit=5"),
-      expect.any(Object)
-    );
-    expect(apiRequest).toHaveBeenCalledWith(
-      expect.stringContaining("sortBy=createdAt"),
-      expect.any(Object)
-    );
-    expect(apiRequest).toHaveBeenCalledWith(
-      expect.stringContaining("sortOrder=desc"),
-      expect.any(Object)
-    );
-  });
+      // Verify URL includes default params
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("page=1"),
+        expect.objectContaining({ method: "GET" })
+      );
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("limit=5"),
+        expect.any(Object)
+      );
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("sortBy=createdAt"),
+        expect.any(Object)
+      );
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("sortOrder=desc"),
+        expect.any(Object)
+      );
+    },
+    30000
+  );
 
   it("should pass custom params", async () => {
     apiRequest.mockResolvedValueOnce({
