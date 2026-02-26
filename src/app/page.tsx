@@ -21,6 +21,97 @@ import {
   ProductListSkeleton,
   GrowerListSkeleton,
 } from "@/components/ui/skeleton-loaders";
+import {
+  Package,
+  Users,
+  Star,
+  Truck,
+  ArrowRight,
+} from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Reusable section header with decorative badge and accent line
+// ---------------------------------------------------------------------------
+const SectionHeader: React.FC<{
+  badge?: string;
+  title: string;
+  subtitle?: string;
+  light?: boolean;
+}> = ({ badge, title, subtitle, light }) => (
+  <div className="text-center mb-10 sm:mb-14">
+    {badge && (
+      <span
+        className={`inline-block px-4 py-1.5 text-xs font-bold tracking-widest uppercase rounded-full mb-4 ${
+          light
+            ? "bg-white/15 text-white"
+            : "bg-primary/10 text-primary"
+        }`}
+      >
+        {badge}
+      </span>
+    )}
+    <h2
+      className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 ${
+        light ? "text-white" : "text-foreground"
+      }`}
+    >
+      {title}
+    </h2>
+    {subtitle && (
+      <p
+        className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed ${
+          light ? "text-white/75" : "text-muted-foreground"
+        }`}
+      >
+        {subtitle}
+      </p>
+    )}
+    <div
+      className={`mt-5 mx-auto w-12 h-1 rounded-full ${
+        light ? "bg-white/40" : "bg-primary/40"
+      }`}
+    />
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Stats / trust bar displayed after the hero section
+// ---------------------------------------------------------------------------
+const StatsBar: React.FC = () => {
+  const stats = [
+    { icon: Package, value: "1,000+", label: "Products Available" },
+    { icon: Users, value: "50+", label: "Local Farms" },
+    { icon: Star, value: "4.9/5", label: "Customer Rating" },
+    { icon: Truck, value: "Same-Day", label: "Fresh Delivery" },
+  ];
+
+  return (
+    <section className="relative bg-gradient-to-r from-primary via-primary to-primary-dark text-primary-foreground py-8 sm:py-10 overflow-hidden">
+      {/* Decorative blurred orbs */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-32 h-32 bg-white rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-white rounded-full blur-3xl" />
+      </div>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center group">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/15 mb-3 group-hover:bg-white/25 transition-colors duration-300">
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {stat.value}
+              </div>
+              <div className="text-sm text-primary-foreground/75 mt-1">
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const HeroSection: React.FC = () => {
   // Use Sanity CMS for hero carousel with real-time updates
@@ -87,17 +178,13 @@ const FeaturedProductsSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-background">
+      <section className="py-14 sm:py-18 lg:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
-              Our Bestsellers
-            </h2>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-              Hand-picked favorites from our local growers, loved by our
-              community.
-            </p>
-          </div>
+          <SectionHeader
+            badge="Best Sellers"
+            title="Our Bestsellers"
+            subtitle="Hand-picked favorites from our local growers, loved by our community."
+          />
           <ProductListSkeleton count={8} />
         </div>
       </section>
@@ -135,17 +222,13 @@ const FeaturedProductsSection: React.FC = () => {
   }
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-background">
+    <section className="py-14 sm:py-18 lg:py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
-            Our Bestsellers
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Hand-picked favorites from our local growers, loved by our
-            community.
-          </p>
-        </div>
+        <SectionHeader
+          badge="Best Sellers"
+          title="Our Bestsellers"
+          subtitle="Hand-picked favorites from our local growers, loved by our community."
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {products.slice(0, 8).map((product) => (
@@ -165,13 +248,14 @@ const FeaturedProductsSection: React.FC = () => {
           ))}
         </div>
 
-        <div className="text-center mt-8 sm:mt-12">
+        <div className="text-center mt-10 sm:mt-14">
           <Link href="/shop">
             <Button
               variant="outline"
-              className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200"
+              className="group px-8 sm:px-10 py-3.5 sm:py-4 h-auto text-base sm:text-lg rounded-xl font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
             >
               View More Products
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </div>
@@ -189,29 +273,30 @@ const CategoryCard: React.FC<{
 }> = ({ name, slug, image, productCount }) => {
   return (
     <Link href={`/shop?category=${slug}`}>
-      <div className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-md hover:shadow-xl transition-all duration-300">
+      <div className="group relative overflow-hidden rounded-2xl aspect-[4/3] shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer">
         {image ? (
-          <div className="aspect-square overflow-hidden">
-            <Image
-              src={image}
-              alt={name}
-              width={400}
-              height={400}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-          </div>
+          <Image
+            src={image}
+            alt={name}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-700"
+          />
         ) : (
-          <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-            <span className="text-6xl opacity-20">🍄</span>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40" />
         )}
-        <div className="p-4 text-center">
-          <h3 className="font-bold text-lg text-gray-foreground">{name}</h3>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/80 transition-all duration-500" />
+        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-1.5 drop-shadow-md">
+            {name}
+          </h3>
           {productCount !== undefined && (
-            <p className="text-sm text-muted-foreground">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm border border-white/10">
               {productCount} {productCount === 1 ? "product" : "products"}
-            </p>
+            </span>
           )}
+        </div>
+        <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/0 group-hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
+          <ArrowRight className="w-5 h-5 text-white" />
         </div>
       </div>
     </Link>
@@ -266,12 +351,14 @@ const FeaturedCategoriesSection: React.FC = () => {
   }
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-background">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground">
-          Shop by Category
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <section className="py-14 md:py-18 lg:py-24 bg-gradient-to-b from-muted/50 to-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          badge="Explore"
+          title="Shop by Category"
+          subtitle="Browse our curated collection of premium mushroom varieties."
+        />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {parentCategories.slice(0, 4).map((category) => (
             <CategoryCard
               key={category.id}
@@ -282,12 +369,12 @@ const FeaturedCategoriesSection: React.FC = () => {
             />
           ))}
         </div>
-        <div className="text-center mt-8">
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark transition-colors"
-          >
-            View All Categories
+        <div className="text-center mt-10 sm:mt-14">
+          <Link href="/shop">
+            <Button className="group px-8 sm:px-10 py-3.5 sm:py-4 h-auto text-base sm:text-lg rounded-xl font-semibold transition-all duration-300">
+              View All Categories
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </Link>
         </div>
       </div>
@@ -309,47 +396,51 @@ const GrowerCard: React.FC<{
     isVerified?: boolean;
   };
 }> = ({ grower }) => (
-  <Card className="flex flex-col h-full min-h-[380px] overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-    {/* Banner image or colored bar at top */}
+  <Card className="group flex flex-col h-full min-h-[380px] overflow-hidden border border-border bg-card shadow-sm hover:shadow-xl transition-all duration-300">
+    {/* Banner image or gradient bar */}
     {grower.coverImage ? (
-      <div className="relative h-32 w-full">
+      <div className="relative h-32 w-full overflow-hidden">
         <Image
           src={grower.coverImage}
           alt={`${grower.name} banner`}
           fill
-          className="object-cover"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </div>
     ) : (
-      <div className="h-32 w-full bg-gradient-to-br from-primary to-accent" />
+      <div className="h-32 w-full bg-gradient-to-br from-primary via-primary/80 to-accent" />
     )}
 
     <CardContent className="p-6 text-center flex flex-col flex-grow">
-      {/* Content section - flex-grow pushes links to bottom */}
       <div className="flex-grow flex flex-col">
         <div className="flex justify-center -mt-10 mb-4 relative z-10">
-          <Image
-            src={grower.logo || grower.image || "/placeholder.png"}
-            alt={grower.name}
-            width={80}
-            height={80}
-            className="rounded-full shadow-lg border-4 border-background bg-background object-cover"
-          />
+          <div className="rounded-full p-1 bg-background shadow-lg">
+            <Image
+              src={grower.logo || grower.image || "/placeholder.png"}
+              alt={grower.name}
+              width={80}
+              height={80}
+              className="rounded-full border-2 border-primary/20 bg-background object-cover"
+            />
+          </div>
         </div>
         <div className="flex items-center justify-center gap-2 mb-1">
-          <h3 className="text-2xl font-semibold text-foreground">
+          <h3 className="text-xl font-bold text-foreground">
             {grower.name}
           </h3>
           {grower.isVerified && (
-            <span title="Verified Seller" className="text-primary">
-              ✓
+            <span
+              title="Verified Seller"
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+            >
+              &#10003;
             </span>
           )}
         </div>
         <p className="text-muted-foreground text-sm mb-3">
           {grower.location || "Location not specified"}
         </p>
-        <p className="text-muted-foreground text-sm italic">
+        <p className="text-muted-foreground text-sm italic leading-relaxed">
           &ldquo;
           {grower.tagline ||
             grower.bio ||
@@ -357,17 +448,17 @@ const GrowerCard: React.FC<{
           &rdquo;
         </p>
       </div>
-      {/* Action links - always at bottom with mt-auto */}
       <div className="flex justify-center gap-4 mt-auto pt-4 border-t border-border">
         <Link
           href={`/grower/${grower.slug || grower.id}`}
-          className="text-primary font-semibold hover:underline text-sm"
+          className="inline-flex items-center gap-1 text-primary font-semibold hover:underline text-sm group/link"
         >
           Visit Store
+          <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
         </Link>
         <Link
           href={`/grower/${grower.slug || grower.id}`}
-          className="text-muted-foreground hover:underline text-sm"
+          className="text-muted-foreground hover:text-foreground hover:underline text-sm transition-colors"
         >
           Read More
         </Link>
@@ -385,16 +476,13 @@ const FeaturedGrowersSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 sm:py-16 lg:py-20 bg-background">
+      <section className="py-14 sm:py-18 lg:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
-              Meet Our Growers
-            </h2>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-              The passionate farmers behind your food.
-            </p>
-          </div>
+          <SectionHeader
+            badge="Our Farmers"
+            title="Meet Our Growers"
+            subtitle="The passionate farmers behind your food."
+          />
           <GrowerListSkeleton count={4} />
         </div>
       </section>
@@ -408,16 +496,13 @@ const FeaturedGrowersSection: React.FC = () => {
   }
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-background">
+    <section className="py-14 sm:py-18 lg:py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
-            Meet Our Growers
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            The passionate farmers behind your food.
-          </p>
-        </div>
+        <SectionHeader
+          badge="Our Farmers"
+          title="Meet Our Growers"
+          subtitle="The passionate farmers behind your food."
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {growers.slice(0, 3).map((grower) => (
@@ -425,13 +510,14 @@ const FeaturedGrowersSection: React.FC = () => {
           ))}
         </div>
 
-        <div className="text-center mt-8 sm:mt-12">
+        <div className="text-center mt-10 sm:mt-14">
           <Link href="/grower">
             <Button
               variant="outline"
-              className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold transition-all duration-200"
+              className="group px-8 sm:px-10 py-3.5 sm:py-4 h-auto text-base sm:text-lg rounded-xl font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
             >
               View All Growers
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </div>
@@ -445,6 +531,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <main>
         <HeroSection />
+        <StatsBar />
         <FeaturedProductsSection />
         <FeaturedCategoriesSection />
         <HowItWorks />

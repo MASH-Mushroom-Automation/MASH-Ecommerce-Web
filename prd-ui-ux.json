@@ -5,12 +5,12 @@
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-24T16:30:00Z",
+  "lastUpdated": "2026-06-17T08:00:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
-  "totalStories": 30,
-  "completedStories": 30,
-  "currentPhase": "COMPLETE - All 4 Phases Finished",
+  "totalStories": 35,
+  "completedStories": 35,
+  "currentPhase": "COMPLETE - All 5 Phases Finished",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
@@ -48,7 +48,8 @@
     { "phase": "3.2", "name": "Auth UX Improvement", "storyIds": ["UIUX-021"] },
     { "phase": "3.3", "name": "Profile Redesign", "storyIds": ["UIUX-019"] },
     { "phase": "4.2", "name": "Homepage Redesign", "storyIds": ["UIUX-027", "UIUX-028"] },
-    { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] }
+    { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] },
+    { "phase": "5.1", "name": "Homepage Visual Overhaul", "storyIds": ["UIUX-031", "UIUX-032", "UIUX-033", "UIUX-034", "UIUX-035"] }
   ],
   "progressLog": [
     {
@@ -917,6 +918,91 @@
         "effort": "1 hour",
         "dependsOn": ["UIUX-015"]
       }
+    },
+    {
+      "id": "UIUX-031",
+      "title": "Homepage StatsBar Trust Section",
+      "description": "Add a trust/stats bar between the hero and products sections. Gradient primary background with decorative blur orbs, 4 stat columns (1000+ Products, 50+ Local Farms, 4.9/5 Rating, Same-Day Delivery) with Lucide icons, hover effects, and responsive 2x2 / 4-col grid.",
+      "phase": "5.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-06-17T08:00:00Z",
+      "acceptanceCriteria": [
+        "StatsBar component renders after HeroSection in page.tsx",
+        "4 stat items with icons, value, and label",
+        "Gradient primary background from-primary via-primary to-primary-dark",
+        "Decorative blur orbs with opacity-10",
+        "Responsive grid: 2 cols on mobile, 4 cols on desktop",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-032",
+      "title": "Homepage SectionHeader Component with Badges",
+      "description": "Create reusable SectionHeader component with optional pill badge (tracking-widest uppercase), title, subtitle, and decorative accent line. Replace all inline section headers with SectionHeader across Bestsellers, Categories, and Growers sections.",
+      "phase": "5.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-06-17T08:00:00Z",
+      "acceptanceCriteria": [
+        "SectionHeader renders badge, title, subtitle, accent line",
+        "Supports light mode (white text for dark backgrounds)",
+        "Used in FeaturedProductsSection, FeaturedCategoriesSection, FeaturedGrowersSection",
+        "Consistent spacing mb-10/sm:mb-14 across all sections",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-033",
+      "title": "Homepage CategoryCard Overlay Redesign",
+      "description": "Replace plain card+image category cards with full-bleed overlay design. Aspect-[4/3] with gradient overlay from-black/70, text on top of image, hover arrow icon reveal, hover scale animation, backdrop-blur product count badge.",
+      "phase": "5.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-06-17T08:00:00Z",
+      "acceptanceCriteria": [
+        "CategoryCard uses Next.js Image with fill and object-cover",
+        "Gradient overlay from-black/70 via-black/20 to-transparent",
+        "Text positioned absolute bottom-0 with white text",
+        "Product count badge with bg-white/20 backdrop-blur-sm",
+        "Arrow icon reveals on hover with opacity transition",
+        "700ms scale animation on hover",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-034",
+      "title": "Homepage HowItWorks Visual Upgrade",
+      "description": "Redesign HowItWorks from plain circles to card-based layout with gradient backgrounds per step. Rounded-2xl step cards, squared icon containers with shadow, gradient connecting line, mobile arrow indicators, section badge. Improved vertical spacing and typographic hierarchy.",
+      "phase": "5.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-06-17T08:00:00Z",
+      "acceptanceCriteria": [
+        "Each step rendered in a rounded-2xl card with gradient bg",
+        "Icons in rounded-2xl containers with shadow-lg",
+        "Gradient connecting line between steps on desktop",
+        "ArrowRight rotated 90deg for mobile step transitions",
+        "Section badge, accent line, improved spacing",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-035",
+      "title": "Homepage Newsletter and CTA Button Polish",
+      "description": "Upgrade NewsletterSignup with gradient-to-br background, decorative blur orbs, rounded-2xl icon container, increased form width, backdrop-blur input styling, white CTA button with shadow. Upgrade all section CTA buttons with ArrowRight icon, group-hover translate animation, rounded-xl, border-2.",
+      "phase": "5.1",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-06-17T08:00:00Z",
+      "acceptanceCriteria": [
+        "NewsletterSignup has gradient background with blur orb decorations",
+        "Subscribe button uses white bg with shadow-lg",
+        "Input field has backdrop-blur-sm and rounded-xl",
+        "All View More/View All buttons have ArrowRight with translate animation",
+        "Buttons use rounded-xl and border-2 styling",
+        "Build passes with zero errors"
+      ]
     }
   ]
 }
