@@ -78,6 +78,35 @@
 - **Mock Hoisting Pattern:** jest.mock() is hoisted above const declarations. Use jest.mock() with inline factory, then jest.requireMock() to get typed reference. Never reference a const inside jest.mock() factory.
 - **ApiResponse Format:** MainApi hooks access response.data (ApiResponse { data: T } format). addressApi uses { success, data?, error? } pattern. Sanity hooks use raw fetch results. Always verify source hook's data access pattern before mocking.
 - **WebSocket Test Pattern:** Create custom event emitter (eventHandlers map + emitEvent helper) for testing hooks built on getWebSocketClient(). All specialty hooks compose via useWebSocketEvent - test event emission, not subscription internals.
+- **Homepage SectionHeader Pattern:** Use SectionHeader component with badge/title/subtitle/accent-line for consistent section headers. Supports light prop for dark backgrounds (white text).
+- **Homepage StatsBar Pattern:** Trust metrics bar goes between HeroSection and FeaturedProductsSection. Uses gradient primary bg with decorative blur orbs.
+- **Category Card Overlay Pattern:** Full-bleed image with gradient overlay (from-black/70) for text visibility. ArrowRight icon reveals on hover. Product count in backdrop-blur badge.
+
+## [2026-06-17 08:00] - UIUX-031 to UIUX-035 (Homepage Visual Overhaul Phase 5.1)
+**Completed:** Homepage Visual Overhaul - StatsBar, SectionHeaders, CategoryCard overlay, HowItWorks redesign, NewsletterSignup redesign, CTA button upgrades
+**Files Changed:**
+- src/app/page.tsx (550 lines - added StatsBar, SectionHeader, redesigned CategoryCard, upgraded all sections)
+- src/components/cms/HowItWorks.tsx (92 lines - card-based layout with gradients, improved connecting line)
+- src/components/cms/NewsletterSignup.tsx (109 lines - gradient bg, decorative orbs, rounded-2xl icon, backdrop-blur input)
+- prd-ui-ux.json (5 new stories UIUX-031 to UIUX-035, all passing)
+
+**Implementation Notes:**
+- Added StatsBar trust section between hero and products (1000+ Products, 50+ Farms, 4.9/5 Rating, Same-Day Delivery)
+- Created reusable SectionHeader with optional pill badge, accent line, light/dark mode
+- Redesigned CategoryCard from separate image+text to full-bleed overlay with gradient, hover arrow reveal
+- Upgraded HowItWorks from plain circles to card-based layout with per-step gradient backgrounds
+- Redesigned NewsletterSignup with gradient-to-br, decorative blur orbs, backdrop-blur input
+- All CTA buttons now use ArrowRight with group-hover:translate-x-1 animation, rounded-xl, border-2
+
+**Learnings for Future Iterations:**
+- SectionHeader consolidates typography hierarchy across all homepage sections
+- Decorative blur orbs (opacity-10, blur-3xl) add visual depth without performance cost
+- Category overlay pattern (gradient-to-t from-black/70) ensures text readability over any image
+- group-hover pattern for nested element animations (translate-x on ArrowRight icons)
+
+**Tests Passing:** [PASS] Build (all routes) | [PASS] Lint | [PASS] Tests (5848 total, CPU contention flaky excluded)
+**Commit:** 9a6c209
+---
 - **Cal.com Embed Script URL:** Use `https://app.cal.com/embed/embed.js` (with `app` subdomain). The script expects `window.Cal` to be pre-initialized with queue pattern before loading. Use `initCalNamespace()` helper to set up the queue structure.
 - **Cal.com Initialization Pattern:** Cal.com uses queue pattern. Initialize `window.Cal` as a function that queues calls BEFORE loading embed.js. Wait for `Cal.loaded === true` or `Cal.__css` to confirm full initialization. Use 8s timeout with 100ms polling.
 - **React Query v5 Callbacks:** Mutation callbacks receive options object `{ onSuccess?: (options) => void }`, not positional args `(data, vars, ctx)`. Test with `expect(onSuccess).toHaveBeenCalled()` not specific args.
