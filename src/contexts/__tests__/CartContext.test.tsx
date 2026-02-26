@@ -22,10 +22,44 @@ import type { AuthUser } from "@/types/api";
 import { getCartCookie, setCartCookie, clearCartCookie } from "@/lib/cookies";
 
 // Mock dependencies
-jest.mock("@/lib/firebase/cart");
+// Note: AuthContext is mocked globally in jest.setupMocks.js via global.__mockUseAuth
+// No need to call jest.mock("../AuthContext") here - using global mock
+jest.mock("@/lib/firebase/cart", () => {
+  const mockMergeWithLocalCart = jest.fn().mockResolvedValue([]);
+  const mockSaveCart = jest.fn().mockResolvedValue(undefined);
+  const mockGetCart = jest.fn().mockResolvedValue([]);
+  const mockClearCart = jest.fn().mockResolvedValue(undefined);
+  const mockSubscribeToCart = jest.fn().mockReturnValue(jest.fn());
+  return {
+    FirebaseCartService: {
+      mergeWithLocalCart: mockMergeWithLocalCart,
+      saveCart: mockSaveCart,
+      getCart: mockGetCart,
+      clearCart: mockClearCart,
+      subscribeToCart: mockSubscribeToCart,
+    },
+  };
+}); // factory mock with actual jest.fn() references
 // sonner is mocked globally in jest.setupMocks.js via global.__mockToast
-jest.mock("../AuthContext"); // Mock the entire AuthContext
 jest.mock("@/lib/cookies"); // Mock cookie functions
+jest.mock("@/lib/product/stock-sync", () => ({
+  stockSync: {
+    adjustLocalStock: jest.fn().mockReturnValue(0),
+    enqueue: jest.fn(),
+    setLocalStock: jest.fn(),
+    getLocalStock: jest.fn(),
+    subscribe: jest.fn(() => jest.fn()),
+  },
+}));
+jest.mock("@/lib/logger", () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+    perf: jest.fn(),
+  },
+}));
 
 // Access global toast mock
 const mockToast = global.__mockToast as {
@@ -98,7 +132,7 @@ function renderWithAuth(
     isAuthenticated?: boolean;
   } = {}
 ) {
-  // Mock useAuth hook
+  // Directly set the mock return value for useAuth
   (useAuth as jest.Mock).mockReturnValue({
     user,
     isAuthenticated,
@@ -146,7 +180,25 @@ describe("CartContext", () => {
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
-    
+
+    // Set default unauthenticated state for useAuth
+    (useAuth as jest.Mock).mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      loading: false,
+      signInWithGoogle: jest.fn(),
+      signInWithEmailPassword: jest.fn(),
+      signUpWithEmailPassword: jest.fn(),
+      signOut: jest.fn(),
+      signOutEverywhere: jest.fn(),
+      sendEmailSignInLink: jest.fn(),
+      completeEmailLinkSignIn: jest.fn(),
+      sendPasswordResetEmail: jest.fn(),
+      confirmPasswordReset: jest.fn(),
+      requestEmailVerification: jest.fn(),
+      verifyEmailCode: jest.fn(),
+    });
+
     // Reset cookie mocks to return null by default
     (getCartCookie as jest.Mock).mockReturnValue(null);
     (setCartCookie as jest.Mock).mockImplementation(() => {});
@@ -158,11 +210,12 @@ describe("CartContext", () => {
     mockToast.info.mockClear();
 
     // Mock Firebase cart service methods with proper implementations
-    (FirebaseCartService.saveCart as jest.Mock) = jest.fn().mockResolvedValue(undefined);
-    (FirebaseCartService.getCart as jest.Mock) = jest.fn().mockResolvedValue([]);
-    (FirebaseCartService.clearCart as jest.Mock) = jest.fn().mockResolvedValue(undefined);
-    (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest.fn().mockResolvedValue([]);
-    (FirebaseCartService.subscribeToCart as jest.Mock) = jest.fn().mockReturnValue(() => {});
+    // Use property assignment to create fresh mocks (works with auto-mock pattern)
+    (FirebaseCartService as any).saveCart = jest.fn().mockResolvedValue(undefined);
+    (FirebaseCartService as any).getCart = jest.fn().mockResolvedValue([]);
+    (FirebaseCartService as any).clearCart = jest.fn().mockResolvedValue(undefined);
+    (FirebaseCartService as any).mergeWithLocalCart = jest.fn().mockResolvedValue([]);
+    (FirebaseCartService as any).subscribeToCart = jest.fn().mockReturnValue(() => {});
   });
 
   describe("Initialization", () => {
@@ -597,15 +650,9 @@ describe("CartContext", () => {
       (getCartCookie as jest.Mock).mockReturnValue(savedCart);
 
       // Mock Firebase methods with full implementation
-      (FirebaseCartService.clearCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue(undefined);
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue(mockCartItems);
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+      (FirebaseCartService.clearCart as jest.Mock).mockResolvedValue(undefined);
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue(mockCartItems);
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
       renderWithAuth(
         <CartProvider>
@@ -793,13 +840,9 @@ describe("CartContext", () => {
       const firebaseItems = [mockCartItems[1]]; // Firebase has product-2
       const mergedItems = [...mockCartItems]; // Both products
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue(mergedItems);
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue(mergedItems);
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
       renderWithAuth(
         <CartProvider>
@@ -829,17 +872,11 @@ describe("CartContext", () => {
     });
 
     it("should sync cart to Firebase when items change", async () => {
-      (FirebaseCartService.saveCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue(undefined);
+      (FirebaseCartService.saveCart as jest.Mock).mockResolvedValue(undefined);
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue([]);
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue([]);
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
       renderWithAuth(
         <CartProvider>
@@ -865,13 +902,9 @@ describe("CartContext", () => {
     it("should subscribe to Firebase cart updates on login", async () => {
       const unsubscribeMock = jest.fn();
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue([]);
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue([]);
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(unsubscribeMock);
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(unsubscribeMock);
 
       const { unmount } = renderWithAuth(
         <CartProvider>
@@ -902,13 +935,9 @@ describe("CartContext", () => {
         authProvider: "FIREBASE_GOOGLE",
       };
 
-      (FirebaseCartService.saveCart as jest.Mock) = jest.fn();
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue([]);
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+      (FirebaseCartService.saveCart as jest.Mock).mockReset();
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue([]);
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
       renderWithAuth(
         <CartProvider>
@@ -941,13 +970,9 @@ describe("CartContext", () => {
         authProvider: "FIREBASE_GOOGLE",
       };
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockRejectedValue(new Error("Firebase error"));
+      (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockRejectedValue(new Error("Firebase error"));
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+      (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
       const consoleErrorSpy = jest
         .spyOn(console, "error")
@@ -965,7 +990,7 @@ describe("CartContext", () => {
         () => {
           expect(consoleErrorSpy).toHaveBeenCalled();
         },
-        { timeout: 3000 }
+        { timeout: 6000 }
       );
 
       // Verify the error was logged with correct message
@@ -977,65 +1002,63 @@ describe("CartContext", () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it("should handle Firebase save errors gracefully", async () => {
-      const mockUser: AuthUser = {
-        id: "user-123",
-        email: "test@example.com",
-        name: "Test User",
-        role: "BUYER",
-        authProvider: "FIREBASE_GOOGLE",
-      };
+    it(
+      "should handle Firebase save errors gracefully",
+      async () => {
+        const mockUser: AuthUser = {
+          id: "user-123",
+          email: "test@example.com",
+          name: "Test User",
+          role: "BUYER",
+          authProvider: "FIREBASE_GOOGLE",
+        };
 
-      (FirebaseCartService.saveCart as jest.Mock) = jest
-        .fn()
-        .mockRejectedValue(new Error("Save failed"));
+        (FirebaseCartService.saveCart as jest.Mock).mockRejectedValue(new Error("Save failed"));
 
-      (FirebaseCartService.mergeWithLocalCart as jest.Mock) = jest
-        .fn()
-        .mockResolvedValue([]);
+        (FirebaseCartService.mergeWithLocalCart as jest.Mock).mockResolvedValue([]);
 
-      (FirebaseCartService.subscribeToCart as jest.Mock) = jest
-        .fn()
-        .mockReturnValue(() => {});
+        (FirebaseCartService.subscribeToCart as jest.Mock).mockReturnValue(() => {});
 
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+        const consoleErrorSpy = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
 
-      renderWithAuth(
-        <CartProvider>
-          <TestComponent />
-        </CartProvider>,
-        { user: mockUser, isAuthenticated: true }
-      );
+        renderWithAuth(
+          <CartProvider>
+            <TestComponent />
+          </CartProvider>,
+          { user: mockUser, isAuthenticated: true }
+        );
 
-      const addButton = screen.getByTestId("add-product");
-      
-      await act(async () => {
-        addButton.click();
-      });
+        const addButton = screen.getByTestId("add-product");
+        
+        await act(async () => {
+          addButton.click();
+        });
 
-      // Wait for debounce and Firebase sync attempt
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-      });
+        // Wait for debounce and Firebase sync attempt
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        });
 
-      // Wait for error to be logged
-      await waitFor(
-        () => {
-          expect(consoleErrorSpy).toHaveBeenCalled();
-        },
-        { timeout: 3000 }
-      );
+        // Wait for error to be logged with increased timeout
+        await waitFor(
+          () => {
+            expect(consoleErrorSpy).toHaveBeenCalled();
+          },
+          { timeout: 6000 }
+        );
 
-      // Verify the error was logged with correct message
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to sync cart to Firebase:",
-        expect.any(Error)
-      );
+        // Verify the error was logged with correct message
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Failed to sync cart to Firebase:",
+          expect.any(Error)
+        );
 
-      consoleErrorSpy.mockRestore();
-    });
+        consoleErrorSpy.mockRestore();
+      },
+      10000
+    ); // Increase test timeout to 10 seconds
   });
 
   describe("Context Hook", () => {

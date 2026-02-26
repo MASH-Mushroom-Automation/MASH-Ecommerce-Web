@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { getWishlistCookie, setWishlistCookie, clearWishlistCookie } from "@/lib/cookies";
-import { logger } from "@/lib/logger";
 
 interface WishlistContextType {
   wishlistIds: string[];
@@ -43,13 +42,11 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   // Save wishlist to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
-      logger.debug("[WishlistContext] Saving to cookie, items:", wishlistIds.length);
       setWishlistCookie({
         version: 2,
         items: wishlistIds,
         updatedAt: new Date().toISOString(),
       });
-      logger.debug("[WishlistContext] Saved to cookie");
     }
   }, [wishlistIds, isLoaded]);
 

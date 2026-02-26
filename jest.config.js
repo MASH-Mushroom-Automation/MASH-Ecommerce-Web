@@ -71,7 +71,7 @@ const customJestConfig = {
 
   // Transform ignore patterns: allow transforming ESM packages that ship untranspiled code
   transformIgnorePatterns: [
-    '/node_modules/(?!(next-sanity|@sanity|groq)/)'
+    '[/\\\\]node_modules[/\\\\](?!(next-sanity|@sanity|groq|nuqs)[/\\\\])'
   ],
 
   // Transform files

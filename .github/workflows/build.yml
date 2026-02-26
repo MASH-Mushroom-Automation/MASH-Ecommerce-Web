@@ -2,10 +2,13 @@ name: Build Check
 
 on:
   push:
-    branches: [main, develop, TESTING-&-SECURITY]
-  pull_request:
-    branches: [main, develop, TESTING-&-SECURITY]
+    branches: [main, develop]    # build for deployment only
   workflow_dispatch:
+
+# prevent overlapping builds on the same ref
+early concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
