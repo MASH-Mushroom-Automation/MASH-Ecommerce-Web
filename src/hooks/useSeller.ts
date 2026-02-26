@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SellerApi } from "@/lib/api/seller";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
-import type { FirestoreOrder } from "@/lib/firebase/orders";
+import { fetchSellerProducts } from "@/lib/sanity/products";
 import {
   SellerDashboardStats,
   SellerSalesData,
@@ -54,11 +54,12 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      // Fetch Firebase orders + product performance concurrently
-      const [allOrders, performanceResponse] = await Promise.all([
+      // Fetch Firebase orders + Sanity products concurrently
+      const [allOrders, sanityResult] = await Promise.all([
         FirebaseOrdersService.getAllOrders(),
-        SellerApi.getProductPerformance(),
+        fetchSellerProducts({ limit: 1000 }),
       ]);
+      const sanityProducts = sanityResult.products;
 
       // ── Date Boundaries ──────────────────────────────────────────
       const now = new Date();
@@ -109,7 +110,7 @@ export function useSellerDashboard() {
       const computedStats: SellerDashboardStats = {
         totalSales,
         totalOrders: allOrders.length,
-        totalProducts: performanceResponse.data?.length || 0,
+        totalProducts: sanityProducts.length,
         totalRevenue: currentRevenue,
         salesGrowth: Math.round(orderGrowth * 10) / 10,
         orderGrowth: Math.round(orderGrowth * 10) / 10,
@@ -170,9 +171,36 @@ export function useSellerDashboard() {
           status: FIREBASE_TO_SELLER_STATUS[o.status] || "PENDING",
         }));
 
+      // ── Product Performance (Sanity products × Firebase orders) ──
+      const productStats = new Map<string, { sales: number; revenue: number }>();
+
+      for (const order of allOrders) {
+        if (EXCLUDED_STATUSES.includes(order.status)) continue;
+        for (const item of order.items || []) {
+          if (!item.productId) continue;
+          const existing = productStats.get(item.productId) || { sales: 0, revenue: 0 };
+          existing.sales += item.quantity || 0;
+          existing.revenue += (item.price || 0) * (item.quantity || 0);
+          productStats.set(item.productId, existing);
+        }
+      }
+
+      const computedProductPerformance: SellerProductPerformance[] = sanityProducts
+        .map((p) => {
+          const ps = productStats.get(p.id) || { sales: 0, revenue: 0 };
+          return {
+            name: p.name,
+            sales: ps.sales,
+            stock: p.stock || 0,
+            revenue: ps.revenue,
+          };
+        })
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 5);
+
       setStats(computedStats);
       setSalesData(computedSalesData);
-      setProductPerformance(performanceResponse.data || []);
+      setProductPerformance(computedProductPerformance);
       setRecentOrders(computedRecentOrders);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
