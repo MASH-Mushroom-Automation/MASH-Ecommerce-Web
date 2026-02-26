@@ -153,7 +153,7 @@ export function ProductDetailClient({ slug }: Props) {
   /*  RENDER                                                           */
   /* ================================================================ */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
+    <div className="min-h-screen bg-background">
       {/* ---- Breadcrumb ---- */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

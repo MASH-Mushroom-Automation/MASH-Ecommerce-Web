@@ -289,7 +289,7 @@ export function ShopClient() {
                       <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-600 text-xs rounded-full hover:bg-blue-500/20 transition-colors group"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted text-foreground text-xs rounded-full hover:bg-muted/80 transition-colors group border border-border"
                       >
                         {tagLabel}
                         <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
@@ -301,7 +301,7 @@ export function ShopClient() {
                   {(priceRange[0] > 0 || priceRange[1] < 12000) && (
                     <button
                       onClick={() => setPriceRange([0, 12000])}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 text-amber-600 text-xs rounded-full hover:bg-amber-500/20 transition-colors group"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted text-foreground text-xs rounded-full hover:bg-muted/80 transition-colors group border border-border"
                     >
                       ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
                       <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />

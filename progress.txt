@@ -4494,3 +4494,31 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - line-clamp-2 prevents card height inconsistency with variable text length
 
 **Tests Passing:** [PASS] Build (152 routes compiled) | [PASS] Lint (0 warnings)
+---
+
+## [2026-02-27 18:00] - UIUX-039 / UIUX-040 / UIUX-041 / UIUX-042 / UIUX-043
+**Completed:** Phase 6.2 - Design System Rollout to High-Traffic Pages
+**Branch:** feature/ui-ux-phase-6.2-design-system
+**Files Changed:**
+- src/app/(shop)/shop/ShopClient.tsx (filter chip colors replaced with design tokens)
+- src/app/(shop)/product/[slug]/ProductDetailClient.tsx (gradient wrapper removed)
+- src/app/stores/page.tsx (emojis replaced with Lucide icons, hardcoded colors removed, badges added)
+- src/components/layout/footer.tsx (link hover states unified, column headings modernized)
+- .github/PR-PHASE-6.2-DESIGN-SYSTEM.md (PR documentation created)
+
+**Implementation Notes:**
+- Shop filter chips: bg-blue-500/10 text-blue-600 and bg-amber-500/10 text-amber-600 replaced with bg-muted text-foreground border border-border
+- Product detail: bg-gradient-to-b from-muted/30 to-background replaced with flat bg-background
+- Stores: StoreTypeBadge emojis replaced with text-only labels. Section headers now use StoreIcon, Package, Handshake from lucide-react. OpenNowBadge uses bg-primary text-primary-foreground instead of bg-green-600
+- Stores: Added section header badge pattern, card border border-border hover:shadow-md, CTA bg-muted/20 border border-border
+- Footer: All hover:underline replaced with text-muted-foreground hover:text-foreground transition-colors. Column headings changed to text-sm uppercase tracking-wider. Contact icons get flex-shrink-0
+
+**Learnings for Future Iterations:**
+- Filter chip colors should always use design tokens, not hardcoded brand colors
+- Stores/growers pages that previously used emojis as section markers should use Lucide icons
+- Footer link hover:underline is outdated; color transition is the modern pattern
+- Column headings in footers look cleaner as small uppercase text rather than large primary-colored text
+- Cart page was already well-aligned with the design system (no changes needed)
+- No growers listing page exists; growers are shown on homepage and at /grower route
+
+**Tests Passing:** [PASS] Build (152 routes compiled) | [PASS] Lint (0 warnings)

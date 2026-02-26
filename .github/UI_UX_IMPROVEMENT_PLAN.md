@@ -2,7 +2,7 @@
 
 > **Goal**: Elevate the MASH e-commerce platform from a functional MVP (current score: 6.7/10) to a polished, conversion-optimized, accessible marketplace (target: 9/10)
 >
-> **Status**: Complete (Phases 1-6)
+> **Status**: Complete (Phases 1-6.2)
 > **Created**: 2026-02-24
 > **Last Updated**: 2026-02-27
 > **Owner**: Development Team (AI Agent: Ralph)
@@ -800,5 +800,42 @@ Use subagents (runSubagent) for complex stories to conserve context window.
 - [x] `npm run build` - Zero errors (152 routes compiled)
 - [x] `npm run lint` - Zero warnings
 - [x] No new TypeScript errors
+
+---
+
+## Phase 6.2: Design System Rollout - High-Traffic Pages (2026-02-27)
+
+> **Goal**: Extend the clean design system from the homepage to all remaining high-traffic customer-facing pages. Eliminate all remaining gradient classes, emoji characters, and hardcoded color values across the shop, product detail, stores, and footer.
+
+### 6.2 Page-by-Page Design System Alignment
+
+| Task | File(s) | Details | Status |
+|------|---------|---------|--------|
+| UIUX-039: Shop filter chip tokens | `src/app/(shop)/shop/ShopClient.tsx` | Replaced hardcoded blue/amber chip colors with bg-muted text-foreground border-border | DONE |
+| UIUX-040: Product detail gradient removal | `src/app/(shop)/product/[slug]/ProductDetailClient.tsx` | Removed bg-gradient-to-b from wrapper div, replaced with flat bg-background | DONE |
+| UIUX-041: Stores page emoji/color cleanup | `src/app/stores/page.tsx` | Replaced 4 emojis with Lucide icons, bg-green-600 with bg-primary, added section badges | DONE |
+| UIUX-042: Footer link modernization | `src/components/layout/footer.tsx` | Unified links to text-muted-foreground hover:text-foreground, uppercase headings | DONE |
+| UIUX-043: PR documentation | `.github/PR-PHASE-6.2-DESIGN-SYSTEM.md` | Full PR description for develop branch merge | DONE |
+
+### Branch & PR
+
+- **Branch**: `feature/ui-ux-phase-6.2-design-system`
+- **Target**: `develop`
+- **PR Doc**: [PR-PHASE-6.2-DESIGN-SYSTEM.md](PR-PHASE-6.2-DESIGN-SYSTEM.md)
+
+### Files Changed
+
+- `src/app/(shop)/shop/ShopClient.tsx` - Tag chip and price chip color tokens replaced
+- `src/app/(shop)/product/[slug]/ProductDetailClient.tsx` - Gradient wrapper removed
+- `src/app/stores/page.tsx` - Emojis replaced with Lucide icons, hardcoded green removed, section badges added, card borders added, CTA section updated
+- `src/components/layout/footer.tsx` - All link hover states unified, column headings modernized, contact icons improved
+
+### Quality Gates
+
+- [x] `npm run build` - Zero errors (152 routes compiled)
+- [x] `npm run lint` - Zero warnings
+- [x] No gradient classes in any modified file
+- [x] No emoji characters in any modified file
+- [x] No hardcoded color values in any modified file
 
 ---

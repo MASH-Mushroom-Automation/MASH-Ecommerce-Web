@@ -1,16 +1,16 @@
 {
   "projectName": "MASH UI/UX Improvement Plan",
-  "version": "1.2.0",
-  "branchName": "feature/ui-ux-improvements",
+  "version": "1.3.0",
+  "branchName": "feature/ui-ux-phase-6.2-design-system",
   "description": "Comprehensive UI/UX overhaul for the MASH e-commerce platform. Elevate from functional MVP (6.7/10) to polished, conversion-optimized, accessible marketplace (9/10). Covers design system cleanup, mobile navigation fixes, SEO foundation, accessibility, shopping experience, checkout redesign, visual polish, and performance optimization.",
   "owner": "AI Agent (Ralph)",
   "startedDate": "2026-02-24",
-  "lastUpdated": "2026-02-27T12:00:00Z",
+  "lastUpdated": "2026-02-27T18:00:00Z",
   "planDocument": ".github/UI_UX_IMPROVEMENT_PLAN.md",
   "progressDocument": "progress.txt",
-  "totalStories": 38,
-  "completedStories": 38,
-  "currentPhase": "COMPLETE - All Phases Finished + Phase 6 Homepage Refinement",
+  "totalStories": 43,
+  "completedStories": 43,
+  "currentPhase": "COMPLETE - All Phases Finished + Phase 6.2 Design System Rollout",
   "successMetrics": {
     "build": "npm run build passes with zero errors",
     "tests": "All test suites pass with 0 failures",
@@ -50,7 +50,8 @@
     { "phase": "4.2", "name": "Homepage Redesign", "storyIds": ["UIUX-027", "UIUX-028"] },
     { "phase": "4.3", "name": "Footer & Global Polish", "storyIds": ["UIUX-025", "UIUX-026"] },
     { "phase": "5.1", "name": "Homepage Visual Overhaul", "storyIds": ["UIUX-031", "UIUX-032", "UIUX-033", "UIUX-034", "UIUX-035"] },
-    { "phase": "6.1", "name": "Homepage Refinement - Clean Design", "storyIds": ["UIUX-036", "UIUX-037", "UIUX-038"] }
+    { "phase": "6.1", "name": "Homepage Refinement - Clean Design", "storyIds": ["UIUX-036", "UIUX-037", "UIUX-038"] },
+    { "phase": "6.2", "name": "Design System Rollout - High-Traffic Pages", "storyIds": ["UIUX-039", "UIUX-040", "UIUX-041", "UIUX-042", "UIUX-043"] }
   ],
   "progressLog": [
     {
@@ -220,6 +221,36 @@
       "completedAt": "2026-02-27T12:00:00Z",
       "filesChanged": ["src/components/cms/TestimonialsSection.tsx"],
       "summary": "Replaced emoji pin icon with MapPin Lucide icon for testimonial locations. Added Testimonials badge and accent line to section header. Added aria-label to pagination dots for accessibility. Improved View All Reviews button with consistent border-2 hover styling."
+    },
+    {
+      "storyId": "UIUX-039",
+      "completedAt": "2026-02-27T18:00:00Z",
+      "filesChanged": ["src/app/(shop)/shop/ShopClient.tsx"],
+      "summary": "Replaced hardcoded blue (text-blue-600, bg-blue-500/10) and amber (text-amber-600, bg-amber-500/10) colors in filter chips with design tokens (bg-muted text-foreground border border-border)."
+    },
+    {
+      "storyId": "UIUX-040",
+      "completedAt": "2026-02-27T18:00:00Z",
+      "filesChanged": ["src/app/(shop)/product/[slug]/ProductDetailClient.tsx"],
+      "summary": "Removed bg-gradient-to-b from-muted/30 to-background gradient from page wrapper. Replaced with flat bg-background."
+    },
+    {
+      "storyId": "UIUX-041",
+      "completedAt": "2026-02-27T18:00:00Z",
+      "filesChanged": ["src/app/stores/page.tsx"],
+      "summary": "Replaced all emojis with Lucide icons (StoreIcon, Package, Handshake). Replaced bg-green-600 with bg-primary on badges. Added section header badge pattern and accent divider. Updated card styling and CTA section."
+    },
+    {
+      "storyId": "UIUX-042",
+      "completedAt": "2026-02-27T18:00:00Z",
+      "filesChanged": ["src/components/layout/footer.tsx"],
+      "summary": "Unified all footer links from hover:underline to text-muted-foreground hover:text-foreground transition-colors. Updated column headings to text-sm uppercase tracking-wider pattern. Added flex-shrink-0 to contact icons."
+    },
+    {
+      "storyId": "UIUX-043",
+      "completedAt": "2026-02-27T18:00:00Z",
+      "filesChanged": [".github/PR-PHASE-6.2-DESIGN-SYSTEM.md"],
+      "summary": "Created comprehensive PR documentation for Phase 6.2 with branch info, file changes, design system rules table, quality gates, and testing instructions."
     }
   ],
   "stories": [
@@ -1074,6 +1105,89 @@
         "View All Reviews button has consistent border-2 hover styling",
         "Section uses bg-muted/20 background",
         "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-039",
+      "title": "Shop Page Filter Chips - Design Token Alignment",
+      "description": "Replace hardcoded blue and amber color values in filter chips with design system tokens (bg-muted, text-foreground, border border-border) so chips adapt to light/dark themes.",
+      "phase": "6.2",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T18:00:00Z",
+      "acceptanceCriteria": [
+        "Tag filter chips use bg-muted text-foreground border border-border (no text-blue-600 or bg-blue-500)",
+        "Price range filter chips use bg-muted text-foreground border border-border (no text-amber-600 or bg-amber-500)",
+        "Chips render correctly in both light and dark mode",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-040",
+      "title": "Product Detail Page - Remove Gradient Background",
+      "description": "Remove bg-gradient-to-b from-muted/30 to-background on the page wrapper and replace with flat bg-background per the no-gradients design rule.",
+      "phase": "6.2",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T18:00:00Z",
+      "acceptanceCriteria": [
+        "Page wrapper uses bg-background (no gradient classes)",
+        "No bg-gradient-*, from-*, via-*, to-* classes in ProductDetailClient.tsx",
+        "Visual appearance is clean flat background",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-041",
+      "title": "Stores Page - Replace Emojis with Lucide Icons",
+      "description": "Replace all emoji characters in StoreTypeBadge and section headers with Lucide React icons. Replace hardcoded bg-green-600 with bg-primary text-primary-foreground.",
+      "phase": "6.2",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T18:00:00Z",
+      "acceptanceCriteria": [
+        "StoreTypeBadge labels contain no emoji characters",
+        "Main Stores header uses StoreIcon from lucide-react",
+        "Pickup Points header uses Package icon from lucide-react",
+        "Partner Stores header uses Handshake icon from lucide-react",
+        "Open Now badge uses bg-primary text-primary-foreground (no bg-green-600)",
+        "Section header has badge pattern (border border-primary/15 bg-primary/8) and accent divider",
+        "Store cards have border border-border and hover:shadow-md",
+        "CTA section uses bg-muted/20 border border-border",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-042",
+      "title": "Footer - Unified Link Hover States and Modern Headings",
+      "description": "Replace hover:underline on all footer links with text-muted-foreground hover:text-foreground transition-colors. Update column headings to uppercase small text pattern.",
+      "phase": "6.2",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T18:00:00Z",
+      "acceptanceCriteria": [
+        "All footer links use text-muted-foreground hover:text-foreground transition-colors",
+        "No hover:underline classes remain in footer",
+        "Column headings use text-sm font-semibold uppercase tracking-wider text-foreground",
+        "Contact detail icons have flex-shrink-0",
+        "Build passes with zero errors"
+      ]
+    },
+    {
+      "id": "UIUX-043",
+      "title": "PR Documentation for Phase 6.2 Design System Rollout",
+      "description": "Create .github/PR-PHASE-6.2-DESIGN-SYSTEM.md with full PR description, files changed, design rules enforced, quality gate results, and testing instructions.",
+      "phase": "6.2",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T18:00:00Z",
+      "acceptanceCriteria": [
+        "PR document exists at .github/PR-PHASE-6.2-DESIGN-SYSTEM.md",
+        "Contains branch source and target information",
+        "Lists all files changed with specific changes",
+        "Includes design system rules table with pass/fail status",
+        "Includes quality gate results table",
+        "Includes testing instructions for each page"
       ]
     }
   ]
