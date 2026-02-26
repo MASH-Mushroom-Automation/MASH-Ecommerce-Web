@@ -67,6 +67,7 @@ const customJestConfig = {
     '/scripts/',
     '/e2e/',
     '/sanity-schemas/',
+    'schema-test-utils\\.ts$',
   ],
 
   // Transform ignore patterns: allow transforming ESM packages that ship untranspiled code

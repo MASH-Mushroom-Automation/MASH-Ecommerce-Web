@@ -8,6 +8,7 @@ import {
   MobileBottomNav,
   MobileBottomNavSpacer,
 } from "@/components/layout/mobile-bottom-nav";
+import { BackToTop } from "@/components/common/back-to-top";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -90,13 +91,20 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 ) : (
                   // Regular routes get full layout with header, footer, and nav
                   <div className="min-h-screen flex flex-col">
+                    <a
+                      href="#main-content"
+                      className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
+                    >
+                      Skip to main content
+                    </a>
                     {isAuthRoute ? <SimpleHeader /> : <Header />}
-                    <main className="flex-1">
+                    <main id="main-content" className="flex-1" tabIndex={-1}>
                       {children}
                       <MobileBottomNavSpacer />
                     </main>
                     <Footer />
                     <MobileBottomNav />
+                    <BackToTop />
                     <Toaster position="bottom-center" richColors closeButton />
                     <Chatbot />
                   </div>

@@ -12,6 +12,15 @@
 
 # testing
 /coverage
+/test-results
+
+# build/test output files
+*.output.txt
+build-*.txt
+test-*.txt
+*-test-*.txt
+*-output*.txt
+*.log
 
 # next.js
 /.next/

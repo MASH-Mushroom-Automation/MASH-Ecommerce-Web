@@ -50,7 +50,7 @@ export const SanityHeroCarousel: React.FC = () => {
   // Loading state
   if (loading) {
     return (
-      <section className="relative h-[300px] md:h-[350px] lg:h-[400px] overflow-hidden">
+      <section className="relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/10 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="relative">
@@ -77,10 +77,10 @@ export const SanityHeroCarousel: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <section className="relative h-[300px] md:h-[350px] lg:h-[400px] overflow-hidden">
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+      <section className="relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden">
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
           <div className="text-center">
-            <p className="text-red-600 mb-4">Error loading hero carousel</p>
+            <p className="text-destructive mb-4">Error loading hero carousel</p>
             <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </div>
@@ -92,7 +92,7 @@ export const SanityHeroCarousel: React.FC = () => {
   // No slides - show default message
   if (!slides || slides.length === 0) {
     return (
-      <section className="relative h-[300px] md:h-[350px] lg:h-[400px] overflow-hidden">
+      <section className="relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-dark via-primary-medium to-primary-light flex items-center justify-center">
           <div className="text-center text-white px-4 max-w-2xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
