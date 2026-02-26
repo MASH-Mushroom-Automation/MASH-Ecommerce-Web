@@ -48,6 +48,9 @@
 - **Never-Resolving Promise Leak:** `mockReturnValue(new Promise(() => {}))` in loading state tests leaks pending promises that prevent worker process clean exit. Use `mockResolvedValueOnce({...})` instead - first synchronous render still shows loading before effect/query fires.
 - **CPU Contention Timeouts:** Under multi-worker Jest execution, setTimeout-based waitFor (default 1000ms) and Jest test timeouts (default 5000ms) can be delayed significantly by CPU contention. Add explicit `waitFor({ timeout: 10000 })` and Jest test timeout `it("...", async () => {...}, 30000)` for async resolution tests.
 - **Error Spread Pattern:** api-client.ts error construction uses `...data` spread which overwrites earlier fields (e.g., .error becomes full object not just type string). Always verify actual error shape in tests.
+- **jest.setup.js Router Override:** jest.setup.js (line 326) re-mocks next/navigation with `useRouter: () => ({...})` plain function that creates NEW object per call. Tests needing shared router reference MUST use file-level jest.mock("next/navigation") override with const mockRouter.
+- **Global Cookie Mock Access:** Cookie-related hooks/modules share global.__mockCookies from jest.setupMocks.js. In-file jest.mock("@/lib/cookies") conflicts. Access via `(global as any).__mockCookies` directly.
+- **.map() Test Assertions:** Array.map(fn) passes (element, index, array). Use toHaveBeenNthCalledWith(callNum, element, index, array) instead of toHaveBeenCalledWith(element) for precise assertions.
 - **jsdom Location Immutable:** window.location cannot be mocked in jsdom (Object.defineProperty, delete, jest.spyOn all fail). Test behavior (errors thrown, fetch calls) instead of location.href assignment.
 - **Falsy Empty Strings:** Status utility functions returning "" for unknown states are falsy in JS. `"" || fallback` returns fallback. Test runtime values, not raw returns.
 - **Profile Decomposition:** Use slot pattern (ReactNode props) for composable sections; sub-components own their hooks. Feature flag gates wrap entire component including hooks.
@@ -4398,3 +4401,36 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 
 **Commit:** a77f29d
 **Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5803 total, 247 suites, 0 failures)
+
+## [2025-07-11] - COVERAGE-018
+**Completed:** Hook Test Coverage Batch 9 - FINAL (useProductRatings, useAdminGuard, useWishlistProducts, useNavigation, useColorTheme, useStockSync)
+**Files Created:**
+- src/hooks/__tests__/useProductRatings.test.tsx: 8 tests (batch fetch, caching, failure defaults, load state)
+- src/hooks/__tests__/useAdminGuard.test.tsx: 7 tests (admin/non-admin, expired, unauthenticated, network error)
+- src/hooks/__tests__/useWishlistProducts.test.tsx: 7 tests (fetch+transform, error handling, ID changes)
+- src/hooks/__tests__/useNavigation.test.tsx: 6 tests (unauthenticated, buyer, approved/pending seller)
+- src/hooks/__tests__/useColorTheme.test.tsx: 7 tests (default/saved theme, CSS vars, dark mode, changeTheme)
+- src/hooks/__tests__/useStockSync.test.tsx: 10 tests (subscribe, update, unmount, cache priority, hydration)
+
+**Implementation Notes:**
+- useAdminGuard: file-level jest.mock("next/navigation") required to override jest.setup.js global mock (creates NEW router object on every useRouter() call, preventing assertion on shared reference)
+- useColorTheme: must use global.__mockCookies directly (in-file jest.mock("@/lib/cookies") conflicts with global mock at jest.setupMocks.js line 398)
+- useWishlistProducts: .map(transformSanityProduct) passes (element, index, array) args; use toHaveBeenNthCalledWith for correct assertion
+- useStockSync: getter-based mock for stockSync export const singleton with subscriber callback capture
+- useAdminGuard async assertions: put router.replace expectations inside waitFor() callbacks alongside loading state check (async effect timing)
+
+**Learnings for Future Iterations:**
+- jest.setup.js (line 326) overrides jest.setupMocks.js next/navigation mock with plain function creating new objects per call
+- File-level jest.mock always overrides both setupFiles and setupFilesAfterEnv global mocks for the same module
+- .map() callback receives (element, index, array) - test assertions must account for all 3 params
+- Hook coverage: 60/60 hooks tested (100%) - ALL HOOKS COVERED
+
+**Test Results:**
+- New tests: 6 suites, 45 tests (8 + 7 + 7 + 6 + 7 + 10)
+- Full suite: 253 suites, 5848 tests, 0 failures
+- Baseline (pre-COVERAGE-018): 247 suites, 5803 tests
+- Delta: +6 suites, +45 tests
+- Hook coverage: 60/60 (100%) [COMPLETE]
+
+**Commit:** 34e36c2
+**Tests Passing:** [PASS] Build (compiled successfully) | [PASS] Lint (0 warnings) | [PASS] Jest (5848 total, 253 suites, 0 failures)
