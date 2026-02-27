@@ -42,7 +42,7 @@ export function ProductDetailClient({ slug }: Props) {
   const { trackView } = useRecentlyViewed();
   const dynamicStock = useStockSync(
     product?.id || "",
-    product?.stock || product?.quantityInStock || 0,
+    product?.stock || 0,
   );
 
   // Reviews hook
@@ -128,6 +128,7 @@ export function ProductDetailClient({ slug }: Props) {
         grower: typeof product.grower === "object" ? product.grower?.name : product.grower,
         unit: product.unit,
         comparePrice: product.compareAtPrice,
+        sellerId: product.sellerId,
       },
       quantity,
     );

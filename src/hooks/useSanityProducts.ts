@@ -10,6 +10,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { sanityClient, listenSafe } from '@/lib/sanity/client';
+import type { MutationEvent } from '@sanity/client';
 import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
 
 // Memory cache to prevent duplicate API calls (1 minute TTL)
@@ -58,22 +59,22 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
 
       // Build GROQ query with filters
       let query = `*[_type == "product"`;
-      
+
       // Filter by availability (always show only available products)
       if (filters?.isAvailable !== false) {
         query += ` && isAvailable == true`;
       }
-      
+
       // Filter by category
       if (filters?.category) {
         query += ` && category->slug.current == "${filters.category}"`;
       }
-      
+
       // Filter by featured
       if (filters?.featured) {
         query += ` && isFeatured == true`;
       }
-      
+
       // Filter by search term - searches name, description, SKU, tags, and category name
       if (filters?.search) {
         const searchTerm = filters.search.toLowerCase();
@@ -86,14 +87,14 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
           count(productTags[@ match "*${searchTerm}*"]) > 0
         )`;
       }
-      
+
       // Filter by tags
       if (filters?.tags && filters.tags.length > 0) {
         // Match products that have ALL selected tags
         const tagConditions = filters.tags.map(tag => `"${tag}" in productTags`).join(' && ');
         query += ` && (${tagConditions})`;
       }
-      
+
       query += `] {
         _id,
         _createdAt,
@@ -112,6 +113,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         "isPromo": isOnPromo,
         promoEndDate,
         productTags,
+        sellerId,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
         category->{
@@ -135,7 +137,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
           "image": logo.asset->url
         }
       }`;
-      
+
       // Add sorting
       if (filters?.sortBy) {
         switch (filters.sortBy) {
@@ -164,14 +166,14 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
 
       // Fetch from Sanity
       console.log('📡 Executing GROQ query:', query.substring(0, 200) + '...');
-      
+
       // Server-side pagination: apply GROQ slice when limit is specified
       let paginatedQuery = query;
       if (filters?.limit !== undefined) {
         const offset = filters.offset || 0;
         paginatedQuery += ` [${offset}...${offset + filters.limit}]`;
       }
-      
+
       // Build count query from the filter portion (everything before the projection)
       // Extract the filter part to build a count query
       let countQuery = '';
@@ -182,7 +184,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
           countQuery = `count(${query.substring(0, projectionStart + 1)})`;
         }
       }
-      
+
       // Execute queries (paginated query + optional count query)
       const [data, serverCount] = await Promise.all([
         sanityClient.fetch<SanityProduct[]>(paginatedQuery),
@@ -192,7 +194,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       if (serverCount >= 0) {
         console.log('📊 Total matching products:', serverCount);
       }
-      
+
       // Client-side price filtering (more flexible than GROQ)
       let filteredData = data;
       if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
@@ -206,18 +208,18 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
           return true;
         });
       }
-      
+
       // Transform Sanity products to match component interface
       const { transformSanityProduct } = await import('@/types/sanity');
       const transformedProducts = filteredData.map(transformSanityProduct);
-      
+
       console.log('🛒 Fetched products from Sanity:', transformedProducts.length);
-      
+
       // Store in cache BEFORE setting state (use transformed data directly)
       const cacheKey = JSON.stringify(filters || {});
       const resolvedTotalCount = serverCount >= 0 ? serverCount : transformedProducts.length;
       productCache.set(cacheKey, { data: transformedProducts, totalCount: resolvedTotalCount, timestamp: Date.now() });
-      
+
       setProducts(transformedProducts);
       // Set total count: use server count if available, otherwise use array length
       setTotalCount(resolvedTotalCount);
@@ -233,7 +235,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     // Check cache first
     const cacheKey = JSON.stringify(filters || {});
     const cached = productCache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       console.log('📦 Using cached products:', cached.data.length);
       setProducts(cached.data);
@@ -241,7 +243,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       setLoading(false);
       return;
     }
-    
+
     // Fetch if cache miss or expired
     fetchProducts();
 
@@ -403,6 +405,7 @@ export function useSanityProduct(slug: string) {
           isFeatured,
           "isPromo": isOnPromo,
           promoEndDate,
+          sellerId,
           "mainImage": image.asset->url,
           "images": images[].asset->url,
           // Media Gallery (images + videos)
@@ -486,7 +489,7 @@ export function useSanityProduct(slug: string) {
         }`;
 
         const data: SanityProduct | null = await sanityClient.fetch(query, { slug });
-        
+
         if (data) {
           const { transformSanityProduct } = await import('@/types/sanity');
           setProduct(transformSanityProduct(data));
@@ -522,6 +525,7 @@ export function useSanityProduct(slug: string) {
         isFeatured,
         "isPromo": isOnPromo,
         promoEndDate,
+        sellerId,
         "mainImage": image.asset->url,
         "images": images[].asset->url,
         media[] {
@@ -566,10 +570,10 @@ export function useSanityProduct(slug: string) {
       }`;
 
       const subscription = listenSafe(query, {}, { includeResult: true })
-        .subscribe(async (update) => {
+        .subscribe(async (update: MutationEvent<SanityProduct>) => {
           if (update.type === 'mutation' && 'result' in update && update.result) {
             const data = update.result as unknown as SanityProduct;
-            
+
             if (data) {
               const { transformSanityProduct } = await import('@/types/sanity');
               setProduct(transformSanityProduct(data));
@@ -722,7 +726,7 @@ export function useSanityFeaturedProducts(limit: number = 8) {
         }`;
 
         const singletonData = await sanityClient.fetch(singletonQuery);
-        
+
         if (singletonData?.products && singletonData.products.length > 0) {
           // Use products from singleton
           const { transformSanityProduct } = await import('@/types/sanity');
@@ -730,7 +734,7 @@ export function useSanityFeaturedProducts(limit: number = 8) {
             .filter((p: SanityProduct | null) => p !== null)
             .slice(0, limit)
             .map(transformSanityProduct);
-          
+
           setProducts(transformedProducts);
           console.log('✅ Featured products loaded from singleton:', transformedProducts.length);
           return;
@@ -760,10 +764,10 @@ export function useSanityFeaturedProducts(limit: number = 8) {
         }`;
 
         const data: SanityProduct[] = await sanityClient.fetch(fallbackQuery);
-        
+
         const { transformSanityProduct } = await import('@/types/sanity');
         const transformedProducts = data.map(transformSanityProduct);
-        
+
         setProducts(transformedProducts);
         console.log('⚠️ Featured products loaded from isFeatured flag:', transformedProducts.length);
       } catch (err) {

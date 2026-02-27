@@ -50,7 +50,7 @@ export default function WishlistPage() {
   // Add all items to cart - use TransformedProduct properties
   const handleAddAllToCart = useCallback(async () => {
     if (wishlistItems.length === 0) return;
-    
+
     setIsAddingAll(true);
     let addedCount = 0;
     let failedCount = 0;
@@ -66,8 +66,9 @@ export default function WishlistPage() {
           stock: product.stock,
           grower: product.category,
           unit: product.unit ? `${product.weight}${product.unit}` : undefined,
+          sellerId: product.sellerId,
         }, 1);
-        
+
         if (success) {
           addedCount++;
           removeFromWishlist(product.id);
@@ -104,6 +105,7 @@ export default function WishlistPage() {
       stock: product.stock,
       grower: product.category,
       unit: product.unit ? `${product.weight}${product.unit}` : undefined,
+      sellerId: product.sellerId,
     }, 1);
     if (success) {
       removeFromWishlist(product.id);
@@ -164,7 +166,7 @@ export default function WishlistPage() {
                 )}
                 {isAddingAll ? "Adding..." : "Add All to Cart"}
               </Button>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -180,7 +182,7 @@ export default function WishlistPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Clear all items?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will remove all {wishlistItems.length} products from your wishlist. 
+                      This will remove all {wishlistItems.length} products from your wishlist.
                       You can always add them again from the catalog.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -242,8 +244,9 @@ export default function WishlistPage() {
                     stock={product.stock}
                     tags={product.productTags || []}
                     description={product.description}
+                    sellerId={product.sellerId}
                   />
-                  
+
                   {/* Quick Remove Button - Shows on hover */}
                   <Button
                     variant="secondary"
