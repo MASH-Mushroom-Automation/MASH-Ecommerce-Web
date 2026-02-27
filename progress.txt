@@ -365,3 +365,27 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (25 new: 11 Card + 14 Selector, 92 checkout total) | [PASS] TypeCheck
 ---
+
+## [2026-02-28 10:00] - PAY-004
+**Completed:** GCash Payment Flow - Frontend Integration
+**Persona:** ATLAS (Frontend Design)
+**Files Changed:**
+- src/components/checkout/PaymentProcessingOverlay.tsx (NEW)
+- src/components/checkout/PaymentMethodInfoBox.tsx (NEW)
+- src/components/checkout/__tests__/PaymentProcessingOverlay.test.tsx (NEW)
+- src/components/checkout/__tests__/PaymentMethodInfoBox.test.tsx (NEW)
+
+**Implementation Notes:**
+- PaymentProcessingOverlay: Full-screen backdrop-blur modal with per-method processing messages. Uses Loader2 spinner in an emerald circle. Messages: "Redirecting to GCash..." / "Redirecting to GrabPay..." / "Processing card payment..." / "Redirecting to Maya..." / "Processing your order..." (COD). Optional cancel button pre-redirect. Shared across all payment methods (PAY-005, PAY-007 reuse for free).
+- PaymentMethodInfoBox: Inline info box rendered below PaymentMethodSelector. Shows payment method title, redirect explanation, mobile deep link note (for e-wallets), and do-not-close browser warning (for redirect methods). Card shows 3D Secure info instead. COD returns null (no info needed).
+- getPaymentButtonLabel(method, isSubmitting): Returns dynamic button text per method. "Pay with GCash" (idle) vs "Redirecting to GCash..." (submitting). Used by checkout step to dynamically change submit button.
+- Both components use isRedirectMethod() and isCodMethod() helpers from src/types/payment.ts
+- PaymentProcessingOverlay is method-agnostic -- designed for reuse by PAY-005 (GrabPay), PAY-006 (Card), PAY-007 (PayMaya)
+
+**Learnings for Future Iterations:**
+- PaymentProcessingOverlay designed as shared component -- PAY-005/PAY-007 acceptance criteria "Shares PaymentProcessingOverlay" is pre-satisfied
+- getPaymentButtonLabel extracted as pure function for easy testing and reuse in CheckoutStep3Payment (PAY-008)
+- info.mobileNote only shown for e-wallet methods; card has no deep link -- this distinction is important for PAY-006
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (46 new: 16 Overlay + 30 InfoBox, 138 checkout total) | [PASS] TypeCheck
+---
