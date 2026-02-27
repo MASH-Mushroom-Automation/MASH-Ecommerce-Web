@@ -4642,3 +4642,58 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 - **ReviewInsights Testing:** Mock recharts components, FirebaseReviewService with getter-based pattern, and lucide-react icons.
 
 ---
+
+## [2025-06-24] Track A: Coverage to 80% - Batch 1 (COV-001 to COV-004)
+**Completed:** Rate Limit, Proxy, Email Client, Error Boundary, Admin Config, Robots, Constants, useSellerGuard
+**Persona:** SENTINEL
+**Commit:** 7c21739
+**Files Changed:**
+- src/middleware/__tests__/rate-limit.test.ts (27 tests)
+- src/__tests__/proxy.test.ts (30 tests)
+- src/lib/email/__tests__/client.test.ts (11 tests)
+- src/lib/__tests__/error-boundary.test.tsx (6 tests)
+- src/config/__tests__/admin.test.ts (13 tests)
+- src/app/__tests__/robots.test.ts (5 tests)
+- src/lib/__tests__/constants.test.ts (2 tests)
+- src/hooks/__tests__/useSellerGuard.test.ts (9 tests)
+
+**Implementation Notes:**
+- NextRequest/NextResponse cannot be instantiated in jest/jsdom (edge runtime). Mock entire next/server module with self-contained factory class (MockNextResponse).
+- jest.mock hoisting: Variables declared before jest.mock() are inaccessible in factory. Use self-contained factories.
+- window.location.reload is non-configurable in jsdom. Test button existence instead.
+- next/headers cookies() is async in Next.js 16. Mock as jest.fn().mockResolvedValue(mockCookieStore).
+
+**Quality Gates:** [PASS] Tests (6338/6338) | [PASS] Regression (273 suites)
+
+---
+
+## [2025-06-24] Track A: Coverage to 80% - Batch 2 (COV-005 to COV-010)
+**Completed:** Email Templates, Auth Pages, API Auth Routes, API Orders/Products, Seller Pages, Critical Components
+**Persona:** SENTINEL
+**Commit:** c0788bd
+**Files Changed:**
+- src/lib/email/templates/__tests__/email-templates.test.tsx (32 tests)
+- src/app/api/auth/__tests__/auth-routes.test.ts (18 tests)
+- src/app/__tests__/auth-pages.test.tsx (15 tests)
+- src/app/api/__tests__/orders-products-routes.test.ts (15 tests)
+- src/app/__tests__/seller-pages.test.tsx (4 tests)
+- src/components/__tests__/critical-components.test.tsx (16 tests)
+
+**Implementation Notes:**
+- @react-email/components must be mocked with HTML passthrough elements (div/span) for rendering.
+- lucide-react best mocked with Proxy for auto-stub of any icon name.
+- next/navigation must be re-mocked at file level for tests needing useRouter.
+- API routes using Next.js 16 async params: use { params: Promise.resolve({ id: "..." }) }.
+- VariantSelector uses ProductVariant interface (id not _id, variantName not name).
+- summary.priceRange is a string ("₱100.00 - ₱200.00"), not an object.
+- size.toUpperCase() renders in DOM — test for "SMALL"/"LARGE" not "Small"/"Large".
+
+**Coverage Progress:**
+- Before: Stmts 58.18% | Branches 48.17% | Lines 58.26% | Funcs 53.88%
+- After:  Stmts 60.70% | Branches 50.03% | Lines 60.97% | Funcs 55.33%
+- Delta:  +2.52% stmts, +1.86% branches, +2.71% lines, +1.45% funcs
+- Tests:  6438 across 279 suites, 0 failures
+
+**Quality Gates:** [PASS] Tests (6438/6438) | [PASS] Regression (279 suites)
+
+---

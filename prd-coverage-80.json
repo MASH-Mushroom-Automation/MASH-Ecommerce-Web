@@ -113,7 +113,7 @@
         "Templates display correct order data",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-006",
@@ -133,7 +133,7 @@
         "Key UI elements present (headings, forms, buttons)",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-007",
@@ -156,7 +156,7 @@
         "Auth cookie reading/writing tested",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-008",
@@ -175,7 +175,7 @@
         "Error handling tested",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-009",
@@ -194,7 +194,7 @@
         "Key UI elements present",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-010",
@@ -214,7 +214,7 @@
         "User interactions tested where applicable",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
