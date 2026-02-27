@@ -4726,3 +4726,44 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 
 **Quality Gates:** [PASS] Tests (6590/6590) | [PASS] Regression (284 suites)
 ---
+
+---
+
+## [2026-02-27] - TCOV-016
+**Completed:** Batch 4: Chatbot Analytics + Page Render Tests (14 files, 106 tests)
+**Persona:** SENTINEL (Testing and Quality)
+**Files Created:**
+- src/lib/analytics/__tests__/chatbot-analytics.coverage.test.ts (39 tests)
+- src/app/about/__tests__/page.test.tsx (7 tests)
+- src/app/contact/__tests__/page.test.tsx (7 tests)
+- src/app/(auth)/login/__tests__/page.test.tsx (15 tests)
+- src/app/grower/__tests__/page.test.tsx (6 tests)
+- src/app/stores/__tests__/page.test.tsx (6 tests)
+- src/app/privacy/__tests__/page.test.tsx (3 tests)
+- src/app/terms/__tests__/page.test.tsx (3 tests)
+- src/app/shipping-info/__tests__/page.test.tsx (3 tests)
+- src/app/returns-policy/__tests__/page.test.tsx (4 tests)
+- src/app/(auth)/forgot-password/__tests__/page.test.tsx (5 tests)
+- src/app/(auth)/welcome/__tests__/page.test.tsx (3 tests)
+- src/app/(auth)/reset-success/__tests__/page.test.tsx (2 tests)
+- src/app/blog/__tests__/page.test.tsx (4 tests)
+
+**Implementation Notes:**
+- chatbot-analytics: Used jest.unmock to bypass global mock, enabling real coverage
+- Login page: Required react-hook-form Controller mock to avoid useController crash
+- Stores page: Async Server Component tested with render(await StoresPage()) pattern
+- Static pages (privacy, terms, shipping-info, returns-policy): Simple render tests
+
+**Learnings for Future Iterations:**
+- react-hook-form Controller needs explicit mock when testing pages that use it
+- getAllByText preferred over getByText for content that appears multiple times
+- Blog page heading has emoji; use getByRole(heading) instead of getByText
+- Static server component pages are fast wins: simple render tests cover many lines
+
+**Coverage Delta (Batch 4):**
+- Before: Stmts 64.10%, Branches 52.41%, Lines 64.77%, Funcs 56.59%
+- After:  Stmts 65.50%, Branches 53.87%, Lines 66.28%, Funcs 58.17%
+- Delta:  +1.40% stmts, +1.46% branches, +1.51% lines, +1.58% funcs
+- Tests:  6696 across 298 suites, 0 failures
+
+**Quality Gates:** [PASS] Tests (6696/6696) | [PASS] Regression (298 suites)
