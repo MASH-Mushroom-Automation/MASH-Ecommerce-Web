@@ -341,3 +341,27 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (22 config tests) | [PASS] TypeCheck
 ---
+
+## [2026-02-28 08:30] - PAY-003
+**Completed:** Payment Method Selection UI Component
+**Persona:** ATLAS (Frontend Design)
+**Files Changed:**
+- src/components/checkout/PaymentMethodCard.tsx (NEW)
+- src/components/checkout/PaymentMethodSelector.tsx (NEW)
+- src/components/checkout/__tests__/PaymentMethodCard.test.tsx (NEW)
+- src/components/checkout/__tests__/PaymentMethodSelector.test.tsx (NEW)
+
+**Implementation Notes:**
+- PaymentMethodCard: Radix RadioGroupPrimitive.Item styled as selectable card. Emerald border+bg on selection, "Coming Soon" badge + opacity-60 when disabled. METHOD_ICONS map uses Lucide icons (Banknote, Smartphone, Wallet, CreditCard, CircleDollarSign) per payment method. Custom radio indicator circle with RadioGroupPrimitive.Indicator.
+- PaymentMethodSelector: Radix RadioGroupPrimitive.Root with responsive grid (grid-cols-1 md:grid-cols-2 gap-3). Iterates all PAYMENT_METHODS, disables methods not in getAvailablePaymentMethods(). PaymentMethodSelectorSkeleton renders 4 skeleton cards for loading state.
+- Uses PAYMENT_METHOD_LABELS and PAYMENT_METHOD_DESCRIPTIONS from src/types/payment.ts for display text
+- Icon area: 10x10 rounded-lg with conditional emerald/muted background color
+- Full keyboard navigation via Radix RadioGroup primitives (arrow keys, focus management)
+
+**Learnings for Future Iterations:**
+- Radix RadioGroupPrimitive.Item requires wrapping in RadioGroupPrimitive.Root for context - tests must provide this wrapper
+- For component tests mocking config modules, jest.mock() at top level is sufficient (no need for resetModules pattern)
+- COD is always in getAvailablePaymentMethods() - PaymentMethodSelector relies on this for fallback guarantee
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (25 new: 11 Card + 14 Selector, 92 checkout total) | [PASS] TypeCheck
+---

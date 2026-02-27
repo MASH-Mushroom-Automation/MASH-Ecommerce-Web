@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 2,
+  "completedStories": 3,
   "stories": [
     {
       "id": "PAY-001",
@@ -55,8 +55,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 3,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-02-28T08:30:00.000Z",
       "acceptanceCriteria": [
         "Create PaymentMethodSelector component with radio card design",
         "Display available methods: COD, GCash, GrabPay, Credit/Debit Card, PayMaya",
