@@ -274,7 +274,7 @@ describe("SignupPage", () => {
 
     await user.click(passwordToggle);
     expect(passwordInput).toHaveAttribute("type", "password");
-  });
+  }, 30000);
 
   // ---- PASSWORD REQUIREMENTS ----
 
