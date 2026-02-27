@@ -316,3 +316,28 @@
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (287 suites, 6644 tests, 1 pre-existing fail)
 ---
+
+## [2026-02-27 14:00] - PAY-002
+**Completed:** PayMongo Environment Configuration & Validation
+**Persona:** RALPH Core (General Agent)
+**Files Changed:**
+- src/lib/payment/config.ts (new: centralized payment configuration with env validation)
+- src/lib/payment/index.ts (modified: added config re-exports)
+- src/lib/payment/__tests__/config.test.ts (new: 22 tests for config module)
+- .github/PAYMENT_SYSTEM_GUIDE.md (new: payment system technical documentation)
+
+**Implementation Notes:**
+- PAYMONGO_ENABLED flag derived from both PAYMONGO_SECRET_KEY and NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY being present
+- COD-only fallback: getAvailablePaymentMethods() returns ["cod"] when PayMongo not configured
+- validatePaymentConfig() returns structured diagnostics: isValid, paymongoEnabled, warnings, availableMethods
+- logPaymentConfigWarnings() outputs startup diagnostics with specific messages per missing key
+- getPaymentConfig() provides full config object with redirect URL builders for payment flows
+- PaymentConfig includes currency (PHP), minimumAmount (1 PHP), and APP_BASE_URL for redirects
+
+**Learnings for Future Iterations:**
+- .gitignore has *.md rule that overrides !.github/*.md - must git add -f for new .github/*.md files
+- Module-level constants require jest.resetModules() + dynamic import() for per-test env var control
+- paymongo.ts still has inline env var access - can be refactored to use config.ts in future stories
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (22 config tests) | [PASS] TypeCheck
+---
