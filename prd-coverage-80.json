@@ -31,7 +31,7 @@
         "Tests for proxy() route protection, auth detection, security headers",
         "All new tests pass in full suite"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-002",
@@ -48,7 +48,7 @@
         "Tests for isEmailConfigured, getFromAddress",
         "All new tests pass in full suite"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-003",
@@ -69,7 +69,7 @@
         "Constants and theme shape tests",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-004",
@@ -92,7 +92,7 @@
         "Firebase config singleton test",
         "All new tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "COV-005",
