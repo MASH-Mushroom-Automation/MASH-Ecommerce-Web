@@ -4697,3 +4697,32 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 **Quality Gates:** [PASS] Tests (6438/6438) | [PASS] Regression (279 suites)
 
 ---
+## [2026-02-27 21:01] - COV-011: Batch 3 API Route Tests
+**Completed:** Auth, Seller, Payment, Lalamove, Stock/Misc API route tests
+**Persona:** SENTINEL
+**Commit:** 3af4214
+**Files Changed:**
+- src/app/api/auth/__tests__/auth-all.test.ts (34 tests - logout, me, session, 2fa)
+- src/app/api/seller/__tests__/seller-routes.test.ts (49 tests - 12 seller route groups)
+- src/app/api/payment/__tests__/payment-routes.test.ts (25 tests - webhook, create-intent, status)
+- src/app/api/lalamove/__tests__/lalamove-routes.test.ts (12 tests - delivery routes)
+- src/app/api/__tests__/stock-contact-misc-routes.test.ts (32 tests - stock, contact, OTP, misc)
+
+**Implementation Notes:**
+- PayMongo payment routes mock @/lib/payment (verifyWebhookSignature, createPaymentFromSource, isPayMongoConfigured, createCardPaymentIntent, createEWalletPayment, getPublicKey, getSourceStatus, getPaymentIntentStatus)
+- Lalamove routes require getLalamoveClient mock returning object with getQuotation, placeOrder, getOrderDetails, getDriverDetails, addPriorityFee methods
+- addPriorityFee mock must return full order object (orderId, status, priceBreakdown) not just {success:true}
+- seller/inventory/update uses next-sanity createClient (not @sanity/client) - needs separate mock
+- orders/schedule-delivery has NO auth check - test validation errors, not 401
+- Payment webhook returns {received:true} even on JSON parse errors (prevents retries)
+- Eager JSON.parse in createReq helper causes test crash for non-JSON strings - use try/catch
+- jest.resetModules() in mid-test (for env variable changes) cascades module cache invalidation to subsequent tests - avoid
+
+**Coverage Progress:**
+- Before: Stmts 60.70% | Branches 50.03% | Lines 60.97% | Funcs 55.33%
+- After:  Stmts 64.10% | Branches 52.41% | Lines 64.77% | Funcs 56.59%
+- Delta:  +3.40% stmts, +2.38% branches, +3.80% lines, +1.26% funcs
+- Tests:  6590 across 284 suites, 0 failures
+
+**Quality Gates:** [PASS] Tests (6590/6590) | [PASS] Regression (284 suites)
+---

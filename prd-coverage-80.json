@@ -215,6 +215,29 @@
         "All new tests pass"
       ],
       "passes": true
+    },
+    {
+      "id": "COV-011",
+      "title": "Batch 3: API Route Tests (auth, seller, payment, lalamove, stock/misc)",
+      "priority": "P1",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/api/auth/__tests__/auth-all.test.ts",
+        "src/app/api/seller/__tests__/seller-routes.test.ts",
+        "src/app/api/payment/__tests__/payment-routes.test.ts",
+        "src/app/api/lalamove/__tests__/lalamove-routes.test.ts",
+        "src/app/api/__tests__/stock-contact-misc-routes.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Auth routes tested: logout, me, session, 2fa/enable/disable/send/verify",
+        "12 seller route groups tested: dashboard, orders, profile, addresses, payment-info, password, notifications, notification-preferences, sales-data, refunds, inventory, top-performing",
+        "Payment routes tested: webhook (all event types), create-intent (all payment methods), status",
+        "Lalamove routes tested: quotation, create-order, driver, order-details, orders, priority, order, chat/send, webhook",
+        "Stock/misc routes tested: stock/adjust, stock/batch, stock/thresholds, contact, OTP, notifications, devices, schedule-delivery, inventory/update, products",
+        "152 new tests, 5 new suites, all passing",
+        "Coverage: Stmts 64.10%, Branches 52.41%, Lines 64.77%, Funcs 56.59%"
+      ],
+      "passes": true
     }
   ]
 }
