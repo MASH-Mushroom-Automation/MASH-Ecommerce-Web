@@ -206,7 +206,7 @@ describe("ProductCard", () => {
       );
 
       expect(screen.getByText("Out of Stock")).toBeInTheDocument();
-      const button = screen.getByRole("button", { name: /add oyster mushrooms to cart/i });
+      const button = screen.getByRole("button", { name: /sold out/i });
       expect(button).toBeDisabled();
       expect(screen.getByText("Sold Out")).toBeInTheDocument();
     });
@@ -435,7 +435,7 @@ describe("ProductCard", () => {
         />
       );
 
-      const addButton = screen.getByRole("button", { name: /add oyster mushrooms to cart/i });
+      const addButton = screen.getByRole("button", { name: /sold out/i });
       expect(addButton).toBeDisabled();
       expect(screen.getByText("Sold Out")).toBeInTheDocument();
     });

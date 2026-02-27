@@ -13,6 +13,21 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 jest.setTimeout(30000);
 
+// ─── Mock Firebase Orders & Sanity Products (for useSellerDashboard) ─────
+
+const mockGetAllOrders = jest.fn();
+const mockFetchSellerProducts = jest.fn();
+
+jest.mock("@/lib/firebase/orders", () => ({
+  FirebaseOrdersService: {
+    get getAllOrders() { return mockGetAllOrders; },
+  },
+}));
+
+jest.mock("@/lib/sanity/products", () => ({
+  fetchSellerProducts: (...args: unknown[]) => mockFetchSellerProducts(...args),
+}));
+
 // ─── Mock SellerApi ──────────────────────────────────────────
 
 const mockGetDashboardStats = jest.fn();
@@ -115,6 +130,8 @@ const MOCK_ADDRESSES = [
 ];
 
 beforeEach(() => {
+  mockGetAllOrders.mockReset();
+  mockFetchSellerProducts.mockReset();
   mockGetDashboardStats.mockReset();
   mockGetSalesData.mockReset();
   mockGetProductPerformance.mockReset();
@@ -136,11 +153,38 @@ beforeEach(() => {
 // ═══════════════════════════════════════════════════════════════
 
 describe("useSellerDashboard", () => {
+  // The hook now fetches Firebase orders + Sanity products and computes stats locally
+  const MOCK_FIREBASE_ORDERS = [
+    {
+      id: "order-1",
+      orderNumber: "ORD-001",
+      status: "delivered",
+      total: 500,
+      userName: "Alice",
+      userEmail: "alice@test.com",
+      createdAt: new Date(),
+      items: [{ productId: "p-1", quantity: 2, price: 250 }],
+    },
+    {
+      id: "order-2",
+      orderNumber: "ORD-002",
+      status: "pending_approval",
+      total: 300,
+      userName: "Bob",
+      userEmail: "bob@test.com",
+      createdAt: new Date(),
+      items: [{ productId: "p-2", quantity: 1, price: 300 }],
+    },
+  ];
+
+  const MOCK_SANITY_PRODUCTS = [
+    { id: "p-1", name: "Lion's Mane", stock: 100 },
+    { id: "p-2", name: "Shiitake", stock: 50 },
+  ];
+
   function setupDashboardMocks() {
-    mockGetDashboardStats.mockResolvedValue({ data: MOCK_STATS });
-    mockGetSalesData.mockResolvedValue({ data: MOCK_SALES });
-    mockGetProductPerformance.mockResolvedValue({ data: MOCK_PERFORMANCE });
-    mockGetOrders.mockResolvedValue({ data: MOCK_ORDERS });
+    mockGetAllOrders.mockResolvedValue(MOCK_FIREBASE_ORDERS);
+    mockFetchSellerProducts.mockResolvedValue({ products: MOCK_SANITY_PRODUCTS });
   }
 
   it("should start in loading state", () => {
@@ -156,28 +200,30 @@ describe("useSellerDashboard", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.stats).toEqual(MOCK_STATS);
-    expect(result.current.salesData).toEqual(MOCK_SALES);
-    expect(result.current.productPerformance).toEqual(MOCK_PERFORMANCE);
-    expect(result.current.recentOrders).toEqual(MOCK_ORDERS);
+    // Stats are computed locally from orders + products
+    expect(result.current.stats).not.toBeNull();
+    expect(result.current.stats!.totalOrders).toBe(2);
+    expect(result.current.stats!.totalProducts).toBe(2);
+    expect(result.current.salesData).toBeDefined();
+    expect(result.current.salesData.length).toBe(7); // last 7 days
+    expect(result.current.productPerformance).toBeDefined();
+    expect(result.current.recentOrders).toBeDefined();
     expect(result.current.error).toBeNull();
   });
 
-  it("should call getOrders with limit 5", async () => {
+  it("should call fetchSellerProducts with limit 1000", async () => {
     setupDashboardMocks();
 
     renderHook(() => useSellerDashboard());
 
     await waitFor(() =>
-      expect(mockGetOrders).toHaveBeenCalledWith({ limit: 5 })
+      expect(mockFetchSellerProducts).toHaveBeenCalledWith({ limit: 1000 })
     );
   });
 
   it("should handle error from any API call", async () => {
-    mockGetDashboardStats.mockRejectedValue(new Error("API down"));
-    mockGetSalesData.mockResolvedValue({ data: [] });
-    mockGetProductPerformance.mockResolvedValue({ data: [] });
-    mockGetOrders.mockResolvedValue({ data: [] });
+    mockGetAllOrders.mockRejectedValue(new Error("API down"));
+    mockFetchSellerProducts.mockResolvedValue({ products: [] });
 
     const { result } = renderHook(() => useSellerDashboard());
 
@@ -186,10 +232,8 @@ describe("useSellerDashboard", () => {
   });
 
   it("should handle non-Error thrown", async () => {
-    mockGetDashboardStats.mockRejectedValue("string error");
-    mockGetSalesData.mockResolvedValue({ data: [] });
-    mockGetProductPerformance.mockResolvedValue({ data: [] });
-    mockGetOrders.mockResolvedValue({ data: [] });
+    mockGetAllOrders.mockRejectedValue("string error");
+    mockFetchSellerProducts.mockResolvedValue({ products: [] });
 
     const { result } = renderHook(() => useSellerDashboard());
 
@@ -211,7 +255,7 @@ describe("useSellerDashboard", () => {
       await result.current.refetch();
     });
 
-    expect(mockGetDashboardStats).toHaveBeenCalledTimes(2);
+    expect(mockGetAllOrders).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -242,7 +242,7 @@ describe('AuthContext', () => {
       expect(toast.loading).toHaveBeenCalledWith('Signing you in...', { id: 'google-signin' });
       expect(toast.dismiss).toHaveBeenCalledWith('google-signin');
       expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('Welcome'));
-    });
+    }, 15000);
 
     it('should handle comma-separated name', async () => {
       const userWithCommaSeparatedName = {

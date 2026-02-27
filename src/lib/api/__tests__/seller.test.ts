@@ -1,19 +1,302 @@
 /**
  * Tests for src/lib/api/seller.ts
- * SellerApi - seller dashboard operations (mock data)
- * Uses real timers (delays are 100-500ms) for parallel-execution reliability.
+ * SellerApi - seller dashboard operations via fetch-based API client.
+ * Each method calls apiFetch() which calls global fetch.
+ * We mock global.fetch with a URL-routing handler to return appropriate data.
  */
 import { SellerApi } from "../seller";
 
-// Mock dynamic import of sanity products
-jest.mock("@/lib/sanity/products", () => ({
-  fetchSellerProducts: jest.fn(),
-}));
+// ─── Mock Data ─────────────────────────────────────────────────────────────
+
+const MOCK_DASHBOARD_STATS = {
+  totalRevenue: 125000,
+  totalOrders: 50,
+  totalProducts: 24,
+  totalSales: 98500,
+  salesGrowth: 12.5,
+  orderGrowth: 8.5,
+  revenueGrowth: 10.0,
+};
+
+const MOCK_SALES_DATA = [
+  { name: "Mon", sales: 12000, revenue: 24000 },
+  { name: "Tue", sales: 15000, revenue: 26500 },
+  { name: "Wed", sales: 18000, revenue: 32000 },
+  { name: "Thu", sales: 14000, revenue: 28000 },
+  { name: "Fri", sales: 22000, revenue: 35000 },
+  { name: "Sat", sales: 25000, revenue: 42390 },
+  { name: "Sun", sales: 19000, revenue: 30000 },
+];
+
+const MOCK_PRODUCT_PERFORMANCE = [
+  { name: "Oyster Mushrooms", sales: 245, revenue: 36750, stock: 120 },
+  { name: "Shiitake Mushrooms", sales: 189, revenue: 28350, stock: 15 },
+  { name: "Lion's Mane", sales: 156, revenue: 23400, stock: 0 },
+];
+
+const MOCK_PRODUCTS = [
+  { id: "P-001", name: "Oyster Mushrooms", price: 150, stock: 120, category: "Mushrooms", status: "active", createdAt: "2024-01-01", updatedAt: "2024-01-15" },
+  { id: "P-002", name: "Shiitake Mushrooms", price: 180, stock: 15, category: "Mushrooms", status: "active", createdAt: "2024-01-02", updatedAt: "2024-01-15" },
+  { id: "P-003", name: "Lion's Mane", price: 200, stock: 0, category: "Mushrooms", status: "active", createdAt: "2024-01-03", updatedAt: "2024-01-15" },
+];
+
+const MOCK_ORDERS = [
+  { id: "ORD-001", customer: "John Smith", status: "PENDING", total: 300, date: "2024-01-20", items: 2 },
+  { id: "ORD-002", customer: "Alice Brown", status: "DELIVERED", total: 450, date: "2024-01-19", items: 3 },
+  { id: "ORD-003", customer: "Bob Johnson", status: "PROCESSING", total: 150, date: "2024-01-18", items: 1 },
+  { id: "ORD-004", customer: "Alice Chen", status: "DELIVERED", total: 200, date: "2024-01-17", items: 1 },
+];
+
+const MOCK_ORDER_DETAILS: Record<string, any> = {
+  "ORD-001": {
+    id: "ORD-001",
+    customer: { name: "John Smith", email: "john@example.com", phone: "+639123456789" },
+    items: [{ productId: "P-001", name: "Oyster Mushrooms", quantity: 2, price: 150, total: 300 }],
+    total: 300,
+    status: "PENDING",
+    date: "2024-01-20",
+    timeline: [{ status: "PENDING", date: "2024-01-20T10:00:00Z", note: "Order placed" }],
+    shippingAddress: { street: "123 Main St", city: "Manila" },
+  },
+  "ORD-002": {
+    id: "ORD-002",
+    customer: { name: "Alice Brown", email: "alice@example.com", phone: "+639987654321" },
+    items: [{ productId: "P-002", name: "Shiitake", quantity: 3, price: 150, total: 450 }],
+    total: 450,
+    status: "DELIVERED",
+    date: "2024-01-19",
+    timeline: [
+      { status: "PENDING", date: "2024-01-19T08:00:00Z", note: "Order placed" },
+      { status: "PROCESSING", date: "2024-01-19T09:00:00Z", note: "Processing" },
+      { status: "DELIVERED", date: "2024-01-19T15:00:00Z", note: "Delivered" },
+    ],
+    shippingAddress: { street: "456 Oak Ave", city: "Quezon City" },
+  },
+};
+
+const MOCK_REFUNDS = [
+  { id: "REF-001", orderId: "ORD-005", amount: 150, status: "Pending", reason: "Defective", createdAt: "2024-01-20" },
+  { id: "REF-002", orderId: "ORD-006", amount: 300, status: "Approved", reason: "Wrong item", createdAt: "2024-01-19" },
+  { id: "REF-003", orderId: "ORD-007", amount: 200, status: "Pending", reason: "Late delivery", createdAt: "2024-01-18" },
+];
+
+const MOCK_NOTIFICATIONS = [
+  { id: "notif-1", type: "order", message: "New order received", read: false, createdAt: "2024-01-20" },
+  { id: "notif-2", type: "stock", message: "Low stock alert", read: true, createdAt: "2024-01-19" },
+];
+
+const MOCK_ADDRESSES = [
+  { id: "addr-1", label: "Store", street: "123 Main St", city: "Manila", province: "Metro Manila", postalCode: "1000", country: "Philippines", isDefault: true },
+  { id: "addr-2", label: "Warehouse", street: "456 Oak Ave", city: "Quezon City", province: "Metro Manila", postalCode: "1100", country: "Philippines", isDefault: false },
+];
+
+// ─── URL-Routing Fetch Mock ────────────────────────────────────────────────
+
+function mockResponse(data: any, ok = true) {
+  return Promise.resolve({
+    ok,
+    status: ok ? 200 : 404,
+    json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
+    headers: new Headers(),
+  });
+}
+
+function createFetchMock() {
+  return jest.fn(async (url: string, init?: RequestInit) => {
+    const method = (init?.method || "GET").toUpperCase();
+    const [path, queryString] = url.split("?");
+    const params = new URLSearchParams(queryString || "");
+    let body: any = {};
+    try {
+      body = init?.body ? JSON.parse(init.body as string) : {};
+    } catch {
+      /* empty */
+    }
+
+    // ── Dashboard ───────────────────────────────
+    if (path === "/api/seller/dashboard" && method === "GET") {
+      return mockResponse({ success: true, data: MOCK_DASHBOARD_STATS });
+    }
+
+    // ── Sales Data ──────────────────────────────
+    if (path === "/api/seller/sales-data" && method === "GET") {
+      return mockResponse({ success: true, data: MOCK_SALES_DATA });
+    }
+
+    // ── Product Performance ─────────────────────
+    if (path.startsWith("/api/seller/products/top-performing") && method === "GET") {
+      return mockResponse({ success: true, data: MOCK_PRODUCT_PERFORMANCE });
+    }
+
+    // ── Products / Inventory ────────────────────
+    if (path === "/api/seller/inventory" && method === "GET") {
+      const id = params.get("id");
+      if (id) {
+        const product = MOCK_PRODUCTS.find((p) => p.id === id) || null;
+        return mockResponse({ success: true, data: product });
+      }
+
+      let filtered = [...MOCK_PRODUCTS];
+      const search = params.get("search");
+      if (search) {
+        filtered = filtered.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+      }
+
+      const page = parseInt(params.get("page") || "1");
+      const limit = parseInt(params.get("limit") || "100");
+      const start = (page - 1) * limit;
+      const paginated = filtered.slice(start, start + limit);
+
+      return mockResponse({
+        success: true,
+        data: paginated,
+        pagination: { page, limit, total: filtered.length },
+      });
+    }
+
+    // ── Update Product ──────────────────────────
+    if (path.match(/^\/api\/seller\/products\/[\w-]+$/) && method === "PUT") {
+      const productId = path.split("/").pop()!;
+      const today = new Date().toISOString().split("T")[0];
+      const existing = MOCK_PRODUCTS.find((p) => p.id === productId) || { id: productId };
+      return mockResponse({
+        success: true,
+        data: { ...existing, ...body, id: productId, updatedAt: today },
+      });
+    }
+
+    // ── Delete Product ──────────────────────────
+    if (path.match(/^\/api\/seller\/products\/[\w-]+$/) && method === "DELETE") {
+      return mockResponse({ success: true, data: true });
+    }
+
+    // ── Order Status Update ─────────────────────
+    if (path.match(/^\/api\/seller\/orders\/[\w-]+\/status$/) && method === "PATCH") {
+      const orderId = path.split("/")[4];
+      const detail = MOCK_ORDER_DETAILS[orderId];
+      if (!detail) {
+        return mockResponse({ success: false, message: "Order not found" }, false);
+      }
+      const newStatus = body.status;
+      return mockResponse({
+        success: true,
+        data: {
+          ...detail,
+          status: newStatus,
+          timeline: [
+            ...detail.timeline,
+            { status: newStatus, date: new Date().toISOString(), note: `Status updated to ${newStatus}` },
+          ],
+        },
+      });
+    }
+
+    // ── Order Detail ────────────────────────────
+    if (path.match(/^\/api\/seller\/orders\/[\w-]+$/) && method === "GET") {
+      const orderId = path.split("/").pop()!;
+      const detail = MOCK_ORDER_DETAILS[orderId];
+      if (!detail) {
+        return mockResponse({ success: false, message: "Order not found" }, false);
+      }
+      return mockResponse({ success: true, data: detail });
+    }
+
+    // ── Orders List ─────────────────────────────
+    if (path === "/api/seller/orders" && method === "GET") {
+      let filtered = [...MOCK_ORDERS];
+      const status = params.get("status");
+      const search = params.get("search");
+
+      if (status) {
+        filtered = filtered.filter((o) => o.status === status);
+      }
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (o) => o.customer.toLowerCase().includes(s) || o.id.toLowerCase().includes(s)
+        );
+      }
+
+      const page = parseInt(params.get("page") || "1");
+      const limit = parseInt(params.get("limit") || "100");
+      const start = (page - 1) * limit;
+      const paginated = filtered.slice(start, start + limit);
+
+      return mockResponse({
+        success: true,
+        data: paginated,
+        pagination: { page, limit, total: filtered.length },
+      });
+    }
+
+    // ── Refunds ─────────────────────────────────
+    if (path === "/api/seller/refunds" && method === "GET") {
+      let filtered = [...MOCK_REFUNDS];
+      const status = params.get("status");
+      const search = params.get("search");
+
+      if (status) {
+        filtered = filtered.filter((r) => r.status === status);
+      }
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (r) => r.reason.toLowerCase().includes(s) || r.orderId.toLowerCase().includes(s)
+        );
+      }
+
+      const page = parseInt(params.get("page") || "1");
+      const limit = parseInt(params.get("limit") || "100");
+      const start = (page - 1) * limit;
+      const paginated = filtered.slice(start, start + limit);
+
+      return mockResponse({
+        success: true,
+        data: paginated,
+        pagination: { page, limit, total: filtered.length },
+      });
+    }
+
+    // ── Notifications ───────────────────────────
+    if (path === "/api/seller/notifications" && method === "GET") {
+      return mockResponse({ success: true, data: MOCK_NOTIFICATIONS });
+    }
+    if (path === "/api/seller/notifications" && method === "POST") {
+      return mockResponse({ success: true, data: true });
+    }
+
+    // ── Addresses ───────────────────────────────
+    if (path === "/api/seller/addresses" && method === "GET") {
+      return mockResponse({ success: true, data: MOCK_ADDRESSES });
+    }
+    if (path === "/api/seller/addresses" && method === "POST") {
+      return mockResponse({ success: true, data: { id: `addr-${Date.now()}`, ...body } });
+    }
+    if (path === "/api/seller/addresses" && method === "PUT") {
+      const addrId = body.id;
+      const existing = MOCK_ADDRESSES.find((a) => a.id === addrId);
+      if (!existing) {
+        return mockResponse({ success: false, message: "Address not found" }, false);
+      }
+      return mockResponse({ success: true, data: { ...existing, ...body } });
+    }
+    if (path === "/api/seller/addresses" && method === "DELETE") {
+      return mockResponse({ success: true, data: true });
+    }
+
+    // ── Fallback ────────────────────────────────
+    return mockResponse({ success: false, message: "Not found" }, false);
+  });
+}
+
+// ─── Tests ─────────────────────────────────────────────────────────────────
 
 describe("SellerApi", () => {
   beforeEach(() => {
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(console, "log").mockImplementation(() => {});
+    global.fetch = createFetchMock() as any;
   });
 
   afterEach(() => {
@@ -240,10 +523,8 @@ describe("SellerApi", () => {
       expect(result.data!.timeline.length).toBeGreaterThan(0);
     });
 
-    it("returns null for unknown order ID", async () => {
-      const result = await SellerApi.getOrderById("NONEXISTENT");
-      expect(result.success).toBe(false);
-      expect(result.data).toBeNull();
+    it("throws for unknown order ID", async () => {
+      await expect(SellerApi.getOrderById("NONEXISTENT")).rejects.toThrow();
     });
   });
 
@@ -263,13 +544,10 @@ describe("SellerApi", () => {
       expect(lastEntry.status).toBe("PROCESSING");
     });
 
-    it("returns error for unknown order", async () => {
-      const result = await SellerApi.updateOrderStatus(
-        "NONEXISTENT",
-        "CONFIRMED"
-      );
-      expect(result.success).toBe(false);
-      expect(result.data).toBeNull();
+    it("throws for unknown order", async () => {
+      await expect(
+        SellerApi.updateOrderStatus("NONEXISTENT", "CONFIRMED")
+      ).rejects.toThrow();
     });
   });
 
@@ -369,11 +647,10 @@ describe("SellerApi", () => {
       }
     });
 
-    it("returns failure for unknown address ID", async () => {
-      const result = await SellerApi.updateAddress("UNKNOWN-ID", {
-        city: "Cebu",
-      } as any);
-      expect(result.success).toBe(false);
+    it("throws for unknown address ID", async () => {
+      await expect(
+        SellerApi.updateAddress("UNKNOWN-ID", { city: "Cebu" } as any)
+      ).rejects.toThrow();
     });
   });
 

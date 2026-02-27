@@ -33,6 +33,38 @@
 - **Sanity Hook Compound Queries:** useSanityReviews returns `{ reviews, stats }` compound object from single GROQ fetch. Mock must match this shape, not a flat array.
 - **Hook Empty Input Behavior:** When useEffect early-returns for empty input without calling the fetch callback, `loading` stays at initial `useState(true)`. Don't assert `loading === false` in these cases.
 - **Jest Worker Pressure:** Running 5+ Sanity hook test files in parallel can timeout. Tests pass individually and with --runInBand. Not a test bug - resource contention.
+- **Seller Dashboard Data Shape:** useSellerDashboard returns `{ stats, salesData, productPerformance, recentOrders, loading, error, refetch }`. Stats has totalSales, totalOrders, totalProducts, totalRevenue, salesGrowth, orderGrowth, revenueGrowth. Charts use salesData mapped to `{ month: name, desktop: sales/revenue }`.
+- **SellerApi Fetch Mock Pattern:** SellerApi methods call apiFetch() which calls global.fetch(). Tests need URL-routing fetch mock with proper response shapes. Error cases (unknown order, unknown address) throw from apiFetch when `!res.ok || json.success === false` -- test with `rejects.toThrow()`.
+- **OrderStatusBadge Internal:** Dashboard uses internal OrderStatusBadge component (not imported getStatusBadge). Maps PENDING->"Pending", PROCESSING->"Processing", etc. Don't mock status-utils for dashboard tests.
+- **AuthContext Google Sign-In Timeout:** The Google OAuth sign-in test needs 15000ms timeout (3rd arg to `it()`) due to complex async flow with Firebase auth + Firestore profile sync + backend sync + toast notifications.
+
+## [2026-02-27 23:00] - Test Reliability Hardening PRD (COMPLETE)
+**Completed:** All 6 stories (TFIX-001 through TFIX-006)
+**Result:** 91 test failures -> 0 failures (253 suites, 5844 tests all passing)
+**Files Changed:**
+- src/components/product/__tests__/ProductCard.test.tsx (2 selector fixes)
+- src/hooks/__tests__/useSeller.test.tsx (5 mock rewrites for Firebase/Sanity)
+- src/app/(shop)/cart/__tests__/page.test.tsx (6 tests rewritten for new UI)
+- src/app/(seller)/seller/dashboard/__tests__/page.test.tsx (full rewrite: 46->41 tests, mocks only useSellerDashboard)
+- src/lib/api/__tests__/seller.test.ts (full rewrite: URL-routing fetch mock, 47 tests)
+- src/contexts/__tests__/AuthContext.test.tsx (timeout increase for flaky Google OAuth test)
+- prd-test-hardening.json (new PRD, all 6 stories marked complete)
+- .github/TEST_HARDENING_PLAN.md (new plan doc, final status COMPLETE)
+
+**Implementation Notes:**
+- TFIX-001: Changed "add oyster mushrooms to cart" -> "sold out" button selector for out-of-stock state
+- TFIX-002: Added getter-based mock for FirebaseOrdersService.getAllOrders, factory mock for fetchSellerProducts
+- TFIX-003: Removed stale "Max: 3" stock indicators, added checkbox selection before checkout navigation
+- TFIX-004: Rewrote from 4-hook mock to single useSellerDashboard mock. Data shapes: stats (numeric), salesData (name/sales/revenue), productPerformance (name/sales/stock/revenue), recentOrders (id/date/customer/items/total/status)
+- TFIX-005: Built comprehensive URL-routing fetch mock handling 15+ endpoints with filtering, pagination, error responses
+- TFIX-006: Full validation pass. Fixed AuthContext flaky timeout (5s->15s)
+
+**Learnings for Future Iterations:**
+- When rewriting source code, always update corresponding tests in the same commit
+- SellerApi is now a pure fetch-based client - any new API methods need URL handler in test mock
+- Dashboard tests should only mock the hooks actually imported by the component
+- Use getter-based mock pattern for Firebase service classes (jest.mock with get propName() { return mockFn })
+---
 - **Stock Management Types:** All stock adjustment types use Zod schemas for validation. validateStockAdjustment() checks business rules (positive/negative quantities based on type, sufficient stock, valid reason codes).
 - **Test Stability:** Async timing tests (CartContext, Firebase services) require generous timeouts (6s+ for waitFor, 10s+ for test wrappers) due to 700ms debounce delays. Stack multiple timeout buffers for complex async chains.
 - **Sanity Schema Tests:** Sanity defineField, defineType, defineArrayMember require Studio environment (schemaTypes.ts loaded). Use .test.skip.ts naming or describe.skip() for Jest-only environments. Schema validation tests should run in studio/test directory instead.
