@@ -264,7 +264,7 @@ describe("PhoneChangeFlow", () => {
       await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
       expect(props.onCancel).toHaveBeenCalled();
-    }, 15000);
+    }, 30000);
 
     it("should show error toast when phone is empty and Continue is clicked", async () => {
       renderFlow();

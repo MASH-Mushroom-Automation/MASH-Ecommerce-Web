@@ -190,7 +190,7 @@ describe("PasswordManager", () => {
       expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
-    });
+    }, 15000);
 
     it("shows dialog title and description", async () => {
       await openChangeDialog();

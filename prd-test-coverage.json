@@ -9,8 +9,8 @@
   "lastUpdated": "2026-02-27T07:59:33.893Z",
   "planDocument": ".github/TEST_COVERAGE_PLAN.md",
   "progressDocument": "progress.txt",
-  "totalStories": 15,
-  "completedStories": 15,
+  "totalStories": 16,
+  "completedStories": 16,
   "currentPhase": "COMPLETE",
   "baselineMetrics": {
     "statements": "54.07%",
@@ -341,6 +341,23 @@
       "estimatedEffort": "15 minutes",
       "completedAt": "2026-02-27T07:59:33.893Z",
       "testCount": 401
+    },
+    {
+      "id": "TCOV-016",
+      "title": "Batch 4: Chatbot Analytics + Page Render Tests (14 files, 106 tests)",
+      "priority": 2,
+      "passes": true,
+      "acceptanceCriteria": [
+        "chatbot-analytics.coverage.test.ts: 39 tests covering all 15 functions via jest.unmock",
+        "Page render tests for about, contact, login, grower, stores pages",
+        "Page render tests for privacy, terms, shipping-info, returns-policy (static content)",
+        "Page render tests for forgot-password, welcome, reset-success, blog pages",
+        "All 298 suites pass with 0 failures",
+        "Coverage improved: Stmts 65.50% (+1.40%), Lines 66.28%"
+      ],
+      "estimatedEffort": "60 minutes",
+      "completedAt": "2026-02-27T12:00:00.000Z",
+      "testCount": 106
     }
   ]
 }

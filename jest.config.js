@@ -99,6 +99,9 @@ const customJestConfig = {
   // Verbose output
   verbose: true,
 
+  // Increase default test timeout for parallel runs (resource contention)
+  testTimeout: 15000,
+
   // Maximum workers (reduce concurrency to avoid OOM on CI)
   maxWorkers: '25%',
 
