@@ -87,7 +87,7 @@ export function BulkActionBar({ selectedIds, productsMap, onActivate, onDeactiva
 
   const confirmUpdatePrice = async () => {
     const price = Number(updatePriceValue);
-    if (isNaN(price)) {
+    if (!updatePriceValue.trim() || isNaN(price) || price <= 0) {
       setSummary("Invalid price");
       return;
     }

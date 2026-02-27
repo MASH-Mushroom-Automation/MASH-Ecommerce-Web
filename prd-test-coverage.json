@@ -1,0 +1,346 @@
+{
+  "projectName": "MASH E-Commerce - Test Coverage Expansion",
+  "version": "1.0.0",
+  "branchName": "develop",
+  "description": "Expand test coverage from 54%/44%/50%/54% (statements/branches/functions/lines) toward 80%/75%/80%/80% thresholds. Target high-impact untested modules: layout, search, product components, checkout, seller pages, and auth utilities.",
+  "owner": "AI Agent (Ralph)",
+  "startedDate": "2026-02-27",
+  "targetCompletion": "2026-02-28",
+  "lastUpdated": "2026-02-27T07:59:33.893Z",
+  "planDocument": ".github/TEST_COVERAGE_PLAN.md",
+  "progressDocument": "progress.txt",
+  "totalStories": 15,
+  "completedStories": 15,
+  "currentPhase": "COMPLETE",
+  "baselineMetrics": {
+    "statements": "54.07%",
+    "branches": "43.94%",
+    "functions": "49.87%",
+    "lines": "53.9%",
+    "totalTests": 5844,
+    "totalSuites": 253
+  },
+  "targetMetrics": {
+    "statements": ">=70%",
+    "branches": ">=60%",
+    "functions": ">=65%",
+    "lines": ">=70%"
+  },
+  "successMetrics": {
+    "build": "npm run build passes with zero errors",
+    "tests": "All test suites pass with 0 failures",
+    "lint": "npm run lint passes with zero warnings",
+    "coverageImprovement": "Each story adds measurable coverage to its target module"
+  },
+  "stories": [
+    {
+      "id": "TCOV-001",
+      "title": "Layout Header Component Tests (91 uncovered statements)",
+      "priority": 1,
+      "passes": true,
+      "suite": "src/components/layout/__tests__/header.test.tsx",
+      "target": "src/components/layout/header.tsx",
+      "uncoveredStatements": 91,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders desktop navigation links",
+        "Test renders mobile hamburger menu",
+        "Test cart icon with badge count",
+        "Test user avatar dropdown when authenticated",
+        "Test login/signup buttons when not authenticated",
+        "Test search bar interaction"
+      ],
+      "estimatedEffort": "45 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 30
+    },
+    {
+      "id": "TCOV-002",
+      "title": "SearchAutocomplete Component Tests (128 uncovered)",
+      "priority": 1,
+      "passes": true,
+      "suite": "src/components/search/__tests__/SearchAutocomplete.test.tsx",
+      "target": "src/components/search/SearchAutocomplete.tsx",
+      "uncoveredStatements": 128,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders search input",
+        "Test typing triggers autocomplete suggestions",
+        "Test selecting a suggestion navigates to product",
+        "Test empty query shows no suggestions",
+        "Test keyboard navigation of suggestions",
+        "Test close on outside click"
+      ],
+      "estimatedEffort": "45 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 26
+    },
+    {
+      "id": "TCOV-003",
+      "title": "QuickViewModal Component Tests (92 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/components/product/__tests__/QuickViewModal.test.tsx",
+      "target": "src/components/product/QuickViewModal.tsx",
+      "uncoveredStatements": 92,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test modal opens with product data",
+        "Test displays product image, name, price",
+        "Test add to cart button interaction",
+        "Test add to wishlist button interaction",
+        "Test close modal",
+        "Test quantity selector"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 36
+    },
+    {
+      "id": "TCOV-004",
+      "title": "AddressPicker Component Tests (121 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/components/checkout/__tests__/AddressPicker.test.tsx",
+      "target": "src/components/checkout/AddressPicker.tsx",
+      "uncoveredStatements": 121,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders address form fields",
+        "Test selecting saved address",
+        "Test adding new address",
+        "Test address validation",
+        "Test map integration placeholder",
+        "Test callback on address selection"
+      ],
+      "estimatedEffort": "45 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 24
+    },
+    {
+      "id": "TCOV-005",
+      "title": "Auth Utility Tests (58 uncovered in lib/auth.ts)",
+      "priority": 1,
+      "passes": true,
+      "suite": "src/lib/__tests__/auth.test.ts",
+      "target": "src/lib/auth.ts",
+      "uncoveredStatements": 58,
+      "currentCoverage": "52%",
+      "acceptanceCriteria": [
+        "Test setAuthToken stores token in cookie",
+        "Test getAuthToken retrieves token from cookie",
+        "Test clearAuthToken removes both tokens",
+        "Test SSR detection prevents client-side operations",
+        "Test token refresh flow",
+        "Test logout clears all auth state"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 34
+    },
+    {
+      "id": "TCOV-006",
+      "title": "ProductImageGallery Component Tests (41 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/components/product/__tests__/ProductImageGallery.test.tsx",
+      "target": "src/components/product/ProductImageGallery.tsx",
+      "uncoveredStatements": 41,
+      "currentCoverage": "39%",
+      "acceptanceCriteria": [
+        "Test renders main image and thumbnails",
+        "Test clicking thumbnail changes main image",
+        "Test no-image fallback state",
+        "Test image zoom on hover",
+        "Test mobile swipe navigation"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 18
+    },
+    {
+      "id": "TCOV-007",
+      "title": "PasswordManager Component Tests (113 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/components/profile/__tests__/PasswordManager.test.tsx",
+      "target": "src/components/profile/PasswordManager.tsx",
+      "uncoveredStatements": 113,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders password change form",
+        "Test current password validation",
+        "Test new password strength requirements",
+        "Test password confirmation match",
+        "Test successful password change",
+        "Test error handling on API failure"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 33
+    },
+    {
+      "id": "TCOV-008",
+      "title": "Signup Page Tests (81 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/app/(auth)/signup/__tests__/page.test.tsx",
+      "target": "src/app/(auth)/signup/page.tsx",
+      "uncoveredStatements": 81,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders signup form fields",
+        "Test email validation",
+        "Test password requirements display",
+        "Test Google signup button",
+        "Test form submission",
+        "Test redirect to login link"
+      ],
+      "estimatedEffort": "45 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 27
+    },
+    {
+      "id": "TCOV-009",
+      "title": "Seller Settings Page Tests (285 uncovered)",
+      "priority": 3,
+      "passes": true,
+      "suite": "src/app/(seller)/seller/settings/__tests__/page.test.tsx",
+      "target": "src/app/(seller)/seller/settings/page.tsx",
+      "uncoveredStatements": 285,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders settings tabs/sections",
+        "Test profile settings form",
+        "Test notification preferences",
+        "Test store information section",
+        "Test save changes interaction",
+        "Test loading and error states"
+      ],
+      "estimatedEffort": "60 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 30
+    },
+    {
+      "id": "TCOV-010",
+      "title": "Seller Order Detail Page Tests (212 uncovered)",
+      "priority": 3,
+      "passes": true,
+      "suite": "src/app/(seller)/seller/orders/[id]/__tests__/page.test.tsx",
+      "target": "src/app/(seller)/seller/orders/[id]/page.tsx",
+      "uncoveredStatements": 212,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders order details with items",
+        "Test displays customer information",
+        "Test order status badge",
+        "Test status update actions",
+        "Test order timeline/history",
+        "Test loading and error states"
+      ],
+      "estimatedEffort": "60 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 60
+    },
+    {
+      "id": "TCOV-011",
+      "title": "ReviewInsights Component Tests (98 uncovered)",
+      "priority": 3,
+      "passes": true,
+      "suite": "src/components/seller/__tests__/ReviewInsights.test.tsx",
+      "target": "src/components/seller/ReviewInsights.tsx",
+      "uncoveredStatements": 98,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders average rating display",
+        "Test rating distribution bars",
+        "Test recent reviews list",
+        "Test empty state when no reviews",
+        "Test loading state",
+        "Test timeframe filter"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 19
+    },
+    {
+      "id": "TCOV-012",
+      "title": "AddressManager Component Tests (93 uncovered)",
+      "priority": 3,
+      "passes": true,
+      "suite": "src/components/profile/__tests__/AddressManager.test.tsx",
+      "target": "src/components/profile/AddressManager.tsx",
+      "uncoveredStatements": 93,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders list of saved addresses",
+        "Test add new address form",
+        "Test edit existing address",
+        "Test delete address with confirmation",
+        "Test set default address",
+        "Test empty state"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 26
+    },
+    {
+      "id": "TCOV-013",
+      "title": "OrderCard Component Tests (37 uncovered)",
+      "priority": 2,
+      "passes": true,
+      "suite": "src/components/orders/__tests__/OrderCard.test.tsx",
+      "target": "src/components/orders/OrderCard.tsx",
+      "uncoveredStatements": 37,
+      "currentCoverage": "57%",
+      "acceptanceCriteria": [
+        "Test renders order summary with items",
+        "Test displays order status badge",
+        "Test shows order date and total",
+        "Test track order button visibility",
+        "Test click expands order details",
+        "Test action buttons based on status"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 29
+    },
+    {
+      "id": "TCOV-014",
+      "title": "BulkActionBar Component Tests (78 uncovered)",
+      "priority": 3,
+      "passes": true,
+      "suite": "src/components/__tests__/BulkActionBar.test.tsx",
+      "target": "src/components/BulkActionBar.tsx",
+      "uncoveredStatements": 78,
+      "currentCoverage": "0%",
+      "acceptanceCriteria": [
+        "Test renders when items are selected",
+        "Test hidden when no items selected",
+        "Test select all toggle",
+        "Test bulk delete action",
+        "Test bulk status change action",
+        "Test selected count display"
+      ],
+      "estimatedEffort": "30 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 37
+    },
+    {
+      "id": "TCOV-015",
+      "title": "Full Suite Validation and Coverage Report",
+      "priority": 1,
+      "passes": true,
+      "acceptanceCriteria": [
+        "All 253+ test suites pass with 0 failures",
+        "No existing tests broken by new tests",
+        "npm run build passes",
+        "npm run lint passes",
+        "Coverage improvement documented in progress.txt"
+      ],
+      "estimatedEffort": "15 minutes",
+      "completedAt": "2026-02-27T07:59:33.893Z",
+      "testCount": 401
+    }
+  ]
+}

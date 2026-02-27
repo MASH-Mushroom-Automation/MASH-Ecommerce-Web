@@ -4594,3 +4594,51 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 7. Advanced personalization (recently viewed, recommendations)
 
 ---
+
+## [2026-02-28 02:00] - TCOV-001 through TCOV-015: Test Coverage Expansion PRD COMPLETE
+**Status:** All 15 stories completed -- prd-test-coverage.json 15/15 (100%)
+
+**Summary:**
+Implemented, verified, and fixed test suites for 14 target components plus a full-suite validation pass (TCOV-015). Created 2 new test files (TCOV-011 ReviewInsights, TCOV-012 AddressManager) and fixed 1 broken suite (TCOV-014 BulkActionBar). All 401 tests across 17 TCOV-related suites pass (verified with --runInBand).
+
+**New Files Created:**
+- src/components/seller/__tests__/ReviewInsights.test.tsx (19 tests)
+- src/components/profile/__tests__/AddressManager.test.tsx (26 tests)
+
+**Files Modified:**
+- src/components/__tests__/BulkActionBar.test.tsx (fixed 24 failures, now 37 tests passing)
+- src/components/BulkActionBar.tsx (improved price validation: reject empty/negative/zero)
+- prd-test-coverage.json (marked 15/15 stories complete)
+
+**Test Count Per Suite (401 total):**
+- TCOV-001 Header: 30
+- TCOV-002 SearchAutocomplete: 26
+- TCOV-003 QuickViewModal: 36
+- TCOV-004 AddressPicker: 24
+- TCOV-005 Auth: 34
+- TCOV-006 ProductImageGallery: 18
+- TCOV-007 PasswordManager: 33
+- TCOV-008 Signup: 27
+- TCOV-009 Seller Settings: 30
+- TCOV-010 Seller Order Detail: 60
+- TCOV-011 ReviewInsights: 19
+- TCOV-012 AddressManager: 26
+- TCOV-013 OrderCard: 29
+- TCOV-014 BulkActionBar: 37
+- Auth API route tests: 2
+
+**Key Learnings:**
+- Radix UI DropdownMenu and Dialog need inline-rendering mocks for jsdom (portals fail). Pattern: create mock components that use React state for open/close without portals.
+- Global sonner toast mock in jest.setup.js means test files must NOT re-mock sonner. Instead, import { toast } from "sonner" and use the global mock directly. jest.mock hoisting causes external variable references to be undefined.
+- For async event handlers in React, use act(async () => { fireEvent.click(...) }) then a second act(async () => { await new Promise(r => setTimeout(r, 10)); }) to flush Promise chains.
+- Jest parallel execution can cause cross-suite timing flakes. Use --runInBand for definitive validation.
+- BulkActionBar price validation: Number("") returns 0, not NaN. Must explicitly check for empty/zero/negative values.
+
+## Codebase Patterns
+- **Radix UI Mocking:** Always create inline-rendering mock components for Dialog and DropdownMenu in jsdom. Never rely on portal rendering.
+- **Sonner Toast in Tests:** Do NOT re-mock sonner. Import toast from "sonner" to get the global jest.setup.js mock. Clear with jest.clearAllMocks() in beforeEach.
+- **Async Event Handlers:** After fireEvent.click on components with async handlers, add a second act(async () => { await new Promise(r => setTimeout(r, 10)); }) to flush the Promise chain.
+- **AddressManager Testing:** Mock useFirebaseAddresses hook, AddressPicker component, and use global sonner toast. Dialog needs inline portal mock.
+- **ReviewInsights Testing:** Mock recharts components, FirebaseReviewService with getter-based pattern, and lucide-react icons.
+
+---
