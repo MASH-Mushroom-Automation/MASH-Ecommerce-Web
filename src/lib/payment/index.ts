@@ -4,6 +4,21 @@
  * Export all payment-related functionality.
  */
 
+// Config exports
+export {
+  PAYMONGO_ENABLED,
+  PAYMONGO_API_URL,
+  PAYMONGO_PUBLIC_KEY,
+  APP_BASE_URL,
+  getAvailablePaymentMethods,
+  isPaymentMethodAvailable,
+  validatePaymentConfig,
+  logPaymentConfigWarnings,
+  getPaymentConfig,
+} from "./config";
+
+export type { PaymentConfig, PaymentConfigValidation } from "./config";
+
 // Named exports
 export {
   isPayMongoConfigured,

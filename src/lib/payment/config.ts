@@ -1,0 +1,188 @@
+/**
+ * Payment System Configuration
+ *
+ * Centralized configuration for the MASH payment system.
+ * Validates environment variables on first access and provides
+ * feature flags for conditional payment method availability.
+ *
+ * When PayMongo keys are missing, the system falls back to COD-only mode.
+ */
+
+import { type PaymentMethod, PAYMENT_METHODS } from "@/types/payment";
+
+// ---------------------------------------------------------------------------
+// Environment Variables
+// ---------------------------------------------------------------------------
+
+function getEnv(key: string): string {
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[key] ?? "";
+  }
+  return "";
+}
+
+/** PayMongo secret key (server-only, never expose to client) */
+export const PAYMONGO_SECRET_KEY = getEnv("PAYMONGO_SECRET_KEY");
+
+/** PayMongo public key (safe for client-side usage) */
+export const PAYMONGO_PUBLIC_KEY = getEnv("NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY");
+
+/** PayMongo API base URL */
+export const PAYMONGO_API_URL = "https://api.paymongo.com/v1";
+
+/** Application base URL for redirect callbacks */
+export const APP_BASE_URL =
+  getEnv("NEXT_PUBLIC_APP_URL") || "https://www.mashmarket.app";
+
+// ---------------------------------------------------------------------------
+// Feature Flags
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether PayMongo is fully configured (both keys present).
+ * When false, the checkout falls back to COD-only mode.
+ */
+export const PAYMONGO_ENABLED: boolean =
+  PAYMONGO_SECRET_KEY.length > 0 && PAYMONGO_PUBLIC_KEY.length > 0;
+
+/**
+ * Returns the list of payment methods available for the current environment.
+ *
+ * - If PayMongo is enabled: all methods (cod, gcash, grab_pay, card, paymaya)
+ * - If PayMongo is NOT enabled: COD only
+ */
+export function getAvailablePaymentMethods(): PaymentMethod[] {
+  if (PAYMONGO_ENABLED) {
+    return [...PAYMENT_METHODS];
+  }
+  return ["cod"];
+}
+
+/**
+ * Checks whether a specific payment method is available.
+ */
+export function isPaymentMethodAvailable(method: PaymentMethod): boolean {
+  return getAvailablePaymentMethods().includes(method);
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+export interface PaymentConfigValidation {
+  isValid: boolean;
+  paymongoEnabled: boolean;
+  warnings: string[];
+  availableMethods: PaymentMethod[];
+}
+
+/**
+ * Validates the payment configuration and returns a diagnostic report.
+ * Call this during app startup or in a health-check endpoint.
+ *
+ * Never throws -- returns structured validation result.
+ */
+export function validatePaymentConfig(): PaymentConfigValidation {
+  const warnings: string[] = [];
+
+  if (!PAYMONGO_SECRET_KEY) {
+    warnings.push(
+      "PAYMONGO_SECRET_KEY is not set. Online payment methods are disabled."
+    );
+  }
+
+  if (!PAYMONGO_PUBLIC_KEY) {
+    warnings.push(
+      "NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY is not set. Online payment methods are disabled."
+    );
+  }
+
+  if (PAYMONGO_SECRET_KEY && !PAYMONGO_PUBLIC_KEY) {
+    warnings.push(
+      "PAYMONGO_SECRET_KEY is set but NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY is missing. Both keys are required for online payments."
+    );
+  }
+
+  if (!PAYMONGO_SECRET_KEY && PAYMONGO_PUBLIC_KEY) {
+    warnings.push(
+      "NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY is set but PAYMONGO_SECRET_KEY is missing. Both keys are required for online payments."
+    );
+  }
+
+  const availableMethods = getAvailablePaymentMethods();
+
+  return {
+    isValid: true, // Config is always valid (COD fallback guarantees it)
+    paymongoEnabled: PAYMONGO_ENABLED,
+    warnings,
+    availableMethods,
+  };
+}
+
+/**
+ * Logs payment configuration warnings to the console.
+ * Intended to be called once during application initialization.
+ */
+export function logPaymentConfigWarnings(): void {
+  const config = validatePaymentConfig();
+
+  if (config.warnings.length > 0) {
+    console.warn("[Payment Config] Configuration warnings:");
+    config.warnings.forEach((w) => console.warn(`  - ${w}`));
+    console.warn(
+      `[Payment Config] Falling back to COD-only mode. Available methods: ${config.availableMethods.join(", ")}`
+    );
+  } else {
+    console.log(
+      `[Payment Config] PayMongo enabled. Available methods: ${config.availableMethods.join(", ")}`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full Config Object
+// ---------------------------------------------------------------------------
+
+export interface PaymentConfig {
+  paymongo: {
+    enabled: boolean;
+    apiUrl: string;
+    publicKey: string;
+    /** Server-only: never include in client bundles */
+    secretKey: string;
+  };
+  app: {
+    baseUrl: string;
+    successRedirect: (orderId: string) => string;
+    failedRedirect: (orderId: string) => string;
+  };
+  availableMethods: PaymentMethod[];
+  currency: string;
+  /** Minimum order amount in PHP for online payment */
+  minimumAmount: number;
+}
+
+/**
+ * Returns the full payment configuration object.
+ * Use this for centralized access to all payment settings.
+ */
+export function getPaymentConfig(): PaymentConfig {
+  return {
+    paymongo: {
+      enabled: PAYMONGO_ENABLED,
+      apiUrl: PAYMONGO_API_URL,
+      publicKey: PAYMONGO_PUBLIC_KEY,
+      secretKey: PAYMONGO_SECRET_KEY,
+    },
+    app: {
+      baseUrl: APP_BASE_URL,
+      successRedirect: (orderId: string) =>
+        `${APP_BASE_URL}/checkout/payment-success?orderId=${orderId}`,
+      failedRedirect: (orderId: string) =>
+        `${APP_BASE_URL}/checkout/payment-failed?orderId=${orderId}`,
+    },
+    availableMethods: getAvailablePaymentMethods(),
+    currency: "PHP",
+    minimumAmount: 1, // PayMongo minimum is 100 centavos = 1 PHP
+  };
+}
