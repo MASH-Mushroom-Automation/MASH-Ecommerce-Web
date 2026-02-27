@@ -85,7 +85,7 @@ export default function CheckoutPage() {
     if (userIsAuthenticated && user) {
       // Get phone from profile (if available) or user object
       const phoneNumber = profile?.phone || user.phone || "";
-      
+
       step2Form.reset({
         name: user.displayName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
         email: user.email || "",
@@ -230,12 +230,16 @@ export default function CheckoutPage() {
         ? PICKUP_LOCATIONS.find(loc => loc.id === step1Data.pickupLocation)
         : undefined;
 
+      // Derive sellerId: use the first item's sellerId from the current vendor's items
+      const vendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
+      const orderSellerId = vendorItems[0]?.sellerId || undefined;
+
       const orderData: CreateOrderData = {
         userId: user.id,
         userEmail: step2Data.email,
         userName: step2Data.name,
         userPhone: step2Data.phone,
-        items: items.map((item) => ({
+        items: vendorItems.map((item) => ({
           productId: item.productId,
           name: item.name,
           price: item.price,
@@ -243,27 +247,29 @@ export default function CheckoutPage() {
           image: item.image,
           grower: item.grower,
           unit: item.unit,
+          sellerId: item.sellerId, // Include sellerId per item for order routing
         })),
-        subtotal: summary.subtotal,
+        subtotal: currentVendorSubtotal,
         tax: summary.tax,
         deliveryFee: deliveryFee,
-        total: totalWithDelivery,
+        total: currentVendorSubtotal + summary.tax + deliveryFee,
         deliveryMethod: step1Data.deliveryMethod,
         pickupLocation: selectedPickupLocation,
         deliveryAddress: step1Data.deliveryMethod === "lalamove" && deliveryAddress
           ? {
-              address: deliveryAddress.formattedAddress,
-              lat: deliveryAddress.lat,
-              lng: deliveryAddress.lng,
-              name: step2Data.name,
-              phone: step2Data.phone,
-            }
+            address: deliveryAddress.formattedAddress,
+            lat: deliveryAddress.lat,
+            lng: deliveryAddress.lng,
+            name: step2Data.name,
+            phone: step2Data.phone,
+          }
           : undefined,
         lalamoveQuotationId: lalamoveQuote?.quotationId,
         lalamoveScheduleAt: lalamoveScheduleAt || undefined,
         lalamoveVehicleType: lalamoveServiceType || undefined,
         lalamoveDistance: lalamoveQuote?.distance || undefined,
         paymentMethod: data.paymentMethod,
+        sellerId: orderSellerId, // Top-level sellerId for easy seller-based querying
       };
 
       // Create the order first

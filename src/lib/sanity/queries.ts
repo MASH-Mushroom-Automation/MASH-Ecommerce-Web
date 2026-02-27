@@ -50,6 +50,7 @@ export const wishlistProductsQuery = `*[_type == "product" && _id in $ids && !(_
   unit,
   isAvailable,
   isFeatured,
+  sellerId,
   "mainImage": coalesce(mainImage.asset->url, image.asset->url),
   "images": images[].asset->url,
   category->{

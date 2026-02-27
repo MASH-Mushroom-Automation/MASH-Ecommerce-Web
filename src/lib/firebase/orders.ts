@@ -65,6 +65,7 @@ export interface FirestoreOrderItem {
   image: string;
   grower?: string;
   unit?: string;
+  sellerId?: string; // Seller/grower ID for filtering orders by seller
 }
 
 /**
@@ -155,6 +156,9 @@ export interface FirestoreOrder {
   status: OrderStatus;
   statusHistory: StatusHistoryEntry[];
 
+  // Seller
+  sellerId?: string; // Primary seller ID (for single-seller orders)
+
   // Metadata
   notes?: string;
   createdAt: Timestamp;
@@ -186,6 +190,7 @@ export interface CreateOrderData {
   lalamoveDistance?: string;
   paymentMethod: "cod" | "gcash" | "card";
   notes?: string;
+  sellerId?: string; // Primary seller ID (for single-seller orders)
 }
 
 /**
@@ -232,7 +237,20 @@ export class FirebaseOrdersService {
         userEmail: data.userEmail,
         userName: data.userName,
         userPhone: data.userPhone,
-        items: data.items,
+        // Strip undefined fields from each item (Firestore rejects undefined values)
+        items: data.items.map((item) => {
+          const sanitized: FirestoreOrderItem = {
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          };
+          if (item.grower !== undefined) sanitized.grower = item.grower;
+          if (item.unit !== undefined) sanitized.unit = item.unit;
+          if (item.sellerId !== undefined) sanitized.sellerId = item.sellerId;
+          return sanitized;
+        }),
         subtotal: data.subtotal,
         tax: data.tax,
         deliveryFee: data.deliveryFee,
@@ -274,6 +292,9 @@ export class FirebaseOrdersService {
       }
       if (data.notes) {
         order.notes = data.notes;
+      }
+      if (data.sellerId) {
+        order.sellerId = data.sellerId;
       }
 
       await setDoc(orderRef, order);
@@ -661,7 +682,7 @@ export class FirebaseOrdersService {
       }
 
       const orderRef = doc(db, this.COLLECTION, orderId);
-      
+
       // First, get order info before transaction
       const orderSnap = await getDoc(orderRef);
       if (!orderSnap.exists()) {
@@ -685,7 +706,7 @@ export class FirebaseOrdersService {
           timestamp: Timestamp.now(),
           updatedBy: updatedBy || "system",
         };
-        
+
         // Only add note if it's defined
         if (note) {
           historyEntry.note = note;
@@ -736,7 +757,7 @@ export class FirebaseOrdersService {
     callback: (order: FirestoreOrder | null) => void
   ): () => void {
     const orderRef = doc(db, this.COLLECTION, orderId);
-    
+
     const unsubscribe = onSnapshot(
       orderRef,
       (snapshot) => {
@@ -826,18 +847,18 @@ export class FirebaseOrdersService {
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
-      
+
       // Build lalamove tracking object without undefined fields
       const lalamoveTracking: any = {
         status: "ASSIGNING_DRIVER",
         lastUpdated: Timestamp.now(),
       };
-      
+
       // Only add shareLink if defined
       if (shareLink) {
         lalamoveTracking.shareLink = shareLink;
       }
-      
+
       await setDoc(
         orderRef,
         {
@@ -893,7 +914,7 @@ export class FirebaseOrdersService {
       // Get existing order for merging
       const orderSnap = await getDoc(orderRef);
       let existingOrder: FirestoreOrder | null = null;
-      
+
       if (orderSnap.exists()) {
         existingOrder = orderSnap.data() as FirestoreOrder;
       }

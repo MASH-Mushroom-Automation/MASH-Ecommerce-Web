@@ -165,7 +165,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-    
+
     // Validate stock
     if (product.stock < quantity) {
       toast.error("Not enough stock available", {
@@ -189,7 +189,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       // Re-check existing in prev state (in case of race, though unlikely here)
       const currentExisting = prev.find((item) => item.productId === product.id);
-      
+
       if (currentExisting) {
         return prev.map((item) =>
           item.productId === product.id
@@ -210,6 +210,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         grower: product.grower,
         unit: product.unit,
         comparePrice: product.comparePrice,
+        sellerId: product.sellerId, // Store seller ID for order routing
       };
 
       return [...prev, newItem];
@@ -278,12 +279,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const itemVendor = item.grower || "MASH";
         return itemVendor !== vendorName;
       });
-      
+
       const removedCount = prev.length - remainingItems.length;
       if (removedCount > 0) {
         toast.success(`${removedCount} item(s) from ${vendorName} removed from cart`);
       }
-      
+
       return remainingItems;
     });
   }, []);
