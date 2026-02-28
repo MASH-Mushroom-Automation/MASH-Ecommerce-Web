@@ -413,3 +413,34 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (29 new GrabPay flow, 167 checkout total, 9 suites) | [PASS] TypeCheck
 ---
+
+## [2026-02-28 06:30] - PAY-006
+**Completed:** Credit/Debit Card Payment UI - Card Input Form
+**Persona:** ATLAS (new FRONTEND component)
+**Files Changed:**
+- src/components/checkout/CardPaymentForm.tsx (new, ~316 lines)
+- src/components/checkout/__tests__/CardPaymentForm.test.tsx (new, 70 tests)
+
+**Implementation Notes:**
+- Created CardPaymentForm component with three input fields: card number, expiry (MM/YY), CVC
+- Card number auto-formats with spaces every 4 digits, capped at 16 digits
+- Expiry auto-formats with slash insertion (MM/YY), validates month range and expiration
+- CVC uses type="password" for masking, supports 3-4 digit lengths
+- Luhn algorithm validates card number correctness
+- Card brand detection: Visa (^4), Mastercard (^5[1-5] or ^2[2-7]) with visual indicators (Visa text badge, MC overlapping circles)
+- Auto-focus advance: card number -> expiry -> CVC on field completion
+- 3D Secure notice section with ShieldCheck icon and bank redirect explanation
+- Security: autoComplete="off", inputMode="numeric" on all fields, paste support
+- Accessibility: aria-invalid, aria-describedby for error linkage, role="alert" on errors, role="group" on form, visible labels via htmlFor
+- Error display deferred until field blur (touched state tracking)
+- onChange callback provides cardNumber, expiry, cvc, brand, and isValid flag
+- Exported utilities for reuse: detectCardBrand, formatCardNumber, formatExpiry, formatCvc, luhnCheck, validateExpiry, validateCardFields
+
+**Learnings for Future Iterations:**
+- Luhn check plus prefix-based brand detection covers Visa/Mastercard; adding Amex/Discover later requires updating detectCardBrand + CVC length logic
+- Auto-focus advance via refs (expiryRef, cvcRef) is cleaner than tabIndex manipulation
+- Blur-based error display (touched state) avoids aggressive validation during typing
+- The CardPaymentForm is self-contained -- CheckoutStep3Payment (PAY-009) will compose it alongside PaymentMethodSelector
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (70 new card form, 237 checkout total, 10 suites) | [PASS] TypeCheck
+---
