@@ -389,3 +389,27 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (46 new: 16 Overlay + 30 InfoBox, 138 checkout total) | [PASS] TypeCheck
 ---
+
+## [2026-02-28 06:00] - PAY-005
+**Completed:** GrabPay Payment Flow - Frontend Integration
+**Persona:** ATLAS (validation story -- no new source code, integration tests only)
+**Files Changed:**
+- src/components/checkout/__tests__/GrabPayFlow.test.tsx (new, 29 tests)
+
+**Implementation Notes:**
+- All 6 acceptance criteria were already satisfied by components from PAY-003 (PaymentMethodCard, PaymentMethodSelector) and PAY-004 (PaymentProcessingOverlay, PaymentMethodInfoBox)
+- Created dedicated GrabPayFlow.test.tsx with 29 integration tests organized by acceptance criteria (AC 1-6)
+- AC 1 (4 tests): GrabPay display, description, selection, aria-checked in PaymentMethodSelector
+- AC 2 (8 tests): PaymentMethodInfoBox shows "GrabPay Payment" title, redirect explanation, mobile note, do-not-close notice, accessible aria-label, and returns null for COD
+- AC 3 (3 tests): getPaymentButtonLabel returns "Pay with GrabPay" (idle) / "Redirecting to GrabPay..." (submitting), differs from COD
+- AC 4 (8 tests): PaymentProcessingOverlay shows "Redirecting to GrabPay...", Grab redirect description, do-not-close warning, spinner, dialog role, cancel button behavior, visibility toggle
+- AC 5 (3 tests): Overlay visible during redirect phase, cancel available before redirect, hidden during active redirect
+- AC 6 (3 tests): Same PaymentProcessingOverlay component renders for both GrabPay and GCash with different messages and descriptions
+
+**Learnings for Future Iterations:**
+- Validation stories (where components already exist) can be completed with tests-only commits -- no source changes needed
+- The shared PaymentProcessingOverlay + PaymentMethodInfoBox architecture means new e-wallet methods (PayMaya in PAY-007) follow the exact same pattern: add entries to the config maps, write flow tests
+- GrabPayFlow test structure (organized by AC number) is a good template for PAY-007 PayMaya flow tests
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (29 new GrabPay flow, 167 checkout total, 9 suites) | [PASS] TypeCheck
+---

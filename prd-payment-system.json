@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 4,
+  "completedStories": 5,
   "stories": [
     {
       "id": "PAY-001",
@@ -102,8 +102,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 5,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-02-28T06:00:00.000Z",
       "acceptanceCriteria": [
         "GrabPay option in PaymentMethodSelector shows GrabPay logo and description",
         "On selection: show inline info box explaining redirect to Grab app",
