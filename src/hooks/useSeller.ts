@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SellerApi } from "@/lib/api/seller";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
-import { fetchSellerProducts } from "@/lib/sanity/products";
+
 import {
   SellerDashboardStats,
   SellerSalesData,
@@ -54,12 +54,15 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      // Fetch Firebase orders + Sanity products concurrently
-      const [allOrders, sanityResult] = await Promise.all([
+      // Fetch Firebase orders + seller's own Sanity products concurrently.
+      // Using the API route so sellerId is enforced server-side via JWT cookie,
+      // matching the same restriction applied on the seller products page.
+      const [allOrders, productsResponse] = await Promise.all([
         FirebaseOrdersService.getAllOrders(),
-        fetchSellerProducts({ limit: 1000 }),
+        fetch("/api/seller/products?limit=1000").then((r) => r.json()),
       ]);
-      const sanityProducts = sanityResult.products;
+      const sanityProducts: Array<{ id: string; name: string; stock: number }> =
+        productsResponse.data ?? [];
 
       // ── Date Boundaries ──────────────────────────────────────────
       const now = new Date();
