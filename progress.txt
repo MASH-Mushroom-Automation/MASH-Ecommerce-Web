@@ -468,3 +468,32 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (31 new PayMaya flow, 295 suites, 6867 tests total) | [PASS] TypeCheck
 ---
+
+## [2026-03-02 14:00] - PAY-008
+**Completed:** Checkout Step 3 - Payment Integration Rewrite
+**Persona:** ATLAS (Frontend)
+**Files Changed:**
+- src/components/checkout/CheckoutStep3Payment.tsx (rewritten from COD-only to full multi-method)
+- src/components/checkout/__tests__/CheckoutStep3Payment.test.tsx (new, 38 tests)
+
+**Implementation Notes:**
+- Rewrote CheckoutStep3Payment from a hardcoded COD-only radio button to full multi-method payment integration
+- Integrated PaymentMethodSelector (Radix RadioGroup) replacing the manual radio input
+- Dynamic content area: COD info box (green-themed), CardPaymentForm (card selected), PaymentMethodInfoBox (e-wallet redirect info)
+- Dynamic button labels via getPaymentButtonLabel() -- "Place Order (Cash Payment)", "Pay with GCash", "Pay with GrabPay", "Pay with Card", "Pay with Maya"
+- Order review section shows selected payment method with icon using PAYMENT_ICON_MAP lookup
+- Added PaymentProcessingOverlay integration (visible when paymentProcessing=true)
+- Added payment error display section with AlertCircle icon, error message, and "Try Again" retry button
+- New optional props: paymentError (string|null), onRetryPayment (callback) -- backward compatible with existing checkout page
+- COD label adapts: "Cash on Delivery" for lalamove, "Cash on Pickup" for pickup delivery
+- CSS transition-all duration-200 on all dynamic content areas for smooth method switching
+- All disabled states wired: buttons, edit links, card form during processing
+- Exported CheckoutStep3PaymentProps interface for type safety
+
+**Learnings for Future Iterations:**
+- When testing components that compose multiple sub-components, duplicate text is common (e.g., "Cash on Delivery" in both PaymentMethodCard and COD info box) -- use getAllByText() assertions
+- PaymentProcessingOverlay heading text matches the submit button's processing label -- test with getAllByText or use role-based queries (dialog role with aria-label)
+- New optional props with defaults (paymentError=null) maintain backward compatibility without updating callers
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (38 new, 300 suites, 7529 tests total) | [PASS] TypeCheck
+---
