@@ -4767,3 +4767,43 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 - Tests:  6696 across 298 suites, 0 failures
 
 **Quality Gates:** [PASS] Tests (6696/6696) | [PASS] Regression (298 suites)
+
+---
+
+## [2026-03-01] - BATCH-5
+**Completed:** Batch 5: Add 7 test suites covering API routes, checkout steps, and utilities (46 tests)
+**Persona:** SENTINEL (Testing and Quality)
+**Files Created:**
+- src/app/api/ai/hf/__tests__/route.test.ts (6 tests): HuggingFace proxy POST/GET
+- src/app/api/seller/products/upload-image/__tests__/route.test.ts (5 tests): Auth, config, validation, upload success/error
+- src/components/checkout/__tests__/CheckoutStep1Delivery.test.tsx (7 tests): Pickup/delivery options, location selection
+- src/components/checkout/__tests__/CheckoutStep2Contact.test.tsx (10 tests): Contact form, auto-fill, delivery summary
+- src/lib/reviews/__tests__/sync.test.ts (6 tests): Fire-and-forget sync functions
+- src/app/api/analytics/chatbot/daily/__tests__/route.test.ts (4 tests): Date validation, daily stats
+- src/lib/__tests__/tailwind-theme.test.ts (8 tests): Theme structure and exports
+
+**Implementation Notes:**
+- upload-image: jsdom File lacks arrayBuffer(); used mock object with jest.fn().mockResolvedValue(new ArrayBuffer(8))
+- chatbot/daily: jest.mock factory closure did not intercept; fixed with jest.resetModules()+jest.doMock() pattern
+- Checkout step tests use RadioGroup mock with visible option rendering
+
+**Learnings for Future Iterations:**
+- jsdom File does not implement arrayBuffer() - always use mock file objects in upload tests
+- jest.mock() with closure-based factories may fail when module is already cached; use jest.resetModules()+jest.doMock() for reliable interception
+- MockNextRequest formData getter pattern works well for form-based API routes
+
+**Quality Gates:** [PASS] Tests (46/46 across 7 suites) | [PASS] No regressions
+
+---
+
+## [2026-03-01] - PHASE-C-VERIFICATION
+**Completed:** Consumer Feature Verification (5 features confirmed)
+**Persona:** RALPH Core
+**Features Verified:**
+1. COD-only payment: step3Schema z.enum(["cod"]) in checkout-schemas.ts
+2. Wishlist Firebase sync: mergeLocalStorageWishlist+subscribeToWishlist in WishlistContext.tsx
+3. Cancel order UI: cancellable statuses [pending_approval,approved,processing] with confirmation dialog, tested in OrderActions.test.tsx
+4. Delivery tracking: Full 610-line page at /profile/orders/[orderId]/track with Lalamove status polling
+5. Shop pagination: Server-side via useSanityProducts({offset,limit}) in ShopClient.tsx with Load More accumulation
+
+**Quality Gates:** [PASS] All features present and wired correctly
