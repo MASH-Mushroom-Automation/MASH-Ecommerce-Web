@@ -2,6 +2,7 @@
  * Tests for Payment API routes
  * COV-011: Payment webhook, create-intent, status
  * PAY-009: Create-intent Zod validation, rate-limit headers, consistent responses
+ * PAY-010: Status polling - Zod query validation, timeout detection, consistent shape
  */
 
 // Mock next/server
@@ -625,39 +626,237 @@ describe("Payment Create Intent (PAY-009)", () => {
   });
 });
 
-// ==================== STATUS ====================
-describe("GET /api/payment/status", () => {
+// ==================== STATUS (PAY-010) ====================
+describe("Payment Status Polling (PAY-010)", () => {
   let GET: Function;
   beforeAll(async () => {
     GET = (await import("@/app/api/payment/status/route")).GET;
   });
 
-  it("returns 503 when not configured", async () => {
-    mockIsPayMongoConfigured.mockReturnValue(false);
-    const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?id=src_1" }));
-    expect(res.status).toBe(503);
+  // ---- AC1: GET /api/payment/status?paymentId=X&type=source|intent returns status ----
+  describe("query param handling", () => {
+    it("accepts paymentId query param", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body.success).toBe(true);
+      expect(res.body.paymentId).toBe("src_1");
+    });
+
+    it("accepts legacy id query param for backwards compat", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?id=src_2" }));
+      expect(res.body.success).toBe(true);
+      expect(res.body.paymentId).toBe("src_2");
+    });
+
+    it("prefers paymentId over legacy id when both provided", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false, paymentId: "src_A" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_A&id=src_B" }));
+      expect(res.body.paymentId).toBe("src_A");
+    });
+
+    it("returns 400 when no payment ID is provided", async () => {
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status" }));
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBeDefined();
+    });
+
+    it("defaults type to source when not specified", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "chargeable", paid: true });
+      await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(mockGetSourceStatus).toHaveBeenCalledWith("src_1");
+      expect(mockGetPaymentIntentStatus).not.toHaveBeenCalled();
+    });
+
+    it("rejects invalid type value", async () => {
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1&type=invalid" }));
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
   });
 
-  it("returns 400 when no payment ID", async () => {
-    const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status" }));
-    expect(res.status).toBe(400);
+  // ---- AC2: Polling endpoint for frontend to check payment completion ----
+  describe("polling responses", () => {
+    it("returns pending status for incomplete source", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body.success).toBe(true);
+      expect(res.body.status).toBe("pending");
+      expect(res.body.paid).toBe(false);
+    });
+
+    it("returns chargeable status when source is authorized", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "chargeable", paid: true, paymentId: "pay_1" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body.status).toBe("chargeable");
+      expect(res.body.paid).toBe(true);
+      expect(res.body.paymentId).toBe("pay_1");
+    });
+
+    it("returns succeeded status when payment intent completes", async () => {
+      mockGetPaymentIntentStatus.mockResolvedValue({ status: "succeeded", paid: true, paymentId: "pay_2" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=pi_1&type=intent" }));
+      expect(res.body.status).toBe("succeeded");
+      expect(res.body.paid).toBe(true);
+    });
+
+    it("returns failed status when payment fails", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "failed", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_fail" }));
+      expect(res.body.status).toBe("failed");
+      expect(res.body.paid).toBe(false);
+    });
   });
 
-  it("returns source status", async () => {
-    mockGetSourceStatus.mockResolvedValue({ status: "chargeable" });
-    const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?id=src_1" }));
-    expect(res.body.success).toBe(true);
+  // ---- AC3: Returns { status, paid, paymentId, method } ----
+  describe("consistent response shape", () => {
+    it("response has success, status, paid, paymentId fields", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("status", "pending");
+      expect(res.body).toHaveProperty("paid", false);
+      expect(res.body).toHaveProperty("paymentId");
+    });
+
+    it("includes method when provided in query", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1&method=gcash" }));
+      expect(res.body.method).toBe("gcash");
+    });
+
+    it("omits method when not provided", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body.method).toBeUndefined();
+    });
+
+    it("rejects invalid method value", async () => {
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1&method=bitcoin" }));
+      expect(res.status).toBe(400);
+    });
   });
 
-  it("returns intent status", async () => {
-    mockGetPaymentIntentStatus.mockResolvedValue({ status: "succeeded" });
-    const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?id=pi_1&type=intent" }));
-    expect(res.body.success).toBe(true);
+  // ---- AC4: Handles both source (e-wallets) and intent (cards) ----
+  describe("source vs intent routing", () => {
+    it("calls getSourceStatus for type=source", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1&type=source" }));
+      expect(mockGetSourceStatus).toHaveBeenCalledWith("src_1");
+      expect(mockGetPaymentIntentStatus).not.toHaveBeenCalled();
+    });
+
+    it("calls getPaymentIntentStatus for type=intent", async () => {
+      mockGetPaymentIntentStatus.mockResolvedValue({ status: "succeeded", paid: true });
+      await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=pi_1&type=intent" }));
+      expect(mockGetPaymentIntentStatus).toHaveBeenCalledWith("pi_1");
+      expect(mockGetSourceStatus).not.toHaveBeenCalled();
+    });
   });
 
-  it("returns 500 on error", async () => {
-    mockGetSourceStatus.mockRejectedValue(new Error("fail"));
-    const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?id=src_1" }));
-    expect(res.status).toBe(500);
+  // ---- AC5: Timeout handling after 5 min ----
+  describe("timeout detection", () => {
+    it("returns timeout=true when startedAt is older than 5 minutes", async () => {
+      const sixMinAgo = new Date(Date.now() - 6 * 60 * 1000).toISOString();
+      const res = await GET(createReq({
+        url: `http://localhost:3000/api/payment/status?paymentId=src_1&startedAt=${encodeURIComponent(sixMinAgo)}`,
+      }));
+      expect(res.body.success).toBe(true);
+      expect(res.body.timeout).toBe(true);
+      expect(res.body.status).toBe("pending");
+      expect(res.body.paid).toBe(false);
+      expect(res.body.message).toContain("timed out");
+      // Should NOT have called PayMongo (early return)
+      expect(mockGetSourceStatus).not.toHaveBeenCalled();
+    });
+
+    it("does not timeout when startedAt is within 5 minutes", async () => {
+      const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({
+        url: `http://localhost:3000/api/payment/status?paymentId=src_1&startedAt=${encodeURIComponent(twoMinAgo)}`,
+      }));
+      expect(res.body.timeout).toBeUndefined();
+      expect(mockGetSourceStatus).toHaveBeenCalled();
+    });
+
+    it("proceeds normally when startedAt is not provided", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.body.timeout).toBeUndefined();
+      expect(res.body.success).toBe(true);
+    });
+  });
+
+  // ---- AC6: No sensitive data exposed ----
+  describe("no sensitive data exposure", () => {
+    it("does not include internal API keys or secrets", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "chargeable", paid: true, paymentId: "pay_1" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      const body = JSON.stringify(res.body);
+      expect(body).not.toContain("sk_");
+      expect(body).not.toContain("secret");
+      expect(body).not.toContain("authorization");
+    });
+
+    it("error responses do not leak stack traces", async () => {
+      mockGetSourceStatus.mockRejectedValue(new Error("Internal secret: sk_live_xxx"));
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.status).toBe(500);
+      expect(res.body.error).not.toContain("sk_live");
+      expect(res.body.error).toContain("Failed to check payment status");
+    });
+  });
+
+  // ---- Rate limiting ----
+  describe("rate limiting", () => {
+    it("includes X-RateLimit-* headers on success", async () => {
+      mockGetSourceStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("5");
+      expect(res.headers.get("X-RateLimit-Remaining")).toBe("4");
+      expect(res.headers.get("X-RateLimit-Reset")).toBeDefined();
+    });
+
+    it("includes rate-limit headers on error", async () => {
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status" }));
+      expect(res.status).toBe(400);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("5");
+    });
+
+    it("returns 429 when rate limit exceeded", async () => {
+      const { NextResponse: NR } = jest.requireMock("next/server");
+      mockCheckRateLimit.mockReturnValue(
+        NR.json(
+          { error: "Too Many Requests", retryAfter: 60 },
+          { status: 429, headers: { "Retry-After": "60" } },
+        ),
+      );
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.status).toBe(429);
+    });
+  });
+
+  // ---- Service unavailable ----
+  describe("PayMongo not configured", () => {
+    it("returns 503 when PayMongo is not configured", async () => {
+      mockIsPayMongoConfigured.mockReturnValue(false);
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.status).toBe(503);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toContain("not configured");
+    });
+  });
+
+  // ---- Unexpected errors ----
+  describe("error handling", () => {
+    it("returns 500 with safe message on unexpected error", async () => {
+      mockGetSourceStatus.mockRejectedValue(new Error("crash"));
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1" }));
+      expect(res.status).toBe(500);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toContain("Failed to check payment status");
+    });
   });
 });

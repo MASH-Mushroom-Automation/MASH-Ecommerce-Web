@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 9,
+  "completedStories": 10,
   "stories": [
     {
       "id": "PAY-001",
@@ -212,8 +212,8 @@
       "type": "API",
       "persona": "NEXUS",
       "priority": 10,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-03-02T18:00:00.000Z",
       "acceptanceCriteria": [
         "GET /api/payment/status?paymentId=X&type=source|intent returns current status",
         "Polling endpoint for frontend to check payment completion",

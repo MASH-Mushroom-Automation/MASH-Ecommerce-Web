@@ -522,3 +522,27 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (45 payment-routes, 300 suites, 7527+ tests) | [PASS] TypeCheck
 ---
+
+## [2026-03-02 18:00] - PAY-010
+**Completed:** Payment Status Polling & Verification API
+**Persona:** NEXUS (API)
+**Files Changed:**
+- src/app/api/payment/status/route.ts (full rewrite: ~180 lines with Zod, rate-limit, timeout detection)
+- src/app/api/payment/__tests__/payment-routes.test.ts (expanded status section: 5 tests -> 26 tests)
+
+**Implementation Notes:**
+- Full rewrite of status route following PAY-009 patterns (Zod validation, rate-limit headers, consistent response shape)
+- Zod schema validates query params: paymentId (required, supports legacy "id"), type (source|intent), method (optional), startedAt (optional ISO datetime)
+- Consistent response shape: { success, status, paid, paymentId, method?, timeout?, message?, error? }
+- Timeout detection: if startedAt > 5 min ago, returns timeout=true with retry message (early return, no PayMongo call)
+- Backwards compat: accepts both ?paymentId=X and ?id=X query params
+- Rate-limit headers (X-RateLimit-*) on all responses, including errors
+- No sensitive data exposure: errors use safe generic messages, no stack traces
+
+**Learnings for Future Iterations:**
+- Timeout detection in polling APIs should be client-driven (startedAt param) since the server has no state about when the payment was initiated
+- Support both new and legacy param names during migration to avoid breaking existing callers
+- Early return on timeout saves unnecessary PayMongo API calls
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (66 payment-routes, 300 suites, 7549+ tests) | [PASS] TypeCheck
+---
