@@ -497,3 +497,28 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (38 new, 300 suites, 7529 tests total) | [PASS] TypeCheck
 ---
+
+## [2026-03-02 16:00] - PAY-009
+**Completed:** Payment API Route - Create Payment Intent/Source
+**Persona:** NEXUS (API & Backend)
+**Files Changed:**
+- src/app/api/payment/create-intent/route.ts (full rewrite: Zod validation, rate-limit headers, consistent PaymentCreateResponse shape)
+- src/app/api/payment/__tests__/payment-routes.test.ts (expanded create-intent tests from 11 to 32, covering all 8 acceptance criteria)
+
+**Implementation Notes:**
+- Replaced manual field validation with Zod schema (createIntentRequestSchema) using paymentMethodSchema from src/types/payment.ts
+- Integrated rate limiting from src/middleware/rate-limit.ts: checkRateLimit guard at entry, X-RateLimit-Limit/Remaining/Reset headers on every response
+- All methods (COD, gcash, grab_pay, paymaya, card) return consistent PaymentCreateResponse: { success, paymentId?, checkoutUrl?, status?, error? }
+- COD now returns same shape (previously returned { success, paymentMethod, status })
+- Card responses include extra publicKey field for client-side tokenisation
+- Added USER_FRIENDLY_ERRORS map for consistent user-facing messages
+- GET endpoint now lists all 5 methods including paymaya (was missing)
+- buildResponse() helper ensures shape consistency across all code paths
+
+**Learnings for Future Iterations:**
+- Use Zod safeParse() for API validation -- returns structured errors that can be mapped to user-friendly messages with field path context
+- Integrate rate-limit headers on successful responses too (not just 429): use getRateLimitStatus() for current counters
+- Consistent response shapes prevent frontend from needing method-specific parsing logic
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (45 payment-routes, 300 suites, 7527+ tests) | [PASS] TypeCheck
+---

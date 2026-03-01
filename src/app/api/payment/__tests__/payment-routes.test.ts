@@ -1,6 +1,7 @@
 /**
  * Tests for Payment API routes
  * COV-011: Payment webhook, create-intent, status
+ * PAY-009: Create-intent Zod validation, rate-limit headers, consistent responses
  */
 
 // Mock next/server
@@ -9,17 +10,34 @@ jest.mock("next/server", () => {
     body: unknown;
     status: number;
     headers: Map<string, string>;
-    constructor(body: unknown, init?: { status?: number }) {
+    constructor(body: unknown, init?: { status?: number; headers?: Record<string, string> }) {
       this.body = body;
       this.status = init?.status || 200;
-      this.headers = new Map();
+      this.headers = new Map(Object.entries(init?.headers || {}));
     }
-    static json(data: unknown, init?: { status?: number }) {
+    static json(data: unknown, init?: { status?: number; headers?: Record<string, string> }) {
       return new MockNextResponse(data, init);
     }
   }
-  return { __esModule: true, NextResponse: MockNextResponse, NextRequest: jest.fn() };
+  class MockNextRequest {}
+  return { __esModule: true, NextResponse: MockNextResponse, NextRequest: MockNextRequest };
 });
+
+// Mock rate-limit middleware
+const mockCheckRateLimit = jest.fn().mockReturnValue(null);
+const mockGetRateLimitStatus = jest.fn().mockReturnValue({
+  remaining: 4,
+  resetAt: new Date("2026-03-02T12:00:00Z"),
+  total: 5,
+});
+jest.mock("@/middleware/rate-limit", () => ({
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+  getRateLimitStatus: (...args: unknown[]) => mockGetRateLimitStatus(...args),
+  RATE_LIMITS: {
+    payments: { maxRequests: 5, windowMs: 60000 },
+    "api-general": { maxRequests: 100, windowMs: 60000 },
+  },
+}));
 
 // Mock payment libs
 const mockVerifyWebhookSignature = jest.fn().mockReturnValue(true);
@@ -77,13 +95,20 @@ function createReq(opts: {
       entries: () => Object.entries(opts.headers || {})[Symbol.iterator](),
     },
     url: u.toString(),
-    nextUrl: { searchParams: u.searchParams },
+    nextUrl: { searchParams: u.searchParams, pathname: u.pathname },
+    ip: "127.0.0.1",
   };
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockIsPayMongoConfigured.mockReturnValue(true);
+  mockCheckRateLimit.mockReturnValue(null);
+  mockGetRateLimitStatus.mockReturnValue({
+    remaining: 4,
+    resetAt: new Date("2026-03-02T12:00:00Z"),
+    total: 5,
+  });
 });
 
 // ==================== WEBHOOK ====================
@@ -241,8 +266,8 @@ describe("POST /api/payment/webhook", () => {
   });
 });
 
-// ==================== CREATE INTENT ====================
-describe("Payment Create Intent", () => {
+// ==================== CREATE INTENT (PAY-009) ====================
+describe("Payment Create Intent (PAY-009)", () => {
   let POST: Function;
   let GET: Function;
   beforeAll(async () => {
@@ -251,99 +276,352 @@ describe("Payment Create Intent", () => {
     GET = mod.GET;
   });
 
-  it("returns 503 when PayMongo not configured", async () => {
-    mockIsPayMongoConfigured.mockReturnValue(false);
-    const req = createReq({ body: {} });
-    const res = await POST(req);
-    expect(res.status).toBe(503);
-  });
-
-  it("returns 400 when missing required fields", async () => {
-    const req = createReq({ body: { paymentMethod: "gcash" } });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 for invalid amount", async () => {
-    const req = createReq({
-      body: { paymentMethod: "gcash", amount: -10, orderId: "1", orderNumber: "ORD-1" },
+  // ---- Acceptance Criteria 1: Handles all payment methods correctly ----
+  describe("handles all payment methods", () => {
+    it("handles gcash e-wallet payment via Sources API", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({
+        success: true,
+        paymentId: "src_gcash_1",
+        checkoutUrl: "https://pay.test/gcash",
+        status: "pending",
+      });
+      const req = createReq({
+        body: {
+          paymentMethod: "gcash",
+          amount: 500,
+          orderId: "order-1",
+          orderNumber: "ORD-001",
+        },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(res.body.paymentId).toBe("src_gcash_1");
+      expect(res.body.checkoutUrl).toBe("https://pay.test/gcash");
     });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
-  });
 
-  it("handles gcash e-wallet payment", async () => {
-    mockCreateEWalletPayment.mockResolvedValue({ success: true, checkoutUrl: "https://pay.test" });
-    const req = createReq({
-      body: {
-        paymentMethod: "gcash",
-        amount: 500,
-        orderId: "order-1",
-        orderNumber: "ORD-001",
-      },
+    it("handles grab_pay e-wallet payment via Sources API", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({ success: true, paymentId: "src_grab_1" });
+      const req = createReq({
+        body: { paymentMethod: "grab_pay", amount: 300, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(mockCreateEWalletPayment).toHaveBeenCalledWith(
+        "grab_pay", 300, "1", "ORD-1", "", "Customer", "", undefined
+      );
     });
-    const res = await POST(req);
-    expect(res.body.success).toBe(true);
-  });
 
-  it("handles grab_pay e-wallet payment", async () => {
-    mockCreateEWalletPayment.mockResolvedValue({ success: true });
-    const req = createReq({
-      body: { paymentMethod: "grab_pay", amount: 300, orderId: "1", orderNumber: "ORD-1" },
+    it("handles paymaya e-wallet payment via Sources API", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({ success: true, paymentId: "src_maya_1", checkoutUrl: "https://pay.test/maya" });
+      const req = createReq({
+        body: { paymentMethod: "paymaya", amount: 750, orderId: "2", orderNumber: "ORD-2" },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(mockCreateEWalletPayment).toHaveBeenCalledWith(
+        "paymaya", 750, "2", "ORD-2", "", "Customer", "", undefined
+      );
     });
-    const res = await POST(req);
-    expect(res.body.success).toBe(true);
-  });
 
-  it("handles card payment", async () => {
-    mockCreateCardPaymentIntent.mockResolvedValue({ success: true, clientSecret: "cs_123" });
-    const req = createReq({
-      body: { paymentMethod: "card", amount: 1000, orderId: "1", orderNumber: "ORD-1" },
+    it("handles card payment via Payment Intents API", async () => {
+      mockCreateCardPaymentIntent.mockResolvedValue({ success: true, paymentId: "pi_1", status: "awaiting_payment_method" });
+      const req = createReq({
+        body: { paymentMethod: "card", amount: 1000, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(res.body.publicKey).toBe("pk_test_123");
+      expect(mockCreateCardPaymentIntent).toHaveBeenCalled();
     });
-    const res = await POST(req);
-    expect(res.body.success).toBe(true);
-    expect(res.body.publicKey).toBeDefined();
-  });
 
-  it("handles COD payment", async () => {
-    const req = createReq({
-      body: { paymentMethod: "cod", amount: 200, orderId: "1", orderNumber: "ORD-1" },
+    it("handles COD without PayMongo call", async () => {
+      const req = createReq({
+        body: { paymentMethod: "cod", amount: 200, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(res.body.status).toBe("pending");
+      expect(mockCreateEWalletPayment).not.toHaveBeenCalled();
+      expect(mockCreateCardPaymentIntent).not.toHaveBeenCalled();
     });
-    const res = await POST(req);
-    expect(res.body.success).toBe(true);
-    expect(res.body.paymentMethod).toBe("cod");
-  });
 
-  it("returns 400 for unsupported payment method", async () => {
-    const req = createReq({
-      body: { paymentMethod: "bitcoin", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+    it("COD works even when PayMongo is not configured", async () => {
+      mockIsPayMongoConfigured.mockReturnValue(false);
+      const req = createReq({
+        body: { paymentMethod: "cod", amount: 200, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body.success).toBe(true);
+      expect(res.status).toBe(200);
     });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
   });
 
-  it("returns 400 when e-wallet creation fails", async () => {
-    mockCreateEWalletPayment.mockResolvedValue({ success: false, error: "Failed" });
-    const req = createReq({
-      body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+  // ---- Acceptance Criteria 4: COD returns success without PayMongo ----
+  // (covered above)
+
+  // ---- Acceptance Criteria 3: 503 when PayMongo not configured (online) ----
+  describe("PayMongo not configured", () => {
+    it("returns 503 for online methods when PayMongo not configured", async () => {
+      mockIsPayMongoConfigured.mockReturnValue(false);
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(503);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toContain("unavailable");
     });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
   });
 
-  it("returns 500 on unexpected error", async () => {
-    mockCreateEWalletPayment.mockRejectedValue(new Error("crash"));
-    const req = createReq({
-      body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+  // ---- Acceptance Criteria 5: Zod schema validation ----
+  describe("Zod request validation", () => {
+    it("rejects missing paymentMethod", async () => {
+      const req = createReq({
+        body: { amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
     });
-    const res = await POST(req);
-    expect(res.status).toBe(500);
+
+    it("rejects invalid paymentMethod value", async () => {
+      const req = createReq({
+        body: { paymentMethod: "bitcoin", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it("rejects missing amount", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects negative amount", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: -10, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBeDefined();
+    });
+
+    it("rejects zero amount", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 0, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects string amount", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: "500", orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain("amount");
+    });
+
+    it("rejects empty orderId", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects empty orderNumber", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("provides user-friendly validation error messages", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: -5, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body.error).toBeTruthy();
+      // Should be a readable message, not a raw Zod internals dump
+      expect(typeof res.body.error).toBe("string");
+    });
+
+    it("handles non-JSON request body", async () => {
+      const req = createReq({ body: "not-json" });
+      // Override json() to throw like a real request would
+      req.json.mockRejectedValue(new SyntaxError("Unexpected token"));
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain("Invalid request body");
+    });
   });
 
-  it("GET returns config status", async () => {
-    const res = await GET();
-    expect(res.body.configured).toBe(true);
-    expect(res.body.supportedMethods).toContain("gcash");
+  // ---- Acceptance Criteria 6: User-friendly error messages ----
+  describe("error responses", () => {
+    it("returns user-friendly message when e-wallet creation fails", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({ success: false, error: "Gateway timeout" });
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe("Gateway timeout");
+    });
+
+    it("returns fallback message when e-wallet error is empty", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({ success: false });
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain("could not process");
+    });
+
+    it("returns user-friendly message when card creation fails", async () => {
+      mockCreateCardPaymentIntent.mockResolvedValue({ success: false, error: "Declined" });
+      const req = createReq({
+        body: { paymentMethod: "card", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("Declined");
+    });
+
+    it("returns 500 with friendly message on unexpected error", async () => {
+      mockCreateEWalletPayment.mockRejectedValue(new Error("crash"));
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(500);
+      expect(res.body.error).toContain("Something went wrong");
+    });
+  });
+
+  // ---- Acceptance Criteria 7: Rate limiting headers ----
+  describe("rate limiting", () => {
+    it("includes X-RateLimit-* headers in successful responses", async () => {
+      const req = createReq({
+        body: { paymentMethod: "cod", amount: 200, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("5");
+      expect(res.headers.get("X-RateLimit-Remaining")).toBe("4");
+      expect(res.headers.get("X-RateLimit-Reset")).toBeDefined();
+    });
+
+    it("includes rate limit headers in error responses", async () => {
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: -1, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("5");
+    });
+
+    it("returns 429 when rate limit exceeded", async () => {
+      const { NextResponse: NR } = jest.requireMock("next/server");
+      mockCheckRateLimit.mockReturnValue(
+        NR.json(
+          { error: "Too Many Requests", retryAfter: 60 },
+          { status: 429, headers: { "Retry-After": "60" } }
+        )
+      );
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(429);
+    });
+  });
+
+  // ---- Acceptance Criteria 8: Consistent PaymentResult shape ----
+  describe("consistent PaymentCreateResponse shape", () => {
+    it("COD response has standard shape with success, status, paymentId, checkoutUrl, error", async () => {
+      const req = createReq({
+        body: { paymentMethod: "cod", amount: 200, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("status", "pending");
+      // Optional fields present (may be undefined)
+      expect("paymentId" in res.body).toBe(true);
+      expect("checkoutUrl" in res.body).toBe(true);
+      expect("error" in res.body).toBe(true);
+    });
+
+    it("e-wallet response has standard shape", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({
+        success: true, paymentId: "src_1", checkoutUrl: "https://pay.test", status: "pending",
+      });
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("paymentId", "src_1");
+      expect(res.body).toHaveProperty("checkoutUrl", "https://pay.test");
+      expect(res.body).toHaveProperty("status");
+      expect(res.body).toHaveProperty("error");
+    });
+
+    it("card response has standard shape plus publicKey", async () => {
+      mockCreateCardPaymentIntent.mockResolvedValue({
+        success: true, paymentId: "pi_1", status: "awaiting_payment_method",
+      });
+      const req = createReq({
+        body: { paymentMethod: "card", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("paymentId", "pi_1");
+      expect(res.body).toHaveProperty("publicKey", "pk_test_123");
+      expect(res.body).toHaveProperty("status");
+      expect(res.body).toHaveProperty("error");
+    });
+
+    it("error response has standard shape", async () => {
+      mockCreateEWalletPayment.mockResolvedValue({ success: false, error: "Oops" });
+      const req = createReq({
+        body: { paymentMethod: "gcash", amount: 500, orderId: "1", orderNumber: "ORD-1" },
+      });
+      const res = await POST(req);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("error", "Oops");
+    });
+  });
+
+  // ---- GET endpoint ----
+  describe("GET configuration", () => {
+    it("returns config with all 5 payment methods", async () => {
+      const res = await GET();
+      expect(res.body.configured).toBe(true);
+      expect(res.body.supportedMethods).toContain("gcash");
+      expect(res.body.supportedMethods).toContain("grab_pay");
+      expect(res.body.supportedMethods).toContain("card");
+      expect(res.body.supportedMethods).toContain("cod");
+      expect(res.body.supportedMethods).toContain("paymaya");
+    });
+
+    it("returns publicKey when configured", async () => {
+      const res = await GET();
+      expect(res.body.publicKey).toBe("pk_test_123");
+    });
+
+    it("returns null publicKey when not configured", async () => {
+      mockIsPayMongoConfigured.mockReturnValue(false);
+      const res = await GET();
+      expect(res.body.publicKey).toBeNull();
+    });
   });
 });
 
