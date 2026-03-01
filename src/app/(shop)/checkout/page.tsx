@@ -671,6 +671,11 @@ export default function CheckoutPage() {
                 vendorName={selectedVendor}
                 hasMultipleVendors={hasMultipleVendors}
                 loading={loading}
+                paymentMethod={
+                  currentStep >= 3
+                    ? (step3Form.watch("paymentMethod") as PaymentMethod)
+                    : null
+                }
               />
             </div>
           )}
