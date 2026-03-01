@@ -9,10 +9,34 @@
 - **Hero Carousel Heights:** Use reduced heights for better UX - loading/error: h-[300px] md:h-[350px] lg:h-[400px], content: min-h-[400px] md:min-h-[500px] lg:min-h-[600px]
 - **Webhook Idempotency:** Use bounded in-memory Set (MAX_PROCESSED_EVENTS=1000) for event deduplication. Evicts oldest on overflow.
 - **Webhook Logging:** Structured logger with [WEBHOOK][LEVEL] prefix, always includes eventId, eventType, orderId context.
+- **Checkout Payment Flow:** onStep3Submit branches by isCodMethod(). COD clears cart immediately. E-wallet/card calls processPayment() then redirects. storePendingOrder() saves to sessionStorage before redirect. handleRetryPayment() reuses pendingOrderId without recreating order.
 
 ---
 
-## [2025-07-15 12:00] - PAY-011
+## [2025-07-15 14:00] - PAY-012
+**Completed:** Checkout Flow - Payment Processing Integration
+**Persona:** NEXUS
+**Files Changed:**
+- src/app/(shop)/checkout/page.tsx (rewrote onStep3Submit with COD/e-wallet/card branching, added processPayment, storePendingOrder, handleRetryPayment, loadingMessage state)
+- src/components/checkout/CheckoutStep3Payment.tsx (added loadingMessage prop for two-stage button label)
+- src/app/(shop)/checkout/__tests__/page.test.tsx (20 new tests: COD flow, e-wallet flow, card flow, sessionStorage, error handling, retry, loading states, cart clearing, type helpers)
+
+**Implementation Notes:**
+- onStep3Submit now: (1) creates order or reuses pendingOrderId, (2) branches by payment method
+- COD: sends confirmation email, clears cart (vendor-specific or full), shows success modal
+- E-wallet/Card: calls /api/payment/create-intent, stores pending order in sessionStorage, redirects to checkoutUrl
+- handleRetryPayment() reuses existing pendingOrderId without calling FirebaseOrdersService.createOrder again
+- loadingMessage state drives two-stage display: "Creating Order..." then "Processing Payment..."
+- Cart only cleared for COD; online payment cart clearing deferred to payment-success page
+- paymentError and onRetryPayment passed to CheckoutStep3Payment for inline error display with retry button
+- toast.error() called on payment failures for user feedback
+
+**Learnings for Future Iterations:**
+- window.location cannot be redefined with Object.defineProperty in jsdom; use delete + assignment or jest-location-mock
+- Tests that verify payment API calls can test fetch mock directly without rendering the full component
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (296/296 suites, 6981/6981) | [PASS] TypeCheck
+---
 **Completed:** Webhook Handler - Enhanced Event Processing
 **Persona:** NEXUS
 **Files Changed:**

@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 11,
+  "completedStories": 12,
   "stories": [
     {
       "id": "PAY-001",
@@ -253,8 +253,8 @@
       "type": "API",
       "persona": "NEXUS",
       "priority": 12,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2025-07-14T12:00:00Z",
       "acceptanceCriteria": [
         "Checkout page handlePlaceOrder creates order then initiates payment",
         "COD orders: create order with status 'pending_payment' and payment 'cod'",
