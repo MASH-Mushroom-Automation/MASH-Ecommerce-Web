@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 13,
+  "completedStories": 14,
   "stories": [
     {
       "id": "PAY-001",
@@ -297,8 +297,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 14,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-03-02T14:00:00Z",
       "acceptanceCriteria": [
         "Payment failed page shows clear error message",
         "Shows: order number, payment method attempted, failure reason if available",

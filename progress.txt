@@ -12,6 +12,27 @@
 - **Checkout Payment Flow:** onStep3Submit branches by isCodMethod(). COD clears cart immediately. E-wallet/card calls processPayment() then redirects. storePendingOrder() saves to sessionStorage before redirect. handleRetryPayment() reuses pendingOrderId without recreating order.
 - **Payment Success Verification:** Uses VerificationState machine (verifying|succeeded|pending|failed). Verifies via /api/payment/status on mount. Polls every 5s (max 12 attempts) for pending payments. Clears cart via CartContext after success. storePendingOrder now includes amount, items, deliveryMethod for rich display.
 
+- **Payment Failed Recovery:** Payment-failed page reads PendingOrderData from sessionStorage (same as success page). Does NOT clear sessionStorage -- preserves data for retry. Retry links include ?orderId=X for checkout to pick up. FAQ section uses collapsible FAQItem component with aria-expanded for accessibility.
+
+---
+
+## [2026-03-02 14:00] - PAY-014
+**Completed:** Payment Failed Page - Retry & Recovery
+**Persona:** ATLAS
+**Files Changed:**
+- src/app/(shop)/checkout/payment-failed/page.tsx (full rewrite: order details, failure reason, CTA buttons, FAQ section, Card layout)
+- src/app/(shop)/checkout/payment-failed/__tests__/page.test.tsx (32 new tests)
+
+**Implementation Notes:**
+- Reads PendingOrderData from sessionStorage for order number, payment method, amount display
+- Failure reason from URL ?error param or default generic message
+- CTA buttons: Try Again (/checkout?orderId=X), Choose Different Method, Contact Support
+- Does NOT clear sessionStorage -- preserves order data for retry flow
+- FAQ section with 4 collapsible FAQItem entries (declined, charged, methods, deducted)
+- Matches success page Card/CardContent layout pattern for visual consistency
+- Error icon with empathetic message and "no payment charged" reassurance
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (7053/7053) | [PASS] TypeCheck
 ---
 
 ## [2026-03-02 12:00] - PAY-013
