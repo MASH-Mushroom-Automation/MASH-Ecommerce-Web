@@ -10,7 +10,30 @@
 - **Webhook Idempotency:** Use bounded in-memory Set (MAX_PROCESSED_EVENTS=1000) for event deduplication. Evicts oldest on overflow.
 - **Webhook Logging:** Structured logger with [WEBHOOK][LEVEL] prefix, always includes eventId, eventType, orderId context.
 - **Checkout Payment Flow:** onStep3Submit branches by isCodMethod(). COD clears cart immediately. E-wallet/card calls processPayment() then redirects. storePendingOrder() saves to sessionStorage before redirect. handleRetryPayment() reuses pendingOrderId without recreating order.
+- **Payment Success Verification:** Uses VerificationState machine (verifying|succeeded|pending|failed). Verifies via /api/payment/status on mount. Polls every 5s (max 12 attempts) for pending payments. Clears cart via CartContext after success. storePendingOrder now includes amount, items, deliveryMethod for rich display.
 
+---
+
+## [2026-03-02 12:00] - PAY-013
+**Completed:** Payment Success Page - Enhanced Verification
+**Persona:** ATLAS
+**Files Changed:**
+- src/app/(shop)/checkout/payment-success/page.tsx (full rewrite: API verification, order details, success animation, cart clearing, email, polling, failed/pending states)
+- src/app/(shop)/checkout/page.tsx (storePendingOrder enriched with amount, subtotal, deliveryFee, items, deliveryMethod)
+- src/app/globals.css (added @keyframes success-pop animation)
+- src/app/(shop)/checkout/payment-success/__tests__/page.test.tsx (40 new tests)
+
+**Implementation Notes:**
+- VerificationState machine: verifying -> (succeeded|pending|failed)
+- On mount: calls /api/payment/status with orderId. If paid/succeeded -> success. If failed/cancelled -> failed. If pending + sessionStorage data -> success (redirect means pre-authorized). If pending + no data -> start polling.
+- Polling: setTimeout every 5s, max 12 attempts. After exhaustion, treats as success with info toast.
+- Cart clearing: uses clearCart() or removeVendorItems(vendor) from CartContext, with ref guard for single execution.
+- Email: sends via sendOrderConfirmationEmailViaAPI with full order data from enriched sessionStorage.
+- Success page shows: order number, payment method label, amount, delivery method, estimated delivery.
+- CTA buttons: View Order (-> /profile/order-history), Continue Shopping (-> /shop), Download Receipt (disabled/future).
+- Animation: CSS keyframes success-pop (scale 0->1.15->1) with motion-safe: media query.
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (7021/7021, 297 suites) | [PASS] TypeCheck
 ---
 
 ## [2025-07-15 14:00] - PAY-012
