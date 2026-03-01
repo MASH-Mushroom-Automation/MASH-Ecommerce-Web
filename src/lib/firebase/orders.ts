@@ -151,6 +151,15 @@ export interface FirestoreOrder {
   paymentMethod: "cod" | "gcash" | "card";
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
 
+  /** Nested payment details populated by updatePaymentStatus (webhook) */
+  payment?: {
+    paymentId?: string;
+    paymentIntentId?: string;
+    sourceId?: string;
+    paidAt?: string;
+    failedAt?: string;
+  };
+
   // Order Status
   status: OrderStatus;
   statusHistory: StatusHistoryEntry[];

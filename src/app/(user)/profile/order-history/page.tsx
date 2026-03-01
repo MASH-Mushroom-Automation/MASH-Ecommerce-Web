@@ -34,6 +34,11 @@ import {
   ShoppingCart,
   FileText,
   CalendarClock,
+  Banknote,
+  Smartphone,
+  Wallet,
+  CircleDollarSign,
+  Filter,
 } from "lucide-react";
 import {
   Dialog,
@@ -51,12 +56,92 @@ import {
 import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
 import type { AddToCartProduct } from "@/types/api";
 import { LALAMOVE_VEHICLES } from "@/lib/lalamove/vehicle-types";
+import { PAYMENT_METHOD_LABELS } from "@/types/payment";
+import type { PaymentMethod } from "@/types/payment";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
+
+// ---------------------------------------------------------------------------
+// Payment method icon map (mirrors CheckoutStep3Payment / OrderSummary)
+// ---------------------------------------------------------------------------
+const PAYMENT_METHOD_ICON_MAP: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  cod: Banknote,
+  gcash: Smartphone,
+  grab_pay: Wallet,
+  card: CreditCard,
+  paymaya: CircleDollarSign,
+};
+
+/** Get icon component for a payment method, with fallback */
+function getPaymentIcon(method: string): React.ComponentType<{ className?: string }> {
+  return PAYMENT_METHOD_ICON_MAP[method] ?? CreditCard;
+}
+
+/** Get human-readable label for payment method */
+function getPaymentLabel(method: string): string {
+  return PAYMENT_METHOD_LABELS[method as PaymentMethod] ?? method;
+}
+
+// ---------------------------------------------------------------------------
+// Payment status configuration for badges
+// ---------------------------------------------------------------------------
+type FirestorePaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
+const PAYMENT_STATUS_CONFIG: Record<
+  FirestorePaymentStatus,
+  {
+    label: string;
+    color: string;
+    icon: React.ReactNode;
+  }
+> = {
+  paid: {
+    label: "Paid",
+    color:
+      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  pending: {
+    label: "Pending",
+    color:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="h-3 w-3" />,
+  },
+  failed: {
+    label: "Failed",
+    color:
+      "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  refunded: {
+    label: "Refunded",
+    color:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    icon: <RefreshCw className="h-3 w-3" />,
+  },
+};
+
+/** Get COD-specific label based on delivery method */
+function getCodStatusLabel(
+  paymentStatus: string,
+  deliveryMethod: string,
+): string {
+  if (paymentStatus === "pending") {
+    return deliveryMethod === "pickup"
+      ? "Pay on Pickup"
+      : "Pay on Delivery";
+  }
+  return PAYMENT_STATUS_CONFIG[paymentStatus as FirestorePaymentStatus]?.label ?? paymentStatus;
+}
+
+type PaymentFilterType = "all" | "paid" | "pending" | "failed" | "refunded";
 
 // Status configuration with dark mode compatible colors
 const STATUS_CONFIG: Record<
@@ -182,6 +267,7 @@ export default function OrderHistoryPage() {
   const { user, isAuthenticated } = useAuth();
   const { orders, loading, error } = useUserFirebaseOrders(user?.id || null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilterType>("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const tabCounts = useMemo(() => {
@@ -203,11 +289,19 @@ export default function OrderHistoryPage() {
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
-    if (activeTab === "all") return orders;
-    return orders.filter(
-      (order) => STATUS_CONFIG[order.status]?.tab === activeTab,
-    );
-  }, [orders, activeTab]);
+    let result = orders;
+    if (activeTab !== "all") {
+      result = result.filter(
+        (order) => STATUS_CONFIG[order.status]?.tab === activeTab,
+      );
+    }
+    if (paymentFilter !== "all") {
+      result = result.filter(
+        (order) => order.paymentStatus === paymentFilter,
+      );
+    }
+    return result;
+  }, [orders, activeTab, paymentFilter]);
 
   if (!isAuthenticated) {
     return (
@@ -387,6 +481,36 @@ export default function OrderHistoryPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Payment Status Filter */}
+        {orders.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap" data-testid="payment-status-filter">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground shrink-0">
+              <Filter className="h-3.5 w-3.5" />
+              Payment:
+            </div>
+            {(["all", "paid", "pending", "failed", "refunded"] as const).map(
+              (status) => (
+                <button
+                  key={status}
+                  onClick={() => setPaymentFilter(status)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
+                    paymentFilter === status
+                      ? status === "all"
+                        ? "bg-foreground text-background border-foreground"
+                        : PAYMENT_STATUS_CONFIG[status].color
+                      : "bg-muted/40 dark:bg-muted/20 text-muted-foreground border-transparent hover:bg-muted/60 dark:hover:bg-muted/30",
+                  )}
+                  data-testid={`payment-filter-${status}`}
+                >
+                  {status !== "all" && PAYMENT_STATUS_CONFIG[status].icon}
+                  {status === "all" ? "All" : PAYMENT_STATUS_CONFIG[status].label}
+                </button>
+              ),
+            )}
+          </div>
+        )}
 
         {/* Orders List */}
         {filteredOrders.length > 0 ? (
@@ -581,6 +705,45 @@ function OrderCard({
               </p>
             </div>
           </div>
+
+          {/* Payment Row */}
+          {(() => {
+            const PayIcon = getPaymentIcon(order.paymentMethod);
+            const paymentLabel = getPaymentLabel(order.paymentMethod);
+            const paymentStatusCfg =
+              PAYMENT_STATUS_CONFIG[order.paymentStatus as FirestorePaymentStatus];
+            const isCod = order.paymentMethod === "cod";
+            const statusLabel = isCod
+              ? getCodStatusLabel(order.paymentStatus, order.deliveryMethod)
+              : paymentStatusCfg?.label ?? order.paymentStatus;
+            return (
+              <div
+                className="flex items-center justify-between mb-3"
+                data-testid="order-card-payment"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted/60 dark:bg-muted/30">
+                    <PayIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {paymentLabel}
+                  </span>
+                </div>
+                {paymentStatusCfg && (
+                  <Badge
+                    className={cn(
+                      "border text-[10px] font-semibold gap-0.5 px-1.5 py-0",
+                      paymentStatusCfg.color,
+                    )}
+                    data-testid="payment-status-badge"
+                  >
+                    {paymentStatusCfg.icon}
+                    {statusLabel}
+                  </Badge>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-border/50">
@@ -1163,21 +1326,99 @@ function OrderDetailDialog({
           </div>
 
           {/* Payment Info */}
-          <div className="flex items-center gap-3 bg-muted/40 dark:bg-muted/20 rounded-xl p-3.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
-              <CreditCard className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Payment Method</p>
-              <p className="font-medium text-sm">
-                {order.paymentMethod === "cod" && "Cash on Delivery"}
-                {order.paymentMethod === "gcash" && "GCash"}
-                {order.paymentMethod === "card" && "Credit/Debit Card"}
-                {!["cod", "gcash", "card"].includes(order.paymentMethod) &&
-                  order.paymentMethod}
-              </p>
-            </div>
-          </div>
+          {(() => {
+            const PayIcon = getPaymentIcon(order.paymentMethod);
+            const paymentLabel = getPaymentLabel(order.paymentMethod);
+            const paymentStatusCfg =
+              PAYMENT_STATUS_CONFIG[order.paymentStatus as FirestorePaymentStatus];
+            const isCod = order.paymentMethod === "cod";
+            const statusLabel = isCod
+              ? getCodStatusLabel(order.paymentStatus, order.deliveryMethod)
+              : paymentStatusCfg?.label ?? order.paymentStatus;
+            const paymentDetail = order.payment;
+            return (
+              <div
+                className="bg-muted/40 dark:bg-muted/20 rounded-xl p-4 space-y-3"
+                data-testid="order-detail-payment"
+              >
+                {/* Method + Status Row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                      <PayIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Payment Method
+                      </p>
+                      <p className="font-medium text-sm">{paymentLabel}</p>
+                    </div>
+                  </div>
+                  {paymentStatusCfg && (
+                    <Badge
+                      className={cn(
+                        "border text-[11px] font-semibold gap-1 px-2 py-0.5",
+                        paymentStatusCfg.color,
+                      )}
+                      data-testid="detail-payment-status-badge"
+                    >
+                      {paymentStatusCfg.icon}
+                      {statusLabel}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Transaction details for digital payments */}
+                {!isCod && (paymentDetail?.paymentId || paymentDetail?.sourceId) && (
+                  <div className="space-y-2 pt-2 border-t border-border/30">
+                    {paymentDetail?.paymentId && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Transaction ID
+                        </span>
+                        <span
+                          className="font-mono text-foreground"
+                          data-testid="payment-transaction-id"
+                        >
+                          {paymentDetail.paymentId}
+                        </span>
+                      </div>
+                    )}
+                    {paymentDetail?.sourceId && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Reference
+                        </span>
+                        <span className="font-mono text-foreground">
+                          {paymentDetail.sourceId}
+                        </span>
+                      </div>
+                    )}
+                    {paymentDetail?.paidAt && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Paid Date</span>
+                        <span
+                          className="text-foreground"
+                          data-testid="payment-paid-date"
+                        >
+                          {formatDate(paymentDetail.paidAt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* COD specific messaging */}
+                {isCod && order.paymentStatus === "pending" && (
+                  <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                    {order.deliveryMethod === "pickup"
+                      ? "Please prepare exact amount for pickup."
+                      : "Please prepare exact amount for the delivery rider."}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sticky footer with action buttons */}
