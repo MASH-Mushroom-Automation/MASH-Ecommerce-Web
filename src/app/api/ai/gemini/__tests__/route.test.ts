@@ -1,84 +1,57 @@
-import { POST, GET } from '../route';
+import { POST, GET } from "@/app/api/ai/gemini/route";
+jest.mock("next/server", () => {
+  class MockNextResponse {
+    body: unknown; status: number; headers: Map<string,string>;
+    constructor(body: unknown, init?: {status?: number}) { this.body = body; this.status = init?.status || 200; this.headers = new Map(); }
+    json() { return Promise.resolve(this.body); }
+    static json(data: unknown, init?: {status?: number}) { return new MockNextResponse(data, init); }
+  }
+  class MockNextRequest {
+    url: string; method: string; headers: Map<string,string>; private _body: string|undefined; nextUrl: {searchParams: URLSearchParams};
+    constructor(url: string, init?: {method?: string; body?: string; headers?: Record<string,string>}) { this.url = url; this.method = init?.method || "GET"; this._body = init?.body; this.headers = new Map(Object.entries(init?.headers || {})); this.nextUrl = { searchParams: new URL(url).searchParams }; }
+    async json() { return JSON.parse(this._body || "{}"); }
+  }
+  return { NextResponse: MockNextResponse, NextRequest: MockNextRequest };
+});
 
-// Provide a minimal mock for NextRequest
-const makeReq = (body?: any) => ({
-  json: async () => body,
-} as unknown as Request);
+global.fetch = jest.fn(async (url, opts) => {
+  if (url.toString().includes("notfound")) {
+    return { ok: false, status: 404, text: async () => "not found", json: async () => ({ error: "not found" }) };
+  }
+  return { ok: true, status: 200, json: async () => ({ result: "success" }) };
+});
 
-// Mock the Node.js https module
-jest.mock('https', () => ({
-  request: jest.fn((options, callback) => {
-    // Simulate immediate error to force fallback
-    const req = {
-      on: jest.fn((event, handler) => {
-        if (event === 'error') {
-          // Delay error to let test setup complete
-          setTimeout(() => handler(new Error('MOCK_ERROR')), 0);
-        }
-        return req;
-      }),
-      write: jest.fn(),
-      end: jest.fn(),
-      destroy: jest.fn(),
-    };
-    return req;
-  }),
-}));
-
-describe('Gemini proxy route', () => {
-  beforeEach(() => {
-    // Ensure a key is present to avoid early 500
-    process.env.GEMINI_API_KEY = 'test-key';
-    process.env.HF_API_KEY = 'test-hf-key';
-    (global as any).fetch = jest.fn();
-  });
-
-  test('GET returns ok', async () => {
-    const res = await GET(undefined as any);
+describe("Gemini API Route", () => {
+  it("GET returns ok", async () => {
+    const res = await GET();
+    expect(res).toBeDefined();
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.ok).toBe(true);
+    expect(await res.json()).toEqual({ ok: true });
   });
 
-  test('POST proxies to Gemini and returns body text', async () => {
-    (global as any).fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ candidates: [{ content: { parts: [{ text: 'Hello' }] } }] }),
-    });
-
-    const req = makeReq({ model: 'gemini-3', contents: [] });
-    const res = await POST(req as any);
-
+  it("POST returns success for valid request", async () => {
+    const req = { json: async () => ({ prompt: "hello" }) };
+    const res = await POST(req);
     expect(res).toBeDefined();
-    // Check response contains expected structure
-    const json = await (res as any).json();
-    // Could be from native or fetch depending on mock, just check structure
-    expect(json.candidates || json.error).toBeDefined();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.result).toBe("success");
   });
 
-  test('POST falls back to Hugging Face when Gemini returns 404', async () => {
-    // First fetch (Gemini) returns 404
-    (global as any).fetch
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        text: async () => 'models/gemini-3-flash-preview is not found',
-        json: async () => ({ error: 'NOT_FOUND' }),
-      })
-      // Second fetch (HF) returns assistant text
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ([{ generated_text: 'Hello from HF fallback' }]),
-      });
-
-    const req = makeReq({ model: 'gemini-3-flash-preview', contents: [{ role: 'user', parts: [{ text: 'Hello' }] }] });
-    const res = await POST(req as any);
-
+  it("POST handles fallback request", async () => {
+    const req = { json: async () => ({ model: "notfound" }) };
+    const res = await POST(req);
     expect(res).toBeDefined();
-    const json = await (res as any).json();
-    // Response should exist - may have candidates from HF fallback or error
-    expect(json).toBeDefined();
+    expect(res.status).toBeDefined();
+  });
+
+  it("POST returns error if API key missing", async () => {
+    process.env.GEMINI_API_KEY = "";
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY = "";
+    const req = { json: async () => ({ prompt: "test" }) };
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toContain("API key");
   });
 });

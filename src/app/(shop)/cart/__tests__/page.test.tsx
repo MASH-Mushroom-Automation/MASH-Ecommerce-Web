@@ -7,6 +7,35 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CartPage from "../page";
 
+// Per-file context mocks
+jest.mock("@/contexts/CartContext", () => ({
+  useCart: () => ({
+    items: [],
+    summary: {},
+    loading: false,
+    updateQuantity: jest.fn(),
+    removeFromCart: jest.fn(),
+    clearCart: jest.fn(),
+    addToCart: jest.fn(),
+  }),
+}));
+jest.mock("@/contexts/WishlistContext", () => ({
+  useWishlist: () => ({ wishlistIds: [], addToWishlist: jest.fn() }),
+}));
+
+describe("CartPage smoke test", () => {
+  it("renders without crashing", () => {
+    let container;
+    try {
+      const result = render(<CartPage />);
+      container = result.container;
+    } catch (e) {
+      container = undefined;
+    }
+    expect(container).toBeDefined();
+  });
+});
+
 // Mock next/navigation
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
