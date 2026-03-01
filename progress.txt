@@ -14,6 +14,7 @@
 
 - **Payment Failed Recovery:** Payment-failed page reads PendingOrderData from sessionStorage (same as success page). Does NOT clear sessionStorage -- preserves data for retry. Retry links include ?orderId=X for checkout to pick up. FAQ section uses collapsible FAQItem component with aria-expanded for accessibility.
 - **Order Summary Payment Display:** OrderSummary accepts optional paymentMethod prop (PaymentMethod | null). Shows icon + label from METHOD_ICONS/PAYMENT_METHOD_LABELS. PayMongoSecurityBadge shown for non-COD methods (uses isCodMethod()). PromotionalBannerSlot renders only when children are provided. formatPHP() uses toLocaleString("en-PH") for proper thousand separators.
+- **Order History Payment Display:** PAYMENT_METHOD_ICON_MAP maps methods to Lucide icons. PAYMENT_STATUS_CONFIG provides color-coded badges (paid/green, pending/amber, failed/red, refunded/blue). Payment filter combines with tab filter via useMemo. FirestoreOrder.payment optional nested object holds transaction details (paymentId, sourceId, paidAt). getCodStatusLabel() differentiates delivery vs pickup for COD orders.
 
 ---
 
@@ -667,4 +668,31 @@
 - isCodMethod() from types/payment.ts used to distinguish digital from COD methods
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (52 OrderSummary, 299 suites, 7105 tests) | [PASS] TypeCheck
+---
+
+## [2026-03-02 06:35] - PAY-016
+**Completed:** Order History - Payment Status Display
+**Persona:** ATLAS
+**Files Changed:**
+- src/lib/firebase/orders.ts (extended FirestoreOrder interface with optional payment nested object)
+- src/app/(user)/profile/order-history/page.tsx (payment icons, status badges, filter strip, detail dialog payment section)
+- src/components/orders/OrderCard.tsx (seller-facing payment method icons/labels and status badges)
+- src/app/(user)/profile/order-history/__tests__/OrderPaymentDisplay.test.tsx (26 new tests)
+- src/components/orders/__tests__/OrderCard.test.tsx (9 new tests, 38 total)
+
+**Implementation Notes:**
+- PAYMENT_METHOD_ICON_MAP maps payment methods to Lucide icons (cod=Banknote, gcash=Smartphone, grab_pay=Wallet, card=CreditCard, paymaya=CircleDollarSign)
+- PAYMENT_STATUS_CONFIG provides color-coded badge styling: paid/green, pending/amber, failed/red, refunded/blue
+- Payment filter strip combines with existing tab filter via useMemo for client-side filtering
+- OrderDetailDialog shows transaction ID, source reference, paid date from FirestoreOrder.payment nested object
+- getCodStatusLabel() returns "Pay on Delivery"/"Pay on Pickup" based on order.deliveryMethod
+- Seller OrderCard uses SELLER_PAYMENT_ICON_MAP and SELLER_PAYMENT_STATUS_CONFIG with data-testid attributes
+
+**Learnings for Future Iterations:**
+- FirestoreOrder.payment is optional nested object written by updatePaymentStatus via dot notation merges
+- Use getAllByText() when a label appears on both card and dialog to avoid multiple-match test failures
+- Test imports from __tests__/ subdirectories use ../page not ../../page relative paths
+- PAYMENT_METHOD_ICON_MAP pattern is reusable across consumer and seller views with separate constant names
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (35 new, 300 suites, 7140 tests) | [PASS] TypeCheck
 ---

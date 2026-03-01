@@ -338,8 +338,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 16,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-03-02T06:35:00.000Z",
       "acceptanceCriteria": [
         "Order history cards show payment method icon and name",
         "Payment status badge: Paid (green), Pending (yellow), Failed (red), Refunded (blue)",
