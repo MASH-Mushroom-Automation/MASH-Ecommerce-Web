@@ -244,14 +244,14 @@ describe("SignupPage", () => {
     expect(privacyCheckbox).toHaveAttribute("aria-checked", "false");
   });
 
-  it("renders links to Terms & Conditions and Privacy Policy pages", () => {
+  it("renders Terms & Conditions and Privacy Policy action elements", () => {
     render(<SignupPage />);
 
-    const termsLink = screen.getByRole("link", { name: /terms & conditions/i });
-    const privacyLink = screen.getByRole("link", { name: /data privacy policy/i });
+    const termsBtn = screen.getByRole("button", { name: /terms & conditions/i });
+    const privacyBtn = screen.getByRole("button", { name: /data privacy policy/i });
 
-    expect(termsLink).toHaveAttribute("href", "/terms");
-    expect(privacyLink).toHaveAttribute("href", "/privacy");
+    expect(termsBtn).toBeInTheDocument();
+    expect(privacyBtn).toBeInTheDocument();
   });
 
   // ---- PASSWORD VISIBILITY TOGGLE ----

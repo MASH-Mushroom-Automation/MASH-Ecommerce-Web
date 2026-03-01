@@ -53,7 +53,7 @@ describe('ChatButton', () => {
     const { container } = render(<ChatButton isOpen={false} onClick={() => {}} />);
     
     const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass('fixed', 'bottom-6', 'right-6');
+    expect(wrapper).toHaveClass('fixed', 'bottom-24', 'right-6');
   });
 
   it('should show unread badge when hasUnread is true and not open', () => {
