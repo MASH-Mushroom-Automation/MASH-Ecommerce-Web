@@ -1,22 +1,3 @@
 {
-  "data": [
-    {
-      "id": "hero-1",
-      "title": "Fresh Mushrooms Delivered Daily",
-      "subtitle": "From Our Farm to Your Table in 24 Hours",
-      "backgroundImages": ["/images/hero-mushroom-farm.jpg"],
-      "primaryButton": {
-        "text": "Shop Mushrooms",
-        "url": "/shop",
-        "variant": "primary"
-      },
-      "secondaryButton": {
-        "text": "Learn More",
-        "url": "/about",
-        "variant": "outline"
-      },
-      "isActive": true,
-      "order": 1
-    }
-  ]
+  "data": []
 }
