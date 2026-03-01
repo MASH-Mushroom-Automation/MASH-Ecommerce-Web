@@ -5,7 +5,7 @@
   "createdAt": "2026-02-27T00:00:00.000Z",
   "status": "in-progress",
   "totalStories": 20,
-  "completedStories": 6,
+  "completedStories": 7,
   "stories": [
     {
       "id": "PAY-001",
@@ -147,8 +147,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 7,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2026-03-02T12:00:00.000Z",
       "acceptanceCriteria": [
         "PayMaya/Maya option in PaymentMethodSelector shows PayMaya logo",
         "On selection: info box explaining redirect to Maya app",

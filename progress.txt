@@ -444,3 +444,27 @@
 
 **Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (70 new card form, 237 checkout total, 10 suites) | [PASS] TypeCheck
 ---
+
+## [2026-03-02 12:00] - PAY-007
+**Completed:** PayMaya Payment Flow - Frontend Integration
+**Persona:** ATLAS (validation story -- no new source code, integration tests only)
+**Files Changed:**
+- src/components/checkout/__tests__/PayMayaFlow.test.tsx (new, 31 tests)
+
+**Implementation Notes:**
+- All 6 acceptance criteria were already satisfied by components from PAY-003 (PaymentMethodCard, PaymentMethodSelector) and PAY-004 (PaymentProcessingOverlay, PaymentMethodInfoBox)
+- Created dedicated PayMayaFlow.test.tsx with 31 integration tests organized by acceptance criteria (AC 1-6)
+- AC 1 (4 tests): PayMaya display, description, selection, aria-checked in PaymentMethodSelector
+- AC 2 (8 tests): PaymentMethodInfoBox shows "Maya Payment" title, redirect explanation, mobile note, do-not-close notice, accessible aria-label, and returns null for COD
+- AC 3 (3 tests): getPaymentButtonLabel returns "Pay with Maya" (idle) / "Redirecting to Maya..." (submitting), differs from COD
+- AC 4 (8 tests): PaymentProcessingOverlay shows "Redirecting to Maya...", Maya redirect description, do-not-close warning, spinner, dialog role, cancel button behavior, visibility toggle
+- AC 5 (3 tests): Overlay visible during redirect phase, cancel available before redirect, hidden during active redirect
+- AC 6 (5 tests): Same PaymentProcessingOverlay component renders for PayMaya, GCash, and GrabPay with different messages and descriptions
+
+**Learnings for Future Iterations:**
+- Validation stories (where components already exist) can be completed with tests-only commits -- no source changes needed
+- The shared PaymentProcessingOverlay + PaymentMethodInfoBox architecture means all e-wallet methods follow the same pattern: add entries to config maps, write flow tests
+- PayMayaFlow test structure mirrors GrabPayFlow -- both use AC-organized describe blocks for traceability
+
+**Quality Gates:** [PASS] Build (154 pages) | [PASS] Lint | [PASS] Tests (31 new PayMaya flow, 295 suites, 6867 tests total) | [PASS] TypeCheck
+---
