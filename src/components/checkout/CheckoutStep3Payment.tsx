@@ -49,6 +49,8 @@ export interface CheckoutStep3PaymentProps {
   paymentError?: string | null;
   /** Optional retry callback for payment failures */
   onRetryPayment?: () => void;
+  /** Optional loading message override (e.g. "Creating Order..." or "Processing Payment...") */
+  loadingMessage?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +72,7 @@ export function CheckoutStep3Payment({
   onEditStep,
   paymentError = null,
   onRetryPayment,
+  loadingMessage = null,
 }: CheckoutStep3PaymentProps) {
   const [cardValid, setCardValid] = useState(false);
 
@@ -89,7 +92,7 @@ export function CheckoutStep3Payment({
   );
 
   const SelectedIcon = PAYMENT_ICON_MAP[selectedMethod] ?? Banknote;
-  const buttonLabel = getPaymentButtonLabel(selectedMethod, isProcessing);
+  const buttonLabel = loadingMessage || getPaymentButtonLabel(selectedMethod, isProcessing);
 
   // COD label adapts for pickup vs delivery
   const codLabel =
