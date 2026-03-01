@@ -238,6 +238,16 @@ export default function CheckoutPage() {
           paymentMethod: step3Form.getValues("paymentMethod"),
           vendor: selectedVendor,
           timestamp: Date.now(),
+          amount: totalWithDelivery,
+          subtotal: summary.subtotal,
+          deliveryFee,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          deliveryMethod: step1Data?.deliveryMethod,
         })
       );
     } catch {
