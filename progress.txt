@@ -13,6 +13,7 @@
 - **Payment Success Verification:** Uses VerificationState machine (verifying|succeeded|pending|failed). Verifies via /api/payment/status on mount. Polls every 5s (max 12 attempts) for pending payments. Clears cart via CartContext after success. storePendingOrder now includes amount, items, deliveryMethod for rich display.
 
 - **Payment Failed Recovery:** Payment-failed page reads PendingOrderData from sessionStorage (same as success page). Does NOT clear sessionStorage -- preserves data for retry. Retry links include ?orderId=X for checkout to pick up. FAQ section uses collapsible FAQItem component with aria-expanded for accessibility.
+- **Order Summary Payment Display:** OrderSummary accepts optional paymentMethod prop (PaymentMethod | null). Shows icon + label from METHOD_ICONS/PAYMENT_METHOD_LABELS. PayMongoSecurityBadge shown for non-COD methods (uses isCodMethod()). PromotionalBannerSlot renders only when children are provided. formatPHP() uses toLocaleString("en-PH") for proper thousand separators.
 
 ---
 
@@ -639,4 +640,31 @@
 - Early return on timeout saves unnecessary PayMongo API calls
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (66 payment-routes, 300 suites, 7549+ tests) | [PASS] TypeCheck
+---
+
+## [2025-01-30] - PAY-015
+**Completed:** Order Summary Component - Payment Details Display
+**Persona:** ATLAS (Frontend Design)
+**Files Changed:**
+- src/components/checkout/OrderSummary.tsx (enhanced with payment method, badges, promo slot)
+- src/app/(shop)/checkout/page.tsx (pass paymentMethod prop to OrderSummary)
+- src/components/checkout/__tests__/OrderSummary.test.tsx (52 new tests)
+
+**Implementation Notes:**
+- Added PaymentMethodDisplay sub-component: renders Lucide icon + PAYMENT_METHOD_LABELS label for selected method
+- Added PayMongoSecurityBadge: ShieldCheck icon + "Secured by PayMongo" text, displayed only for digital payments (non-COD)
+- Added PromotionalBannerSlot: future-ready React.ReactNode slot with Tag icon, renders only when children provided
+- Added formatPHP() helper using toLocaleString("en-PH") for proper PHP currency formatting with thousand separators
+- Added serviceFee prop (optional, defaults to 0) for future service fee line item
+- Payment method section only visible when paymentMethod prop is truthy (checkout step 3+)
+- Reused METHOD_ICONS pattern from PaymentMethodCard (Banknote, Smartphone, Wallet, CreditCard, CircleDollarSign)
+- Mobile collapsible behavior preserved from original implementation
+
+**Learnings for Future Iterations:**
+- OrderSummary now exports OrderSummaryProps interface for external typing
+- formatPHP() helper can be extracted to a shared utility if needed elsewhere
+- PromotionalBannerSlot pattern: null/undefined children = no render (React.ReactNode conditional)
+- isCodMethod() from types/payment.ts used to distinguish digital from COD methods
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (52 OrderSummary, 299 suites, 7105 tests) | [PASS] TypeCheck
 ---
