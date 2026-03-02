@@ -696,3 +696,31 @@
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (35 new, 300 suites, 7140 tests) | [PASS] TypeCheck
 ---
+## [2025-07-18 14:30] - PAY-017
+**Completed:** Payment Processing Overlay & Loading States
+**Persona:** ATLAS (Frontend)
+**Files Changed:**
+- src/components/checkout/PaymentProcessingOverlay.tsx (complete rewrite, 107->360 lines)
+- src/components/checkout/__tests__/PaymentProcessingOverlay.test.tsx (rewritten, 14->40 tests)
+- src/components/checkout/__tests__/GrabPayFlow.test.tsx (5 tests updated)
+- src/components/checkout/__tests__/PayMayaFlow.test.tsx (7 tests updated)
+- src/components/checkout/__tests__/CheckoutStep3Payment.test.tsx (2 tests updated)
+
+**Implementation Notes:**
+- ProcessingStep type with 3 stages: creating, connecting, redirecting - auto-advances every 2s
+- METHOD_ICON_MAP renders payment-specific Lucide icons (Smartphone for GCash, Wallet for GrabPay, etc.)
+- Cancel button delayed 30s (CANCEL_DELAY) with AlertDialog confirmation before calling onCancel
+- Timeout warning after 60s (TIMEOUT_DELAY) swaps spinner for AlertTriangle with amber warning text
+- beforeunload event listener prevents accidental page navigation during payment
+- sr-only live region (role=status, aria-live=polite) announces all state transitions for screen readers
+- Step indicator dots (3) show visual progress through processing stages
+- All timing constants exported for test use: STEP_ADVANCE_DELAY, CANCEL_DELAY, TIMEOUT_DELAY
+
+**Learnings for Future Iterations:**
+- Never call setState inside another setState updater function in React 18 - causes batching issues with fake timers
+- Use separate act() calls per timer step when testing chained setTimeout effects with React state dependencies
+- STEP_TEXT uses generic messages (not method-specific) since description text below already differentiates methods
+- data-testid attributes on all interactive/dynamic elements enable robust test queries vs fragile text matching
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (300+ suites, 0 failures) | [PASS] TypeCheck
+---

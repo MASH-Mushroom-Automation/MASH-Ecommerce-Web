@@ -360,8 +360,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 17,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2025-07-18T14:30:00.000Z",
       "acceptanceCriteria": [
         "Full-screen overlay during payment processing with blur backdrop",
         "Animated spinner with payment method logo",
