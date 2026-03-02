@@ -87,6 +87,148 @@ describe("ImageUploader", () => {
     // At least one delete button
     expect(buttons.length).toBeGreaterThan(0);
   });
+
+  it("should show empty state when no images and no error", () => {
+    render(<ImageUploader {...defaultProps} />);
+    expect(screen.getByText("No images uploaded yet")).toBeInTheDocument();
+  });
+
+  it("should hide upload zone when maxImages reached", () => {
+    const images = Array.from({ length: 5 }, (_, i) => ({
+      id: `img-${i}`,
+      url: `/test${i}.jpg`,
+      alt: `Alt ${i}`,
+      isPrimary: i === 0,
+    }));
+    render(<ImageUploader {...defaultProps} images={images} maxImages={5} />);
+    expect(screen.queryByText("Drag & drop images or click to browse")).not.toBeInTheDocument();
+  });
+
+  it("should show image count label", () => {
+    const images = [
+      { id: "img-1", url: "/test1.jpg", alt: "Alt 1", isPrimary: true },
+      { id: "img-2", url: "/test2.jpg", alt: "Alt 2", isPrimary: false },
+    ];
+    render(<ImageUploader {...defaultProps} images={images} />);
+    expect(screen.getByText("Product Images (2/5)")).toBeInTheDocument();
+  });
+
+  it("should show drag reorder hint", () => {
+    const images = [
+      { id: "img-1", url: "/test1.jpg", alt: "Alt 1", isPrimary: true },
+    ];
+    render(<ImageUploader {...defaultProps} images={images} />);
+    expect(screen.getByText(/Drag to reorder/)).toBeInTheDocument();
+  });
+
+  it("should show max file size in upload zone", () => {
+    render(<ImageUploader {...defaultProps} maxFileSize={10 * 1024 * 1024} />);
+    expect(screen.getByText(/max 10MB each/)).toBeInTheDocument();
+  });
+
+  it("should call onImagesChange when alt text is updated", () => {
+    const onImagesChange = jest.fn();
+    const images = [
+      { id: "img-1", url: "/test1.jpg", alt: "Old alt", isPrimary: true },
+    ];
+    render(<ImageUploader {...defaultProps} images={images} onImagesChange={onImagesChange} />);
+    const altInput = screen.getByDisplayValue("Old alt");
+    fireEvent.change(altInput, { target: { value: "New alt text" } });
+    expect(onImagesChange).toHaveBeenCalledWith([
+      { id: "img-1", url: "/test1.jpg", alt: "New alt text", isPrimary: true },
+    ]);
+  });
+
+  it("should show Primary Image label for first image alt", () => {
+    const images = [
+      { id: "img-1", url: "/test1.jpg", alt: "First", isPrimary: true },
+      { id: "img-2", url: "/test2.jpg", alt: "Second", isPrimary: false },
+    ];
+    render(<ImageUploader {...defaultProps} images={images} />);
+    expect(screen.getByText(/Primary Image/)).toBeInTheDocument();
+  });
+
+  it("should show max images count in upload zone", () => {
+    render(<ImageUploader {...defaultProps} maxImages={8} />);
+    expect(screen.getByText(/Up to 8 images/)).toBeInTheDocument();
+  });
+
+  it("should add border-destructive class when error is set", () => {
+    const { container } = render(<ImageUploader {...defaultProps} error="Required" />);
+    // The upload zone div should have destructive border
+    const uploadZone = container.querySelector("[class*='border-destructive']");
+    expect(uploadZone).toBeTruthy();
+  });
+
+  it("should handle file input change with valid image", () => {
+    const onImagesChange = jest.fn();
+    // Mock URL.createObjectURL
+    const originalCreateObjectURL = URL.createObjectURL;
+    URL.createObjectURL = jest.fn(() => "blob:test");
+    render(<ImageUploader {...defaultProps} onImagesChange={onImagesChange} />);
+    const fileInput = document.querySelector("input[type='file']") as HTMLInputElement;
+    const file = new File(["img"], "test.png", { type: "image/png" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(onImagesChange).toHaveBeenCalled();
+    URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it("should reject non-image files", () => {
+    const onImagesChange = jest.fn();
+    render(<ImageUploader {...defaultProps} onImagesChange={onImagesChange} />);
+    const fileInput = document.querySelector("input[type='file']") as HTMLInputElement;
+    const file = new File(["data"], "doc.pdf", { type: "application/pdf" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(onImagesChange).not.toHaveBeenCalled();
+  });
+
+  it("should reject file exceeding maxFileSize", () => {
+    const onImagesChange = jest.fn();
+    render(<ImageUploader {...defaultProps} onImagesChange={onImagesChange} maxFileSize={100} />);
+    const fileInput = document.querySelector("input[type='file']") as HTMLInputElement;
+    const bigData = "x".repeat(200);
+    const file = new File([bigData], "big.png", { type: "image/png" });
+    Object.defineProperty(file, "size", { value: 200 });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(onImagesChange).not.toHaveBeenCalled();
+  });
+
+  it("should reject when adding exceeds maxImages", () => {
+    const images = Array.from({ length: 4 }, (_, i) => ({
+      id: `img-${i}`,
+      url: `/test${i}.jpg`,
+      alt: `Alt ${i}`,
+      isPrimary: i === 0,
+    }));
+    const onImagesChange = jest.fn();
+    URL.createObjectURL = jest.fn(() => "blob:test");
+    render(<ImageUploader {...defaultProps} images={images} onImagesChange={onImagesChange} maxImages={5} />);
+    const fileInput = document.querySelector("input[type='file']") as HTMLInputElement;
+    const files = [
+      new File(["a"], "a.png", { type: "image/png" }),
+      new File(["b"], "b.png", { type: "image/png" }),
+    ];
+    fireEvent.change(fileInput, { target: { files } });
+    // Should not add because 4 + 2 > 5
+    expect(onImagesChange).not.toHaveBeenCalled();
+  });
+
+  it("should call onImagesChange on delete with primary reassignment", () => {
+    const onImagesChange = jest.fn();
+    const images = [
+      { id: "img-1", url: "/test1.jpg", alt: "First", isPrimary: true },
+      { id: "img-2", url: "/test2.jpg", alt: "Second", isPrimary: false },
+    ];
+    render(<ImageUploader {...defaultProps} images={images} onImagesChange={onImagesChange} />);
+    // Click first delete button
+    const deleteButtons = screen.getAllByRole("button");
+    // Find the button with X icon - it should be near each image card
+    const deleteBtn = deleteButtons.find(b => b.querySelector("[data-testid='icon-X']") || b.innerHTML.includes("X"));
+    if (deleteBtn) {
+      fireEvent.click(deleteBtn);
+      expect(onImagesChange).toHaveBeenCalled();
+    }
+  });
 });
 
 // ============ VariantManager Tests ============

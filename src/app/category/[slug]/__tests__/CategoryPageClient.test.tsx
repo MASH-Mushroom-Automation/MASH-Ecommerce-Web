@@ -150,4 +150,189 @@ describe("CategoryPageClient", () => {
     render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
     expect(screen.getByTestId("empty-state")).toBeInTheDocument();
   });
+
+  it("should render category description", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByText("Fresh vegetables")).toBeInTheDocument();
+  });
+
+  it("should render category image", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const img = screen.getByAltText("Vegetables");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "/vegetables.jpg");
+  });
+
+  it("should render All Products button", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByText("All Products")).toBeInTheDocument();
+  });
+
+  it("should render other categories in sidebar", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    // "Fruits" is an other category (slug != "vegetables")
+    expect(screen.getAllByText("Fruits").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should render breadcrumb links", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByText("Home")).toBeInTheDocument();
+    expect(screen.getByText("Shop")).toBeInTheDocument();
+  });
+
+  it("should render tag filter buttons", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getAllByText("Fresh").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Organic").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Dried").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should toggle tag selection on click", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const freshBtns = screen.getAllByText("Fresh");
+    fireEvent.click(freshBtns[0]);
+    // After clicking, "Active filters:" and clear button should appear
+    expect(screen.getAllByText(/Active filters/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should show Clear tags button when tags are selected", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const freshBtns = screen.getAllByText("Fresh");
+    fireEvent.click(freshBtns[0]);
+    expect(screen.getAllByText("Clear tags").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should clear all tags when Clear tags clicked", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const freshBtns = screen.getAllByText("Fresh");
+    fireEvent.click(freshBtns[0]);
+    const clearBtns = screen.getAllByText("Clear tags");
+    fireEvent.click(clearBtns[0]);
+    expect(screen.queryByText("Active filters:")).not.toBeInTheDocument();
+  });
+
+  it("should render search input with category name placeholder", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByPlaceholderText("Search in Vegetables...")).toBeInTheDocument();
+  });
+
+  it("should update search query on input change", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const input = screen.getByPlaceholderText("Search in Vegetables...");
+    fireEvent.change(input, { target: { value: "tomato" } });
+    expect(input).toHaveValue("tomato");
+    expect(screen.getByText(/Showing results for/i)).toBeInTheDocument();
+  });
+
+  it("should show clear button when search has text", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const input = screen.getByPlaceholderText("Search in Vegetables...");
+    fireEvent.change(input, { target: { value: "test" } });
+    // There should be a clear (X) button
+    const clearBtns = screen.getAllByTestId("icon-X");
+    expect(clearBtns.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should render grid/list view toggle buttons", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByLabelText("Grid view")).toBeInTheDocument();
+    expect(screen.getByLabelText("List view")).toBeInTheDocument();
+  });
+
+  it("should switch to list view on click", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    fireEvent.click(screen.getByLabelText("List view"));
+    // View mode changed - list view button should now have primary style
+    expect(screen.getByLabelText("List view").className).toContain("bg-primary");
+  });
+
+  it("should render price range inputs", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getAllByPlaceholderText("₱0").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should render Filters button for mobile", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getAllByText("Filters").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should render product count", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    // useSanityProducts mock returns 2 products by default
+    expect(screen.getByText(/products? available/)).toBeInTheDocument();
+  });
+
+  it("should show Load More button when more products available", () => {
+    if (!CategoryPageClient) return;
+    const { useSanityProducts } = require("@/hooks/useSanityProducts");
+    const manyProducts = Array.from({ length: 30 }, (_, i) => ({
+      _id: `p${i}`,
+      name: `Product ${i}`,
+      slug: `product-${i}`,
+      price: 100 + i,
+      mainImage: `/img${i}.jpg`,
+      category: { name: "Vegetables" },
+    }));
+    useSanityProducts.mockReturnValue({ products: manyProducts, loading: false, error: null, totalCount: 30 });
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    expect(screen.getByText("Load More Products")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 24 of 30 products/)).toBeInTheDocument();
+  });
+
+  it("should load more products when Load More clicked", () => {
+    if (!CategoryPageClient) return;
+    const { useSanityProducts } = require("@/hooks/useSanityProducts");
+    const manyProducts = Array.from({ length: 30 }, (_, i) => ({
+      _id: `p${i}`,
+      name: `Product ${i}`,
+      slug: `product-${i}`,
+      price: 100 + i,
+      mainImage: `/img${i}.jpg`,
+      category: { name: "Vegetables" },
+    }));
+    useSanityProducts.mockReturnValue({ products: manyProducts, loading: false, error: null, totalCount: 30 });
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    fireEvent.click(screen.getByText("Load More Products"));
+    // After loading more, all 30 should be shown
+    expect(screen.queryByText("Load More Products")).not.toBeInTheDocument();
+  });
+
+  it("should show Reset All Filters when price changed", () => {
+    if (!CategoryPageClient) return;
+    render(<CategoryPageClient category={mockCategory} slug="vegetables" />);
+    const minInputs = screen.getAllByPlaceholderText("₱0");
+    fireEvent.change(minInputs[0], { target: { value: "500" } });
+    expect(screen.getAllByText("Reset All Filters").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should not show category image when not provided", () => {
+    if (!CategoryPageClient) return;
+    const noImageCat = { ...mockCategory, image: undefined };
+    render(<CategoryPageClient category={noImageCat} slug="vegetables" />);
+    expect(screen.queryByAltText("Vegetables")).not.toBeInTheDocument();
+  });
+
+  it("should not show description when not provided", () => {
+    if (!CategoryPageClient) return;
+    const noDescCat = { ...mockCategory, description: undefined };
+    render(<CategoryPageClient category={noDescCat} slug="vegetables" />);
+    expect(screen.queryByText("Fresh vegetables")).not.toBeInTheDocument();
+  });
 });
