@@ -793,3 +793,29 @@
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (302 suites, 7226/7226) | [PASS] TypeCheck
 ---
+---
+## [2025-07-24 10:30] - PAY-020
+**Completed:** End-to-End Integration and Polish
+**Persona:** RALPH Core
+**Files Changed:**
+- src/lib/payment/paymongo.ts (added createCardCheckoutSession using Checkout Sessions API)
+- src/app/api/payment/create-intent/route.ts (card handler uses checkout sessions, returns checkoutUrl)
+- src/lib/payment/index.ts (export createCardCheckoutSession)
+- src/app/api/payment/__tests__/payment-routes.test.ts (updated 6 card tests for checkout session flow)
+
+**Implementation Notes:**
+- Verified all 13 acceptance criteria for PAY-020 (full checkout flow, COD, GCash, GrabPay, Card, PayMaya, error recovery, email, responsive UI, build, lint, tests, no-any)
+- Found critical card payment flow gap: createCardPaymentIntent returned no checkoutUrl, so card payments always hit error path on checkout page
+- Fixed by implementing PayMongo Checkout Sessions API (POST /v1/checkout_sessions) which creates a hosted payment page for card collection + 3DS, returning checkoutUrl consistent with e-wallet redirect pattern
+- Preserved createCardPaymentIntent for backward compatibility; create-intent route now calls createCardCheckoutSession for cards
+- TypeScript any audit: zero any types in production payment code (only in test files, which is acceptable per AC)
+- All 9 integration points verified via comprehensive subagent audit
+
+**Learnings for Future Iterations:**
+- PayMongo Checkout Sessions API is simpler than Payment Intents + client-side tokenization for card payments
+- Consistent redirect pattern across all payment methods (e-wallets and cards) simplifies client-side flow
+- PayMongo propagates checkout session metadata to underlying payment objects, so existing webhook handlers work without modification
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (302 suites, 7226/7226) | [PASS] TypeCheck
+
+### PAYMENT SYSTEM PRD COMPLETE - 20/20 STORIES PASSING
