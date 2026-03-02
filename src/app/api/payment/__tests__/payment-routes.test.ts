@@ -612,6 +612,93 @@ describe("POST /api/payment/webhook", () => {
     expect(mockUpdateOrderPaymentStatus).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  // -- AC5-extra: Production signature enforcement (IS_PRODUCTION = true) --
+
+  describe("production signature enforcement", () => {
+    let ProdPOST: Function;
+
+    beforeAll(async () => {
+      // Temporarily set NODE_ENV to production and re-import the module
+      // so IS_PRODUCTION is true at module load time.
+      const origNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+      process.env.PAYMONGO_WEBHOOK_SECRET = "whsec_prod_test_secret";
+      jest.resetModules();
+      const mod = await import("@/app/api/payment/webhook/route");
+      ProdPOST = mod.POST;
+      // Restore NODE_ENV for other tests
+      process.env.NODE_ENV = origNodeEnv;
+      delete process.env.PAYMONGO_WEBHOOK_SECRET;
+    });
+
+    it("returns 401 when signature is missing in production", async () => {
+      const body = JSON.stringify({
+        data: { id: "evt_prod_1", attributes: { type: "payment.paid", data: {} } },
+      });
+      const req = createReq({ body, headers: {} });
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const res = await ProdPOST(req);
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual(expect.objectContaining({ error: "Signature required" }));
+      consoleSpy.mockRestore();
+    });
+
+    it("returns 401 when signature is invalid in production", async () => {
+      mockVerifyWebhookSignature.mockReturnValueOnce(false);
+      const body = JSON.stringify({
+        data: { id: "evt_prod_2", attributes: { type: "payment.paid", data: {} } },
+      });
+      const req = createReq({ body, headers: { "paymongo-signature": "bad_sig" } });
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const res = await ProdPOST(req);
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual(expect.objectContaining({ error: "Invalid signature" }));
+      consoleSpy.mockRestore();
+    });
+
+    it("processes event when signature is valid in production", async () => {
+      mockVerifyWebhookSignature.mockReturnValueOnce(true);
+      const body = JSON.stringify({
+        data: {
+          id: "evt_prod_3",
+          attributes: { type: "payment.paid", data: {
+            id: "pay_prod",
+            attributes: { source: { metadata: { orderId: "order-prod" } } },
+          } },
+        },
+      });
+      const req = createReq({ body, headers: { "paymongo-signature": "valid_sig" } });
+      const res = await ProdPOST(req);
+      expect(res.status).toBe(200);
+      expect(res.body.received).toBe(true);
+    });
+  });
+
+  // -- source.chargeable missing required fields path --
+
+  it("logs warning for source.chargeable with missing required fields", async () => {
+    const body = JSON.stringify({
+      data: {
+        id: "evt_src_missing",
+        attributes: {
+          type: "source.chargeable",
+          data: {
+            id: null,
+            attributes: { amount: 0, metadata: {} },
+          },
+        },
+      },
+    });
+    const req = createReq({ body });
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(res.body.received).toBe(true);
+    // Should NOT have attempted to create a payment
+    expect(mockCreatePaymentFromSource).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });
 
 // ==================== CREATE INTENT (PAY-009) ====================
