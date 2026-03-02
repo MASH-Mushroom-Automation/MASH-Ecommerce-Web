@@ -724,3 +724,39 @@
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (300+ suites, 0 failures) | [PASS] TypeCheck
 ---
+
+## [2025-07-14] - PAY-018
+**Completed:** Payment Logos & Brand Assets
+**Persona:** ATLAS (Frontend Design Agent)
+**Files Changed:**
+- public/payment-logos/gcash.svg (NEW - 0.29KB)
+- public/payment-logos/grabpay.svg (NEW - 0.29KB)
+- public/payment-logos/visa.svg (NEW - 0.31KB)
+- public/payment-logos/mastercard.svg (NEW - 0.26KB)
+- public/payment-logos/maya.svg (NEW - 0.29KB)
+- public/payment-logos/cod-icon.svg (NEW - 0.33KB)
+- src/components/checkout/PaymentLogo.tsx (NEW)
+- src/components/checkout/__tests__/PaymentLogo.test.tsx (NEW - 23 tests)
+- src/components/layout/FooterPaymentMethods.tsx (NEW)
+- src/components/layout/__tests__/FooterPaymentMethods.test.tsx (NEW - 11 tests)
+- src/components/layout/footer.tsx (MODIFIED - switched import to FooterPaymentMethods)
+- src/components/layout/__tests__/footer.test.tsx (MODIFIED - updated assertion)
+
+**Implementation Notes:**
+- Created 6 minimal SVG brand logos, all hand-crafted text-based designs under 0.35KB each (far under 5KB AC)
+- PaymentLogo component uses LOGO_MAP Record<PaymentMethod, LogoMeta> for type-safe logo lookup
+- Three size presets via PaymentLogoSize type: "sm" (48x16), "md" (72x24), "lg" (96x32)
+- Dark mode handled via CSS classes (dark:brightness-110 dark:contrast-90) rather than dual SVG versions
+- CARD_BRAND_LOGOS export provides Visa + Mastercard separately for card brand rendering in checkout
+- FooterPaymentMethods replaces old PaymentLogos component with grayscale-to-color hover treatment
+- Uses next/image with unoptimized prop since SVGs do not benefit from Next.js image optimization
+- Old PaymentLogos component (src/components/common/payment-logos.tsx) preserved for backward compatibility
+
+**Learnings for Future Iterations:**
+- SVG logos as inline text designs (rect + text elements) produce smallest possible file sizes vs traced artwork
+- next/image unoptimized prop is required for SVGs to avoid unnecessary re-encoding
+- When replacing a component used in tests, always check existing test assertions that may assert absence of content
+- CARD_BRAND_LOGOS separate from LOGO_MAP because card method maps to Visa by default but needs both brands shown
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (302 suites, 7202/7202) | [PASS] TypeCheck
+---

@@ -381,8 +381,8 @@
       "type": "FRONTEND",
       "persona": "ATLAS",
       "priority": 18,
-      "passes": false,
-      "completedAt": null,
+      "passes": true,
+      "completedAt": "2025-07-14T12:00:00.000Z",
       "acceptanceCriteria": [
         "Payment method logos in public/payment-logos/ directory: gcash.svg, grabpay.svg, visa.svg, mastercard.svg, maya.svg, cod-icon.svg",
         "SVG logos optimized (under 5KB each)",
