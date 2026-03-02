@@ -994,4 +994,429 @@ describe("SellerOrderDetailPage", () => {
       expect(screen.queryByTestId("lalamove-tracking-timeline")).not.toBeInTheDocument();
     });
   });
+
+  // Batch 16: Lalamove auto-create on processing branches
+  describe("Lalamove Auto-Create on Processing", () => {
+    it("shows info toast when lalamoveOrderId already exists", async () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "approved",
+          deliveryMethod: "lalamove",
+          lalamoveOrderId: "existing-lala-id",
+          lalamoveQuotationId: "quote-123",
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Processing"));
+      });
+
+      await waitFor(() => {
+        expect(toast.info).toHaveBeenCalledWith("Lalamove delivery already created");
+      });
+    });
+
+    it("shows error toast when no quotation ID for lalamove processing", async () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "approved",
+          deliveryMethod: "lalamove",
+          lalamoveOrderId: null,
+          lalamoveQuotationId: null,
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Processing"));
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("No delivery quotation found. Please create a quote first.");
+      });
+      // Should NOT call updateOrderStatus
+      expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+    });
+
+    it("calls fetch to create Lalamove order when quotation exists", async () => {
+      const mockFetch = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { orderId: "lala-new-1" } }),
+      } as Response);
+
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "approved",
+          deliveryMethod: "lalamove",
+          lalamoveOrderId: null,
+          lalamoveQuotationId: "quote-abc",
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Processing"));
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith("/api/lalamove/create-order", expect.objectContaining({
+          method: "POST",
+        }));
+      });
+
+      mockFetch.mockRestore();
+    });
+
+    it("shows error and prompts confirmation when Lalamove creation fails", async () => {
+      const mockFetch = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: "Lalamove API unavailable" }),
+      } as Response);
+      // Mock confirm to return false (don't continue)
+      const mockConfirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "approved",
+          deliveryMethod: "lalamove",
+          lalamoveOrderId: null,
+          lalamoveQuotationId: "quote-abc",
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Processing"));
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled();
+      });
+      // Should NOT update status since user declined
+      expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+
+      mockFetch.mockRestore();
+      mockConfirm.mockRestore();
+    });
+
+    it("continues with status update when confirm clicked after Lalamove failure", async () => {
+      const mockFetch = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: "API error" }),
+      } as Response);
+      const mockConfirm = jest.spyOn(window, "confirm").mockReturnValue(true);
+
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "approved",
+          deliveryMethod: "lalamove",
+          lalamoveOrderId: null,
+          lalamoveQuotationId: "quote-abc",
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Processing"));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateOrderStatus).toHaveBeenCalledWith("order-abc-123", "processing", "seller-001");
+      });
+
+      mockFetch.mockRestore();
+      mockConfirm.mockRestore();
+    });
+  });
+
+  // Batch 16: Reject failure and cancel
+  describe("Reject Flow Details", () => {
+    it("shows error toast when reject fails", async () => {
+      mockRejectOrder.mockRejectedValueOnce(new Error("Network fail"));
+
+      render(<SellerOrderDetailPage />);
+      fireEvent.click(screen.getByText("Reject Order"));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("confirm-reject"));
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Failed to reject order");
+      });
+    });
+
+    it("closes rejection modal on cancel and does not call rejectOrder", () => {
+      render(<SellerOrderDetailPage />);
+      fireEvent.click(screen.getByText("Reject Order"));
+      expect(screen.getByTestId("rejection-modal")).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("cancel-reject"));
+      expect(screen.queryByTestId("rejection-modal")).not.toBeInTheDocument();
+      expect(mockRejectOrder).not.toHaveBeenCalled();
+    });
+  });
+
+  // Batch 16: Vehicle selection
+  describe("Vehicle Selection", () => {
+    it("renders vehicle options with names and weight limits", () => {
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Select Vehicle Type")).toBeInTheDocument();
+      expect(screen.getByText("Motorcycle")).toBeInTheDocument();
+      expect(screen.getByText("Sedan")).toBeInTheDocument();
+      expect(screen.getByText(/20kg/)).toBeInTheDocument();
+      expect(screen.getByText(/100kg/)).toBeInTheDocument();
+    });
+
+    it("shows estimated cost for each vehicle", () => {
+      render(<SellerOrderDetailPage />);
+      // calculateEstimate returns 250, displayed as ~₱250
+      const estimates = screen.getAllByText(/~₱250/);
+      expect(estimates.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("shows selected vehicle info box with description", () => {
+      render(<SellerOrderDetailPage />);
+      // Default selected is sedan
+      expect(screen.getByText(/Sedan - Estimated ₱250/)).toBeInTheDocument();
+      expect(screen.getByText("Medium packages")).toBeInTheDocument();
+    });
+
+    it("changes selected vehicle on click", () => {
+      render(<SellerOrderDetailPage />);
+      const motorcycleBtn = screen.getByText("Motorcycle").closest("button");
+      if (motorcycleBtn) {
+        fireEvent.click(motorcycleBtn);
+        // After clicking motorcycle, it should show motorcycle info  
+        expect(screen.getByText(/Motorcycle - Estimated ₱250/)).toBeInTheDocument();
+      }
+    });
+  });
+
+  // Batch 16: Pickup details
+  describe("Pickup Order Details", () => {
+    const pickupOrder = createMockOrder({
+      deliveryMethod: "pickup",
+      deliveryAddress: undefined,
+      deliveryFee: 0,
+      total: 500,
+      pickupLocation: { id: "loc-1", name: "MASH Farm", address: "Farm Lane, QC" },
+    });
+
+    it("shows pickup instruction texts", () => {
+      mockUseFirebaseOrder.mockReturnValue({ order: pickupOrder, loading: false, error: null });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText(/visit the farm\/store/)).toBeInTheDocument();
+      expect(screen.getByText(/No delivery fee/)).toBeInTheDocument();
+      expect(screen.getByText(/reduces scam risk/)).toBeInTheDocument();
+      expect(screen.getByText(/inspect products before payment/)).toBeInTheDocument();
+    });
+
+    it("shows customer contact section in pickup", () => {
+      mockUseFirebaseOrder.mockReturnValue({ order: pickupOrder, loading: false, error: null });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Customer Contact")).toBeInTheDocument();
+    });
+
+    it("shows Ready for Pickup info box", () => {
+      mockUseFirebaseOrder.mockReturnValue({ order: pickupOrder, loading: false, error: null });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("When Order is Ready")).toBeInTheDocument();
+      expect(screen.getByText(/Ready for Pickup/)).toBeInTheDocument();
+    });
+
+    it("shows data inconsistency warning for pickup with lalamove tracking", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          ...pickupOrder,
+          lalamoveTracking: { orderId: "x", status: "ASSIGNING_DRIVER" },
+        }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText(/Data Inconsistency Detected/)).toBeInTheDocument();
+    });
+
+    it("does not show inconsistency warning for normal pickup", () => {
+      mockUseFirebaseOrder.mockReturnValue({ order: pickupOrder, loading: false, error: null });
+      render(<SellerOrderDetailPage />);
+      expect(screen.queryByText(/Data Inconsistency/)).not.toBeInTheDocument();
+    });
+  });
+
+  // Batch 16: Order info edge cases
+  describe("Order Info Edge Cases", () => {
+    it("hides Last Updated when updatedAt is null", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ updatedAt: null }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.queryByText("Last Updated")).not.toBeInTheDocument();
+    });
+
+    it("shows Last Updated when updatedAt exists", () => {
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Last Updated")).toBeInTheDocument();
+    });
+
+    it("renders payment method with underscore replaced", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ paymentMethod: "credit_card" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("credit card")).toBeInTheDocument();
+    });
+
+    it("renders cancelled status badge", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "cancelled" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    });
+
+    it("renders Processing status badge", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "processing" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Processing")).toBeInTheDocument();
+    });
+
+    it("renders Ready for Pickup status badge", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "ready_for_pickup" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Ready for Pickup")).toBeInTheDocument();
+    });
+
+    it("renders Shipped status badge", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "shipped" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Shipped")).toBeInTheDocument();
+    });
+
+    it("renders Completed status badge", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "completed" }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      expect(screen.getByText("Completed")).toBeInTheDocument();
+    });
+
+    it("renders placeholder image for items without image", () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          items: [{ name: "No Image Item", price: 100, quantity: 1, image: null }],
+          subtotal: 100,
+          total: 250,
+        }),
+        loading: false,
+        error: null,
+      });
+      render(<SellerOrderDetailPage />);
+      const img = screen.getByAltText("No Image Item");
+      expect(img).toHaveAttribute("src", "/mushroom-placeholder.png");
+    });
+  });
+
+  // Batch 16: Firebase realtime listener
+  describe("Firebase Realtime Listener", () => {
+    it("sets up listener on mount with orderId", () => {
+      const mockUnsub = jest.fn();
+      (FirebaseOrdersService.listenToOrder as jest.Mock).mockReturnValue(mockUnsub);
+      render(<SellerOrderDetailPage />);
+      expect(FirebaseOrdersService.listenToOrder).toHaveBeenCalledWith(
+        "order-abc-123",
+        expect.any(Function)
+      );
+    });
+
+    it("cleans up listener on unmount", () => {
+      const mockUnsub = jest.fn();
+      (FirebaseOrdersService.listenToOrder as jest.Mock).mockReturnValue(mockUnsub);
+      const { unmount } = render(<SellerOrderDetailPage />);
+      unmount();
+      expect(mockUnsub).toHaveBeenCalled();
+    });
+  });
+
+  // Batch 16: Processing + ready_for_pickup for pickup orders
+  describe("Status Transitions for Pickup", () => {
+    it("calls updateOrderStatus with ready_for_pickup for pickup processing", async () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({
+          status: "processing",
+          deliveryMethod: "pickup",
+          deliveryAddress: undefined,
+          deliveryFee: 0,
+          total: 500,
+          pickupLocation: { id: "loc-1", name: "MASH Farm", address: "QC" },
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Ready for Pickup"));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
+          "order-abc-123",
+          "ready_for_pickup",
+          "seller-001"
+        );
+      });
+    });
+
+    it("calls updateOrderStatus with shipped for lalamove processing", async () => {
+      mockUseFirebaseOrder.mockReturnValue({
+        order: createMockOrder({ status: "processing", deliveryMethod: "lalamove" }),
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerOrderDetailPage />);
+      await act(async () => {
+        fireEvent.click(screen.getByText("Mark as Shipped"));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
+          "order-abc-123",
+          "shipped",
+          "seller-001"
+        );
+      });
+    });
+  });
 });
