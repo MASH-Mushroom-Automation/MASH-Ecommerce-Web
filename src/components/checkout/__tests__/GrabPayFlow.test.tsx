@@ -1,8 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { PaymentMethodSelector } from "../PaymentMethodSelector";
 import { PaymentMethodInfoBox, getPaymentButtonLabel } from "../PaymentMethodInfoBox";
-import { PaymentProcessingOverlay } from "../PaymentProcessingOverlay";
+import {
+  PaymentProcessingOverlay,
+  CANCEL_DELAY,
+} from "../PaymentProcessingOverlay";
 
 /**
  * PAY-005: GrabPay Payment Flow - Frontend Integration
@@ -162,13 +165,13 @@ describe("PAY-005: GrabPay Payment Flow", () => {
   // -----------------------------------------------------------------------
 
   describe("AC 4: Processing overlay", () => {
-    it("should show 'Redirecting to GrabPay...' message", () => {
+    it("should show initial processing step text", () => {
       render(
         <PaymentProcessingOverlay visible={true} paymentMethod="grab_pay" />
       );
       expect(
-        screen.getByText("Redirecting to GrabPay...")
-      ).toBeInTheDocument();
+        screen.getByTestId("processing-step-text")
+      ).toHaveTextContent("Creating your order...");
     });
 
     it("should show description about Grab redirect", () => {
@@ -193,8 +196,7 @@ describe("PAY-005: GrabPay Payment Flow", () => {
       render(
         <PaymentProcessingOverlay visible={true} paymentMethod="grab_pay" />
       );
-      const spinner = document.querySelector(".animate-spin");
-      expect(spinner).toBeInTheDocument();
+      expect(screen.getByTestId("spinner")).toBeInTheDocument();
     });
 
     it("should have accessible dialog role", () => {
@@ -209,7 +211,8 @@ describe("PAY-005: GrabPay Payment Flow", () => {
       );
     });
 
-    it("should show cancel button when onCancel provided", () => {
+    it("should show cancel button after delay and confirm cancellation", () => {
+      jest.useFakeTimers();
       const onCancel = jest.fn();
       render(
         <PaymentProcessingOverlay
@@ -218,13 +221,22 @@ describe("PAY-005: GrabPay Payment Flow", () => {
           onCancel={onCancel}
         />
       );
-      const cancelBtn = screen.getByRole("button", { name: /cancel/i });
-      expect(cancelBtn).toBeInTheDocument();
-      fireEvent.click(cancelBtn);
+      // Cancel button hidden initially
+      expect(screen.queryByTestId("cancel-button")).not.toBeInTheDocument();
+      // Advance past cancel delay
+      act(() => { jest.advanceTimersByTime(CANCEL_DELAY); });
+      expect(screen.getByTestId("cancel-button")).toBeInTheDocument();
+      // Click cancel opens confirmation dialog
+      fireEvent.click(screen.getByTestId("cancel-button"));
+      expect(screen.getByText("Cancel Payment?")).toBeInTheDocument();
+      // Confirm cancellation
+      fireEvent.click(screen.getByTestId("cancel-confirm-yes"));
       expect(onCancel).toHaveBeenCalledTimes(1);
+      jest.useRealTimers();
     });
 
     it("should not show cancel button when onCancel is null", () => {
+      jest.useFakeTimers();
       render(
         <PaymentProcessingOverlay
           visible={true}
@@ -232,9 +244,11 @@ describe("PAY-005: GrabPay Payment Flow", () => {
           onCancel={null}
         />
       );
+      act(() => { jest.advanceTimersByTime(CANCEL_DELAY); });
       expect(
-        screen.queryByRole("button", { name: /cancel/i })
+        screen.queryByTestId("cancel-button")
       ).not.toBeInTheDocument();
+      jest.useRealTimers();
     });
 
     it("should not render when not visible", () => {
@@ -257,7 +271,8 @@ describe("PAY-005: GrabPay Payment Flow", () => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
 
-    it("should allow cancellation before redirect starts", () => {
+    it("should allow cancellation after delay with confirmation", () => {
+      jest.useFakeTimers();
       const onCancel = jest.fn();
       render(
         <PaymentProcessingOverlay
@@ -266,8 +281,11 @@ describe("PAY-005: GrabPay Payment Flow", () => {
           onCancel={onCancel}
         />
       );
-      fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+      act(() => { jest.advanceTimersByTime(CANCEL_DELAY); });
+      fireEvent.click(screen.getByTestId("cancel-button"));
+      fireEvent.click(screen.getByTestId("cancel-confirm-yes"));
       expect(onCancel).toHaveBeenCalled();
+      jest.useRealTimers();
     });
 
     it("should hide cancel when redirect is in progress (onCancel=null)", () => {
@@ -304,12 +322,12 @@ describe("PAY-005: GrabPay Payment Flow", () => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
 
-    it("should show different messages for GrabPay vs GCash", () => {
+    it("should show different descriptions for GrabPay vs GCash", () => {
       const { unmount } = render(
         <PaymentProcessingOverlay visible={true} paymentMethod="grab_pay" />
       );
       expect(
-        screen.getByText("Redirecting to GrabPay...")
+        screen.getByText(/redirected to the Grab app/i)
       ).toBeInTheDocument();
       unmount();
 
@@ -317,7 +335,7 @@ describe("PAY-005: GrabPay Payment Flow", () => {
         <PaymentProcessingOverlay visible={true} paymentMethod="gcash" />
       );
       expect(
-        screen.getByText("Redirecting to GCash...")
+        screen.getByText(/redirected to the GCash app/i)
       ).toBeInTheDocument();
     });
 

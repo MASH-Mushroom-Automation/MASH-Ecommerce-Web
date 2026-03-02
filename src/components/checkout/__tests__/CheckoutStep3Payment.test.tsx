@@ -365,10 +365,10 @@ describe("CheckoutStep3Payment", () => {
 
     it("should show PaymentProcessingOverlay when paymentProcessing is true", () => {
       renderComponent("gcash", { paymentProcessing: true });
-      // "Redirecting to GCash..." appears both in overlay heading and submit button
+      // Overlay starts with "Creating your order..." step text
       expect(
-        screen.getAllByText("Redirecting to GCash...").length
-      ).toBeGreaterThanOrEqual(1);
+        screen.getByTestId("payment-processing-overlay")
+      ).toBeInTheDocument();
       // Overlay renders with dialog role
       expect(
         screen.getByRole("dialog", { name: "Processing GCash payment" })
@@ -378,7 +378,7 @@ describe("CheckoutStep3Payment", () => {
     it("should not show PaymentProcessingOverlay when not processing", () => {
       renderComponent("gcash", { paymentProcessing: false });
       expect(
-        screen.queryByText("Redirecting to GCash...")
+        screen.queryByTestId("payment-processing-overlay")
       ).not.toBeInTheDocument();
     });
   });
