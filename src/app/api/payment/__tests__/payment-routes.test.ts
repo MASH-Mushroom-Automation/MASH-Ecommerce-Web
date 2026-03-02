@@ -46,6 +46,7 @@ const mockVerifyWebhookSignature = jest.fn().mockReturnValue(true);
 const mockCreatePaymentFromSource = jest.fn().mockResolvedValue({ success: true, paymentId: "pay_123" });
 const mockIsPayMongoConfigured = jest.fn().mockReturnValue(true);
 const mockCreateCardPaymentIntent = jest.fn();
+const mockCreateCardCheckoutSession = jest.fn();
 const mockCreateEWalletPayment = jest.fn();
 const mockGetPublicKey = jest.fn().mockReturnValue("pk_test_123");
 const mockGetSourceStatus = jest.fn();
@@ -56,6 +57,7 @@ jest.mock("@/lib/payment", () => ({
   createPaymentFromSource: (...args: unknown[]) => mockCreatePaymentFromSource(...args),
   isPayMongoConfigured: () => mockIsPayMongoConfigured(),
   createCardPaymentIntent: (...args: unknown[]) => mockCreateCardPaymentIntent(...args),
+  createCardCheckoutSession: (...args: unknown[]) => mockCreateCardCheckoutSession(...args),
   createEWalletPayment: (...args: unknown[]) => mockCreateEWalletPayment(...args),
   getPublicKey: () => mockGetPublicKey(),
   getSourceStatus: (...args: unknown[]) => mockGetSourceStatus(...args),
@@ -758,15 +760,15 @@ describe("Payment Create Intent (PAY-009)", () => {
       );
     });
 
-    it("handles card payment via Payment Intents API", async () => {
-      mockCreateCardPaymentIntent.mockResolvedValue({ success: true, paymentId: "pi_1", status: "awaiting_payment_method" });
+    it("handles card payment via Checkout Sessions API", async () => {
+      mockCreateCardCheckoutSession.mockResolvedValue({ success: true, paymentId: "cs_1", checkoutUrl: "https://checkout.paymongo.com/cs_1", status: "pending" });
       const req = createReq({
         body: { paymentMethod: "card", amount: 1000, orderId: "1", orderNumber: "ORD-1" },
       });
       const res = await POST(req);
       expect(res.body.success).toBe(true);
-      expect(res.body.publicKey).toBe("pk_test_123");
-      expect(mockCreateCardPaymentIntent).toHaveBeenCalled();
+      expect(res.body.checkoutUrl).toBe("https://checkout.paymongo.com/cs_1");
+      expect(mockCreateCardCheckoutSession).toHaveBeenCalled();
     });
 
     it("handles COD without PayMongo call", async () => {
@@ -777,7 +779,7 @@ describe("Payment Create Intent (PAY-009)", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.status).toBe("pending");
       expect(mockCreateEWalletPayment).not.toHaveBeenCalled();
-      expect(mockCreateCardPaymentIntent).not.toHaveBeenCalled();
+      expect(mockCreateCardCheckoutSession).not.toHaveBeenCalled();
     });
 
     it("COD works even when PayMongo is not configured", async () => {
@@ -922,7 +924,7 @@ describe("Payment Create Intent (PAY-009)", () => {
     });
 
     it("returns user-friendly message when card creation fails", async () => {
-      mockCreateCardPaymentIntent.mockResolvedValue({ success: false, error: "Declined" });
+      mockCreateCardCheckoutSession.mockResolvedValue({ success: false, error: "Declined" });
       const req = createReq({
         body: { paymentMethod: "card", amount: 500, orderId: "1", orderNumber: "ORD-1" },
       });
@@ -1009,17 +1011,17 @@ describe("Payment Create Intent (PAY-009)", () => {
       expect(res.body).toHaveProperty("error");
     });
 
-    it("card response has standard shape plus publicKey", async () => {
-      mockCreateCardPaymentIntent.mockResolvedValue({
-        success: true, paymentId: "pi_1", status: "awaiting_payment_method",
+    it("card response has standard shape with checkoutUrl", async () => {
+      mockCreateCardCheckoutSession.mockResolvedValue({
+        success: true, paymentId: "cs_1", checkoutUrl: "https://checkout.paymongo.com/cs_1", status: "pending",
       });
       const req = createReq({
         body: { paymentMethod: "card", amount: 500, orderId: "1", orderNumber: "ORD-1" },
       });
       const res = await POST(req);
       expect(res.body).toHaveProperty("success", true);
-      expect(res.body).toHaveProperty("paymentId", "pi_1");
-      expect(res.body).toHaveProperty("publicKey", "pk_test_123");
+      expect(res.body).toHaveProperty("paymentId", "cs_1");
+      expect(res.body).toHaveProperty("checkoutUrl", "https://checkout.paymongo.com/cs_1");
       expect(res.body).toHaveProperty("status");
       expect(res.body).toHaveProperty("error");
     });

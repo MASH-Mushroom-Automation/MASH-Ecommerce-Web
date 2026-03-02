@@ -239,6 +239,97 @@ export async function createCardPaymentIntent(
 }
 
 /**
+ * Create a Checkout Session for card payments (hosted by PayMongo)
+ *
+ * Uses PayMongo's Checkout Sessions API to create a hosted payment page
+ * that handles card collection, 3DS authentication, and payment processing.
+ * The user is redirected to PayMongo's page and returned to our success/failed URL.
+ */
+export async function createCardCheckoutSession(
+  amount: number,
+  orderId: string,
+  orderNumber: string,
+  customerEmail: string,
+  customerName: string,
+  customerPhone: string,
+  description?: string
+): Promise<PaymentResult> {
+  if (!isPayMongoConfigured()) {
+    console.warn("PayMongo not configured");
+    return { success: false, error: "Payment service not configured" };
+  }
+
+  try {
+    const amountInCentavos = Math.round(amount * 100);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const payload = {
+      data: {
+        attributes: {
+          billing: {
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+          },
+          description: description || `Order ${orderNumber}`,
+          line_items: [
+            {
+              name: `MASH Order ${orderNumber}`,
+              amount: amountInCentavos,
+              currency: "PHP",
+              quantity: 1,
+            },
+          ],
+          payment_method_types: ["card"],
+          success_url: `${appUrl}/checkout/payment-success?orderId=${orderId}`,
+          cancel_url: `${appUrl}/checkout/payment-failed?orderId=${orderId}`,
+          reference_number: orderNumber,
+          metadata: {
+            orderId,
+            orderNumber,
+            customerEmail,
+            customerName,
+          },
+        },
+      },
+    };
+
+    const response = await fetch(`${PAYMONGO_API_URL}/checkout_sessions`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("PayMongo checkout session creation failed:", data);
+      return {
+        success: false,
+        error: data.errors?.[0]?.detail || "Failed to create payment session",
+      };
+    }
+
+    const session = data.data;
+
+    console.log("[PayMongo] Card checkout session created:", session.id);
+
+    return {
+      success: true,
+      paymentId: session.id,
+      checkoutUrl: session.attributes.checkout_url,
+      status: "pending" as PaymentStatus,
+    };
+  } catch (error) {
+    console.error("PayMongo card checkout error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Payment error",
+    };
+  }
+}
+
+/**
  * Attach a payment method to a payment intent (for card payments)
  */
 export async function attachPaymentMethod(

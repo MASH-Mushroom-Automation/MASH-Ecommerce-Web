@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  createCardPaymentIntent,
+  createCardCheckoutSession,
   createEWalletPayment,
   isPayMongoConfigured,
   getPublicKey,
@@ -211,14 +211,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Card: Payment Intents API ---
+    // --- Card: Checkout Sessions API (hosted card form + 3DS) ---
     if (data.paymentMethod === "card") {
-      const result = await createCardPaymentIntent(
+      const result = await createCardCheckoutSession(
         data.amount,
         data.orderId,
         data.orderNumber,
         data.customerEmail,
         data.customerName,
+        data.customerPhone,
         data.description
       );
 
@@ -233,16 +234,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Card responses also include the public key for client-side tokenisation
-      const response = buildResponse({
-        success: true,
-        paymentId: result.paymentId,
-        status: result.status,
-      });
-
-      return NextResponse.json(
-        { ...response, publicKey: getPublicKey() },
-        { headers: rateLimitHeaders(request) }
+      return jsonWithHeaders(
+        buildResponse({
+          success: true,
+          paymentId: result.paymentId,
+          checkoutUrl: result.checkoutUrl,
+          status: result.status,
+        }),
+        request
       );
     }
 

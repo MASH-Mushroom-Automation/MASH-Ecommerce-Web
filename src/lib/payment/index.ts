@@ -24,6 +24,7 @@ export {
   isPayMongoConfigured,
   createEWalletPayment,
   createCardPaymentIntent,
+  createCardCheckoutSession,
   attachPaymentMethod,
   getSourceStatus,
   getPaymentIntentStatus,
