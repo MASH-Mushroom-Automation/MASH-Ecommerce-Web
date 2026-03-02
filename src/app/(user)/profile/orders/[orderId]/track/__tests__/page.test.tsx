@@ -409,4 +409,669 @@ describe('FirebaseOrderTrackingPage', () => {
       });
     });
   });
+
+  describe('Lalamove status variants', () => {
+    it('shows ASSIGNING_DRIVER status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ASSIGNING_DRIVER' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Finding your driver...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows PICKED_UP status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'PICKED_UP' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Package picked up - On the way!')).toBeInTheDocument();
+      });
+    });
+
+    it('shows COMPLETED status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'COMPLETED' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivered successfully!')).toBeInTheDocument();
+      });
+    });
+
+    it('shows CANCELED status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'CANCELED' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivery canceled')).toBeInTheDocument();
+      });
+    });
+
+    it('shows REJECTED status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'REJECTED' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivery rejected')).toBeInTheDocument();
+      });
+    });
+
+    it('shows EXPIRED status text', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'EXPIRED' },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivery request expired')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('order status variants', () => {
+    it.each([
+      ['pending_approval', 'Pending Approval'],
+      ['approved', 'Approved'],
+      ['processing', 'Processing'],
+      ['ready_for_pickup', 'Ready for Pickup'],
+      ['delivered', 'Delivered'],
+      ['completed', 'Completed'],
+      ['cancelled', 'Cancelled'],
+      ['rejected', 'Rejected'],
+      ['refunded', 'Refunded'],
+    ])('shows %s status badge as "%s"', async (status, label) => {
+      mockGetOrder.mockResolvedValue(createMockOrder({ status }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText(label)).toBeInTheDocument();
+      });
+    });
+
+    it('falls back for unknown status', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({ status: 'unknown_status' }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('unknown_status')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('driver card variations', () => {
+    it('shows driver avatar fallback when no photo', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          driverPhoto: null,
+          driverName: 'Juan Cruz',
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('J')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "D" fallback when no driver name and no photo', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          driverPhoto: null,
+          driverName: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('D')).toBeInTheDocument();
+        // "Your Driver" appears in CardTitle and as name fallback
+        expect(screen.getAllByText('Your Driver').length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    it('shows driver photo when available', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          driverPhoto: 'https://example.com/photo.jpg',
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        const img = screen.getByAltText('Juan Cruz');
+        expect(img).toBeInTheDocument();
+        expect(img).toHaveAttribute('src', 'https://example.com/photo.jpg');
+      });
+    });
+
+    it('hides Call Driver button when no phone', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          driverPhone: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Juan Cruz')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Call Driver')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('handleCallDriver', () => {
+    it('renders Call Driver button for driver with phone', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        const btn = screen.getByRole('button', { name: /Call Driver/i });
+        expect(btn).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('ETA display', () => {
+    it('shows pickup and delivery ETAs when available', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          pickupEta: '3:30 PM',
+          deliveryEta: '4:15 PM',
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Pickup ETA')).toBeInTheDocument();
+        expect(screen.getByText('3:30 PM')).toBeInTheDocument();
+        expect(screen.getByText('Delivery ETA')).toBeInTheDocument();
+        expect(screen.getByText('4:15 PM')).toBeInTheDocument();
+      });
+    });
+
+    it('shows only delivery ETA when no pickup ETA', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          pickupEta: null,
+          deliveryEta: '4:15 PM',
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.queryByText('Pickup ETA')).not.toBeInTheDocument();
+        expect(screen.getByText('Delivery ETA')).toBeInTheDocument();
+      });
+    });
+
+    it('hides ETAs section when neither is available', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          pickupEta: null,
+          deliveryEta: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Pickup ETA')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delivery ETA')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pricing and tax display', () => {
+    it('shows tax when tax > 0', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({ tax: 50 }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Tax')).toBeInTheDocument();
+      });
+    });
+
+    it('hides tax when tax is 0', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({ tax: 0 }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Subtotal')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Tax')).not.toBeInTheDocument();
+    });
+
+    it('hides delivery fee when 0', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({ deliveryFee: 0 }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Subtotal')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Delivery Fee')).not.toBeInTheDocument();
+    });
+
+    it('shows item quantity and price', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText(/Qty: 2/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows item without image gracefully', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        items: [{ productId: 'p1', name: 'No Image Item', price: 100, quantity: 1 }],
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('No Image Item')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('delivery address display', () => {
+    it('shows pickup address for pickup orders', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        deliveryMethod: 'pickup',
+        lalamoveOrderId: null,
+        lalamoveTracking: null,
+        pickupLocation: { address: 'BGC Store' },
+        deliveryAddress: null,
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('BGC Store')).toBeInTheDocument();
+        expect(screen.getByText('Pickup')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Pickup" fallback when no pickup address', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        deliveryMethod: 'pickup',
+        lalamoveOrderId: null,
+        lalamoveTracking: null,
+        pickupLocation: null,
+        deliveryAddress: null,
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Pickup Order')).toBeInTheDocument();
+      });
+    });
+
+    it('shows Same-Day Delivery for lalamove method', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Same-Day Delivery')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('no active delivery variants', () => {
+    it('shows approved status pending message', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        status: 'approved',
+        lalamoveOrderId: null,
+        lalamoveTracking: null,
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText(/approved.*Delivery will be arranged shortly/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows generic pending message for other statuses', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        status: 'processing',
+        lalamoveOrderId: null,
+        lalamoveTracking: null,
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText(/Delivery tracking will appear here/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Lalamove share link', () => {
+    it('hides share link when not available', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          shareLink: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Open in Lalamove App')).not.toBeInTheDocument();
+    });
+
+    it('opens share link in new window', async () => {
+      const mockOpen = jest.fn();
+      window.open = mockOpen;
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      const user = userEvent.setup();
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Open in Lalamove App')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Open in Lalamove App'));
+      expect(mockOpen).toHaveBeenCalledWith('https://share.lalamove.com/abc', '_blank');
+    });
+  });
+
+  describe('fetchLalamoveUpdates', () => {
+    it('fetches Lalamove order and driver details on active delivery', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: { status: 'ON_GOING', driverId: 'driver-1' },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              driverId: 'driver-1',
+              name: 'Juan Cruz',
+              phone: '+639171234567',
+              plateNumber: 'XYZ 789',
+              photo: 'https://example.com/driver.jpg',
+              location: { lat: '14.57', lng: '121.01' },
+            },
+          }),
+        });
+
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/lalamove/order?orderId=llm-ord-456')
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+          'test-order-123',
+          expect.objectContaining({
+            status: 'ON_GOING',
+            driverId: 'driver-1',
+            driverName: 'Juan Cruz',
+            driverPhone: '+639171234567',
+          })
+        );
+      });
+    });
+
+    it('skips Lalamove fetch when status is COMPLETED', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'COMPLETED' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivered successfully!')).toBeInTheDocument();
+      });
+
+      // Should not have fetched Lalamove updates
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/api/lalamove/order')
+      );
+    });
+
+    it('skips Lalamove fetch when status is CANCELED', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'CANCELED' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivery canceled')).toBeInTheDocument();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/api/lalamove/order')
+      );
+    });
+
+    it('handles Lalamove fetch error gracefully', async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Lalamove API down'));
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      // Should still render the order, not crash
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+    });
+
+    it('handles Lalamove order without driverId', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          data: { status: 'ASSIGNING_DRIVER' },
+        }),
+      });
+
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+          'test-order-123',
+          expect.objectContaining({ status: 'ASSIGNING_DRIVER' })
+        );
+      });
+      // Should NOT have the driver fields in the update
+      const call = mockUpdateLalamoveTracking.mock.calls[0][1];
+      expect(call.driverId).toBeUndefined();
+    });
+
+    it('handles driver fetch failure gracefully', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: { status: 'ON_GOING', driverId: 'driver-1' },
+          }),
+        })
+        .mockRejectedValueOnce(new Error('Driver API failed'));
+
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      // Should still update with order status even without driver
+      await waitFor(() => {
+        expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+          'test-order-123',
+          expect.objectContaining({ status: 'ON_GOING' })
+        );
+      });
+    });
+
+    it('updates driver location when location available', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: { status: 'ON_GOING', driverId: 'driver-1' },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              driverId: 'driver-1',
+              name: 'Driver',
+              location: { lat: '14.5', lng: '121.0' },
+            },
+          }),
+        });
+
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+          'test-order-123',
+          expect.objectContaining({
+            driverLocation: expect.objectContaining({
+              lat: 14.5,
+              lng: 121.0,
+            }),
+          })
+        );
+      });
+    });
+
+    it('handles Lalamove unsuccessful response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: false }),
+      });
+
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: { ...createMockOrder().lalamoveTracking, status: 'ON_GOING' },
+      }));
+
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+      // Should not have called updateLalamoveTracking since success=false
+      expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('error edge cases', () => {
+    it('shows generic error for non-Error thrown', async () => {
+      mockGetOrder.mockRejectedValue({ unexpected: true });
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load order')).toBeInTheDocument();
+      });
+    });
+
+    it('error state Back to Orders navigates correctly', async () => {
+      mockGetOrder.mockResolvedValue(null);
+      const user = userEvent.setup();
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Order not found')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /Back to Orders/i }));
+      expect(mockPush).toHaveBeenCalledWith('/profile/order-history');
+    });
+  });
+
+  describe('refreshing state', () => {
+    it('shows Refreshing text during refresh', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      const user = userEvent.setup();
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Refresh')).toBeInTheDocument();
+      });
+
+      // Make the next getOrder never resolve
+      mockGetOrder.mockReturnValue(new Promise(() => {}));
+      await user.click(screen.getByText('Refresh'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Refreshing...')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('multiple items', () => {
+    it('renders multiple order items', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        items: [
+          { productId: 'p1', name: 'Mushroom Kit A', price: 199, quantity: 1, image: 'a.jpg' },
+          { productId: 'p2', name: 'Mushroom Kit B', price: 299, quantity: 3 },
+        ],
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Mushroom Kit A')).toBeInTheDocument();
+        expect(screen.getByText('Mushroom Kit B')).toBeInTheDocument();
+        expect(screen.getByText('2 item(s)')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('no driver assigned (no driverId in tracking)', () => {
+    it('does not render driver card when no driverId', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          status: 'ASSIGNING_DRIVER',
+          driverId: null,
+          shareLink: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Delivery Status')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Your Driver')).not.toBeInTheDocument();
+      expect(screen.queryByText('Call Driver')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('TrackingMap props', () => {
+    it('passes driver location to map when available', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('tracking-map')).toHaveTextContent('Map: ON_GOING');
+      });
+    });
+
+    it('shows correct map description when no driver location', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          driverLocation: null,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Map showing pickup and delivery locations')).toBeInTheDocument();
+      });
+    });
+
+    it('shows follow driver text when driver location exists', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Follow your driver in real-time')).toBeInTheDocument();
+      });
+    });
+  });
 });
