@@ -760,3 +760,36 @@
 
 **Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (302 suites, 7202/7202) | [PASS] TypeCheck
 ---
+
+## [2025-07-12] - PAY-019
+**Completed:** Unit Tests - Payment Components & API Routes
+**Persona:** SENTINEL (Testing & Quality)
+**Files Changed:**
+- src/components/checkout/__tests__/checkout-schemas.test.ts (20 new tests: step1Schema + step2Schema coverage)
+- src/app/api/payment/__tests__/payment-routes.test.ts (4 new tests: production signature enforcement + source.chargeable missing fields)
+
+**Implementation Notes:**
+- Coverage audit identified 2 files below 80% threshold: checkout-schemas.ts (62.5% stmts, 0% funcs) and webhook/route.ts (72.36% branch)
+- checkout-schemas.ts gap: Only step3Schema was tested. Added step1Schema tests (delivery enum, optional pickupLocation, rejection cases) and step2Schema tests (name min-length, email validation, phone regex, transform invocation, missing fields). Result: 100%/100%/100%/100%
+- webhook/route.ts gap: Production signature enforcement paths (IS_PRODUCTION=true) were untested. Used jest.resetModules() + dynamic import with NODE_ENV=production to test 401 on missing/invalid signature. Added source.chargeable missing fields warning path. Result: 94.48%/84.21%/100%/95.62%
+- All 9 payment files now exceed 80% on all coverage metrics
+- Total payment tests: 113 (85 payment-routes + 28 checkout-schemas) + component tests (15+55+40+23+20 = 153). Grand total: 266 payment-specific tests
+
+**Coverage Summary (Stmts/Branch/Funcs/Lines):**
+- PaymentMethodSelector.tsx:    100% / 100% / 100% / 100%
+- CardPaymentForm.tsx:          99.09% / 95.83% / 100% / 100%
+- PaymentProcessingOverlay.tsx: 100% / 92.85% / 100% / 100%
+- PaymentLogo.tsx:              100% / 100% / 100% / 100%
+- PaymentContext.tsx:            97.43% / 100% / 91.66% / 97.36%
+- create-intent/route.ts:       97.95% / 88.88% / 100% / 97.91%
+- status/route.ts:              100% / 97.43% / 100% / 100%
+- webhook/route.ts:             94.48% / 84.21% / 100% / 95.62%
+- checkout-schemas.ts:          100% / 100% / 100% / 100%
+
+**Learnings for Future Iterations:**
+- Module-level constants (const IS_PRODUCTION = process.env.NODE_ENV === "production") require jest.resetModules() + dynamic re-import to test alternative values
+- Zod .regex() runs BEFORE .transform(), so transform only processes values that already pass regex validation
+- Coverage collection per-file: npx jest --coverage --testPathPatterns=X --collectCoverageFrom=Y --forceExit
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (302 suites, 7226/7226) | [PASS] TypeCheck
+---
