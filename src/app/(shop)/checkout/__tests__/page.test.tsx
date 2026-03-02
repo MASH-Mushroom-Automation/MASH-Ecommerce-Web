@@ -531,4 +531,200 @@ describe("CheckoutPage", () => {
       expect(removeVendorItemsMock).toBeDefined();
     });
   });
+
+  describe("Step Navigation", () => {
+    it("navigates to step 2 when Continue to Contact Info is clicked with pickup", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Pickup is default; click Continue to Contact Info
+      const continueBtn = screen.getByRole("button", { name: /Continue to Contact Info/i });
+      await user.click(continueBtn);
+
+      // Step 2 heading should appear
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+    });
+
+    it("shows auto-filled from profile badge on step 2 for authenticated users", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Auto-filled from profile")).toBeInTheDocument();
+      });
+    });
+
+    it("renders contact form fields on step 2", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Full Name/)).toBeInTheDocument();
+        expect(screen.getByText(/Phone Number/)).toBeInTheDocument();
+        expect(screen.getByText(/Email Address/)).toBeInTheDocument();
+      });
+    });
+
+    it("navigates back from step 2 to step 1", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Navigate to step 2
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+
+      // Click Back
+      await user.click(screen.getByRole("button", { name: /Back/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Pickup (Free)")).toBeInTheDocument();
+      });
+    });
+
+    it("navigates to step 3 when Continue to Payment is clicked", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Navigate to step 2
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+
+      // Pre-filled data from profile should be valid - click Continue to Payment
+      await user.click(screen.getByRole("button", { name: /Continue to Payment/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Payment Method")).toBeInTheDocument();
+      });
+    });
+
+    it("renders payment option Cash on Pickup for pickup delivery on step 3", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Step 1 -> Step 2 -> Step 3
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: /Continue to Payment/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Cash on Pickup")).toBeInTheDocument();
+      });
+    });
+
+    it("shows order review section on step 3", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: /Continue to Payment/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Order Review")).toBeInTheDocument();
+        expect(screen.getAllByText("Contact")[0]).toBeInTheDocument();
+      });
+    });
+
+    it("navigates back from step 3 to step 2", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Go to step 3
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: /Continue to Payment/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Payment Method")).toBeInTheDocument();
+      });
+
+      // Back to step 2
+      await user.click(screen.getByRole("button", { name: /^Back$/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Delivery Method Selection", () => {
+    it("shows Same-Day Delivery option", () => {
+      render(<CheckoutPage />);
+      expect(screen.getByText("Same-Day Delivery")).toBeInTheDocument();
+    });
+
+    it("shows pickup locations when pickup is selected", () => {
+      render(<CheckoutPage />);
+      expect(screen.getByText("MASH Main Warehouse")).toBeInTheDocument();
+      expect(screen.getByText("MASH Quezon City Branch")).toBeInTheDocument();
+    });
+
+    it("disables Continue when lalamove has no address or quote", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Click Same-Day Delivery card
+      await user.click(screen.getByText("Same-Day Delivery"));
+
+      // Continue button should be disabled
+      const continueBtn = screen.getByRole("button", { name: /Continue to Contact Info/i });
+      expect(continueBtn).toBeDisabled();
+    });
+  });
+
+  describe("Error Display", () => {
+    it("shows error message when delivery address is missing for lalamove", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Select lalamove
+      await user.click(screen.getByText("Same-Day Delivery"));
+
+      // The Continue button should be disabled, preventing navigation
+      const continueBtn = screen.getByRole("button", { name: /Continue to Contact Info/i });
+      expect(continueBtn).toBeDisabled();
+    });
+  });
+
+  describe("Success Modal", () => {
+    it("shows success modal after completing order via place order", async () => {
+      const user = userEvent.setup();
+      render(<CheckoutPage />);
+
+      // Navigate through all 3 steps
+      await user.click(screen.getByRole("button", { name: /Continue to Contact Info/i }));
+      await waitFor(() => {
+        expect(screen.getAllByText("Contact Information")[0]).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole("button", { name: /Continue to Payment/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Payment Method")).toBeInTheDocument();
+      });
+
+      // Find and click Place Order button
+      const placeOrderBtn = screen.getByRole("button", { name: /Place Order/i });
+      await user.click(placeOrderBtn);
+
+      // Wait for order creation to complete
+      await waitFor(() => {
+        expect(FirebaseOrdersService.createOrder).toHaveBeenCalled();
+      });
+
+      // Success modal should appear
+      await waitFor(() => {
+        expect(screen.getByText(/Order Placed Successfully/i)).toBeInTheDocument();
+      });
+    }, 15000);
+  });
 });

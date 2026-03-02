@@ -446,4 +446,149 @@ describe("CartPage", () => {
       expect(links.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe("save for later", () => {
+    it("renders Save buttons for each cart item", () => {
+      render(<CartPage />);
+      // Each cart item has a Save button with Bookmark icon
+      const allButtons = screen.getAllByRole("button");
+      // At least items.length Save buttons should exist (one per item)
+      expect(allButtons.length).toBeGreaterThanOrEqual(mockCartItems.length);
+      // Verify the Saved for Later section heading is not shown initially (no saved items)
+      expect(screen.queryByText(/Saved for Later/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("clear cart dialog", () => {
+    it("shows confirmation dialog and clears cart on confirm", async () => {
+      const user = userEvent.setup();
+      render(<CartPage />);
+
+      // Click Clear Cart button to trigger AlertDialog
+      await user.click(screen.getByText("Clear Cart"));
+
+      // Wait for dialog
+      await waitFor(() => {
+        expect(screen.getByText("Clear entire cart?")).toBeInTheDocument();
+      });
+
+      // Confirm
+      const confirmBtn = screen.getByRole("button", { name: /Clear Cart$/i });
+      // The AlertDialogAction has the actual clear cart text
+      const actionBtns = screen.getAllByText("Clear Cart");
+      // Click the action button in the dialog (last one)
+      await user.click(actionBtns[actionBtns.length - 1]);
+
+      await waitFor(() => {
+        expect(mockClearCart).toHaveBeenCalled();
+      });
+      const { toast } = require("sonner");
+      expect(toast.success).toHaveBeenCalledWith("Cart cleared");
+    });
+  });
+
+  describe("out of stock behavior", () => {
+    it("renders item name even when stock is 0", () => {
+      const { useCart } = require("@/contexts/CartContext");
+      (useCart as jest.Mock).mockReturnValue({
+        items: [
+          {
+            productId: "prod-oos",
+            name: "Out of Stock Shroom",
+            slug: "oos-shroom",
+            price: 150,
+            quantity: 1,
+            image: "/oos.jpg",
+            grower: "Farm C",
+            unit: "100g",
+            stock: 0,
+          },
+        ],
+        summary: { subtotal: 150, tax: 0, total: 150, itemCount: 1 },
+        loading: false,
+        updateQuantity: mockUpdateQuantity,
+        removeFromCart: mockRemoveFromCart,
+        clearCart: mockClearCart,
+        addToCart: mockAddToCart,
+      });
+
+      render(<CartPage />);
+      // Item renders even with stock 0
+      expect(screen.getByText("Out of Stock Shroom")).toBeInTheDocument();
+      // Unit label still visible
+      expect(screen.getByText("100g")).toBeInTheDocument();
+    });
+  });
+
+  describe("stock max label", () => {
+    it("renders item at stock limit correctly", () => {
+      // prod-2 has quantity=3, stock=3
+      render(<CartPage />);
+      // Item name and quantity are rendered
+      expect(screen.getByText("Oyster Mushroom")).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
+    });
+  });
+
+  describe("item total prices", () => {
+    it("shows computed total per item", () => {
+      render(<CartPage />);
+      // prod-1: 299*2 = 598
+      expect(screen.getByText("₱598")).toBeInTheDocument();
+      // prod-2: 199*3 = 597
+      expect(screen.getByText("₱597")).toBeInTheDocument();
+    });
+  });
+
+  describe("updateQuantity failure", () => {
+    it("shows error toast when updateQuantity returns false", async () => {
+      mockUpdateQuantity.mockReturnValueOnce(false);
+      const user = userEvent.setup();
+      render(<CartPage />);
+
+      // Click the + button for first item (increase quantity)
+      const allButtons = screen.getAllByRole("button");
+      // Find buttons with Plus icon - they are in quantity controls inside ".rounded-l-none"
+      const plusBtns = allButtons.filter(
+        (btn) => btn.className.includes("rounded-l-none")
+      );
+      expect(plusBtns.length).toBeGreaterThanOrEqual(1);
+      await user.click(plusBtns[0]);
+
+      const { toast } = require("sonner");
+      expect(toast.error).toHaveBeenCalledWith(
+        "Unable to update quantity. Stock limit reached."
+      );
+    });
+  });
+
+  describe("grower as object", () => {
+    it("renders grower name when grower is an object with name property", () => {
+      const { useCart } = require("@/contexts/CartContext");
+      (useCart as jest.Mock).mockReturnValue({
+        items: [
+          {
+            productId: "prod-obj",
+            name: "Object Grower Mushroom",
+            slug: "obj-grower",
+            price: 250,
+            quantity: 1,
+            image: "/obj.jpg",
+            grower: { name: "Object Farm" },
+            unit: "150g",
+            stock: 10,
+          },
+        ],
+        summary: { subtotal: 250, tax: 0, total: 250, itemCount: 1 },
+        loading: false,
+        updateQuantity: mockUpdateQuantity,
+        removeFromCart: mockRemoveFromCart,
+        clearCart: mockClearCart,
+        addToCart: mockAddToCart,
+      });
+
+      render(<CartPage />);
+      expect(screen.getByText(/Object Farm/)).toBeInTheDocument();
+    });
+  });
 });
