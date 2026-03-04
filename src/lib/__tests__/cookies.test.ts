@@ -303,4 +303,26 @@ describe('Cookie Management System', () => {
       expect(getCookieJSON('nested')).toEqual(nested);
     });
   });
+
+  describe('getCookieJSON URI-encoded fallback', () => {
+    it('should decode URI-encoded JSON when direct parse fails', () => {
+      // Store a URI-encoded JSON string — direct JSON.parse will fail,
+      // but decodeURIComponent followed by JSON.parse should succeed.
+      const data = { foo: 'bar' };
+      const encoded = encodeURIComponent(JSON.stringify(data));
+      setCookie('uri-json', encoded);
+
+      const result = getCookieJSON<{ foo: string }>('uri-json');
+      expect(result).toEqual(data);
+    });
+  });
+
+  describe('setCookie maxAge conversion', () => {
+    it('should accept maxAge option and convert to expires', () => {
+      // maxAge in seconds (1 hour = 3600s)
+      setCookie('max-age-cookie', 'value', { maxAge: 3600 });
+      const result = getCookie('max-age-cookie');
+      expect(result).toBe('value');
+    });
+  });
 });

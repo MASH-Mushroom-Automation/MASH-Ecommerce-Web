@@ -53,6 +53,10 @@ jest.mock("@/lib/firebase/users");
 jest.mock("@/lib/auth");
 jest.mock("@/lib/token-refresh");
 
+import * as firebaseAuth from "@/lib/firebase/auth";
+import { FirebaseUserService } from "@/lib/firebase/users";
+import * as authLib from "@/lib/auth";
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: jest.fn(),
@@ -99,6 +103,14 @@ describe("AuthContext - Two-Factor Authentication (STORY-2FA-012)", () => {
     mockApiRequest.mockReset();
     mockCookies.getCookieJSON.mockReturnValue(null);
     mockCookies.getCookie.mockReturnValue(null);
+
+    // Ensure onFirebaseAuthStateChanged has a default mock after clearAllMocks
+    (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation(
+      (callback: (user: any) => void) => {
+        callback(null);
+        return jest.fn();
+      },
+    );
 
     // Reset sessionStorage
     if (typeof sessionStorage !== "undefined") {

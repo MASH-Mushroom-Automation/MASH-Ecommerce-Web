@@ -3,7 +3,7 @@
  * Covers: MAPS_CONFIG structure, default center coordinates, map options, libraries
  */
 
-import { MAPS_CONFIG } from "../maps-config";
+import { MAPS_CONFIG, isMapsConfigured } from "../maps-config";
 
 describe("MAPS_CONFIG", () => {
   it("exports a config object", () => {
@@ -85,5 +85,25 @@ describe("MAPS_CONFIG", () => {
     it("has exactly 2 libraries", () => {
       expect(MAPS_CONFIG.libraries).toHaveLength(2);
     });
+  });
+});
+
+describe("isMapsConfigured", () => {
+  it("returns a boolean", () => {
+    expect(typeof isMapsConfigured()).toBe("boolean");
+  });
+
+  it("returns false when apiKey is empty", () => {
+    const original = MAPS_CONFIG.apiKey;
+    (MAPS_CONFIG as any).apiKey = "";
+    expect(isMapsConfigured()).toBe(false);
+    (MAPS_CONFIG as any).apiKey = original;
+  });
+
+  it("returns true when apiKey is set", () => {
+    const original = MAPS_CONFIG.apiKey;
+    (MAPS_CONFIG as any).apiKey = "test-key-123";
+    expect(isMapsConfigured()).toBe(true);
+    (MAPS_CONFIG as any).apiKey = original;
   });
 });

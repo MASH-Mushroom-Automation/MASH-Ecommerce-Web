@@ -4170,6 +4170,42 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - New tests: 5 suites, 136 tests (all passing)
 - Full suite: 217 suites, 5069 tests (5067 passing, 2 pre-existing failures)
 - Baseline (pre-COVERAGE-011): 212 suites, 4933 tests
+
+---
+
+## [2026-03-05] - PHASE-B-COVERAGE-COMPLETE
+**Completed:** Phase B Test Coverage Expansion - All 4 Thresholds Met
+**Persona:** SENTINEL (Testing and Quality)
+
+**Final Coverage (494 suites, 9336 tests, 0 failures):**
+- Statements: 84.67% (target 80%) [PASS]
+- Branches: 75.00% (target 75%) [PASS] -- 12030/16039 covered
+- Functions: 81.12% (target 80%) [PASS]
+- Lines: 85.75% (target 80%) [PASS]
+
+**Files Created/Expanded This Session:**
+- src/components/product/__tests__/StockBadge.test.tsx: Rewritten 4->27 tests (all inventory branches)
+- src/hooks/__tests__/useSanityHero.test.ts: NEW 22 tests (fetch, listener, slide processing)
+- src/lib/__tests__/api-interceptor.test.ts: Expanded +8 tests to 37 total
+- src/components/common/__tests__/social-links.test.tsx: NEW 13 tests (6 platforms, variants)
+- src/components/cms/__tests__/FeatureSection.test.tsx: Expanded +6 tests to 14 total (5 icons)
+- src/lib/email/__tests__/resend.test.ts: NEW 8 tests (env isolation, config)
+- src/types/__tests__/product-filters.test.ts: NEW 22 tests (type guards, filters)
+- src/lib/__tests__/cookies.test.ts: Expanded +2 tests to 31 total (URI-decode, maxAge)
+
+**Branch Coverage Journey:**
+- Start: 74.74% (11988/16039) -- 42-branch gap
+- After StockBadge+useSanityHero+api-interceptor: 74.95% (12022/16039) -- 8-branch gap
+- After social-links+FeatureSection+resend: 74.99% (12029/16039) -- 1-branch gap
+- After cookies URI-decode+maxAge: 75.00% (12030/16039) -- 0 gap [COMPLETE]
+
+**Learnings for Future Iterations:**
+- StockBadge branches: dynamic mock with jest.fn() for hook return values allows per-test control
+- useSanityHero: capture listener subscriber via mockImplementation, fire mutations manually
+- NODE_ENV readonly fix: Object.defineProperty(process.env, 'NODE_ENV', { value, writable: true })
+- URI-encoded cookie JSON: exercises decodeURIComponent fallback path in getCookieJSON
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests (9336/9336) | [PASS] Coverage (all 4 thresholds)
 - Delta: +5 suites, +136 tests
 - Pre-existing failures: inventory.test.ts (1), PhoneChangeFlow.test.tsx (1) - unchanged
 

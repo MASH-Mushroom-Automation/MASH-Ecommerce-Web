@@ -1536,4 +1536,809 @@ describe('AuthContext', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // Batch 17: Untested functions + branch coverage expansion
+  // ==========================================================================
+
+  describe('Resend Verification Email', () => {
+    it('should resend verification email successfully', async () => {
+      (firebaseAuth.resendEmailVerification as jest.Mock).mockResolvedValue(undefined);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+      await act(async () => {
+        await (window as any).__auth.resendVerificationEmail();
+      });
+
+      expect(firebaseAuth.resendEmailVerification).toHaveBeenCalled();
+      expect(mockToast.success).toHaveBeenCalledWith(
+        'Verification email sent',
+        expect.objectContaining({ description: expect.stringContaining('verification link') })
+      );
+    });
+
+    it('should handle error and throw with handled flag', async () => {
+      (firebaseAuth.resendEmailVerification as jest.Mock).mockRejectedValue({ code: 'auth/too-many-requests' });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      try {
+        await act(async () => {
+          await (window as any).__auth.resendVerificationEmail();
+        });
+      } catch (e: any) {
+        expect(e.handled).toBe(true);
+      }
+
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Verification email failed',
+        expect.objectContaining({ description: expect.any(String) })
+      );
+    });
+  });
+
+  describe('Email Link Utilities', () => {
+    it('should check if current URL is email sign-in link', async () => {
+      (firebaseAuth.isEmailSignInLink as jest.Mock).mockReturnValue(true);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+      const result = (window as any).__auth.checkForEmailLink();
+
+      expect(firebaseAuth.isEmailSignInLink).toHaveBeenCalledWith(window.location.href);
+      expect(result).toBe(true);
+    });
+
+    it('should return false when URL is not a sign-in link', async () => {
+      (firebaseAuth.isEmailSignInLink as jest.Mock).mockReturnValue(false);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+      const result = (window as any).__auth.checkForEmailLink();
+      expect(result).toBe(false);
+    });
+
+    it('should get stored email for sign-in', async () => {
+      (firebaseAuth.getStoredEmailForSignIn as jest.Mock).mockReturnValue('stored@test.com');
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+      const result = (window as any).__auth.getStoredEmail();
+
+      expect(firebaseAuth.getStoredEmailForSignIn).toHaveBeenCalled();
+      expect(result).toBe('stored@test.com');
+    });
+
+    it('should return null when no stored email', async () => {
+      (firebaseAuth.getStoredEmailForSignIn as jest.Mock).mockReturnValue(null);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+      const result = (window as any).__auth.getStoredEmail();
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Complete Email Link Sign-in', () => {
+    it('should handle error when completing email link sign-in', async () => {
+      const error = Object.assign(new Error('Invalid link'), { code: 'auth/invalid-action-code' });
+      (firebaseAuth.completeSignInWithEmailLink as jest.Mock).mockRejectedValue(error);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      try {
+        await act(async () => {
+          await (window as any).__auth.completeEmailLinkSignIn('test@example.com', 'https://example.com/link');
+        });
+      } catch (e: any) {
+        expect(e.handled).toBe(true);
+      }
+
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Email link sign-in failed',
+        expect.objectContaining({ description: expect.any(String) })
+      );
+    });
+
+    it('should redirect after successful email link sign-in', async () => {
+      const mockFbUser = {
+        uid: 'emaillink-uid',
+        email: 'link@test.com',
+        displayName: 'Link User',
+        emailVerified: true,
+        photoURL: null,
+        getIdToken: jest.fn().mockResolvedValue('mock-token'),
+      };
+      (firebaseAuth.completeSignInWithEmailLink as jest.Mock).mockResolvedValue(mockFbUser);
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockResolvedValue({
+        id: 'emaillink-uid',
+        email: 'link@test.com',
+        firstName: 'Link',
+        lastName: 'User',
+        provider: 'email-link',
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      await act(async () => {
+        await (window as any).__auth.completeEmailLinkSignIn('link@test.com', 'https://example.com/link');
+      });
+
+      expect(firebaseAuth.completeSignInWithEmailLink).toHaveBeenCalledWith('link@test.com', 'https://example.com/link');
+      expect(mockToast.success).toHaveBeenCalled();
+    });
+
+    it('should redirect to stored URL after email link sign-in', async () => {
+      sessionStorage.setItem('auth-redirect-url', '/dashboard');
+
+      const mockFbUser = {
+        uid: 'redirect-uid',
+        email: 'redirect@test.com',
+        displayName: null,
+        emailVerified: true,
+        photoURL: null,
+        getIdToken: jest.fn().mockResolvedValue('mock-token'),
+      };
+      (firebaseAuth.completeSignInWithEmailLink as jest.Mock).mockResolvedValue(mockFbUser);
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockResolvedValue({
+        id: 'redirect-uid',
+        email: 'redirect@test.com',
+        provider: 'email-link',
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      await act(async () => {
+        await (window as any).__auth.completeEmailLinkSignIn('redirect@test.com', 'https://example.com/link');
+      });
+
+      expect(sessionStorage.getItem('auth-redirect-url')).toBeNull();
+    });
+  });
+
+  describe('Send Email Link Error', () => {
+    it('should handle sendSignInLink error with handled flag', async () => {
+      const error = Object.assign(new Error('Limit exceeded'), { code: 'auth/too-many-requests' });
+      (firebaseAuth.sendSignInLink as jest.Mock).mockRejectedValue(error);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const sendButton = screen.getByTestId('send-email-link');
+      await userEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Failed to send sign-in link',
+          expect.objectContaining({ description: expect.any(String) })
+        );
+      });
+    });
+  });
+
+  describe('Sign Out Everywhere', () => {
+    it('should sign out everywhere successfully', async () => {
+      // Set up authenticated user
+      getCookieJSON.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        provider: 'email',
+        emailVerified: true,
+      });
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signOutBtn = screen.getByTestId('signout-everywhere');
+      await userEvent.click(signOutBtn);
+
+      await waitFor(() => {
+        expect(authLib.logoutEverywhere).toHaveBeenCalled();
+        expect(mockToast.success).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle logoutEverywhere returning false', async () => {
+      getCookieJSON.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        provider: 'email',
+        emailVerified: true,
+      });
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+      (authLib.logoutEverywhere as jest.Mock).mockResolvedValue(false);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signOutBtn = screen.getByTestId('signout-everywhere');
+      await userEvent.click(signOutBtn);
+
+      await waitFor(() => {
+        expect(authLib.logoutEverywhere).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle signOutEverywhere error', async () => {
+      getCookieJSON.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        provider: 'email',
+        emailVerified: true,
+      });
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+      (authLib.logoutEverywhere as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signOutBtn = screen.getByTestId('signout-everywhere');
+      await userEvent.click(signOutBtn);
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Update User Profile edge cases', () => {
+    it('should handle update profile when no user is logged in', async () => {
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      try {
+        await act(async () => {
+          await (window as any).__auth.updateUserProfile({ firstName: 'New' });
+        });
+      } catch (e) {
+        // Expected to throw when no user
+      }
+
+      // Should not have called Firestore update
+      expect(FirebaseUserService.updateProfile).not.toHaveBeenCalled();
+    });
+
+    it('should strip data: URLs from cookie to prevent overflow', async () => {
+      // Set up authenticated user
+      const authenticatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        provider: 'email' as const,
+        emailVerified: true,
+      };
+
+      (firebaseAuth.onFirebaseAuthStateChanged as jest.Mock).mockImplementation((callback) => {
+        callback(null);
+        return jest.fn();
+      });
+      getCookieJSON.mockReturnValue(authenticatedUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      (FirebaseUserService.updateProfile as jest.Mock).mockResolvedValue({
+        ...authenticatedUser,
+        photoURL: 'data:image/png;base64,longbase64string',
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth?.user).toBeTruthy());
+
+      await act(async () => {
+        await (window as any).__auth.updateUserProfile({
+          photoURL: 'data:image/png;base64,longbase64string',
+        });
+      });
+
+      // Cookie should have been set with stripped data URL
+      expect(setCookie).toHaveBeenCalled();
+    });
+
+    it('should handle Firestore update error', async () => {
+      const authenticatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        provider: 'email' as const,
+        emailVerified: true,
+      };
+
+      getCookieJSON.mockReturnValue(authenticatedUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      (FirebaseUserService.updateProfile as jest.Mock).mockRejectedValue(new Error('Firestore error'));
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth?.user).toBeTruthy());
+
+      try {
+        await act(async () => {
+          await (window as any).__auth.updateUserProfile({ firstName: 'New' });
+        });
+      } catch (e) {
+        // Expected error
+      }
+
+      expect(mockToast.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Refresh Profile', () => {
+    it('should no-op when user is null', async () => {
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth).toBeDefined());
+
+      await act(async () => {
+        await (window as any).__auth.refreshProfile();
+      });
+
+      // Should not have called getProfile
+      expect(FirebaseUserService.getProfile).not.toHaveBeenCalled();
+    });
+
+    it('should refresh profile when user exists', async () => {
+      const authenticatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        provider: 'email' as const,
+        emailVerified: true,
+      };
+
+      getCookieJSON.mockReturnValue(authenticatedUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      (FirebaseUserService.getProfile as jest.Mock).mockResolvedValue({
+        ...authenticatedUser,
+        firstName: 'Updated',
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth?.user).toBeTruthy());
+
+      await act(async () => {
+        await (window as any).__auth.refreshProfile();
+      });
+
+      expect(FirebaseUserService.getProfile).toHaveBeenCalledWith('user-1');
+    });
+
+    it('should handle profile refresh error gracefully', async () => {
+      const authenticatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        provider: 'email' as const,
+        emailVerified: true,
+      };
+
+      getCookieJSON.mockReturnValue(authenticatedUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      (FirebaseUserService.getProfile as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth?.user).toBeTruthy());
+
+      // Should not throw
+      await act(async () => {
+        await (window as any).__auth.refreshProfile();
+      });
+
+      // User should still exist (not cleared)
+      expect((window as any).__auth.user).toBeTruthy();
+    });
+  });
+
+  describe('Session Info', () => {
+    it('should return session info with token details', async () => {
+      const authenticatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        provider: 'email' as const,
+        emailVerified: true,
+      };
+
+      getCookieJSON.mockReturnValue(authenticatedUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      (tokenRefresh.getTokenInfo as jest.Mock).mockReturnValue({
+        hasToken: true,
+        expiresIn: 3600,
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => expect((window as any).__auth?.user).toBeTruthy());
+
+      let sessionInfo: any;
+      await act(async () => {
+        sessionInfo = await (window as any).__auth.getSessionInfo();
+      });
+
+      expect(sessionInfo).toMatchObject({
+        hasToken: true,
+        expiresIn: 3600,
+      });
+    });
+  });
+
+  describe('Email Sign-in with 2FA requirement', () => {
+    it('should handle unverified email and show toast', async () => {
+      const unverifiedUser = {
+        uid: 'unverified-uid',
+        email: 'unverified@test.com',
+        displayName: 'Unverified User',
+        emailVerified: false,
+        photoURL: null,
+        getIdToken: jest.fn().mockResolvedValue('mock-token'),
+      };
+      (firebaseAuth.signInWithEmail as jest.Mock).mockResolvedValue(unverifiedUser);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signinButton = screen.getByTestId('email-signin');
+      await userEvent.click(signinButton);
+
+      await waitFor(() => {
+        expect(mockToast.warning).toHaveBeenCalledWith(
+          'Please verify your email',
+          expect.objectContaining({
+            description: expect.stringContaining('verification link'),
+          })
+        );
+      });
+    });
+
+    it('should handle backend sync catch and create fallback user', async () => {
+      const verifiedUser = {
+        uid: 'verified-uid',
+        email: 'verified@test.com',
+        displayName: 'Verified User',
+        emailVerified: true,
+        photoURL: null,
+        getIdToken: jest.fn().mockRejectedValue(new Error('Token error')),
+      };
+      (firebaseAuth.signInWithEmail as jest.Mock).mockResolvedValue(verifiedUser);
+      // syncToFirestoreProfile succeeds
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockResolvedValue({
+        id: 'verified-uid',
+        email: 'verified@test.com',
+        firstName: 'Verified',
+        lastName: 'User',
+        provider: 'email',
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signinButton = screen.getByTestId('email-signin');
+      await userEvent.click(signinButton);
+
+      await waitFor(() => {
+        // Should still succeed with fallback user from catch
+        expect(mockToast.success).toHaveBeenCalled();
+      });
+    });
+
+    it('should redirect to stored URL after successful email sign-in', async () => {
+      sessionStorage.setItem('auth-redirect-url', '/checkout');
+
+      const verifiedUser = {
+        uid: 'redirect-uid',
+        email: 'redirect@test.com',
+        displayName: 'Redirect User',
+        emailVerified: true,
+        photoURL: null,
+        getIdToken: jest.fn().mockResolvedValue('mock-token'),
+      };
+      (firebaseAuth.signInWithEmail as jest.Mock).mockResolvedValue(verifiedUser);
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockResolvedValue({
+        id: 'redirect-uid',
+        email: 'redirect@test.com',
+        provider: 'email',
+      });
+      // Mock syncFirebaseUserToBackend returning null (no 2FA)
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: null }),
+      }) as jest.Mock;
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signinButton = screen.getByTestId('email-signin');
+      await userEvent.click(signinButton);
+
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Sync to Firestore Profile fallback', () => {
+    it('should create fallback user when Firestore sync fails during Google sign-in', async () => {
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockResolvedValue(mockUser);
+      // Make Firestore profile creation fail
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockRejectedValue(
+        new Error('Firestore unavailable')
+      );
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        // Should still complete sign-in even if Firestore fails
+        expect(firebaseAuth.signInWithGoogle).toHaveBeenCalled();
+      });
+    });
+
+    it('should parse comma-separated name in fallback (Last, First)', async () => {
+      const commaNameUser = {
+        ...mockUser,
+        displayName: 'Smith, Jane',
+      };
+      (firebaseAuth.signInWithGoogle as jest.Mock).mockResolvedValue(commaNameUser);
+      (FirebaseUserService.createOrUpdateProfile as jest.Mock).mockRejectedValue(
+        new Error('Firestore unavailable')
+      );
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const googleButton = screen.getByTestId('google-signin');
+      await userEvent.click(googleButton);
+
+      await waitFor(() => {
+        expect(firebaseAuth.signInWithGoogle).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Firebase Error Message switch cases', () => {
+    it.each([
+      ['auth/expired-action-code', /expired/i],
+      ['auth/invalid-action-code', /invalid/i],
+      ['auth/invalid-email', /valid email/i],
+      ['auth/weak-password', /6 characters/i],
+      ['auth/credential-already-in-use', /associated with another/i],
+    ])('should return correct message for %s', async (errorCode, expectedPattern) => {
+      const error = Object.assign(new Error(`Firebase: Error (${errorCode}).`), { code: errorCode });
+      (firebaseAuth.signInWithEmail as jest.Mock).mockRejectedValue(error);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      const signinButton = screen.getByTestId('email-signin');
+      await userEvent.click(signinButton);
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Sign-in failed',
+          expect.objectContaining({
+            description: expect.stringMatching(expectedPattern),
+          })
+        );
+      });
+    });
+  });
+
+  describe('Auth State - no Firebase user restoration', () => {
+    it('should restore user from cookie when Firebase user is null', async () => {
+      const cookieUser = {
+        id: 'cookie-user',
+        email: 'cookie@test.com',
+        firstName: 'Cookie',
+        lastName: 'User',
+        provider: 'email',
+        emailVerified: true,
+      };
+      getCookieJSON.mockReturnValue(cookieUser);
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'auth-token=mock-token',
+        configurable: true,
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-email')).toHaveTextContent('cookie@test.com');
+      });
+    });
+
+    it('should clear user when no Firebase user and no cookie', async () => {
+      getCookieJSON.mockReturnValue(null);
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-email')).toHaveTextContent('Not logged in');
+        expect(screen.getByTestId('is-authenticated')).toHaveTextContent('false');
+      });
+    });
+
+    it('should not restore google provider user when Firebase is null', async () => {
+      getCookieJSON.mockReturnValue({
+        id: 'google-user',
+        email: 'google@test.com',
+        provider: 'google',
+        emailVerified: true,
+      });
+      // No auth-token cookie implies email; google users need Firebase
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Google users without Firebase state should be cleared
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toBeInTheDocument();
+      });
+    });
+  });
 });

@@ -24,8 +24,8 @@ All 27 stories have `passes: true`. The RALPH agent has completed all consumer-s
 | Complete | 27 |
 | Remaining | 0 |
 | Skipped (COD-only) | 6 (PAY-001 through PAY-006) |
-| Test Suites | 376 |
-| Tests Passing | 7149/7149 |
+| Test Suites | 494 |
+| Tests Passing | 9336/9336 |
 
 ### Phase Progress
 

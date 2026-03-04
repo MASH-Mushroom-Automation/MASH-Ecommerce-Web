@@ -4,6 +4,7 @@
  */
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 // Mock sonner
 jest.mock("sonner", () => ({
@@ -50,6 +51,15 @@ jest.mock("next/link", () => ({
   default: ({ children, href, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
 }));
 
+// Override next/navigation to capture router calls
+const mockPush = jest.fn();
+const mockBack = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn(), refresh: jest.fn(), prefetch: jest.fn() }),
+  usePathname: () => "/seller/products/prod-1/edit",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 import { EditProductForm } from "../EditProductForm";
 import { toast } from "sonner";
 
@@ -93,6 +103,8 @@ describe("EditProductForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetchSuccess();
+    mockPush.mockClear();
+    mockBack.mockClear();
   });
 
   // --- Loading state ---
@@ -238,5 +250,209 @@ describe("EditProductForm", () => {
     await waitFor(() => {
       expect(screen.getByTestId("category-selector")).toBeInTheDocument();
     });
+  });
+
+  // --- Submit flow: success ---
+
+  it("should submit and redirect on successful update", async () => {
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    // Mock PUT response
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: mockProduct }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        "Product updated successfully!",
+        expect.anything(),
+      );
+      expect(mockPush).toHaveBeenCalledWith("/seller/products");
+    });
+  });
+
+  // --- Submit flow: no images ---
+
+  it("should show error when submitting with no images", async () => {
+    const productNoImages = { ...mockProduct, image: null, images: [] };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: productNoImages }),
+    });
+
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Please add at least one product image",
+      );
+    });
+  });
+
+  // --- Submit flow: hasVariants but no variants ---
+
+  it("should show error when variants enabled but none added", async () => {
+    const productWithVariants = { ...mockProduct, hasVariants: true, variants: [] };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: productWithVariants }),
+    });
+
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Please add at least one variant or disable variants",
+      );
+    });
+  });
+
+  // --- Submit flow: PUT failure ---
+
+  it("should show error toast when PUT request fails", async () => {
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ error: { message: "Server error" } }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to update product",
+        expect.anything(),
+      );
+    });
+  });
+
+  // --- Submit flow: network error ---
+
+  it("should show error toast when submit throws network error", async () => {
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("Network failure"));
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to update product",
+        expect.objectContaining({ description: "Network failure" }),
+      );
+    });
+  });
+
+  // --- Go Back button in error state ---
+
+  it("should call router.back() when Go Back is clicked in error state", async () => {
+    mockFetchError("Not found");
+    render(<EditProductForm productId="bad-id" />);
+    await waitFor(() => screen.getByRole("button", { name: /go back/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /go back/i }));
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  // --- isSubmitting state ---
+
+  it("should show Updating... text while submitting", async () => {
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    // Make PUT hang
+    (global.fetch as jest.Mock).mockImplementationOnce(() => new Promise(() => {}));
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Updating...")).toBeInTheDocument();
+    });
+  });
+
+  // --- Form validation errors display ---
+
+  it("should display validation error summary when name is empty", async () => {
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    // Clear name field
+    fireEvent.change(screen.getByDisplayValue("King Oyster Mushroom"), {
+      target: { value: "" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /update product/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/please fix the following errors/i),
+      ).toBeInTheDocument();
+    });
+  });
+
+  // --- Product with no images shows 0 in image uploader ---
+
+  it("should show 0 images in uploader when product has no images", async () => {
+    const user = userEvent.setup();
+    const productNoImages = { ...mockProduct, image: undefined, images: undefined };
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: productNoImages }),
+    });
+
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    // Switch to Media tab to render ImageUploader (need full pointer event chain for controlled Radix Tabs)
+    await user.click(screen.getByRole("tab", { name: /media/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("image-uploader")).toHaveTextContent("0 images");
+    });
+  });
+
+  // --- Product with main + extra images shows correct count ---
+
+  it("should populate image uploader with loaded images", async () => {
+    const user = userEvent.setup();
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => screen.getByDisplayValue("King Oyster Mushroom"));
+
+    // Switch to Media tab (need full pointer event chain for controlled Radix Tabs)
+    await user.click(screen.getByRole("tab", { name: /media/i }));
+    await waitFor(() => {
+      // mockProduct has 1 main image + 1 extra = 2
+      expect(screen.getByTestId("image-uploader")).toHaveTextContent("2 images");
+    });
+  });
+
+  // --- Network error with non-Error object during load ---
+
+  it("should handle non-Error thrown during load", async () => {
+    (global.fetch as jest.Mock).mockRejectedValue("string error");
+    render(<EditProductForm productId="prod-1" />);
+    await waitFor(() => {
+      expect(screen.getByText("Failed to load product")).toBeInTheDocument();
+    });
+  });
+
+  // --- productId falsy guard ---
+
+  it("should not fetch when productId is empty", () => {
+    render(<EditProductForm productId="" />);
+    // No fetch call should happen for empty productId
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

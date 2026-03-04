@@ -55,19 +55,44 @@ jest.mock("next/image", () => ({
   },
 }));
 
-// Mock OperatingHoursModal to a simple stub
+// Mock OperatingHoursModal – exposes onSave so we can trigger formatHoursSummary
 jest.mock("@/components/OperatingHoursModal", () => ({
   __esModule: true,
   default: ({
     triggerLabel,
     disabled,
+    onSave,
+    initialHours,
   }: {
     triggerLabel: string;
     disabled?: boolean;
+    onSave?: (hours: Record<string, any>) => void;
+    initialHours?: any;
   }) => (
-    <button data-testid="operating-hours-modal" disabled={disabled}>
-      {triggerLabel}
-    </button>
+    <div>
+      <button
+        data-testid="operating-hours-modal"
+        disabled={disabled}
+        onClick={() => {
+          if (onSave) {
+            onSave({
+              Monday: { open: "09:00", close: "17:00", closed: false },
+              Tuesday: { open: "09:00", close: "17:00", closed: false },
+              Wednesday: { open: "09:00", close: "17:00", closed: false },
+              Thursday: { open: "09:00", close: "17:00", closed: false },
+              Friday: { open: "09:00", close: "17:00", closed: false },
+              Saturday: { closed: true },
+              Sunday: { closed: true },
+            });
+          }
+        }}
+      >
+        {triggerLabel}
+      </button>
+      {initialHours && (
+        <span data-testid="initial-hours">{JSON.stringify(initialHours)}</span>
+      )}
+    </div>
   ),
 }));
 
@@ -1083,5 +1108,390 @@ describe("SellerSettings Page", () => {
 
     // Button is disabled due to mismatch, but the inline message is shown
     expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+  });
+
+  // ========================
+  // 19. Notification form submission (handleNotificationUpdate)
+  // ========================
+
+  it("submits notification preferences successfully via form submit", async () => {
+    const user = await renderSettingsLoaded({
+      "/api/seller/notification-preferences": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.resolve(jsonOk({ ...notifData, notifyMessages: true }));
+        }
+        return Promise.resolve(jsonOk(notifData));
+      },
+    });
+    await switchTab(user, "Notifications");
+
+    const form = screen.getByText("Notification Preferences").closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledWith(
+        "Notification preferences updated successfully!",
+      );
+    });
+  });
+
+  it("shows error toast when notification save returns failure", async () => {
+    const user = await renderSettingsLoaded({
+      "/api/seller/notification-preferences": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.resolve(jsonFail("Notification save failed"));
+        }
+        return Promise.resolve(jsonOk(notifData));
+      },
+    });
+    await switchTab(user, "Notifications");
+
+    const form = screen.getByText("Notification Preferences").closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Notification save failed",
+      );
+    });
+  });
+
+  it("shows error toast when notification save throws network error", async () => {
+    const user = await renderSettingsLoaded({
+      "/api/seller/notification-preferences": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.reject(new Error("Network error"));
+        }
+        return Promise.resolve(jsonOk(notifData));
+      },
+    });
+    await switchTab(user, "Notifications");
+
+    const form = screen.getByText("Notification Preferences").closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Failed to update notification preferences",
+      );
+    });
+  });
+
+  // ========================
+  // 20. Partial fetch failures in useEffect
+  // ========================
+
+  it("handles profileRes.ok=false while payment and notif succeed", async () => {
+    setupFetchMock({
+      "/api/seller/profile": () =>
+        Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({}),
+        } as unknown as Response),
+    });
+    render(<SellerSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading settings...")).not.toBeInTheDocument();
+    });
+    // Default profile values are kept; payment data still loads
+  });
+
+  it("handles paymentRes.ok=false while profile and notif succeed", async () => {
+    setupFetchMock({
+      "/api/seller/payment-info": () =>
+        Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({}),
+        } as unknown as Response),
+    });
+    render(<SellerSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading settings...")).not.toBeInTheDocument();
+    });
+  });
+
+  it("handles notifRes.ok=false while profile and payment succeed", async () => {
+    setupFetchMock({
+      "/api/seller/notification-preferences": () =>
+        Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({}),
+        } as unknown as Response),
+    });
+    render(<SellerSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading settings...")).not.toBeInTheDocument();
+    });
+  });
+
+  it("handles profileRes with success=false in JSON body", async () => {
+    setupFetchMock({
+      "/api/seller/profile": () =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: false }),
+        } as unknown as Response),
+    });
+    render(<SellerSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading settings...")).not.toBeInTheDocument();
+    });
+  });
+
+  it("handles paymentRes with success=false in JSON body", async () => {
+    setupFetchMock({
+      "/api/seller/payment-info": () =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: false }),
+        } as unknown as Response),
+    });
+    render(<SellerSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading settings...")).not.toBeInTheDocument();
+    });
+  });
+
+  // ========================
+  // 21. Banner upload during saveProfile
+  // ========================
+
+  it("uploads staged banner and saves profile successfully", async () => {
+    const user = await renderSettingsLoaded();
+    await enterEditMode(user);
+
+    const bannerFile = new File(["banner"], "banner.png", { type: "image/png" });
+    const bannerInput = document.getElementById("banner-upload") as HTMLInputElement;
+    fireEvent.change(bannerInput, { target: { files: [bannerFile] } });
+
+    setupFetchMock({
+      "/api/cms/upload": () =>
+        Promise.resolve(jsonOk({ url: "/new-banner.png" })),
+      "/api/seller/profile": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.resolve(jsonOk({ ...profileData, banner: "/new-banner.png" }));
+        }
+        return Promise.resolve(jsonOk(profileData));
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: /Save Changes/ }));
+
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledWith("Profile updated successfully!");
+    });
+  });
+
+  it("shows error toast when banner upload fails during save", async () => {
+    const user = await renderSettingsLoaded();
+    await enterEditMode(user);
+
+    const bannerFile = new File(["banner"], "banner.png", { type: "image/png" });
+    const bannerInput = document.getElementById("banner-upload") as HTMLInputElement;
+    fireEvent.change(bannerInput, { target: { files: [bannerFile] } });
+
+    // No logo staged, so the first upload call is for the banner
+    setupFetchMock({
+      "/api/cms/upload": () =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: false, error: "Banner upload failed" }),
+        } as unknown as Response),
+    });
+
+    await user.click(screen.getByRole("button", { name: /Save Changes/ }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Banner upload failed");
+    });
+  });
+
+  // ========================
+  // 22. Cancel with staged banner
+  // ========================
+
+  it("clears staged banner preview when Cancel is clicked", async () => {
+    const user = await renderSettingsLoaded();
+    await enterEditMode(user);
+
+    const file = new File(["banner-data"], "new-banner.png", { type: "image/png" });
+    const input = document.getElementById("banner-upload") as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      const banner = screen.getByAltText("Store banner");
+      expect(banner).toHaveAttribute("src", "/test-banner.png");
+    });
+  });
+
+  // ========================
+  // 23. Password update - catch error & validation bypass
+  // ========================
+
+  it("shows error toast when password update API throws", async () => {
+    const user = await renderSettingsLoaded({
+      "/api/seller/password": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.reject(new Error("Network failure"));
+        }
+        return Promise.resolve(jsonOk({}));
+      },
+    });
+    await switchTab(user, "Security");
+
+    await user.type(screen.getByLabelText("Current Password"), "OldPass1!");
+    await user.type(screen.getByLabelText("New Password"), "NewPass1!");
+    await user.type(screen.getByLabelText("Confirm New Password"), "NewPass1!");
+
+    await user.click(screen.getByRole("button", { name: /Update Password/ }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Failed to update password");
+    });
+  });
+
+  it("shows validation toast when password misses special characters via form submit", async () => {
+    const user = await renderSettingsLoaded();
+    await switchTab(user, "Security");
+
+    fireEvent.change(screen.getByLabelText("Current Password"), { target: { value: "OldPass1!" } });
+    fireEvent.change(screen.getByLabelText("New Password"), { target: { value: "Abc12345" } });
+    fireEvent.change(screen.getByLabelText("Confirm New Password"), { target: { value: "Abc12345" } });
+
+    const form = screen.getByLabelText("Current Password").closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        expect.stringContaining("Password must be at least 6 characters"),
+      );
+    });
+  });
+
+  it("shows mismatch toast when passwords differ via form submit", async () => {
+    const user = await renderSettingsLoaded();
+    await switchTab(user, "Security");
+
+    fireEvent.change(screen.getByLabelText("Current Password"), { target: { value: "OldPass1!" } });
+    fireEvent.change(screen.getByLabelText("New Password"), { target: { value: "NewPass1!" } });
+    fireEvent.change(screen.getByLabelText("Confirm New Password"), { target: { value: "DiffPass1!" } });
+
+    const form = screen.getByLabelText("Current Password").closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Passwords do not match");
+    });
+  });
+
+  it("displays inline passwordError after API failure", async () => {
+    const user = await renderSettingsLoaded({
+      "/api/seller/password": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.resolve(jsonFail("Current password is incorrect"));
+        }
+        return Promise.resolve(jsonOk({}));
+      },
+    });
+    await switchTab(user, "Security");
+
+    await user.type(screen.getByLabelText("Current Password"), "WrongPass1!");
+    await user.type(screen.getByLabelText("New Password"), "NewPass1!");
+    await user.type(screen.getByLabelText("Confirm New Password"), "NewPass1!");
+
+    await user.click(screen.getByRole("button", { name: /Update Password/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Current password is incorrect")).toBeInTheDocument();
+    });
+  });
+
+  // ========================
+  // 24. OperatingHoursModal onSave (formatTime + formatHoursSummary)
+  // ========================
+
+  it("updates operating hours summary when modal saves", async () => {
+    const user = await renderSettingsLoaded();
+    await enterEditMode(user);
+
+    await user.click(screen.getByTestId("operating-hours-modal"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Mon-Fri 9:00 AM - 5:00 PM; Sat-Sun Closed/),
+      ).toBeInTheDocument();
+    });
+  });
+
+  // ========================
+  // 25. initialHours IIFE (JSON parse / catch)
+  // ========================
+
+  it("passes parsed JSON to OperatingHoursModal when operatingHours is valid JSON", async () => {
+    const hoursJson = JSON.stringify({
+      Monday: { open: "08:00", close: "16:00", closed: false },
+    });
+    await renderSettingsLoaded({
+      "/api/seller/profile": () =>
+        Promise.resolve(jsonOk({ ...profileData, operatingHours: hoursJson })),
+    });
+
+    expect(screen.getByTestId("initial-hours")).toBeInTheDocument();
+  });
+
+  it("passes undefined initialHours when operatingHours is not valid JSON", async () => {
+    await renderSettingsLoaded(); // default "8AM - 6PM Mon-Sat; Closed Sun" is not valid JSON
+
+    expect(screen.queryByTestId("initial-hours")).not.toBeInTheDocument();
+  });
+
+  // ========================
+  // 26. Empty operating hours rendering
+  // ========================
+
+  it("shows 'No operating hours set' when operatingHours is empty", async () => {
+    await renderSettingsLoaded({
+      "/api/seller/profile": () =>
+        Promise.resolve(jsonOk({ ...profileData, operatingHours: "" })),
+    });
+
+    expect(screen.getByText("No operating hours set")).toBeInTheDocument();
+  });
+
+  // ========================
+  // 27. Profile save with success=false error message fallback
+  // ========================
+
+  it("shows fallback error message when profile save returns success=false without message", async () => {
+    const user = await renderSettingsLoaded();
+    await enterEditMode(user);
+
+    const nameInput = screen.getByDisplayValue("Test Farm");
+    fireEvent.change(nameInput, { target: { value: "Changed" } });
+
+    setupFetchMock({
+      "/api/seller/profile": (_url, opts) => {
+        if (opts?.method === "PUT") {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: false }),
+          } as unknown as Response);
+        }
+        return Promise.resolve(jsonOk(profileData));
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: /Save Changes/ }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Failed to update profile");
+    });
   });
 });

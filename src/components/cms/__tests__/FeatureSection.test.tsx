@@ -81,6 +81,42 @@ describe("CMSFeatureSection", () => {
     expect(screen.getByText("Test")).toBeInTheDocument();
   });
 
+  it("renders Shield icon", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "Shield", headline: "Secure", subheadline: "s", isActive: true, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.getByText("Secure")).toBeInTheDocument();
+  });
+
+  it("renders Users icon", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "Users", headline: "Community", subheadline: "s", isActive: true, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.getByText("Community")).toBeInTheDocument();
+  });
+
+  it("renders Award icon", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "Award", headline: "Quality", subheadline: "s", isActive: true, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.getByText("Quality")).toBeInTheDocument();
+  });
+
+  it("renders CheckCircle icon", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "CheckCircle", headline: "Verified", subheadline: "s", isActive: true, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.getByText("Verified")).toBeInTheDocument();
+  });
+
+  it("renders Star icon", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "Star", headline: "Premium", subheadline: "s", isActive: true, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.getByText("Premium")).toBeInTheDocument();
+  });
+
+  it("renders empty grid when no features are active", () => {
+    const data = { ...mockFeatureData, features: [{ id: "f1", icon: "Leaf", headline: "Hidden", subheadline: "s", isActive: false, displayOrder: 1 }] };
+    render(<CMSFeatureSection data={data} />);
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+  });
+
   it("should render as a section element", () => {
     const { container } = render(<CMSFeatureSection data={mockFeatureData} />);
     expect(container.querySelector("section")).toBeInTheDocument();

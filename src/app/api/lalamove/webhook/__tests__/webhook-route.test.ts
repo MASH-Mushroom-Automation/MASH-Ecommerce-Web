@@ -84,6 +84,16 @@ describe("POST /api/lalamove/webhook", () => {
     expect(res.status).toBe(401);
   });
 
+  it("should return 401 for missing signature header in production mode", async () => {
+    process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
+    const payload = { event: "ORDER_STATUS_CHANGED", orderId: "LLM001", timestamp: "2026-01-01", data: { status: "ON_GOING" } };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.message).toContain("Missing signature");
+  });
+
   it("should accept webhook in sandbox mode without signature", async () => {
     mockFindOrder("order-123");
     const payload = { event: "ORDER_STATUS_CHANGED", orderId: "LLM001", timestamp: "2026-01-01", data: { status: "PICKED_UP" } };

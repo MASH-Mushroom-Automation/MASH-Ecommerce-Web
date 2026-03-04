@@ -9,8 +9,23 @@ jest.mock("@/lib/sanity/realtime", () => ({
 }));
 
 import React from "react";
-import { render } from "@testing-library/react";
-import RealtimeModeProvider from "../RealtimeModeContext";
+import { render, screen, act } from "@testing-library/react";
+import RealtimeModeProvider, { useRealtimeMode } from "../RealtimeModeContext";
+
+function TestConsumer() {
+  const ctx = useRealtimeMode();
+  return (
+    <div>
+      <span data-testid="enabled">{String(ctx.isRealtimeEnabled)}</span>
+      <span data-testid="subs">{ctx.activeSubscriptions}</span>
+      <span data-testid="sync">{ctx.lastSyncTime?.toISOString() ?? 'null'}</span>
+      <button onClick={ctx.toggleRealtimeMode}>toggle</button>
+      <button onClick={ctx.enableRealtime}>enable</button>
+      <button onClick={ctx.disableRealtime}>disable</button>
+      <button onClick={ctx.updateLastSyncTime}>sync</button>
+    </div>
+  );
+}
 
 describe("RealtimeModeProvider", () => {
   let setIntervalSpy: jest.SpyInstance;
@@ -47,5 +62,87 @@ describe("RealtimeModeProvider", () => {
     );
 
     expect(setIntervalSpy).toHaveBeenCalled();
+  });
+
+  test("provides default disabled state", () => {
+    render(
+      <RealtimeModeProvider>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    expect(screen.getByTestId("enabled")).toHaveTextContent("false");
+    expect(screen.getByTestId("subs")).toHaveTextContent("0");
+  });
+
+  test("accepts defaultEnabled=true", () => {
+    render(
+      <RealtimeModeProvider defaultEnabled>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    expect(screen.getByTestId("enabled")).toHaveTextContent("true");
+  });
+
+  test("toggleRealtimeMode toggles the state", () => {
+    render(
+      <RealtimeModeProvider>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    expect(screen.getByTestId("enabled")).toHaveTextContent("false");
+    act(() => { screen.getByText("toggle").click(); });
+    expect(screen.getByTestId("enabled")).toHaveTextContent("true");
+    act(() => { screen.getByText("toggle").click(); });
+    expect(screen.getByTestId("enabled")).toHaveTextContent("false");
+  });
+
+  test("enableRealtime enables the mode", () => {
+    render(
+      <RealtimeModeProvider>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    act(() => { screen.getByText("enable").click(); });
+    expect(screen.getByTestId("enabled")).toHaveTextContent("true");
+  });
+
+  test("disableRealtime disables the mode", () => {
+    render(
+      <RealtimeModeProvider defaultEnabled>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    act(() => { screen.getByText("disable").click(); });
+    expect(screen.getByTestId("enabled")).toHaveTextContent("false");
+  });
+
+  test("updateLastSyncTime updates the sync time", () => {
+    render(
+      <RealtimeModeProvider>
+        <TestConsumer />
+      </RealtimeModeProvider>
+    );
+    expect(screen.getByTestId("sync")).toHaveTextContent("null");
+    act(() => { screen.getByText("sync").click(); });
+    expect(screen.getByTestId("sync")).not.toHaveTextContent("null");
+  });
+});
+
+describe("useRealtimeMode outside provider", () => {
+  test("returns default values when used outside provider", () => {
+    render(<TestConsumer />);
+    expect(screen.getByTestId("enabled")).toHaveTextContent("false");
+    expect(screen.getByTestId("subs")).toHaveTextContent("0");
+    expect(screen.getByTestId("sync")).toHaveTextContent("null");
+  });
+
+  test("does not throw when calling functions outside provider", () => {
+    render(<TestConsumer />);
+    expect(() => {
+      act(() => { screen.getByText("toggle").click(); });
+      act(() => { screen.getByText("enable").click(); });
+      act(() => { screen.getByText("disable").click(); });
+      act(() => { screen.getByText("sync").click(); });
+    }).not.toThrow();
   });
 });

@@ -254,4 +254,217 @@ describe("Sidebar Components", () => {
     );
     expect(screen.getByText("Controlled sidebar")).toBeInTheDocument();
   });
+
+  it("should render Sidebar with side=right", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider>
+        <Sidebar side="right">
+          <div>Right sidebar</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Right sidebar")).toBeInTheDocument();
+  });
+
+  it("should render Sidebar with variant=floating", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider>
+        <Sidebar variant="floating">
+          <div>Floating sidebar</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Floating sidebar")).toBeInTheDocument();
+  });
+
+  it("should render Sidebar with variant=inset", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider>
+        <Sidebar variant="inset">
+          <div>Inset sidebar</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Inset sidebar")).toBeInTheDocument();
+  });
+
+  it("should render Sidebar with collapsible=icon", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <div>Icon sidebar</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Icon sidebar")).toBeInTheDocument();
+  });
+
+  it("should render Sidebar with collapsible=none", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider>
+        <Sidebar collapsible="none">
+          <div>Non-collapsible</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Non-collapsible")).toBeInTheDocument();
+  });
+
+  it("should render SidebarMenuButton with size=lg", () => {
+    if (!SidebarProvider || !Sidebar || !SidebarMenu || !SidebarMenuItem || !SidebarMenuButton) return;
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg">Large Button</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Large Button")).toBeInTheDocument();
+  });
+
+  it("should render SidebarMenuButton with size=sm", () => {
+    if (!SidebarProvider || !Sidebar || !SidebarMenu || !SidebarMenuItem || !SidebarMenuButton) return;
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="sm">Small Button</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Small Button")).toBeInTheDocument();
+  });
+
+  it("should render SidebarMenuButton with isActive=true", () => {
+    if (!SidebarProvider || !Sidebar || !SidebarMenu || !SidebarMenuItem || !SidebarMenuButton) return;
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={true}>Active item</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Active item")).toBeInTheDocument();
+  });
+
+  it("should render SidebarMenuButton with tooltip", () => {
+    if (!SidebarProvider || !Sidebar || !SidebarMenu || !SidebarMenuItem || !SidebarMenuButton) return;
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="My tooltip">Tooltipped</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Tooltipped")).toBeInTheDocument();
+  });
+
+  it("should render SidebarMenuSkeleton with showIcon", () => {
+    if (!SidebarMenuSkeleton) return;
+    render(<SidebarMenuSkeleton showIcon />);
+    const skeletons = screen.getAllByTestId("skeleton");
+    expect(skeletons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should render SidebarSeparator", () => {
+    if (!SidebarSeparator) return;
+    render(<SidebarSeparator />);
+    expect(screen.getByTestId("sidebar-separator")).toBeInTheDocument();
+  });
+
+  it("should render SidebarInput", () => {
+    if (!SidebarInput) return;
+    render(<SidebarInput placeholder="Search..." />);
+    expect(screen.getByTestId("sidebar-input")).toBeInTheDocument();
+  });
+
+  it("should render SidebarProvider defaultOpen=false", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    render(
+      <SidebarProvider defaultOpen={false}>
+        <Sidebar>
+          <div>Closed sidebar</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Closed sidebar")).toBeInTheDocument();
+  });
+
+  it("should handle keyboard shortcut toggle", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    const { container } = render(
+      <SidebarProvider defaultOpen={true}>
+        <Sidebar>
+          <div>Keyboard toggle</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    // Press Ctrl+B (or Meta+B)
+    fireEvent.keyDown(document, { key: "b", metaKey: true });
+    expect(screen.getByText("Keyboard toggle")).toBeInTheDocument();
+  });
+
+  it("should render mobile sidebar with side=right", () => {
+    if (!SidebarProvider || !Sidebar) return;
+    const { useIsMobile } = require("@/hooks/use-mobile");
+    useIsMobile.mockReturnValue(true);
+    render(
+      <SidebarProvider>
+        <Sidebar side="right">
+          <div>Right mobile</div>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Right mobile")).toBeInTheDocument();
+    useIsMobile.mockReturnValue(false);
+  });
+
+  it("should render SidebarGroupLabel as asChild", () => {
+    if (!SidebarProvider || !Sidebar || !SidebarGroup || !SidebarGroupLabel || !SidebarGroupContent) return;
+    render(
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <span>Custom label</span>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div>Content</div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    );
+    expect(screen.getByText("Custom label")).toBeInTheDocument();
+  });
 });

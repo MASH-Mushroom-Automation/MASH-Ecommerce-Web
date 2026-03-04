@@ -340,6 +340,93 @@ describe("apiRequestWithInterceptor - Timeout", () => {
 });
 
 // ──────────────────────────────────────────────
+// apiRequestWithInterceptor - Custom options
+// ──────────────────────────────────────────────
+describe("apiRequestWithInterceptor - Custom options", () => {
+  it("uses custom baseUrl when provided", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ ok: true }));
+    await apiRequestWithInterceptor("/custom", { baseUrl: "https://custom.api.com" });
+    const calledUrl: string = mockFetch.mock.calls[0][0];
+    expect(calledUrl).toBe("https://custom.api.com/custom");
+  });
+
+  it("merges custom headers with defaults", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ ok: true }));
+    await apiRequestWithInterceptor("/test", { headers: { "X-Custom": "value" } as any });
+    const opts = mockFetch.mock.calls[0][1];
+    expect(opts.headers["X-Custom"]).toBe("value");
+    expect(opts.headers["Content-Type"]).toBe("application/json");
+  });
+
+  it("uses default method GET", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ ok: true }));
+    await apiRequestWithInterceptor("/test");
+    const opts = mockFetch.mock.calls[0][1];
+    // method is not explicitly set but headers are set
+    expect(opts.headers).toBeDefined();
+  });
+
+  it("passes method through correctly", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ ok: true }));
+    await apiRequestWithInterceptor("/test", { method: "POST", body: JSON.stringify({ a: 1 }) });
+    const opts = mockFetch.mock.calls[0][1];
+    expect(opts.method).toBe("POST");
+  });
+});
+
+// ──────────────────────────────────────────────
+// apiRequestWithInterceptor - Error message extraction
+// ──────────────────────────────────────────────
+describe("apiRequestWithInterceptor - Error message extraction", () => {
+  it("uses response.message field when available", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ message: "Specific error" }, 400));
+    try {
+      await apiRequestWithInterceptor("/bad");
+      fail("Should have thrown");
+    } catch (e: any) {
+      expect(e.message).toBe("Specific error");
+    }
+  });
+
+  it("uses response.error field when message is absent", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ error: "Error detail" }, 400));
+    try {
+      await apiRequestWithInterceptor("/bad");
+      fail("Should have thrown");
+    } catch (e: any) {
+      expect(e.message).toBe("Error detail");
+    }
+  });
+
+  it("falls back to status code when neither message nor error exist", async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ data: null }, 422));
+    try {
+      await apiRequestWithInterceptor("/bad");
+      fail("Should have thrown");
+    } catch (e: any) {
+      expect(e.message).toContain("422");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+// apiRequestWithInterceptor - Re-throw existing ApiError
+// ──────────────────────────────────────────────
+describe("apiRequestWithInterceptor - Re-throw", () => {
+  it("re-throws ApiError without wrapping", async () => {
+    mockFetch.mockRejectedValueOnce(new ApiError("Already wrapped", 409, null, "/conflict"));
+    try {
+      await apiRequestWithInterceptor("/conflict");
+      fail("Should have thrown");
+    } catch (e: any) {
+      expect(e).toBeInstanceOf(ApiError);
+      expect(e.status).toBe(409);
+      expect(e.message).toBe("Already wrapped");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
 // apiClient convenience methods
 // ──────────────────────────────────────────────
 describe("apiClient convenience methods", () => {
