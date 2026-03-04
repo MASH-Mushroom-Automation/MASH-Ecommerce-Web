@@ -287,6 +287,235 @@ describe("LalamoveQuote - Scheduled Delivery", () => {
   });
 });
 
+describe("LalamoveQuote - Core Quote Flow", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers({ advanceTimers: true });
+    mockFetch.mockResolvedValue(mockQuoteResponse());
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("calls onQuoteReceived with quote data on successful fetch", async () => {
+    const onQuoteReceived = jest.fn();
+    const props = createProps({ onQuoteReceived });
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(onQuoteReceived).toHaveBeenCalledWith(
+        expect.objectContaining({
+          quotationId: "mock-quotation-123",
+          price: 89,
+          distance: "5.2 km",
+        })
+      );
+    });
+  });
+
+  it("sends correct payload to /api/lalamove/quotation", async () => {
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/lalamove/quotation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: expect.any(String),
+      });
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.pickupLat).toBe(MASH_PICKUP_LOCATION.lat);
+    expect(body.pickupLng).toBe(MASH_PICKUP_LOCATION.lng);
+    expect(body.dropoffLat).toBe(14.6507);
+    expect(body.dropoffLng).toBe(121.0497);
+    expect(body.serviceType).toBe("MOTORCYCLE");
+  });
+
+  it("displays loading state while fetching quote", async () => {
+    // Make fetch hang
+    mockFetch.mockImplementation(() => new Promise(() => {}));
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    expect(screen.getByText("Getting delivery quote...")).toBeInTheDocument();
+    expect(screen.getByText("Calculating distance and price")).toBeInTheDocument();
+  });
+
+  it("displays Same-Day Delivery label for immediate quotes", async () => {
+    const props = createProps({ scheduleAt: undefined });
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Lalamove Same-Day Delivery")).toBeInTheDocument();
+    });
+  });
+
+  it("displays delivery price formatted as PHP currency", async () => {
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      // ₱89 (formatted by Intl.NumberFormat)
+      expect(screen.getByText(/₱89/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows 'Delivery Fee' label next to the price", async () => {
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Delivery Fee")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("LalamoveQuote - Error Handling", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers({ advanceTimers: true });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("does not fetch quote when delivery coordinates are missing", async () => {
+    const onQuoteReceived = jest.fn();
+    const props = createProps({
+      onQuoteReceived,
+      deliveryAddress: { lat: 0, lng: 0, address: "None", name: "Test", phone: "+63" },
+    });
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    // The debounce guard skips fetchQuote entirely when coords are falsy
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shows error when API returns non-ok response", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: () => Promise.resolve({ errors: [{ message: "Outside service area" }] }),
+    });
+    const onQuoteReceived = jest.fn();
+    const props = createProps({ onQuoteReceived });
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Delivery quote unavailable")).toBeInTheDocument();
+    });
+  });
+
+  it("shows retry button on error", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    });
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Try Again")).toBeInTheDocument();
+    });
+  });
+
+  it("shows specific error for 429 rate limit", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: () => Promise.resolve({}),
+    });
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Too many requests/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows network error when fetch throws", async () => {
+    mockFetch.mockRejectedValue(new TypeError("fetch failed"));
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Delivery quote unavailable")).toBeInTheDocument();
+    });
+  });
+
+  it("calls onQuoteReceived(null) when quote has zero price", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          quotationId: "q-123",
+          priceBreakdown: { total: "0" },
+          distance: { value: "1", unit: "km" },
+        },
+      }),
+    });
+    const onQuoteReceived = jest.fn();
+    const props = createProps({ onQuoteReceived });
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(onQuoteReceived).toHaveBeenCalledWith(null);
+    });
+  });
+
+  it("shows error for unusually high delivery fee (over ₱1000)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        data: {
+          quotationId: "q-123",
+          priceBreakdown: { total: "1500" },
+          distance: { value: "50", unit: "km" },
+        },
+      }),
+    });
+    const props = createProps();
+    render(<LalamoveQuote {...props} />);
+
+    await act(async () => { jest.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText(/too far/i)).toBeInTheDocument();
+    });
+  });
+});
+
 // Helper: format Date to datetime-local value
 function formatDatetimeLocal(date: Date): string {
   const y = date.getFullYear();
