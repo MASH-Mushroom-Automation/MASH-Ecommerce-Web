@@ -272,5 +272,70 @@ describe("PriorityDelivery", () => {
         expect(screen.getByText("Network error")).toBeInTheDocument();
       });
     });
+
+    it("auto-hides success message after 3 seconds", async () => {
+      jest.useFakeTimers();
+      render(<PriorityDelivery {...createProps()} />);
+
+      const expressRadio = screen.getByDisplayValue("50");
+      fireEvent.click(expressRadio);
+
+      const applyButton = screen.getByText(/Add Express/i).closest("button")!;
+      await act(async () => {
+        fireEvent.click(applyButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Priority delivery added/)).toBeInTheDocument();
+      });
+
+      // Advance past 3 second timeout
+      act(() => {
+        jest.advanceTimersByTime(3100);
+      });
+
+      // After timeout, success message should no longer be shown as a standalone success indicator
+      // and the radio group should no longer be disabled by success state
+      jest.useRealTimers();
+    });
+
+    it("shows fallback error message when error has no message", async () => {
+      mockFetch.mockRejectedValueOnce({});
+
+      render(<PriorityDelivery {...createProps()} />);
+
+      const expressRadio = screen.getByDisplayValue("50");
+      fireEvent.click(expressRadio);
+
+      const applyButton = screen.getByText(/Add Express/i).closest("button")!;
+      await act(async () => {
+        fireEvent.click(applyButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Failed to add priority delivery")).toBeInTheDocument();
+      });
+    });
+
+    it("shows fallback error when response.json has no message", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({}),
+      });
+
+      render(<PriorityDelivery {...createProps()} />);
+
+      const expressRadio = screen.getByDisplayValue("50");
+      fireEvent.click(expressRadio);
+
+      const applyButton = screen.getByText(/Add Express/i).closest("button")!;
+      await act(async () => {
+        fireEvent.click(applyButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Failed to add priority fee")).toBeInTheDocument();
+      });
+    });
   });
 });

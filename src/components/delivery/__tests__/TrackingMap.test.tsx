@@ -104,6 +104,30 @@ describe("TrackingMap Component", () => {
       expect(mockMarkerAddListener).toHaveBeenCalledWith("click", expect.any(Function));
       expect(mockMarkerAddListener).toHaveBeenCalledTimes(2);
     });
+
+    it("opens pickup info window when pickup marker is clicked", () => {
+      const mockInfoOpen = jest.fn();
+      (window as any).google.maps.InfoWindow = jest.fn(() => ({ open: mockInfoOpen }));
+
+      render(<TrackingMap pickup={pickup} dropoff={dropoff} status="ON_GOING" />);
+
+      // Get the click callback from the first marker (pickup)
+      const pickupClickCallback = mockMarkerAddListener.mock.calls[0][1];
+      pickupClickCallback();
+      expect(mockInfoOpen).toHaveBeenCalled();
+    });
+
+    it("opens dropoff info window when dropoff marker is clicked", () => {
+      const mockInfoOpen = jest.fn();
+      (window as any).google.maps.InfoWindow = jest.fn(() => ({ open: mockInfoOpen }));
+
+      render(<TrackingMap pickup={pickup} dropoff={dropoff} status="ON_GOING" />);
+
+      // Get the click callback from the second marker (dropoff)
+      const dropoffClickCallback = mockMarkerAddListener.mock.calls[1][1];
+      dropoffClickCallback();
+      expect(mockInfoOpen).toHaveBeenCalled();
+    });
   });
 
   describe("driver location", () => {
@@ -138,6 +162,32 @@ describe("TrackingMap Component", () => {
         <TrackingMap pickup={pickup} dropoff={dropoff} driverLocation={driverLocation} status="COMPLETED" />
       );
       expect(mockPanTo).not.toHaveBeenCalled();
+    });
+
+    it("opens driver info window when driver marker is clicked", () => {
+      const mockInfoOpen = jest.fn();
+      (window as any).google.maps.InfoWindow = jest.fn(() => ({ open: mockInfoOpen }));
+
+      render(
+        <TrackingMap pickup={pickup} dropoff={dropoff} driverLocation={driverLocation} status="ON_GOING" />
+      );
+
+      // Driver marker click callback is the 3rd addListener call
+      const driverClickCallback = mockMarkerAddListener.mock.calls[2][1];
+      driverClickCallback();
+      expect(mockInfoOpen).toHaveBeenCalled();
+    });
+
+    it("removes old driver marker when driverLocation changes", () => {
+      const { rerender } = render(
+        <TrackingMap pickup={pickup} dropoff={dropoff} driverLocation={driverLocation} status="ON_GOING" />
+      );
+      // Re-render with new driver location to trigger old marker removal
+      rerender(
+        <TrackingMap pickup={pickup} dropoff={dropoff} driverLocation={{ lat: 14.66, lng: 121.01 }} status="ON_GOING" />
+      );
+      // setMap(null) should be called to remove old driver marker
+      expect(mockMarkerSetMap).toHaveBeenCalledWith(null);
     });
   });
 

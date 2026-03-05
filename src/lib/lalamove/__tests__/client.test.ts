@@ -522,6 +522,49 @@ describe('LalamoveClient', () => {
       const client = new LalamoveClient();
       await expect(client.cancelOrder('ord-999')).rejects.toThrow('502');
     });
+
+    it('handles empty JSON response body (content-type application/json, empty text)', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        text: jest.fn().mockResolvedValue(''),
+      });
+
+      const client = new LalamoveClient();
+      const result = await client.getOrderDetails('ord-empty');
+      // Empty response body → responseData stays {}, !responseData.data → returns {} as T
+      expect(result).toEqual({});
+    });
+
+    it('parses JSON from non-JSON content-type response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'text/plain']]),
+        text: jest.fn().mockResolvedValue(JSON.stringify({
+          data: { orderId: 'ord-text', status: 'COMPLETED' },
+        })),
+      });
+
+      const client = new LalamoveClient();
+      const result = await client.getOrderDetails('ord-text');
+      expect(result.orderId).toBe('ord-text');
+    });
+
+    it('returns empty data when response.data is missing on success', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        text: jest.fn().mockResolvedValue(JSON.stringify({ message: 'ok but no data field' })),
+      });
+
+      const client = new LalamoveClient();
+      const result = await client.getOrderDetails('ord-nodata');
+      // !responseData.data is true → returns {} as T
+      expect(result).toEqual({});
+    });
   });
 
   describe('getCities', () => {

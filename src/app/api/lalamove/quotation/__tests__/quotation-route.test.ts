@@ -160,6 +160,28 @@ describe("POST /api/lalamove/quotation", () => {
     expect(data.message).toContain("Outside service area");
   });
 
+  it("handles 'outside service area' in error.message path with 422", async () => {
+    mockGetQuotation.mockRejectedValue(new Error("Address is outside service area"));
+
+    const req = createPostRequest(validBody);
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(422);
+    expect(data.message).toContain("outside the service area");
+  });
+
+  it("handles 'invalid coordinates' in error.message path with 400", async () => {
+    mockGetQuotation.mockRejectedValue(new Error("Invalid coordinates for stop 2"));
+
+    const req = createPostRequest(validBody);
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.message).toContain("Invalid location coordinates");
+  });
+
   it("handles timeout errors with 504", async () => {
     mockGetQuotation.mockRejectedValue(new Error("Request timeout"));
 

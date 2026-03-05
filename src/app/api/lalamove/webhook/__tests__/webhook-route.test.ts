@@ -203,6 +203,118 @@ describe("POST /api/lalamove/webhook", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
   });
+
+  // --- Null-order early-return paths for each handler ---
+
+  it("should skip DRIVER_ASSIGNED update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = {
+      event: "DRIVER_ASSIGNED", orderId: "LLM-MISSING", timestamp: "2026-01-01",
+      data: { driver: { id: "d1", name: "Juan", phone: "+639001234567", plateNumber: "ABC 123", photo: "img.jpg" } },
+    };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should skip DRIVER_LOCATION_UPDATED update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = {
+      event: "DRIVER_LOCATION_UPDATED", orderId: "LLM-MISSING", timestamp: "2026-01-01",
+      data: { coordinates: { lat: 14.5, lng: 121.0 }, driver: { id: "d1", name: "Juan", phone: "+639001234567", plateNumber: "ABC 123" } },
+    };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should handle DRIVER_LOCATION_UPDATED with missing driver data (optional chaining)", async () => {
+    mockFindOrder("order-opt");
+    const payload = {
+      event: "DRIVER_LOCATION_UPDATED", orderId: "LLM-OPT", timestamp: "2026-01-01",
+      data: { coordinates: { lat: 14.5, lng: 121.0 } },
+    };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith("order-opt", expect.objectContaining({
+      driver: expect.objectContaining({ id: "", name: "", phone: "", plateNumber: "" }),
+    }));
+  });
+
+  it("should skip DRIVER_ARRIVED_AT_PICKUP update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = { event: "DRIVER_ARRIVED_AT_PICKUP", orderId: "LLM-MISSING", timestamp: "2026-01-01", data: {} };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should skip DRIVER_PICKED_UP update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = { event: "DRIVER_PICKED_UP", orderId: "LLM-MISSING", timestamp: "2026-01-01", data: { pickupTime: "2026-01-01T10:00:00Z" } };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should skip DRIVER_ARRIVED_AT_DROPOFF update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = { event: "DRIVER_ARRIVED_AT_DROPOFF", orderId: "LLM-MISSING", timestamp: "2026-01-01", data: {} };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should skip ORDER_COMPLETED update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = { event: "ORDER_COMPLETED", orderId: "LLM-MISSING", timestamp: "2026-01-01", data: { completionTime: "2026-01-01T12:00:00Z" } };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should skip ORDER_CANCELLED update when Firestore order not found", async () => {
+    mockFindOrder(null);
+    const payload = { event: "ORDER_CANCELLED", orderId: "LLM-MISSING", timestamp: "2026-01-01", data: { reason: "No driver", cancelledBy: "system" } };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should handle getDocs throwing an error in findOrderByLalamoveId", async () => {
+    mockGetDocs.mockRejectedValue(new Error("Firestore unavailable"));
+    const payload = { event: "ORDER_STATUS_CHANGED", orderId: "LLM-ERR", timestamp: "2026-01-01", data: { status: "ON_GOING" } };
+    const req = createWebhookRequest(payload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should accept valid HMAC signature in production mode", async () => {
+    process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
+    process.env.LALAMOVE_API_SECRET = "prod-secret";
+    mockFindOrder("order-prod");
+
+    const payload = { event: "ORDER_STATUS_CHANGED", orderId: "LLM-PROD", timestamp: "2026-01-01", data: { status: "ON_GOING" } };
+    const bodyStr = JSON.stringify(payload);
+    const crypto = require("crypto");
+    const validSig = crypto.createHmac("sha256", "prod-secret").update(bodyStr).digest("hex");
+
+    const req = createWebhookRequest(payload, { "X-Lalamove-Signature": validSig });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith("order-prod", expect.objectContaining({ status: "ON_GOING" }));
+  });
 });
 
 describe("GET /api/lalamove/webhook", () => {
