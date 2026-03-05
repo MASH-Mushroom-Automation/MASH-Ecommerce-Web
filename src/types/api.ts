@@ -84,6 +84,7 @@ export interface CartItem {
   unit?: string;
   stock: number;
   comparePrice?: number;
+  sellerId?: string; // Seller/grower ID for order routing
 }
 
 // Product data required for adding to cart
@@ -97,6 +98,7 @@ export interface AddToCartProduct {
   grower?: string;
   unit?: string;
   comparePrice?: number;
+  sellerId?: string; // Seller/grower ID for order routing
 }
 
 export interface OrderSummary {

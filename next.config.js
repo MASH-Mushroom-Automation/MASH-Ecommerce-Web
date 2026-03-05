@@ -2,6 +2,8 @@ const path = require("path");
 
 /** @type {import('next').NextConfig} */
 module.exports = {
+  // Packages that need to be transpiled (needed for Jest transformIgnorePatterns via nextJest)
+  transpilePackages: ['nuqs', 'next-sanity', '@sanity/client', '@sanity/image-url', 'groq'],
   // Explicitly set Turbopack root to this project directory
   turbopack: {
     root: path.resolve(__dirname),
@@ -26,6 +28,8 @@ module.exports = {
       { protocol: "https", hostname: "i.ytimg.com" },
       { protocol: "https", hostname: "i3.ytimg.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+      { protocol: "https", hostname: "*.appspot.com" },
       { protocol: "https", hostname: "api.dicebear.com", pathname: "/**" },
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/drkcpvmfc/**" },
     ],
@@ -49,12 +53,12 @@ module.exports = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://cdn.sanity.io https://cal.com https://*.cal.com https://app.cal.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://apis.google.com https://www.gstatic.com https://www.google.com https://www.googletagmanager.com https://cdn.sanity.io https://cal.com https://*.cal.com https://app.cal.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cal.com https://*.cal.com https://app.cal.com",
               "img-src 'self' data: https: blob: https://*.cloudinary.com",
               "font-src 'self' data: https://fonts.gstatic.com https://cal.com https://*.cal.com",
-              "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://cal.com https://*.cal.com https://app.cal.com https://generativelanguage.googleapis.com https://*.cloudinary.com",
-              "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com https://app.cal.com",
+              "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://cal.com https://*.cal.com https://app.cal.com https://generativelanguage.googleapis.com https://*.cloudinary.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
+              "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com https://app.cal.com https://www.google.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

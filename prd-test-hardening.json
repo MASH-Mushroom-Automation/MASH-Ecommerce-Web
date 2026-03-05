@@ -1,0 +1,149 @@
+{
+  "projectName": "MASH E-Commerce - Test Reliability Hardening",
+  "version": "1.0.0",
+  "branchName": "develop",
+  "description": "Fix all 90 pre-existing test failures across 5 suites to achieve zero-failure baseline. Root causes: source code rewritten without test updates (4 suites), selector mismatch (1 suite). Shop page suite already passes.",
+  "owner": "AI Agent (Ralph)",
+  "startedDate": "2026-02-27",
+  "targetCompletion": "2026-02-28",
+  "lastUpdated": "2026-02-27T21:00:00Z",
+  "planDocument": ".github/TEST_HARDENING_PLAN.md",
+  "progressDocument": "progress.txt",
+  "totalStories": 6,
+  "completedStories": 6,
+  "currentPhase": "COMPLETE",
+  "baselineMetrics": {
+    "totalTests": 5848,
+    "passing": 5757,
+    "failing": 91,
+    "actualFailing": 90,
+    "failingSuites": 6,
+    "actualFailingSuites": 5,
+    "note": "Shop page suite (31 tests) now passes - actual failures are 90 across 5 suites"
+  },
+  "targetMetrics": {
+    "totalTests": ">=5848",
+    "passing": ">=5848",
+    "failing": 0,
+    "failingSuites": 0
+  },
+  "successMetrics": {
+    "build": "npm run build passes with zero errors",
+    "tests": "All test suites pass with 0 failures",
+    "lint": "npm run lint passes with zero warnings",
+    "zeroRegressions": "No existing passing tests broken"
+  },
+  "qualityGates": {
+    "beforeCommit": [
+      "npm run build (zero errors)",
+      "npm run lint (zero warnings)",
+      "Specific suite tests pass (npx jest <file>)"
+    ],
+    "afterStory": [
+      "Update prd-test-hardening.json: set story passes=true, add completedAt",
+      "Append implementation entry to progress.txt",
+      "Update .github/TEST_HARDENING_PLAN.md progress dashboard",
+      "Update completedStories count"
+    ]
+  },
+  "stories": [
+    {
+      "id": "TFIX-001",
+      "title": "Fix ProductCard Out-of-Stock Test Selectors (2 failures)",
+      "priority": 1,
+      "passes": true,
+      "completedAt": "2026-02-27T21:30:00Z",
+      "suite": "src/components/product/__tests__/ProductCard.test.tsx",
+      "failingTests": 2,
+      "rootCause": "Selector mismatch - tests query button by aria-label 'add X to cart' but out-of-stock button renders as 'Sold Out' text with no aria-label",
+      "acceptanceCriteria": [
+        "Both failing tests pass: 'displays out of stock overlay' and 'disables add button when out of stock'",
+        "All 33 ProductCard tests pass (31 existing + 2 fixed)",
+        "No other test suites regress"
+      ],
+      "estimatedEffort": "15 minutes"
+    },
+    {
+      "id": "TFIX-002",
+      "title": "Fix useSellerDashboard Hook Tests (5 failures)",
+      "priority": 2,
+      "passes": true,
+      "completedAt": "2026-02-27T21:45:00Z",
+      "suite": "src/hooks/__tests__/useSeller.test.tsx",
+      "failingTests": 5,
+      "rootCause": "Hook rewritten to use FirebaseOrdersService.getAllOrders() and fetchSellerProducts() instead of SellerApi methods. Tests mock SellerApi which is no longer called.",
+      "acceptanceCriteria": [
+        "All 5 useSellerDashboard tests pass with updated mocks",
+        "All 51 useSeller tests pass (46 existing + 5 fixed)",
+        "Mocks target FirebaseOrdersService and fetchSellerProducts"
+      ],
+      "estimatedEffort": "30 minutes"
+    },
+    {
+      "id": "TFIX-003",
+      "title": "Fix Cart Page Tests (6 failures)",
+      "priority": 3,
+      "passes": true,
+      "completedAt": "2026-02-27T22:00:00Z",
+      "suite": "src/app/(shop)/cart/__tests__/page.test.tsx",
+      "failingTests": 6,
+      "rootCause": "Cart page UI restructured - order summary card layout changed, stock UI selectors stale, checkout now uses Link instead of router.push",
+      "acceptanceCriteria": [
+        "All 6 failing tests pass with updated selectors",
+        "All 26 cart page tests pass (20 existing + 6 fixed)",
+        "Selectors match actual component DOM structure"
+      ],
+      "estimatedEffort": "30 minutes"
+    },
+    {
+      "id": "TFIX-004",
+      "title": "Fix Seller Dashboard Page Tests (30 failures)",
+      "priority": 4,
+      "passes": true,
+      "completedAt": "2026-02-27T22:30:00Z",
+      "suite": "src/app/(seller)/seller/dashboard/__tests__/page.test.tsx",
+      "failingTests": 30,
+      "rootCause": "Dashboard completely rewritten to use only useSellerDashboard hook. Tests mock 4 hooks (useAdminDashboard, useTopPerformingProducts, useRecentOrders, useSellerDashboard) but component only uses useSellerDashboard. Data shapes completely different.",
+      "acceptanceCriteria": [
+        "All 30 failing tests pass with rewritten mocks and assertions",
+        "Total seller dashboard tests pass (may increase/decrease as tests are rewritten to match actual component)",
+        "Mocks target only useSellerDashboard with correct data shape"
+      ],
+      "estimatedEffort": "90 minutes"
+    },
+    {
+      "id": "TFIX-005",
+      "title": "Fix Seller API Tests (47 failures)",
+      "priority": 5,
+      "passes": true,
+      "completedAt": "2026-02-27T22:45:00Z",
+      "suite": "src/lib/api/__tests__/seller.test.ts",
+      "failingTests": 47,
+      "rootCause": "SellerApi rewritten from mock-data class to real API client using apiFetch(). Global fetch mock returns empty {} for all calls. All 47 assertions fail against empty data.",
+      "acceptanceCriteria": [
+        "All 47 seller API tests pass with proper fetch mocking per endpoint",
+        "Tests verify correct URL construction, request parameters, and response handling",
+        "Error handling paths tested (network errors, 4xx, 5xx responses)"
+      ],
+      "estimatedEffort": "60 minutes"
+    },
+    {
+      "id": "TFIX-006",
+      "title": "Full Suite Validation - Zero Failures",
+      "priority": 6,
+      "passes": true,
+      "completedAt": "2026-02-27T23:00:00Z",
+      "suite": "Full test suite",
+      "failingTests": 0,
+      "rootCause": "N/A - validation story",
+      "acceptanceCriteria": [
+        "npx jest --passWithNoTests exits with code 0",
+        "Test Suites: 0 failed, 253 passed",
+        "Tests: 0 failed, all passed",
+        "npm run build passes",
+        "npm run lint passes"
+      ],
+      "estimatedEffort": "15 minutes"
+    }
+  ]
+}

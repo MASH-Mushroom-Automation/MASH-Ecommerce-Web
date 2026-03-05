@@ -194,12 +194,27 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     
-    // Build query params
+    // Build query params — pass through all filter fields
+    const categoriesParam = searchParams.get("categories");
+    const priceMin = searchParams.get("priceMin");
+    const priceMax = searchParams.get("priceMax");
+
     const params = {
       page: searchParams.get("page") ? parseInt(searchParams.get("page")!) : undefined,
       limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined,
       search: searchParams.get("search") || undefined,
-      sellerId: sellerId, // Filter by current seller
+      sellerId: sellerId, // Filter by current seller — enforced server-side
+      categories: categoriesParam ? categoriesParam.split(",").filter(Boolean) : undefined,
+      priceRange: (priceMin || priceMax)
+        ? ([
+            priceMin ? parseFloat(priceMin) : 0,
+            priceMax ? parseFloat(priceMax) : Infinity,
+          ] as [number, number])
+        : undefined,
+      stockStatus: searchParams.get("stockStatus") || undefined,
+      productStatus: searchParams.get("productStatus") || undefined,
+      dateFrom: searchParams.get("dateFrom") || undefined,
+      dateTo: searchParams.get("dateTo") || undefined,
     };
 
     // Fetch products from Sanity filtered by seller ID

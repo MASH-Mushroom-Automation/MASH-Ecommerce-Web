@@ -1,0 +1,243 @@
+{
+  "title": "Track A: Coverage to 80%",
+  "description": "Raise test coverage from 58% to 80% statements, 75% branches, 80% functions, 80% lines by writing tests for the 289 zero-coverage files",
+  "target": {
+    "statements": 80,
+    "branches": 75,
+    "functions": 80,
+    "lines": 80
+  },
+  "baseline": {
+    "statements": 58.18,
+    "branches": 48.17,
+    "functions": 53.88,
+    "lines": 58.26,
+    "suites": 265,
+    "tests": 6235
+  },
+  "stories": [
+    {
+      "id": "COV-001",
+      "title": "Rate Limit & Proxy Middleware Tests",
+      "priority": "P0",
+      "persona": "SENTINEL",
+      "files": [
+        "src/middleware/rate-limit.ts",
+        "src/proxy.ts"
+      ],
+      "acceptanceCriteria": [
+        "Tests for getCategoryForPath() all path mappings",
+        "Tests for checkRateLimit() allows/blocks correctly",
+        "Tests for proxy() route protection, auth detection, security headers",
+        "All new tests pass in full suite"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-002",
+      "title": "Email Client & Resend Tests",
+      "priority": "P0",
+      "persona": "SENTINEL",
+      "files": [
+        "src/lib/email/client.ts",
+        "src/lib/email/resend.ts"
+      ],
+      "acceptanceCriteria": [
+        "Tests for sendEmailViaAPI success/error/network-failure paths",
+        "Tests for all convenience email functions",
+        "Tests for isEmailConfigured, getFromAddress",
+        "All new tests pass in full suite"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-003",
+      "title": "Error Boundary & Config Tests",
+      "priority": "P1",
+      "persona": "SENTINEL",
+      "files": [
+        "src/lib/error-boundary.tsx",
+        "src/config/admin.ts",
+        "src/lib/constants.ts",
+        "src/lib/tailwind-theme.ts",
+        "src/app/robots.ts"
+      ],
+      "acceptanceCriteria": [
+        "ErrorBoundary: renders children, catches errors, shows fallback",
+        "ADMIN_CONFIG: shape verification, default values",
+        "robots(): correct rules and sitemap",
+        "Constants and theme shape tests",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-004",
+      "title": "useSellerGuard & Barrel Exports Tests",
+      "priority": "P1",
+      "persona": "SENTINEL",
+      "files": [
+        "src/hooks/useSellerGuard.ts",
+        "src/lib/index.ts",
+        "src/lib/firebase/index.ts",
+        "src/lib/firebase/config.ts",
+        "src/lib/payment/index.ts",
+        "src/lib/security/index.ts",
+        "src/lib/sms/index.ts",
+        "src/lib/email/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "useSellerGuard: SELLER access, BUYER redirect, expired session, unauthenticated, error",
+        "Barrel exports resolve correctly",
+        "Firebase config singleton test",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-005",
+      "title": "Email Template Component Tests",
+      "priority": "P1",
+      "persona": "SENTINEL",
+      "files": [
+        "src/lib/email/templates/index.ts",
+        "src/lib/email/templates/order-approved.tsx",
+        "src/lib/email/templates/order-confirmation.tsx",
+        "src/lib/email/templates/order-delivered.tsx",
+        "src/lib/email/templates/order-items.tsx",
+        "src/lib/email/templates/order-rejected.tsx",
+        "src/lib/email/templates/order-shipped.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Each template renders without error",
+        "Templates display correct order data",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-006",
+      "title": "Auth Page Component Tests",
+      "priority": "P2",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/(auth)/account-recovery/page.tsx",
+        "src/app/(auth)/forgot-password/page.tsx",
+        "src/app/(auth)/reset-password/page.tsx",
+        "src/app/(auth)/reset-success/page.tsx",
+        "src/app/(auth)/verify-otp/page.tsx",
+        "src/app/(auth)/welcome/page.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Each auth page renders without error",
+        "Key UI elements present (headings, forms, buttons)",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-007",
+      "title": "API Route Tests Batch 1 - Auth",
+      "priority": "P2",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/api/auth/get-role/route.ts",
+        "src/app/api/auth/get-token/route.ts",
+        "src/app/api/auth/logout/route.ts",
+        "src/app/api/auth/me/route.ts",
+        "src/app/api/auth/session/route.ts",
+        "src/app/api/auth/set-cookie/route.ts",
+        "src/app/api/auth/set-token/route.ts",
+        "src/app/api/auth/clear-cookie/route.ts",
+        "src/app/api/auth/clear-tokens/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "Each route handler has success and error tests",
+        "Auth cookie reading/writing tested",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-008",
+      "title": "API Route Tests Batch 2 - Orders & Products",
+      "priority": "P2",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/api/orders/route.ts",
+        "src/app/api/orders/[id]/route.ts",
+        "src/app/api/orders/[id]/status/route.ts",
+        "src/app/api/products/route.ts",
+        "src/app/api/products/[id]/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "GET/POST/PATCH handlers tested",
+        "Error handling tested",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-009",
+      "title": "Seller Page Component Tests",
+      "priority": "P2",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/(seller)/seller/page.tsx",
+        "src/app/(seller)/seller/orders/page.tsx",
+        "src/app/(seller)/seller/products/edit/[id]/page.tsx",
+        "src/app/(seller)/seller/products/new/page.tsx",
+        "src/app/(seller)/inventory/page.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Each seller page renders without error",
+        "Key UI elements present",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-010",
+      "title": "Critical Component Tests Batch 1",
+      "priority": "P3",
+      "persona": "SENTINEL",
+      "files": [
+        "src/components/layout/cart-dropdown.tsx",
+        "src/components/layout/mobile-bottom-nav.tsx",
+        "src/components/layout/notification-dropdown.tsx",
+        "src/components/checkout/AddressSelector.tsx",
+        "src/components/product/ProductGallery.tsx",
+        "src/components/product/VariantSelector.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Each component renders with mock data",
+        "User interactions tested where applicable",
+        "All new tests pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "COV-011",
+      "title": "Batch 3: API Route Tests (auth, seller, payment, lalamove, stock/misc)",
+      "priority": "P1",
+      "persona": "SENTINEL",
+      "files": [
+        "src/app/api/auth/__tests__/auth-all.test.ts",
+        "src/app/api/seller/__tests__/seller-routes.test.ts",
+        "src/app/api/payment/__tests__/payment-routes.test.ts",
+        "src/app/api/lalamove/__tests__/lalamove-routes.test.ts",
+        "src/app/api/__tests__/stock-contact-misc-routes.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Auth routes tested: logout, me, session, 2fa/enable/disable/send/verify",
+        "12 seller route groups tested: dashboard, orders, profile, addresses, payment-info, password, notifications, notification-preferences, sales-data, refunds, inventory, top-performing",
+        "Payment routes tested: webhook (all event types), create-intent (all payment methods), status",
+        "Lalamove routes tested: quotation, create-order, driver, order-details, orders, priority, order, chat/send, webhook",
+        "Stock/misc routes tested: stock/adjust, stock/batch, stock/thresholds, contact, OTP, notifications, devices, schedule-delivery, inventory/update, products",
+        "152 new tests, 5 new suites, all passing",
+        "Coverage: Stmts 64.10%, Branches 52.41%, Lines 64.77%, Funcs 56.59%"
+      ],
+      "passes": true
+    }
+  ]
+}

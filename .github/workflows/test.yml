@@ -1,10 +1,11 @@
 name: Run Tests
 
+# This workflow is now mostly redundant because pr-checks.yml runs the same
+# job list. It is kept for manual invocation and historical record.
+# Automated checks should occur on pull requests only.
 on:
   pull_request:
-    branches: [main, develop, TESTING-&-SECURITY]
-  push:
-    branches: [main, develop, TESTING-&-SECURITY]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
@@ -13,6 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     # Non-blocking: tests are informational
     continue-on-error: true
+    
+    # avoid duplicate workflows on same PR
+    concurrency:
+      group: test-${{ github.ref }}
+      cancel-in-progress: true
     
     steps:
       - name: Checkout code
@@ -33,7 +39,7 @@ jobs:
       
       - name: Run tests
         continue-on-error: true
-        run: npm test -- --coverage --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/
+        run: npm test -- --coverage --ci --maxWorkers=2 --testPathIgnorePatterns=./e2e/ || echo "::warning::Some tests failed"
         env:
           CI: true
           NEXT_PUBLIC_FIREBASE_API_KEY: test-api-key

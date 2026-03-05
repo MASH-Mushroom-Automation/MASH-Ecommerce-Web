@@ -42,6 +42,13 @@ export interface FirestoreUserProfile {
   provider: "email" | "google" | "email-link";
   emailVerified: boolean;
   
+  // Phone verification & 2FA
+  phoneNumber?: string;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: Timestamp;
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: "SMS";
+  
   // Preferences
   preferences?: {
     cookingLevel?: string;
@@ -94,6 +101,8 @@ export const FirebaseUserService = {
       const now = serverTimestamp();
 
       if (existingDoc.exists()) {
+        const existing = existingDoc.data() as FirestoreUserProfile;
+
         // Update existing profile - only update fields that are provided
         const updateData: Record<string, unknown> = {
           updatedAt: now,
@@ -108,7 +117,10 @@ export const FirebaseUserService = {
         if (data.lastName !== undefined) updateData.lastName = data.lastName;
         if (data.displayName !== undefined) updateData.displayName = data.displayName;
         if (data.phone !== undefined) updateData.phone = data.phone;
-        if (data.photoURL !== undefined) updateData.photoURL = data.photoURL;
+        // Preserve existing photoURL for existing profiles during auth sync.
+        // Custom uploaded photos are not overwritten by auth provider photos.
+        // Use explicit updateProfile() method to change photoURL.
+        if (data.photoURL !== undefined && !existing.photoURL) updateData.photoURL = data.photoURL;
         if (data.provider !== undefined) updateData.provider = data.provider;
         if (data.emailVerified !== undefined) updateData.emailVerified = data.emailVerified;
         if (data.preferences !== undefined) updateData.preferences = data.preferences;
@@ -117,7 +129,6 @@ export const FirebaseUserService = {
         await updateDoc(userRef, updateData);
 
         // Return merged data with email ensured
-        const existing = existingDoc.data() as FirestoreUserProfile;
         return {
           ...existing,
           ...data,
@@ -125,6 +136,8 @@ export const FirebaseUserService = {
           uid: userId,
           // Ensure email is always present
           email: data.email || existing.email,
+          // Preserve existing photoURL over auth provider photo
+          photoURL: existing.photoURL || data.photoURL || null,
         } as FirestoreUserProfile;
       } else {
         // Create new profile

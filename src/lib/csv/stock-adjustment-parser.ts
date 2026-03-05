@@ -180,7 +180,7 @@ export function validateCSVRows(rows: CSVRow[]): ParsedCSVRow[] {
       rowNumber: index + 2,
       raw: row,
       valid: false,
-      errors: parseResult.error.errors.map(e => e.message),
+      errors: parseResult.error.issues.map(e => e.message),
     };
   });
 }

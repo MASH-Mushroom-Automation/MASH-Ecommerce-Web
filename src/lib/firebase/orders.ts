@@ -65,6 +65,7 @@ export interface FirestoreOrderItem {
   image: string;
   grower?: string;
   unit?: string;
+  sellerId?: string; // Seller/grower ID for filtering orders by seller
 }
 
 /**
@@ -111,7 +112,10 @@ export interface FirestoreOrder {
   pickupLocation?: PickupLocation;
   deliveryAddress?: DeliveryAddress;
   lalamoveQuotationId?: string;
+  lalamoveScheduleAt?: string;
   lalamoveOrderId?: string;
+  lalamoveVehicleType?: string;
+  lalamoveDistance?: string;
 
   // Lalamove Tracking (Phase 8)
   lalamoveTracking?: {
@@ -152,6 +156,9 @@ export interface FirestoreOrder {
   status: OrderStatus;
   statusHistory: StatusHistoryEntry[];
 
+  // Seller
+  sellerId?: string; // Primary seller ID (for single-seller orders)
+
   // Metadata
   notes?: string;
   createdAt: Timestamp;
@@ -178,8 +185,12 @@ export interface CreateOrderData {
   pickupLocation?: PickupLocation;
   deliveryAddress?: DeliveryAddress;
   lalamoveQuotationId?: string;
+  lalamoveScheduleAt?: string;
+  lalamoveVehicleType?: string;
+  lalamoveDistance?: string;
   paymentMethod: "cod" | "gcash" | "card";
   notes?: string;
+  sellerId?: string; // Primary seller ID (for single-seller orders)
 }
 
 /**
@@ -226,7 +237,20 @@ export class FirebaseOrdersService {
         userEmail: data.userEmail,
         userName: data.userName,
         userPhone: data.userPhone,
-        items: data.items,
+        // Strip undefined fields from each item (Firestore rejects undefined values)
+        items: data.items.map((item) => {
+          const sanitized: FirestoreOrderItem = {
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+          };
+          if (item.grower !== undefined) sanitized.grower = item.grower;
+          if (item.unit !== undefined) sanitized.unit = item.unit;
+          if (item.sellerId !== undefined) sanitized.sellerId = item.sellerId;
+          return sanitized;
+        }),
         subtotal: data.subtotal,
         tax: data.tax,
         deliveryFee: data.deliveryFee,
@@ -257,8 +281,20 @@ export class FirebaseOrdersService {
       if (data.lalamoveQuotationId) {
         order.lalamoveQuotationId = data.lalamoveQuotationId;
       }
+      if (data.lalamoveScheduleAt) {
+        order.lalamoveScheduleAt = data.lalamoveScheduleAt;
+      }
+      if (data.lalamoveVehicleType) {
+        order.lalamoveVehicleType = data.lalamoveVehicleType;
+      }
+      if (data.lalamoveDistance) {
+        order.lalamoveDistance = data.lalamoveDistance;
+      }
       if (data.notes) {
         order.notes = data.notes;
+      }
+      if (data.sellerId) {
+        order.sellerId = data.sellerId;
       }
 
       await setDoc(orderRef, order);
@@ -278,11 +314,14 @@ export class FirebaseOrdersService {
           orderNumber,
           "order_placed",
           template.title,
-          template.message
+          template.message,
         );
       } catch (notifError) {
         // Don't fail order creation if notification fails
-        console.error("[FirebaseOrdersService] Notification error:", notifError);
+        console.error(
+          "[FirebaseOrdersService] Notification error:",
+          notifError,
+        );
       }
 
       return orderId;
@@ -301,13 +340,16 @@ export class FirebaseOrdersService {
       const q = query(
         ordersRef,
         where("userId", "==", userId),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
       );
 
       const snapshot = await getDocs(q);
       return snapshot.docs.map((doc) => doc.data() as FirestoreOrder);
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error getting user orders:", error);
+      console.error(
+        "[FirebaseOrdersService] Error getting user orders:",
+        error,
+      );
       return [];
     }
   }
@@ -330,14 +372,14 @@ export class FirebaseOrdersService {
    * Get order by order number
    */
   static async getOrderByNumber(
-    orderNumber: string
+    orderNumber: string,
   ): Promise<FirestoreOrder | null> {
     try {
       const ordersRef = collection(db, this.COLLECTION);
       const q = query(
         ordersRef,
         where("orderNumber", "==", orderNumber),
-        limit(1)
+        limit(1),
       );
 
       const snapshot = await getDocs(q);
@@ -345,7 +387,10 @@ export class FirebaseOrdersService {
 
       return snapshot.docs[0].data() as FirestoreOrder;
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error getting order by number:", error);
+      console.error(
+        "[FirebaseOrdersService] Error getting order by number:",
+        error,
+      );
       return null;
     }
   }
@@ -356,7 +401,7 @@ export class FirebaseOrdersService {
   static subscribeToOrder(
     orderId: string,
     onUpdate: (order: FirestoreOrder | null) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
   ): () => void {
     const orderRef = doc(db, this.COLLECTION, orderId);
 
@@ -370,7 +415,7 @@ export class FirebaseOrdersService {
         if (onError) {
           onError(error);
         }
-      }
+      },
     );
   }
 
@@ -380,13 +425,13 @@ export class FirebaseOrdersService {
   static subscribeToUserOrders(
     userId: string,
     onUpdate: (orders: FirestoreOrder[]) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
   ): () => void {
     const ordersRef = collection(db, this.COLLECTION);
     const q = query(
       ordersRef,
       where("userId", "==", userId),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
     );
 
     return onSnapshot(
@@ -400,7 +445,7 @@ export class FirebaseOrdersService {
         if (onError) {
           onError(error);
         }
-      }
+      },
     );
   }
 
@@ -413,13 +458,16 @@ export class FirebaseOrdersService {
       const q = query(
         ordersRef,
         where("status", "==", "pending_approval"),
-        orderBy("createdAt", "asc")
+        orderBy("createdAt", "asc"),
       );
 
       const snapshot = await getDocs(q);
       return snapshot.docs.map((doc) => doc.data() as FirestoreOrder);
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error getting pending orders:", error);
+      console.error(
+        "[FirebaseOrdersService] Error getting pending orders:",
+        error,
+      );
       return [];
     }
   }
@@ -448,20 +496,23 @@ export class FirebaseOrdersService {
    * Get orders by status
    */
   static async getOrdersByStatus(
-    status: OrderStatus
+    status: OrderStatus,
   ): Promise<FirestoreOrder[]> {
     try {
       const ordersRef = collection(db, this.COLLECTION);
       const q = query(
         ordersRef,
         where("status", "==", status),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
       );
 
       const snapshot = await getDocs(q);
       return snapshot.docs.map((doc) => doc.data() as FirestoreOrder);
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error getting orders by status:", error);
+      console.error(
+        "[FirebaseOrdersService] Error getting orders by status:",
+        error,
+      );
       return [];
     }
   }
@@ -471,13 +522,13 @@ export class FirebaseOrdersService {
    */
   static subscribeToPendingOrders(
     onUpdate: (orders: FirestoreOrder[]) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
   ): () => void {
     const ordersRef = collection(db, this.COLLECTION);
     const q = query(
       ordersRef,
       where("status", "==", "pending_approval"),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "asc"),
     );
 
     return onSnapshot(
@@ -491,7 +542,7 @@ export class FirebaseOrdersService {
         if (onError) {
           onError(error);
         }
-      }
+      },
     );
   }
 
@@ -500,7 +551,7 @@ export class FirebaseOrdersService {
    */
   static subscribeToAllOrders(
     onUpdate: (orders: FirestoreOrder[]) => void,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
   ): () => void {
     const ordersRef = collection(db, this.COLLECTION);
     const q = query(ordersRef, orderBy("createdAt", "desc"));
@@ -516,7 +567,81 @@ export class FirebaseOrdersService {
         if (onError) {
           onError(error);
         }
+      },
+    );
+  }
+
+  /**
+   * Get orders for a specific seller (one-shot fetch)
+   */
+  static async getOrdersBySeller(
+    sellerId: string,
+    limitCount?: number,
+  ): Promise<FirestoreOrder[]> {
+    try {
+      const ordersRef = collection(db, this.COLLECTION);
+      // No orderBy here — combining where(sellerId) + orderBy(createdAt) requires
+      // a composite index that may not exist. Sort client-side instead.
+      let q = query(ordersRef, where("sellerId", "==", sellerId));
+
+      const snapshot = await getDocs(q);
+      let orders = snapshot.docs.map((doc) => doc.data() as FirestoreOrder);
+
+      // Sort descending by createdAt client-side
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() ?? 0;
+        const bTime = b.createdAt?.toMillis?.() ?? 0;
+        return bTime - aTime;
+      });
+
+      if (limitCount) {
+        orders = orders.slice(0, limitCount);
       }
+
+      return orders;
+    } catch (error) {
+      console.error(
+        "[FirebaseOrdersService] Error getting seller orders:",
+        error,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Subscribe to a specific seller's orders (real-time)
+   */
+  static subscribeToSellerOrders(
+    sellerId: string,
+    onUpdate: (orders: FirestoreOrder[]) => void,
+    onError?: (error: Error) => void,
+  ): () => void {
+    const ordersRef = collection(db, this.COLLECTION);
+    // No orderBy here — combining where(sellerId) + orderBy(createdAt) requires
+    // a composite index that may not exist. Sort client-side in the callback.
+    const q = query(ordersRef, where("sellerId", "==", sellerId));
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const orders = snapshot.docs
+          .map((doc) => doc.data() as FirestoreOrder)
+          .sort((a, b) => {
+            const aTime = a.createdAt?.toMillis?.() ?? 0;
+            const bTime = b.createdAt?.toMillis?.() ?? 0;
+            return bTime - aTime;
+          });
+        onUpdate(orders);
+      },
+      (error) => {
+        console.error(
+          "[FirebaseOrdersService] Seller subscription error:",
+          error,
+        );
+        if (onError) {
+          onError(error);
+        }
+      },
     );
   }
 
@@ -526,7 +651,7 @@ export class FirebaseOrdersService {
   static async approveOrder(orderId: string, adminId: string): Promise<void> {
     try {
       // Validate inputs
-      if (!adminId || adminId === 'undefined') {
+      if (!adminId || adminId === "undefined") {
         console.warn("[FirebaseOrdersService] Invalid adminId, using default");
         adminId = "system";
       }
@@ -579,15 +704,15 @@ export class FirebaseOrdersService {
   static async rejectOrder(
     orderId: string,
     adminId: string,
-    reason: string
+    reason: string,
   ): Promise<void> {
     try {
       // Validate inputs
-      if (!adminId || adminId === 'undefined') {
+      if (!adminId || adminId === "undefined") {
         console.warn("[FirebaseOrdersService] Invalid adminId, using default");
         adminId = "system";
       }
-      if (!reason || reason === 'undefined') {
+      if (!reason || reason === "undefined") {
         reason = "Order rejected by seller";
       }
 
@@ -636,17 +761,19 @@ export class FirebaseOrdersService {
     orderId: string,
     newStatus: OrderStatus,
     updatedBy: string,
-    note?: string
+    note?: string,
   ): Promise<void> {
     try {
       // Validate inputs
-      if (!updatedBy || updatedBy === 'undefined') {
-        console.warn("[FirebaseOrdersService] Invalid updatedBy, using default");
+      if (!updatedBy || updatedBy === "undefined") {
+        console.warn(
+          "[FirebaseOrdersService] Invalid updatedBy, using default",
+        );
         updatedBy = "system";
       }
 
       const orderRef = doc(db, this.COLLECTION, orderId);
-      
+
       // First, get order info before transaction
       const orderSnap = await getDoc(orderRef);
       if (!orderSnap.exists()) {
@@ -670,7 +797,7 @@ export class FirebaseOrdersService {
           timestamp: Timestamp.now(),
           updatedBy: updatedBy || "system",
         };
-        
+
         // Only add note if it's defined
         if (note) {
           historyEntry.note = note;
@@ -703,11 +830,14 @@ export class FirebaseOrdersService {
           orderId,
           orderNumber,
           newStatus,
-          note
+          note,
         );
       }
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error updating order status:", error);
+      console.error(
+        "[FirebaseOrdersService] Error updating order status:",
+        error,
+      );
       throw error;
     }
   }
@@ -718,24 +848,30 @@ export class FirebaseOrdersService {
    */
   static listenToOrder(
     orderId: string,
-    callback: (order: FirestoreOrder | null) => void
+    callback: (order: FirestoreOrder | null) => void,
   ): () => void {
     const orderRef = doc(db, this.COLLECTION, orderId);
-    
+
     const unsubscribe = onSnapshot(
       orderRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const order = { ...snapshot.data(), id: snapshot.id } as FirestoreOrder;
+          const order = {
+            ...snapshot.data(),
+            id: snapshot.id,
+          } as FirestoreOrder;
           callback(order);
         } else {
           callback(null);
         }
       },
       (error) => {
-        console.error("[FirebaseOrdersService] Realtime listener error:", error);
+        console.error(
+          "[FirebaseOrdersService] Realtime listener error:",
+          error,
+        );
         callback(null);
-      }
+      },
     );
 
     return unsubscribe;
@@ -749,7 +885,7 @@ export class FirebaseOrdersService {
     orderId: string,
     orderNumber: string,
     status: OrderStatus,
-    note?: string
+    note?: string,
   ): Promise<void> {
     try {
       let notificationType: NotificationType;
@@ -791,13 +927,19 @@ export class FirebaseOrdersService {
         orderNumber,
         notificationType,
         template.title,
-        template.message
+        template.message,
       );
 
-      console.log("[FirebaseOrdersService] Notification sent for status:", status);
+      console.log(
+        "[FirebaseOrdersService] Notification sent for status:",
+        status,
+      );
     } catch (error) {
       // Don't throw - notification failure shouldn't break order update
-      console.error("[FirebaseOrdersService] Error sending notification:", error);
+      console.error(
+        "[FirebaseOrdersService] Error sending notification:",
+        error,
+      );
     }
   }
 
@@ -807,22 +949,22 @@ export class FirebaseOrdersService {
   static async setLalamoveOrderId(
     orderId: string,
     lalamoveOrderId: string,
-    shareLink?: string
+    shareLink?: string,
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
-      
+
       // Build lalamove tracking object without undefined fields
       const lalamoveTracking: any = {
         status: "ASSIGNING_DRIVER",
         lastUpdated: Timestamp.now(),
       };
-      
+
       // Only add shareLink if defined
       if (shareLink) {
         lalamoveTracking.shareLink = shareLink;
       }
-      
+
       await setDoc(
         orderRef,
         {
@@ -830,7 +972,7 @@ export class FirebaseOrdersService {
           lalamoveTracking,
           updatedAt: Timestamp.now(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       console.log("[FirebaseOrdersService] Lalamove order ID set:", {
@@ -838,7 +980,10 @@ export class FirebaseOrdersService {
         lalamoveOrderId,
       });
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error setting Lalamove order ID:", error);
+      console.error(
+        "[FirebaseOrdersService] Error setting Lalamove order ID:",
+        error,
+      );
       throw error;
     }
   }
@@ -867,7 +1012,7 @@ export class FirebaseOrdersService {
         distance: number;
       };
       lastUpdated?: Date;
-    }
+    },
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
@@ -878,7 +1023,7 @@ export class FirebaseOrdersService {
       // Get existing order for merging
       const orderSnap = await getDoc(orderRef);
       let existingOrder: FirestoreOrder | null = null;
-      
+
       if (orderSnap.exists()) {
         existingOrder = orderSnap.data() as FirestoreOrder;
       }
@@ -908,7 +1053,7 @@ export class FirebaseOrdersService {
         try {
           const template = NotificationTemplates.driverAssigned(
             existingOrder.orderNumber,
-            tracking.driver.name
+            tracking.driver.name,
           );
           await FirebaseNotificationsService.createOrderNotification(
             existingOrder.userId,
@@ -916,14 +1061,20 @@ export class FirebaseOrdersService {
             existingOrder.orderNumber,
             "driver_assigned",
             template.title,
-            template.message
+            template.message,
           );
         } catch (notifError) {
-          console.error("[FirebaseOrdersService] Driver notification error:", notifError);
+          console.error(
+            "[FirebaseOrdersService] Driver notification error:",
+            notifError,
+          );
         }
       }
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error updating Lalamove tracking:", error);
+      console.error(
+        "[FirebaseOrdersService] Error updating Lalamove tracking:",
+        error,
+      );
       throw error;
     }
   }
@@ -934,7 +1085,7 @@ export class FirebaseOrdersService {
   static async cancelOrder(
     orderId: string,
     cancelledBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
@@ -955,9 +1106,7 @@ export class FirebaseOrdersService {
         ];
 
         if (!cancellableStatuses.includes(order.status)) {
-          throw new Error(
-            `Cannot cancel order with status: ${order.status}`
-          );
+          throw new Error(`Cannot cancel order with status: ${order.status}`);
         }
 
         const newHistory: StatusHistoryEntry[] = [
@@ -997,14 +1146,17 @@ export class FirebaseOrdersService {
       sourceId?: string;
       paidAt?: string;
       failedAt?: string;
-    }
+    },
   ): Promise<void> {
     try {
       const orderRef = doc(db, this.COLLECTION, orderId);
       const orderSnap = await getDoc(orderRef);
 
       if (!orderSnap.exists()) {
-        console.error("[FirebaseOrdersService] Order not found for payment update:", orderId);
+        console.error(
+          "[FirebaseOrdersService] Order not found for payment update:",
+          orderId,
+        );
         return;
       }
 
@@ -1033,10 +1185,13 @@ export class FirebaseOrdersService {
       await setDoc(orderRef, updateData, { merge: true });
 
       console.log(
-        `[FirebaseOrdersService] Payment status updated for order ${orderId}: ${paymentData.status}`
+        `[FirebaseOrdersService] Payment status updated for order ${orderId}: ${paymentData.status}`,
       );
     } catch (error) {
-      console.error("[FirebaseOrdersService] Error updating payment status:", error);
+      console.error(
+        "[FirebaseOrdersService] Error updating payment status:",
+        error,
+      );
       throw error;
     }
   }
@@ -1055,7 +1210,7 @@ export async function updateOrderPaymentStatus(
     sourceId?: string;
     paidAt?: string;
     failedAt?: string;
-  }
+  },
 ): Promise<void> {
   return FirebaseOrdersService.updatePaymentStatus(orderId, paymentData);
 }

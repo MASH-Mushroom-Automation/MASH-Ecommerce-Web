@@ -65,3 +65,43 @@ export {
   calculateRatingStats,
   type FirebaseRatingStats,
 } from "./reviews";
+
+// OTP Service (Phone Verification & 2FA)
+export { OTPService } from "./otp-service";
+export type {
+  OTPVerification,
+  OTPPurpose,
+  CreateOTPVerificationInput,
+  OTPVerificationResult,
+  OTPVerificationQuery,
+} from "@/types/otp";
+
+// Firebase Phone Auth (SMS verification via Firebase)
+export {
+  sendFirebasePhoneVerification,
+  verifyFirebasePhoneCode,
+  clearRecaptchaVerifier,
+  isFirebasePhoneAuthAvailable,
+  getRecaptchaVerifier,
+} from "./phone-auth";
+
+// Profile Picture Storage
+export {
+  uploadProfilePicture,
+  deleteProfilePicture,
+  validateProfileImage,
+  MAX_FILE_SIZE,
+  ACCEPTED_IMAGE_TYPES,
+} from "./storage";
+export type { UploadProgress, UploadResult } from "./storage";
+
+// Security Events Service (Audit Trail)
+export {
+  logSecurityEvent,
+  getSecurityEvents,
+  getSecurityEventsByType,
+} from "./security-events";
+export type {
+  SecurityEvent as FirestoreSecurityEvent,
+  LogSecurityEventOptions,
+} from "./security-events";

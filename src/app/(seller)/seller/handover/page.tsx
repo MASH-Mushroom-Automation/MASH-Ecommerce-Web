@@ -131,9 +131,6 @@ export default function HandoverCenterPickup() {
   const handleSaveCenter = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // In a real application, you would send this data to your API
-    console.log("Handover center data to submit:", currentCenter);
-
     // Mock implementation to update the UI
     if (currentCenter.id) {
       // Edit existing center

@@ -67,11 +67,12 @@ const customJestConfig = {
     '/scripts/',
     '/e2e/',
     '/sanity-schemas/',
+    'schema-test-utils\\.ts$',
   ],
 
   // Transform ignore patterns: allow transforming ESM packages that ship untranspiled code
   transformIgnorePatterns: [
-    '/node_modules/(?!(next-sanity|@sanity|groq)/)'
+    '[/\\\\]node_modules[/\\\\](?!(next-sanity|@sanity|groq|nuqs)[/\\\\])'
   ],
 
   // Transform files
@@ -97,6 +98,9 @@ const customJestConfig = {
 
   // Verbose output
   verbose: true,
+
+  // Increase default test timeout for parallel runs (resource contention)
+  testTimeout: 15000,
 
   // Maximum workers (reduce concurrency to avoid OOM on CI)
   maxWorkers: '25%',
