@@ -39,11 +39,24 @@ export const APP_BASE_URL =
 // ---------------------------------------------------------------------------
 
 /**
- * Whether PayMongo is fully configured (both keys present).
- * When false, the checkout falls back to COD-only mode.
+ * Whether PayMongo is fully configured on the server (both keys present).
+ * Used by API routes that need the secret key to call PayMongo.
  */
-export const PAYMONGO_ENABLED: boolean =
+export const PAYMONGO_SERVER_ENABLED: boolean =
   PAYMONGO_SECRET_KEY.length > 0 && PAYMONGO_PUBLIC_KEY.length > 0;
+
+/**
+ * Whether PayMongo online payments should be available in the UI.
+ *
+ * On the client, only NEXT_PUBLIC_* env vars are visible. The secret key
+ * (PAYMONGO_SECRET_KEY) is server-only and not bundled into the browser.
+ * Therefore this flag checks only the public key so that `"use client"`
+ * components like PaymentMethodSelector can correctly show all methods.
+ *
+ * The server-side API routes that actually call PayMongo still verify the
+ * secret key before proceeding (see paymongo.ts `isPayMongoConfigured()`).
+ */
+export const PAYMONGO_ENABLED: boolean = PAYMONGO_PUBLIC_KEY.length > 0;
 
 /**
  * Returns the list of payment methods available for the current environment.
@@ -113,7 +126,7 @@ export function validatePaymentConfig(): PaymentConfigValidation {
 
   return {
     isValid: true, // Config is always valid (COD fallback guarantees it)
-    paymongoEnabled: PAYMONGO_ENABLED,
+    paymongoEnabled: PAYMONGO_SERVER_ENABLED,
     warnings,
     availableMethods,
   };
@@ -129,9 +142,15 @@ export function logPaymentConfigWarnings(): void {
   if (config.warnings.length > 0) {
     console.warn("[Payment Config] Configuration warnings:");
     config.warnings.forEach((w) => console.warn(`  - ${w}`));
-    console.warn(
-      `[Payment Config] Falling back to COD-only mode. Available methods: ${config.availableMethods.join(", ")}`
-    );
+    if (config.paymongoEnabled) {
+      console.warn(
+        `[Payment Config] PayMongo partially configured. Available methods: ${config.availableMethods.join(", ")}`
+      );
+    } else {
+      console.warn(
+        `[Payment Config] Falling back to COD-only mode. Available methods: ${config.availableMethods.join(", ")}`
+      );
+    }
   } else {
     console.log(
       `[Payment Config] PayMongo enabled. Available methods: ${config.availableMethods.join(", ")}`
@@ -169,7 +188,7 @@ export interface PaymentConfig {
 export function getPaymentConfig(): PaymentConfig {
   return {
     paymongo: {
-      enabled: PAYMONGO_ENABLED,
+      enabled: PAYMONGO_SERVER_ENABLED,
       apiUrl: PAYMONGO_API_URL,
       publicKey: PAYMONGO_PUBLIC_KEY,
       secretKey: PAYMONGO_SECRET_KEY,

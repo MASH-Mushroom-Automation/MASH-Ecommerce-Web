@@ -27,7 +27,7 @@ async function loadConfig() {
 }
 
 describe("Payment Config", () => {
-  describe("PAYMONGO_ENABLED", () => {
+  describe("PAYMONGO_ENABLED (client-side, public key only)", () => {
     it("should be false when both keys are missing", async () => {
       const config = await loadConfig();
       expect(config.PAYMONGO_ENABLED).toBe(false);
@@ -39,10 +39,10 @@ describe("Payment Config", () => {
       expect(config.PAYMONGO_ENABLED).toBe(false);
     });
 
-    it("should be false when only public key is set", async () => {
+    it("should be true when only public key is set", async () => {
       process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
       const config = await loadConfig();
-      expect(config.PAYMONGO_ENABLED).toBe(false);
+      expect(config.PAYMONGO_ENABLED).toBe(true);
     });
 
     it("should be true when both keys are set", async () => {
@@ -53,13 +53,46 @@ describe("Payment Config", () => {
     });
   });
 
+  describe("PAYMONGO_SERVER_ENABLED (server-side, both keys)", () => {
+    it("should be false when both keys are missing", async () => {
+      const config = await loadConfig();
+      expect(config.PAYMONGO_SERVER_ENABLED).toBe(false);
+    });
+
+    it("should be false when only secret key is set", async () => {
+      process.env.PAYMONGO_SECRET_KEY = "sk_test_abc";
+      const config = await loadConfig();
+      expect(config.PAYMONGO_SERVER_ENABLED).toBe(false);
+    });
+
+    it("should be false when only public key is set", async () => {
+      process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
+      const config = await loadConfig();
+      expect(config.PAYMONGO_SERVER_ENABLED).toBe(false);
+    });
+
+    it("should be true when both keys are set", async () => {
+      process.env.PAYMONGO_SECRET_KEY = "sk_test_abc";
+      process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
+      const config = await loadConfig();
+      expect(config.PAYMONGO_SERVER_ENABLED).toBe(true);
+    });
+  });
+
   describe("getAvailablePaymentMethods", () => {
     it("should return COD only when PayMongo is not configured", async () => {
       const config = await loadConfig();
       expect(config.getAvailablePaymentMethods()).toEqual(["cod"]);
     });
 
-    it("should return all methods when PayMongo is configured", async () => {
+    it("should return all methods when public key is configured", async () => {
+      process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
+      const config = await loadConfig();
+      const methods = config.getAvailablePaymentMethods();
+      expect(methods).toEqual(["cod", "gcash", "grab_pay", "card", "paymaya"]);
+    });
+
+    it("should return all methods when both keys are configured", async () => {
       process.env.PAYMONGO_SECRET_KEY = "sk_test_abc";
       process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
       const config = await loadConfig();
@@ -79,8 +112,7 @@ describe("Payment Config", () => {
       expect(config.isPaymentMethodAvailable("gcash")).toBe(false);
     });
 
-    it("should allow gcash when PayMongo is configured", async () => {
-      process.env.PAYMONGO_SECRET_KEY = "sk_test_abc";
+    it("should allow gcash when public key is configured", async () => {
       process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_abc";
       const config = await loadConfig();
       expect(config.isPaymentMethodAvailable("gcash")).toBe(true);
@@ -184,7 +216,7 @@ describe("Payment Config", () => {
       expect(paymentConfig.minimumAmount).toBe(1);
     });
 
-    it("should return config with PayMongo enabled when keys are set", async () => {
+    it("should return config with PayMongo enabled when both keys are set", async () => {
       process.env.PAYMONGO_SECRET_KEY = "sk_test_secret";
       process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY = "pk_test_public";
       const config = await loadConfig();
