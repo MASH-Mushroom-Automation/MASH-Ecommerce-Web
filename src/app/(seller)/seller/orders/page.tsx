@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,9 +101,36 @@ const STATUS_CONFIG: Record<
   },
 };
 
+/**
+ * Fetches the backend seller ID (JWT sub) via /api/seller/me.
+ * We cannot read the auth-token cookie directly because it is HTTP-only.
+ * The API route reads it server-side and returns the sub claim.
+ */
+function useSellerId(): string | undefined {
+  const [sellerId, setSellerId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    fetch("/api/seller/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.sellerId) {
+          setSellerId(data.sellerId);
+        }
+      })
+      .catch((err) => {
+        console.error("[DEBUG] Failed to fetch seller ID:", err);
+      });
+  }, []);
+
+  return sellerId;
+}
+
 export default function SellerOrdersPage() {
   const router = useRouter();
   const { user } = useAuth();
+  // Use the backend JWT sub as sellerId — this is what gets stored on Firestore orders.
+  // user.id is the Firebase UID and does NOT match the sellerId on orders.
+  const sellerId = useSellerId();
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actioningOrderId, setActioningOrderId] = useState<string | null>(null);
@@ -111,11 +139,12 @@ export default function SellerOrdersPage() {
     null,
   );
 
-  // Fetch Firebase orders
+  // Fetch Firebase orders — scoped to the logged-in seller via sellerId
   const { orders, stats, loading, error, approveOrder, rejectOrder } =
     useFirebaseOrders({
       statusFilter,
       realtime: true,
+      sellerId,
     });
 
   // Filter orders by search query
