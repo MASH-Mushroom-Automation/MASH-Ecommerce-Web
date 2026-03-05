@@ -13,7 +13,9 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 const mockGetAllOrders = jest.fn();
 const mockGetOrdersByStatus = jest.fn();
+const mockGetOrdersBySeller = jest.fn();
 const mockSubscribeToAllOrders = jest.fn();
+const mockSubscribeToSellerOrders = jest.fn();
 const mockSubscribeToOrder = jest.fn();
 const mockSubscribeToUserOrders = jest.fn();
 const mockApproveOrder = jest.fn();
@@ -24,7 +26,9 @@ jest.mock("@/lib/firebase/orders", () => ({
   FirebaseOrdersService: {
     getAllOrders: (...args: unknown[]) => mockGetAllOrders(...args),
     getOrdersByStatus: (...args: unknown[]) => mockGetOrdersByStatus(...args),
+    getOrdersBySeller: (...args: unknown[]) => mockGetOrdersBySeller(...args),
     subscribeToAllOrders: (...args: unknown[]) => mockSubscribeToAllOrders(...args),
+    subscribeToSellerOrders: (...args: unknown[]) => mockSubscribeToSellerOrders(...args),
     subscribeToOrder: (...args: unknown[]) => mockSubscribeToOrder(...args),
     subscribeToUserOrders: (...args: unknown[]) => mockSubscribeToUserOrders(...args),
     approveOrder: (...args: unknown[]) => mockApproveOrder(...args),
@@ -73,7 +77,9 @@ const mockUnsubscribe = jest.fn();
 beforeEach(() => {
   mockGetAllOrders.mockReset();
   mockGetOrdersByStatus.mockReset();
+  mockGetOrdersBySeller.mockReset();
   mockSubscribeToAllOrders.mockReset();
+  mockSubscribeToSellerOrders.mockReset();
   mockSubscribeToOrder.mockReset();
   mockSubscribeToUserOrders.mockReset();
   mockApproveOrder.mockReset();
@@ -85,8 +91,16 @@ beforeEach(() => {
 
   // Default: getAllOrders resolves, subscribe returns unsubscribe
   mockGetAllOrders.mockResolvedValue([]);
+  mockGetOrdersBySeller.mockResolvedValue([]);
   mockSubscribeToAllOrders.mockImplementation(
     (onNext: (orders: unknown[]) => void, onError: (err: Error) => void) => {
+      realtimeCallback = onNext;
+      realtimeErrorCallback = onError;
+      return mockUnsubscribe;
+    }
+  );
+  mockSubscribeToSellerOrders.mockImplementation(
+    (_sellerId: string, onNext: (orders: unknown[]) => void, onError: (err: Error) => void) => {
       realtimeCallback = onNext;
       realtimeErrorCallback = onError;
       return mockUnsubscribe;
@@ -134,6 +148,25 @@ describe("useFirebaseOrders", () => {
 
     renderHook(() => useFirebaseOrders({ limitCount: 10 }));
     await waitFor(() => expect(mockGetAllOrders).toHaveBeenCalledWith(10));
+  });
+
+  it("uses getOrdersBySeller when sellerId is provided", async () => {
+    const sellerOrders = [makeOrder("s-1", { sellerId: "seller-abc" })];
+    mockGetOrdersBySeller.mockResolvedValueOnce(sellerOrders);
+
+    const { result } = renderHook(() =>
+      useFirebaseOrders({ sellerId: "seller-abc" })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockGetOrdersBySeller).toHaveBeenCalledWith("seller-abc", undefined);
+    expect(mockGetAllOrders).not.toHaveBeenCalled();
+    expect(mockSubscribeToSellerOrders).toHaveBeenCalledWith(
+      "seller-abc",
+      expect.any(Function),
+      expect.any(Function)
+    );
+    expect(mockSubscribeToAllOrders).not.toHaveBeenCalled();
   });
 
   it("computes stats correctly", async () => {

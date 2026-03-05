@@ -32,8 +32,9 @@ const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel"
 
 // Phase 3 Hooks (State Management)
 import { useProductFilters } from "@/hooks/useProductFilters";
-import { useProductSearch } from "@/hooks/useProductSearch";
-// Sanity Product Search
+import { useSellerProductSearch } from "@/hooks/useSellerProductSearch";
+
+// Filter options
 import { getFilterOptions } from "@/lib/sanity/product-search";
 import type { FilterOptions } from "@/types/product-filters";
 
@@ -112,14 +113,14 @@ function SellerProductsContent() {
     isFiltering,
   } = useProductFilters();
 
-  // Phase 3: React Query product search with caching
+  // Fetch only this seller's products via the secure API route
   const {
     data: searchResults,
     isLoading,
     isError,
     error,
     refetch,
-  } = useProductSearch(filters, 1, 50);
+  } = useSellerProductSearch(filters, 1, 50);
 
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -400,7 +401,7 @@ function SellerProductsContent() {
 
 // Product Card Component
 interface ProductCardProps {
-  product: any; // SanityProduct from product-search.ts
+  product: any;
 }
 
 // Placeholder image for products without images
@@ -418,7 +419,6 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             fill
             className="object-cover"
             onError={(e) => {
-              // Fallback to placeholder on error
               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
             }}
           />
