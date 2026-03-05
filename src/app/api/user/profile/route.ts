@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get("auth-token")?.value;
 
     // If there's no backend JWT token, but there is a Firebase session cookie, return profile from Firestore
-    const firebaseUidCookie = cookieStore.get("firebase-auth")?.value;
+    const firebaseUidCookie = cookieStore.get("firebase-uid")?.value;
 
     if (!token && firebaseUidCookie) {
       try {
@@ -94,28 +94,6 @@ export async function GET(request: NextRequest) {
       requestId: `req_${Date.now()}`,
     });
   } catch (error) {
-    // Check if this is a 404 (user not found in backend DB - e.g. Firebase/SSO users)
-    // Return 404 gracefully instead of 500 to avoid triggering logout flows
-    const isNotFound =
-      error instanceof Error &&
-      (error.message.includes("User not found") ||
-        error.message.includes("404") ||
-        (error as any).statusCode === 404);
-
-    if (isNotFound) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "NOT_FOUND",
-            message: "User profile not found in backend. This is expected for SSO/Firebase users.",
-          },
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 },
-      );
-    }
-
     return NextResponse.json(
       {
         success: false,

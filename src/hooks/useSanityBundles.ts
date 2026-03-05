@@ -176,17 +176,13 @@ export function useSanityBundles(productId?: string) {
       setBundles(availableBundles);
 
       // Calculate bundle summary
-      let featuredCount = 0;
-      let avgDiscount = 0;
-
       if (availableBundles.length > 0) {
         const featured = availableBundles.filter((b) => b.featured);
-        featuredCount = featured.length;
         const totalSavings = availableBundles.reduce(
           (sum, b) => sum + (b.savingsAmount || 0),
           0
         );
-        avgDiscount =
+        const avgDiscount =
           availableBundles.reduce(
             (sum, b) => sum + (b.discountPercentage || 0),
             0
@@ -195,7 +191,7 @@ export function useSanityBundles(productId?: string) {
         const bundleSummary: BundleSummary = {
           totalBundles: availableBundles.length,
           activeBundles: availableBundles.length,
-          featuredBundles: featuredCount,
+          featuredBundles: featured.length,
           totalSavings,
           averageDiscount: Math.round(avgDiscount),
         };
@@ -206,7 +202,7 @@ export function useSanityBundles(productId?: string) {
       }
 
       console.log(`✅ [BUNDLES] Loaded ${availableBundles.length} bundles`, {
-        featured: featuredCount,
+        featured: featured?.length || 0,
         avgDiscount: Math.round(avgDiscount),
       });
       setError(null);

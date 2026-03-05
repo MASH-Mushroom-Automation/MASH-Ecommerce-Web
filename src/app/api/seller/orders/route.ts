@@ -23,27 +23,20 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-
+    
     // Build query params
     const queryParams = new URLSearchParams();
     if (searchParams.get("page")) queryParams.append("page", searchParams.get("page")!);
     if (searchParams.get("limit")) queryParams.append("limit", searchParams.get("limit")!);
     if (searchParams.get("status")) queryParams.append("status", searchParams.get("status")!);
     if (searchParams.get("search")) queryParams.append("search", searchParams.get("search")!);
-
+    
     const query = queryParams.toString();
-    const endpoint = query ? `/seller/orders?${query}` : "/seller/orders";
-
-    // Forward cookies and auth token to backend
-    const cookieHeader = request.headers.get("cookie") || "";
+    const endpoint = query ? `/api/seller/orders?${query}` : "/api/seller/orders";
 
     // Call real backend API
     const response = await apiRequest<ApiResponse<any>>(endpoint, {
       method: "GET",
-      headers: {
-        Cookie: cookieHeader,
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     return NextResponse.json({

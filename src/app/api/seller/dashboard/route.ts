@@ -22,19 +22,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Forward cookies and auth token to backend
-    const cookieHeader = request.headers.get("cookie") || "";
-
     // Call real backend API
     const response = await apiRequest<ApiResponse<any>>(
-      "/seller/dashboard",
-      {
-        method: "GET",
-        headers: {
-          Cookie: cookieHeader,
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      "/api/seller/dashboard",
+      { method: "GET" }
     );
 
     return NextResponse.json({

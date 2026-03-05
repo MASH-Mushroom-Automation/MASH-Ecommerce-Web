@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReviewModerationModal } from "../ReviewModerationModal";
 import type { FirestoreReview, ModerationAction } from "@/types/reviews";
@@ -239,7 +239,7 @@ describe("ReviewModerationModal", () => {
       await user.click(screen.getByRole("button", { name: /add response/i }));
 
       const textarea = screen.getByPlaceholderText(/write an admin response/i);
-      fireEvent.change(textarea, { target: { value: "Thank you for your detailed review of our product." } });
+      await user.type(textarea, "Thank you for your detailed review of our product.");
 
       await user.click(screen.getByRole("button", { name: /save response/i }));
 
@@ -286,20 +286,14 @@ describe("ReviewModerationModal", () => {
       };
       renderModal(makeReview(), handlers);
 
-      // Click the Delete button in the modal footer to open confirmation
-      await user.click(screen.getByRole("button", { name: /^delete$/i }));
+      // Find the Delete button in the footer (not the AlertDialog title)
+      const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+      // The last one in the footer actions
+      await user.click(deleteButtons[deleteButtons.length - 1]);
 
-      // Wait for the confirmation dialog to appear
-      await waitFor(() => {
-        expect(
-          screen.getByText(/are you sure you want to permanently delete/i),
-        ).toBeInTheDocument();
-      });
-
-      // Click the "Delete Review" confirmation button using fireEvent
-      // (AlertDialogAction from Radix can intercept userEvent clicks)
-      const confirmBtn = screen.getByRole("button", { name: /delete review/i });
-      fireEvent.click(confirmBtn);
+      // The confirmation dialog should appear - find the action button specifically
+      const confirmBtn = await screen.findByRole("button", { name: /delete review/i });
+      await user.click(confirmBtn);
 
       await waitFor(() => {
         expect(handlers.onDelete).toHaveBeenCalledWith("review-1", "Admin deleted review");

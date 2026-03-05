@@ -32,9 +32,10 @@ const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel"
 
 // Phase 3 Hooks (State Management)
 import { useProductFilters } from "@/hooks/useProductFilters";
-import { useSellerProductSearch } from "@/hooks/useSellerProductSearch";
+import { useProductSearch } from "@/hooks/useProductSearch";
+// import { useFilterPresets } from "@/hooks/useFilterPresets"; // Unused - for future use
 
-// Filter options
+// Sanity Product Search
 import { getFilterOptions } from "@/lib/sanity/product-search";
 import type { FilterOptions } from "@/types/product-filters";
 
@@ -50,13 +51,8 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1280
   );
-  const [GridComponent, setGridComponent] = useState<React.ComponentType<any> | null>(null);
+  const [GridComponent, setGridComponent] = useState<any>(null);
 
-  useEffect(() => {
-    import('react-window').then((mod) => {
-      setGridComponent(() => mod.Grid);
-    });
-  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -64,25 +60,24 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Calculate columns based on screen width (Tailwind breakpoints)
   const columnCount = windowWidth >= 1280 ? 3 : windowWidth >= 640 ? 2 : 1;
-  const columnWidth = Math.floor(windowWidth / columnCount) - 24;
-  const rowHeight = 400;
+  const columnWidth = Math.floor(windowWidth / columnCount) - 24; // Account for gap
+  const rowHeight = 400; // Approximate card height
   const rowCount = Math.ceil(products.length / columnCount);
 
   if (!GridComponent) {
     return <LoadingSpinner size="md" />;
   }
 
-  const Grid = GridComponent;
-
   return (
-    <Grid
+    <GridComponent
       columnCount={columnCount}
       columnWidth={columnWidth}
-      height={Math.min(rowCount * rowHeight, 2000)}
+      height={Math.min(rowCount * rowHeight, 2000)} // Max 2000px height
       rowCount={rowCount}
       rowHeight={rowHeight}
-      width={windowWidth - 348}
+      width={windowWidth - 348} // Account for sidebar (300px) + gaps
       itemData={{ products, columnCount }}
     >
       {({ columnIndex, rowIndex, style, data }: any) => {
@@ -97,7 +92,7 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
           </div>
         );
       }}
-    </Grid>
+    </GridComponent>
   );
 }
 
@@ -113,14 +108,17 @@ function SellerProductsContent() {
     isFiltering,
   } = useProductFilters();
 
-  // Fetch only this seller's products via the secure API route
+  // Phase 3: React Query product search with caching
   const {
     data: searchResults,
     isLoading,
     isError,
     error,
     refetch,
-  } = useSellerProductSearch(filters, 1, 50);
+  } = useProductSearch(filters, 1, 50);
+
+  // Phase 3: Filter presets with localStorage (currently unused)
+  // const { presets, savePreset, loadPreset, deletePreset, presetExists } = useFilterPresets();
 
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -401,7 +399,7 @@ function SellerProductsContent() {
 
 // Product Card Component
 interface ProductCardProps {
-  product: any;
+  product: any; // SanityProduct from product-search.ts
 }
 
 // Placeholder image for products without images
@@ -419,6 +417,7 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             fill
             className="object-cover"
             onError={(e) => {
+              // Fallback to placeholder on error
               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
             }}
           />
@@ -442,12 +441,12 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem asChild>
-                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer" role="menuitem" aria-label="Edit">
+                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer">
                   Edit Product
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer" role="menuitem" aria-label="View">
+                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer">
                   View Product
                 </Link>
               </DropdownMenuItem>
@@ -471,15 +470,15 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             {product.isOnPromo && product.originalPrice ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-primary">
-                  ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱{(product.price ?? 0).toFixed(2)}
                 </span>
                 <span className="text-sm text-muted-foreground line-through">
-                  ₱{(product.originalPrice ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱{(product.originalPrice ?? 0).toFixed(2)}
                 </span>
               </div>
             ) : (
               <span className="text-lg font-bold text-primary">
-                ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₱{(product.price ?? 0).toFixed(2)}
               </span>
             )}
           </div>
@@ -499,15 +498,18 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
               {product.stockStatus === 'low-stock' && 'Low Stock'}
               {product.stockStatus === 'out-of-stock' && 'Out of Stock'}
             </Badge>
-            {product.status && (
-              <Badge
-                variant={product.status === 'published' ? 'default' : 'outline'}
-                className={product.status === 'published' ? 'bg-green-600' : ''}
-              >
-                {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-              </Badge>
-            )}
-            <span className="text-sm text-muted-foreground">
+            
+
+          {/* Status */}
+          {product.status && (
+            <Badge
+              variant={product.status === 'published' ? 'default' : 'outline'}
+              className={product.status === 'published' ? 'bg-green-600' : ''}
+            >
+              {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+            </Badge>
+          )}
+          <span className="text-sm text-muted-foreground">
               {product.stockQuantity || 0} units
             </span>
           </div>

@@ -34,8 +34,6 @@ export interface UseFirebaseOrdersOptions {
   statusFilter?: OrderStatus | "all";
   limitCount?: number;
   realtime?: boolean;
-  /** When set, only orders whose top-level sellerId matches are fetched */
-  sellerId?: string;
 }
 
 export interface UseFirebaseOrdersReturn {
@@ -60,7 +58,7 @@ export interface UseFirebaseOrdersReturn {
 export function useFirebaseOrders(
   options: UseFirebaseOrdersOptions = {}
 ): UseFirebaseOrdersReturn {
-  const { statusFilter = "all", limitCount, realtime = true, sellerId } = options;
+  const { statusFilter = "all", limitCount, realtime = true } = options;
 
   const [orders, setOrders] = useState<FirestoreOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,14 +109,7 @@ export function useFirebaseOrders(
     try {
       let fetchedOrders: FirestoreOrder[];
 
-      if (sellerId) {
-        // Seller-scoped fetch — only orders belonging to this seller
-        fetchedOrders = await FirebaseOrdersService.getOrdersBySeller(sellerId, limitCount);
-        // Apply status filter client-side (avoids a composite Firestore index)
-        if (statusFilter !== "all") {
-          fetchedOrders = fetchedOrders.filter((o) => o.status === statusFilter);
-        }
-      } else if (statusFilter !== "all") {
+      if (statusFilter !== "all") {
         fetchedOrders = await FirebaseOrdersService.getOrdersByStatus(statusFilter);
       } else {
         fetchedOrders = await FirebaseOrdersService.getAllOrders(limitCount);
@@ -131,55 +122,35 @@ export function useFirebaseOrders(
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, limitCount, sellerId]);
+  }, [statusFilter, limitCount]);
 
   // Initial fetch and real-time subscription
   useEffect(() => {
     fetchOrders();
 
     if (realtime) {
-      let unsubscribe: () => void;
-
-      if (sellerId) {
-        // Seller-scoped real-time subscription
-        unsubscribe = FirebaseOrdersService.subscribeToSellerOrders(
-          sellerId,
-          (updatedOrders) => {
-            if (statusFilter !== "all") {
-              setOrders(updatedOrders.filter((o) => o.status === statusFilter));
-            } else {
-              setOrders(updatedOrders);
-            }
-            setLoading(false);
-          },
-          (err) => {
-            console.error("[useFirebaseOrders] Seller subscription error:", err);
-            setError(err.message);
+      // Subscribe to all orders
+      const unsubscribe = FirebaseOrdersService.subscribeToAllOrders(
+        (updatedOrders) => {
+          // Apply status filter if needed
+          if (statusFilter !== "all") {
+            setOrders(updatedOrders.filter((o) => o.status === statusFilter));
+          } else {
+            setOrders(updatedOrders);
           }
-        );
-      } else {
-        // Unscoped real-time subscription (admin)
-        unsubscribe = FirebaseOrdersService.subscribeToAllOrders(
-          (updatedOrders) => {
-            if (statusFilter !== "all") {
-              setOrders(updatedOrders.filter((o) => o.status === statusFilter));
-            } else {
-              setOrders(updatedOrders);
-            }
-            setLoading(false);
-          },
-          (err) => {
-            console.error("[useFirebaseOrders] Subscription error:", err);
-            setError(err.message);
-          }
-        );
-      }
+          setLoading(false);
+        },
+        (err) => {
+          console.error("[useFirebaseOrders] Subscription error:", err);
+          setError(err.message);
+        }
+      );
 
       return () => {
         unsubscribe();
       };
     }
-  }, [fetchOrders, realtime, statusFilter, sellerId]);
+  }, [fetchOrders, realtime, statusFilter]);
 
   // Approve order
   const approveOrder = useCallback(

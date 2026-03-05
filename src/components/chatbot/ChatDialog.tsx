@@ -181,6 +181,7 @@ export function ChatDialog({
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold leading-tight truncate">MASH AI Assistant</h2>
             <p className="text-[11px] text-muted-foreground leading-tight flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
               <span>Powered by ML &mdash; Here to help you shop</span>
             </p>
           </div>

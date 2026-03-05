@@ -59,12 +59,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const cookieHeader = request.headers.get("cookie") || "";
-    const response = await apiRequest<ApiResponse<any>>("/seller/password", {
-      method: "PUT",
-      body: JSON.stringify(body),
-      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
-    });
+    const response = await apiRequest<ApiResponse<any>>("/api/seller/password", { method: "PUT", body: JSON.stringify(body) });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     console.error("Error updating password:", error);

@@ -18,7 +18,6 @@ import {
   getGeminiUrl,
 } from './config';
 import { generateResponseNative } from './gemini-native';
-import { logger } from '@/lib/logger';
 import type { AIResponse, Message } from '@/types/chatbot';
 
 // Retry configuration

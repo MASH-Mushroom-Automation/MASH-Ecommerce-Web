@@ -27,10 +27,7 @@ interface ChatButtonProps {
 
 export function ChatButton({ isOpen, onClick, className, hasUnread = false }: ChatButtonProps) {
   return (
-    <div
-      className="fixed bottom-24 sm:bottom-6 right-6 z-50"
-      data-testid="chat-button-wrapper"
-    >
+    <div className="fixed bottom-6 right-6 z-50" data-testid="chat-button-wrapper">
       {/* Subtle pulse ring when closed - draws attention without being obtrusive */}
       {!isOpen && (
         <span

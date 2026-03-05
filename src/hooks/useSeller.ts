@@ -1,8 +1,6 @@
 // Custom hooks for seller data fetching
 import { useState, useEffect, useCallback } from "react";
 import { SellerApi } from "@/lib/api/seller";
-import { FirebaseOrdersService } from "@/lib/firebase/orders";
-
 import {
   SellerDashboardStats,
   SellerSalesData,
@@ -17,36 +15,11 @@ import {
   ApiResponse,
 } from "@/types/api";
 
-// Firebase order statuses → SellerOrder status mapping
-const FIREBASE_TO_SELLER_STATUS: Record<string, SellerOrderStatus> = {
-  pending_approval: "PENDING",
-  approved: "CONFIRMED",
-  processing: "PROCESSING",
-  ready_for_pickup: "PROCESSING",
-  shipped: "SHIPPED",
-  delivered: "DELIVERED",
-  completed: "DELIVERED",
-  cancelled: "CANCELLED",
-  rejected: "CANCELLED",
-};
-
-const COMPLETED_STATUSES = ["delivered", "completed"];
-const EXCLUDED_STATUSES = ["cancelled", "rejected"];
-
-/** Convert a Firestore Timestamp (or anything) to a JS Date */
-function toDate(ts: any): Date {
-  if (!ts) return new Date(0);
-  if (typeof ts.toDate === "function") return ts.toDate();
-  return new Date(ts);
-}
-
 // Dashboard hooks
-export function useSellerDashboard(sellerId?: string) {
+export function useSellerDashboard() {
   const [stats, setStats] = useState<SellerDashboardStats | null>(null);
   const [salesData, setSalesData] = useState<SellerSalesData[]>([]);
-  const [productPerformance, setProductPerformance] = useState<
-    SellerProductPerformance[]
-  >([]);
+  const [productPerformance, setProductPerformance] = useState<SellerProductPerformance[]>([]);
   const [recentOrders, setRecentOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,202 +29,24 @@ export function useSellerDashboard(sellerId?: string) {
     setError(null);
 
     try {
-      // Fetch seller-scoped orders + seller's own Sanity products concurrently.
-      // When sellerId is provided, orders are filtered to that seller only.
-      const [allOrders, productsResponse] = await Promise.all([
-        sellerId
-          ? FirebaseOrdersService.getOrdersBySeller(sellerId)
-          : FirebaseOrdersService.getAllOrders(),
-        fetch("/api/seller/products?limit=1000").then((r) => r.json()),
-      ]);
+      const [statsResponse, salesResponse, performanceResponse, ordersResponse] =
+        await Promise.all([
+          SellerApi.getDashboardStats(),
+          SellerApi.getSalesData(),
+          SellerApi.getProductPerformance(),
+          SellerApi.getOrders({ limit: 5 }),
+        ]);
 
-      const sanityProducts: Array<{ id: string; name: string; stock: number }> =
-        productsResponse.data ?? [];
-
-      // ── Date Boundaries ──────────────────────────────────────────
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfLastMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() - 1,
-        1,
-      );
-      const endOfLastMonth = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-
-      // ── Stats ────────────────────────────────────────────────────
-      const currentMonthOrders = allOrders.filter(
-        (o) => toDate(o.createdAt) >= startOfMonth,
-      );
-      const lastMonthOrders = allOrders.filter((o) => {
-        const d = toDate(o.createdAt);
-        return d >= startOfLastMonth && d <= endOfLastMonth;
-      });
-
-      const currentRevenue = currentMonthOrders
-        .filter((o) => COMPLETED_STATUSES.includes(o.status))
-        .reduce((sum, o) => sum + (o.total || 0), 0);
-
-      const lastRevenue = lastMonthOrders
-        .filter((o) => COMPLETED_STATUSES.includes(o.status))
-        .reduce((sum, o) => sum + (o.total || 0), 0);
-
-      const totalSales = allOrders
-        .filter((o) => !EXCLUDED_STATUSES.includes(o.status))
-        .reduce(
-          (sum, o) =>
-            sum +
-            (o.items || []).reduce(
-              (s: number, item: any) => s + (item.quantity || 0),
-              0,
-            ),
-          0,
-        );
-
-      const orderGrowth =
-        lastMonthOrders.length > 0
-          ? ((currentMonthOrders.length - lastMonthOrders.length) /
-              lastMonthOrders.length) *
-            100
-          : 0;
-      const revenueGrowth =
-        lastRevenue > 0
-          ? ((currentRevenue - lastRevenue) / lastRevenue) * 100
-          : 0;
-
-      const computedStats: SellerDashboardStats = {
-        totalSales,
-        totalOrders: allOrders.length,
-        totalProducts: sanityProducts.length,
-        totalRevenue: currentRevenue,
-        salesGrowth: Math.round(orderGrowth * 10) / 10,
-        orderGrowth: Math.round(orderGrowth * 10) / 10,
-        revenueGrowth: Math.round(revenueGrowth * 10) / 10,
-      };
-
-      // ── Sales Chart (last 7 days) ─────────────────────────────────
-      const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const computedSalesData: SellerSalesData[] = [];
-
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dayStart = new Date(
-          d.getFullYear(),
-          d.getMonth(),
-          d.getDate(),
-          0,
-          0,
-          0,
-          0,
-        );
-        const dayEnd = new Date(
-          d.getFullYear(),
-          d.getMonth(),
-          d.getDate(),
-          23,
-          59,
-          59,
-          999,
-        );
-
-        const dayOrders = allOrders.filter((o) => {
-          const created = toDate(o.createdAt);
-          return created >= dayStart && created <= dayEnd;
-        });
-
-        const daySales = dayOrders
-          .filter((o) => !EXCLUDED_STATUSES.includes(o.status))
-          .reduce(
-            (sum, o) =>
-              sum +
-              (o.items || []).reduce(
-                (s: number, item: any) => s + (item.quantity || 0),
-                0,
-              ),
-            0,
-          );
-
-        const dayRevenue = dayOrders
-          .filter((o) => COMPLETED_STATUSES.includes(o.status))
-          .reduce((sum, o) => sum + (o.total || 0), 0);
-
-        computedSalesData.push({
-          name: daysOfWeek[dayStart.getDay()],
-          sales: daySales,
-          revenue: dayRevenue,
-        });
-      }
-
-      // ── Recent Orders (last 5) ───────────────────────────────────
-      const sortedOrders = [...allOrders].sort(
-        (a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime(),
-      );
-
-      const computedRecentOrders: SellerOrder[] = sortedOrders
-        .slice(0, 5)
-        .map((o) => ({
-          id: o.orderNumber || o.id,
-          date: toDate(o.createdAt).toISOString().split("T")[0],
-          customer: o.userName || o.userEmail || "Unknown",
-          items: (o.items || []).length,
-          total: o.total || 0,
-          status: FIREBASE_TO_SELLER_STATUS[o.status] || "PENDING",
-        }));
-
-      // ── Product Performance (Sanity products × Firebase orders) ──
-      const productStats = new Map<
-        string,
-        { sales: number; revenue: number }
-      >();
-
-      for (const order of allOrders) {
-        if (EXCLUDED_STATUSES.includes(order.status)) continue;
-        for (const item of order.items || []) {
-          if (!item.productId) continue;
-          const existing = productStats.get(item.productId) || {
-            sales: 0,
-            revenue: 0,
-          };
-          existing.sales += item.quantity || 0;
-          existing.revenue += (item.price || 0) * (item.quantity || 0);
-          productStats.set(item.productId, existing);
-        }
-      }
-
-      const computedProductPerformance: SellerProductPerformance[] =
-        sanityProducts
-          .map((p) => {
-            const ps = productStats.get(p.id) || { sales: 0, revenue: 0 };
-            return {
-              name: p.name,
-              sales: ps.sales,
-              stock: p.stock || 0,
-              revenue: ps.revenue,
-            };
-          })
-          .sort((a, b) => b.sales - a.sales)
-          .slice(0, 5);
-
-      setStats(computedStats);
-      setSalesData(computedSalesData);
-      setProductPerformance(computedProductPerformance);
-      setRecentOrders(computedRecentOrders);
+      setStats(statsResponse.data);
+      setSalesData(salesResponse.data);
+      setProductPerformance(performanceResponse.data);
+      setRecentOrders(ordersResponse.data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch dashboard data",
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
     } finally {
       setLoading(false);
     }
-  }, [sellerId]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -315,7 +110,7 @@ export function useSellerOrderDetail(orderId?: string) {
       setOrder(response.data);
       return response.data;
     },
-    [orderId],
+    [orderId]
   );
 
   return {
@@ -329,7 +124,7 @@ export function useSellerOrderDetail(orderId?: string) {
 
 // Products hooks
 export function useSellerProducts(
-  params: { page?: number; limit?: number; search?: string } = {},
+  params: { page?: number; limit?: number; search?: string } = {}
 ) {
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -372,7 +167,7 @@ export function useSellerOrders(
     limit?: number;
     status?: string;
     search?: string;
-  } = {},
+  } = {}
 ) {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -415,7 +210,7 @@ export function useSellerRefunds(
     limit?: number;
     status?: string;
     search?: string;
-  } = {},
+  } = {}
 ) {
   const [refunds, setRefunds] = useState<SellerRefund[]>([]);
   const [loading, setLoading] = useState(true);
@@ -466,7 +261,7 @@ export function useSellerNotifications() {
       setNotifications(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch notifications",
+        err instanceof Error ? err.message : "Failed to fetch notifications"
       );
       setNotifications([]);
     } finally {
@@ -481,8 +276,8 @@ export function useSellerNotifications() {
         prev.map((notification) =>
           notification.id === id
             ? { ...notification, isRead: true }
-            : notification,
-        ),
+            : notification
+        )
       );
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
@@ -517,7 +312,7 @@ export function useSellerAddresses() {
       setAddresses(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch addresses",
+        err instanceof Error ? err.message : "Failed to fetch addresses"
       );
       setAddresses([]);
     } finally {
@@ -533,11 +328,11 @@ export function useSellerAddresses() {
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to create address",
+          err instanceof Error ? err.message : "Failed to create address"
         );
       }
     },
-    [],
+    []
   );
 
   const updateAddress = useCallback(
@@ -545,16 +340,16 @@ export function useSellerAddresses() {
       try {
         const response = await SellerApi.updateAddress(id, address);
         setAddresses((prev) =>
-          prev.map((addr) => (addr.id === id ? response.data : addr)),
+          prev.map((addr) => (addr.id === id ? response.data : addr))
         );
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to update address",
+          err instanceof Error ? err.message : "Failed to update address"
         );
       }
     },
-    [],
+    []
   );
 
   const deleteAddress = useCallback(async (id: string) => {
@@ -563,7 +358,7 @@ export function useSellerAddresses() {
       setAddresses((prev) => prev.filter((addr) => addr.id !== id));
     } catch (err) {
       throw new Error(
-        err instanceof Error ? err.message : "Failed to delete address",
+        err instanceof Error ? err.message : "Failed to delete address"
       );
     }
   }, []);

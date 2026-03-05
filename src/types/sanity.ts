@@ -25,12 +25,12 @@ export interface SanityProduct {
   sku: string;
   weight?: number;
   unit?: string; // 'grams' | 'kilograms' | 'pieces'
-
+  
   // Stock Management Thresholds (SELLER-021)
   lowStockThreshold?: number; // Alert when stock falls below this (default: 10)
   outOfStockThreshold?: number; // Mark as out of stock at or below this (default: 0)
   restockLevel?: number; // Recommended reorder quantity (optional)
-
+  
   isAvailable: boolean;
   isFeatured: boolean;
   isPromo: boolean;
@@ -48,7 +48,6 @@ export interface SanityProduct {
     isVerified?: boolean;
     image?: string;
   };
-  sellerId?: string; // ID of the seller/uploader who created this product
 }
 
 /**
@@ -122,8 +121,6 @@ export interface ProductFilters {
   search?: string;
   tags?: string[]; // Filter by product tags
   sortBy?: 'price-asc' | 'price-desc' | 'name' | 'newest' | 'featured';
-  offset?: number; // Server-side pagination: number of products to skip
-  limit?: number;  // Server-side pagination: max products to return
 }
 
 /**
@@ -237,7 +234,7 @@ export interface TransformedProduct {
   isFeatured: boolean;
   isPromo: boolean;
   promoEndDate?: string;
-
+  
   // E-Commerce Enhancements (Phase 9)
   /**
    * @deprecated This field is no longer used. Use useSanitySuggestedProducts hook instead.
@@ -246,7 +243,7 @@ export interface TransformedProduct {
   suggestedProducts?: RelatedProduct[];  // "You May Also Like" - DEPRECATED
   complementaryProducts?: RelatedProduct[];  // "Frequently Bought Together"
   productTags?: string[];  // Smart search tags
-
+  
   // Enhanced Product Info (Phase 10 - Rich CMS Data)
   freshnessInfo?: FreshnessInfo;  // Harvest window, shelf life, storage
   preparationInfo?: PreparationInfo;  // Cooking difficulty, time, tips, recipes
@@ -254,7 +251,7 @@ export interface TransformedProduct {
   deliveryWeight?: DeliveryWeight;  // Package weight and dimensions
   nutritionalHighlights?: string[];  // Nutrition badges
   searchKeywords?: string[];  // SEO keywords
-
+  
   // Grower Information
   grower?: {
     id: string;
@@ -265,7 +262,6 @@ export interface TransformedProduct {
     isVerified?: boolean;
     image?: string;
   };
-  sellerId?: string; // ID of the seller/uploader who created this product
 }
 
 /**
@@ -274,24 +270,24 @@ export interface TransformedProduct {
  */
 export function transformSanityProduct(product: SanityProduct): TransformedProduct {
   // Handle image URL - Sanity returns full CDN URLs with image.asset->url
-  const imageUrl = product.mainImage && product.mainImage !== 'null'
-    ? product.mainImage
+  const imageUrl = product.mainImage && product.mainImage !== 'null' 
+    ? product.mainImage 
     : '/mushroom-placeholder.png';
-
+  
   const imageUrls = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images.filter(img => img && img !== 'null')
     : [imageUrl];
 
   // Handle category slug - might be string or object depending on GROQ projection
-  const categorySlug = product.category?.slug
-    ? (typeof product.category.slug === 'string'
-      ? product.category.slug
-      : product.category.slug.current)
+  const categorySlug = product.category?.slug 
+    ? (typeof product.category.slug === 'string' 
+        ? product.category.slug 
+        : product.category.slug.current)
     : undefined;
 
   // DEPRECATED: suggestedProducts field is no longer used
   // Use useSanitySuggestedProducts hook instead for automatic suggestions from same grower
-
+  
   // Transform complementary products (filter out null references from deleted products)
   const complementaryProducts: RelatedProduct[] | undefined = (product as any).complementaryProducts
     ?.filter((p: any) => p !== null && p !== undefined && p._id)
@@ -341,13 +337,13 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     isFeatured: product.isFeatured,
     isPromo: product.isPromo,
     promoEndDate: product.promoEndDate,
-
+    
     // E-Commerce Enhancements
     // suggestedProducts is DEPRECATED - use useSanitySuggestedProducts hook instead
     suggestedProducts: undefined,  // Always undefined - use hook for auto-suggestions
     complementaryProducts: complementaryProducts?.length ? complementaryProducts : undefined,
     productTags: (product as any).productTags,
-
+    
     // Enhanced Product Info (Rich CMS Data)
     freshnessInfo: (product as any).freshnessInfo || undefined,
     preparationInfo: (product as any).preparationInfo || undefined,
@@ -355,7 +351,7 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
     deliveryWeight: (product as any).deliveryWeight || undefined,
     nutritionalHighlights: (product as any).nutritionalHighlights || undefined,
     searchKeywords: (product as any).searchKeywords || undefined,
-
+    
     // Grower Information
     grower: product.grower ? {
       id: product.grower._id,
@@ -366,9 +362,6 @@ export function transformSanityProduct(product: SanityProduct): TransformedProdu
       isVerified: product.grower.isVerified,
       image: product.grower.image,
     } : undefined,
-
-    // Seller ID for order routing
-    sellerId: product.sellerId,
   };
 }
 
@@ -388,7 +381,7 @@ export function transformSanityCategory(category: SanityCategory): TransformedCa
   return {
     id: category._id,
     name: category.name,
-    slug: typeof category.slug === 'string' ? category.slug : category.slug.current,
+    slug: category.slug.current,
     description: category.description,
     image: category.image,
   };

@@ -28,11 +28,6 @@ import type { TransformedProduct, ProductFilters } from "@/types/sanity";
 const productCache = new Map<string, { data: TransformedProduct[]; timestamp: number }>();
 const CACHE_TTL = 30000; // 30 seconds for real-time mode
 
-/** Clear the module-level product cache (useful for testing) */
-export function clearProductCache(): void {
-  productCache.clear();
-}
-
 interface UseRealtimeProductsOptions extends ProductFilters {
   /** Enable real-time updates (default: false to save quota) */
   realtime?: boolean;
@@ -159,8 +154,6 @@ export function useRealtimeProducts(
   const cacheKey = JSON.stringify(filters);
 
   // Fetch products from Sanity
-  // Note: Derive filters from cacheKey inside the callback to avoid
-  // unstable object reference in deps (filters is a new object each render).
   const fetchProducts = useCallback(async () => {
     if (!isMountedRef.current) return;
     
@@ -170,8 +163,7 @@ export function useRealtimeProducts(
       setLoading(true);
       setError(null);
       
-      const currentFilters = JSON.parse(cacheKey) as ProductFilters;
-      const query = buildProductQuery(currentFilters);
+      const query = buildProductQuery(filters);
       const data = await sanityClient.fetch<Record<string, unknown>[]>(query);
       
       const transformed = data.map(transformProduct);
@@ -194,7 +186,7 @@ export function useRealtimeProducts(
         setLoading(false);
       }
     }
-  }, [cacheKey]);
+  }, [cacheKey, filters]);
 
   // Initial fetch
   useEffect(() => {

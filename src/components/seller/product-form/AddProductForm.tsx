@@ -113,6 +113,7 @@ export function AddProductForm() {
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
         setLastSaved(new Date());
+        console.log("Draft saved to localStorage");
       }
     }, 30000); // Save every 30 seconds
 

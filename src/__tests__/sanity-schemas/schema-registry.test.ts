@@ -2,14 +2,11 @@
  * Schema Registry Integration Tests
  * Validates the complete schema registry exported from index.ts
  * Ensures all 35 schemas are properly registered and no duplicates exist
- * 
- * NOTE: These tests require Sanity studio context and are skipped in main test suite
- * Run these tests from studio directory: cd studio && npm test
  */
 
 import { schemaTypes } from '../../../studio/src/schemaTypes/index';
 
-describe.skip('Schema Registry (schemaTypes) - Skipped: Requires Sanity Studio', () => {
+describe('Schema Registry (schemaTypes)', () => {
   it('should export exactly 35 schemas', () => {
     expect(schemaTypes).toBeDefined();
     expect(Array.isArray(schemaTypes)).toBe(true);

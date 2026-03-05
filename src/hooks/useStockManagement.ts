@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useMutation, useQuery, useQueryClient, keepPreviousData, type UseMutationOptions, type UseQueryOptions } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type UseMutationOptions, type UseQueryOptions } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { sanityClient } from '@/lib/sanity/client';
 import { 
@@ -52,7 +52,7 @@ export const STOCK_QUERY_KEYS = {
  */
 const CACHE_CONFIG = {
   staleTime: 2 * 60 * 1000, // 2 minutes
-  gcTime: 5 * 60 * 1000, // 5 minutes (renamed from cacheTime in React Query v5)
+  cacheTime: 5 * 60 * 1000, // 5 minutes
   refetchOnWindowFocus: false,
   retry: 2,
 };
@@ -280,7 +280,7 @@ export function useStockHistory(options: UseStockHistoryOptions) {
       };
     },
     enabled: enabled && !!productId,
-    placeholderData: keepPreviousData, // v5: replaces keepPreviousData option
+    keepPreviousData: true, // Keep old data while fetching new page
     ...CACHE_CONFIG,
   });
 

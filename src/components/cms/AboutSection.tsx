@@ -36,8 +36,15 @@ import {
   Globe,
   Zap,
   AlertTriangle,
+  TrendingUp,
+  Store,
+  ThermometerSun,
+  Bug,
+  Clock,
+  DollarSign,
   Wifi,
   BarChart3,
+  Mail,
   Linkedin,
   Github,
   Facebook,
@@ -94,16 +101,16 @@ const getInitials = (name: string): string => {
     .toUpperCase();
 };
 
-// Solid colors for team member cards based on index
+// Gradient colors for team member cards based on index
 const gradientColors = [
-  "bg-emerald-500",
-  "bg-blue-500",
-  "bg-purple-500",
-  "bg-orange-500",
-  "bg-cyan-500",
-  "bg-rose-500",
-  "bg-amber-500",
-  "bg-lime-500",
+  "from-emerald-500 to-teal-600",
+  "from-blue-500 to-indigo-600",
+  "from-purple-500 to-pink-600",
+  "from-orange-500 to-red-600",
+  "from-cyan-500 to-blue-600",
+  "from-rose-500 to-pink-600",
+  "from-amber-500 to-orange-600",
+  "from-lime-500 to-green-600",
 ];
 
 interface TeamMember {
@@ -206,6 +213,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
           <div className="relative max-w-5xl mx-auto text-center">
             <Badge className="mb-6 bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/30 transition-colors">
+              <Sparkles className="w-3 h-3 mr-1" />
               University of Caloocan City Thesis Project
             </Badge>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
@@ -216,8 +224,8 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
             </p>
 
             {/* Decorative elements */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-              <div className="flex  items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+            <div className="flex justify-center gap-4 mt-10">
+              <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
                 <Cpu className="w-5 h-5" />
                 <span className="text-sm font-medium">IoT Enabled</span>
               </div>
@@ -236,19 +244,19 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
       {/* Challenge & Solution Section - Side by Side */}
       {(challenges?.isActive || solutions?.isActive) && (
-        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-muted/30">
+        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-muted/30 to-background">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
               {/* Challenge Card */}
               {challenges?.isActive && (
-                <div className="group bg-card rounded-2xl overflow-hidden shadow-xs border border-border">
-                  <div className="h-2 bg-primary" />
+                <div className="group bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-border">
+                  <div className="h-2 bg-gradient-to-r from-red-500 via-orange-500 to-amber-500" />
                   <div className="p-8">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
                         <AlertTriangle className="w-6 h-6 text-red-500" />
                       </div>
-                      <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                         {challenges.title}
                       </h2>
                     </div>
@@ -269,7 +277,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                         return (
                           <div
                             key={index}
-                            className="flex items-start gap-4 p-4 bg-red-500/5 rounded-xl border border-red-500/10"
+                            className="flex items-start gap-4 p-4 bg-gradient-to-r from-red-500/5 to-transparent rounded-xl border border-red-500/10 hover:border-red-500/30 transition-all hover:translate-x-1"
                           >
                             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
                               <span className="text-red-500 text-xs font-bold">
@@ -282,7 +290,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                                   {title}
                                 </h3>
                               )}
-                              <p className="text-foreground/80 text-sm leading-relaxed break-words text-justify">
+                              <p className="text-foreground/80 text-sm leading-relaxed break-words">
                                 {description}
                               </p>
                             </div>
@@ -296,14 +304,14 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
               {/* Solution Card */}
               {solutions?.isActive && (
-                <div className="group bg-card rounded-2xl overflow-hidden shadow-xs border border-border">
-                  <div className="h-2 bg-primary" />
+                <div className="group bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-border">
+                  <div className="h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
                   <div className="p-8">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                         <Lightbulb className="w-6 h-6 text-emerald-500" />
                       </div>
-                      <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                         {solutions.title}
                       </h2>
                     </div>
@@ -316,7 +324,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                         return (
                           <div
                             key={solution.id}
-                            className="flex items-start gap-4 p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10"
+                            className="flex items-start gap-4 p-4 bg-gradient-to-r from-emerald-500/5 to-transparent rounded-xl border border-emerald-500/10 hover:border-emerald-500/30 transition-all hover:translate-x-1"
                           >
                             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                               <IconComponent className="w-5 h-5 text-emerald-600" />
@@ -325,7 +333,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                               <h3 className="font-bold text-foreground mb-1">
                                 {solution.title}
                               </h3>
-                              <p className="text-muted-foreground text-sm leading-relaxed text-justify">
+                              <p className="text-muted-foreground text-sm leading-relaxed">
                                 {solution.description}
                               </p>
                             </div>
@@ -343,7 +351,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
       {/* Mentor Section - Enhanced */}
       {mentor?.isActive && (
-        <section className="py-10 md:py-12 px-4 md:px-8 lg:px-16 bg-muted/40">
+        <section className="py-16 md:py-20 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-muted/50 to-muted/30">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
               <Badge className="mb-4 bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">
@@ -358,12 +366,12 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl shadow-sm overflow-hidden border border-border">
-              <div className="h-2 bg-primary" />
+            <div className="bg-card rounded-2xl shadow-xl overflow-hidden border border-border">
+              <div className="h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500" />
               <div className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
                 {/* Mentor Image */}
                 <div className="relative">
-                  <div className="w-36 h-36 md:w-44 md:h-44 rounded-2xl overflow-hidden shadow-sm ring-4 ring-amber-500/20">
+                  <div className="w-36 h-36 md:w-44 md:h-44 rounded-2xl overflow-hidden shadow-lg ring-4 ring-amber-500/20">
                     {mentor.mentor.avatar ? (
                       <Image
                         src={mentor.mentor.avatar}
@@ -373,7 +381,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                         sizes="176px"
                       />
                     ) : (
-                      <div className="w-full h-full bg-amber-500 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                         <span className="text-white text-4xl font-bold">
                           {getInitials(mentor.mentor.name)}
                         </span>
@@ -394,7 +402,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                     {mentor.mentor.title}
                   </p>
                   {mentor.mentor.bio && (
-                    <p className="text-muted-foreground leading-relaxed text-justify">
+                    <p className="text-muted-foreground leading-relaxed">
                       {mentor.mentor.bio}
                     </p>
                   )}
@@ -407,7 +415,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
       {/* Team Section - Enhanced with proper images */}
       {team && team.length > 0 && (
-        <section className="py-20 md:py-28 px-4 md:px-8 lg:px-16 bg-muted/10">
+        <section className="py-20 md:py-28 px-4 md:px-8 lg:px-16 bg-gradient-to-b from-background via-muted/20 to-background">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
@@ -438,8 +446,8 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                       ) || team[0];
                     const LeaderIcon = roleIcons[leader.role] || Target;
                     return (
-                      <div className="group relative bg-card rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border-2 border-primary/20 hover:border-primary/40">
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary" />
+                      <div className="group relative bg-gradient-to-br from-primary/5 via-card to-primary/5 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-primary/20 hover:border-primary/40">
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-primary to-teal-500" />
                         <div className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8">
                           {/* Leader Image */}
                           <div className="relative flex-shrink-0">
@@ -453,14 +461,14 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                                   sizes="192px"
                                 />
                               ) : (
-                                <div className="w-full h-full bg-primary flex items-center justify-center">
+                                <div className="w-full h-full bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center">
                                   <span className="text-white text-5xl font-bold">
                                     {getInitials(leader.name)}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <div className="absolute -bottom-3 -right-3 w-14 h-14 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+                            <div className="absolute -bottom-3 -right-3 w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
                               <LeaderIcon className="w-7 h-7 text-white" />
                             </div>
                           </div>
@@ -550,10 +558,12 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                   return (
                     <div
                       key={index}
-                      className="group relative bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500 border border-border hover:border-primary/40 hover:-translate-y-1"
+                      className="group relative bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-border hover:border-primary/40 hover:-translate-y-1"
                     >
                       {/* Top gradient accent */}
-                      <div className="h-1.5 bg-primary" />
+                      <div
+                        className={`h-1.5 bg-gradient-to-r ${gradientClass}`}
+                      />
 
                       {/* Image Container */}
                       <div className="relative h-52 overflow-hidden">
@@ -566,17 +576,17 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                               className="object-cover transition-transform duration-500 group-hover:scale-110"
                               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             />
-                            <div className="absolute inset-0 bg-black/40" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                           </>
                         ) : (
                           /* Fallback gradient with initials */
                           <div
-                            className={`w-full h-full ${gradientClass} flex items-center justify-center relative`}
+                            className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center relative`}
                           >
                             <span className="text-white text-6xl font-bold opacity-90 group-hover:scale-110 transition-transform duration-300">
                               {getInitials(member.name)}
                             </span>
-                            <div className="absolute inset-0 bg-black/20" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                           </div>
                         )}
 
@@ -589,11 +599,11 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
                       {/* Content */}
                       <div className="p-6">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-primary">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
                             {member.role}
                           </span>
                         </div>
-                        <h3 className="font-bold text-lg text-foreground mb-2">
+                        <h3 className="font-bold text-lg text-foreground mb-2 group-hover:text-primary transition-colors">
                           {member.name}
                         </h3>
                         {member.bio ? (
@@ -656,7 +666,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
       {vision?.isActive && (
         <section className="relative py-20 md:py-28 px-4 md:px-8 lg:px-16 overflow-hidden">
           {/* Gradient Background */}
-          <div className="absolute inset-0 bg-primary" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-primary to-teal-700" />
 
           {/* Decorative elements */}
           <div className="absolute inset-0 opacity-20">
@@ -687,6 +697,7 @@ export const CMSAboutSection: React.FC<CMSAboutSectionProps> = ({
 
             <div className="mt-12 pt-8 border-t border-primary-foreground/20">
               <div className="inline-flex items-center gap-3 bg-primary-foreground/10 backdrop-blur-sm px-8 py-4 rounded-2xl">
+                <Rocket className="w-6 h-6 text-amber-300" />
                 <p className="text-xl md:text-2xl font-bold text-primary-foreground">
                   {vision.callToAction}
                 </p>

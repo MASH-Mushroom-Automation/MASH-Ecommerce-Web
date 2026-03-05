@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { LegalModal } from "@/components/auth/legal-modal";
 import { User, Eye, EyeOff, Check, X as XIcon, Mail } from "lucide-react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
@@ -56,7 +55,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
-  const [legalModalType, setLegalModalType] = useState<"terms" | "privacy" | null>(null);
 
   // Redirect authenticated users away from signup page
   useEffect(() => {
@@ -477,13 +475,9 @@ export default function SignupPage() {
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I agree to the{" "}
-                  <button
-                    type="button"
-                    onClick={() => setLegalModalType("terms")}
-                    className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded"
-                  >
+                  <Link href="/terms" className="text-primary hover:underline">
                     Terms & Conditions
-                  </button>
+                  </Link>
                   .
                 </label>
               </div>
@@ -512,13 +506,12 @@ export default function SignupPage() {
                 >
                   I agree to let you use, processing, and sharing of my personal
                   information in accordance to the{" "}
-                  <button
-                    type="button"
-                    onClick={() => setLegalModalType("privacy")}
-                    className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded"
+                  <Link
+                    href="/privacy"
+                    className="text-primary hover:underline"
                   >
                     Data Privacy Policy
-                  </button>
+                  </Link>
                   .
                 </label>
               </div>
@@ -528,13 +521,6 @@ export default function SignupPage() {
                 </p>
               )}
             </div>
-
-            {/* Legal Modal */}
-            <LegalModal
-              type={legalModalType || "terms"}
-              isOpen={legalModalType !== null}
-              onClose={() => setLegalModalType(null)}
-            />
 
             {/* Create Account Button */}
             <Button

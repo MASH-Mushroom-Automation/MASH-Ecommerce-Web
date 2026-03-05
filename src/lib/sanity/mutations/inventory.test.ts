@@ -36,10 +36,6 @@ jest.mock('sonner', () => ({
 }));
 
 describe('updateProductStock', () => {
-  // Retry tests use real delays (exponential backoff: 1s, 2s, 4s)
-  // Increase timeout for all tests in this suite to handle CI load
-  jest.setTimeout(30000);
-
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock successful API response
@@ -154,7 +150,7 @@ describe('updateProductStock', () => {
 
     expect(result.success).toBe(true);
     expect(mockFetch).toHaveBeenCalledTimes(3); // 2 failures + 1 success
-  }, 30000);
+  });
 
   it('should throw MutationError after max retries', async () => {
     mockFetch.mockResolvedValue({
@@ -176,7 +172,7 @@ describe('updateProductStock', () => {
     );
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
-  }, 30000); // 30 second timeout for double-retry logic
+  }, 10000); // 10 second timeout for retry logic
 
   it('should throw MutationError if API returns product not found', async () => {
     mockFetch.mockResolvedValue({
@@ -278,7 +274,7 @@ describe('batchUpdateProductStock', () => {
     expect(results[1].success).toBe(false);
     expect(results[1].error).toBeDefined();
     expect(results[2].success).toBe(true);
-  }, 30000);
+  });
 
   it('should handle empty batch', async () => {
     const results = await batchUpdateProductStock([]);

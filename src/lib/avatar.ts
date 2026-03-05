@@ -110,18 +110,18 @@ export function getProfileAvatar(user: AvatarUser | null | undefined): string {
  * Check if a URL is a valid avatar URL (not a placeholder path)
  */
 function isValidAvatarUrl(url: string): boolean {
+  // Check if it's a full URL (http/https) or a DiceBear URL
   return url.startsWith('http://') || 
          url.startsWith('https://') || 
-         url.startsWith('data:') ||
          url.includes('dicebear.com');
 }
 
 /**
- * Check if the avatar URL should bypass Next.js Image optimization.
- * Returns true for DiceBear SVGs and data URLs (base64 profile pictures).
+ * Check if the avatar URL is from DiceBear
+ * Used to determine if Next.js Image optimization should be bypassed
  */
 export function isDiceBearAvatar(url: string): boolean {
-  return url.includes('dicebear.com') || url.startsWith('data:');
+  return url.includes('dicebear.com');
 }
 
 /**

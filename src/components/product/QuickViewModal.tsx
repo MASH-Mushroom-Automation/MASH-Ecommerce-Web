@@ -89,8 +89,8 @@ export function QuickViewModal({
   // Build images array - use placeholder if no valid images
   const validImages = product
     ? [product.image, ...(product.images || [])].filter(
-      (img, idx, arr) => img && img.startsWith('http') && arr.indexOf(img) === idx
-    )
+        (img, idx, arr) => img && img.startsWith('http') && arr.indexOf(img) === idx
+      )
     : [];
   const images = validImages.length > 0 ? validImages : [PLACEHOLDER_IMAGE];
 
@@ -148,7 +148,6 @@ export function QuickViewModal({
         stock: product.stock,
         grower: product.category,
         unit: product.unit,
-        sellerId: product.sellerId,
       },
       quantity
     );
@@ -182,15 +181,15 @@ export function QuickViewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        className="w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-[850px] lg:max-w-[900px] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background"
+      <DialogContent 
+        className="w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-[850px] lg:max-w-[900px] max-h-[90vh] overflow-hidden p-0 gap-0 bg-background" 
         showCloseButton={false}
       >
         {/* Visually hidden title for screen reader accessibility */}
         <DialogTitle className="sr-only">
           {product ? `Quick view: ${product.name}` : 'Quick view product'}
         </DialogTitle>
-
+        
         {/* Close button */}
         <button
           onClick={onClose}
@@ -233,8 +232,8 @@ export function QuickViewModal({
                     className={cn(
                       "transition-opacity duration-300",
                       imageLoaded ? "opacity-100" : "opacity-0",
-                      images[activeImageIndex] === PLACEHOLDER_IMAGE
-                        ? "object-contain p-8"
+                      images[activeImageIndex] === PLACEHOLDER_IMAGE 
+                        ? "object-contain p-8" 
                         : "object-cover"
                     )}
                     sizes="(max-width: 768px) 100vw, 50vw"

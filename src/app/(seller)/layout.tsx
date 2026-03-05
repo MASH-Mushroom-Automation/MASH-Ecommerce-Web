@@ -3,7 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { SellerSidebar } from "@/components/seller-sidebar";
-import { useSellerGuard } from "@/hooks/useSellerGuard";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 import {
   SidebarInset,
   SidebarProvider,
@@ -54,10 +54,10 @@ export default function SellerLayout({
     );
   }
 
-  // Seller/Admin role verification - only sellers and admins can access seller pages
-  const { hasAccess, loading } = useSellerGuard();
+  // Admin role verification - only admins can access other seller pages
+  const { isAdmin, loading } = useAdminGuard();
 
-  // Show loading state while verifying access
+  // Show loading state while verifying admin access
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -69,9 +69,9 @@ export default function SellerLayout({
     );
   }
 
-  // If not a seller or admin, useSellerGuard will handle redirect automatically
+  // If not admin, useAdminGuard will handle redirect automatically
   // Return null to prevent any flash of content
-  if (!hasAccess) {
+  if (!isAdmin) {
     return null;
   }
 

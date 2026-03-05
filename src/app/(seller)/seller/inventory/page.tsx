@@ -212,8 +212,7 @@ export default function InventoryOverviewPage() {
             Comprehensive inventory analytics and management
           </p>
         </div>
-        {/* Refresh button */}
-        <Button
+        {/* <Button
           onClick={handleRefresh}
           variant="outline"
           size="sm"
@@ -222,7 +221,7 @@ export default function InventoryOverviewPage() {
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
-        </Button>
+        </Button> */}
       </div>
 
       <Separator className="my-2 sm:my-3 md:my-4" />

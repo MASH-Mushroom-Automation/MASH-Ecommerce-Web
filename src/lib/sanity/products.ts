@@ -88,8 +88,7 @@ export async function uploadImageToSanity(
       formData.append("file", file);
     } else {
       // Buffer from server-side
-      const arrayBuffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength) as ArrayBuffer;
-      const blob = new Blob([arrayBuffer], { type: contentType || "image/jpeg" });
+      const blob = new Blob([file], { type: contentType || "image/jpeg" });
       formData.append("file", blob, filename || "image.jpg");
     }
 
@@ -494,25 +493,17 @@ export async function fetchCategories() {
 /**
  * Fetch seller products from Sanity
  * Transforms Sanity products to match SellerProduct interface
- * Filters by sellerId if provided, plus full ProductFilters support
+ * Filters by sellerId if provided
  */
 export async function fetchSellerProducts(params?: {
   page?: number;
   limit?: number;
   search?: string;
   sellerId?: string;
-  categories?: string[];
-  priceRange?: [number, number];
-  stockStatus?: string;
-  productStatus?: string;
-  dateFrom?: string;
-  dateTo?: string;
 }): Promise<{
   products: Array<{
     id: string;
     name: string;
-    slug?: string;
-    sku?: string;
     image: string;
     price: number;
     stock: number;
@@ -522,13 +513,6 @@ export async function fetchSellerProducts(params?: {
     weight?: string;
     isActive?: boolean;
     isDeleted?: boolean;
-    stockStatus?: string;
-    stockQuantity?: number;
-    isOnPromo?: boolean;
-    promoType?: string;
-    promoPercentage?: number;
-    promoPrice?: number;
-    originalPrice?: number;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -543,115 +527,47 @@ export async function fetchSellerProducts(params?: {
   const limit = params?.limit || 10;
   const search = params?.search || "";
 
-  // Build GROQ query conditions
-  const conditions: string[] = ['_type == "product"', '!(_id in path("drafts.**"))'];
-
+  // Build GROQ query
+  let query = `*[_type == "product" && !(_id in path("drafts.**"))`;
+  
   // Filter by seller ID if provided
   if (params?.sellerId) {
-    conditions.push(`sellerId == $sellerId`);
+    query += ` && sellerId == $sellerId`;
   }
-
-  // Search filter
+  
+  // Add search filter if provided
   if (search) {
-    conditions.push(`(name match $search || description match $search || sku match $search)`);
+    query += ` && (name match $search || description match $search || sku match $search)`;
   }
-
-  // Category filter
-  if (params?.categories && params.categories.length > 0) {
-    const catConditions = params.categories
-      .map((cat) => `category._ref == "${cat}" || category->slug.current == "${cat}"`)
-      .join(" || ");
-    conditions.push(`(${catConditions})`);
-  }
-
-  // Price range filter
-  if (params?.priceRange) {
-    const [min, max] = params.priceRange;
-    if (min > 0) conditions.push(`price >= ${min}`);
-    if (max < Infinity && isFinite(max)) conditions.push(`price <= ${max}`);
-  }
-
-  // Stock status filter
-  if (params?.stockStatus && params.stockStatus !== "all") {
-    switch (params.stockStatus) {
-      case "in-stock":
-        conditions.push("coalesce(inventory.quantityInStock, quantity, 0) > 10");
-        break;
-      case "low-stock":
-        conditions.push(
-          "coalesce(inventory.quantityInStock, quantity, 0) > 0 && coalesce(inventory.quantityInStock, quantity, 0) <= 10"
-        );
-        break;
-      case "out-of-stock":
-        conditions.push(
-          "coalesce(inventory.quantityInStock, quantity, 0) <= 0"
-        );
-        break;
-    }
-  }
-
-  // Product status filter
-  if (params?.productStatus && params.productStatus !== "all") {
-    switch (params.productStatus) {
-      case "published":
-        conditions.push("archived != true && isAvailable == true");
-        break;
-      case "archived":
-        conditions.push("archived == true");
-        break;
-      case "draft":
-        // drafts are already excluded above; show inactive instead
-        conditions.push("isAvailable == false && archived != true");
-        break;
-    }
-  }
-
-  // Date range filter
-  if (params?.dateFrom) conditions.push(`_createdAt >= "${params.dateFrom}"`);
-  if (params?.dateTo) conditions.push(`_createdAt <= "${params.dateTo}"`);
-
-  const whereClause = conditions.join(" && ");
-
-  const query = `*[${whereClause}] {
+  
+  query += `] {
     _id,
     _createdAt,
     _updatedAt,
     name,
-    "slug": slug.current,
     description,
     price,
-    "originalPrice": select(
-      isOnPromo == true && promoType == "percentage" => price / (1 - promoPercentage / 100),
-      isOnPromo == true && promoType == "fixed" => price + promoPrice,
-      price
-    ),
-    isOnPromo,
-    promoType,
-    promoPercentage,
-    promoPrice,
     "stock": coalesce(inventory.quantityInStock, quantity, 0),
     sku,
     weight,
     isAvailable,
-    archived,
     "mainImage": coalesce(mainImage.asset->url, image.asset->url),
     "images": images[].asset->url,
     category->{
       _id,
       name,
       "slug": slug.current
-    },
-    "stockStatus": select(
-      coalesce(inventory.quantityInStock, quantity, 0) > 10 => "in-stock",
-      coalesce(inventory.quantityInStock, quantity, 0) > 0 => "low-stock",
-      "out-of-stock"
-    )
+    }
   } | order(_createdAt desc)`;
 
   // Prepare query parameters
-  const queryParams: Record<string, unknown> = {};
-  if (params?.sellerId) queryParams.sellerId = params.sellerId;
-  if (search) queryParams.search = `*${search}*`;
+  const queryParams: Record<string, any> = {};
+  if (params?.sellerId) {
+    queryParams.sellerId = params.sellerId;
+  }
+  if (search) {
+    queryParams.search = `*${search}*`;
+  }
 
   // Fetch all matching products
   const allProducts = await sanityClient.fetch<Array<{
@@ -659,22 +575,14 @@ export async function fetchSellerProducts(params?: {
     _createdAt: string;
     _updatedAt: string;
     name: string;
-    slug?: string;
     description?: string;
     price: number;
-    originalPrice?: number;
-    isOnPromo?: boolean;
-    promoType?: string;
-    promoPercentage?: number;
-    promoPrice?: number;
     stock: number;
     sku?: string;
     weight?: number;
     isAvailable?: boolean;
-    archived?: boolean;
     mainImage?: string;
     images?: string[];
-    stockStatus?: string;
     category?: {
       _id: string;
       name: string;
@@ -684,6 +592,7 @@ export async function fetchSellerProducts(params?: {
 
   // Transform to SellerProduct format
   const transformedProducts = allProducts.map((product) => {
+    // Determine status based on availability and stock
     let status: "Active" | "Inactive" | "Out of Stock" = "Inactive";
     if (product.isAvailable) {
       status = product.stock > 0 ? "Active" : "Out of Stock";
@@ -692,8 +601,6 @@ export async function fetchSellerProducts(params?: {
     return {
       id: product._id,
       name: product.name,
-      slug: product.slug,
-      sku: product.sku,
       image: product.mainImage || product.images?.[0] || "/placeholder-product.jpg",
       price: product.price,
       stock: product.stock || 0,
@@ -703,13 +610,6 @@ export async function fetchSellerProducts(params?: {
       weight: product.weight ? `${product.weight}g` : undefined,
       isActive: product.isAvailable,
       isDeleted: false,
-      stockStatus: product.stockStatus,
-      stockQuantity: product.stock || 0,
-      isOnPromo: product.isOnPromo,
-      promoType: product.promoType,
-      promoPercentage: product.promoPercentage,
-      promoPrice: product.promoPrice,
-      originalPrice: product.originalPrice,
       createdAt: product._createdAt,
       updatedAt: product._updatedAt,
     };
@@ -730,4 +630,3 @@ export async function fetchSellerProducts(params?: {
     },
   };
 }
-

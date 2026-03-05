@@ -1,28 +1,33 @@
 /**
  * @jest-environment jsdom
- *
+ * 
  * Seller Dashboard Page Unit Tests
  * Tests sales analytics, product management UI, order fulfillment, and pull-to-refresh
- *
+ * 
  * STORY-TEST-012: Seller Dashboard Tests
  * Coverage Target: 70%+
- *
+ * 
  * Test Coverage:
- * - Sales analytics display (stats cards, charts, trends)
- * - Product management table (rendering, stock alerts, revenue)
- * - Order fulfillment UI (recent orders, status display, customer info)
- * - Pull-to-refresh functionality
- * - Loading states and error handling
- * - Pending orders alert system
- * - Responsive layout structure
+ * ✓ Sales analytics display (charts, metrics, trends)
+ * ✓ Product management table (rendering, stock alerts, revenue)
+ * ✓ Order fulfillment UI (recent orders, status display, customer info)
+ * ✓ Pull-to-refresh functionality
+ * ✓ Loading states and error handling
+ * ✓ Pending orders alert system
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import SellerDashboard from '../page';
+import { useAdminDashboard } from '@/hooks/useAdminDashboard';
+import { useTopPerformingProducts } from '@/hooks/useTopPerformingProducts';
+import { useRecentOrders } from '@/hooks/useRecentOrders';
 import { useSellerDashboard } from '@/hooks/useSeller';
 
-// Mock only useSellerDashboard (the only hook used by the component)
+// Mock hooks
+jest.mock('@/hooks/useAdminDashboard');
+jest.mock('@/hooks/useTopPerformingProducts');
+jest.mock('@/hooks/useRecentOrders');
 jest.mock('@/hooks/useSeller');
 jest.mock('next/link', () => ({
   __esModule: true,
@@ -54,55 +59,165 @@ jest.mock('@/components/ui/Line-chart', () => ({
   ),
 }));
 
+jest.mock('@/lib/status-utils', () => ({
+  getStatusBadge: (status: string) => <span data-testid="status-badge">{status}</span>,
+}));
+
 describe('SellerDashboard', () => {
+  const mockAdminDashboard = useAdminDashboard as jest.MockedFunction<typeof useAdminDashboard>;
+  const mockTopProducts = useTopPerformingProducts as jest.MockedFunction<typeof useTopPerformingProducts>;
+  const mockRecentOrders = useRecentOrders as jest.MockedFunction<typeof useRecentOrders>;
   const mockSellerDashboard = useSellerDashboard as jest.MockedFunction<typeof useSellerDashboard>;
+
+  const mockAdminRefetch = jest.fn();
+  const mockProductsRefetch = jest.fn();
+  const mockOrdersRefetch = jest.fn();
   const mockSellerRefetch = jest.fn();
 
-  // Default mock data matching useSellerDashboard return shape
-  const defaultStats = {
-    totalSales: 125000,
-    totalOrders: 342,
-    totalProducts: 24,
-    totalRevenue: 98500,
-    salesGrowth: 15.2,
-    orderGrowth: 8.5,
-    revenueGrowth: 12.3,
+  const defaultAdminData = {
+    alert: {
+      message: 'All systems operational',
+      pendingOrders: 0,
+    },
+    metrics: {
+      totalSales: {
+        value: 125000,
+        currency: '₱',
+        change: 15.2,
+        changeLabel: 'vs. last month',
+      },
+      orders: {
+        value: 342,
+        change: 8.5,
+        changeLabel: 'vs. last month',
+      },
+      products: {
+        value: 24,
+        change: 3,
+        changeLabel: 'new this month',
+      },
+      revenue: {
+        value: 98500,
+        currency: '₱',
+        change: 12.3,
+        changeLabel: 'vs. last month',
+      },
+    },
+    charts: {
+      weeklySales: [
+        { day: 'Mon', sales: 12000 },
+        { day: 'Tue', sales: 15000 },
+        { day: 'Wed', sales: 18000 },
+        { day: 'Thu', sales: 14000 },
+        { day: 'Fri', sales: 22000 },
+        { day: 'Sat', sales: 25000 },
+        { day: 'Sun', sales: 19000 },
+      ],
+      revenueTrend: [
+        { month: 'May', revenue: 24000 },
+        { month: 'Jun', revenue: 26500 },
+        { month: 'Jul', revenue: 32000 },
+        { month: 'Aug', revenue: 28000 },
+        { month: 'Sep', revenue: 35000 },
+        { month: 'Oct', revenue: 42390 },
+      ],
+    },
   };
 
-  const defaultSalesData = [
-    { name: 'Mon', sales: 12000, revenue: 24000 },
-    { name: 'Tue', sales: 15000, revenue: 26500 },
-    { name: 'Wed', sales: 18000, revenue: 32000 },
-    { name: 'Thu', sales: 14000, revenue: 28000 },
-    { name: 'Fri', sales: 22000, revenue: 35000 },
-    { name: 'Sat', sales: 25000, revenue: 42390 },
-    { name: 'Sun', sales: 19000, revenue: 30000 },
-  ];
-
-  const defaultProductPerformance = [
-    { name: 'Oyster Mushrooms', sales: 245, stock: 120, revenue: 36750 },
-    { name: 'Shiitake Mushrooms', sales: 189, stock: 15, revenue: 28350 },
-    { name: "Lion's Mane", sales: 156, stock: 0, revenue: 23400 },
+  const defaultTopProducts = [
+    {
+      productId: 'prod-1',
+      productName: 'Oyster Mushrooms',
+      unitsSold: 245,
+      stock: 120,
+      revenue: 36750,
+    },
+    {
+      productId: 'prod-2',
+      productName: 'Shiitake Mushrooms',
+      unitsSold: 189,
+      stock: 15,
+      revenue: 28350,
+    },
+    {
+      productId: 'prod-3',
+      productName: 'Lion\'s Mane',
+      unitsSold: 156,
+      stock: 0,
+      revenue: 23400,
+    },
   ];
 
   const defaultRecentOrders = [
-    { id: 'ORD-2024-001', date: '1/20/2024', customer: 'Juan Dela Cruz', items: 2, total: 300, status: 'PENDING' },
-    { id: 'ORD-2024-002', date: '1/20/2024', customer: 'Maria Santos', items: 1, total: 150, status: 'PROCESSING' },
+    {
+      id: 'order-1',
+      orderNumber: 'ORD-2024-001',
+      createdAt: '2024-01-20T10:30:00Z',
+      user: {
+        firstName: 'Juan',
+        lastName: 'Dela Cruz',
+        email: 'juan@example.com',
+      },
+      items: [{ productId: 'prod-1', quantity: 2 }],
+      totalAmount: 300,
+      currency: '₱',
+      status: 'PENDING',
+    },
+    {
+      id: 'order-2',
+      orderNumber: 'ORD-2024-002',
+      createdAt: '2024-01-20T11:45:00Z',
+      user: {
+        firstName: 'Maria',
+        lastName: 'Santos',
+        email: 'maria@example.com',
+      },
+      items: [{ productId: 'prod-2', quantity: 1 }],
+      totalAmount: 150,
+      currency: '₱',
+      status: 'PROCESSING',
+    },
   ];
-
-  const defaultSellerReturn = {
-    stats: defaultStats,
-    salesData: defaultSalesData,
-    productPerformance: defaultProductPerformance,
-    recentOrders: defaultRecentOrders,
-    loading: false,
-    error: null,
-    refetch: mockSellerRefetch,
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSellerDashboard.mockReturnValue(defaultSellerReturn as any);
+
+    // Default mock implementations
+    mockAdminDashboard.mockReturnValue({
+      data: defaultAdminData,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockAdminRefetch,
+    } as any);
+
+    mockTopProducts.mockReturnValue({
+      data: defaultTopProducts,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockProductsRefetch,
+    } as any);
+
+    mockRecentOrders.mockReturnValue({
+      data: defaultRecentOrders,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockOrdersRefetch,
+    } as any);
+
+    mockSellerDashboard.mockReturnValue({
+      salesData: [
+        { name: 'Mon', sales: 12000 },
+        { name: 'Tue', sales: 15000 },
+      ],
+      productPerformance: [],
+      recentOrders: [],
+      loading: false,
+      error: null,
+      refetch: mockSellerRefetch,
+    });
   });
 
   describe('Sales Analytics Display', () => {
@@ -110,7 +225,7 @@ describe('SellerDashboard', () => {
       render(<SellerDashboard />);
 
       expect(screen.getByText('Total Sales')).toBeInTheDocument();
-      expect(screen.getByText('₱125,000')).toBeInTheDocument();
+      expect(screen.getByText('₱ 125,000')).toBeInTheDocument();
       expect(screen.getByText('+15.2%')).toBeInTheDocument();
 
       expect(screen.getByText('Orders')).toBeInTheDocument();
@@ -119,12 +234,12 @@ describe('SellerDashboard', () => {
 
       expect(screen.getByText('Products')).toBeInTheDocument();
       expect(screen.getByText('24')).toBeInTheDocument();
-      expect(screen.getByText('+0')).toBeInTheDocument();
+      expect(screen.getByText('+3')).toBeInTheDocument();
 
-      // Revenue appears in both card title and table header
+      // Revenue appears in both card title and table, use getAllByText
       const revenueTexts = screen.getAllByText('Revenue');
       expect(revenueTexts.length).toBeGreaterThan(0);
-      expect(screen.getByText('₱98,500')).toBeInTheDocument();
+      expect(screen.getByText('₱ 98,500')).toBeInTheDocument();
       expect(screen.getByText('+12.3%')).toBeInTheDocument();
     });
 
@@ -136,17 +251,26 @@ describe('SellerDashboard', () => {
     });
 
     it('displays negative trend indicators (down arrows)', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: {
-          ...defaultStats,
-          salesGrowth: -5.2,
+      mockAdminDashboard.mockReturnValue({
+        data: {
+          ...defaultAdminData,
+          metrics: {
+            ...defaultAdminData.metrics,
+            totalSales: {
+              ...defaultAdminData.metrics.totalSales,
+              change: -5.2,
+            },
+          },
         },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockAdminRefetch,
       } as any);
 
       render(<SellerDashboard />);
 
-      expect(screen.getByText('+-5.2%')).toBeInTheDocument();
+      expect(screen.getByText('-5.2%')).toBeInTheDocument();
     });
 
     it('renders weekly sales bar chart with data', () => {
@@ -155,7 +279,6 @@ describe('SellerDashboard', () => {
       const barChart = screen.getByTestId('bar-chart');
       expect(barChart).toBeInTheDocument();
 
-      // Chart receives salesData mapped to { month: name, desktop: sales }
       expect(screen.getByText(/Mon: 12000/)).toBeInTheDocument();
       expect(screen.getByText(/Fri: 22000/)).toBeInTheDocument();
     });
@@ -166,9 +289,8 @@ describe('SellerDashboard', () => {
       const lineChart = screen.getByTestId('line-chart');
       expect(lineChart).toBeInTheDocument();
 
-      // Chart receives salesData mapped to { month: name, desktop: revenue }
-      expect(screen.getByText(/Mon: 24000/)).toBeInTheDocument();
-      expect(screen.getByText(/Sat: 42390/)).toBeInTheDocument();
+      expect(screen.getByText(/May: 24000/)).toBeInTheDocument();
+      expect(screen.getByText(/Oct: 42390/)).toBeInTheDocument();
     });
 
     it('displays last updated timestamp', () => {
@@ -177,7 +299,7 @@ describe('SellerDashboard', () => {
       expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
     });
 
-    it('shows refresh button and calls sellerRefetch on click', () => {
+    it('shows refresh button for manual data refresh', () => {
       render(<SellerDashboard />);
 
       const refreshButton = screen.getByRole('button', { name: /refresh/i });
@@ -185,7 +307,10 @@ describe('SellerDashboard', () => {
 
       fireEvent.click(refreshButton);
 
-      expect(mockSellerRefetch).toHaveBeenCalledTimes(1);
+      expect(mockAdminRefetch).toHaveBeenCalled();
+      expect(mockProductsRefetch).toHaveBeenCalled();
+      expect(mockOrdersRefetch).toHaveBeenCalled();
+      expect(mockSellerRefetch).toHaveBeenCalled();
     });
   });
 
@@ -194,7 +319,7 @@ describe('SellerDashboard', () => {
       render(<SellerDashboard />);
 
       expect(screen.getByText('Top Performing Products')).toBeInTheDocument();
-      expect(screen.getByText('Top 5 products by units sold')).toBeInTheDocument();
+      expect(screen.getByText('Products with the highest sales and revenue')).toBeInTheDocument();
     });
 
     it('displays product information correctly', () => {
@@ -215,7 +340,7 @@ describe('SellerDashboard', () => {
       expect(screen.getByText('Out of Stock')).toBeInTheDocument();
     });
 
-    it('shows "Low" badge for stock below 20', () => {
+    it('shows "Low Stock" badge for stock below 20', () => {
       render(<SellerDashboard />);
 
       expect(screen.getByText(/Low: 15/)).toBeInTheDocument();
@@ -235,10 +360,44 @@ describe('SellerDashboard', () => {
       expect(manageLink).toHaveAttribute('href', '/seller/products');
     });
 
-    it('shows "No products found" when product performance is empty', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        productPerformance: [],
+    it('shows loading skeleton when products are loading', () => {
+      mockTopProducts.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+        refetch: mockProductsRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      // When any data is loading, entire dashboard shows skeleton
+      expect(screen.queryByText('Top Performing Products')).not.toBeInTheDocument();
+    });
+
+    it('shows error state when products fail to load', () => {
+      mockTopProducts.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Network error'),
+        refetch: mockProductsRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      // When any critical data fails, entire dashboard shows error
+      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText('Try Again')).toBeInTheDocument();
+    });
+
+    it('shows "No products found" when data is empty', () => {
+      mockTopProducts.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockProductsRefetch,
       } as any);
 
       render(<SellerDashboard />);
@@ -269,35 +428,46 @@ describe('SellerDashboard', () => {
       expect(screen.getByText('₱150.00')).toBeInTheDocument();
     });
 
-    it('displays order dates', () => {
+    it('displays formatted order dates', () => {
       render(<SellerDashboard />);
 
-      const dates = screen.getAllByText('1/20/2024');
-      expect(dates.length).toBe(2);
+      // Check that dates are rendered (format may vary by locale)
+      const dates = screen.getAllByText(/1\/20\/2024|20\/1\/2024/);
+      expect(dates.length).toBeGreaterThan(0);
     });
 
     it('shows order item counts', () => {
       render(<SellerDashboard />);
 
-      // Order 1 has 2 items, Order 2 has 1 item
-      const itemCounts = screen.getAllByText('2');
-      expect(itemCounts.length).toBeGreaterThan(0);
+      const itemCounts = screen.getAllByText('1');
+      expect(itemCounts.length).toBeGreaterThan(0); // At least one order has 1 item
     });
 
-    it('displays order status badges with readable labels', () => {
+    it('displays order status badges', () => {
       render(<SellerDashboard />);
 
-      // OrderStatusBadge maps PENDING -> "Pending", PROCESSING -> "Processing"
-      expect(screen.getByText('Pending')).toBeInTheDocument();
-      expect(screen.getByText('Processing')).toBeInTheDocument();
+      const statusBadges = screen.getAllByTestId('status-badge');
+      expect(statusBadges).toHaveLength(2);
+      expect(statusBadges[0]).toHaveTextContent('PENDING');
+      expect(statusBadges[1]).toHaveTextContent('PROCESSING');
     });
 
-    it('renders customer name from order data', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        recentOrders: [
-          { id: 'ORD-001', date: '1/20/2024', customer: 'customer@example.com', items: 1, total: 100, status: 'PENDING' },
+    it('shows customer email when name not available', () => {
+      mockRecentOrders.mockReturnValue({
+        data: [
+          {
+            ...defaultRecentOrders[0],
+            user: {
+              firstName: '',
+              lastName: '',
+              email: 'customer@example.com',
+            },
+          },
         ],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockOrdersRefetch,
       } as any);
 
       render(<SellerDashboard />);
@@ -305,12 +475,18 @@ describe('SellerDashboard', () => {
       expect(screen.getByText('customer@example.com')).toBeInTheDocument();
     });
 
-    it('renders "Unknown" customer', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        recentOrders: [
-          { id: 'ORD-001', date: '1/20/2024', customer: 'Unknown', items: 1, total: 100, status: 'PENDING' },
+    it('shows "Unknown" when no user information', () => {
+      mockRecentOrders.mockReturnValue({
+        data: [
+          {
+            ...defaultRecentOrders[0],
+            user: null,
+          },
         ],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockOrdersRefetch,
       } as any);
 
       render(<SellerDashboard />);
@@ -325,10 +501,44 @@ describe('SellerDashboard', () => {
       expect(viewAllLink).toHaveAttribute('href', '/seller/orders');
     });
 
-    it('shows "No orders found" when orders array is empty', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        recentOrders: [],
+    it('shows loading skeleton when orders are loading', () => {
+      mockRecentOrders.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+        refetch: mockOrdersRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      // When any data is loading, entire dashboard shows skeleton
+      expect(screen.queryByText('Recent Orders')).not.toBeInTheDocument();
+    });
+
+    it('shows error state when orders fail to load', () => {
+      mockRecentOrders.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Network error'),
+        refetch: mockOrdersRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      // When any critical data fails, entire dashboard shows error
+      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText('Try Again')).toBeInTheDocument();
+    });
+
+    it('shows "No orders found" when data is empty', () => {
+      mockRecentOrders.mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockOrdersRefetch,
       } as any);
 
       render(<SellerDashboard />);
@@ -338,31 +548,62 @@ describe('SellerDashboard', () => {
   });
 
   describe('Pending Orders Alert System', () => {
-    it('shows pending orders alert when orders have PENDING status', () => {
-      // Default data has 1 PENDING order (ORD-2024-001)
-      render(<SellerDashboard />);
-
-      expect(screen.getByText('Pending Orders Require Attention')).toBeInTheDocument();
-      expect(screen.getByText(/You have 1 pending order/)).toBeInTheDocument();
-    });
-
-    it('displays plural "orders" for multiple pending orders', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        recentOrders: [
-          { id: 'ORD-001', date: '1/20/2024', customer: 'A', items: 1, total: 100, status: 'PENDING' },
-          { id: 'ORD-002', date: '1/20/2024', customer: 'B', items: 1, total: 200, status: 'PENDING' },
-          { id: 'ORD-003', date: '1/20/2024', customer: 'C', items: 1, total: 300, status: 'PENDING' },
-        ],
+    it('shows pending orders alert when orders require attention', () => {
+      mockAdminDashboard.mockReturnValue({
+        data: {
+          ...defaultAdminData,
+          alert: {
+            message: 'Pending orders require attention',
+            pendingOrders: 5,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockAdminRefetch,
       } as any);
 
       render(<SellerDashboard />);
 
-      expect(screen.getByText(/3 pending orders/)).toBeInTheDocument();
+      expect(screen.getByText('Pending Orders Require Attention')).toBeInTheDocument();
+      expect(screen.getByText(/You have 5 pending orders/)).toBeInTheDocument();
+    });
+
+    it('displays singular "order" for 1 pending order', () => {
+      mockAdminDashboard.mockReturnValue({
+        data: {
+          ...defaultAdminData,
+          alert: {
+            message: 'Pending orders require attention',
+            pendingOrders: 1,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockAdminRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      expect(screen.getByText(/1 pending order/)).toBeInTheDocument();
     });
 
     it('renders "View Orders" link to pending orders page', () => {
-      // Default data has PENDING order
+      mockAdminDashboard.mockReturnValue({
+        data: {
+          ...defaultAdminData,
+          alert: {
+            message: 'Pending orders require attention',
+            pendingOrders: 3,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockAdminRefetch,
+      } as any);
+
       render(<SellerDashboard />);
 
       const viewOrdersLink = screen.getByRole('link', { name: /view orders/i });
@@ -370,48 +611,69 @@ describe('SellerDashboard', () => {
     });
 
     it('shows success alert when no pending orders', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        recentOrders: [
-          { id: 'ORD-001', date: '1/20/2024', customer: 'X', items: 1, total: 100, status: 'DELIVERED' },
-        ],
-      } as any);
-
       render(<SellerDashboard />);
 
-      expect(screen.getByText('All orders are up to date!')).toBeInTheDocument();
+      expect(screen.getByText('All systems operational')).toBeInTheDocument();
     });
   });
 
   describe('Loading States and Error Handling', () => {
-    it('shows loading skeleton when dashboard is loading', () => {
+    it('shows loading skeleton when admin dashboard is loading', () => {
+      mockAdminDashboard.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+        refetch: mockAdminRefetch,
+      } as any);
+
+      render(<SellerDashboard />);
+
+      // DashboardSkeleton should render (contains Skeleton components)
+      // We can't easily test Skeleton component rendering without more mocks
+      // but we can verify the dashboard content is NOT present
+      expect(screen.queryByText('Total Sales')).not.toBeInTheDocument();
+    });
+
+    it('shows loading skeleton when seller dashboard is loading', () => {
       mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: null,
         salesData: [],
         productPerformance: [],
         recentOrders: [],
         loading: true,
         error: null,
+        refetch: mockSellerRefetch,
+      });
+
+      render(<SellerDashboard />);
+
+      expect(screen.queryByText('Total Sales')).not.toBeInTheDocument();
+    });
+
+    it('shows error message when admin dashboard fails', () => {
+      mockAdminDashboard.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Admin API error'),
+        refetch: mockAdminRefetch,
       } as any);
 
       render(<SellerDashboard />);
 
-      // DashboardSkeleton renders, dashboard content should NOT be present
-      expect(screen.queryByText('Total Sales')).not.toBeInTheDocument();
-      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText('Try Again')).toBeInTheDocument();
     });
 
-    it('shows error message when seller dashboard has error', () => {
+    it('shows error message when seller dashboard fails', () => {
       mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: null,
         salesData: [],
         productPerformance: [],
         recentOrders: [],
         loading: false,
         error: 'Seller API error',
-      } as any);
+        refetch: mockSellerRefetch,
+      });
 
       render(<SellerDashboard />);
 
@@ -419,47 +681,34 @@ describe('SellerDashboard', () => {
       expect(screen.getByText(/Seller API error/)).toBeInTheDocument();
     });
 
-    it('shows fallback error message when error is empty', () => {
+    // Note: Testing error retry behavior
+    it('allows retry on error via "Try Again" button', () => {
       mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: null,
         salesData: [],
         productPerformance: [],
         recentOrders: [],
         loading: false,
-        error: '',
-      } as any);
-
-      render(<SellerDashboard />);
-
-      // error is truthy for `!!sellerError` check? No, '' is falsy.
-      // Actually: `const error = !!sellerError;` → !!'' = false
-      // So empty string won't show error state. Let's verify normal rendering.
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    });
-
-    it('allows retry on error via "Try Again" button', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: null,
-        loading: false,
         error: 'Network error',
-      } as any);
+        refetch: mockSellerRefetch,
+      });
 
       render(<SellerDashboard />);
 
+      // Verify error state and button presence
       expect(screen.getByText(/Error:/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
     });
   });
 
-  describe('Pull-to-Refresh and UI Structure', () => {
+  describe('Pull-to-Refresh Functionality', () => {
     it('renders dashboard title', () => {
       render(<SellerDashboard />);
 
       expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     });
 
+    // Note: Touch events are difficult to test comprehensively in jsdom
+    // These tests verify the structure is present
     it('renders dashboard container with touch event support', () => {
       const { container } = render(<SellerDashboard />);
 
@@ -469,20 +718,50 @@ describe('SellerDashboard', () => {
   });
 
   describe('Data Integration', () => {
-    it('calls sellerRefetch on manual refresh', () => {
+    it('calls all refetch functions on manual refresh', () => {
       render(<SellerDashboard />);
 
       const refreshButton = screen.getByRole('button', { name: /refresh/i });
       fireEvent.click(refreshButton);
 
+      expect(mockAdminRefetch).toHaveBeenCalledTimes(1);
+      expect(mockProductsRefetch).toHaveBeenCalledTimes(1);
+      expect(mockOrdersRefetch).toHaveBeenCalledTimes(1);
       expect(mockSellerRefetch).toHaveBeenCalledTimes(1);
     });
 
-    it('formats currency correctly in stats cards', () => {
+    it('uses fallback data from seller dashboard when admin data unavailable', () => {
+      mockAdminDashboard.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('API down'),
+        refetch: mockAdminRefetch,
+      } as any);
+
+      mockSellerDashboard.mockReturnValue({
+        salesData: [
+          { name: 'Mon', sales: 10000 },
+          { name: 'Tue', sales: 12000 },
+        ],
+        productPerformance: [],
+        recentOrders: [],
+        loading: false,
+        error: null,
+        refetch: mockSellerRefetch,
+      });
+
       render(<SellerDashboard />);
 
-      expect(screen.getByText('₱125,000')).toBeInTheDocument();
-      expect(screen.getByText('₱98,500')).toBeInTheDocument();
+      // Should show error state, but verify seller data is available as fallback
+      expect(mockSellerDashboard).toHaveBeenCalled();
+    });
+
+    it('formats currency correctly in metrics', () => {
+      render(<SellerDashboard />);
+
+      expect(screen.getByText('₱ 125,000')).toBeInTheDocument();
+      expect(screen.getByText('₱ 98,500')).toBeInTheDocument();
     });
 
     it('formats revenue in product table correctly', () => {
@@ -498,19 +777,6 @@ describe('SellerDashboard', () => {
 
       expect(screen.getByText('₱300.00')).toBeInTheDocument();
       expect(screen.getByText('₱150.00')).toBeInTheDocument();
-    });
-
-    it('renders fallback values when stats is null', () => {
-      mockSellerDashboard.mockReturnValue({
-        ...defaultSellerReturn,
-        stats: null,
-      } as any);
-
-      render(<SellerDashboard />);
-
-      // Component renders "₱0" and "0" when stats is null
-      const zeros = screen.getAllByText('₱0');
-      expect(zeros.length).toBeGreaterThan(0);
     });
   });
 

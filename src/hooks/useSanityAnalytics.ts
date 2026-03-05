@@ -62,6 +62,7 @@ export function useSanityAnalytics(reportType?: string) {
 
   const fetchReports = useCallback(async () => {
     try {
+      console.log("📊 [ANALYTICS] Fetching reports...");
       setLoading(true);
 
       const condition = reportType ? `_type == "analytics" && reportType == "${reportType}"` : `_type == "analytics"`;
@@ -74,6 +75,7 @@ export function useSanityAnalytics(reportType?: string) {
       const result = await sanityClient.fetch<AnalyticsReport[]>(query);
       const transformed = result.map((r) => ({ ...r, id: r._id }));
       setReports(transformed);
+      console.log(`✅ [ANALYTICS] Loaded ${transformed.length} reports`);
       setError(null);
     } catch (err) {
       console.error("❌ [ANALYTICS] Error:", err);

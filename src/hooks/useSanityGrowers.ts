@@ -282,12 +282,14 @@ export function useSanityGrowers(filters?: GrowerFilters) {
         }
       }`;
 
+      console.log('📦 Fetching growers from Sanity...');
       const data = await sanityClient.fetch<Array<SanityGrower & { productCount: number }>>(query);
       
       const transformed = data.map(transformGrower);
       setGrowers(transformed);
+      console.log('✅ Growers fetched:', transformed.length);
     } catch (err) {
-      console.error('Error fetching growers:', err);
+      console.error('❌ Error fetching growers:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -298,6 +300,8 @@ export function useSanityGrowers(filters?: GrowerFilters) {
     fetchGrowers();
 
     // Set up REAL-TIME subscription
+    console.debug('🔌 Setting up growers real-time subscription');
+    
     let query = `*[_type == "grower" && !(_id in path("drafts.**"))`;
     
     if (filters?.region) {
@@ -320,13 +324,19 @@ export function useSanityGrowers(filters?: GrowerFilters) {
 
     const subscription = listenSafe(query)
       .subscribe((update: any) => {
+        // Only log at debug level to avoid noisy console output
+        console.debug('📡 Growers mutation event received:', update?.type);
+        
         if (update?.type === 'mutation') {
+          // Re-fetch to get fresh data with product counts
           fetchGrowers();
+          console.debug('🔄 Growers updated in real-time!');
         }
       });
 
     return () => {
       subscription.unsubscribe();
+      console.log('🧹 Growers subscription cleaned up');
     };
   }, [fetchGrowers, filters?.region, filters?.specialty, filters?.isActive, filters?.limit]);
 
@@ -408,15 +418,18 @@ export function useSanityGrower(slug: string) {
         }
       }`;
 
+      console.log(`📦 Fetching grower "${slug}" from Sanity...`);
       const data = await sanityClient.fetch<SanityGrower & { productCount: number }>(query, { slug });
       
       if (data) {
         setGrower(transformGrower(data));
+        console.log(`✅ Grower "${slug}" fetched`);
       } else {
         setGrower(null);
+        console.log(`⚠️ Grower "${slug}" not found`);
       }
     } catch (err) {
-      console.error(`Error fetching grower "${slug}":`, err);
+      console.error(`❌ Error fetching grower "${slug}":`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -429,21 +442,30 @@ export function useSanityGrower(slug: string) {
     fetchGrower();
 
     // Set up REAL-TIME subscription for this specific grower
+    console.log(`🔌 Setting up real-time subscription for grower "${slug}"`);
+    
     const query = `*[_type == "grower" && slug.current == $slug][0]`;
 
     const subscription = listenSafe(query, { slug })
       .subscribe((update: any) => {
+        console.debug(`📡 Grower "${slug}" mutation event received:`, update?.type);
+        
         if (update?.type === 'mutation') {
           if (update.result) {
+            // Grower updated - re-fetch to get fresh data
             fetchGrower();
+            console.debug(`🔄 Grower "${slug}" updated in real-time!`);
           } else {
+            // Grower deleted
             setGrower(null);
+            console.debug(`🗑️ Grower "${slug}" deleted in real-time!`);
           }
         }
       });
 
     return () => {
       subscription.unsubscribe();
+      console.log(`🧹 Grower "${slug}" subscription cleaned up`);
     };
   }, [slug, fetchGrower]);
 
@@ -537,11 +559,13 @@ export function useSanityGrowerProducts(growerId: string, limit?: number) {
         nutrition
       }`;
 
+      console.log(`📦 Fetching products for grower "${growerId}"...`);
       const data = await sanityClient.fetch<GrowerProduct[]>(query, { growerId });
       
       setProducts(data || []);
+      console.log(`✅ Products fetched for grower "${growerId}":`, data?.length || 0);
     } catch (err) {
-      console.error(`Error fetching products for grower "${growerId}":`, err);
+      console.error(`❌ Error fetching products for grower "${growerId}":`, err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -554,6 +578,8 @@ export function useSanityGrowerProducts(growerId: string, limit?: number) {
     fetchProducts();
 
     // Set up REAL-TIME subscription for products by this grower
+    console.log(`🔌 Setting up real-time subscription for products by grower "${growerId}"`);
+    
     let query = `*[_type == "product" && references($growerId) && !(_id in path("drafts.**"))]`;
     
     if (limit) {
@@ -562,13 +588,18 @@ export function useSanityGrowerProducts(growerId: string, limit?: number) {
 
     const subscription = listenSafe(query, { growerId })
       .subscribe((update) => {
+        console.log(`📡 Products by grower "${growerId}" mutation event received:`, update.type);
+        
         if (update.type === 'mutation') {
+          // Re-fetch products to get fresh data
           fetchProducts();
+          console.log(`🔄 Products by grower "${growerId}" updated in real-time!`);
         }
       });
 
     return () => {
       subscription.unsubscribe();
+      console.log(`🧹 Products by grower "${growerId}" subscription cleaned up`);
     };
   }, [growerId, limit, fetchProducts]);
 

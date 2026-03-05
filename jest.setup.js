@@ -101,7 +101,7 @@ if (typeof Request === 'undefined') {
 
 // Mock Firebase Auth to prevent initialization errors in tests
 jest.mock('firebase/auth', () => ({
-  getAuth: jest.fn(() => ({ currentUser: null })),
+  getAuth: jest.fn(() => ({})),
   GoogleAuthProvider: jest.fn(() => ({
     addScope: jest.fn(),
     setCustomParameters: jest.fn(),
@@ -122,26 +122,6 @@ jest.mock('firebase/auth', () => ({
   signInWithEmailLink: jest.fn(() => Promise.resolve({ user: {} })),
   sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
   updateProfile: jest.fn(() => Promise.resolve()),
-  // Firebase Phone Auth
-  RecaptchaVerifier: jest.fn(() => ({
-    clear: jest.fn(),
-    render: jest.fn(() => Promise.resolve()),
-    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
-  })),
-  PhoneAuthProvider: Object.assign(
-    jest.fn(() => ({
-      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
-    })),
-    {
-      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
-      PROVIDER_ID: 'phone',
-    },
-  ),
-  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
-  updatePhoneNumber: jest.fn(() => Promise.resolve()),
-  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
-  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
-  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock Firebase App
@@ -151,7 +131,25 @@ jest.mock('firebase/app', () => ({
   getApp: jest.fn(() => ({})),
 }));
 
-// firebase/firestore is mocked in the FIREBASE MOCKS section below - see line ~411
+// Mock Firebase/Firestore for analytics
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(() => ({})),
+  collection: jest.fn(),
+  addDoc: jest.fn(() => Promise.resolve({ id: 'mock-id' })),
+  query: jest.fn(),
+  where: jest.fn(),
+  getDocs: jest.fn(() => Promise.resolve({ docs: [] })),
+  orderBy: jest.fn(),
+  limit: jest.fn(),
+  Timestamp: {
+    now: jest.fn(() => ({ seconds: Date.now() / 1000 })),
+    fromDate: jest.fn((date) => ({ seconds: date.getTime() / 1000 })),
+  },
+  serverTimestamp: jest.fn(() => ({ _methodName: 'serverTimestamp' })),
+  updateDoc: jest.fn(() => Promise.resolve()),
+  doc: jest.fn(),
+  increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
+}));
 
 // NOTE: js-cookie is mocked via __mocks__/js-cookie.js manual mock file
 // That mock uses an in-memory store and exposes it via __cookieStore
@@ -211,7 +209,6 @@ jest.mock('next-sanity', () => ({
     fetch: jest.fn(() => Promise.resolve([])),
   }),
   createImageUrlBuilder: () => ({ url: () => '' }),
-  groq: (strings, ...values) => String.raw(strings, ...values),
 }));
 
 
@@ -375,7 +372,6 @@ jest.mock('firebase/app', () => ({
 jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({
     currentUser: null,
-    settings: {},
   })),
   signInWithPopup: jest.fn(),
   GoogleAuthProvider: jest.fn(() => ({
@@ -387,36 +383,9 @@ jest.mock('firebase/auth', () => ({
     callback(null);
     return jest.fn(); // Unsubscribe function
   }),
-  setPersistence: jest.fn(() => Promise.resolve()),
-  browserLocalPersistence: {},
-  createUserWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
-  signInWithEmailAndPassword: jest.fn(() => Promise.resolve({ user: {} })),
-  sendEmailVerification: jest.fn(() => Promise.resolve()),
   sendSignInLinkToEmail: jest.fn(),
   isSignInWithEmailLink: jest.fn(() => false),
   signInWithEmailLink: jest.fn(),
-  sendPasswordResetEmail: jest.fn(() => Promise.resolve()),
-  updateProfile: jest.fn(() => Promise.resolve()),
-  // Phone Auth functions
-  RecaptchaVerifier: jest.fn(() => ({
-    clear: jest.fn(),
-    render: jest.fn(() => Promise.resolve()),
-    verify: jest.fn(() => Promise.resolve('mock-recaptcha-token')),
-  })),
-  PhoneAuthProvider: Object.assign(
-    jest.fn(() => ({
-      verifyPhoneNumber: jest.fn(() => Promise.resolve('mock-verification-id')),
-    })),
-    {
-      credential: jest.fn(() => ({ providerId: 'phone', verificationId: 'mock-verification-id', smsCode: '123456' })),
-      PROVIDER_ID: 'phone',
-    },
-  ),
-  linkWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
-  updatePhoneNumber: jest.fn(() => Promise.resolve()),
-  signInWithCredential: jest.fn(() => Promise.resolve({ user: {} })),
-  signInWithPhoneNumber: jest.fn(() => Promise.resolve({ verificationId: 'mock-verification-id', confirm: jest.fn(() => Promise.resolve({ user: {} })) })),
-  initializeRecaptchaConfig: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -436,27 +405,10 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(() => Promise.resolve()),
   doc: jest.fn(),
   increment: jest.fn((value) => ({ _methodName: 'increment', _operand: value })),
-  arrayUnion: jest.fn((...args) => args),
-  arrayRemove: jest.fn((...args) => args),
   getDoc: jest.fn(() => Promise.resolve({ exists: () => false })),
   setDoc: jest.fn(() => Promise.resolve()),
   deleteDoc: jest.fn(() => Promise.resolve()),
-  onSnapshot: jest.fn(() => jest.fn()),
-  writeBatch: jest.fn(() => ({
-    set: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    commit: jest.fn(() => Promise.resolve()),
-  })),
-  runTransaction: jest.fn((db, updateFn) => {
-    const mockTransaction = {
-      get: jest.fn(() => Promise.resolve({ exists: () => true, data: () => ({}) })),
-      set: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-    return updateFn(mockTransaction);
-  }),
+  onSnapshot: jest.fn(),
 }));
 
 // ============================================================================
@@ -466,45 +418,7 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('@/lib/sanity/client', () => ({
   sanityClient: {
     fetch: jest.fn(() => Promise.resolve([])),
-    listen: jest.fn(() => ({
-      subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
-    })),
   },
-  listenSafe: jest.fn(() => ({
-    subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
-  })),
-  urlFor: jest.fn(() => ({
-    width: jest.fn().mockReturnThis(),
-    height: jest.fn().mockReturnThis(),
-    format: jest.fn().mockReturnThis(),
-    quality: jest.fn().mockReturnThis(),
-    fit: jest.fn().mockReturnThis(),
-    url: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
-    image: jest.fn().mockReturnThis(),
-  })),
-  getImageUrl: jest.fn(() => 'https://mock-sanity-image.url/test.webp'),
-  getClient: jest.fn(() => ({
-    fetch: jest.fn(() => Promise.resolve([])),
-  })),
-  previewClient: {
-    fetch: jest.fn(() => Promise.resolve([])),
-  },
-  sanityWriteClient: {
-    fetch: jest.fn(() => Promise.resolve([])),
-    create: jest.fn(() => Promise.resolve({})),
-    patch: jest.fn(() => ({
-      set: jest.fn().mockReturnThis(),
-      commit: jest.fn(() => Promise.resolve({})),
-    })),
-  },
-  sanityFreshClient: {
-    fetch: jest.fn(() => Promise.resolve([])),
-  },
-  isSanityConfigured: jest.fn(() => true),
-  isWriteConfigured: jest.fn(() => false),
-  projectId: 'test-project-id',
-  dataset: 'production',
-  apiVersion: '2024-11-26',
 }));
 
 // ============================================================================
