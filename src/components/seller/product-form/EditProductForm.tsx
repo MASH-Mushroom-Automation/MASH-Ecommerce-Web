@@ -124,7 +124,8 @@ export function EditProductForm({ productId }: EditProductFormProps) {
           isAvailable: product.isAvailable !== false,
         });
 
-        // Load images
+        // Load images – populate sanityAssetId so existing images are
+        // preserved without re-uploading when the seller saves without changing them.
         const productImages: UploadedImage[] = [];
         if (product.image) {
           productImages.push({
@@ -132,7 +133,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
             url: product.image,
             alt: product.name,
             isPrimary: true,
-            sanityAssetId: undefined, // Will be preserved if not changed
+            sanityAssetId: product.mainImageRef || undefined,
           });
         }
         if (product.images && product.images.length > 0) {
@@ -142,7 +143,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               url: img,
               alt: `${product.name} - Image ${index + 1}`,
               isPrimary: false,
-              sanityAssetId: undefined,
+              sanityAssetId: product.imageRefs?.[index] || undefined,
             });
           });
         }
@@ -187,12 +188,14 @@ export function EditProductForm({ productId }: EditProductFormProps) {
 
     try {
       // Step 1: Upload new images that haven't been uploaded yet
-      const imagesToUpload = images.filter((img) => img.file && !img.sanityAssetId);
+      const imagesToUpload = images.filter(
+        (img) => img.file && !img.sanityAssetId,
+      );
       const uploadedImages = [...images];
 
       if (imagesToUpload.length > 0) {
         toast.loading("Uploading images...", { id: "upload-images" });
-        
+
         for (const image of imagesToUpload) {
           if (image.file) {
             try {
@@ -200,20 +203,27 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               formData.append("file", image.file);
               formData.append("alt", image.alt || "");
 
-              const uploadResponse = await fetch("/api/seller/products/upload-image", {
-                method: "POST",
-                body: formData,
-              });
+              const uploadResponse = await fetch(
+                "/api/seller/products/upload-image",
+                {
+                  method: "POST",
+                  body: formData,
+                },
+              );
 
               if (!uploadResponse.ok) {
                 const errorData = await uploadResponse.json();
-                throw new Error(errorData.error?.message || "Failed to upload image");
+                throw new Error(
+                  errorData.error?.message || "Failed to upload image",
+                );
               }
 
               const uploadData = await uploadResponse.json();
-              
+
               // Update the image with the asset ID
-              const imageIndex = uploadedImages.findIndex((img) => img.id === image.id);
+              const imageIndex = uploadedImages.findIndex(
+                (img) => img.id === image.id,
+              );
               if (imageIndex !== -1) {
                 uploadedImages[imageIndex] = {
                   ...uploadedImages[imageIndex],
@@ -226,12 +236,12 @@ export function EditProductForm({ productId }: EditProductFormProps) {
               throw new Error(
                 `Failed to upload image ${image.file.name}: ${
                   error instanceof Error ? error.message : "Unknown error"
-                }`
+                }`,
               );
             }
           }
         }
-        
+
         toast.dismiss("upload-images");
       }
 
@@ -258,7 +268,7 @@ export function EditProductForm({ productId }: EditProductFormProps) {
 
       // Step 3: Update product via API route
       toast.loading("Updating product...", { id: "update-product" });
-      
+
       const response = await fetch(`/api/seller/products/${productId}`, {
         method: "PUT",
         headers: {
@@ -272,8 +282,8 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         throw new Error(errorData.error?.message || "Failed to update product");
       }
 
-      const result = await response.json();
-      
+      await response.json();
+
       toast.dismiss("update-product");
       toast.success("Product updated successfully!", {
         description: `${data.name} has been updated.`,
@@ -373,7 +383,12 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       {/* Form Tabs - Reuse from AddProductForm */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic" className="flex justify-center text-center">Basic Info</TabsTrigger>
+          <TabsTrigger
+            value="basic"
+            className="flex justify-center text-center"
+          >
+            Basic Info
+          </TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
           <TabsTrigger value="variants">Variants</TabsTrigger>
@@ -622,4 +637,3 @@ export function EditProductForm({ productId }: EditProductFormProps) {
     </form>
   );
 }
-
