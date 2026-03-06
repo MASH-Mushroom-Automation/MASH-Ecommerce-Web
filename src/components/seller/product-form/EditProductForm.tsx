@@ -34,6 +34,7 @@ import { SeoFields } from "./SeoFields";
 import { ProductFormData } from "@/lib/sanity/products";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Form validation schema
 const productFormSchema = z.object({
@@ -60,6 +61,7 @@ interface EditProductFormProps {
 
 export function EditProductForm({ productId }: EditProductFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,7 +100,9 @@ export function EditProductForm({ productId }: EditProductFormProps) {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/seller/products/${productId}`);
+        const response = await fetch(`/api/seller/products/${productId}`, {
+          cache: "no-store",
+        });
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error?.message || "Failed to load product");
@@ -288,6 +292,9 @@ export function EditProductForm({ productId }: EditProductFormProps) {
       toast.success("Product updated successfully!", {
         description: `${data.name} has been updated.`,
       });
+
+      // Invalidate the cached product list so the page re-fetches fresh data
+      await queryClient.invalidateQueries({ queryKey: ["seller-products"] });
 
       // Redirect to product list
       router.push(`/seller/products`);
@@ -497,7 +504,14 @@ export function EditProductForm({ productId }: EditProductFormProps) {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    {...register("compareAtPrice", { valueAsNumber: true })}
+                    {...register("compareAtPrice", {
+                      setValueAs: (v) =>
+                        v === "" || v === null || v === undefined
+                          ? undefined
+                          : isNaN(Number(v))
+                            ? undefined
+                            : Number(v),
+                    })}
                   />
                   <p className="text-xs text-muted-foreground">
                     Show a discount by setting a higher compare price
