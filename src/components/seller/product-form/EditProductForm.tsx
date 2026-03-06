@@ -504,7 +504,14 @@ export function EditProductForm({ productId }: EditProductFormProps) {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    {...register("compareAtPrice", { valueAsNumber: true })}
+                    {...register("compareAtPrice", {
+                      setValueAs: (v) =>
+                        v === "" || v === null || v === undefined
+                          ? undefined
+                          : isNaN(Number(v))
+                            ? undefined
+                            : Number(v),
+                    })}
                   />
                   <p className="text-xs text-muted-foreground">
                     Show a discount by setting a higher compare price
