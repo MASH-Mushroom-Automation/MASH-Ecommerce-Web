@@ -3,7 +3,7 @@
  * Utilities for creating, updating, and managing products in Sanity CMS
  */
 
-import { sanityClient, projectId, dataset } from "./client";
+import { sanityClient, sanityFreshClient, projectId, dataset } from "./client";
 import { createClient } from "next-sanity";
 import type { UploadedImage } from "@/components/seller/product-form/ImageUploader";
 import type { ProductVariant } from "@/components/seller/product-form/VariantManager";
@@ -401,7 +401,10 @@ export async function fetchProductById(
       }
     }`;
 
-    const product = await sanityClient.fetch(query, { productId, sellerId });
+    const product = await sanityFreshClient.fetch(query, {
+      productId,
+      sellerId,
+    });
     return product || null;
   } catch (error) {
     console.error("Error fetching product:", error);

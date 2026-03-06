@@ -9,6 +9,12 @@ import type { UploadedImage } from "@/components/seller/product-form/ImageUpload
 import type { ProductVariant } from "@/components/seller/product-form/VariantManager";
 import { getUserIdFromToken } from "@/lib/jwt";
 
+// Force this route to always fetch fresh data — never use Next.js's data cache
+// This is critical: Sanity client's internal fetch() calls are cached by Next.js
+// App Router unless explicitly opted out here.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 // Helper function to get current user ID from JWT token
 async function getCurrentUserId(): Promise<string | null> {
   try {
@@ -85,29 +91,36 @@ export async function GET(
     }
 
     // Transform to match expected format
-    return NextResponse.json({
-      success: true,
-      data: {
-        id: product._id,
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        price: product.price,
-        compareAtPrice: product.compareAtPrice,
-        stock: product.stock,
-        sku: product.sku,
-        weight: product.weight,
-        isAvailable: product.isAvailable,
-        hasVariants: product.hasVariants,
-        image: product.mainImage || product.images?.[0] || "",
-        mainImageRef: product.mainImageRef || undefined,
-        images: product.images || [],
-        imageRefs: product.imageRefs || [],
-        slug: product.slug,
-        seo: product.seo,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: product._id,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          price: product.price,
+          compareAtPrice: product.compareAtPrice,
+          stock: product.stock,
+          sku: product.sku,
+          weight: product.weight,
+          isAvailable: product.isAvailable,
+          hasVariants: product.hasVariants,
+          image: product.mainImage || product.images?.[0] || "",
+          mainImageRef: product.mainImageRef || undefined,
+          images: product.images || [],
+          imageRefs: product.imageRefs || [],
+          slug: product.slug,
+          seo: product.seo,
+        },
+        timestamp: new Date().toISOString(),
       },
-      timestamp: new Date().toISOString(),
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
