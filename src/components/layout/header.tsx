@@ -83,9 +83,15 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
               Application Pending ⏳
             </span>
           ) : (
-            <Link href="/start-selling" className="hover:underline">
-              Start Selling
-            </Link>
+            <>
+              <Link href="/start-selling" className="hover:underline">
+                Start Selling
+              </Link>
+              <span className="opacity-50">|</span>
+              <Link href="/seller/dashboard" className="hover:underline">
+                Seller Centre
+              </Link>
+            </>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
@@ -192,7 +198,7 @@ export function SellerHeader() {
               width={150}
               height={50}
               className="h-16 w-auto sm:h-20"
-              style={{ width: 'auto', height: 'auto' }}
+              style={{ width: "auto", height: "auto" }}
               priority
             />
           )}
@@ -237,7 +243,9 @@ export function SimpleHeader() {
               alt="MASH Logo"
               width={150}
               height={50}
-              className="h-10 w-auto sm:h-12"              style={{ width: 'auto', height: 'auto' }}              priority
+              className="h-10 w-auto sm:h-12"
+              style={{ width: "auto", height: "auto" }}
+              priority
             />
           )}
         </Link>
@@ -254,8 +262,9 @@ const NavLink: React.FC<NavLinkProps> = ({ label, path }) => {
   return (
     <Link
       href={path}
-      className={`relative text-base font-semibold ${active ? "text-primary" : "text-muted-foreground"
-        } hover:text-primary transition-colors h-full flex items-center`}
+      className={`relative text-base font-semibold ${
+        active ? "text-primary" : "text-muted-foreground"
+      } hover:text-primary transition-colors h-full flex items-center`}
     >
       {label}
       {active && (
@@ -350,7 +359,7 @@ export function Header() {
                 width={150}
                 height={50}
                 className="h-10 w-auto sm:h-12"
-                style={{ width: 'auto', height: 'auto' }}
+                style={{ width: "auto", height: "auto" }}
                 priority
               />
             )}
@@ -480,7 +489,10 @@ export function Header() {
                     />
                   </div>
 
-                  <nav className="flex flex-col space-y-2" aria-label="Mobile Navigation">
+                  <nav
+                    className="flex flex-col space-y-2"
+                    aria-label="Mobile Navigation"
+                  >
                     {/* CMS-driven navigation for mobile */}
                     {headerNav?.items?.length ? (
                       headerNav.items.map((item) => (
@@ -592,14 +604,20 @@ export function Header() {
                   </div>
 
                   {/* Social Media Links - Mobile */}
-                  <SocialLinks variant="mobile" socialMedia={settings?.socialMedia} />
+                  <SocialLinks
+                    variant="mobile"
+                    socialMedia={settings?.socialMedia}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
 
-        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur" aria-label="Main Navigation">
+        <nav
+          className="border-t border-border hidden lg:block bg-card/60 backdrop-blur"
+          aria-label="Main Navigation"
+        >
           <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
             {/* Fallback navigation when CMS is loading or unavailable */}
             {navLoading || !headerNav?.items?.length ? (
