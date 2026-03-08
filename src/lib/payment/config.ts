@@ -12,27 +12,31 @@ import { type PaymentMethod, PAYMENT_METHODS } from "@/types/payment";
 
 // ---------------------------------------------------------------------------
 // Environment Variables
+//
+// IMPORTANT: NEXT_PUBLIC_* vars MUST be accessed as static string literals
+// (e.g. process.env.NEXT_PUBLIC_FOO) so that Next.js / Turbopack can inline
+// them at build time for client-side bundles.  A dynamic helper like
+// process.env[key] will NOT be replaced and will return undefined in the
+// browser, causing PayMongo to appear disabled.
 // ---------------------------------------------------------------------------
 
-function getEnv(key: string): string {
-  if (typeof process !== "undefined" && process.env) {
-    return process.env[key] ?? "";
-  }
-  return "";
-}
-
 /** PayMongo secret key (server-only, never expose to client) */
-export const PAYMONGO_SECRET_KEY = getEnv("PAYMONGO_SECRET_KEY");
+export const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY ?? "";
 
-/** PayMongo public key (safe for client-side usage) */
-export const PAYMONGO_PUBLIC_KEY = getEnv("NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY");
+/**
+ * PayMongo public key (safe for client-side usage).
+ * Accessed as a static literal so Next.js inlines the value into the
+ * client bundle at build / dev-server compile time.
+ */
+export const PAYMONGO_PUBLIC_KEY =
+  process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY ?? "";
 
 /** PayMongo API base URL */
 export const PAYMONGO_API_URL = "https://api.paymongo.com/v1";
 
 /** Application base URL for redirect callbacks */
 export const APP_BASE_URL =
-  getEnv("NEXT_PUBLIC_APP_URL") || "https://www.mashmarket.app";
+  process.env.NEXT_PUBLIC_APP_URL || "https://www.mashmarket.app";
 
 // ---------------------------------------------------------------------------
 // Feature Flags
