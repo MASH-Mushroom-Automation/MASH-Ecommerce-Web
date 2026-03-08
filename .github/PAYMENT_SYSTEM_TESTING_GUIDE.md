@@ -1,7 +1,8 @@
 # Payment System - Manual Testing Guide
 
 > **Branch:** `feature/payment-system-full-capability`
-> **Last Verified:** March 2, 2026 -- Build PASS, 302 suites, 7226 tests
+> **Last Verified:** March 8, 2026 -- Build PASS, 305 suites, 7834 tests
+> **PayMongo Mode:** TEST (test API keys configured in .env)
 
 This guide walks you through testing every payment flow in the MASH e-commerce platform. Follow it step by step.
 

@@ -191,13 +191,13 @@ describe("CheckoutStep3Payment", () => {
       ).toBeInTheDocument();
     });
 
-    it("should show card info and card form when card is selected", () => {
+    it("should show card info box when card is selected", () => {
       renderComponent("card");
       expect(
         screen.getByText("Card Payment")
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/Card number/i)
+        screen.getByText(/securely processed/i)
       ).toBeInTheDocument();
     });
 

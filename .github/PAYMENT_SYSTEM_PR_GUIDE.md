@@ -4,6 +4,7 @@
 > **Target:** `main`
 > **Stories:** 20/20 complete (PAY-001 through PAY-020)
 > **Status:** Ready for review and merge
+> **Last Verified:** March 8, 2026
 
 ---
 
@@ -18,8 +19,8 @@ This PR implements a complete payment system for the MASH e-commerce platform wi
 | Files changed | ~478 |
 | New payment files | 48 (source + tests) |
 | New payment code | ~15,900 lines |
-| Test suites | 302 (all passing) |
-| Total tests | 7,226 (0 failures) |
+| Test suites | 305 (all passing) |
+| Total tests | 7,834 (0 failures) |
 | Build | Zero errors |
 | Lint | Zero warnings |
 
@@ -62,7 +63,7 @@ This PR implements a complete payment system for the MASH e-commerce platform wi
 | `PaymentMethodSelector` | Radix radio-group with payment method cards |
 | `PaymentMethodCard` | Individual payment method option with icon |
 | `PaymentMethodInfoBox` | Contextual instructions per payment method |
-| `CardPaymentForm` | Card input with brand detection, Luhn validation, masking |
+| `CardPaymentForm` | Card input utilities (brand detection, Luhn validation) -- kept as utility, not rendered in checkout |
 | `PaymentProcessingOverlay` | Full-screen overlay during payment with progress messages |
 | `PaymentLogo` | Optimized SVG logos for each payment provider |
 | `CheckoutStep3Payment` | Complete Step 3 integrating all payment components |
@@ -119,15 +120,25 @@ Before redirecting to payment providers, the pending order details (orderId, amo
 ### For Online Payments (PayMongo)
 ```env
 # Server-side only -- NEVER expose to client
-PAYMONGO_SECRET_KEY=sk_test_xxxxxxxxxxxxxx
+PAYMONGO_SECRET_KEY=sk_test_A3VV6Jgfw7KaesYQzNUiYHW9
 
-# Client-safe -- used for PayMongo.js (future use)
-NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxx
+# Client-safe -- used for UI payment method detection
+NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY=pk_test_8Mf9jpeSkie98yeKXTYUQy5i
 
-# Webhook signature verification
+# Webhook signature verification (set after creating webhook in PayMongo dashboard)
 PAYMONGO_WEBHOOK_SECRET=whsk_xxxxxxxxxxxxxx
 
-# App URL for redirect callbacks
+# App URL for payment redirect callbacks
+# Use http://localhost:3000 for development
+# Use https://www.mashmarket.app for production
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### For Production (Railway)
+```env
+PAYMONGO_SECRET_KEY=sk_live_bYZjp5no1DBZdLG2K6Pxy5T6
+NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY=pk_live_EuugYfAKnb7xtvKjPbtGu5ir
+PAYMONGO_WEBHOOK_SECRET=whsk_your_production_webhook_secret
 NEXT_PUBLIC_APP_URL=https://www.mashmarket.app
 ```
 
@@ -188,7 +199,7 @@ npx jest --coverage --testPathPatterns=payment --forceExit
 |------|---------|--------|
 | Build | `npm run build` | PASS (zero errors) |
 | Lint | `npm run lint` | PASS (zero warnings) |
-| Tests | `npm run test` | PASS (302 suites, 7,226 tests) |
+| Tests | `npm run test` | PASS (305 suites, 7,834 tests) |
 | TypeScript | Compiled via build | PASS |
 
 ---
@@ -260,7 +271,7 @@ If issues arise, remove the PayMongo env vars from Railway. The system will auto
 ## Known Limitations
 
 1. **No refund flow yet** -- refunds require manual processing in PayMongo dashboard
-2. **Card form is preview only** -- actual card entry happens on PayMongo's hosted page (Checkout Sessions API)
+2. **Card uses hosted checkout** -- card entry happens entirely on PayMongo's hosted page (Checkout Sessions API). The local CardPaymentForm was removed from the checkout flow to avoid confusing users who would enter card details twice.
 3. **Webhook delivery depends on PayMongo** -- if their webhook fails, the client polling handles it (up to 60s)
 4. **No partial payments** -- full order amount required
 5. **Philippine Peso (PHP) only** -- hardcoded currency

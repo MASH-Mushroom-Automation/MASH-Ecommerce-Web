@@ -11,6 +11,7 @@
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || "";
 const PAYMONGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY || "";
 const PAYMONGO_API_URL = "https://api.paymongo.com/v1";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 // Check if PayMongo is configured
 export function isPayMongoConfigured(): boolean {
@@ -107,8 +108,8 @@ export async function createEWalletPayment(
           currency: "PHP",
           type: type,
           redirect: {
-            success: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/payment-success?orderId=${orderId}`,
-            failed: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/payment-failed?orderId=${orderId}`,
+            success: `${APP_URL}/checkout/payment-success?orderId=${orderId}`,
+            failed: `${APP_URL}/checkout/payment-failed?orderId=${orderId}`,
           },
           billing: {
             name: customerName,
@@ -261,7 +262,6 @@ export async function createCardCheckoutSession(
 
   try {
     const amountInCentavos = Math.round(amount * 100);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const payload = {
       data: {
@@ -281,8 +281,8 @@ export async function createCardCheckoutSession(
             },
           ],
           payment_method_types: ["card"],
-          success_url: `${appUrl}/checkout/payment-success?orderId=${orderId}`,
-          cancel_url: `${appUrl}/checkout/payment-failed?orderId=${orderId}`,
+          success_url: `${APP_URL}/checkout/payment-success?orderId=${orderId}`,
+          cancel_url: `${APP_URL}/checkout/payment-failed?orderId=${orderId}`,
           reference_number: orderNumber,
           metadata: {
             orderId,
@@ -573,6 +573,7 @@ export default {
   isPayMongoConfigured,
   createEWalletPayment,
   createCardPaymentIntent,
+  createCardCheckoutSession,
   attachPaymentMethod,
   getSourceStatus,
   getPaymentIntentStatus,

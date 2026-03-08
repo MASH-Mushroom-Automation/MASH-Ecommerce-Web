@@ -1,7 +1,7 @@
 "use client";
 
 import { UseFormReturn } from "react-hook-form";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,6 @@ import { PICKUP_LOCATIONS } from "@/components/checkout";
 import type { Step1FormValues, Step2FormValues, Step3FormValues } from "./checkout-schemas";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { PaymentMethodInfoBox, getPaymentButtonLabel } from "./PaymentMethodInfoBox";
-import { CardPaymentForm } from "./CardPaymentForm";
 import { PaymentProcessingOverlay } from "./PaymentProcessingOverlay";
 import type { PaymentMethod } from "@/types/payment";
 import { PAYMENT_METHOD_LABELS, isCardMethod, isCodMethod } from "@/types/payment";
@@ -74,8 +73,6 @@ export function CheckoutStep3Payment({
   onRetryPayment,
   loadingMessage = null,
 }: CheckoutStep3PaymentProps) {
-  const [cardValid, setCardValid] = useState(false);
-
   const selectedMethod = form.watch("paymentMethod") as PaymentMethod;
   const isProcessing = submitting || paymentProcessing;
 
@@ -158,14 +155,10 @@ export function CheckoutStep3Payment({
             </div>
           )}
 
-          {/* Card form when card selected */}
+          {/* Card info when card selected - PayMongo hosts the secure card form */}
           {isCardMethod(selectedMethod) && (
             <div className="transition-all duration-200">
-              <PaymentMethodInfoBox selectedMethod={selectedMethod} className="mb-4" />
-              <CardPaymentForm
-                disabled={isProcessing}
-                onChange={(data) => setCardValid(data.isValid)}
-              />
+              <PaymentMethodInfoBox selectedMethod={selectedMethod} />
             </div>
           )}
 
