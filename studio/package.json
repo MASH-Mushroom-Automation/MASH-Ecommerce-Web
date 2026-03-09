@@ -30,7 +30,7 @@
     "react-dom": "^19.2.4",
     "rxjs": "^7.8.2",
     "sanity": "^5.12.0",
-    "sanity-plugin-asset-source-unsplash": "^5.0.0",
+    "sanity-plugin-asset-source-unsplash": "^7.0.5",
     "styled-components": "^6.1.19"
   },
   "devDependencies": {
