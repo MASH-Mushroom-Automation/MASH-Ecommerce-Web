@@ -16,6 +16,7 @@ import { z } from "zod";
 import {
   getSourceStatus,
   getPaymentIntentStatus,
+  getCheckoutSessionStatus,
   isPayMongoConfigured,
 } from "@/lib/payment";
 import { paymentMethodSchema } from "@/types/payment";
@@ -33,8 +34,8 @@ import {
 const statusQuerySchema = z.object({
   /** Payment ID (PayMongo source or intent id). Accepts "paymentId" or "id". */
   paymentId: z.string().min(1, "Payment ID is required"),
-  /** Whether this is a source (e-wallet) or intent (card) lookup. */
-  type: z.enum(["source", "intent"]).default("source"),
+  /** Whether this is a source (e-wallet) or intent (card) or checkout_session lookup. */
+  type: z.enum(["source", "intent", "checkout_session"]).default("source"),
   /** Optional: payment method for enriched response. */
   method: paymentMethodSchema.optional(),
   /**
@@ -182,7 +183,9 @@ export async function GET(request: NextRequest) {
     const result =
       type === "intent"
         ? await getPaymentIntentStatus(paymentId)
-        : await getSourceStatus(paymentId);
+        : type === "checkout_session"
+          ? await getCheckoutSessionStatus(paymentId)
+          : await getSourceStatus(paymentId);
 
     return jsonWithHeaders(
       buildResponse({

@@ -471,6 +471,60 @@ export async function getPaymentIntentStatus(paymentIntentId: string): Promise<{
 }
 
 /**
+ * Get checkout session status
+ *
+ * Used for card payments that go through PayMongo's hosted checkout.
+ * The checkout session has its own status and includes payment information.
+ */
+export async function getCheckoutSessionStatus(sessionId: string): Promise<{
+  status: PaymentStatus;
+  paid: boolean;
+  paymentId?: string;
+}> {
+  if (!isPayMongoConfigured()) {
+    return { status: "failed", paid: false };
+  }
+
+  try {
+    const response = await fetch(
+      `${PAYMONGO_API_URL}/checkout_sessions/${sessionId}`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { status: "failed", paid: false };
+    }
+
+    const session = data.data;
+    const sessionStatus = session.attributes.status;
+    const payments = session.attributes.payments || [];
+    const paymentIntent = session.attributes.payment_intent;
+
+    // Checkout session statuses: active, expired, paid
+    const isPaid = sessionStatus === "paid" || payments.length > 0;
+    const mappedStatus: PaymentStatus = isPaid
+      ? "succeeded"
+      : sessionStatus === "expired"
+        ? "cancelled"
+        : "pending";
+
+    return {
+      status: mappedStatus,
+      paid: isPaid,
+      paymentId: payments[0]?.id || paymentIntent?.id,
+    };
+  } catch (error) {
+    console.error("PayMongo checkout session status error:", error);
+    return { status: "failed", paid: false };
+  }
+}
+
+/**
  * Create a payment for a chargeable source (after user authorizes)
  */
 export async function createPaymentFromSource(
@@ -577,6 +631,7 @@ export default {
   attachPaymentMethod,
   getSourceStatus,
   getPaymentIntentStatus,
+  getCheckoutSessionStatus,
   createPaymentFromSource,
   verifyWebhookSignature,
   getPublicKey,

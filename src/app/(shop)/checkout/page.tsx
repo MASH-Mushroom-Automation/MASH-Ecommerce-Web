@@ -189,7 +189,7 @@ export default function CheckoutPage() {
     orderId: string,
     orderNumber: string,
     amount: number
-  ): Promise<{ success: boolean; checkoutUrl?: string; error?: string }> => {
+  ): Promise<{ success: boolean; checkoutUrl?: string; paymentId?: string; error?: string }> => {
     try {
       const response = await fetch("/api/payment/create-intent", {
         method: "POST",
@@ -215,6 +215,7 @@ export default function CheckoutPage() {
       return {
         success: true,
         checkoutUrl: data.checkoutUrl,
+        paymentId: data.paymentId,
       };
     } catch (error) {
       console.error("[Checkout] Payment processing error:", error);
@@ -226,16 +227,21 @@ export default function CheckoutPage() {
    * Store pending order in sessionStorage so the payment-success page
    * can access order details after a redirect-based payment flow.
    */
-  const storePendingOrder = (orderId: string, orderNumber: string) => {
+  const storePendingOrder = (orderId: string, orderNumber: string, paymentId?: string) => {
     try {
+      const method = step3Form.getValues("paymentMethod") as PaymentMethod;
+      // Determine the PayMongo resource type for status polling
+      const paymentType = method === "card" ? "checkout_session" : "source";
       sessionStorage.setItem(
         "pendingOrder",
         JSON.stringify({
           orderId,
           orderNumber,
+          paymentId,
+          paymentType,
           customerEmail: step2Data?.email,
           customerName: step2Data?.name,
-          paymentMethod: step3Form.getValues("paymentMethod"),
+          paymentMethod: method,
           vendor: selectedVendor,
           timestamp: Date.now(),
           amount: totalWithDelivery,
@@ -278,7 +284,7 @@ export default function CheckoutPage() {
       );
 
       if (result.success && result.checkoutUrl) {
-        storePendingOrder(pendingOrderId, orderNumber);
+        storePendingOrder(pendingOrderId, orderNumber, result.paymentId);
         window.location.href = result.checkoutUrl;
         return;
       }
@@ -420,8 +426,8 @@ export default function CheckoutPage() {
         );
 
         if (result.success && result.checkoutUrl) {
-          // Store pending order for redirect return
-          storePendingOrder(currentOrderId, orderNumber);
+          // Store pending order for redirect return (include PayMongo paymentId for verification)
+          storePendingOrder(currentOrderId, orderNumber, result.paymentId);
           // Redirect to PayMongo checkout (e-wallet) or 3DS page (card)
           window.location.href = result.checkoutUrl;
           return; // Don't reset submitting -- we're navigating away

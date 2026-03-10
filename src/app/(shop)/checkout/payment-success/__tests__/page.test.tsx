@@ -764,4 +764,253 @@ describe("PaymentSuccessPage", () => {
       });
     });
   });
+
+  // -----------------------------------------------------------------------
+  // PaymentId / PaymentType Verification Flow (New)
+  // -----------------------------------------------------------------------
+
+  describe("PaymentId-based Verification", () => {
+    it("should verify using stored paymentId and paymentType from pendingOrder", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentId: "src_gcash_001",
+        paymentType: "source",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("paymentId=src_gcash_001")
+        );
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("type=source")
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+    });
+
+    it("should verify checkout_session type for card payments", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentMethod: "card",
+        paymentId: "cs_card_001",
+        paymentType: "checkout_session",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("paymentId=cs_card_001")
+        );
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("type=checkout_session")
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+    });
+
+    it("should treat as success when pending exists but no paymentId (redirect pre-auth)", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      // No paymentId means old flow — redirect = pre-authorized
+      setPendingOrder(createPendingOrder());
+
+      // Fetch should NOT be called for verification
+      const fetchMock = global.fetch as jest.Mock;
+      fetchMock.mockClear();
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      // API should NOT have been called since no paymentId was stored
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        expect.stringContaining("/api/payment/status")
+      );
+    });
+
+    it("should fall back to orderId when no pending data exists", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      // Intentionally no pendingOrder in sessionStorage
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("paymentId=order-abc-123")
+        );
+      });
+    });
+
+    it("should pass paymentType=source as default when no paymentType stored", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      // No pending data, so falls back to orderId with default type
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("type=source")
+        );
+      });
+    });
+
+    it("should use stored paymentId for polling when in pending state", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-poll-123" });
+      // No pending data, API returns pending first then succeeded
+      let callCount = 0;
+      (global.fetch as jest.Mock).mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, status: "pending", paid: false }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+        });
+      });
+
+      render(<PaymentSuccessPage />);
+
+      // Wait for first call (pending result -> enters pending state)
+      await waitFor(() => {
+        expect(callCount).toBeGreaterThanOrEqual(1);
+      });
+
+      // Advance timer past poll interval (3000ms) and flush microtasks
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+        // Allow promises to settle
+        await Promise.resolve();
+      });
+
+      // Eventually should succeed
+      await waitFor(
+        () => {
+          expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+        },
+        { timeout: 10000 }
+      );
+    });
+
+    it("should show failed when API returns failed status with paymentId", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentId: "src_failed_001",
+        paymentType: "source",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "failed", paid: false }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Not Confirmed")).toBeInTheDocument();
+      });
+    });
+
+    it("should show failed when checkout_session is expired", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentMethod: "card",
+        paymentId: "cs_expired_001",
+        paymentType: "checkout_session",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "expired", paid: false }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Not Confirmed")).toBeInTheDocument();
+      });
+    });
+
+    it("should clear cart and send email on successful paymentId verification", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentId: "src_success_001",
+        paymentType: "source",
+        customerEmail: "buyer@example.com",
+        vendor: "Farm Fresh",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      // Cart should be cleared for the specific vendor
+      expect(mockRemoveVendorItems).toHaveBeenCalledWith("Farm Fresh");
+
+      // Email should be sent
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        "buyer@example.com",
+        expect.objectContaining({
+          customerName: "Test User",
+          orderNumber: "MASH-0001",
+        })
+      );
+    });
+
+    it("should remove pendingOrder from sessionStorage on success", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder({
+        paymentId: "src_cleanup_001",
+        paymentType: "source",
+      }));
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, status: "succeeded", paid: true }),
+      });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      expect(sessionStorage.getItem("pendingOrder")).toBeNull();
+    });
+  });
 });

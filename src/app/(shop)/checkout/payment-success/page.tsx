@@ -28,6 +28,8 @@ import { toast } from "sonner";
 interface PendingOrderData {
   orderId: string;
   orderNumber: string;
+  paymentId?: string;
+  paymentType?: "source" | "intent" | "checkout_session";
   customerEmail?: string;
   customerName?: string;
   paymentMethod?: PaymentMethod;
@@ -142,10 +144,13 @@ function PaymentSuccessContent() {
   // Verify payment status via API
   // -----------------------------------------------------------------------
   const verifyPaymentStatus = useCallback(
-    async (paymentId: string): Promise<{ status: PaymentStatus; paid: boolean }> => {
+    async (
+      paymentId: string,
+      paymentType: string = "source"
+    ): Promise<{ status: PaymentStatus; paid: boolean }> => {
       try {
         const res = await fetch(
-          `/api/payment/status?paymentId=${encodeURIComponent(paymentId)}&type=source`
+          `/api/payment/status?paymentId=${encodeURIComponent(paymentId)}&type=${encodeURIComponent(paymentType)}`
         );
         if (!res.ok) {
           return { status: "pending", paid: false };
@@ -199,9 +204,23 @@ function PaymentSuccessContent() {
       return;
     }
 
+    // Determine the PayMongo ID and type to use for verification
+    // Priority: stored paymentId from sessionStorage > fallback to orderId
+    const verifyId = pending?.paymentId || orderId;
+    const verifyType = pending?.paymentType || "source";
+
     // Step 1: Try to verify via the payment status API
     const attemptVerification = async () => {
-      const result = await verifyPaymentStatus(orderId);
+      // If we have pending order data from redirect but no stored PayMongo ID,
+      // the payment was already authorized by the redirect (user went through
+      // PayMongo's flow and came back). Treat as success.
+      if (pending && !pending.paymentId) {
+        onPaymentVerified(pending);
+        return;
+      }
+
+      // Otherwise verify via API (with paymentId if available, or orderId fallback)
+      const result = await verifyPaymentStatus(verifyId, verifyType);
 
       if (result.paid || result.status === "succeeded") {
         onPaymentVerified(pending || { orderId, orderNumber: orderId.slice(-8).toUpperCase() });
@@ -243,8 +262,12 @@ function PaymentSuccessContent() {
       return;
     }
 
+    // Use stored PayMongo ID if available, otherwise fall back to orderId
+    const pollId = orderData?.paymentId || orderId;
+    const pollType = orderData?.paymentType || "source";
+
     pollTimerRef.current = setTimeout(async () => {
-      const result = await verifyPaymentStatus(orderId);
+      const result = await verifyPaymentStatus(pollId, pollType);
       setPollCount((prev) => prev + 1);
 
       if (result.paid || result.status === "succeeded") {

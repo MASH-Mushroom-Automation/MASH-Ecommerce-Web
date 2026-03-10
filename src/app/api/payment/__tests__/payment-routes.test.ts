@@ -51,6 +51,7 @@ const mockCreateEWalletPayment = jest.fn();
 const mockGetPublicKey = jest.fn().mockReturnValue("pk_test_123");
 const mockGetSourceStatus = jest.fn();
 const mockGetPaymentIntentStatus = jest.fn();
+const mockGetCheckoutSessionStatus = jest.fn();
 
 jest.mock("@/lib/payment", () => ({
   verifyWebhookSignature: (...args: unknown[]) => mockVerifyWebhookSignature(...args),
@@ -62,6 +63,7 @@ jest.mock("@/lib/payment", () => ({
   getPublicKey: () => mockGetPublicKey(),
   getSourceStatus: (...args: unknown[]) => mockGetSourceStatus(...args),
   getPaymentIntentStatus: (...args: unknown[]) => mockGetPaymentIntentStatus(...args),
+  getCheckoutSessionStatus: (...args: unknown[]) => mockGetCheckoutSessionStatus(...args),
 }));
 
 // Mock firebase orders
@@ -1181,6 +1183,7 @@ describe("Payment Status Polling (PAY-010)", () => {
       await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=src_1&type=source" }));
       expect(mockGetSourceStatus).toHaveBeenCalledWith("src_1");
       expect(mockGetPaymentIntentStatus).not.toHaveBeenCalled();
+      expect(mockGetCheckoutSessionStatus).not.toHaveBeenCalled();
     });
 
     it("calls getPaymentIntentStatus for type=intent", async () => {
@@ -1188,6 +1191,39 @@ describe("Payment Status Polling (PAY-010)", () => {
       await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=pi_1&type=intent" }));
       expect(mockGetPaymentIntentStatus).toHaveBeenCalledWith("pi_1");
       expect(mockGetSourceStatus).not.toHaveBeenCalled();
+      expect(mockGetCheckoutSessionStatus).not.toHaveBeenCalled();
+    });
+
+    it("calls getCheckoutSessionStatus for type=checkout_session", async () => {
+      mockGetCheckoutSessionStatus.mockResolvedValue({ status: "succeeded", paid: true, paymentId: "pay_cs_1" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=cs_1&type=checkout_session" }));
+      expect(mockGetCheckoutSessionStatus).toHaveBeenCalledWith("cs_1");
+      expect(mockGetSourceStatus).not.toHaveBeenCalled();
+      expect(mockGetPaymentIntentStatus).not.toHaveBeenCalled();
+      expect(res.body.success).toBe(true);
+      expect(res.body.status).toBe("succeeded");
+      expect(res.body.paid).toBe(true);
+    });
+
+    it("returns correct checkout session paid status", async () => {
+      mockGetCheckoutSessionStatus.mockResolvedValue({ status: "succeeded", paid: true, paymentId: "pay_789" });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=cs_abc&type=checkout_session" }));
+      expect(res.body.paid).toBe(true);
+      expect(res.body.paymentId).toBe("pay_789");
+    });
+
+    it("returns pending for active checkout session", async () => {
+      mockGetCheckoutSessionStatus.mockResolvedValue({ status: "pending", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=cs_abc&type=checkout_session" }));
+      expect(res.body.status).toBe("pending");
+      expect(res.body.paid).toBe(false);
+    });
+
+    it("returns cancelled for expired checkout session", async () => {
+      mockGetCheckoutSessionStatus.mockResolvedValue({ status: "cancelled", paid: false });
+      const res = await GET(createReq({ url: "http://localhost:3000/api/payment/status?paymentId=cs_expired&type=checkout_session" }));
+      expect(res.body.status).toBe("cancelled");
+      expect(res.body.paid).toBe(false);
     });
   });
 

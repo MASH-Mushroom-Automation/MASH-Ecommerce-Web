@@ -29,6 +29,7 @@ export {
   attachPaymentMethod,
   getSourceStatus,
   getPaymentIntentStatus,
+  getCheckoutSessionStatus,
   createPaymentFromSource,
   verifyWebhookSignature,
   getPublicKey,
