@@ -454,6 +454,181 @@
         "Test environment guard: no toasts when typeof jest !== 'undefined'",
         "No TypeScript errors"
       ]
+    },
+    {
+      "id": "LAMA-019",
+      "title": "Unit Tests — ETACountdown Component",
+      "priority": 19,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write complete unit tests for ETACountdown.tsx covering all display states and timer behavior.",
+      "files": ["src/components/delivery/__tests__/ETACountdown.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: shows 'Calculating ETA...' when eta is null",
+        "Test: shows 'Estimated: Xm remaining' when eta provided",
+        "Test: shows 'Arriving soon' when minutes <= 2",
+        "Test: shows distance in km format",
+        "Test: timer stops at 0 (does not go negative)",
+        "Test: renders correctly with 0 distance",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-020",
+      "title": "Unit Tests — StaticTrackingMap Component",
+      "priority": 20,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for StaticTrackingMap.tsx covering marker positions, driver marker, and legend.",
+      "files": ["src/components/delivery/__tests__/StaticTrackingMap.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders pickup marker A and dropoff marker B",
+        "Test: renders driver marker when driverLocation provided",
+        "Test: does not render driver marker when driverLocation undefined",
+        "Test: shows legend with pickup and dropoff entries",
+        "Test: shows driver in legend when driver marker present",
+        "Test: renders 'Simplified Map View' note",
+        "Test: driver marker has animate-pulse for active statuses",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-021",
+      "title": "Unit Tests — DeliveryCostCalculator Component",
+      "priority": 21,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryCostCalculator.tsx covering form inputs, quote fetching, error handling.",
+      "files": ["src/components/delivery/__tests__/DeliveryCostCalculator.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders pickup and delivery input fields",
+        "Test: renders vehicle type selector",
+        "Test: Get Quote button triggers API call",
+        "Test: shows loading state while fetching",
+        "Test: displays quote result on success",
+        "Test: displays error message on API failure",
+        "Test: retry button re-calls API",
+        "Test: calls onQuoteReceived callback with quote data",
+        "Minimum 10 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-022",
+      "title": "Unit Tests — MobileTrackingSheet Component",
+      "priority": 22,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for MobileTrackingSheet.tsx covering desktop/mobile rendering, sheet states, and tracking display.",
+      "files": ["src/components/delivery/__tests__/MobileTrackingSheet.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders desktop Card with 'Delivery Tracking' title",
+        "Test: renders mobile bottom sheet with drag handle",
+        "Test: shows status badge when tracking data available",
+        "Test: shows loading skeleton when loading",
+        "Test: shows driver info when driver assigned",
+        "Test: toggle expand button works",
+        "Test: shows 'No data' text when no tracking",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-023",
+      "title": "Unit Tests — useDeliveryNotifications Hook",
+      "priority": 23,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for useDeliveryNotifications hook covering toast firing on status transitions.",
+      "files": ["src/hooks/__tests__/useDeliveryNotifications.test.ts"],
+      "acceptanceCriteria": [
+        "Test: does not fire toast on initial mount",
+        "Test: fires toast.info on ASSIGNING_DRIVER",
+        "Test: fires toast.success on COMPLETED",
+        "Test: fires toast.error on CANCELLED",
+        "Test: fires toast.info on PICKED_UP",
+        "Test: does not fire toast when status unchanged",
+        "Test: handles null tracking gracefully",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-024",
+      "title": "Unit Tests — Order Approve Route",
+      "priority": 24,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for /api/orders/approve route covering approval, auto Lalamove delivery creation, and error handling.",
+      "files": ["src/app/api/orders/approve/__tests__/route.test.ts"],
+      "acceptanceCriteria": [
+        "Test: returns 400 when orderId or sellerId missing",
+        "Test: calls FirebaseOrdersService.approveOrder with correct args",
+        "Test: returns success when no Lalamove delivery needed",
+        "Test: auto-creates Lalamove order when deliveryMethod=lalamove",
+        "Test: returns deliveryError when Lalamove creation fails",
+        "Test: returns 500 on unexpected error",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-025",
+      "title": "Wire ETACountdown + MobileTrackingSheet into Tracking Page",
+      "priority": 25,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Integrate ETACountdown and MobileTrackingSheet components into the customer tracking page. Also wire useDeliveryNotifications so toasts fire on status changes.",
+      "files": ["src/app/(user)/profile/orders/[orderId]/track/page.tsx"],
+      "acceptanceCriteria": [
+        "ETACountdown component renders with live ETA data from tracking",
+        "MobileTrackingSheet renders on mobile below the map",
+        "useDeliveryNotifications fires toasts on status transitions",
+        "No TypeScript errors",
+        "Existing tests still pass"
+      ]
+    },
+    {
+      "id": "LAMA-026",
+      "title": "Delivery Components Barrel Export Index",
+      "priority": 26,
+      "persona": "RALPH",
+      "passes": false,
+      "description": "Create index.ts barrel export for all delivery components to simplify imports across the codebase.",
+      "files": ["src/components/delivery/index.ts"],
+      "acceptanceCriteria": [
+        "Exports all delivery components: StatusTimeline, TrackingMap, StaticTrackingMap, ETACountdown, DeliveryCostCalculator, MobileTrackingSheet, SellerDeliveryPanel, PriorityDelivery, DeliveryChat",
+        "No TypeScript errors",
+        "Build passes"
+      ]
+    },
+    {
+      "id": "LAMA-027",
+      "title": "Delivery Error Boundary Component",
+      "priority": 27,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create an error boundary wrapper for delivery components so a failure in one component does not crash the entire tracking page.",
+      "files": ["src/components/delivery/DeliveryErrorBoundary.tsx"],
+      "acceptanceCriteria": [
+        "Class component implementing componentDidCatch",
+        "Shows fallback UI with retry button on error",
+        "Logs error to console.error with [DeliveryError] prefix",
+        "MASH brand styling: rounded-lg border-red-200",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-028",
+      "title": "Unit Tests — Delivery Error Boundary",
+      "priority": 28,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryErrorBoundary covering error catching and fallback rendering.",
+      "files": ["src/components/delivery/__tests__/DeliveryErrorBoundary.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders children when no error",
+        "Test: renders fallback UI when child throws",
+        "Test: shows retry button in fallback",
+        "Test: retry button resets error state",
+        "Minimum 5 test cases"
+      ]
     }
   ]
 }
