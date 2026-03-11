@@ -24,6 +24,7 @@ import TrackingMap from '@/components/delivery/TrackingMap';
 import StatusTimeline from '@/components/delivery/StatusTimeline';
 import ETACountdown from '@/components/delivery/ETACountdown';
 import MobileTrackingSheet from '@/components/delivery/MobileTrackingSheet';
+import DeliveryErrorBoundary from '@/components/delivery/DeliveryErrorBoundary';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   FirestoreOrder,
@@ -384,13 +385,17 @@ export default function FirebaseOrderTrackingPage() {
               {/* ETA Countdown */}
               {realtimeTracking?.eta && (
                 <div className="mb-4">
-                  <ETACountdown eta={realtimeTracking.eta} />
+                  <DeliveryErrorBoundary>
+                    <ETACountdown eta={realtimeTracking.eta} />
+                  </DeliveryErrorBoundary>
                 </div>
               )}
 
               {/* Status Timeline */}
               {lalamoveStatus && (
-                <StatusTimeline currentStatus={lalamoveStatus as 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED'} />
+                <DeliveryErrorBoundary>
+                  <StatusTimeline currentStatus={lalamoveStatus as 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED'} />
+                </DeliveryErrorBoundary>
               )}
 
               {/* ETAs */}
@@ -463,27 +468,29 @@ export default function FirebaseOrderTrackingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <TrackingMap
-                pickup={{
-                  lat: order.pickupLocation ? 14.5995 : 14.5995, // Default Manila for now
-                  lng: order.pickupLocation ? 120.9842 : 120.9842,
-                  address: order.pickupLocation?.address || 'Pickup Location',
-                }}
-                dropoff={{
-                  lat: order.deliveryAddress?.lat || 14.5995,
-                  lng: order.deliveryAddress?.lng || 120.9842,
-                  address: order.deliveryAddress?.address || 'Delivery Location',
-                }}
-                driverLocation={
-                  tracking?.driver?.coordinates
-                    ? {
-                        lat: tracking.driver.coordinates.lat,
-                        lng: tracking.driver.coordinates.lng,
-                      }
-                    : undefined
-                }
-                status={lalamoveStatus || 'ASSIGNING_DRIVER'}
-              />
+              <DeliveryErrorBoundary>
+                <TrackingMap
+                  pickup={{
+                    lat: order.pickupLocation ? 14.5995 : 14.5995, // Default Manila for now
+                    lng: order.pickupLocation ? 120.9842 : 120.9842,
+                    address: order.pickupLocation?.address || 'Pickup Location',
+                  }}
+                  dropoff={{
+                    lat: order.deliveryAddress?.lat || 14.5995,
+                    lng: order.deliveryAddress?.lng || 120.9842,
+                    address: order.deliveryAddress?.address || 'Delivery Location',
+                  }}
+                  driverLocation={
+                    tracking?.driver?.coordinates
+                      ? {
+                          lat: tracking.driver.coordinates.lat,
+                          lng: tracking.driver.coordinates.lng,
+                        }
+                      : undefined
+                  }
+                  status={lalamoveStatus || 'ASSIGNING_DRIVER'}
+                />
+              </DeliveryErrorBoundary>
             </CardContent>
           </Card>
 
@@ -620,7 +627,9 @@ export default function FirebaseOrderTrackingPage() {
 
       {/* Mobile bottom sheet for delivery tracking */}
       {hasActiveDelivery && (
-        <MobileTrackingSheet orderId={orderId} />
+        <DeliveryErrorBoundary>
+          <MobileTrackingSheet orderId={orderId} />
+        </DeliveryErrorBoundary>
       )}
     </div>
   );
