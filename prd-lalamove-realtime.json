@@ -460,7 +460,8 @@
       "title": "Unit Tests — ETACountdown Component",
       "priority": 19,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:00:00Z",
       "description": "Write complete unit tests for ETACountdown.tsx covering all display states and timer behavior.",
       "files": ["src/components/delivery/__tests__/ETACountdown.test.tsx"],
       "acceptanceCriteria": [
@@ -478,7 +479,8 @@
       "title": "Unit Tests — StaticTrackingMap Component",
       "priority": 20,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:30:00Z",
       "description": "Write unit tests for StaticTrackingMap.tsx covering marker positions, driver marker, and legend.",
       "files": ["src/components/delivery/__tests__/StaticTrackingMap.test.tsx"],
       "acceptanceCriteria": [
@@ -497,7 +499,8 @@
       "title": "Unit Tests — DeliveryCostCalculator Component",
       "priority": 21,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T11:00:00Z",
       "description": "Write unit tests for DeliveryCostCalculator.tsx covering form inputs, quote fetching, error handling.",
       "files": ["src/components/delivery/__tests__/DeliveryCostCalculator.test.tsx"],
       "acceptanceCriteria": [
@@ -517,7 +520,8 @@
       "title": "Unit Tests — MobileTrackingSheet Component",
       "priority": 22,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T12:00:00Z",
       "description": "Write unit tests for MobileTrackingSheet.tsx covering desktop/mobile rendering, sheet states, and tracking display.",
       "files": ["src/components/delivery/__tests__/MobileTrackingSheet.test.tsx"],
       "acceptanceCriteria": [
@@ -536,7 +540,8 @@
       "title": "Unit Tests — useDeliveryNotifications Hook",
       "priority": 23,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T12:30:00Z",
       "description": "Write unit tests for useDeliveryNotifications hook covering toast firing on status transitions.",
       "files": ["src/hooks/__tests__/useDeliveryNotifications.test.ts"],
       "acceptanceCriteria": [
@@ -555,7 +560,8 @@
       "title": "Unit Tests — Order Approve Route",
       "priority": 24,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T13:00:00Z",
       "description": "Write unit tests for /api/orders/approve route covering approval, auto Lalamove delivery creation, and error handling.",
       "files": ["src/app/api/orders/approve/__tests__/route.test.ts"],
       "acceptanceCriteria": [
@@ -573,7 +579,8 @@
       "title": "Wire ETACountdown + MobileTrackingSheet into Tracking Page",
       "priority": 25,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T14:00:00Z",
       "description": "Integrate ETACountdown and MobileTrackingSheet components into the customer tracking page. Also wire useDeliveryNotifications so toasts fire on status changes.",
       "files": ["src/app/(user)/profile/orders/[orderId]/track/page.tsx"],
       "acceptanceCriteria": [
@@ -589,7 +596,8 @@
       "title": "Delivery Components Barrel Export Index",
       "priority": 26,
       "persona": "RALPH",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T14:15:00Z",
       "description": "Create index.ts barrel export for all delivery components to simplify imports across the codebase.",
       "files": ["src/components/delivery/index.ts"],
       "acceptanceCriteria": [
@@ -603,7 +611,8 @@
       "title": "Delivery Error Boundary Component",
       "priority": 27,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T14:30:00Z",
       "description": "Create an error boundary wrapper for delivery components so a failure in one component does not crash the entire tracking page.",
       "files": ["src/components/delivery/DeliveryErrorBoundary.tsx"],
       "acceptanceCriteria": [
@@ -619,7 +628,8 @@
       "title": "Unit Tests — Delivery Error Boundary",
       "priority": 28,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T14:45:00Z",
       "description": "Write unit tests for DeliveryErrorBoundary covering error catching and fallback rendering.",
       "files": ["src/components/delivery/__tests__/DeliveryErrorBoundary.test.tsx"],
       "acceptanceCriteria": [
