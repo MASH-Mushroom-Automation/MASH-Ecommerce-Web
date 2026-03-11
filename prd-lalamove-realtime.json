@@ -260,6 +260,192 @@
         "Test: verifies no setInterval calls remain",
         "Minimum 10 test cases"
       ]
+    },
+    {
+      "id": "LAMA-011",
+      "title": "Webhook Signature Verification — Always-On with Timing-Safe Compare",
+      "priority": 11,
+      "persona": "NEXUS",
+      "passes": false,
+      "description": "Harden the webhook route: replace naive string equality with crypto.timingSafeEqual, enforce signature verification in ALL environments (sandbox included), and add request body size limit. Currently sandbox skips verification entirely, which masks bugs.",
+      "files": [
+        "src/app/api/lalamove/webhook/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "verifyWebhookSignature uses crypto.timingSafeEqual instead of === (prevents timing attacks)",
+        "Signature verification runs in BOTH sandbox and production (remove isSandbox skip)",
+        "If X-Lalamove-Signature header is missing, return 401 with { success: false, message: 'Missing signature' }",
+        "If signature mismatch, return 401 with { success: false, message: 'Invalid signature' }",
+        "Request body limited to 1MB (return 413 if exceeded)",
+        "rawBody parsed with try/catch — malformed JSON returns 400 not 500",
+        "All existing event handlers remain unchanged",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-012",
+      "title": "Delivery ETA Countdown Timer Component",
+      "priority": 12,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a countdown timer component that shows estimated time remaining for delivery. Reads eta.minutes from lalamoveTracking and decrements live. Used in both customer tracking page and seller delivery panel.",
+      "files": [
+        "src/components/delivery/ETACountdown.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Accepts eta: { minutes: number, distance: number } | null prop",
+        "Shows 'Estimated: Xm remaining' when eta is provided",
+        "Timer decrements every 60 seconds (not every second — minutes granularity)",
+        "Shows 'Arriving soon' when minutes <= 2",
+        "Shows 'Calculating...' when eta is null",
+        "Shows distance in km: '3.2 km away'",
+        "Stops countdown at 0 (does not go negative)",
+        "Uses emerald/green color scheme matching MASH brand",
+        "Responsive — works at all breakpoints",
+        "Test environment guard: timer disabled when typeof jest !== 'undefined'",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-013",
+      "title": "Delivery Cost Calculator Widget",
+      "priority": 13,
+      "persona": "ATLAS+NEXUS",
+      "passes": false,
+      "description": "Create a standalone delivery cost calculator widget that lets users get a Lalamove quote by entering pickup and delivery addresses. Uses the existing /api/lalamove/quotation endpoint. Can be embedded in checkout or shown as a standalone tool.",
+      "files": [
+        "src/components/delivery/DeliveryCostCalculator.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Two address inputs: pickup and delivery (text inputs with lat/lng defaults for Manila)",
+        "Vehicle type selector using existing vehicle-types.ts data (7 types with icons)",
+        "Get Quote button calls POST /api/lalamove/quotation",
+        "Shows price breakdown: base, extra mileage, total",
+        "Shows distance and estimated delivery info",
+        "Loading state with skeleton while fetching quote",
+        "Error state with retry button on API failure",
+        "onQuoteReceived callback prop for parent integration",
+        "MASH brand styling: emerald accents, rounded-lg card, shadow-sm",
+        "Mobile responsive — stacks inputs vertically on < 640px",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-014",
+      "title": "Order-to-Delivery Automation — createLalamoveOrder on Seller Approval",
+      "priority": 14,
+      "persona": "NEXUS",
+      "passes": false,
+      "description": "Wire the seller approval flow so that when a seller approves an order with deliveryMethod=lalamove, the system automatically calls /api/lalamove/create-order to place the Lalamove delivery. Currently this is manual. Add error handling and status rollback on failure.",
+      "files": [
+        "src/lib/firebase/orders.ts",
+        "src/app/api/orders/approve/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "When seller approves order with deliveryMethod=lalamove, auto-call create-order endpoint",
+        "Create /api/orders/approve route if it does not exist",
+        "Route accepts POST { orderId, sellerId } and calls FirebaseOrdersService.approveOrder",
+        "After approval, if deliveryMethod=lalamove AND lalamoveQuotationId exists, call /api/lalamove/create-order internally",
+        "On success: update order with lalamoveOrderId and set lalamoveTracking.status=ASSIGNING_DRIVER",
+        "On failure: keep order approved but log error and set deliveryStatus='failed_to_create'",
+        "Return { success: true, lalamoveOrderId } or { success: true, deliveryError: string }",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-015",
+      "title": "Mobile-Optimized Tracking Bottom Sheet",
+      "priority": 15,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a mobile-optimized bottom sheet component for the tracking page that slides up from the bottom on mobile viewports. Shows delivery status, driver info, and ETA in a compact format. On desktop, falls back to the existing side panel layout.",
+      "files": [
+        "src/components/delivery/MobileTrackingSheet.tsx"
+      ],
+      "acceptanceCriteria": [
+        "On mobile (< 768px): renders as bottom sheet with drag handle",
+        "Three states: collapsed (shows status + ETA), half (adds driver info + timeline), full (adds chat)",
+        "Swipe up/down to change states (CSS transform, no heavy library)",
+        "On desktop (>= 768px): renders as standard Card component (no sheet behavior)",
+        "Uses useLalamoveTracking hook for real-time data",
+        "Shows ETACountdown component when eta data available",
+        "Shows driver call button when driver assigned",
+        "Smooth transitions: transition-transform duration-300",
+        "Handles touch events for swipe gesture",
+        "MASH brand: emerald accent, rounded-t-2xl on mobile",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-016",
+      "title": "Unit Tests — Webhook Route Hardening",
+      "priority": 16,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write comprehensive unit tests for the hardened webhook route (LAMA-011). Test signature verification, body size limits, malformed JSON, and all 8 event handlers.",
+      "files": [
+        "src/app/api/lalamove/webhook/__tests__/route.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test: valid signature passes verification",
+        "Test: invalid signature returns 401",
+        "Test: missing signature header returns 401",
+        "Test: timing-safe compare is used (mock crypto.timingSafeEqual)",
+        "Test: body > 1MB returns 413",
+        "Test: malformed JSON returns 400",
+        "Test: all 8 event types dispatched correctly",
+        "Test: unknown event type returns 200 (ack but no-op)",
+        "Test: findOrderByLalamoveId returns null when no match",
+        "Test: Firestore updateLalamoveTracking called with correct data per event",
+        "Minimum 15 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-017",
+      "title": "TrackingMap Fallback — Static Map When No Google API Key",
+      "priority": 17,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "The current TrackingMap requires a Google Maps API key. Create a fallback static map component that shows pickup/dropoff/driver locations using CSS-positioned markers on a simple grid when NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set. This allows the tracking page to work in all environments.",
+      "files": [
+        "src/components/delivery/StaticTrackingMap.tsx",
+        "src/components/delivery/TrackingMap.tsx"
+      ],
+      "acceptanceCriteria": [
+        "StaticTrackingMap renders a visual representation with positioned markers",
+        "Shows pickup marker (green, labeled A), dropoff marker (red, labeled B)",
+        "Shows driver marker (blue, animated pulse) when driverLocation provided",
+        "Dashed line connecting pickup to dropoff",
+        "Shows coordinates text below each marker",
+        "Accessible: aria-labels on all markers",
+        "TrackingMap auto-falls back to StaticTrackingMap when NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is missing",
+        "Both components accept same props interface",
+        "Responsive: full width, 300px height on mobile, 400px on desktop",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-018",
+      "title": "Delivery Status Change Toast Notifications",
+      "priority": 18,
+      "persona": "NEXUS+ATLAS",
+      "passes": false,
+      "description": "Add toast notifications that fire when the Lalamove tracking status changes. Uses the existing useLalamoveTracking hook to detect changes and shows a sonner toast with status-specific messaging and icons.",
+      "files": [
+        "src/hooks/useDeliveryNotifications.ts"
+      ],
+      "acceptanceCriteria": [
+        "Hook accepts tracking data from useLalamoveTracking",
+        "Fires toast.info on ASSIGNING_DRIVER: 'Finding a driver for your delivery...'",
+        "Fires toast.success on DRIVER_ASSIGNED (ON_GOING): 'Driver {name} assigned! Plate: {plate}'",
+        "Fires toast.info on PICKED_UP: 'Your order has been picked up!'",
+        "Fires toast.success on COMPLETED: 'Delivery complete! Your order has arrived.'",
+        "Fires toast.error on CANCELED: 'Delivery has been canceled.'",
+        "Uses useRef to track previous status — only fires on actual change (not on mount)",
+        "Uses sonner toast from existing project dependency",
+        "Test environment guard: no toasts when typeof jest !== 'undefined'",
+        "No TypeScript errors"
+      ]
     }
   ]
 }
