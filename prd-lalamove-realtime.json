@@ -157,7 +157,8 @@
       "title": "DeliveryChat Sandbox Simulation Mode",
       "priority": 6,
       "persona": "NEXUS+ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:25:00Z",
       "description": "Complete src/components/delivery/DeliveryChat.tsx and src/app/api/lalamove/chat/send/route.ts simulation mode. Since USE_TWILIO=false in sandbox, messages should be stored in Firestore under orders/{orderId}/chatMessages subcollection and displayed in real-time via onSnapshot.",
       "files": [
         "src/app/api/lalamove/chat/send/route.ts",
@@ -179,7 +180,8 @@
       "title": "Unit Tests — useLalamoveTracking Hook",
       "priority": 7,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:30:00Z",
       "description": "Write complete unit tests for src/hooks/useLalamoveTracking.ts covering all states and edge cases.",
       "files": [
         "src/hooks/__tests__/useLalamoveTracking.test.ts"

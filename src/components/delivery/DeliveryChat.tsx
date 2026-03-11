@@ -1,6 +1,6 @@
 /**
  * Delivery Chat Component
- * Real-time messaging between customer and driver via SMS relay
+ * Real-time messaging via Firestore onSnapshot
  */
 
 'use client';
@@ -11,7 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Phone, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, Phone, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  getFirestore,
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+} from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase/config';
+
+const db = getFirestore(firebaseApp);
 
 interface ChatMessage {
   id: string;
@@ -40,7 +51,6 @@ export default function DeliveryChat({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Quick reply templates
   const quickReplies = [
     "I'm here at the lobby",
     "Running 5 minutes late",
@@ -48,11 +58,37 @@ export default function DeliveryChat({
     "Thank you!",
   ];
 
-  // Fetch chat history on mount
+  // Real-time Firestore subscription for chat messages
   useEffect(() => {
     if (!orderId) return;
 
-    fetchChatHistory();
+    const messagesRef = collection(db, 'orders', orderId, 'chatMessages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs: ChatMessage[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            sender: data.sender,
+            message: data.message,
+            timestamp:
+              data.timestamp instanceof Timestamp
+                ? data.timestamp.toDate().toISOString()
+                : data.timestamp || new Date().toISOString(),
+            status: data.status || 'sent',
+          };
+        });
+        setMessages(msgs);
+      },
+      (err) => {
+        console.error('[Chat] Firestore subscription error:', err);
+      }
+    );
+
+    return () => unsubscribe();
   }, [orderId]);
 
   // Auto-scroll to bottom when new messages arrive
@@ -62,21 +98,8 @@ export default function DeliveryChat({
     }
   }, [messages]);
 
-  const fetchChatHistory = async () => {
-    try {
-      const response = await fetch(`/api/lalamove/chat/send?orderId=${orderId}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setMessages(data.data.messages || []);
-      }
-    } catch (err) {
-      console.error('[Chat] Failed to fetch history:', err);
-    }
-  };
-
   const sendMessage = async (message: string) => {
-    if (!message.trim() || !driverPhone) return;
+    if (!message.trim()) return;
 
     setIsSending(true);
     setError(null);
@@ -88,7 +111,7 @@ export default function DeliveryChat({
         body: JSON.stringify({
           orderId,
           message: message.trim(),
-          driverPhone,
+          driverPhone: driverPhone || '',
           customerName,
         }),
       });
@@ -99,21 +122,12 @@ export default function DeliveryChat({
         throw new Error(data.message || 'Failed to send message');
       }
 
-      // Add message to local state
-      const newMsg: ChatMessage = {
-        id: data.data.messageId,
-        sender: 'customer',
-        message: message.trim(),
-        timestamp: new Date().toISOString(),
-        status: 'sent',
-      };
-
-      setMessages((prev) => [...prev, newMsg]);
+      // Message will appear via onSnapshot — no manual state push needed
       setNewMessage('');
-
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to send message';
       console.error('[Chat] Error:', err);
-      setError(err.message || 'Failed to send message');
+      setError(errMsg);
     } finally {
       setIsSending(false);
     }
@@ -283,7 +297,7 @@ export default function DeliveryChat({
               disabled={isSending || !newMessage.trim()}
             >
               {isSending ? (
-                <span className="animate-spin">⏳</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
@@ -297,9 +311,8 @@ export default function DeliveryChat({
 
         {/* Info Note */}
         <div className="bg-blue-50 p-3 text-xs text-blue-600 border-t">
-          ℹ️ Messages are sent via SMS. The driver will receive your message on
-          their phone and can reply directly. Standard SMS rates apply (~₱1 per
-          message).
+          ℹ Messages are sent via Firestore. In sandbox mode, an auto-reply
+          arrives after 3 seconds.
         </div>
       </CardContent>
     </Card>
