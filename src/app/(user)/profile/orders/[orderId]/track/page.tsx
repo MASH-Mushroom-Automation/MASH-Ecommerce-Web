@@ -27,6 +27,7 @@ import {
   FirestoreOrder,
   FirebaseOrdersService 
 } from '@/lib/firebase/orders';
+import { useLalamoveTracking } from '@/hooks/useLalamoveTracking';
 
 // Lalamove status type
 type LalamoveStatus = 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED' | 'REJECTED' | 'EXPIRED';
@@ -84,6 +85,9 @@ export default function FirebaseOrderTrackingPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  // Real-time Firestore subscription for Lalamove tracking
+  const { tracking: realtimeTracking, order: realtimeOrder } = useLalamoveTracking(orderId);
 
   // Fetch order from Firebase
   const fetchOrder = useCallback(async (showRefreshing = false) => {
@@ -199,21 +203,13 @@ export default function FirebaseOrderTrackingPage() {
     }
   }, [orderId, user?.id, fetchOrder]);
 
-  // Auto-refresh every 30 seconds for active deliveries
+  // Sync real-time Firestore data into local order state
   useEffect(() => {
-    if (!order || !order.lalamoveOrderId) return;
-    
-    const lalamoveStatus = order.lalamoveTracking?.status;
-    if (lalamoveStatus === 'COMPLETED' || lalamoveStatus === 'CANCELED') {
-      return; // Stop polling if delivery is complete
+    if (realtimeOrder && order) {
+      setOrder(realtimeOrder);
+      setLastUpdate(new Date());
     }
-
-    const interval = setInterval(() => {
-      fetchOrder(false);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [order?.lalamoveOrderId, order?.lalamoveTracking?.status, fetchOrder]);
+  }, [realtimeOrder]);
 
   const handleRefresh = () => fetchOrder(true);
 

@@ -59,7 +59,8 @@
       "title": "Customer Tracking Page — Replace Polling with onSnapshot",
       "priority": 2,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:05:00Z",
       "description": "Upgrade src/app/(user)/profile/orders/[orderId]/track/page.tsx to use the useLalamoveTracking hook instead of setInterval(30000). Updates from the Lalamove webhook should appear instantly in the UI without manual refresh.",
       "files": [
         "src/app/(user)/profile/orders/[orderId]/track/page.tsx"
