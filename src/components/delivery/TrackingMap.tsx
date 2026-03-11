@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import StaticTrackingMap from './StaticTrackingMap';
 
 interface Location {
   lat: number;
@@ -34,6 +35,13 @@ export default function TrackingMap({ pickup, dropoff, driverLocation, status }:
     driver?: google.maps.Marker;
   }>({});
   const [error, setError] = useState<string | null>(null);
+
+  const hasApiKey = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
+
+  // Fallback to StaticTrackingMap when no API key
+  if (!hasApiKey) {
+    return <StaticTrackingMap pickup={pickup} dropoff={dropoff} driverLocation={driverLocation} status={status} />;
+  }
 
   // Initialize Google Maps
   useEffect(() => {
