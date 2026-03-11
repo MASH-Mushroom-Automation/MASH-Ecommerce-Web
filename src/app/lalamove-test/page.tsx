@@ -1,27 +1,48 @@
 'use client';
 
 /**
- * Lalamove Integration Test Page
+ * Lalamove Sandbox Interactive Demo Page
  * /lalamove-test
- * 
- * Test all Lalamove API functionality before production deployment
+ *
+ * Full interactive test page: quotation → order → real-time tracking
+ * via Firestore onSnapshot. Sandbox simulator buttons trigger events
+ * that flow through Firestore and update the UI instantly.
  */
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import StatusTimeline from '@/components/delivery/StatusTimeline';
+import { useLalamoveTracking } from '@/hooks/useLalamoveTracking';
+import { cn } from '@/lib/utils';
+import {
+  Loader2,
+  Truck,
+  User,
+  Phone,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+} from 'lucide-react';
 
 export default function LalamoveTestPage() {
-  const [quotationResult, setQuotationResult] = useState<any>(null);
-  const [orderResult, setOrderResult] = useState<any>(null);
+  const [quotationResult, setQuotationResult] = useState<Record<string, unknown> | null>(null);
+  const [orderResult, setOrderResult] = useState<Record<string, unknown> | null>(null);
+  const [internalOrderId, setInternalOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRawData, setShowRawData] = useState(false);
+  const [simulatingEvent, setSimulatingEvent] = useState<string | null>(null);
 
-  // Test coordinates from your actual delivery
-  // PICKUP: Paulo's shop (Novaliches bayan, katabi ng McDonald's)
+  // Real-time Firestore subscription
+  const { tracking, order: firestoreOrder, loading: trackingLoading } =
+    useLalamoveTracking(internalOrderId);
+
+  // Test coordinates (Manila area)
   const defaultPickup = {
     lat: '14.71913537416188',
     lng: '121.03718747595673',
@@ -30,7 +51,6 @@ export default function LalamoveTestPage() {
     phone: '+639327677205',
   };
 
-  // DROPOFF: Mary Jane (Llano Road, Caloocan, tapat ng INFINITY WASH)
   const defaultDropoff = {
     lat: '14.740767636934477',
     lng: '121.00192598578872',
@@ -42,7 +62,7 @@ export default function LalamoveTestPage() {
   const testGetQuotation = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/lalamove/quotation', {
         method: 'POST',
@@ -59,15 +79,13 @@ export default function LalamoveTestPage() {
       });
 
       const data = await response.json();
-      
       if (data.success) {
         setQuotationResult(data.data);
-        console.log('✅ Quotation successful:', data.data);
       } else {
-        setError(data.message);
+        setError(data.message || 'Quotation failed');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -81,17 +99,18 @@ export default function LalamoveTestPage() {
 
     setLoading(true);
     setError(null);
-    
+
     try {
+      const stops = quotationResult.stops as Array<{ stopId: string }>;
       const response = await fetch('/api/lalamove/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quotationId: quotationResult.quotationId,
-          senderStopId: quotationResult.stops[0].stopId,
+          senderStopId: stops[0].stopId,
           senderName: defaultPickup.name,
           senderPhone: defaultPickup.phone,
-          recipientStopId: quotationResult.stops[1].stopId,
+          recipientStopId: stops[1].stopId,
           recipientName: defaultDropoff.name,
           recipientPhone: defaultDropoff.phone,
           orderNumber: 'TEST-' + Date.now(),
@@ -100,84 +119,78 @@ export default function LalamoveTestPage() {
       });
 
       const data = await response.json();
-      
       if (data.success) {
         setOrderResult(data.data);
-        console.log('✅ Order placed:', data.data);
+        // Use Lalamove orderId as internalOrderId for tracking demo
+        // In production this would be the Firebase order doc ID
+        if (data.data.orderId) {
+          setInternalOrderId(data.data.orderId);
+        }
       } else {
-        setError(data.message);
+        setError(data.message || 'Order placement failed');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  const testGetOrderDetails = async () => {
-    if (!orderResult) {
-      setError('Place order first!');
+  const simulateEvent = async (event: string) => {
+    const targetId = internalOrderId;
+    if (!targetId) {
+      setError('Place an order first to get an orderId for simulation');
       return;
     }
 
-    setLoading(true);
+    setSimulatingEvent(event);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/lalamove/order?orderId=${orderResult.orderId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setOrderResult(data.data);
-        console.log('✅ Order details:', data.data);
-      } else {
-        setError(data.message);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testCancelOrder = async () => {
-    if (!orderResult) {
-      setError('Place order first!');
-      return;
-    }
-
-    if (!confirm('Are you sure you want to cancel this test order?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/lalamove/order?orderId=${orderResult.orderId}`, {
-        method: 'DELETE',
+      const response = await fetch('/api/lalamove/sandbox-simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: targetId, event }),
       });
-      
+
       const data = await response.json();
-      
-      if (data.success) {
-        console.log('✅ Order cancelled');
-        setOrderResult(null);
-      } else {
-        setError(data.message);
+      if (!data.success) {
+        setError(data.message || 'Simulation failed');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
-      setLoading(false);
+      setSimulatingEvent(null);
     }
   };
+
+  const status = tracking?.status as string | undefined;
+  const driver = tracking?.driver;
+  const timelineStatus = (
+    ['ASSIGNING_DRIVER', 'ON_GOING', 'PICKED_UP', 'COMPLETED', 'CANCELED'].includes(status || '')
+      ? status
+      : 'ASSIGNING_DRIVER'
+  ) as 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED';
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <div className="container mx-auto py-10 space-y-6 max-w-4xl">
+      {/* Sandbox Banner */}
+      <div className="rounded-lg border-2 border-yellow-400 bg-yellow-50 p-4 text-center">
+        <div className="flex items-center justify-center gap-2 font-bold text-yellow-800">
+          <AlertTriangle className="h-5 w-5" />
+          [SANDBOX MODE] - No real deliveries are created
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <p className="text-sm text-yellow-700 mt-1">
+          Using sandbox API: rest.sandbox.lalamove.com
+        </p>
+      </div>
+
       <div>
-        <h1 className="text-3xl font-bold">Lalamove Integration Test</h1>
-        <p className="text-muted-foreground">Test Phase 1 & 2 implementation (Quotation + Order Placement)</p>
+        <h1 className="text-3xl font-bold">Lalamove Interactive Demo</h1>
+        <p className="text-muted-foreground">
+          Full flow: Quotation → Order → Real-time tracking via Firestore onSnapshot
+        </p>
       </div>
 
       {error && (
@@ -186,139 +199,278 @@ export default function LalamoveTestPage() {
         </Alert>
       )}
 
-      {/* Test Delivery Route */}
+      {/* Section 1: Quotation */}
       <Card>
         <CardHeader>
-          <CardTitle>Test Delivery Route</CardTitle>
-          <CardDescription>Your actual delivery addresses (from Google Maps)</CardDescription>
+          <CardTitle>1. Get Quotation</CardTitle>
+          <CardDescription>
+            {defaultPickup.address} → {defaultDropoff.address}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label className="font-semibold">Pickup (MASH Store)</Label>
-            <div className="text-sm space-y-1 mt-2">
-              <p><strong>Address:</strong> {defaultPickup.address}</p>
-              <p><strong>Contact:</strong> {defaultPickup.name} ({defaultPickup.phone})</p>
-              <p><strong>Coordinates:</strong> {defaultPickup.lat}, {defaultPickup.lng}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <Label className="font-semibold">Pickup</Label>
+              <p className="text-muted-foreground mt-1">{defaultPickup.name}</p>
+              <p className="text-muted-foreground">{defaultPickup.address}</p>
+            </div>
+            <div>
+              <Label className="font-semibold">Dropoff</Label>
+              <p className="text-muted-foreground mt-1">{defaultDropoff.name}</p>
+              <p className="text-muted-foreground">{defaultDropoff.address}</p>
             </div>
           </div>
-          
-          <div>
-            <Label className="font-semibold">Dropoff (Customer)</Label>
-            <div className="text-sm space-y-1 mt-2">
-              <p><strong>Address:</strong> {defaultDropoff.address}</p>
-              <p><strong>Contact:</strong> {defaultDropoff.name} ({defaultDropoff.phone})</p>
-              <p><strong>Coordinates:</strong> {defaultDropoff.lat}, {defaultDropoff.lng}</p>
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 p-4 rounded-md">
-            <p className="text-sm"><strong>Expected:</strong> ~7.5 km, 25-35 min, ₱150-₱200</p>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Phase 1: Quotation */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Phase 1: Get Quotation</CardTitle>
-          <CardDescription>Get delivery price before order confirmation</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <Button onClick={testGetQuotation} disabled={loading}>
-            {loading ? 'Loading...' : 'Get Quotation'}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Getting Quote...
+              </>
+            ) : (
+              'Get Quotation'
+            )}
           </Button>
-          
+
           {quotationResult && (
-            <div className="bg-green-50 p-4 rounded-md space-y-2">
-              <p className="font-semibold">✅ Quotation Successful!</p>
-              <p><strong>Quotation ID:</strong> {quotationResult.quotationId}</p>
-              <p><strong>Price:</strong> ₱{quotationResult.price} {quotationResult.currency}</p>
-              <p><strong>Distance:</strong> {quotationResult.distance.value}m</p>
-              <p><strong>Expires At:</strong> {new Date(quotationResult.expiresAt).toLocaleString()}</p>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm">Price Breakdown</summary>
-                <pre className="text-xs mt-2">{JSON.stringify(quotationResult.priceBreakdown, null, 2)}</pre>
-              </details>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 space-y-1 text-sm">
+              <p className="font-semibold text-emerald-800">[PASS] Quotation received</p>
+              <p>Quotation ID: {String(quotationResult.quotationId)}</p>
+              <p>Price: PHP {String(quotationResult.price)}</p>
+              <p>
+                Distance: {String((quotationResult.distance as Record<string, unknown>)?.value || 'N/A')}m
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Phase 2: Place Order */}
+      {/* Section 2: Place Order */}
       <Card>
         <CardHeader>
-          <CardTitle>Phase 2: Place Order</CardTitle>
-          <CardDescription>Book Lalamove driver (Sandbox - No real delivery)</CardDescription>
+          <CardTitle>2. Place Order</CardTitle>
+          <CardDescription>Create a Lalamove delivery order (sandbox)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
-            onClick={testPlaceOrder} 
+          <Button
+            onClick={testPlaceOrder}
             disabled={loading || !quotationResult}
             variant={quotationResult ? 'default' : 'outline'}
           >
-            {loading ? 'Loading...' : 'Place Order'}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Placing Order...
+              </>
+            ) : (
+              'Place Order'
+            )}
           </Button>
-          
+
           {orderResult && (
-            <div className="bg-green-50 p-4 rounded-md space-y-2">
-              <p className="font-semibold">✅ Order Placed Successfully!</p>
-              <p><strong>Order ID:</strong> {orderResult.orderId}</p>
-              <p><strong>Status:</strong> {orderResult.status}</p>
-              <p><strong>Driver ID:</strong> {orderResult.driverId || 'Not assigned yet'}</p>
-              <p><strong>Share Link:</strong> <a href={orderResult.shareLink} target="_blank" className="text-blue-600 underline">{orderResult.shareLink}</a></p>
-              
-              {orderResult.status === 'ASSIGNING_DRIVER' && (
-                <p className="text-sm text-orange-600">⏳ Waiting for driver assignment...</p>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 space-y-1 text-sm">
+              <p className="font-semibold text-emerald-800">[PASS] Order placed</p>
+              <p>Order ID: {String(orderResult.orderId)}</p>
+              <p>Status: {String(orderResult.status)}</p>
+              {Boolean(orderResult.shareLink) && (
+                <p>
+                  Share Link:{' '}
+                  <a
+                    href={String(orderResult.shareLink)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    {String(orderResult.shareLink)}
+                  </a>
+                </p>
               )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Phase 3: Track Order */}
+      <Separator />
+
+      {/* Section 3: Real-Time Status Panel */}
       <Card>
         <CardHeader>
-          <CardTitle>Phase 3: Track Order</CardTitle>
-          <CardDescription>Get real-time order status</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            3. Real-Time Status (Firestore onSnapshot)
+          </CardTitle>
+          <CardDescription>
+            {internalOrderId
+              ? `Subscribed to order: ${internalOrderId}`
+              : 'Place an order above to start real-time tracking'}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button 
-              onClick={testGetOrderDetails} 
-              disabled={loading || !orderResult}
-              variant="outline"
-            >
-              {loading ? 'Loading...' : 'Refresh Status'}
-            </Button>
-            
-            <Button 
-              onClick={testCancelOrder} 
-              disabled={loading || !orderResult}
-              variant="destructive"
-            >
-              {loading ? 'Loading...' : 'Cancel Order'}
-            </Button>
-          </div>
+        <CardContent>
+          {!internalOrderId ? (
+            <p className="text-muted-foreground text-sm py-6 text-center">
+              No order to track yet. Complete steps 1 and 2 above.
+            </p>
+          ) : trackingLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : tracking ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge
+                  className={cn(
+                    'text-sm',
+                    status === 'COMPLETED'
+                      ? 'bg-green-100 text-green-800'
+                      : status === 'CANCELED'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
+                  )}
+                >
+                  {status}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  Last updated:{' '}
+                  {tracking.lastUpdated
+                    ? new Date(tracking.lastUpdated as unknown as string).toLocaleTimeString()
+                    : 'N/A'}
+                </span>
+              </div>
+
+              {/* Section 5: Status Timeline */}
+              <StatusTimeline currentStatus={timelineStatus} />
+
+              {/* Section 6: Driver Info */}
+              {driver && (
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                      <User className="h-5 w-5 text-emerald-700" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{driver.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {driver.plateNumber}
+                      </p>
+                    </div>
+                    {driver.phone && (
+                      <Badge variant="outline" className="ml-auto">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {driver.phone}
+                      </Badge>
+                    )}
+                  </div>
+                  {driver.coordinates && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Location: {driver.coordinates.lat}, {driver.coordinates.lng}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm py-6 text-center">
+              No tracking data yet. Use the simulator below to trigger events.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Implementation Status */}
-      <Card>
+      {/* Section 4: Sandbox Event Simulator */}
+      <Card className="border-yellow-300">
         <CardHeader>
-          <CardTitle>Implementation Status</CardTitle>
+          <CardTitle>4. Sandbox Event Simulator</CardTitle>
+          <CardDescription>
+            Trigger fake Lalamove events — watch Section 3 update in real-time
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm">
-            <div>✅ Phase 1: Quotation System - <strong>COMPLETE</strong></div>
-            <div>✅ Phase 2: Order Placement - <strong>COMPLETE</strong></div>
-            <div>⏸️ Phase 3: Tracking - <strong>API READY</strong></div>
-            <div>⏸️ Phase 4: Driver Details - <strong>NOT STARTED</strong></div>
-            <div>⏸️ Phase 5: Order Management - <strong>PARTIAL</strong></div>
-            <div>⏸️ Phase 6: Webhooks - <strong>HANDLER READY</strong></div>
-            <div>⏸️ Phase 7: Priority Delivery - <strong>NOT STARTED</strong></div>
-            <div>⏸️ Phase 8: Chat Integration - <strong>NOT STARTED</strong></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {[
+              { event: 'ASSIGNING_DRIVER', label: 'Assigning', color: 'bg-yellow-500 hover:bg-yellow-600' },
+              { event: 'DRIVER_ASSIGNED', label: 'Driver Assigned', color: 'bg-blue-500 hover:bg-blue-600' },
+              { event: 'PICKED_UP', label: 'Picked Up', color: 'bg-indigo-500 hover:bg-indigo-600' },
+              { event: 'COMPLETED', label: 'Completed', color: 'bg-green-500 hover:bg-green-600' },
+              { event: 'CANCELED', label: 'Canceled', color: 'bg-red-500 hover:bg-red-600' },
+            ].map(({ event, label, color }) => (
+              <Button
+                key={event}
+                onClick={() => simulateEvent(event)}
+                disabled={!internalOrderId || simulatingEvent !== null}
+                className={cn('text-white text-xs', internalOrderId ? color : '')}
+                size="sm"
+              >
+                {simulatingEvent === event ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  label
+                )}
+              </Button>
+            ))}
           </div>
+          {!internalOrderId && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Place an order first to enable simulation.
+            </p>
+          )}
         </CardContent>
+      </Card>
+
+      {/* Section 7: Raw API Data */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer"
+          onClick={() => setShowRawData(!showRawData)}
+        >
+          <CardTitle className="flex items-center justify-between text-base">
+            <span>Raw API / Firestore Data</span>
+            {showRawData ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </CardTitle>
+        </CardHeader>
+        {showRawData && (
+          <CardContent>
+            <div className="space-y-4">
+              {quotationResult && (
+                <div>
+                  <Label className="font-semibold text-xs">Quotation Response</Label>
+                  <pre className="mt-1 rounded bg-muted p-3 text-xs overflow-auto max-h-48">
+                    {JSON.stringify(quotationResult, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {orderResult && (
+                <div>
+                  <Label className="font-semibold text-xs">Order Response</Label>
+                  <pre className="mt-1 rounded bg-muted p-3 text-xs overflow-auto max-h-48">
+                    {JSON.stringify(orderResult, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {tracking && (
+                <div>
+                  <Label className="font-semibold text-xs">
+                    Firestore lalamoveTracking (Real-Time)
+                  </Label>
+                  <pre className="mt-1 rounded bg-muted p-3 text-xs overflow-auto max-h-48">
+                    {JSON.stringify(tracking, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {firestoreOrder && (
+                <div>
+                  <Label className="font-semibold text-xs">Full Firestore Order</Label>
+                  <pre className="mt-1 rounded bg-muted p-3 text-xs overflow-auto max-h-60">
+                    {JSON.stringify(firestoreOrder, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
