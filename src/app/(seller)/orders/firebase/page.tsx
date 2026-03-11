@@ -64,6 +64,7 @@ import {
   sendOrderDeliveredEmailViaAPI,
 } from "@/lib/email/client";
 import { OrderRejectionModal } from "@/components/orders/OrderRejectionModal";
+import SellerDeliveryPanel from "@/components/delivery/SellerDeliveryPanel";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
@@ -899,59 +900,14 @@ function OrderDetailDialog({
             </div>
           </div>
 
-          {/* Lalamove Tracking Info */}
-          {order.lalamoveOrderId && (
+          {/* Lalamove Real-Time Tracking */}
+          {order.lalamoveOrderId && order.deliveryMethod === "lalamove" && (
             <div>
               <h4 className="font-semibold mb-2">Delivery Tracking</h4>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Navigation className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Lalamove Order</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="text-green-700 border-green-300"
-                  >
-                    {order.lalamoveTracking?.status || "ASSIGNING_DRIVER"}
-                  </Badge>
-                </div>
-
-                {order.lalamoveTracking?.driverName && (
-                  <div className="text-sm">
-                    <p>
-                      <span className="text-muted-foreground">Driver:</span>{" "}
-                      {order.lalamoveTracking.driverName}
-                    </p>
-                    {order.lalamoveTracking.driverPlateNumber && (
-                      <p>
-                        <span className="text-muted-foreground">Plate:</span>{" "}
-                        {order.lalamoveTracking.driverPlateNumber}
-                      </p>
-                    )}
-                    {order.lalamoveTracking.driverPhone && (
-                      <p>
-                        <span className="text-muted-foreground">Phone:</span>{" "}
-                        {order.lalamoveTracking.driverPhone}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {order.lalamoveTracking?.shareLink && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full border-green-300 text-green-700 hover:bg-green-100"
-                    onClick={() =>
-                      window.open(order.lalamoveTracking?.shareLink, "_blank")
-                    }
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Track on Lalamove
-                  </Button>
-                )}
-              </div>
+              <SellerDeliveryPanel
+                orderId={order.id}
+                deliveryFee={order.deliveryFee}
+              />
             </div>
           )}
 

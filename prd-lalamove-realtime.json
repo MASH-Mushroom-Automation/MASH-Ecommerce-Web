@@ -81,7 +81,8 @@
       "title": "Seller Order Detail — Real-Time Lalamove Status Panel",
       "priority": 3,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:10:00Z",
       "description": "Add a real-time Lalamove delivery status panel to the seller orders page (src/app/(seller)/orders/firebase/page.tsx or the order detail dialog). When an order has a lalamoveOrderId, show live status, driver info, and tracking link — all updating in real-time via Firestore onSnapshot.",
       "files": [
         "src/components/delivery/SellerDeliveryPanel.tsx",
