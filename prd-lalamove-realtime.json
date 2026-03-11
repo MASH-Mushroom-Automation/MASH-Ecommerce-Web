@@ -639,6 +639,171 @@
         "Test: retry button resets error state",
         "Minimum 5 test cases"
       ]
+    },
+    {
+      "id": "LAMA-029",
+      "title": "Wire DeliveryErrorBoundary into Tracking Page",
+      "priority": 29,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Wrap TrackingMap, StatusTimeline, ETACountdown with DeliveryErrorBoundary so a crash in one delivery component does not break the entire tracking page.",
+      "files": ["src/app/(user)/profile/orders/[orderId]/track/page.tsx"],
+      "acceptanceCriteria": [
+        "TrackingMap wrapped with DeliveryErrorBoundary",
+        "StatusTimeline wrapped with DeliveryErrorBoundary",
+        "ETACountdown wrapped with DeliveryErrorBoundary",
+        "MobileTrackingSheet wrapped with DeliveryErrorBoundary",
+        "If one component crashes, the others still render",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-030",
+      "title": "Cancel Delivery Button in SellerDeliveryPanel",
+      "priority": 30,
+      "persona": "NEXUS",
+      "passes": false,
+      "description": "Add cancel delivery button to SellerDeliveryPanel when status is ASSIGNING_DRIVER. Calls DELETE /api/lalamove/order with the Lalamove order ID. Shows confirmation dialog.",
+      "files": ["src/components/delivery/SellerDeliveryPanel.tsx"],
+      "acceptanceCriteria": [
+        "Cancel button visible only when status is ASSIGNING_DRIVER",
+        "Confirmation dialog before cancellation",
+        "Calls DELETE /api/lalamove/order on confirm",
+        "Loading state while canceling",
+        "Error toast on failure",
+        "Success toast on cancellation",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-031",
+      "title": "Unit Tests — Cancel Delivery in SellerDeliveryPanel",
+      "priority": 31,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write tests for the cancel delivery button flow in SellerDeliveryPanel.",
+      "files": ["src/components/delivery/__tests__/SellerDeliveryPanel.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: cancel button visible when ASSIGNING_DRIVER",
+        "Test: cancel button hidden when ON_GOING or COMPLETED",
+        "Test: confirmation dialog appears on click",
+        "Test: cancel API called on confirm",
+        "Minimum 4 new test cases"
+      ]
+    },
+    {
+      "id": "LAMA-032",
+      "title": "Delivery Status Badge Component",
+      "priority": 32,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a reusable DeliveryStatusBadge component that renders the correct color and label for each Lalamove status.",
+      "files": ["src/components/delivery/DeliveryStatusBadge.tsx"],
+      "acceptanceCriteria": [
+        "Renders badge with correct color for each status",
+        "Renders correct label text for each status",
+        "Handles unknown status gracefully",
+        "Uses cn() for conditional classes",
+        "Exported from barrel index.ts",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-033",
+      "title": "Unit Tests — DeliveryStatusBadge",
+      "priority": 33,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryStatusBadge covering all Lalamove statuses.",
+      "files": ["src/components/delivery/__tests__/DeliveryStatusBadge.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders correct label for each of 7 statuses",
+        "Test: renders correct color class for each status",
+        "Test: unknown status shows fallback",
+        "Minimum 8 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-034",
+      "title": "DriverInfoCard Shared Component",
+      "priority": 34,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Extract the driver info display into a shared DriverInfoCard component to eliminate duplication.",
+      "files": ["src/components/delivery/DriverInfoCard.tsx"],
+      "acceptanceCriteria": [
+        "Shows driver name and plate number",
+        "Shows Call button when phone available",
+        "Handles missing driver fields gracefully",
+        "Uses MASH emerald branding",
+        "Exported from barrel index.ts",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-035",
+      "title": "Unit Tests — DriverInfoCard",
+      "priority": 35,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DriverInfoCard component.",
+      "files": ["src/components/delivery/__tests__/DriverInfoCard.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders driver name",
+        "Test: renders plate number",
+        "Test: renders call button when phone provided",
+        "Test: hides call button when no phone",
+        "Test: handles null driver gracefully",
+        "Minimum 6 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-036",
+      "title": "Refactor SellerDeliveryPanel to Use Shared Components",
+      "priority": 36,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Refactor SellerDeliveryPanel to use shared DeliveryStatusBadge and DriverInfoCard.",
+      "files": ["src/components/delivery/SellerDeliveryPanel.tsx"],
+      "acceptanceCriteria": [
+        "Uses DeliveryStatusBadge for status display",
+        "Uses DriverInfoCard for driver section",
+        "All existing tests still pass",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-037",
+      "title": "VehicleTypeSelector Component",
+      "priority": 37,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a VehicleTypeSelector component for checkout showing Lalamove vehicle options with prices and specs.",
+      "files": ["src/components/delivery/VehicleTypeSelector.tsx"],
+      "acceptanceCriteria": [
+        "Renders all 7 vehicle types from vehicle-types.ts",
+        "Shows name, description, dimensions, weight limit",
+        "Selectable with visual emerald highlight",
+        "Calls onSelect callback with selected vehicle",
+        "Responsive grid layout",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-038",
+      "title": "Unit Tests — VehicleTypeSelector",
+      "priority": 38,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for VehicleTypeSelector component.",
+      "files": ["src/components/delivery/__tests__/VehicleTypeSelector.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders all 7 vehicle types",
+        "Test: selected vehicle has emerald highlight",
+        "Test: clicking calls onSelect",
+        "Test: shows vehicle name and weight limit",
+        "Minimum 7 test cases"
+      ]
     }
   ]
 }
