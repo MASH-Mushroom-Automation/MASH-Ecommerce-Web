@@ -22,12 +22,15 @@ import {
 } from 'lucide-react';
 import TrackingMap from '@/components/delivery/TrackingMap';
 import StatusTimeline from '@/components/delivery/StatusTimeline';
+import ETACountdown from '@/components/delivery/ETACountdown';
+import MobileTrackingSheet from '@/components/delivery/MobileTrackingSheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   FirestoreOrder,
   FirebaseOrdersService 
 } from '@/lib/firebase/orders';
 import { useLalamoveTracking } from '@/hooks/useLalamoveTracking';
+import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
 
 // Lalamove status type
 type LalamoveStatus = 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED' | 'REJECTED' | 'EXPIRED';
@@ -88,6 +91,9 @@ export default function FirebaseOrderTrackingPage() {
 
   // Real-time Firestore subscription for Lalamove tracking
   const { tracking: realtimeTracking, order: realtimeOrder } = useLalamoveTracking(orderId);
+
+  // Toast notifications on status transitions
+  useDeliveryNotifications(realtimeTracking);
 
   // Fetch order from Firebase
   const fetchOrder = useCallback(async (showRefreshing = false) => {
@@ -214,8 +220,9 @@ export default function FirebaseOrderTrackingPage() {
   const handleRefresh = () => fetchOrder(true);
 
   const handleCallDriver = () => {
-    if (order?.lalamoveTracking?.driverPhone) {
-      window.location.href = `tel:${order.lalamoveTracking.driverPhone}`;
+    const phone = order?.lalamoveTracking?.driver?.phone;
+    if (phone) {
+      window.location.href = `tel:${phone}`;
     }
   };
 
@@ -374,33 +381,36 @@ export default function FirebaseOrderTrackingPage() {
               )}
             </CardHeader>
             <CardContent>
+              {/* ETA Countdown */}
+              {realtimeTracking?.eta && (
+                <div className="mb-4">
+                  <ETACountdown eta={realtimeTracking.eta} />
+                </div>
+              )}
+
               {/* Status Timeline */}
               {lalamoveStatus && (
                 <StatusTimeline currentStatus={lalamoveStatus as 'ASSIGNING_DRIVER' | 'ON_GOING' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED'} />
               )}
 
               {/* ETAs */}
-              {(tracking?.pickupEta || tracking?.deliveryEta) && (
+              {tracking?.eta && (
                 <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                  {tracking.pickupEta && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Pickup ETA</p>
-                      <p className="font-medium">{tracking.pickupEta}</p>
-                    </div>
-                  )}
-                  {tracking.deliveryEta && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Delivery ETA</p>
-                      <p className="font-medium">{tracking.deliveryEta}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">ETA</p>
+                    <p className="font-medium">{tracking.eta.minutes} min</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Distance</p>
+                    <p className="font-medium">{tracking.eta.distance} km</p>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Driver Card */}
-          {tracking?.driverId && (
+          {tracking?.driver && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -412,26 +422,26 @@ export default function FirebaseOrderTrackingPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    {tracking.driverPhoto ? (
+                    {tracking.driver.photo ? (
                       <img
-                        src={tracking.driverPhoto}
-                        alt={tracking.driverName || 'Driver'}
+                        src={tracking.driver.photo}
+                        alt={tracking.driver.name || 'Driver'}
                         className="h-16 w-16 rounded-full object-cover"
                       />
                     ) : (
                       <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-2xl font-bold text-primary">
-                          {tracking.driverName?.charAt(0) || 'D'}
+                          {tracking.driver.name?.charAt(0) || 'D'}
                         </span>
                       </div>
                     )}
                     <div>
-                      <p className="font-semibold text-lg">{tracking.driverName || 'Your Driver'}</p>
-                      <p className="text-sm text-muted-foreground">{tracking.driverPlateNumber}</p>
+                      <p className="font-semibold text-lg">{tracking.driver.name || 'Your Driver'}</p>
+                      <p className="text-sm text-muted-foreground">{tracking.driver.plateNumber}</p>
                     </div>
                   </div>
 
-                  {tracking.driverPhone && (
+                  {tracking.driver.phone && (
                     <Button onClick={handleCallDriver} size="lg">
                       <Phone className="mr-2 h-4 w-4" />
                       Call Driver
@@ -447,7 +457,7 @@ export default function FirebaseOrderTrackingPage() {
             <CardHeader>
               <CardTitle>Live Tracking</CardTitle>
               <CardDescription>
-                {tracking?.driverLocation
+                {tracking?.driver?.coordinates
                   ? 'Follow your driver in real-time'
                   : 'Map showing pickup and delivery locations'}
               </CardDescription>
@@ -465,10 +475,10 @@ export default function FirebaseOrderTrackingPage() {
                   address: order.deliveryAddress?.address || 'Delivery Location',
                 }}
                 driverLocation={
-                  tracking?.driverLocation
+                  tracking?.driver?.coordinates
                     ? {
-                        lat: tracking.driverLocation.lat,
-                        lng: tracking.driverLocation.lng,
+                        lat: tracking.driver.coordinates.lat,
+                        lng: tracking.driver.coordinates.lng,
                       }
                     : undefined
                 }
@@ -607,6 +617,11 @@ export default function FirebaseOrderTrackingPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile bottom sheet for delivery tracking */}
+      {hasActiveDelivery && (
+        <MobileTrackingSheet orderId={orderId} />
+      )}
     </div>
   );
 }
