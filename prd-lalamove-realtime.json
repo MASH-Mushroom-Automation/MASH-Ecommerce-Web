@@ -226,7 +226,8 @@
       "title": "Unit Tests — Sandbox Simulate Route + Test Page",
       "priority": 9,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:40:00Z",
       "description": "Write unit tests for the sandbox simulator API route and the lalamove-test demo page.",
       "files": [
         "src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts",
