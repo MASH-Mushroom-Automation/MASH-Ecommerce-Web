@@ -62,6 +62,9 @@ const MAX_POLL_ATTEMPTS = 12;
 /** Interval between polls (in ms) */
 const POLL_INTERVAL_MS = 5000;
 
+/** Maximum number of email resend attempts */
+const MAX_RESEND_ATTEMPTS = 3;
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -77,6 +80,7 @@ function PaymentSuccessContent() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
+  const [resendCount, setResendCount] = useState(0);
   const [cartCleared, setCartCleared] = useState(false);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -164,12 +168,13 @@ function PaymentSuccessContent() {
   // Resend confirmation email (user-triggered retry)
   // -----------------------------------------------------------------------
   const handleResendEmail = useCallback(() => {
-    if (!orderData || emailSending) return;
+    if (!orderData || emailSending || resendCount >= MAX_RESEND_ATTEMPTS) return;
     emailSentRef.current = false;
     setEmailError(false);
     setEmailSent(false);
+    setResendCount((c) => c + 1);
     sendConfirmationEmail(orderData);
-  }, [orderData, emailSending, sendConfirmationEmail]);
+  }, [orderData, emailSending, resendCount, sendConfirmationEmail]);
 
   // -----------------------------------------------------------------------
   // Verify payment status via API
@@ -651,15 +656,21 @@ function PaymentSuccessContent() {
                 <p className="text-xs text-muted-foreground">
                   We could not send the confirmation email.
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResendEmail}
-                  className="text-xs h-7 px-3 text-primary hover:text-primary/80"
-                >
-                  <RefreshCw className="mr-1.5 h-3 w-3" />
-                  Resend Email
-                </Button>
+                {resendCount >= MAX_RESEND_ATTEMPTS ? (
+                  <p className="text-xs text-muted-foreground">
+                    Maximum retry attempts reached. Please check your order in Order History.
+                  </p>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResendEmail}
+                    className="text-xs h-7 px-3 text-primary hover:text-primary/80"
+                  >
+                    <RefreshCw className="mr-1.5 h-3 w-3" />
+                    Resend Email ({MAX_RESEND_ATTEMPTS - resendCount} left)
+                  </Button>
+                )}
               </div>
             ) : orderData?.customerEmail ? (
               <p className="text-xs text-muted-foreground">

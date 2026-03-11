@@ -620,6 +620,77 @@ describe("PaymentSuccessPage", () => {
       });
     });
 
+    it("should show remaining retry count on Resend Email button", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      mockSendEmail.mockRejectedValue(new Error("Email service down"));
+
+      render(<PaymentSuccessPage />);
+
+      // After initial auto-send failure, resendCount is 0, so 3 left
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Resend Email \(3 left\)/i })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should disable resend after 3 retry attempts and show exhausted message", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      // All attempts fail
+      mockSendEmail.mockRejectedValue(new Error("Email service down"));
+
+      render(<PaymentSuccessPage />);
+
+      // Wait for initial failure
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Resend Email \(3 left\)/i })
+        ).toBeInTheDocument();
+      });
+
+      // Retry 1
+      await act(async () => {
+        screen.getByRole("button", { name: /Resend Email/i }).click();
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Resend Email \(2 left\)/i })
+        ).toBeInTheDocument();
+      });
+
+      // Retry 2
+      await act(async () => {
+        screen.getByRole("button", { name: /Resend Email/i }).click();
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Resend Email \(1 left\)/i })
+        ).toBeInTheDocument();
+      });
+
+      // Retry 3
+      await act(async () => {
+        screen.getByRole("button", { name: /Resend Email/i }).click();
+      });
+
+      // Should show exhausted message instead of button
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Maximum retry attempts reached/i)
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", { name: /Resend Email/i })
+        ).not.toBeInTheDocument();
+      });
+
+      // Email should have been called 4 times total (1 auto + 3 retries)
+      expect(mockSendEmail).toHaveBeenCalledTimes(4);
+    });
+
     it("should show sending state while email is in progress", async () => {
       mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
       setPendingOrder(createPendingOrder());
