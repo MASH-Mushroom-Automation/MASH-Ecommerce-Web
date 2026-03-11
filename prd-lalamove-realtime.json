@@ -1,0 +1,256 @@
+{
+  "projectName": "MASH E-Commerce - Lalamove Real-Time Integration (Sandbox)",
+  "version": "1.0.0",
+  "branchName": "feature/lalamove-realtime",
+  "description": "Complete the Lalamove delivery integration so all tracking data is shown in real-time INSIDE the MASH system (not just at partnerportal.lalamove.com). Use SANDBOX credentials only. Replace 30s polling with Firestore onSnapshot subscriptions. Add seller real-time delivery panel. Full unit test coverage for all hooks and components.",
+  "owner": "AI Agent (Ralph)",
+  "startedDate": "2026-03-06",
+  "targetCompletion": "2026-03-10",
+  "environment": "SANDBOX_ONLY",
+  "sandboxCredentials": {
+    "host": "https://rest.sandbox.lalamove.com",
+    "apiKeyEnvVar": "LALAMOVE_API_KEY",
+    "apiSecretEnvVar": "LALAMOVE_API_SECRET",
+    "note": "Keys already configured in .env — pk_test_... / sk_test_... — no production keys needed"
+  },
+  "currentState": {
+    "webhookHandler": "COMPLETE — src/app/api/lalamove/webhook/route.ts writes all 8 event types to Firestore",
+    "firestoreSchema": "COMPLETE — lalamoveTracking subdocument in FirestoreOrder with status, driver, coordinates, timeline",
+    "trackingPagePolling": "INCOMPLETE — src/app/(user)/profile/orders/[orderId]/track/page.tsx uses setInterval(30000) instead of onSnapshot",
+    "sellerRealtimePanel": "MISSING — seller orders page shows Lalamove badge but no live delivery status panel",
+    "useLalamoveTrackingHook": "MISSING — no dedicated hook for Firestore real-time subscription",
+    "deliveryComponents": "PARTIAL — TrackingMap, StatusTimeline, PriorityDelivery, DeliveryChat components exist but have test gaps",
+    "sandboxTestRoute": "MISSING — no way to trigger sandbox delivery events from within the system for demos",
+    "chatSimulation": "INCOMPLETE — DeliveryChat/chat-send route has USE_TWILIO=false, simulation mode not fully wired up"
+  },
+  "successMetrics": {
+    "build": "npm run build passes with zero errors",
+    "tests": "All test suites pass with 0 failures",
+    "lint": "npm run lint passes with zero warnings",
+    "typecheck": "npx tsc --noEmit passes with zero errors",
+    "realtime": "Firestore onSnapshot fires within 1s of webhook event — no 30s delay",
+    "testCoverage": "All new files have >= 85% statement coverage"
+  },
+  "stories": [
+    {
+      "id": "LAMA-001",
+      "title": "useLalamoveTracking Real-Time Hook",
+      "priority": 1,
+      "persona": "NEXUS",
+      "passes": true,
+      "completedAt": "2026-03-12T10:00:00Z",
+      "description": "Create src/hooks/useLalamoveTracking.ts — a React hook that subscribes to a Firestore order document via onSnapshot and returns live lalamoveTracking data. Replaces all polling patterns.",
+      "files": [
+        "src/hooks/useLalamoveTracking.ts"
+      ],
+      "acceptanceCriteria": [
+        "Hook accepts orderId: string parameter",
+        "Returns { tracking: FirestoreOrder['lalamoveTracking'] | null, loading: boolean, error: string | null }",
+        "Uses FirebaseOrdersService subscribeToOrder (or doc onSnapshot directly) for real-time updates",
+        "Unsubscribes onSnapshot listener on component unmount (no memory leaks)",
+        "Returns loading=true until first snapshot arrives",
+        "Returns error string if Firestore read fails",
+        "Exported from src/hooks/index.ts or directly importable",
+        "TypeScript strict — no any types"
+      ]
+    },
+    {
+      "id": "LAMA-002",
+      "title": "Customer Tracking Page — Replace Polling with onSnapshot",
+      "priority": 2,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Upgrade src/app/(user)/profile/orders/[orderId]/track/page.tsx to use the useLalamoveTracking hook instead of setInterval(30000). Updates from the Lalamove webhook should appear instantly in the UI without manual refresh.",
+      "files": [
+        "src/app/(user)/profile/orders/[orderId]/track/page.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Remove the setInterval 30s polling useEffect entirely",
+        "Use useLalamoveTracking(orderId) hook for live lalamoveTracking state",
+        "Driver location on TrackingMap updates automatically when Firestore changes",
+        "StatusTimeline updates automatically when delivery status changes",
+        "Retain manual Refresh button for user-triggered Lalamove API poll (fetchLalamoveUpdates still works)",
+        "Last updated timestamp shows real-time (updates on each onSnapshot event)",
+        "No TypeScript errors",
+        "Page still works when order has no lalamoveOrderId (non-Lalamove orders)"
+      ]
+    },
+    {
+      "id": "LAMA-003",
+      "title": "Seller Order Detail — Real-Time Lalamove Status Panel",
+      "priority": 3,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Add a real-time Lalamove delivery status panel to the seller orders page (src/app/(seller)/orders/firebase/page.tsx or the order detail dialog). When an order has a lalamoveOrderId, show live status, driver info, and tracking link — all updating in real-time via Firestore onSnapshot.",
+      "files": [
+        "src/components/delivery/SellerDeliveryPanel.tsx",
+        "src/app/(seller)/orders/firebase/page.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create src/components/delivery/SellerDeliveryPanel.tsx component",
+        "Component accepts: orderId: string, lalamoveOrderId: string, lalamoveTracking: FirestoreOrder['lalamoveTracking']",
+        "Uses useLalamoveTracking(orderId) for real-time data",
+        "Shows: delivery status badge (ASSIGNING_DRIVER / ON_GOING / PICKED_UP / COMPLETED / CANCELED)",
+        "Shows: driver name, phone, plate number when assigned",
+        "Shows: Lalamove shareLink as clickable external link when available",
+        "Shows: StatusTimeline component with current status",
+        "PriorityDelivery component shown when status is ASSIGNING_DRIVER (can add priority fee)",
+        "Panel visible in seller order detail dialog/card for orders with deliveryMethod=lalamove",
+        "MASH brand: emerald colors, rounded-lg, shadow-sm",
+        "Mobile responsive — stacks vertically on < 768px",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-004",
+      "title": "Sandbox Event Simulator API Route",
+      "priority": 4,
+      "persona": "NEXUS",
+      "passes": false,
+      "description": "Create src/app/api/lalamove/sandbox-simulate/route.ts — a POST endpoint that simulates Lalamove webhook events by writing directly to Firestore. Used to demo real-time updates in the system without needing actual sandbox deliveries. Only works when LALAMOVE_HOST contains 'sandbox'.",
+      "files": [
+        "src/app/api/lalamove/sandbox-simulate/route.ts"
+      ],
+      "acceptanceCriteria": [
+        "POST /api/lalamove/sandbox-simulate",
+        "Accepts body: { orderId: string, event: 'ASSIGNING_DRIVER' | 'DRIVER_ASSIGNED' | 'PICKED_UP' | 'COMPLETED' | 'CANCELED' }",
+        "Returns 403 if LALAMOVE_HOST does not contain 'sandbox' (production safety guard)",
+        "For each event type, calls FirebaseOrdersService.updateLalamoveTracking() with realistic mock data",
+        "DRIVER_ASSIGNED: sets driver name='John Doe (Sandbox)', phone='+639171234567', plate='ABC 1234', coordinates near Manila",
+        "PICKED_UP: updates status to PICKED_UP, updates driver coordinates",
+        "COMPLETED: updates status to COMPLETED, clears driver coordinates",
+        "CANCELED: updates status to CANCELED",
+        "Returns { success: true, event, orderId, updatedAt }",
+        "No authentication required (dev tool)",
+        "TypeScript strict — typed request/response"
+      ]
+    },
+    {
+      "id": "LAMA-005",
+      "title": "Sandbox Test Page — Full Interactive Demo",
+      "priority": 5,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Upgrade src/app/lalamove-test/page.tsx to be a comprehensive interactive sandbox demo page showing real-time updates flowing through the system — from 'Get Quotation' all the way to 'Delivery Completed' with live status changes visible without leaving the page.",
+      "files": [
+        "src/app/lalamove-test/page.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Section 1: Quotation flow — 'Get Quote' button shows price, distance, quotationId",
+        "Section 2: Order flow — 'Place Order' button (using quotationId from Section 1), shows lalamoveOrderId",
+        "Section 3: Real-time status panel — uses useLalamoveTracking(internalOrderId) with Firestore subscription",
+        "Section 4: Sandbox simulator — buttons for each event: ASSIGNING_DRIVER, DRIVER_ASSIGNED, PICKED_UP, COMPLETED, CANCELED — calls /api/lalamove/sandbox-simulate",
+        "Section 5: Status timeline — StatusTimeline component updates live as simulator events fire",
+        "Section 6: Driver info card — shows driver details when DRIVER_ASSIGNED event fires",
+        "Section 7: Raw API data — collapsible JSON viewer showing raw Lalamove API response",
+        "Status badge animates on change (CSS transition)",
+        "All sections visible on one scrollable page",
+        "Shows [SANDBOX] banner at top so it is clearly not production"
+      ]
+    },
+    {
+      "id": "LAMA-006",
+      "title": "DeliveryChat Sandbox Simulation Mode",
+      "priority": 6,
+      "persona": "NEXUS+ATLAS",
+      "passes": false,
+      "description": "Complete src/components/delivery/DeliveryChat.tsx and src/app/api/lalamove/chat/send/route.ts simulation mode. Since USE_TWILIO=false in sandbox, messages should be stored in Firestore under orders/{orderId}/chatMessages subcollection and displayed in real-time via onSnapshot.",
+      "files": [
+        "src/app/api/lalamove/chat/send/route.ts",
+        "src/components/delivery/DeliveryChat.tsx"
+      ],
+      "acceptanceCriteria": [
+        "chat/send POST stores message in Firestore: orders/{orderId}/chatMessages/{messageId}",
+        "chat/send GET reads chat history from Firestore subcollection (not an in-memory store)",
+        "Message document schema: { id, sender, message, timestamp, status: 'sent' | 'delivered' }",
+        "DeliveryChat component uses Firestore onSnapshot on chatMessages subcollection for real-time new messages",
+        "Sandbox simulation: after 3 seconds, auto-reply driver message: 'On my way! (Sandbox auto-reply)'",
+        "Quick reply buttons work (pre-filled message)",
+        "Error state shown when send fails",
+        "TypeScript strict — no any types"
+      ]
+    },
+    {
+      "id": "LAMA-007",
+      "title": "Unit Tests — useLalamoveTracking Hook",
+      "priority": 7,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write complete unit tests for src/hooks/useLalamoveTracking.ts covering all states and edge cases.",
+      "files": [
+        "src/hooks/__tests__/useLalamoveTracking.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Tests use jest.mock for Firebase Firestore (mock onSnapshot)",
+        "Test: initial state is loading=true, tracking=null",
+        "Test: after first snapshot, loading=false, tracking=data",
+        "Test: when snapshot updates (status change), tracking updates in hook",
+        "Test: when orderId is undefined/null, hook returns loading=false, tracking=null",
+        "Test: unsubscribe function is called on unmount (no memory leak)",
+        "Test: when Firestore throws error, error state is set",
+        "Test: when order has no lalamoveTracking field, tracking=null",
+        "Minimum 8 test cases, all passing"
+      ]
+    },
+    {
+      "id": "LAMA-008",
+      "title": "Unit Tests — Delivery UI Components",
+      "priority": 8,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write/complete unit tests for all delivery components: TrackingMap, StatusTimeline, PriorityDelivery, DeliveryChat, SellerDeliveryPanel.",
+      "files": [
+        "src/components/delivery/__tests__/StatusTimeline.test.tsx",
+        "src/components/delivery/__tests__/PriorityDelivery.test.tsx",
+        "src/components/delivery/__tests__/DeliveryChat.test.tsx",
+        "src/components/delivery/__tests__/SellerDeliveryPanel.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "StatusTimeline tests: renders all 4 stages, marks correct stage as current, shows CANCELED state, shows COMPLETED state",
+        "PriorityDelivery tests: renders options, calls onPrioritySelected with correct fee, shows loading on API call, handles error",
+        "DeliveryChat tests: renders chat history, send button calls /api/lalamove/chat/send, quick replies populate input, shows error on send failure",
+        "SellerDeliveryPanel tests: shows ASSIGNING_DRIVER state, shows driver info when DRIVER_ASSIGNED, shows completed state, shows shareLink",
+        "All new tests mock Firebase, next/navigation, and fetch",
+        "Minimum 30 total test cases across all files"
+      ]
+    },
+    {
+      "id": "LAMA-009",
+      "title": "Unit Tests — Sandbox Simulate Route + Test Page",
+      "priority": 9,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for the sandbox simulator API route and the lalamove-test demo page.",
+      "files": [
+        "src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts",
+        "src/app/lalamove-test/__tests__/page.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Simulator route tests: returns 403 when not sandbox, accepts all 5 event types, calls updateLalamoveTracking with correct data for each event, returns success response",
+        "Test page: renders all 6 sections, Get Quote button calls /api/lalamove/quotation, Place Order button calls /api/lalamove/order, simulator buttons call /api/lalamove/sandbox-simulate, rawData section toggles",
+        "All tests mock Firebase, Lalamove client, and fetch",
+        "Minimum 15 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-010",
+      "title": "Unit Tests — Customer Tracking Page Real-Time",
+      "priority": 10,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Update/write tests for the customer tracking page to verify real-time Firestore subscription behavior (not polling).",
+      "files": [
+        "src/app/(user)/profile/orders/[orderId]/track/__tests__/page.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Test: onSnapshot is called (not setInterval) for real-time updates",
+        "Test: UI updates when Firestore tracking data changes (simulated snapshot update)",
+        "Test: LoadingMap and StatusTimeline receive updated props when snapshot changes",
+        "Test: manual Refresh button still works (calls fetchLalamoveUpdates)",
+        "Test: page shows 'no delivery tracking' for non-Lalamove orders",
+        "Test: verifies no setInterval calls remain",
+        "Minimum 10 test cases"
+      ]
+    }
+  ]
+}
