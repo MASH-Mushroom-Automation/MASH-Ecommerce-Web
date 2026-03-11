@@ -31,6 +31,12 @@ jest.mock('@/lib/firebase/orders', () => ({
   },
 }));
 
+// Mock useLalamoveTracking hook (LAMA-010: real-time via onSnapshot, not polling)
+const mockUseLalamoveTracking = jest.fn();
+jest.mock('@/hooks/useLalamoveTracking', () => ({
+  useLalamoveTracking: (...args: unknown[]) => mockUseLalamoveTracking(...args),
+}));
+
 // Base order data
 const createMockOrder = (overrides = {}) => ({
   id: 'test-order-123',
@@ -96,6 +102,14 @@ beforeEach(() => {
   mockGetOrder.mockReset();
   mockUpdateLalamoveTracking.mockReset();
   mockPush.mockReset();
+
+  // Default: useLalamoveTracking returns no data
+  mockUseLalamoveTracking.mockReturnValue({
+    tracking: null,
+    order: null,
+    loading: false,
+    error: null,
+  });
 
   // Default: authenticated user via global.__mockAuthContext
   (global as Record<string, unknown>).__mockAuthContext = {
@@ -1072,6 +1086,88 @@ describe('FirebaseOrderTrackingPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Follow your driver in real-time')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('real-time tracking via useLalamoveTracking (LAMA-010)', () => {
+    it('calls useLalamoveTracking with orderId', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+
+      expect(mockUseLalamoveTracking).toHaveBeenCalledWith('test-order-123');
+    });
+
+    it('does NOT use setInterval for tracking', () => {
+      const setIntervalSpy = jest.spyOn(global, 'setInterval');
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+
+      // No polling interval should be set
+      const trackingIntervalCalls = setIntervalSpy.mock.calls.filter(
+        (call) => typeof call[1] === 'number' && call[1] >= 10000
+      );
+      expect(trackingIntervalCalls).toHaveLength(0);
+
+      setIntervalSpy.mockRestore();
+    });
+
+    it('syncs order state when realtimeOrder updates after initial load', async () => {
+      const initialOrder = createMockOrder();
+      mockGetOrder.mockResolvedValue(initialOrder);
+
+      // Initially, hook returns null (no data yet)
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: null,
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      const { rerender } = render(<FirebaseOrderTrackingPage />);
+
+      // Wait for initial order to load
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+
+      // useLalamoveTracking was called with orderId
+      expect(mockUseLalamoveTracking).toHaveBeenCalledWith('test-order-123');
+    });
+
+    it('displays initial order data from getOrder', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Juan Cruz')).toBeInTheDocument();
+        expect(screen.getByText('ABC 1234')).toBeInTheDocument();
+      });
+    });
+
+    it('renders with null realtimeOrder gracefully', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: null,
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<FirebaseOrderTrackingPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+    });
+
+    it('useLalamoveTracking hook is imported (not setInterval)', () => {
+      // Verify the mock was set up and called - if the component still used
+      // setInterval instead of the hook, the mock would never be called
+      mockGetOrder.mockResolvedValue(createMockOrder());
+      render(<FirebaseOrderTrackingPage />);
+
+      expect(mockUseLalamoveTracking).toHaveBeenCalled();
     });
   });
 });

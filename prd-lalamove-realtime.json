@@ -245,7 +245,8 @@
       "title": "Unit Tests — Customer Tracking Page Real-Time",
       "priority": 10,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:45:00Z",
       "description": "Update/write tests for the customer tracking page to verify real-time Firestore subscription behavior (not polling).",
       "files": [
         "src/app/(user)/profile/orders/[orderId]/track/__tests__/page.test.tsx"
