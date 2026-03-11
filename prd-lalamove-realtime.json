@@ -203,7 +203,8 @@
       "title": "Unit Tests — Delivery UI Components",
       "priority": 8,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:35:00Z",
       "description": "Write/complete unit tests for all delivery components: TrackingMap, StatusTimeline, PriorityDelivery, DeliveryChat, SellerDeliveryPanel.",
       "files": [
         "src/components/delivery/__tests__/StatusTimeline.test.tsx",
