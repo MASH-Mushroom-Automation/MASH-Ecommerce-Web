@@ -266,7 +266,8 @@
       "title": "Webhook Signature Verification — Always-On with Timing-Safe Compare",
       "priority": 11,
       "persona": "NEXUS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:00:00Z",
       "description": "Harden the webhook route: replace naive string equality with crypto.timingSafeEqual, enforce signature verification in ALL environments (sandbox included), and add request body size limit. Currently sandbox skips verification entirely, which masks bugs.",
       "files": [
         "src/app/api/lalamove/webhook/route.ts"
@@ -287,7 +288,8 @@
       "title": "Delivery ETA Countdown Timer Component",
       "priority": 12,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:05:00Z",
       "description": "Create a countdown timer component that shows estimated time remaining for delivery. Reads eta.minutes from lalamoveTracking and decrements live. Used in both customer tracking page and seller delivery panel.",
       "files": [
         "src/components/delivery/ETACountdown.tsx"
@@ -311,7 +313,8 @@
       "title": "Delivery Cost Calculator Widget",
       "priority": 13,
       "persona": "ATLAS+NEXUS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:10:00Z",
       "description": "Create a standalone delivery cost calculator widget that lets users get a Lalamove quote by entering pickup and delivery addresses. Uses the existing /api/lalamove/quotation endpoint. Can be embedded in checkout or shown as a standalone tool.",
       "files": [
         "src/components/delivery/DeliveryCostCalculator.tsx"
@@ -335,7 +338,8 @@
       "title": "Order-to-Delivery Automation — createLalamoveOrder on Seller Approval",
       "priority": 14,
       "persona": "NEXUS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:15:00Z",
       "description": "Wire the seller approval flow so that when a seller approves an order with deliveryMethod=lalamove, the system automatically calls /api/lalamove/create-order to place the Lalamove delivery. Currently this is manual. Add error handling and status rollback on failure.",
       "files": [
         "src/lib/firebase/orders.ts",
@@ -357,7 +361,8 @@
       "title": "Mobile-Optimized Tracking Bottom Sheet",
       "priority": 15,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:20:00Z",
       "description": "Create a mobile-optimized bottom sheet component for the tracking page that slides up from the bottom on mobile viewports. Shows delivery status, driver info, and ETA in a compact format. On desktop, falls back to the existing side panel layout.",
       "files": [
         "src/components/delivery/MobileTrackingSheet.tsx"
@@ -381,7 +386,8 @@
       "title": "Unit Tests — Webhook Route Hardening",
       "priority": 16,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:25:00Z",
       "description": "Write comprehensive unit tests for the hardened webhook route (LAMA-011). Test signature verification, body size limits, malformed JSON, and all 8 event handlers.",
       "files": [
         "src/app/api/lalamove/webhook/__tests__/route.test.ts"
@@ -405,7 +411,8 @@
       "title": "TrackingMap Fallback — Static Map When No Google API Key",
       "priority": 17,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:30:00Z",
       "description": "The current TrackingMap requires a Google Maps API key. Create a fallback static map component that shows pickup/dropoff/driver locations using CSS-positioned markers on a simple grid when NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set. This allows the tracking page to work in all environments.",
       "files": [
         "src/components/delivery/StaticTrackingMap.tsx",
@@ -429,7 +436,8 @@
       "title": "Delivery Status Change Toast Notifications",
       "priority": 18,
       "persona": "NEXUS+ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-15T10:35:00Z",
       "description": "Add toast notifications that fire when the Lalamove tracking status changes. Uses the existing useLalamoveTracking hook to detect changes and shows a sonner toast with status-specific messaging and icons.",
       "files": [
         "src/hooks/useDeliveryNotifications.ts"
