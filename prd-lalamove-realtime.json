@@ -108,7 +108,8 @@
       "title": "Sandbox Event Simulator API Route",
       "priority": 4,
       "persona": "NEXUS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-12T10:15:00Z",
       "description": "Create src/app/api/lalamove/sandbox-simulate/route.ts — a POST endpoint that simulates Lalamove webhook events by writing directly to Firestore. Used to demo real-time updates in the system without needing actual sandbox deliveries. Only works when LALAMOVE_HOST contains 'sandbox'.",
       "files": [
         "src/app/api/lalamove/sandbox-simulate/route.ts"

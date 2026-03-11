@@ -1,0 +1,227 @@
+/**
+ * Tests for Lalamove Sandbox Simulate Route
+ * LAMA-009: Validates production guard, event validation, and Firestore writes
+ */
+
+// ─── Mock FirebaseOrdersService ────────────────────────────────
+const mockUpdateLalamoveTracking = jest.fn().mockResolvedValue(undefined);
+
+jest.mock("@/lib/firebase/orders", () => ({
+  FirebaseOrdersService: {
+    updateLalamoveTracking: (...args: unknown[]) =>
+      mockUpdateLalamoveTracking(...args),
+  },
+}));
+
+// ─── Mock NextRequest and NextResponse ─────────────────────────
+
+jest.mock("next/server", () => {
+  class MockNextRequest {
+    private _body: string;
+    constructor(_url: string, init?: { method?: string; body?: string }) {
+      this._body = init?.body || "{}";
+    }
+    async json() {
+      return JSON.parse(this._body);
+    }
+  }
+
+  class MockNextResponse {
+    body: unknown;
+    status: number;
+    constructor(body: unknown, init?: { status?: number }) {
+      this.body = body;
+      this.status = init?.status || 200;
+    }
+    async json() {
+      return this.body;
+    }
+    static json(data: unknown, init?: { status?: number }) {
+      return new MockNextResponse(data, init);
+    }
+  }
+
+  return {
+    __esModule: true,
+    NextResponse: MockNextResponse,
+    NextRequest: MockNextRequest,
+  };
+});
+
+// ─── Import route after mocks ──────────────────────────────────
+import { POST } from "../route";
+import { NextRequest } from "next/server";
+
+// ─── Helpers ───────────────────────────────────────────────────
+
+function makeRequest(body: Record<string, unknown>) {
+  return new NextRequest(
+    "http://localhost:3000/api/lalamove/sandbox-simulate",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+// ─── Tests ─────────────────────────────────────────────────────
+
+describe("POST /api/lalamove/sandbox-simulate", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = { ...originalEnv, LALAMOVE_HOST: "https://rest.sandbox.lalamove.com" };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  // ── Production Guard ──────────────────────────────────────
+
+  it("returns 403 when LALAMOVE_HOST is production", async () => {
+    process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
+
+    const res = await POST(makeRequest({ orderId: "o-1", event: "COMPLETED" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(json.success).toBe(false);
+    expect(json.message).toContain("sandbox");
+  });
+
+  it("returns 403 when LALAMOVE_HOST is empty", async () => {
+    process.env.LALAMOVE_HOST = "";
+
+    const res = await POST(makeRequest({ orderId: "o-1", event: "COMPLETED" }));
+    expect(res.status).toBe(403);
+  });
+
+  // ── Validation ────────────────────────────────────────────
+
+  it("returns 400 when orderId is missing", async () => {
+    const res = await POST(makeRequest({ event: "COMPLETED" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.success).toBe(false);
+  });
+
+  it("returns 400 when event is missing", async () => {
+    const res = await POST(makeRequest({ orderId: "o-1" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.success).toBe(false);
+  });
+
+  it("returns 400 for invalid event type", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "INVALID_EVENT" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.message).toContain("Invalid event");
+  });
+
+  // ── Successful Events ─────────────────────────────────────
+
+  it("handles ASSIGNING_DRIVER event", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "ASSIGNING_DRIVER" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.event).toBe("ASSIGNING_DRIVER");
+    expect(json.orderId).toBe("o-1");
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "o-1",
+      expect.objectContaining({ status: "ASSIGNING_DRIVER" })
+    );
+  });
+
+  it("handles DRIVER_ASSIGNED event with mock driver data", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "DRIVER_ASSIGNED" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "o-1",
+      expect.objectContaining({
+        status: "ON_GOING",
+        driver: expect.objectContaining({
+          name: "John Doe (Sandbox)",
+          phone: "+639171234567",
+          plateNumber: "ABC 1234",
+        }),
+      })
+    );
+  });
+
+  it("handles PICKED_UP event with updated coordinates", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "PICKED_UP" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "o-1",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+  });
+
+  it("handles COMPLETED event", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "COMPLETED" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.updatedAt).toBeDefined();
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "o-1",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+  });
+
+  it("handles CANCELED event", async () => {
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "CANCELED" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "o-1",
+      expect.objectContaining({ status: "CANCELED" })
+    );
+  });
+
+  // ── Error handling ────────────────────────────────────────
+
+  it("returns 500 when updateLalamoveTracking throws", async () => {
+    mockUpdateLalamoveTracking.mockRejectedValueOnce(
+      new Error("Firestore offline")
+    );
+
+    const res = await POST(
+      makeRequest({ orderId: "o-1", event: "COMPLETED" })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(json.success).toBe(false);
+    expect(json.message).toBe("Firestore offline");
+  });
+});
