@@ -1,5 +1,6 @@
 export { default as DeliveryChat } from "./DeliveryChat";
 export { default as DeliveryCostCalculator } from "./DeliveryCostCalculator";
+export { default as DeliveryErrorBoundary } from "./DeliveryErrorBoundary";
 export { default as ETACountdown } from "./ETACountdown";
 export { default as MobileTrackingSheet } from "./MobileTrackingSheet";
 export { default as PriorityDelivery } from "./PriorityDelivery";
