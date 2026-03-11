@@ -240,8 +240,9 @@ export async function POST(request: NextRequest) {
             paymentId,
             paidAt: new Date().toISOString(),
           });
-          // Send confirmation email (best-effort)
-          await trySendConfirmationEmail(orderId, payment);
+          // Note: Email is sent client-side with full order data (items, totals).
+          // Webhook metadata lacks complete order info, so we skip here to avoid
+          // sending duplicate or incomplete confirmation emails.
         } else {
           logWebhook({ level: "warn", eventId, eventType, message: "payment.paid missing orderId" });
         }
@@ -276,8 +277,9 @@ export async function POST(request: NextRequest) {
             paymentIntentId: intentId,
             paidAt: new Date().toISOString(),
           });
-          // Send confirmation email (best-effort)
-          await trySendConfirmationEmail(orderId, intent);
+          // Note: Email is sent client-side with full order data (items, totals).
+          // Webhook metadata lacks complete order info, so we skip here to avoid
+          // sending duplicate or incomplete confirmation emails.
         } else {
           logWebhook({ level: "warn", eventId, eventType, message: "payment_intent.succeeded missing orderId" });
         }

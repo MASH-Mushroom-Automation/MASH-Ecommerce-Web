@@ -389,7 +389,7 @@ describe("PaymentSuccessPage", () => {
       });
     });
 
-    it("should render disabled Download Receipt button", async () => {
+    it("should render enabled Download Receipt button when order data exists", async () => {
       mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
       setPendingOrder(createPendingOrder());
 
@@ -397,8 +397,59 @@ describe("PaymentSuccessPage", () => {
 
       await waitFor(() => {
         const receiptBtn = screen.getByRole("button", { name: /Download Receipt/i });
-        expect(receiptBtn).toBeDisabled();
+        expect(receiptBtn).not.toBeDisabled();
       });
+    });
+
+    it("should open receipt in new window when Download Receipt is clicked", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      const mockWrite = jest.fn();
+      const mockClose = jest.fn();
+      const mockWindowOpen = jest.fn().mockReturnValue({
+        document: { write: mockWrite, close: mockClose },
+      });
+      window.open = mockWindowOpen;
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      const receiptBtn = screen.getByRole("button", { name: /Download Receipt/i });
+      await act(async () => {
+        receiptBtn.click();
+      });
+
+      expect(mockWindowOpen).toHaveBeenCalledWith("", "_blank");
+      expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining("MASH Market"));
+      expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining("MASH-0001"));
+      expect(mockClose).toHaveBeenCalled();
+    });
+
+    it("should show toast error when popup is blocked for receipt", async () => {
+      const { toast } = require("sonner");
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      window.open = jest.fn().mockReturnValue(null);
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      const receiptBtn = screen.getByRole("button", { name: /Download Receipt/i });
+      await act(async () => {
+        receiptBtn.click();
+      });
+
+      expect(toast.error).toHaveBeenCalledWith(
+        "Please allow popups to download your receipt."
+      );
     });
   });
 
@@ -486,7 +537,7 @@ describe("PaymentSuccessPage", () => {
       expect(mockSendEmail).not.toHaveBeenCalled();
     });
 
-    it("should handle email send failure gracefully", async () => {
+    it("should handle email send failure gracefully and show error message", async () => {
       mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
       setPendingOrder(createPendingOrder());
 
@@ -498,11 +549,114 @@ describe("PaymentSuccessPage", () => {
       await waitFor(() => {
         expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
       });
+
+      // Should show email error message and Resend button
+      await waitFor(() => {
+        expect(
+          screen.getByText(/could not send the confirmation email/i)
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /Resend Email/i })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should show email error when API returns success=false", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      mockSendEmail.mockResolvedValue({ success: false, error: "SMTP timeout" });
+
+      render(<PaymentSuccessPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Payment Successful!")).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/could not send the confirmation email/i)
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /Resend Email/i })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should resend email when Resend Email button is clicked", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      // First attempt fails
+      mockSendEmail.mockRejectedValueOnce(new Error("Email service down"));
+
+      render(<PaymentSuccessPage />);
+
+      // Wait for failure
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /Resend Email/i })
+        ).toBeInTheDocument();
+      });
+
+      // Set up success for retry
+      mockSendEmail.mockResolvedValueOnce({ success: true, messageId: "msg-retry" });
+
+      // Click resend
+      await act(async () => {
+        screen.getByRole("button", { name: /Resend Email/i }).click();
+      });
+
+      // Should be called again
+      await waitFor(() => {
+        expect(mockSendEmail).toHaveBeenCalledTimes(2);
+      });
+
+      // Should show success message
+      await waitFor(() => {
+        expect(
+          screen.getByText("A confirmation email has been sent to your email address.")
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should show sending state while email is in progress", async () => {
+      mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
+      setPendingOrder(createPendingOrder());
+
+      // Make email hang
+      let resolveEmail: (value: { success: boolean }) => void;
+      mockSendEmail.mockImplementation(
+        () => new Promise((resolve) => { resolveEmail = resolve; })
+      );
+
+      render(<PaymentSuccessPage />);
+
+      // Should show sending state
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Sending confirmation email/i)
+        ).toBeInTheDocument();
+      });
+
+      // Resolve the email
+      await act(async () => {
+        resolveEmail!({ success: true });
+      });
+
+      // Should show success
+      await waitFor(() => {
+        expect(
+          screen.getByText("A confirmation email has been sent to your email address.")
+        ).toBeInTheDocument();
+      });
     });
 
     it("should show email sent text when email succeeds", async () => {
       mockSearchParams = new URLSearchParams({ orderId: "order-abc-123" });
       setPendingOrder(createPendingOrder());
+
+      mockSendEmail.mockResolvedValue({ success: true, messageId: "msg-123" });
 
       render(<PaymentSuccessPage />);
 

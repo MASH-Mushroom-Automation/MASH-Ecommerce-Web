@@ -357,9 +357,9 @@ describe("POST /api/payment/webhook", () => {
     expect(mockUpdateOrderPaymentStatus).not.toHaveBeenCalled();
   });
 
-  // -- AC3: Sends order confirmation email on successful payment --
+  // -- AC3: Email is NOT sent from webhook (delegated to client-side for full order data) --
 
-  it("sends confirmation email on payment.paid when email is in metadata", async () => {
+  it("does not send confirmation email on payment.paid (delegated to client-side)", async () => {
     const body = JSON.stringify({
       data: {
         id: "evt_email_1",
@@ -376,13 +376,11 @@ describe("POST /api/payment/webhook", () => {
     });
     const req = createReq({ body });
     await POST(req);
-    expect(mockSendOrderConfirmationEmail).toHaveBeenCalledWith(
-      "buyer@test.com",
-      expect.objectContaining({ orderNumber: "ORD-E1" })
-    );
+    // Email sending is handled client-side with full order data
+    expect(mockSendOrderConfirmationEmail).not.toHaveBeenCalled();
   });
 
-  it("sends confirmation email on payment_intent.succeeded when email is in metadata", async () => {
+  it("does not send confirmation email on payment_intent.succeeded (delegated to client-side)", async () => {
     const body = JSON.stringify({
       data: {
         id: "evt_email_2",
@@ -397,10 +395,8 @@ describe("POST /api/payment/webhook", () => {
     });
     const req = createReq({ body });
     await POST(req);
-    expect(mockSendOrderConfirmationEmail).toHaveBeenCalledWith(
-      "card@test.com",
-      expect.objectContaining({ orderNumber: "ORD-E2" })
-    );
+    // Email sending is handled client-side with full order data
+    expect(mockSendOrderConfirmationEmail).not.toHaveBeenCalled();
   });
 
   it("does not crash when email is missing from metadata", async () => {

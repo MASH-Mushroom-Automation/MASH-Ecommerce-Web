@@ -12,6 +12,9 @@ import {
   AlertCircle,
   FileText,
   Clock,
+  Download,
+  Mail,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +75,8 @@ function PaymentSuccessContent() {
   const [orderData, setOrderData] = useState<PendingOrderData | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const [cartCleared, setCartCleared] = useState(false);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,10 +125,10 @@ function PaymentSuccessContent() {
     async (pending: PendingOrderData) => {
       if (emailSentRef.current || !pending.customerEmail) return;
       emailSentRef.current = true;
-      setEmailSent(true);
+      setEmailSending(true);
 
       try {
-        await sendOrderConfirmationEmailViaAPI(pending.customerEmail, {
+        const result = await sendOrderConfirmationEmailViaAPI(pending.customerEmail, {
           customerName: pending.customerName || "Valued Customer",
           orderNumber: pending.orderNumber,
           orderId: pending.orderId,
@@ -133,12 +138,38 @@ function PaymentSuccessContent() {
           total: pending.amount || 0,
           paymentMethod: pending.paymentMethod || "gcash",
         });
+
+        if (result.success) {
+          setEmailSent(true);
+          setEmailError(false);
+        } else {
+          console.error("[PaymentSuccess] Email send failed:", result.error);
+          setEmailError(true);
+          setEmailSent(false);
+          emailSentRef.current = false;
+        }
       } catch (err) {
         console.error("[PaymentSuccess] Failed to send confirmation email:", err);
+        setEmailError(true);
+        setEmailSent(false);
+        emailSentRef.current = false;
+      } finally {
+        setEmailSending(false);
       }
     },
     []
   );
+
+  // -----------------------------------------------------------------------
+  // Resend confirmation email (user-triggered retry)
+  // -----------------------------------------------------------------------
+  const handleResendEmail = useCallback(() => {
+    if (!orderData || emailSending) return;
+    emailSentRef.current = false;
+    setEmailError(false);
+    setEmailSent(false);
+    sendConfirmationEmail(orderData);
+  }, [orderData, emailSending, sendConfirmationEmail]);
 
   // -----------------------------------------------------------------------
   // Verify payment status via API
@@ -310,6 +341,115 @@ function PaymentSuccessContent() {
 
   const formatCurrency = (value: number) =>
     `PHP ${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  // -----------------------------------------------------------------------
+  // Download Receipt
+  // -----------------------------------------------------------------------
+  const handleDownloadReceipt = useCallback(() => {
+    if (!orderData) return;
+
+    const itemsHtml = orderData.items?.length
+      ? orderData.items
+          .map(
+            (item) =>
+              `<tr><td>${item.name}</td><td>${item.quantity}</td><td>PHP ${item.price.toFixed(2)}</td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="3" style="text-align:center;color:#999;">No item details available</td></tr>';
+
+    const subtotal = orderData.subtotal ?? orderData.amount ?? 0;
+    const deliveryFee = orderData.deliveryFee ?? 0;
+    const total = orderData.amount ?? subtotal + deliveryFee;
+    const orderDate = orderData.timestamp
+      ? new Date(orderData.timestamp).toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : new Date().toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+    const receiptHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Receipt - ${orderData.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #16a34a; padding-bottom: 20px; }
+    .header h1 { font-size: 24px; color: #16a34a; margin-bottom: 4px; }
+    .header p { color: #666; font-size: 14px; }
+    .order-info { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
+    .order-info div { line-height: 1.6; }
+    .order-info strong { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { background: #f5f5f5; text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
+    td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #eee; }
+    td:last-child, th:last-child { text-align: right; }
+    .totals { width: 300px; margin-left: auto; }
+    .totals tr td { padding: 6px 0; border: none; }
+    .totals .total-row td { font-weight: 700; font-size: 16px; border-top: 2px solid #333; padding-top: 10px; }
+    .footer { text-align: center; color: #999; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+    @media print { body { padding: 20px; } .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>MASH Market</h1>
+    <p>Order Receipt</p>
+  </div>
+  <div class="order-info">
+    <div>
+      <strong>Order Number:</strong> ${orderData.orderNumber}<br>
+      <strong>Date:</strong> ${orderDate}<br>
+      <strong>Status:</strong> Payment Confirmed
+    </div>
+    <div style="text-align: right;">
+      ${orderData.customerName ? `<strong>Customer:</strong> ${orderData.customerName}<br>` : ""}
+      ${orderData.customerEmail ? `<strong>Email:</strong> ${orderData.customerEmail}<br>` : ""}
+      <strong>Payment:</strong> ${paymentMethodLabel}
+    </div>
+  </div>
+  ${orderData.deliveryMethod ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;font-size:13px;line-height:1.6;">
+    <strong>${orderData.deliveryMethod === "pickup" ? "Pickup" : "Delivery Method"}:</strong>
+    ${orderData.deliveryMethod === "pickup" ? "Store Pickup" : "Home Delivery"}
+    ${orderData.vendor ? `<br><strong>Seller:</strong> ${orderData.vendor}` : ""}
+  </div>` : ""}
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Qty</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td>PHP ${subtotal.toFixed(2)}</td></tr>
+    ${deliveryFee > 0 ? `<tr><td>Delivery Fee</td><td>PHP ${deliveryFee.toFixed(2)}</td></tr>` : ""}
+    <tr class="total-row"><td>Total</td><td>PHP ${total.toFixed(2)}</td></tr>
+  </table>
+  <div class="footer">
+    <p>Thank you for shopping with MASH Market!</p>
+    <p>www.mashmarket.app</p>
+  </div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+    const receiptWindow = window.open("", "_blank");
+    if (receiptWindow) {
+      receiptWindow.document.write(receiptHtml);
+      receiptWindow.document.close();
+    } else {
+      toast.error("Please allow popups to download your receipt.");
+    }
+  }, [orderData, paymentMethodLabel]);
 
   // -----------------------------------------------------------------------
   // Render: Verifying
@@ -485,21 +625,48 @@ function PaymentSuccessContent() {
 
             <Button
               variant="ghost"
-              disabled
-              className="w-full text-muted-foreground"
-              title="Coming soon"
+              onClick={handleDownloadReceipt}
+              disabled={!orderData}
+              className="w-full text-muted-foreground hover:text-foreground"
             >
-              <FileText className="mr-2 h-4 w-4" />
+              <Download className="mr-2 h-4 w-4" />
               Download Receipt
             </Button>
           </div>
 
           {/* Email confirmation notice */}
-          <p className="text-xs text-muted-foreground mt-6">
-            {emailSent
-              ? "A confirmation email has been sent to your email address."
-              : "A confirmation email will be sent shortly."}
-          </p>
+          <div className="mt-6 text-center">
+            {emailSending ? (
+              <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Sending confirmation email...
+              </p>
+            ) : emailSent ? (
+              <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                <Mail className="h-3 w-3" />
+                A confirmation email has been sent to your email address.
+              </p>
+            ) : emailError ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  We could not send the confirmation email.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResendEmail}
+                  className="text-xs h-7 px-3 text-primary hover:text-primary/80"
+                >
+                  <RefreshCw className="mr-1.5 h-3 w-3" />
+                  Resend Email
+                </Button>
+              </div>
+            ) : orderData?.customerEmail ? (
+              <p className="text-xs text-muted-foreground">
+                A confirmation email will be sent shortly.
+              </p>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>
