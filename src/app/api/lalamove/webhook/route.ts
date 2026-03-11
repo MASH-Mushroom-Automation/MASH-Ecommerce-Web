@@ -25,9 +25,12 @@ interface LalamoveWebhookPayload {
   data: any;
 }
 
+/** Maximum webhook body size: 1 MB */
+const MAX_BODY_SIZE = 1024 * 1024;
+
 /**
- * Verify webhook signature for security
- * Ensures webhook actually came from Lalamove
+ * Verify webhook signature for security (timing-safe)
+ * Uses crypto.timingSafeEqual to prevent timing attacks.
  */
 function verifyWebhookSignature(
   body: string,
@@ -38,50 +41,70 @@ function verifyWebhookSignature(
     .createHmac('sha256', secret)
     .update(body)
     .digest('hex');
-  
-  return signature === expectedSignature;
+
+  // Both buffers must be the same length for timingSafeEqual
+  const sigBuffer = Buffer.from(signature, 'utf8');
+  const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+
+  if (sigBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
 }
 
 export async function POST(request: NextRequest) {
   try {
     // Get raw body for signature verification
     const rawBody = await request.text();
+
+    // Body size check (1 MB limit)
+    if (Buffer.byteLength(rawBody, 'utf8') > MAX_BODY_SIZE) {
+      console.error('[Webhook] Request body exceeds 1 MB limit');
+      return NextResponse.json(
+        { success: false, message: 'Request body too large' },
+        { status: 413 }
+      );
+    }
+
     const signature = request.headers.get('X-Lalamove-Signature') || '';
     const secret = process.env.LALAMOVE_API_SECRET!;
 
-    // Verify webhook authenticity (skip in sandbox/test mode)
-    const isSandbox = process.env.LALAMOVE_HOST?.includes('sandbox');
-    if (!isSandbox) {
-      if (!signature) {
-        console.error('[Webhook] Missing signature header in production mode');
-        return NextResponse.json(
-          { success: false, message: 'Missing signature' },
-          { status: 401 }
-        );
-      }
-      if (!verifyWebhookSignature(rawBody, signature, secret)) {
-        console.error('[Webhook] Invalid signature');
-        return NextResponse.json(
-          { success: false, message: 'Invalid signature' },
-          { status: 401 }
-        );
-      }
+    // Verify webhook authenticity in ALL environments (sandbox + production)
+    if (!signature) {
+      console.error('[Webhook] Missing signature header');
+      return NextResponse.json(
+        { success: false, message: 'Missing signature' },
+        { status: 401 }
+      );
     }
+    if (!verifyWebhookSignature(rawBody, signature, secret)) {
+      console.error('[Webhook] Invalid signature');
+      return NextResponse.json(
+        { success: false, message: 'Invalid signature' },
+        { status: 401 }
+      );
+    }
+
+    // Parse JSON body safely
+    let payload: LalamoveWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      console.error('[Webhook] Malformed JSON body');
+      return NextResponse.json(
+        { success: false, message: 'Malformed JSON body' },
+        { status: 400 }
+      );
+    }
+
+    const isSandbox = process.env.LALAMOVE_HOST?.includes('sandbox');
 
     // Log all webhook attempts for debugging
     console.log('[Webhook] ===== NEW WEBHOOK RECEIVED =====');
-    console.log('[Webhook] Headers:', Object.fromEntries(request.headers.entries()));
-    console.log('[Webhook] Body:', rawBody);
-    console.log('[Webhook] Signature:', signature || 'NO SIGNATURE');
+    console.log('[Webhook] Event:', payload.event);
+    console.log('[Webhook] OrderId:', payload.orderId);
     console.log('[Webhook] Is Sandbox:', isSandbox);
-
-    const payload: LalamoveWebhookPayload = JSON.parse(rawBody);
-    
-    console.log('[Webhook] Received event:', {
-      event: payload.event,
-      orderId: payload.orderId,
-      timestamp: payload.timestamp,
-    });
 
     // Handle different webhook events
     switch (payload.event) {
