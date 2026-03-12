@@ -1,3 +1,4 @@
+export { default as DeliveryAddressPair } from "./DeliveryAddressPair";
 export { default as DeliveryChat } from "./DeliveryChat";
 export { default as DeliveryCostCalculator } from "./DeliveryCostCalculator";
 export { default as DeliveryErrorBoundary } from "./DeliveryErrorBoundary";
