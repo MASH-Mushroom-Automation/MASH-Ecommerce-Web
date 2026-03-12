@@ -10,3 +10,4 @@ export { default as SellerDeliveryPanel } from "./SellerDeliveryPanel";
 export { default as StaticTrackingMap } from "./StaticTrackingMap";
 export { default as StatusTimeline } from "./StatusTimeline";
 export { default as TrackingMap } from "./TrackingMap";
+export { default as VehicleTypeSelector } from "./VehicleTypeSelector";
