@@ -6,6 +6,7 @@ export { default as DeliveryTrackingBanner } from "./DeliveryTrackingBanner";
 export { default as DeliveryStatusBadge } from "./DeliveryStatusBadge";
 export { default as DriverInfoCard } from "./DriverInfoCard";
 export { default as ETACountdown } from "./ETACountdown";
+export { default as LalamoveOrderSummary } from "./LalamoveOrderSummary";
 export { default as MobileTrackingSheet } from "./MobileTrackingSheet";
 export { default as PriorityDelivery } from "./PriorityDelivery";
 export { default as SellerDeliveryPanel } from "./SellerDeliveryPanel";
