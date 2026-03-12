@@ -1,6 +1,7 @@
 export { default as DeliveryChat } from "./DeliveryChat";
 export { default as DeliveryCostCalculator } from "./DeliveryCostCalculator";
 export { default as DeliveryErrorBoundary } from "./DeliveryErrorBoundary";
+export { default as DeliveryProofImage } from "./DeliveryProofImage";
 export { default as DeliveryTrackingBanner } from "./DeliveryTrackingBanner";
 export { default as DeliveryStatusBadge } from "./DeliveryStatusBadge";
 export { default as DriverInfoCard } from "./DriverInfoCard";
