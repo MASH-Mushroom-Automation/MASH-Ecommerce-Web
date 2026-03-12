@@ -3,6 +3,7 @@ export { default as DeliveryCostCalculator } from "./DeliveryCostCalculator";
 export { default as DeliveryErrorBoundary } from "./DeliveryErrorBoundary";
 export { default as DeliveryFilterBar } from "./DeliveryFilterBar";
 export { default as DeliveryHistoryTimeline } from "./DeliveryHistoryTimeline";
+export { default as DeliveryMetricsCard } from "./DeliveryMetricsCard";
 export { default as DeliveryProofImage } from "./DeliveryProofImage";
 export { default as DeliveryQuoteBreakdown } from "./DeliveryQuoteBreakdown";
 export { default as DeliveryRecoveryModal } from "./DeliveryRecoveryModal";
