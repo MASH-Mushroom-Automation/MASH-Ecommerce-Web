@@ -1200,6 +1200,189 @@
         "Test: custom className",
         "Minimum 7 test cases"
       ]
+    },
+    {
+      "id": "LAMA-059",
+      "title": "DeliveryAddressPair Component",
+      "priority": 59,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a DeliveryAddressPair component that displays pickup and dropoff addresses as a connected vertical pair with icons and optional distance label.",
+      "files": ["src/components/delivery/DeliveryAddressPair.tsx"],
+      "acceptanceCriteria": [
+        "Shows pickup address with location pin icon",
+        "Shows dropoff address with destination icon",
+        "Vertical connector line between addresses",
+        "Optional distance label between addresses",
+        "Compact and expanded layout variants",
+        "MASH emerald branding",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-060",
+      "title": "Unit Tests - DeliveryAddressPair",
+      "priority": 60,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryAddressPair component.",
+      "files": ["src/components/delivery/__tests__/DeliveryAddressPair.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders pickup address",
+        "Test: renders dropoff address",
+        "Test: shows distance label when provided",
+        "Test: hides distance when not provided",
+        "Test: compact variant",
+        "Test: custom className",
+        "Minimum 6 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-061",
+      "title": "DeliveryRatingCard Component",
+      "priority": 61,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a DeliveryRatingCard component for rating a completed delivery: star rating, optional comment, and submit button.",
+      "files": ["src/components/delivery/DeliveryRatingCard.tsx"],
+      "acceptanceCriteria": [
+        "5-star interactive rating selector",
+        "Optional text comment input",
+        "Submit button calls onSubmit with rating and comment",
+        "Disabled state after submission",
+        "Shows existing rating if already rated",
+        "MASH emerald branding",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-062",
+      "title": "Unit Tests - DeliveryRatingCard",
+      "priority": 62,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryRatingCard component.",
+      "files": ["src/components/delivery/__tests__/DeliveryRatingCard.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders 5 star buttons",
+        "Test: clicking star sets rating",
+        "Test: submit calls onSubmit with rating",
+        "Test: submit includes comment when provided",
+        "Test: disabled after submission",
+        "Test: shows existing rating",
+        "Test: custom className",
+        "Minimum 7 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-063",
+      "title": "DeliveryVehicleInfo Component",
+      "priority": 63,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a DeliveryVehicleInfo component that displays vehicle type details: icon, name, capacity, description, and price range badge.",
+      "files": ["src/components/delivery/DeliveryVehicleInfo.tsx"],
+      "acceptanceCriteria": [
+        "Shows vehicle type icon",
+        "Shows vehicle name and description",
+        "Shows capacity info",
+        "Optional price range badge",
+        "Compact and full layout variants",
+        "MASH emerald branding",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-064",
+      "title": "Unit Tests - DeliveryVehicleInfo",
+      "priority": 64,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryVehicleInfo component.",
+      "files": ["src/components/delivery/__tests__/DeliveryVehicleInfo.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders vehicle name",
+        "Test: renders capacity info",
+        "Test: renders description",
+        "Test: shows price badge when provided",
+        "Test: hides price when not provided",
+        "Test: compact variant",
+        "Test: custom className",
+        "Minimum 7 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-065",
+      "title": "useDeliveryFilters Hook",
+      "priority": 65,
+      "persona": "NEXUS",
+      "passes": false,
+      "description": "Create a useDeliveryFilters hook that manages filter state (status, date range, search) and provides filtered results from an array of orders with lalamoveTracking. Pure client-side filtering.",
+      "files": ["src/hooks/useDeliveryFilters.ts"],
+      "acceptanceCriteria": [
+        "Manages DeliveryFilters state internally",
+        "Filters orders by status",
+        "Filters orders by date range",
+        "Filters orders by search term (order ID)",
+        "Returns filtered results and filter state",
+        "Returns setFilters and clearFilters functions",
+        "TypeScript strict - no any"
+      ]
+    },
+    {
+      "id": "LAMA-066",
+      "title": "Unit Tests - useDeliveryFilters",
+      "priority": 66,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for useDeliveryFilters hook.",
+      "files": ["src/hooks/__tests__/useDeliveryFilters.test.ts"],
+      "acceptanceCriteria": [
+        "Test: returns all orders with default filters",
+        "Test: filters by status",
+        "Test: filters by date range",
+        "Test: filters by search term",
+        "Test: combined filters",
+        "Test: clearFilters resets state",
+        "Test: handles empty orders array",
+        "Minimum 7 test cases"
+      ]
+    },
+    {
+      "id": "LAMA-067",
+      "title": "DeliveryScheduleBanner Component",
+      "priority": 67,
+      "persona": "ATLAS",
+      "passes": false,
+      "description": "Create a DeliveryScheduleBanner component that shows scheduled delivery time, countdown to pickup, and option to reschedule. Used on order detail pages for scheduled deliveries.",
+      "files": ["src/components/delivery/DeliveryScheduleBanner.tsx"],
+      "acceptanceCriteria": [
+        "Shows scheduled date and time",
+        "Shows countdown if delivery is upcoming",
+        "Shows 'Scheduled' badge",
+        "Optional reschedule callback",
+        "Past schedule shows 'Overdue' state",
+        "MASH emerald branding",
+        "No TypeScript errors"
+      ]
+    },
+    {
+      "id": "LAMA-068",
+      "title": "Unit Tests - DeliveryScheduleBanner",
+      "priority": 68,
+      "persona": "SENTINEL",
+      "passes": false,
+      "description": "Write unit tests for DeliveryScheduleBanner component.",
+      "files": ["src/components/delivery/__tests__/DeliveryScheduleBanner.test.tsx"],
+      "acceptanceCriteria": [
+        "Test: renders scheduled time",
+        "Test: shows countdown for upcoming delivery",
+        "Test: shows Overdue for past schedule",
+        "Test: reschedule button calls callback",
+        "Test: hides reschedule when no callback",
+        "Test: custom className",
+        "Minimum 6 test cases"
+      ]
     }
   ]
 }
