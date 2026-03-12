@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,46 +17,18 @@ import {
 import {
   ExternalLink,
   Navigation,
-  Phone,
   Truck,
-  User,
   XCircle,
   Loader2,
 } from "lucide-react";
 import StatusTimeline from "@/components/delivery/StatusTimeline";
 import PriorityDelivery from "@/components/delivery/PriorityDelivery";
+import DeliveryStatusBadge from "@/components/delivery/DeliveryStatusBadge";
+import DriverInfoCard from "@/components/delivery/DriverInfoCard";
 import { useLalamoveTracking } from "@/hooks/useLalamoveTracking";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type DeliveryStatus =
-  | "ASSIGNING_DRIVER"
-  | "ON_GOING"
-  | "PICKED_UP"
-  | "COMPLETED"
-  | "CANCELED"
-  | "REJECTED"
-  | "EXPIRED";
-
-const STATUS_LABELS: Record<DeliveryStatus, string> = {
-  ASSIGNING_DRIVER: "Finding Driver",
-  ON_GOING: "Driver En Route",
-  PICKED_UP: "Picked Up",
-  COMPLETED: "Delivered",
-  CANCELED: "Canceled",
-  REJECTED: "Rejected",
-  EXPIRED: "Expired",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  ASSIGNING_DRIVER: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  ON_GOING: "bg-blue-100 text-blue-800 border-blue-300",
-  PICKED_UP: "bg-indigo-100 text-indigo-800 border-indigo-300",
-  COMPLETED: "bg-green-100 text-green-800 border-green-300",
-  CANCELED: "bg-red-100 text-red-800 border-red-300",
-  REJECTED: "bg-red-100 text-red-800 border-red-300",
-  EXPIRED: "bg-gray-100 text-gray-800 border-gray-300",
-};
+import type { DeliveryStatus } from "@/components/delivery/DeliveryStatusBadge";
 
 interface SellerDeliveryPanelProps {
   orderId: string;
@@ -146,12 +117,7 @@ export default function SellerDeliveryPanel({
               <Navigation className="h-4 w-4 text-emerald-600" />
               Lalamove Delivery
             </span>
-            <Badge
-              variant="outline"
-              className={cn("border", STATUS_COLORS[status] || STATUS_COLORS.ASSIGNING_DRIVER)}
-            >
-              {STATUS_LABELS[status] || status}
-            </Badge>
+            <DeliveryStatusBadge status={status} />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -160,31 +126,12 @@ export default function SellerDeliveryPanel({
 
           {/* Driver Info */}
           {driver && (
-            <div className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                  <User className="h-5 w-5 text-emerald-700" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{driver.name}</p>
-                  {driver.plateNumber && (
-                    <p className="text-xs text-muted-foreground">
-                      {driver.plateNumber}
-                    </p>
-                  )}
-                </div>
-                {driver.phone && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(`tel:${driver.phone}`, "_self")}
-                  >
-                    <Phone className="h-3.5 w-3.5 mr-1" />
-                    Call
-                  </Button>
-                )}
-              </div>
-            </div>
+            <DriverInfoCard
+              name={driver.name}
+              phone={driver.phone}
+              plateNumber={driver.plateNumber}
+              photo={driver.photo}
+            />
           )}
 
           {/* Share Link */}
