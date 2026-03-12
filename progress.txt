@@ -4199,6 +4199,48 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - After social-links+FeatureSection+resend: 74.99% (12029/16039) -- 1-branch gap
 - After cookies URI-decode+maxAge: 75.00% (12030/16039) -- 0 gap [COMPLETE]
 
+---
+
+## [2026-03-14] - LAMA-029 through LAMA-038 (Phase 3: Shared Components & Hardening)
+**Completed:** 10 stories - error boundaries, cancel flow, shared components, vehicle selector
+**Persona:** ATLAS + NEXUS + SENTINEL (mixed)
+
+**Stories Completed:**
+- LAMA-029: Wire DeliveryErrorBoundary into tracking page (ETACountdown, StatusTimeline, TrackingMap, MobileTrackingSheet)
+- LAMA-030: Cancel delivery button in SellerDeliveryPanel (AlertDialog confirmation, DELETE /api/lalamove/order)
+- LAMA-031: Cancel delivery tests (10 new tests, 25 total for SellerDeliveryPanel)
+- LAMA-032: DeliveryStatusBadge shared component (7 statuses + unknown fallback)
+- LAMA-033: DeliveryStatusBadge tests (12 tests)
+- LAMA-034: DriverInfoCard shared component (avatar, name, plate, Call button)
+- LAMA-035: DriverInfoCard tests (10 tests)
+- LAMA-036: Refactor SellerDeliveryPanel to use DeliveryStatusBadge + DriverInfoCard
+- LAMA-037: VehicleTypeSelector component (7 vehicle types, responsive grid, estimate calculation)
+- LAMA-038: VehicleTypeSelector tests (17 tests)
+
+**Files Created:**
+- src/components/delivery/DeliveryStatusBadge.tsx
+- src/components/delivery/DriverInfoCard.tsx
+- src/components/delivery/VehicleTypeSelector.tsx
+- src/components/delivery/__tests__/DeliveryStatusBadge.test.tsx
+- src/components/delivery/__tests__/DriverInfoCard.test.tsx
+- src/components/delivery/__tests__/VehicleTypeSelector.test.tsx
+
+**Files Modified:**
+- src/app/(user)/profile/orders/[orderId]/track/page.tsx (DeliveryErrorBoundary wiring)
+- src/components/delivery/SellerDeliveryPanel.tsx (cancel button + shared component refactor)
+- src/components/delivery/__tests__/SellerDeliveryPanel.test.tsx (10 cancel tests)
+- src/components/delivery/index.ts (barrel exports for 3 new components)
+
+**Learnings for Future Iterations:**
+- Radix AlertDialog must be mocked transparently for async handler tests (portals/animations prevent completion)
+- sonner toast mock: use jest.mock("sonner", () => ({ toast: { success: jest.fn(), error: jest.fn() } })) then import toast from "sonner" to get refs
+- DeliveryStatusBadge exports both component and type { DeliveryStatus } for reuse
+- VehicleTypeSelector uses calculateEstimate() from vehicle-types.ts for dynamic pricing
+- 13 delivery components, all with test files. 12 Lalamove API route test files.
+
+**Quality Gates:** [PASS] Build | [PASS] Lint | [PASS] Tests | [PASS] TypeCheck
+**Total PRD:** 38/38 stories complete (LAMA-001 through LAMA-038)
+
 **Learnings for Future Iterations:**
 - StockBadge branches: dynamic mock with jest.fn() for hook return values allows per-test control
 - useSanityHero: capture listener subscriber via mockImplementation, fire mutations manually
