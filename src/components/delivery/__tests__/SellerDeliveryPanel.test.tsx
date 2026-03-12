@@ -1,9 +1,9 @@
 /**
  * SellerDeliveryPanel Component Tests
- * Tests real-time tracking display, driver info, share link, priority delivery
+ * Tests real-time tracking display, driver info, share link, priority delivery, cancel delivery
  */
 import React from "react";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import SellerDeliveryPanel from "../SellerDeliveryPanel";
 
 // ─── Mock child components ─────────────────────────────────────
@@ -21,6 +21,36 @@ jest.mock("@/components/delivery/PriorityDelivery", () => {
         Priority for {props.orderId} (fee: {props.currentTotal})
       </div>
     );
+  };
+});
+
+// ─── Mock toast ────────────────────────────────────────────────
+
+jest.mock("sonner", () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+const mockToastSuccess = toast.success as jest.Mock;
+const mockToastError = toast.error as jest.Mock;
+
+// ─── Mock AlertDialog to avoid portal/animation timing issues ──
+
+jest.mock("@/components/ui/alert-dialog", () => {
+  const React = require("react");
+  return {
+    AlertDialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogTrigger: ({ children }: { children: React.ReactNode; asChild?: boolean }) => <>{children}</>,
+    AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AlertDialogCancel: ({ children, ...props }: Record<string, unknown>) => <button {...props}>{children as React.ReactNode}</button>,
+    AlertDialogAction: ({ children, ...props }: Record<string, unknown>) => <button {...props}>{children as React.ReactNode}</button>,
   };
 });
 
@@ -268,6 +298,200 @@ describe("SellerDeliveryPanel", () => {
 
       render(<SellerDeliveryPanel orderId="order-1" />);
       expect(screen.getByText("Lalamove Delivery")).toBeInTheDocument();
+    });
+  });
+
+  describe("cancel delivery", () => {
+    beforeEach(() => {
+      mockToastSuccess.mockClear();
+      mockToastError.mockClear();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("shows Cancel Delivery button when ASSIGNING_DRIVER", () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      expect(screen.getByText("Cancel Delivery")).toBeInTheDocument();
+    });
+
+    it("shows Cancel Delivery button when ON_GOING", () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ON_GOING", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      expect(screen.getByText("Cancel Delivery")).toBeInTheDocument();
+    });
+
+    it("does not show Cancel Delivery button when PICKED_UP", () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "PICKED_UP", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      expect(screen.queryByText("Cancel Delivery")).not.toBeInTheDocument();
+    });
+
+    it("does not show Cancel Delivery button when COMPLETED", () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "COMPLETED", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      expect(screen.queryByText("Cancel Delivery")).not.toBeInTheDocument();
+    });
+
+    it("shows confirmation dialog content with Cancel Delivery trigger", async () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      // With transparent mock, content is always rendered
+      expect(screen.getByText("Cancel Delivery?")).toBeInTheDocument();
+      expect(screen.getByText("Yes, Cancel Delivery")).toBeInTheDocument();
+      expect(screen.getByText("Keep Delivery")).toBeInTheDocument();
+    });
+
+    it("shows cancellation fee warning when ON_GOING", () => {
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ON_GOING", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+      expect(
+        screen.getByText(/Cancellation fees may apply/i)
+      ).toBeInTheDocument();
+    });
+
+    it("calls DELETE /api/lalamove/order on confirm", async () => {
+      const fetchMock = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, message: "Order cancelled successfully" }),
+      } as Response);
+
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, Cancel Delivery"));
+      });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/lalamove/order?orderId=lala-123",
+          { method: "DELETE" }
+        );
+      });
+
+      fetchMock.mockRestore();
+    });
+
+    it("shows success toast on successful cancel", async () => {
+      const fetchMock = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
+
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, Cancel Delivery"));
+      });
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith("Delivery canceled successfully");
+      });
+
+      fetchMock.mockRestore();
+    });
+
+    it("shows error toast on cancel failure", async () => {
+      const fetchMock = jest.spyOn(global, "fetch").mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ success: false, message: "Cannot cancel" }),
+      } as Response);
+
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, Cancel Delivery"));
+      });
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("Cannot cancel");
+      });
+
+      fetchMock.mockRestore();
+    });
+
+    it("shows error toast on network error", async () => {
+      const fetchMock = jest.spyOn(global, "fetch").mockRejectedValueOnce(
+        new Error("Network failure")
+      );
+
+      mockUseLalamoveTracking.mockReturnValue({
+        tracking: { status: "ASSIGNING_DRIVER", orderId: "lala-123" },
+        order: null,
+        loading: false,
+        error: null,
+      });
+
+      render(<SellerDeliveryPanel orderId="order-1" />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, Cancel Delivery"));
+      });
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("Network failure");
+      });
+
+      fetchMock.mockRestore();
     });
   });
 });
