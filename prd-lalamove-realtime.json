@@ -645,7 +645,8 @@
       "title": "Wire DeliveryErrorBoundary into Tracking Page",
       "priority": 29,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:00:00Z",
       "description": "Wrap TrackingMap, StatusTimeline, ETACountdown with DeliveryErrorBoundary so a crash in one delivery component does not break the entire tracking page.",
       "files": ["src/app/(user)/profile/orders/[orderId]/track/page.tsx"],
       "acceptanceCriteria": [
@@ -662,7 +663,8 @@
       "title": "Cancel Delivery Button in SellerDeliveryPanel",
       "priority": 30,
       "persona": "NEXUS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:05:00Z",
       "description": "Add cancel delivery button to SellerDeliveryPanel when status is ASSIGNING_DRIVER. Calls DELETE /api/lalamove/order with the Lalamove order ID. Shows confirmation dialog.",
       "files": ["src/components/delivery/SellerDeliveryPanel.tsx"],
       "acceptanceCriteria": [
@@ -680,7 +682,8 @@
       "title": "Unit Tests — Cancel Delivery in SellerDeliveryPanel",
       "priority": 31,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:10:00Z",
       "description": "Write tests for the cancel delivery button flow in SellerDeliveryPanel.",
       "files": ["src/components/delivery/__tests__/SellerDeliveryPanel.test.tsx"],
       "acceptanceCriteria": [
@@ -696,7 +699,8 @@
       "title": "Delivery Status Badge Component",
       "priority": 32,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:15:00Z",
       "description": "Create a reusable DeliveryStatusBadge component that renders the correct color and label for each Lalamove status.",
       "files": ["src/components/delivery/DeliveryStatusBadge.tsx"],
       "acceptanceCriteria": [
@@ -713,7 +717,8 @@
       "title": "Unit Tests — DeliveryStatusBadge",
       "priority": 33,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:20:00Z",
       "description": "Write unit tests for DeliveryStatusBadge covering all Lalamove statuses.",
       "files": ["src/components/delivery/__tests__/DeliveryStatusBadge.test.tsx"],
       "acceptanceCriteria": [
@@ -728,7 +733,8 @@
       "title": "DriverInfoCard Shared Component",
       "priority": 34,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:25:00Z",
       "description": "Extract the driver info display into a shared DriverInfoCard component to eliminate duplication.",
       "files": ["src/components/delivery/DriverInfoCard.tsx"],
       "acceptanceCriteria": [
@@ -745,7 +751,8 @@
       "title": "Unit Tests — DriverInfoCard",
       "priority": 35,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:30:00Z",
       "description": "Write unit tests for DriverInfoCard component.",
       "files": ["src/components/delivery/__tests__/DriverInfoCard.test.tsx"],
       "acceptanceCriteria": [
@@ -762,7 +769,8 @@
       "title": "Refactor SellerDeliveryPanel to Use Shared Components",
       "priority": 36,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:35:00Z",
       "description": "Refactor SellerDeliveryPanel to use shared DeliveryStatusBadge and DriverInfoCard.",
       "files": ["src/components/delivery/SellerDeliveryPanel.tsx"],
       "acceptanceCriteria": [
@@ -777,7 +785,8 @@
       "title": "VehicleTypeSelector Component",
       "priority": 37,
       "persona": "ATLAS",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:40:00Z",
       "description": "Create a VehicleTypeSelector component for checkout showing Lalamove vehicle options with prices and specs.",
       "files": ["src/components/delivery/VehicleTypeSelector.tsx"],
       "acceptanceCriteria": [
@@ -794,7 +803,8 @@
       "title": "Unit Tests — VehicleTypeSelector",
       "priority": 38,
       "persona": "SENTINEL",
-      "passes": false,
+      "passes": true,
+      "completedAt": "2026-03-14T10:45:00Z",
       "description": "Write unit tests for VehicleTypeSelector component.",
       "files": ["src/components/delivery/__tests__/VehicleTypeSelector.test.tsx"],
       "acceptanceCriteria": [
