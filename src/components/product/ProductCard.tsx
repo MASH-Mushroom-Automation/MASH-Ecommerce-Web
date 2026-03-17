@@ -30,6 +30,7 @@ interface ProductCardProps {
   tags?: string[]; // Product tags like "Best Seller", "New", etc.
   description?: string; // Short description for quick view
   onQuickView?: (id: string) => void; // Quick view callback
+  sellerId?: string; // Seller ID for order routing
 }
 
 export function ProductCard({
@@ -49,6 +50,7 @@ export function ProductCard({
   tags = [],
   description,
   onQuickView,
+  sellerId,
 }: ProductCardProps) {
   // Use slug for URL if available (Sanity products), otherwise fall back to ID
   const productUrl = slug ? `/product/${slug}` : `/product/${id}`;
@@ -122,6 +124,7 @@ export function ProductCard({
       stock,
       grower: farm,
       unit,
+      sellerId,
     }, 1);
 
     setIsAddingToCart(false);
@@ -331,8 +334,8 @@ export function ProductCard({
                     i < Math.floor(rating)
                       ? "fill-amber-400 text-amber-400"
                       : i < rating
-                      ? "fill-amber-400/50 text-amber-400"
-                      : "fill-muted text-muted"
+                        ? "fill-amber-400/50 text-amber-400"
+                        : "fill-muted text-muted"
                   )}
                 />
               ))}

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SellerApi } from "@/lib/api/seller";
 import { FirebaseOrdersService } from "@/lib/firebase/orders";
-import { fetchSellerProducts } from "@/lib/sanity/products";
+
 import {
   SellerDashboardStats,
   SellerSalesData,
@@ -41,10 +41,12 @@ function toDate(ts: any): Date {
 }
 
 // Dashboard hooks
-export function useSellerDashboard() {
+export function useSellerDashboard(sellerId?: string) {
   const [stats, setStats] = useState<SellerDashboardStats | null>(null);
   const [salesData, setSalesData] = useState<SellerSalesData[]>([]);
-  const [productPerformance, setProductPerformance] = useState<SellerProductPerformance[]>([]);
+  const [productPerformance, setProductPerformance] = useState<
+    SellerProductPerformance[]
+  >([]);
   const [recentOrders, setRecentOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,22 +56,39 @@ export function useSellerDashboard() {
     setError(null);
 
     try {
-      // Fetch Firebase orders + Sanity products concurrently
-      const [allOrders, sanityResult] = await Promise.all([
-        FirebaseOrdersService.getAllOrders(),
-        fetchSellerProducts({ limit: 1000 }),
+      // Fetch seller-scoped orders + seller's own Sanity products concurrently.
+      // When sellerId is provided, orders are filtered to that seller only.
+      const [allOrders, productsResponse] = await Promise.all([
+        sellerId
+          ? FirebaseOrdersService.getOrdersBySeller(sellerId)
+          : FirebaseOrdersService.getAllOrders(),
+        fetch("/api/seller/products?limit=1000").then((r) => r.json()),
       ]);
-      const sanityProducts = sanityResult.products;
+
+      const sanityProducts: Array<{ id: string; name: string; stock: number }> =
+        productsResponse.data ?? [];
 
       // ── Date Boundaries ──────────────────────────────────────────
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      const startOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1,
+      );
+      const endOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
 
       // ── Stats ────────────────────────────────────────────────────
       const currentMonthOrders = allOrders.filter(
-        (o) => toDate(o.createdAt) >= startOfMonth
+        (o) => toDate(o.createdAt) >= startOfMonth,
       );
       const lastMonthOrders = allOrders.filter((o) => {
         const d = toDate(o.createdAt);
@@ -91,16 +110,16 @@ export function useSellerDashboard() {
             sum +
             (o.items || []).reduce(
               (s: number, item: any) => s + (item.quantity || 0),
-              0
+              0,
             ),
-          0
+          0,
         );
 
       const orderGrowth =
         lastMonthOrders.length > 0
           ? ((currentMonthOrders.length - lastMonthOrders.length) /
-            lastMonthOrders.length) *
-          100
+              lastMonthOrders.length) *
+            100
           : 0;
       const revenueGrowth =
         lastRevenue > 0
@@ -124,8 +143,24 @@ export function useSellerDashboard() {
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        const dayStart = new Date(
+          d.getFullYear(),
+          d.getMonth(),
+          d.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const dayEnd = new Date(
+          d.getFullYear(),
+          d.getMonth(),
+          d.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
 
         const dayOrders = allOrders.filter((o) => {
           const created = toDate(o.createdAt);
@@ -139,9 +174,9 @@ export function useSellerDashboard() {
               sum +
               (o.items || []).reduce(
                 (s: number, item: any) => s + (item.quantity || 0),
-                0
+                0,
               ),
-            0
+            0,
           );
 
         const dayRevenue = dayOrders
@@ -157,7 +192,7 @@ export function useSellerDashboard() {
 
       // ── Recent Orders (last 5) ───────────────────────────────────
       const sortedOrders = [...allOrders].sort(
-        (a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()
+        (a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime(),
       );
 
       const computedRecentOrders: SellerOrder[] = sortedOrders
@@ -172,42 +207,51 @@ export function useSellerDashboard() {
         }));
 
       // ── Product Performance (Sanity products × Firebase orders) ──
-      const productStats = new Map<string, { sales: number; revenue: number }>();
+      const productStats = new Map<
+        string,
+        { sales: number; revenue: number }
+      >();
 
       for (const order of allOrders) {
         if (EXCLUDED_STATUSES.includes(order.status)) continue;
         for (const item of order.items || []) {
           if (!item.productId) continue;
-          const existing = productStats.get(item.productId) || { sales: 0, revenue: 0 };
+          const existing = productStats.get(item.productId) || {
+            sales: 0,
+            revenue: 0,
+          };
           existing.sales += item.quantity || 0;
           existing.revenue += (item.price || 0) * (item.quantity || 0);
           productStats.set(item.productId, existing);
         }
       }
 
-      const computedProductPerformance: SellerProductPerformance[] = sanityProducts
-        .map((p) => {
-          const ps = productStats.get(p.id) || { sales: 0, revenue: 0 };
-          return {
-            name: p.name,
-            sales: ps.sales,
-            stock: p.stock || 0,
-            revenue: ps.revenue,
-          };
-        })
-        .sort((a, b) => b.sales - a.sales)
-        .slice(0, 5);
+      const computedProductPerformance: SellerProductPerformance[] =
+        sanityProducts
+          .map((p) => {
+            const ps = productStats.get(p.id) || { sales: 0, revenue: 0 };
+            return {
+              name: p.name,
+              sales: ps.sales,
+              stock: p.stock || 0,
+              revenue: ps.revenue,
+            };
+          })
+          .sort((a, b) => b.sales - a.sales)
+          .slice(0, 5);
 
       setStats(computedStats);
       setSalesData(computedSalesData);
       setProductPerformance(computedProductPerformance);
       setRecentOrders(computedRecentOrders);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch dashboard data");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch dashboard data",
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sellerId]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -223,7 +267,6 @@ export function useSellerDashboard() {
     refetch: fetchDashboardData,
   };
 }
-
 
 export function useSellerOrderDetail(orderId?: string) {
   const [order, setOrder] = useState<SellerOrderDetail | null>(null);
@@ -272,7 +315,7 @@ export function useSellerOrderDetail(orderId?: string) {
       setOrder(response.data);
       return response.data;
     },
-    [orderId]
+    [orderId],
   );
 
   return {
@@ -286,7 +329,7 @@ export function useSellerOrderDetail(orderId?: string) {
 
 // Products hooks
 export function useSellerProducts(
-  params: { page?: number; limit?: number; search?: string } = {}
+  params: { page?: number; limit?: number; search?: string } = {},
 ) {
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -329,7 +372,7 @@ export function useSellerOrders(
     limit?: number;
     status?: string;
     search?: string;
-  } = {}
+  } = {},
 ) {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -372,7 +415,7 @@ export function useSellerRefunds(
     limit?: number;
     status?: string;
     search?: string;
-  } = {}
+  } = {},
 ) {
   const [refunds, setRefunds] = useState<SellerRefund[]>([]);
   const [loading, setLoading] = useState(true);
@@ -423,7 +466,7 @@ export function useSellerNotifications() {
       setNotifications(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch notifications"
+        err instanceof Error ? err.message : "Failed to fetch notifications",
       );
       setNotifications([]);
     } finally {
@@ -438,8 +481,8 @@ export function useSellerNotifications() {
         prev.map((notification) =>
           notification.id === id
             ? { ...notification, isRead: true }
-            : notification
-        )
+            : notification,
+        ),
       );
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
@@ -474,7 +517,7 @@ export function useSellerAddresses() {
       setAddresses(response.data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch addresses"
+        err instanceof Error ? err.message : "Failed to fetch addresses",
       );
       setAddresses([]);
     } finally {
@@ -490,11 +533,11 @@ export function useSellerAddresses() {
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to create address"
+          err instanceof Error ? err.message : "Failed to create address",
         );
       }
     },
-    []
+    [],
   );
 
   const updateAddress = useCallback(
@@ -502,16 +545,16 @@ export function useSellerAddresses() {
       try {
         const response = await SellerApi.updateAddress(id, address);
         setAddresses((prev) =>
-          prev.map((addr) => (addr.id === id ? response.data : addr))
+          prev.map((addr) => (addr.id === id ? response.data : addr)),
         );
         return response;
       } catch (err) {
         throw new Error(
-          err instanceof Error ? err.message : "Failed to update address"
+          err instanceof Error ? err.message : "Failed to update address",
         );
       }
     },
-    []
+    [],
   );
 
   const deleteAddress = useCallback(async (id: string) => {
@@ -520,7 +563,7 @@ export function useSellerAddresses() {
       setAddresses((prev) => prev.filter((addr) => addr.id !== id));
     } catch (err) {
       throw new Error(
-        err instanceof Error ? err.message : "Failed to delete address"
+        err instanceof Error ? err.message : "Failed to delete address",
       );
     }
   }, []);

@@ -16,7 +16,6 @@ jest.setTimeout(30000);
 // ─── Mock Firebase Orders & Sanity Products (for useSellerDashboard) ─────
 
 const mockGetAllOrders = jest.fn();
-const mockFetchSellerProducts = jest.fn();
 
 jest.mock("@/lib/firebase/orders", () => ({
   FirebaseOrdersService: {
@@ -25,8 +24,10 @@ jest.mock("@/lib/firebase/orders", () => ({
 }));
 
 jest.mock("@/lib/sanity/products", () => ({
-  fetchSellerProducts: (...args: unknown[]) => mockFetchSellerProducts(...args),
+  // fetchSellerProducts is no longer called by useSellerDashboard;
+  // the hook now uses fetch('/api/seller/products') instead.
 }));
+
 
 // ─── Mock SellerApi ──────────────────────────────────────────
 
@@ -125,13 +126,13 @@ const MOCK_NOTIFICATIONS = [
 ];
 
 const MOCK_ADDRESSES = [
-  { id: "addr-1", street: "123 Main St", city: "Manila", isDefault: true },
-  { id: "addr-2", street: "456 Oak Ave", city: "Quezon City", isDefault: false },
+  { id: "addr-1", street1: "123 Main St", city: "Manila", isDefault: true },
+  { id: "addr-2", street1: "456 Oak Ave", city: "Quezon City", isDefault: false },
 ];
 
 beforeEach(() => {
   mockGetAllOrders.mockReset();
-  mockFetchSellerProducts.mockReset();
+  // no mockFetchSellerProducts reset needed (hook now uses fetch)
   mockGetDashboardStats.mockReset();
   mockGetSalesData.mockReset();
   mockGetProductPerformance.mockReset();
@@ -184,7 +185,11 @@ describe("useSellerDashboard", () => {
 
   function setupDashboardMocks() {
     mockGetAllOrders.mockResolvedValue(MOCK_FIREBASE_ORDERS);
-    mockFetchSellerProducts.mockResolvedValue({ products: MOCK_SANITY_PRODUCTS });
+    // The hook now calls fetch('/api/seller/products?limit=1000') instead of
+    // fetchSellerProducts directly, so we mock global.fetch.
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      json: () => Promise.resolve({ data: MOCK_SANITY_PRODUCTS }),
+    } as Response);
   }
 
   it("should start in loading state", () => {
@@ -211,19 +216,22 @@ describe("useSellerDashboard", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("should call fetchSellerProducts with limit 1000", async () => {
+  it("should call /api/seller/products with limit=1000", async () => {
     setupDashboardMocks();
 
     renderHook(() => useSellerDashboard());
 
     await waitFor(() =>
-      expect(mockFetchSellerProducts).toHaveBeenCalledWith({ limit: 1000 })
+      expect(global.fetch).toHaveBeenCalledWith("/api/seller/products?limit=1000")
     );
   });
 
+
   it("should handle error from any API call", async () => {
     mockGetAllOrders.mockRejectedValue(new Error("API down"));
-    mockFetchSellerProducts.mockResolvedValue({ products: [] });
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      json: () => Promise.resolve({ data: [] }),
+    } as Response);
 
     const { result } = renderHook(() => useSellerDashboard());
 
@@ -233,7 +241,9 @@ describe("useSellerDashboard", () => {
 
   it("should handle non-Error thrown", async () => {
     mockGetAllOrders.mockRejectedValue("string error");
-    mockFetchSellerProducts.mockResolvedValue({ products: [] });
+    jest.spyOn(global, "fetch").mockResolvedValue({
+      json: () => Promise.resolve({ data: [] }),
+    } as Response);
 
     const { result } = renderHook(() => useSellerDashboard());
 
@@ -732,7 +742,7 @@ describe("useSellerAddresses", () => {
 
   it("should update address", async () => {
     mockGetAddresses.mockResolvedValue({ data: [...MOCK_ADDRESSES] });
-    const updatedAddr = { ...MOCK_ADDRESSES[0], street: "Updated St" };
+    const updatedAddr = { ...MOCK_ADDRESSES[0], street1: "Updated St" };
     mockUpdateAddress.mockResolvedValue({ data: updatedAddr });
 
     const { result } = renderHook(() => useSellerAddresses());
@@ -740,12 +750,12 @@ describe("useSellerAddresses", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
-      await result.current.updateAddress("addr-1", { street: "Updated St" });
+      await result.current.updateAddress("addr-1", { street1: "Updated St" });
     });
 
-    expect(mockUpdateAddress).toHaveBeenCalledWith("addr-1", { street: "Updated St" });
+    expect(mockUpdateAddress).toHaveBeenCalledWith("addr-1", { street1: "Updated St" });
     const updated = result.current.addresses.find((a: any) => a.id === "addr-1");
-    expect(updated?.street).toBe("Updated St");
+    expect(updated?.street1).toBe("Updated St");
   });
 
   it("should throw on update address failure", async () => {
@@ -758,7 +768,7 @@ describe("useSellerAddresses", () => {
 
     await expect(
       act(async () => {
-        await result.current.updateAddress("addr-1", { street: "x" });
+        await result.current.updateAddress("addr-1", { street1: "x" });
       })
     ).rejects.toThrow("Update failed");
   });

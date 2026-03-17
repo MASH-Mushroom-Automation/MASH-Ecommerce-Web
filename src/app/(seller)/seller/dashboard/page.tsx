@@ -34,6 +34,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useSellerDashboard } from "@/hooks/useSeller";
+import { useSellerId } from "@/hooks/useSellerId";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SellerDashboard() {
@@ -44,7 +45,11 @@ export default function SellerDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use seller dashboard hook only (no admin endpoints)
+  // Seller ID from backend JWT — scoped to the logged-in seller.
+  // user.id is the Firebase UID which does NOT match the sellerId on orders.
+  const sellerId = useSellerId();
+
+  // Use seller dashboard hook scoped to this seller's orders only
   const {
     stats,
     salesData,
@@ -53,7 +58,7 @@ export default function SellerDashboard() {
     loading,
     error: sellerError,
     refetch: sellerRefetch,
-  } = useSellerDashboard();
+  } = useSellerDashboard(sellerId);
 
   const error = !!sellerError;
 
@@ -122,7 +127,6 @@ export default function SellerDashboard() {
     );
   }
 
-
   return (
     <div
       ref={containerRef}
@@ -142,8 +146,9 @@ export default function SellerDashboard() {
         >
           <div className="flex flex-col items-center gap-1">
             <RefreshCw
-              className={`h-5 w-5 text-primary ${isRefreshing || pullDistance > 80 ? "animate-spin" : ""
-                }`}
+              className={`h-5 w-5 text-primary ${
+                isRefreshing || pullDistance > 80 ? "animate-spin" : ""
+              }`}
               style={{
                 transform: isRefreshing
                   ? "rotate(0deg)"
@@ -282,9 +287,7 @@ export default function SellerDashboard() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-lg">Top Performing Products</CardTitle>
-          <CardDescription>
-            Top 5 products by units sold
-          </CardDescription>
+          <CardDescription>Top 5 products by units sold</CardDescription>
         </CardHeader>
         <CardContent>
           {!productPerformance || productPerformance.length === 0 ? (
@@ -296,18 +299,32 @@ export default function SellerDashboard() {
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-foreground w-10">#</TableHead>
-                  <TableHead className="text-foreground">Product Name</TableHead>
-                  <TableHead className="text-right text-foreground">Units Sold</TableHead>
-                  <TableHead className="text-right text-foreground">Stock</TableHead>
-                  <TableHead className="text-right text-foreground">Revenue</TableHead>
+                  <TableHead className="text-foreground">
+                    Product Name
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Units Sold
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Stock
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Revenue
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {productPerformance.map((product, index) => (
                   <TableRow key={product.name} className="hover:bg-muted/50">
-                    <TableCell className="text-muted-foreground font-medium">{index + 1}</TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="text-right font-semibold text-foreground">{product.sales}</TableCell>
+                    <TableCell className="text-muted-foreground font-medium">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-foreground">
+                      {product.sales}
+                    </TableCell>
                     <TableCell className="text-right">
                       {product.stock === 0 ? (
                         <Badge
@@ -327,7 +344,9 @@ export default function SellerDashboard() {
                         <span className="text-foreground">{product.stock}</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-foreground">₱{product.revenue.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-foreground">
+                      ₱{product.revenue.toLocaleString()}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -343,7 +362,6 @@ export default function SellerDashboard() {
           </Link>
         </CardFooter>
       </Card>
-
 
       {/* Recent Orders */}
       <Card>
@@ -365,8 +383,12 @@ export default function SellerDashboard() {
                   <TableHead className="text-foreground">Order ID</TableHead>
                   <TableHead className="text-foreground">Date</TableHead>
                   <TableHead className="text-foreground">Customer</TableHead>
-                  <TableHead className="text-right text-foreground">Items</TableHead>
-                  <TableHead className="text-right text-foreground">Total</TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Items
+                  </TableHead>
+                  <TableHead className="text-right text-foreground">
+                    Total
+                  </TableHead>
                   <TableHead className="text-foreground">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -377,7 +399,9 @@ export default function SellerDashboard() {
                     <TableCell>{order.date}</TableCell>
                     <TableCell>{order.customer}</TableCell>
                     <TableCell className="text-right">{order.items}</TableCell>
-                    <TableCell className="text-right">₱{order.total.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      ₱{order.total.toFixed(2)}
+                    </TableCell>
                     <TableCell>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
@@ -400,20 +424,56 @@ export default function SellerDashboard() {
   );
 }
 
-const ORDER_STATUS_STYLES: Record<string, { label: string; className: string }> = {
-  PENDING: { label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400" },
-  CONFIRMED: { label: "Confirmed", className: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400" },
-  PROCESSING: { label: "Processing", className: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400" },
-  SHIPPED: { label: "Shipped", className: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400" },
-  DELIVERED: { label: "Delivered", className: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400" },
-  CANCELLED: { label: "Cancelled", className: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400" },
-  REFUNDED: { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400" },
+const ORDER_STATUS_STYLES: Record<
+  string,
+  { label: string; className: string }
+> = {
+  PENDING: {
+    label: "Pending",
+    className:
+      "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    className:
+      "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  PROCESSING: {
+    label: "Processing",
+    className:
+      "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400",
+  },
+  SHIPPED: {
+    label: "Shipped",
+    className:
+      "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    className:
+      "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    className:
+      "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400",
+  },
+  REFUNDED: {
+    label: "Refunded",
+    className:
+      "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-400",
+  },
 };
 
 function OrderStatusBadge({ status }: { status: string }) {
-  const style = ORDER_STATUS_STYLES[status] ?? { label: status, className: "bg-muted text-muted-foreground border-border" };
+  const style = ORDER_STATUS_STYLES[status] ?? {
+    label: status,
+    className: "bg-muted text-muted-foreground border-border",
+  };
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style.className}`}>
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style.className}`}
+    >
       {style.label}
     </span>
   );
@@ -453,10 +513,11 @@ function StatsCard({
             <ArrowDownRight className="h-4 w-4 text-destructive mr-1" />
           )}
           <p
-            className={`text-sm ${trend === "up"
-              ? "text-green-600 dark:text-green-500"
-              : "text-destructive"
-              }`}
+            className={`text-sm ${
+              trend === "up"
+                ? "text-green-600 dark:text-green-500"
+                : "text-destructive"
+            }`}
           >
             {change}
           </p>

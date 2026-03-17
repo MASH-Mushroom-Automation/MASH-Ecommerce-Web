@@ -30,12 +30,12 @@ import type { ProductFilters, TransformedProduct } from "@/types/sanity";
 export function ShopClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Initialize state from URL search params
   const initialSearch = searchParams.get("search") || "";
   const initialCategory = searchParams.get("category") || "";
   const initialSort = (searchParams.get("sort") as ProductFilters["sortBy"]) || "featured";
-  
+
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialCategory ? [initialCategory] : []
@@ -46,14 +46,14 @@ export function ShopClient() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [pageSize, setPageSize] = useState(24);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  
+
   // Server-side pagination offset
   const [currentOffset, setCurrentOffset] = useState(0);
-  
+
   // Quick view state
   const [quickViewProduct, setQuickViewProduct] = useState<TransformedProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  
+
   // Debounce search query to avoid excessive API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -76,7 +76,7 @@ export function ShopClient() {
   // Update URL when search params change
   useEffect(() => {
     const params = new URLSearchParams();
-    
+
     if (debouncedSearchQuery) {
       params.set("search", debouncedSearchQuery);
     }
@@ -86,10 +86,10 @@ export function ShopClient() {
     if (sort && sort !== "featured") {
       params.set("sort", sort);
     }
-    
+
     const queryString = params.toString();
     const newUrl = queryString ? `/shop?${queryString}` : "/shop";
-    
+
     // Update URL without triggering navigation
     window.history.replaceState(null, "", newUrl);
   }, [debouncedSearchQuery, selectedCategories, sort]);
@@ -110,10 +110,10 @@ export function ShopClient() {
   }, [debouncedSearchQuery, selectedCategories, selectedTags, priceRange, sort]);
 
   // Check if any filters are active
-  const hasActiveFilters = 
-    selectedCategories.length > 0 || 
-    selectedTags.length > 0 || 
-    priceRange[0] > 0 || 
+  const hasActiveFilters =
+    selectedCategories.length > 0 ||
+    selectedTags.length > 0 ||
+    priceRange[0] > 0 ||
     priceRange[1] < 12000 ||
     searchQuery.trim() !== "";
 
@@ -153,16 +153,16 @@ export function ShopClient() {
 
   // Fetch products from Sanity CMS with server-side pagination
   const { products: fetchedProducts, loading, error, totalCount } = useSanityProducts(filters);
-  
+
   // Fetch categories from Sanity CMS
   const { categories: sanityCategories } = useSanityCategories();
 
   // Accumulate products across pagination loads using a ref
   const accumulatedRef = useRef<TransformedProduct[]>([]);
-  
+
   // Track previous offset to detect Load More vs filter change
   const prevOffsetRef = useRef(0);
-  
+
   // When fetchedProducts change, accumulate or reset
   const displayedProducts = useMemo(() => {
     if (currentOffset === 0) {
@@ -187,7 +187,7 @@ export function ShopClient() {
   // Keep full category objects for both slug (filtering) and name (display)
   // Filter out categories without valid slug
   const categories = sanityCategories.filter(
-    (cat): cat is typeof cat & { slug: string; name: string } => 
+    (cat): cat is typeof cat & { slug: string; name: string } =>
       Boolean(cat.slug) && Boolean(cat.name)
   );
 
@@ -261,12 +261,12 @@ export function ShopClient() {
                   {totalCount === 0 && !loading && " - No products found"}
                 </p>
               )}
-              
+
               {/* Active Filter Chips */}
               {hasActiveFilters && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="text-xs text-muted-foreground font-medium">Active filters:</span>
-                  
+
                   {/* Category chips */}
                   {selectedCategories.map((catSlug) => {
                     const category = categories.find(c => c.slug === catSlug);
@@ -281,7 +281,7 @@ export function ShopClient() {
                       </button>
                     );
                   })}
-                  
+
                   {/* Tag chips */}
                   {selectedTags.map((tag) => {
                     const tagLabel = popularTags.find(t => t.value === tag)?.label || tag;
@@ -296,7 +296,7 @@ export function ShopClient() {
                       </button>
                     );
                   })}
-                  
+
                   {/* Price range chip */}
                   {(priceRange[0] > 0 || priceRange[1] < 12000) && (
                     <button
@@ -307,7 +307,7 @@ export function ShopClient() {
                       <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
                     </button>
                   )}
-                  
+
                   {/* Clear all button */}
                   <button
                     onClick={clearAllFilters}
@@ -479,7 +479,7 @@ export function ShopClient() {
                     </p>
                   )}
                 </div>
-                
+
                 {viewMode === "grid" ? (
                   <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {displayedProducts.map((product) => (
@@ -501,6 +501,7 @@ export function ShopClient() {
                         tags={product.productTags || []}
                         description={product.description}
                         onQuickView={(id) => handleQuickView(id, displayedProducts)}
+                        sellerId={product.sellerId}
                       />
                     ))}
                   </div>
@@ -559,22 +560,26 @@ export function ShopClient() {
                                     slug: product.slug,
                                     stock: product.stock,
                                   };
-                                  
+
                                   // Only add optional fields if they exist
                                   if (product.grower?.name) {
                                     cartProduct.grower = product.grower.name;
                                   } else if (product.category) {
                                     cartProduct.grower = product.category;
                                   }
-                                  
+
                                   if (product.unit) {
                                     cartProduct.unit = product.unit;
                                   }
-                                  
-                                  if (product.comparePrice && product.comparePrice > 0) {
-                                    cartProduct.comparePrice = product.comparePrice;
+
+                                  if (product.compareAtPrice && product.compareAtPrice > 0) {
+                                    cartProduct.comparePrice = product.compareAtPrice;
                                   }
-                                  
+
+                                  if (product.sellerId) {
+                                    cartProduct.sellerId = product.sellerId;
+                                  }
+
                                   addToCart(cartProduct, 1);
                                 }}
                                 className="w-full sm:w-auto min-h-[36px]"
@@ -606,7 +611,7 @@ export function ShopClient() {
           </main>
         </div>
       </div>
-      
+
       {/* Quick View Modal */}
       <QuickViewModal
         productId={quickViewProduct?.id || null}

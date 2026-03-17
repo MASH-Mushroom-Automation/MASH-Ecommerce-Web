@@ -28,17 +28,22 @@ import { SearchBar } from "@/components/seller/products/SearchBar";
 import { FilterChips } from "@/components/seller/products/FilterChips";
 
 // Lazy load FilterPanel for performance (reduces initial bundle size)
-const FilterPanel = lazy(() => import("@/components/seller/products/FilterPanel").then(mod => ({ default: mod.FilterPanel })));
+const FilterPanel = lazy(() =>
+  import("@/components/seller/products/FilterPanel").then((mod) => ({
+    default: mod.FilterPanel,
+  })),
+);
 
 // Phase 3 Hooks (State Management)
 import { useProductFilters } from "@/hooks/useProductFilters";
-import { useProductSearch } from "@/hooks/useProductSearch";
-// Sanity Product Search
+import { useSellerProductSearch } from "@/hooks/useSellerProductSearch";
+
+// Filter options
 import { getFilterOptions } from "@/lib/sanity/product-search";
 import type { FilterOptions } from "@/types/product-filters";
 
 // Disable static generation for this page (required for nuqs)
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Virtualized Product Grid for large lists (>100 products)
 interface VirtualizedProductGridProps {
@@ -47,20 +52,21 @@ interface VirtualizedProductGridProps {
 
 function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
   const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 1280
+    typeof window !== "undefined" ? window.innerWidth : 1280,
   );
-  const [GridComponent, setGridComponent] = useState<React.ComponentType<any> | null>(null);
+  const [GridComponent, setGridComponent] =
+    useState<React.ComponentType<any> | null>(null);
 
   useEffect(() => {
-    import('react-window').then((mod) => {
+    import("react-window").then((mod) => {
       setGridComponent(() => mod.Grid);
     });
   }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const columnCount = windowWidth >= 1280 ? 3 : windowWidth >= 640 ? 2 : 1;
@@ -91,7 +97,7 @@ function VirtualizedProductGrid({ products }: VirtualizedProductGridProps) {
         if (!product) return null;
 
         return (
-          <div style={{ ...style, padding: '8px' }}>
+          <div style={{ ...style, padding: "8px" }}>
             <ProductCard product={product} />
           </div>
         );
@@ -112,14 +118,14 @@ function SellerProductsContent() {
     isFiltering,
   } = useProductFilters();
 
-  // Phase 3: React Query product search with caching
+  // Fetch only this seller's products via the secure API route
   const {
     data: searchResults,
     isLoading,
     isError,
     error,
     refetch,
-  } = useProductSearch(filters, 1, 50);
+  } = useSellerProductSearch(filters, 1, 50);
 
   // Filter options from Sanity (categories, price ranges, etc.)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -151,7 +157,7 @@ function SellerProductsContent() {
 
   // Handle search change (debounced via SearchBar)
   const handleSearchChange = (value: string) => {
-    updateFilter('search', value);
+    updateFilter("search", value);
   };
 
   // Handle filter changes from FilterPanel
@@ -223,7 +229,9 @@ function SellerProductsContent() {
   if (isError) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">Error loading products: {error?.message}</p>
+        <p className="text-destructive mb-4">
+          Error loading products: {error?.message}
+        </p>
         <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
@@ -265,7 +273,9 @@ function SellerProductsContent() {
       )}
 
       {/* Layout: Desktop Sidebar + Mobile Drawer */}
-      <div className={`grid grid-cols-1 ${desktopFilterOpen ? 'lg:grid-cols-[300px_1fr]' : ''} gap-6`}>
+      <div
+        className={`grid grid-cols-1 ${desktopFilterOpen ? "lg:grid-cols-[300px_1fr]" : ""} gap-6`}
+      >
         {/* Desktop FilterPanel (Phase 2 Component - Lazy Loaded) */}
         {desktopFilterOpen && (
           <aside className="hidden lg:block">
@@ -302,7 +312,7 @@ function SellerProductsContent() {
               onClick={() => setDesktopFilterOpen(!desktopFilterOpen)}
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" />
-              {desktopFilterOpen ? 'Hide' : 'Show'} Filters
+              {desktopFilterOpen ? "Hide" : "Show"} Filters
               {activeFilterCount > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {activeFilterCount}
@@ -376,7 +386,10 @@ function SellerProductsContent() {
             <>
               {products.length <= 100 ? (
                 // Standard grid for smaller lists
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="product-grid">
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+                  data-testid="product-grid"
+                >
                   {products.map((product) => (
                     <ProductCard key={product._id} product={product} />
                   ))}
@@ -400,11 +413,11 @@ function SellerProductsContent() {
 
 // Product Card Component
 interface ProductCardProps {
-  product: any; // SanityProduct from product-search.ts
+  product: any;
 }
 
 // Placeholder image for products without images
-const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
+const PLACEHOLDER_IMAGE = "/placeholder-product.svg";
 
 const ProductCard = React.memo<ProductCardProps>(({ product }) => {
   return (
@@ -414,17 +427,16 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
         <div className="relative h-48 bg-muted">
           <Image
             src={product.mainImage || PLACEHOLDER_IMAGE}
-            alt={product.name || 'Product Image'}
+            alt={product.name || "Product Image"}
             fill
             className="object-cover"
             onError={(e) => {
-              // Fallback to placeholder on error
               (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
             }}
           />
           {product.isOnPromo && (
             <Badge className="absolute top-2 right-2 bg-red-500">
-              {product.promoType === 'percentage'
+              {product.promoType === "percentage"
                 ? `-${product.promoPercentage}%`
                 : `₱${product.promoPrice}`}
             </Badge>
@@ -442,12 +454,22 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem asChild>
-                <Link href={`/seller/products/edit/${product._id}`} className="cursor-pointer" role="menuitem" aria-label="Edit">
+                <Link
+                  href={`/seller/products/edit/${product._id}`}
+                  className="cursor-pointer"
+                  role="menuitem"
+                  aria-label="Edit"
+                >
                   Edit Product
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/product/${product.slug?.current ?? product._id}`} className="cursor-pointer" role="menuitem" aria-label="View">
+                <Link
+                  href={`/product/${product.slug?.current ?? product._id}`}
+                  className="cursor-pointer"
+                  role="menuitem"
+                  aria-label="View"
+                >
                   View Product
                 </Link>
               </DropdownMenuItem>
@@ -458,11 +480,11 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
         {/* Product Info */}
         <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-semibold">
-              {product.name}
-            </h3>
+            <h3 className="font-semibold">{product.name}</h3>
             {product.sku && (
-              <p className="pt-2 text-sm text-muted-foreground">SKU: {product.sku}</p>
+              <p className="pt-2 text-sm text-muted-foreground">
+                SKU: {product.sku}
+              </p>
             )}
           </div>
 
@@ -471,15 +493,27 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
             {product.isOnPromo && product.originalPrice ? (
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-primary">
-                  ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱
+                  {(product.price ?? 0).toLocaleString("en-PH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
                 <span className="text-sm text-muted-foreground line-through">
-                  ₱{(product.originalPrice ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₱
+                  {(product.originalPrice ?? 0).toLocaleString("en-PH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               </div>
             ) : (
               <span className="text-lg font-bold text-primary">
-                ₱{(product.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₱
+                {(product.price ?? 0).toLocaleString("en-PH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             )}
           </div>
@@ -488,23 +522,24 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
           <div className="flex gap-2 items-center flex-wrap">
             <Badge
               variant={
-                product.stockStatus === 'in-stock'
-                  ? 'default'
-                  : product.stockStatus === 'low-stock'
-                    ? 'secondary'
-                    : 'destructive'
+                product.stockStatus === "in-stock"
+                  ? "default"
+                  : product.stockStatus === "low-stock"
+                    ? "secondary"
+                    : "destructive"
               }
             >
-              {product.stockStatus === 'in-stock' && 'In Stock'}
-              {product.stockStatus === 'low-stock' && 'Low Stock'}
-              {product.stockStatus === 'out-of-stock' && 'Out of Stock'}
+              {product.stockStatus === "in-stock" && "In Stock"}
+              {product.stockStatus === "low-stock" && "Low Stock"}
+              {product.stockStatus === "out-of-stock" && "Out of Stock"}
             </Badge>
             {product.status && (
               <Badge
-                variant={product.status === 'published' ? 'default' : 'outline'}
-                className={product.status === 'published' ? 'bg-green-600' : ''}
+                variant={product.status === "published" ? "default" : "outline"}
+                className={product.status === "published" ? "bg-green-600" : ""}
               >
-                {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                {product.status.charAt(0).toUpperCase() +
+                  product.status.slice(1)}
               </Badge>
             )}
             <span className="text-sm text-muted-foreground">
@@ -517,16 +552,18 @@ const ProductCard = React.memo<ProductCardProps>(({ product }) => {
   );
 });
 
-ProductCard.displayName = 'ProductCard';
+ProductCard.displayName = "ProductCard";
 
 // Main export with Suspense boundary for nuqs
 export default function SellerProducts() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
       <SellerProductsContent />
     </Suspense>
   );
