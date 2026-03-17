@@ -59,6 +59,7 @@ import {
   useSanityAnnouncementBar,
   useSanityNavigation,
 } from "@/hooks/useSanitySiteSettings";
+import { useSellerNavigation } from "@/hooks/useSellerNavigation";
 
 type SellerStatus = "approved" | "pending" | "none";
 
@@ -66,6 +67,7 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
   sellerStatus,
 }) => {
   const { settings } = useSanitySiteSettings();
+  const { handleSellerButtonClick } = useSellerNavigation();
 
   return (
     <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
@@ -84,13 +86,19 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
             </span>
           ) : (
             <>
-              <Link href="/start-selling" className="hover:underline">
+              <button
+                onClick={() => handleSellerButtonClick()}
+                className="hover:underline"
+              >
                 Start Selling
-              </Link>
+              </button>
               <span className="opacity-50">|</span>
-              <Link href="/seller/dashboard" className="hover:underline">
+              <button
+                onClick={() => handleSellerButtonClick()}
+                className="hover:underline"
+              >
                 Seller Centre
-              </Link>
+              </button>
             </>
           )}
         </div>

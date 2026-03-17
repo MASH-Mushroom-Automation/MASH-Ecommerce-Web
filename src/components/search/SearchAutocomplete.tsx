@@ -44,6 +44,7 @@ interface SearchAutocompleteProps {
   onSearch?: (query: string) => void;
   showRecent?: boolean;
   showTrending?: boolean;
+  autoFocus?: boolean;
 }
 
 const TRENDING_SEARCHES = [
@@ -63,6 +64,7 @@ export function SearchAutocomplete({
   onSearch,
   showRecent = true,
   showTrending = true,
+  autoFocus = false,
 }: SearchAutocompleteProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -214,6 +216,7 @@ export function SearchAutocomplete({
           type="text"
           value={query}
           placeholder={placeholder}
+          autoFocus={autoFocus}
           onChange={(e) => {
             const value = e.target.value;
             setQuery(value);

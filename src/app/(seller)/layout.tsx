@@ -38,11 +38,13 @@ export default function SellerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isStartSellingPage = pathname === "/start-selling";
+  const isPublicSellerPage =
+    pathname === "/start-selling" || pathname === "/request-pending";
 
-  // Allow start-selling page for everyone (no admin guard)
-  // This is where users apply to become sellers
-  if (isStartSellingPage) {
+  // Allow public seller onboarding pages for everyone (no seller/admin guard)
+  // - /start-selling: application form
+  // - /request-pending: waiting room after submission
+  if (isPublicSellerPage) {
     return (
       <div className="min-h-screen">
         <main>
