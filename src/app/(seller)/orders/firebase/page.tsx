@@ -290,10 +290,15 @@ export default function FirebaseOrdersPage() {
     if (!selectedOrder || !user?.id) return;
 
     setProcessingAction(selectedOrder.id);
-    const success = await rejectOrder(selectedOrder.id, user.id, reason);
-    setProcessingAction(null);
 
-    if (success) {
+    try {
+      const success = await rejectOrder(selectedOrder.id, user.id, reason);
+
+      if (!success) {
+        toast.error("Failed to reject order");
+        return;
+      }
+
       toast.success(`Order ${selectedOrder.orderNumber} rejected`);
 
       // Send rejection email notification (non-blocking)
@@ -318,8 +323,11 @@ export default function FirebaseOrdersPage() {
 
       setShowRejectDialog(false);
       setSelectedOrder(null);
-    } else {
-      toast.error("Failed to reject order");
+    } catch (error) {
+      console.error("Reject error:", error);
+      toast.error("An error occurred while rejecting the order");
+    } finally {
+      setProcessingAction(null);
     }
   };
 
