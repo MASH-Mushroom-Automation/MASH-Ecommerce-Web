@@ -30,6 +30,9 @@ import {
   type Step2FormValues,
   type Step3FormValues,
 } from "@/components/checkout/checkout-schemas";
+import { toast } from "sonner";
+import { isCodMethod } from "@/types/payment";
+import type { PaymentMethod } from "@/types/payment";
 import { CheckoutProgress } from "@/components/checkout/CheckoutProgress";
 import { CheckoutStep1Delivery } from "@/components/checkout/CheckoutStep1Delivery";
 import { CheckoutStep2Contact } from "@/components/checkout/CheckoutStep2Contact";
@@ -62,6 +65,9 @@ export default function CheckoutPage() {
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -175,14 +181,15 @@ export default function CheckoutPage() {
   };
 
   /**
-   * Process payment via PayMongo
+   * Process payment via PayMongo create-intent API.
+   * Returns the API response for the caller to handle (redirect, error, etc.).
    */
   const processPayment = async (
-    paymentMethod: "gcash" | "card",
+    paymentMethod: PaymentMethod,
     orderId: string,
     orderNumber: string,
     amount: number
-  ): Promise<{ success: boolean; checkoutUrl?: string; error?: string }> => {
+  ): Promise<{ success: boolean; checkoutUrl?: string; paymentId?: string; error?: string }> => {
     try {
       const response = await fetch("/api/payment/create-intent", {
         method: "POST",
@@ -208,12 +215,93 @@ export default function CheckoutPage() {
       return {
         success: true,
         checkoutUrl: data.checkoutUrl,
+        paymentId: data.paymentId,
       };
     } catch (error) {
-      console.error("Payment processing error:", error);
+      console.error("[Checkout] Payment processing error:", error);
       return { success: false, error: "Payment service unavailable" };
     }
   };
+
+  /**
+   * Store pending order in sessionStorage so the payment-success page
+   * can access order details after a redirect-based payment flow.
+   */
+  const storePendingOrder = (orderId: string, orderNumber: string, paymentId?: string) => {
+    try {
+      const method = step3Form.getValues("paymentMethod") as PaymentMethod;
+      // Determine the PayMongo resource type for status polling
+      const paymentType = method === "card" ? "checkout_session" : "source";
+      sessionStorage.setItem(
+        "pendingOrder",
+        JSON.stringify({
+          orderId,
+          orderNumber,
+          paymentId,
+          paymentType,
+          customerEmail: step2Data?.email,
+          customerName: step2Data?.name,
+          paymentMethod: method,
+          vendor: selectedVendor,
+          timestamp: Date.now(),
+          amount: totalWithDelivery,
+          subtotal: summary.subtotal,
+          deliveryFee,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          deliveryMethod: step1Data?.deliveryMethod,
+        })
+      );
+    } catch {
+      console.error("[Checkout] Failed to store pending order in sessionStorage");
+    }
+  };
+
+  /**
+   * Retry payment for an already-created order. Does NOT recreate the order.
+   */
+  const handleRetryPayment = useCallback(async () => {
+    if (!pendingOrderId) return;
+
+    const method = step3Form.getValues("paymentMethod") as PaymentMethod;
+    if (isCodMethod(method)) return;
+
+    setPaymentError(null);
+    setPaymentProcessing(true);
+    setLoadingMessage("Processing Payment...");
+
+    try {
+      const orderNumber = pendingOrderId.slice(-8).toUpperCase();
+      const result = await processPayment(
+        method,
+        pendingOrderId,
+        orderNumber,
+        totalWithDelivery
+      );
+
+      if (result.success && result.checkoutUrl) {
+        storePendingOrder(pendingOrderId, orderNumber, result.paymentId);
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
+      // Payment failed
+      const errorMsg = result.error || "Payment processing failed. Please try again.";
+      setPaymentError(errorMsg);
+      toast.error(errorMsg);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Payment failed. Please try again.";
+      setPaymentError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setPaymentProcessing(false);
+      setLoadingMessage(null);
+    }
+  }, [pendingOrderId, step3Form, totalWithDelivery, step2Data, selectedVendor]);
 
   const onStep3Submit = async (data: Step3FormValues) => {
     if (!step1Data || !step2Data) return;
@@ -222,101 +310,151 @@ export default function CheckoutPage() {
       return;
     }
 
+    const method = data.paymentMethod as PaymentMethod;
+
     setSubmitting(true);
     setError(null);
+    setPaymentError(null);
 
     try {
-      const selectedPickupLocation = step1Data.deliveryMethod === "pickup"
-        ? PICKUP_LOCATIONS.find(loc => loc.id === step1Data.pickupLocation)
-        : undefined;
+      // ---------------------------------------------------------------
+      // STEP A: Create the order (or reuse existing pending order)
+      // ---------------------------------------------------------------
+      let currentOrderId = pendingOrderId;
+      let orderNumber: string;
 
-      // Derive sellerId: use the first item's sellerId from the current vendor's items
-      const vendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
-      const orderSellerId = vendorItems[0]?.sellerId || undefined;
+      if (!currentOrderId) {
+        setLoadingMessage("Creating Order...");
 
-      const orderData: CreateOrderData = {
-        userId: user.id,
-        userEmail: step2Data.email,
-        userName: step2Data.name,
-        userPhone: step2Data.phone,
-        items: vendorItems.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          grower: item.grower,
-          unit: item.unit,
-          sellerId: item.sellerId, // Include sellerId per item for order routing
-        })),
-        subtotal: currentVendorSubtotal,
-        tax: summary.tax,
-        deliveryFee: deliveryFee,
-        total: currentVendorSubtotal + summary.tax + deliveryFee,
-        deliveryMethod: step1Data.deliveryMethod,
-        pickupLocation: selectedPickupLocation,
-        deliveryAddress: step1Data.deliveryMethod === "lalamove" && deliveryAddress
-          ? {
-            address: deliveryAddress.formattedAddress,
-            lat: deliveryAddress.lat,
-            lng: deliveryAddress.lng,
-            name: step2Data.name,
-            phone: step2Data.phone,
-          }
-          : undefined,
-        lalamoveQuotationId: lalamoveQuote?.quotationId,
-        lalamoveScheduleAt: lalamoveScheduleAt || undefined,
-        lalamoveVehicleType: lalamoveServiceType || undefined,
-        lalamoveDistance: lalamoveQuote?.distance || undefined,
-        paymentMethod: data.paymentMethod,
-        sellerId: orderSellerId, // Top-level sellerId for easy seller-based querying
-      };
+        const selectedPickupLocation =
+          step1Data.deliveryMethod === "pickup"
+            ? PICKUP_LOCATIONS.find((loc) => loc.id === step1Data.pickupLocation)
+            : undefined;
 
-      // Create the order first
-      const newOrderId = await FirebaseOrdersService.createOrder(orderData);
-      setOrderId(newOrderId);
-      const orderNumber = newOrderId.slice(-8).toUpperCase();
+        const vendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
+        const orderSellerId = vendorItems[0]?.sellerId || undefined;
 
-      // For COD orders, send confirmation email and show success
-      sendOrderConfirmationEmailViaAPI(step2Data.email, {
-        customerName: step2Data.name,
-        orderNumber: orderNumber,
-        orderId: newOrderId,
-        items: items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price * item.quantity,
-          image: item.image,
-        })),
-        subtotal: summary.subtotal,
-        deliveryFee: deliveryFee,
-        total: totalWithDelivery,
-        deliveryMethod: step1Data.deliveryMethod,
-        deliveryAddress: deliveryAddress?.formattedAddress,
-        pickupLocation: selectedPickupLocation?.name,
-        paymentMethod: data.paymentMethod,
-      }).catch((err) => {
-        console.error("Failed to send confirmation email:", err);
-        // Don't fail the order if email fails
-      });
+        const orderData: CreateOrderData = {
+          userId: user.id,
+          userEmail: step2Data.email,
+          userName: step2Data.name,
+          userPhone: step2Data.phone,
+          items: vendorItems.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            grower: item.grower,
+            unit: item.unit,
+            sellerId: item.sellerId,
+          })),
+          subtotal: currentVendorSubtotal,
+          tax: summary.tax,
+          deliveryFee: deliveryFee,
+          total: currentVendorSubtotal + summary.tax + deliveryFee,
+          deliveryMethod: step1Data.deliveryMethod,
+          pickupLocation: selectedPickupLocation,
+          deliveryAddress:
+            step1Data.deliveryMethod === "lalamove" && deliveryAddress
+              ? {
+                  address: deliveryAddress.formattedAddress,
+                  lat: deliveryAddress.lat,
+                  lng: deliveryAddress.lng,
+                  name: step2Data.name,
+                  phone: step2Data.phone,
+                }
+              : undefined,
+          lalamoveQuotationId: lalamoveQuote?.quotationId,
+          lalamoveScheduleAt: lalamoveScheduleAt || undefined,
+          lalamoveVehicleType: lalamoveServiceType || undefined,
+          lalamoveDistance: lalamoveQuote?.distance || undefined,
+          paymentMethod: data.paymentMethod,
+          sellerId: orderSellerId,
+        };
 
-      // Remove only this vendor's items from cart
-      if (selectedVendor) {
-        removeVendorItems(selectedVendor);
+        currentOrderId = await FirebaseOrdersService.createOrder(orderData);
+        setPendingOrderId(currentOrderId);
+        orderNumber = currentOrderId.slice(-8).toUpperCase();
+        setOrderId(currentOrderId);
       } else {
-        clearCart();
+        orderNumber = currentOrderId.slice(-8).toUpperCase();
       }
-      setShowSuccessModal(true);
+
+      // ---------------------------------------------------------------
+      // STEP B: Branch by payment method
+      // ---------------------------------------------------------------
+
+      if (isCodMethod(method)) {
+        // -- COD: send email, clear cart, show success --
+        sendOrderConfirmationEmailViaAPI(step2Data.email, {
+          customerName: step2Data.name,
+          orderNumber,
+          orderId: currentOrderId,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          subtotal: summary.subtotal,
+          deliveryFee,
+          total: totalWithDelivery,
+          deliveryMethod: step1Data.deliveryMethod,
+          deliveryAddress: deliveryAddress?.formattedAddress,
+          pickupLocation:
+            step1Data.deliveryMethod === "pickup"
+              ? PICKUP_LOCATIONS.find((loc) => loc.id === step1Data.pickupLocation)?.name
+              : undefined,
+          paymentMethod: data.paymentMethod,
+        }).catch((err) => {
+          console.error("[Checkout] Failed to send confirmation email:", err);
+        });
+
+        // COD: safe to clear cart immediately
+        if (selectedVendor) {
+          removeVendorItems(selectedVendor);
+        } else {
+          clearCart();
+        }
+        setShowSuccessModal(true);
+      } else {
+        // -- E-wallet or Card: process payment --
+        setLoadingMessage("Processing Payment...");
+        setPaymentProcessing(true);
+
+        const result = await processPayment(
+          method,
+          currentOrderId,
+          orderNumber,
+          totalWithDelivery
+        );
+
+        if (result.success && result.checkoutUrl) {
+          // Store pending order for redirect return (include PayMongo paymentId for verification)
+          storePendingOrder(currentOrderId, orderNumber, result.paymentId);
+          // Redirect to PayMongo checkout (e-wallet) or 3DS page (card)
+          window.location.href = result.checkoutUrl;
+          return; // Don't reset submitting -- we're navigating away
+        }
+
+        // Payment creation failed
+        const errorMsg = result.error || "Payment processing failed. Please try again.";
+        setPaymentError(errorMsg);
+        toast.error(errorMsg);
+      }
     } catch (err) {
-      console.error("Order submission failed:", err);
-      setError(
+      console.error("[Checkout] Order submission failed:", err);
+      const errorMsg =
         err instanceof Error
           ? err.message
-          : "Failed to submit order. Please try again."
-      );
+          : "Failed to submit order. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
       setPaymentProcessing(false);
+      setLoadingMessage(null);
     }
   };
 
@@ -528,6 +666,9 @@ export default function CheckoutPage() {
                     onSubmit={onStep3Submit}
                     onBack={handleBack}
                     onEditStep={setCurrentStep}
+                    paymentError={paymentError}
+                    onRetryPayment={pendingOrderId ? handleRetryPayment : undefined}
+                    loadingMessage={loadingMessage}
                   />
                 )}
               </div>
@@ -541,6 +682,11 @@ export default function CheckoutPage() {
                 vendorName={selectedVendor}
                 hasMultipleVendors={hasMultipleVendors}
                 loading={loading}
+                paymentMethod={
+                  currentStep >= 3
+                    ? (step3Form.watch("paymentMethod") as PaymentMethod)
+                    : null
+                }
               />
             </div>
           )}

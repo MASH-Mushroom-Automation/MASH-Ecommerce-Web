@@ -19,7 +19,7 @@ export const step2Schema = z.object({
 });
 
 export const step3Schema = z.object({
-  paymentMethod: z.enum(["cod"]),
+  paymentMethod: z.enum(["cod", "gcash", "grab_pay", "card", "paymaya"]),
 });
 
 export type Step1FormValues = z.infer<typeof step1Schema>;

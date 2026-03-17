@@ -388,6 +388,156 @@ describe('getPaymentIntentStatus', () => {
   });
 });
 
+describe('getCheckoutSessionStatus', () => {
+  it('returns failed when not configured', async () => {
+    process.env.PAYMONGO_SECRET_KEY = '';
+    const { getCheckoutSessionStatus } = await loadModule();
+    const result = await getCheckoutSessionStatus('cs_123');
+    expect(result.status).toBe('failed');
+    expect(result.paid).toBe(false);
+  });
+
+  it('returns succeeded and paid=true when session status is paid', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: {
+            status: 'paid',
+            payments: [{ id: 'pay_cs_001' }],
+            payment_intent: { id: 'pi_cs_001' },
+          },
+        },
+      }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_123');
+    expect(result.status).toBe('succeeded');
+    expect(result.paid).toBe(true);
+    expect(result.paymentId).toBe('pay_cs_001');
+  });
+
+  it('returns succeeded when payments array has entries even if status is not paid', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: {
+            status: 'active',
+            payments: [{ id: 'pay_cs_002' }],
+            payment_intent: null,
+          },
+        },
+      }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_456');
+    expect(result.paid).toBe(true);
+    expect(result.status).toBe('succeeded');
+  });
+
+  it('returns pending for active session with no payments', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: {
+            status: 'active',
+            payments: [],
+            payment_intent: null,
+          },
+        },
+      }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_789');
+    expect(result.status).toBe('pending');
+    expect(result.paid).toBe(false);
+  });
+
+  it('returns cancelled for expired session', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: {
+            status: 'expired',
+            payments: [],
+            payment_intent: null,
+          },
+        },
+      }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_expired');
+    expect(result.status).toBe('cancelled');
+    expect(result.paid).toBe(false);
+  });
+
+  it('falls back to payment_intent.id when no payments array entries', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: {
+            status: 'paid',
+            payments: [],
+            payment_intent: { id: 'pi_fallback_001' },
+          },
+        },
+      }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_fb');
+    expect(result.paid).toBe(true);
+    expect(result.paymentId).toBe('pi_fallback_001');
+  });
+
+  it('handles API error response', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ errors: [{ detail: 'Not found' }] }),
+    });
+
+    const result = await getCheckoutSessionStatus('cs_invalid');
+    expect(result.status).toBe('failed');
+    expect(result.paid).toBe(false);
+  });
+
+  it('handles network error', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network down'));
+
+    const result = await getCheckoutSessionStatus('cs_network_err');
+    expect(result.status).toBe('failed');
+    expect(result.paid).toBe(false);
+  });
+
+  it('calls correct PayMongo endpoint', async () => {
+    const { getCheckoutSessionStatus } = await loadModule();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          attributes: { status: 'active', payments: [], payment_intent: null },
+        },
+      }),
+    });
+
+    await getCheckoutSessionStatus('cs_test_123');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.paymongo.com/v1/checkout_sessions/cs_test_123',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+});
+
 describe('createPaymentFromSource', () => {
   it('returns error when not configured', async () => {
     process.env.PAYMONGO_SECRET_KEY = '';
@@ -483,5 +633,6 @@ describe('default export', () => {
     expect(mod.default.createPaymentFromSource).toBeDefined();
     expect(mod.default.verifyWebhookSignature).toBeDefined();
     expect(mod.default.getPublicKey).toBeDefined();
+    expect(mod.default.getCheckoutSessionStatus).toBeDefined();
   });
 });

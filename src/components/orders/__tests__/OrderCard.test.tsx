@@ -101,7 +101,8 @@ describe("OrderCard", () => {
     it("shows payment status badge", () => {
       render(<OrderCard order={mockOrder} />);
       
-      expect(screen.getByText(/paid/i)).toBeInTheDocument();
+      const badge = screen.getByTestId("seller-payment-status-badge");
+      expect(badge).toHaveTextContent(/paid/i);
     });
 
     it("displays customer name", () => {
@@ -321,6 +322,100 @@ describe("OrderCard", () => {
       );
       
       expect(container.firstChild).toHaveClass("custom-class");
+    });
+  });
+
+  // PAY-016: Payment method display enhancements
+  describe("Payment Method Display (PAY-016)", () => {
+    it("shows human-readable GCash label instead of raw text", () => {
+      render(<OrderCard order={{ ...mockOrder, paymentMethod: "gcash" }} />);
+
+      const methodEl = screen.getByTestId("seller-payment-method");
+      expect(methodEl).toHaveTextContent("GCash");
+    });
+
+    it("shows Cash on Delivery label for COD", () => {
+      render(<OrderCard order={{ ...mockOrder, paymentMethod: "cod" }} />);
+
+      const methodEl = screen.getByTestId("seller-payment-method");
+      expect(methodEl).toHaveTextContent("Cash on Delivery");
+    });
+
+    it("shows Credit / Debit Card label for card payments", () => {
+      render(<OrderCard order={{ ...mockOrder, paymentMethod: "card" }} />);
+
+      const methodEl = screen.getByTestId("seller-payment-method");
+      expect(methodEl).toHaveTextContent("Credit / Debit Card");
+    });
+
+    it("shows payment status badge with correct styling for paid", () => {
+      render(
+        <OrderCard order={{ ...mockOrder, paymentStatus: "paid" }} />,
+      );
+
+      const badge = screen.getByTestId("seller-payment-status-badge");
+      expect(badge).toHaveTextContent("Paid");
+      expect(badge.className).toMatch(/green/);
+    });
+
+    it("shows payment status badge with correct styling for pending", () => {
+      render(
+        <OrderCard
+          order={{ ...mockOrder, paymentStatus: "pending" }}
+        />,
+      );
+
+      const badge = screen.getByTestId("seller-payment-status-badge");
+      expect(badge).toHaveTextContent("Pending");
+      expect(badge.className).toMatch(/amber/);
+    });
+
+    it("shows payment status badge with correct styling for failed", () => {
+      render(
+        <OrderCard
+          order={{ ...mockOrder, paymentStatus: "failed" }}
+        />,
+      );
+
+      const badge = screen.getByTestId("seller-payment-status-badge");
+      expect(badge).toHaveTextContent("Failed");
+      expect(badge.className).toMatch(/red/);
+    });
+
+    it("shows payment status badge with correct styling for refunded", () => {
+      render(
+        <OrderCard
+          order={{ ...mockOrder, paymentStatus: "refunded" }}
+        />,
+      );
+
+      const badge = screen.getByTestId("seller-payment-status-badge");
+      expect(badge).toHaveTextContent("Refunded");
+      expect(badge.className).toMatch(/blue/);
+    });
+
+    it("displays payment reference when available", () => {
+      render(
+        <OrderCard
+          order={{
+            ...mockOrder,
+            paymentReference: "pay_ref_abc123",
+          }}
+        />,
+      );
+
+      expect(screen.getByText("pay_ref_abc123")).toBeInTheDocument();
+    });
+
+    it("falls back to raw method string for unknown methods", () => {
+      render(
+        <OrderCard
+          order={{ ...mockOrder, paymentMethod: "bitcoin" }}
+        />,
+      );
+
+      const methodEl = screen.getByTestId("seller-payment-method");
+      expect(methodEl).toHaveTextContent("bitcoin");
     });
   });
 });

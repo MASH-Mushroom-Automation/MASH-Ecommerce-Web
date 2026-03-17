@@ -1,16 +1,37 @@
 "use client";
 
 import { UseFormReturn } from "react-hook-form";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
-import { Banknote, MapPin, Truck } from "lucide-react";
+import { AlertCircle, Banknote, CreditCard, RefreshCw, Smartphone, Wallet } from "lucide-react";
 import type { SelectedAddress } from "@/components/checkout";
 import { PICKUP_LOCATIONS } from "@/components/checkout";
 import type { Step1FormValues, Step2FormValues, Step3FormValues } from "./checkout-schemas";
-import { useCallback } from "react";
+import { PaymentMethodSelector } from "./PaymentMethodSelector";
+import { PaymentMethodInfoBox, getPaymentButtonLabel } from "./PaymentMethodInfoBox";
+import { PaymentProcessingOverlay } from "./PaymentProcessingOverlay";
+import type { PaymentMethod } from "@/types/payment";
+import { PAYMENT_METHOD_LABELS, isCardMethod, isCodMethod } from "@/types/payment";
 
-interface CheckoutStep3PaymentProps {
+// ---------------------------------------------------------------------------
+// Payment method icon lookup
+// ---------------------------------------------------------------------------
+
+const PAYMENT_ICON_MAP: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = {
+  cod: Banknote,
+  gcash: Smartphone,
+  grab_pay: Wallet,
+  card: CreditCard,
+  paymaya: Smartphone,
+};
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
+export interface CheckoutStep3PaymentProps {
   form: UseFormReturn<Step3FormValues>;
   step1Data: Step1FormValues | null;
   step2Data: Step2FormValues | null;
@@ -23,7 +44,17 @@ interface CheckoutStep3PaymentProps {
   onSubmit: (data: Step3FormValues) => void;
   onBack: () => void;
   onEditStep: (step: number) => void;
+  /** Optional payment error message to display */
+  paymentError?: string | null;
+  /** Optional retry callback for payment failures */
+  onRetryPayment?: () => void;
+  /** Optional loading message override (e.g. "Creating Order..." or "Processing Payment...") */
+  loadingMessage?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function CheckoutStep3Payment({
   form,
@@ -38,68 +69,136 @@ export function CheckoutStep3Payment({
   onSubmit,
   onBack,
   onEditStep,
+  paymentError = null,
+  onRetryPayment,
+  loadingMessage = null,
 }: CheckoutStep3PaymentProps) {
+  const selectedMethod = form.watch("paymentMethod") as PaymentMethod;
+  const isProcessing = submitting || paymentProcessing;
+
   const getSelectedPickupLocation = useCallback((locationId?: string) => {
     if (!locationId) return undefined;
     return PICKUP_LOCATIONS.find((loc) => loc.id === locationId);
   }, []);
 
+  const handlePaymentMethodChange = useCallback(
+    (method: PaymentMethod) => {
+      form.setValue("paymentMethod", method, { shouldValidate: true });
+    },
+    [form]
+  );
+
+  const SelectedIcon = PAYMENT_ICON_MAP[selectedMethod] ?? Banknote;
+  const buttonLabel = loadingMessage || getPaymentButtonLabel(selectedMethod, isProcessing);
+
+  // COD label adapts for pickup vs delivery
+  const codLabel =
+    step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery";
+
   return (
     <>
-      {/* Payment Method */}
+      {/* Payment Processing Overlay */}
+      <PaymentProcessingOverlay
+        visible={paymentProcessing}
+        paymentMethod={selectedMethod}
+        onCancel={!submitting ? onRetryPayment : undefined}
+      />
+
+      {/* Payment Method Selection */}
       <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
         <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
           Payment Method
         </h2>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Cash payment only - Pay when you receive your order.
+        <p className="text-sm sm:text-base text-muted-foreground mb-6">
+          Select how you would like to pay for your order.
         </p>
 
         <Form {...form}>
           <FormField
             control={form.control}
             name="paymentMethod"
-            render={({ field }) => (
-              <FormItem className="mt-6 space-y-4">
-                <label
-                  className={cn(
-                    "block border-2 rounded-lg p-4 cursor-pointer transition-colors",
-                    "border-primary bg-primary/5"
-                  )}
-                >
-                  <input
-                    type="radio"
-                    value="cod"
-                    checked={true}
-                    onChange={() => field.onChange("cod")}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Banknote className="h-5 w-5 text-primary" />
-                      <div className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      </div>
-                      <div className="font-medium text-foreground">
-                        {step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery"}
-                      </div>
-                    </div>
-                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                      Default Payment
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2 ml-7">
-                    {step1Data?.deliveryMethod === "pickup"
-                      ? "Pay when you pick up your order at the selected location"
-                      : "Pay the rider when your order is delivered"
-                    }
-                  </p>
-                </label>
+            render={({ fieldState }) => (
+              <FormItem>
+                <PaymentMethodSelector
+                  value={selectedMethod}
+                  onChange={handlePaymentMethodChange}
+                  loading={false}
+                />
+                {fieldState.error && (
+                  <FormMessage>{fieldState.error.message}</FormMessage>
+                )}
               </FormItem>
             )}
           />
         </Form>
+
+        {/* Dynamic content area with transitions */}
+        <div className="mt-6 transition-all duration-200 ease-in-out">
+          {/* COD info when COD selected */}
+          {isCodMethod(selectedMethod) && (
+            <div className="rounded-lg border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 p-4 transition-all duration-200">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <Banknote className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-foreground">
+                    {codLabel}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {step1Data?.deliveryMethod === "pickup"
+                      ? "Pay when you pick up your order at the selected location. No online payment required."
+                      : "Pay the rider when your order is delivered to your address. No online payment required."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Card info when card selected - PayMongo hosts the secure card form */}
+          {isCardMethod(selectedMethod) && (
+            <div className="transition-all duration-200">
+              <PaymentMethodInfoBox selectedMethod={selectedMethod} />
+            </div>
+          )}
+
+          {/* E-wallet info box for redirect methods */}
+          {!isCodMethod(selectedMethod) && !isCardMethod(selectedMethod) && (
+            <div className="transition-all duration-200">
+              <PaymentMethodInfoBox selectedMethod={selectedMethod} />
+            </div>
+          )}
+        </div>
       </section>
+
+      {/* Payment Error Display */}
+      {paymentError && (
+        <section className="bg-destructive/5 border border-destructive/20 p-4 sm:p-6 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium text-destructive">
+                Payment Failed
+              </h3>
+              <p className="text-sm text-destructive/80 mt-1">
+                {paymentError}
+              </p>
+              {onRetryPayment && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={onRetryPayment}
+                  disabled={isProcessing}
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Try Again
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Order Review */}
       <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
@@ -108,6 +207,17 @@ export function CheckoutStep3Payment({
         </h3>
 
         <div className="space-y-3">
+          {/* Payment Method Summary */}
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <SelectedIcon className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Payment</p>
+              <p className="text-sm text-muted-foreground">
+                {isCodMethod(selectedMethod) ? codLabel : PAYMENT_METHOD_LABELS[selectedMethod]}
+              </p>
+            </div>
+          </div>
+
           {/* Contact Summary */}
           <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
             <div className="flex-1">
@@ -120,6 +230,7 @@ export function CheckoutStep3Payment({
               variant="ghost"
               size="sm"
               onClick={() => onEditStep(2)}
+              disabled={isProcessing}
             >
               Edit
             </Button>
@@ -161,6 +272,7 @@ export function CheckoutStep3Payment({
               variant="ghost"
               size="sm"
               onClick={() => onEditStep(1)}
+              disabled={isProcessing}
             >
               Edit
             </Button>
@@ -175,17 +287,17 @@ export function CheckoutStep3Payment({
           variant="outline"
           className="w-full sm:w-auto px-8 py-3 border-border"
           onClick={onBack}
-          disabled={submitting || paymentProcessing}
+          disabled={isProcessing}
         >
           Back
         </Button>
         <Button
           type="submit"
           className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-          disabled={submitting || paymentProcessing || itemCount === 0}
+          disabled={isProcessing || itemCount === 0}
           onClick={form.handleSubmit(onSubmit)}
         >
-          {submitting ? "Creating Order..." : "Place Order (Cash Payment)"}
+          {buttonLabel}
         </Button>
       </div>
     </>
