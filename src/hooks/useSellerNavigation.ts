@@ -6,6 +6,7 @@ interface SellerStatusResponse {
   status: "none" | "pending" | "approved" | "rejected";
   requestId?: string;
   submittedAt?: Date;
+  jwtUserId?: string;
 }
 
 type SellerStatusEnvelope = {

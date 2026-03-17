@@ -45,15 +45,7 @@ export default function SellerLayout({
   // - /start-selling: application form
   // - /request-pending: waiting room after submission
   if (isPublicSellerPage) {
-    return (
-      <div className="min-h-screen">
-        <main>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
-            {children}
-          </div>
-        </main>
-      </div>
-    );
+    return <>{children}</>;
   }
 
   // Seller/Admin role verification - only sellers and admins can access seller pages
@@ -79,12 +71,9 @@ export default function SellerLayout({
 
   return (
     <SidebarProvider>
-      <div
-        className="flex w-full"
-      >
+      <div className="flex w-full">
         <SellerSidebar />
-        <SidebarInset
-          className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
+        <SidebarInset className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />

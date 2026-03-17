@@ -36,7 +36,7 @@ const AUTH_ROUTES = [
   "/onboarding",
 ];
 
-const SELLER_ROUTES = ["/seller", "/start-selling"];
+const SELLER_ROUTES = ["/seller"];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,7 +45,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isSellerRoute = SELLER_ROUTES.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   // Initialize Google Analytics on mount
@@ -81,40 +81,48 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             <CartProvider>
               <WishlistProvider>
                 <ChatProvider>
-                {isSellerRoute ? (
-                  // Seller routes handle their own layout with sidebar and header
-                  <div className="min-h-screen flex flex-col">
-                    {children}
-                    <Toaster position="bottom-center" richColors closeButton />
-                    <Chatbot />
-                  </div>
-                ) : (
-                  // Regular routes get full layout with header, footer, and nav
-                  <div className="min-h-screen flex flex-col">
-                    <a
-                      href="#main-content"
-                      className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
-                    >
-                      Skip to main content
-                    </a>
-                    {isAuthRoute ? <SimpleHeader /> : <Header />}
-                    <main id="main-content" className="flex-1" tabIndex={-1}>
+                  {isSellerRoute ? (
+                    // Seller routes handle their own layout with sidebar and header
+                    <div className="min-h-screen flex flex-col">
                       {children}
-                      <MobileBottomNavSpacer />
-                    </main>
-                    <Footer />
-                    <MobileBottomNav />
-                    <BackToTop />
-                    <Toaster position="bottom-center" richColors closeButton />
-                    <Chatbot />
-                  </div>
-                )}
-              </ChatProvider>
-            </WishlistProvider>
-          </CartProvider>
-        </AuthProvider>
-      </QueryProvider>
-    </ThemeProvider>
+                      <Toaster
+                        position="bottom-center"
+                        richColors
+                        closeButton
+                      />
+                      <Chatbot />
+                    </div>
+                  ) : (
+                    // Regular routes get full layout with header, footer, and nav
+                    <div className="min-h-screen flex flex-col">
+                      <a
+                        href="#main-content"
+                        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
+                      >
+                        Skip to main content
+                      </a>
+                      {isAuthRoute ? <SimpleHeader /> : <Header />}
+                      <main id="main-content" className="flex-1" tabIndex={-1}>
+                        {children}
+                        <MobileBottomNavSpacer />
+                      </main>
+                      <Footer />
+                      <MobileBottomNav />
+                      <BackToTop />
+                      <Toaster
+                        position="bottom-center"
+                        richColors
+                        closeButton
+                      />
+                      <Chatbot />
+                    </div>
+                  )}
+                </ChatProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+        </QueryProvider>
+      </ThemeProvider>
     </NuqsAdapter>
   );
 }

@@ -1,15 +1,20 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 import { decodeJWT } from "@/lib/jwt";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:30000/api/v1";
 
 type SellerStatusResponse = {
   hasPendingRequest: boolean;
   status: "none" | "pending" | "approved" | "rejected";
   requestId?: string;
   submittedAt?: string;
+  jwtUserId?: string;
 };
 
 type BackendEnvelope<T> = {
@@ -33,12 +38,13 @@ function normalizeSellerStatusResponse(
   return payload as SellerStatusResponse;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let decodedSub: string | undefined = undefined;
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
+    const token = request.cookies.get("auth-token")?.value;
+    const firebaseUid = request.cookies.get("firebase-auth")?.value;
 
-    if (!token) {
+    if (!token && !firebaseUid) {
       const empty: SellerStatusResponse = {
         hasPendingRequest: false,
         status: "none",
@@ -46,18 +52,34 @@ export async function GET() {
       return NextResponse.json(empty, { status: 200 });
     }
 
-    const decoded = decodeJWT(token);
+    let authHeader = "";
+
+    if (token) {
+      const decoded = decodeJWT(token);
+      decodedSub = decoded?.sub;
+      authHeader = `Bearer ${token}`;
+    } else if (firebaseUid) {
+      decodedSub = firebaseUid;
+      // Depending on your backend, you might pass the Firebase UID in a different header 
+      // or as a query param if it supports Firebase auth directly.
+      // For now, we will pass it as the bearer token to let the backend middleware handle it,
+      // or custom headers if your backend uses them for Firebase.
+      authHeader = `Firebase ${firebaseUid}`;
+    }
 
     const res = await fetch(`${API_URL}/seller-verification/my-status`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
+      // Important: if the backend only accepts JWT in Authorization, you may need a different endpoint
+      // or backend fix for Firebase users.
+      headers: { Authorization: authHeader },
       cache: "no-store",
     });
 
     if (!res.ok) {
-      const empty: SellerStatusResponse = {
+        const empty: SellerStatusResponse = {
         hasPendingRequest: false,
         status: "none",
+        jwtUserId: decodedSub, // Make sure we send the ID even if the backend rejects
       };
       return NextResponse.json(empty, { status: 200 });
     }
@@ -67,29 +89,34 @@ export async function GET() {
       | BackendEnvelope<SellerStatusResponse>;
     const data = normalizeSellerStatusResponse(raw);
 
+    // Attach the JWT User ID to the response explicitly
+    const finalData = {
+      ...data,
+      jwtUserId: decodedSub,
+    };
+
     // Temporary debug info to confirm which token/user is being used.
     // This helps detect stale cookies (wrong account) during testing.
     if (process.env.NODE_ENV !== "production") {
       return NextResponse.json(
         {
-          ...data,
+          ...finalData,
           _debug: {
             apiBase: API_URL,
-            sub: decoded?.sub ?? null,
-            email: decoded?.email ?? null,
-            role: decoded?.role ?? null,
+            sub: decodedSub ?? null,
           },
         },
         { status: 200 },
       );
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return NextResponse.json(finalData, { status: 200 });
   } catch (error) {
-    console.error("[Seller Status API] Error:", error);
+    console.error(`[Seller Status API] Error fetching from ${API_URL}/seller-verification/my-status:`, error);
     const empty: SellerStatusResponse = {
       hasPendingRequest: false,
       status: "none",
+      jwtUserId: decodedSub, // Make sure we send the ID even if the fetch throws
     };
     return NextResponse.json(empty, { status: 200 });
   }

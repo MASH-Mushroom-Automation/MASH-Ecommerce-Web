@@ -19,6 +19,7 @@ interface SellerStatusResponse {
   status: "none" | "pending" | "approved" | "rejected";
   requestId?: string;
   submittedAt?: Date;
+  jwtUserId?: string;
 }
 
 type SellerStatusEnvelope = {
@@ -99,7 +100,6 @@ export default function StartSellingPage() {
           | SellerStatusResponse
           | SellerStatusEnvelope;
         const res = normalizeSellerStatus(raw);
-        console.log("[StartSelling] seller status:", res);
 
         switch (res?.status) {
           case "approved":
