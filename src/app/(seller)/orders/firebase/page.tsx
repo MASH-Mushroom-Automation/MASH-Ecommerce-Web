@@ -195,7 +195,6 @@ export default function FirebaseOrdersPage() {
 
       if (!success) {
         toast.error("Failed to approve order");
-        setProcessingAction(null);
         return;
       }
 
