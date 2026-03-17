@@ -1,6 +1,8 @@
 name: Security Scan
 
 on:
+  push:
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   schedule:
@@ -12,11 +14,6 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     continue-on-error: true  # Non-blocking
-
-    # avoid running multiple concurrent security scans for the same PR
-    concurrency:
-      group: security-${{ github.ref }}
-      cancel-in-progress: true
     
     steps:
       - uses: actions/checkout@v6

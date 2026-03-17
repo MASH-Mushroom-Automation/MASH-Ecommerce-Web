@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Phone, Clock, ChevronRight, Navigation, Store as StoreIcon, Package, Handshake, Truck } from 'lucide-react';
+import { MapPin, Phone, Clock, ChevronRight, Navigation, Store as StoreIcon } from 'lucide-react';
 import { fetchStores, TransformedStore } from '@/lib/sanity/stores';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,10 +24,10 @@ export const revalidate = 300;
  */
 function StoreTypeBadge({ storeType }: { storeType: string }) {
   const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
-    main: { label: 'Main Store', variant: 'default' },
-    pickup: { label: 'Pickup Point', variant: 'secondary' },
-    partner: { label: 'Partner Store', variant: 'outline' },
-    distribution: { label: 'Distribution', variant: 'outline' },
+    main: { label: '🏪 Main Store', variant: 'default' },
+    pickup: { label: '📦 Pickup Point', variant: 'secondary' },
+    partner: { label: '🤝 Partner Store', variant: 'outline' },
+    distribution: { label: '🚚 Distribution', variant: 'outline' },
   };
   
   const config = variants[storeType] || variants.main;
@@ -45,7 +45,7 @@ function StoreTypeBadge({ storeType }: { storeType: string }) {
 function OpenNowBadge({ isOpenNow, isOpen24Hours }: { isOpenNow?: boolean; isOpen24Hours?: boolean }) {
   if (isOpen24Hours) {
     return (
-      <Badge variant="default" className="bg-primary text-primary-foreground text-xs">
+      <Badge variant="default" className="bg-green-600 text-xs">
         Open 24 Hours
       </Badge>
     );
@@ -53,7 +53,7 @@ function OpenNowBadge({ isOpenNow, isOpen24Hours }: { isOpenNow?: boolean; isOpe
   
   if (isOpenNow) {
     return (
-      <Badge variant="default" className="bg-primary text-primary-foreground text-xs">
+      <Badge variant="default" className="bg-green-600 text-xs">
         Open Now
       </Badge>
     );
@@ -71,7 +71,7 @@ function OpenNowBadge({ isOpenNow, isOpen24Hours }: { isOpenNow?: boolean; isOpe
  */
 function StoreCard({ store }: { store: TransformedStore }) {
   return (
-    <Card className="group hover:shadow-md transition-all duration-300 overflow-hidden border border-border">
+    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
       {/* Store Image */}
       {store.imageUrl && (
         <div className="relative h-48 w-full overflow-hidden">
@@ -199,11 +199,7 @@ export default async function StoresPage() {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 bg-primary/8 text-primary text-sm font-medium mb-4">
-            Store Locations
-          </div>
           <h1 className="text-4xl font-bold mb-4">Store Locations</h1>
-          <div className="w-10 h-0.5 bg-primary mx-auto mb-4" />
           <p className="text-xl text-muted-foreground">
             Find MASH mushroom stores and pickup points near you
           </p>
@@ -217,11 +213,7 @@ export default async function StoresPage() {
     <div className="container mx-auto px-4 py-12">
       {/* Page Header */}
       <div className="max-w-3xl mx-auto text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 bg-primary/8 text-primary text-sm font-medium mb-4">
-          Store Locations
-        </div>
         <h1 className="text-4xl font-bold mb-4">Store Locations</h1>
-        <div className="w-10 h-0.5 bg-primary mx-auto mb-4" />
         <p className="text-xl text-muted-foreground">
           Find MASH mushroom stores and pickup points near you. Fresh mushrooms, growing kits, and expert advice available at all locations.
         </p>
@@ -251,7 +243,7 @@ export default async function StoresPage() {
       {mainStores.length > 0 && (
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <StoreIcon className="h-6 w-6 text-primary" /> Main Stores
+            <span className="text-3xl">🏪</span> Main Stores
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {mainStores.map(store => (
@@ -265,7 +257,7 @@ export default async function StoresPage() {
       {pickupPoints.length > 0 && (
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" /> Pickup Points
+            <span className="text-3xl">📦</span> Pickup Points
           </h2>
           <p className="text-muted-foreground mb-6">
             Convenient pickup locations for your online orders. Reserve online and pick up same-day!
@@ -282,7 +274,7 @@ export default async function StoresPage() {
       {partnerStores.length > 0 && (
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <Handshake className="h-6 w-6 text-primary" /> Partner Stores
+            <span className="text-3xl">🤝</span> Partner Stores
           </h2>
           <p className="text-muted-foreground mb-6">
             Find MASH products at these trusted partner locations.
@@ -296,7 +288,7 @@ export default async function StoresPage() {
       )}
       
       {/* Call to Action */}
-      <section className="bg-muted/20 border border-border rounded-2xl p-8 text-center">
+      <section className="bg-muted rounded-2xl p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Can&apos;t Visit? We Deliver!</h2>
         <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
           Order online and get fresh mushrooms delivered to your door. Same-day delivery available in Metro Manila via Lalamove!
@@ -308,7 +300,7 @@ export default async function StoresPage() {
               <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="border-2 hover:bg-foreground hover:text-background hover:border-foreground transition-colors">
+          <Button asChild variant="outline" size="lg">
             <Link href="/contact">
               Contact Us
             </Link>

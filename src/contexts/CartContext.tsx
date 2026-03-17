@@ -42,14 +42,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from cookie on mount
   useEffect(() => {
+    logger.debug("[CartContext] Loading cart from cookie...");
     const savedCart = getCartCookie();
+    logger.debug("[CartContext] savedCart:", savedCart ? "found" : "not found");
     if (savedCart) {
       try {
+        logger.debug("[CartContext] Parsed cart:", savedCart);
         // Check version for migration
         if (savedCart.version === 2 && Array.isArray(savedCart.items)) {
+          logger.debug("[CartContext] Loading", savedCart.items.length, "items");
           setItems(savedCart.items);
         } else {
           // Old cart format - clear it
+          logger.debug("[CartContext] Old cart format detected, clearing cart");
           clearCartCookie();
         }
       } catch (error) {
@@ -57,16 +62,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsLoaded(true);
+    logger.debug("[CartContext] Cart loaded, isLoaded set to true");
   }, []);
 
   // Save cart to cookie whenever it changes
   useEffect(() => {
     if (isLoaded) {
+      logger.debug("[CartContext] Saving to cookie, items:", items.length);
       setCartCookie({
         version: 2,
         items,
         updatedAt: new Date().toISOString(),
       });
+      logger.debug("[CartContext] Saved to cookie");
     }
   }, [items, isLoaded]);
 
@@ -165,7 +173,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = (product: AddToCartProduct, quantity: number = 1): boolean => {
-
+    logger.debug("[CartContext] addToCart called:", { product, quantity, currentItems: items.length });
+    
     // Validate stock
     if (product.stock < quantity) {
       toast.error("Not enough stock available", {
@@ -189,7 +198,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       // Re-check existing in prev state (in case of race, though unlikely here)
       const currentExisting = prev.find((item) => item.productId === product.id);
-
+      
       if (currentExisting) {
         return prev.map((item) =>
           item.productId === product.id
@@ -210,7 +219,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         grower: product.grower,
         unit: product.unit,
         comparePrice: product.comparePrice,
-        sellerId: product.sellerId, // Store seller ID for order routing
       };
 
       return [...prev, newItem];
@@ -279,12 +287,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const itemVendor = item.grower || "MASH";
         return itemVendor !== vendorName;
       });
-
+      
       const removedCount = prev.length - remainingItems.length;
       if (removedCount > 0) {
         toast.success(`${removedCount} item(s) from ${vendorName} removed from cart`);
       }
-
+      
       return remainingItems;
     });
   }, []);

@@ -182,12 +182,7 @@ export default function FirebaseOrdersPage() {
 
   // Handle approve
   const handleApprove = async (order: FirestoreOrder) => {
-    console.log("[handleApprove] User:", user);
-    console.log("[handleApprove] User ID:", user?.id);
-    console.log("[handleApprove] Order:", order.id, order.orderNumber);
-    
     if (!user?.id) {
-      console.error("[handleApprove] No user ID available");
       toast.error("You must be logged in to approve orders");
       return;
     }
@@ -195,13 +190,12 @@ export default function FirebaseOrdersPage() {
     setProcessingAction(order.id);
 
     try {
-      console.log("[handleApprove] Calling approveOrder with:", order.id, user.id);
       // First approve the order
       const success = await approveOrder(order.id, user.id);
-      console.log("[handleApprove] Approve result:", success);
 
       if (!success) {
         toast.error("Failed to approve order");
+        setProcessingAction(null);
         return;
       }
 
@@ -297,15 +291,10 @@ export default function FirebaseOrdersPage() {
     if (!selectedOrder || !user?.id) return;
 
     setProcessingAction(selectedOrder.id);
+    const success = await rejectOrder(selectedOrder.id, user.id, reason);
+    setProcessingAction(null);
 
-    try {
-      const success = await rejectOrder(selectedOrder.id, user.id, reason);
-
-      if (!success) {
-        toast.error("Failed to reject order");
-        return;
-      }
-
+    if (success) {
       toast.success(`Order ${selectedOrder.orderNumber} rejected`);
 
       // Send rejection email notification (non-blocking)
@@ -330,11 +319,8 @@ export default function FirebaseOrdersPage() {
 
       setShowRejectDialog(false);
       setSelectedOrder(null);
-    } catch (error) {
-      console.error("Reject error:", error);
-      toast.error("An error occurred while rejecting the order");
-    } finally {
-      setProcessingAction(null);
+    } else {
+      toast.error("Failed to reject order");
     }
   };
 
@@ -931,22 +917,22 @@ function OrderDetailDialog({
                   </Badge>
                 </div>
 
-                {order.lalamoveTracking?.driver?.name && (
+                {order.lalamoveTracking?.driverName && (
                   <div className="text-sm">
                     <p>
                       <span className="text-muted-foreground">Driver:</span>{" "}
-                      {order.lalamoveTracking.driver.name}
+                      {order.lalamoveTracking.driverName}
                     </p>
-                    {order.lalamoveTracking.driver.plateNumber && (
+                    {order.lalamoveTracking.driverPlateNumber && (
                       <p>
                         <span className="text-muted-foreground">Plate:</span>{" "}
-                        {order.lalamoveTracking.driver.plateNumber}
+                        {order.lalamoveTracking.driverPlateNumber}
                       </p>
                     )}
-                    {order.lalamoveTracking.driver.phone && (
+                    {order.lalamoveTracking.driverPhone && (
                       <p>
                         <span className="text-muted-foreground">Phone:</span>{" "}
-                        {order.lalamoveTracking.driver.phone}
+                        {order.lalamoveTracking.driverPhone}
                       </p>
                     )}
                   </div>

@@ -11,7 +11,6 @@
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY || "";
 const PAYMONGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY || "";
 const PAYMONGO_API_URL = "https://api.paymongo.com/v1";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 // Check if PayMongo is configured
 export function isPayMongoConfigured(): boolean {
@@ -108,8 +107,8 @@ export async function createEWalletPayment(
           currency: "PHP",
           type: type,
           redirect: {
-            success: `${APP_URL}/checkout/payment-success?orderId=${orderId}`,
-            failed: `${APP_URL}/checkout/payment-failed?orderId=${orderId}`,
+            success: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/payment-success?orderId=${orderId}`,
+            failed: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/payment-failed?orderId=${orderId}`,
           },
           billing: {
             name: customerName,
@@ -232,96 +231,6 @@ export async function createCardPaymentIntent(
     };
   } catch (error) {
     console.error("PayMongo card payment error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Payment error",
-    };
-  }
-}
-
-/**
- * Create a Checkout Session for card payments (hosted by PayMongo)
- *
- * Uses PayMongo's Checkout Sessions API to create a hosted payment page
- * that handles card collection, 3DS authentication, and payment processing.
- * The user is redirected to PayMongo's page and returned to our success/failed URL.
- */
-export async function createCardCheckoutSession(
-  amount: number,
-  orderId: string,
-  orderNumber: string,
-  customerEmail: string,
-  customerName: string,
-  customerPhone: string,
-  description?: string
-): Promise<PaymentResult> {
-  if (!isPayMongoConfigured()) {
-    console.warn("PayMongo not configured");
-    return { success: false, error: "Payment service not configured" };
-  }
-
-  try {
-    const amountInCentavos = Math.round(amount * 100);
-
-    const payload = {
-      data: {
-        attributes: {
-          billing: {
-            name: customerName,
-            email: customerEmail,
-            phone: customerPhone,
-          },
-          description: description || `Order ${orderNumber}`,
-          line_items: [
-            {
-              name: `MASH Order ${orderNumber}`,
-              amount: amountInCentavos,
-              currency: "PHP",
-              quantity: 1,
-            },
-          ],
-          payment_method_types: ["card"],
-          success_url: `${APP_URL}/checkout/payment-success?orderId=${orderId}`,
-          cancel_url: `${APP_URL}/checkout/payment-failed?orderId=${orderId}`,
-          reference_number: orderNumber,
-          metadata: {
-            orderId,
-            orderNumber,
-            customerEmail,
-            customerName,
-          },
-        },
-      },
-    };
-
-    const response = await fetch(`${PAYMONGO_API_URL}/checkout_sessions`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("PayMongo checkout session creation failed:", data);
-      return {
-        success: false,
-        error: data.errors?.[0]?.detail || "Failed to create payment session",
-      };
-    }
-
-    const session = data.data;
-
-    console.log("[PayMongo] Card checkout session created:", session.id);
-
-    return {
-      success: true,
-      paymentId: session.id,
-      checkoutUrl: session.attributes.checkout_url,
-      status: "pending" as PaymentStatus,
-    };
-  } catch (error) {
-    console.error("PayMongo card checkout error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Payment error",
@@ -471,60 +380,6 @@ export async function getPaymentIntentStatus(paymentIntentId: string): Promise<{
 }
 
 /**
- * Get checkout session status
- *
- * Used for card payments that go through PayMongo's hosted checkout.
- * The checkout session has its own status and includes payment information.
- */
-export async function getCheckoutSessionStatus(sessionId: string): Promise<{
-  status: PaymentStatus;
-  paid: boolean;
-  paymentId?: string;
-}> {
-  if (!isPayMongoConfigured()) {
-    return { status: "failed", paid: false };
-  }
-
-  try {
-    const response = await fetch(
-      `${PAYMONGO_API_URL}/checkout_sessions/${sessionId}`,
-      {
-        method: "GET",
-        headers: getHeaders(),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { status: "failed", paid: false };
-    }
-
-    const session = data.data;
-    const sessionStatus = session.attributes.status;
-    const payments = session.attributes.payments || [];
-    const paymentIntent = session.attributes.payment_intent;
-
-    // Checkout session statuses: active, expired, paid
-    const isPaid = sessionStatus === "paid" || payments.length > 0;
-    const mappedStatus: PaymentStatus = isPaid
-      ? "succeeded"
-      : sessionStatus === "expired"
-        ? "cancelled"
-        : "pending";
-
-    return {
-      status: mappedStatus,
-      paid: isPaid,
-      paymentId: payments[0]?.id || paymentIntent?.id,
-    };
-  } catch (error) {
-    console.error("PayMongo checkout session status error:", error);
-    return { status: "failed", paid: false };
-  }
-}
-
-/**
  * Create a payment for a chargeable source (after user authorizes)
  */
 export async function createPaymentFromSource(
@@ -627,11 +482,9 @@ export default {
   isPayMongoConfigured,
   createEWalletPayment,
   createCardPaymentIntent,
-  createCardCheckoutSession,
   attachPaymentMethod,
   getSourceStatus,
   getPaymentIntentStatus,
-  getCheckoutSessionStatus,
   createPaymentFromSource,
   verifyWebhookSignature,
   getPublicKey,

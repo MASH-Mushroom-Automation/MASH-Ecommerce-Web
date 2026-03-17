@@ -54,80 +54,6 @@ jest.mock('sonner', () => ({
   },
 }));
 
-// Mock Radix UI Select to use native HTML elements (jsdom compatible)
-jest.mock('@/components/ui/select', () => {
-  const React = require('react');
-
-  // Extract plain text from React elements to avoid invalid DOM nesting (<div> inside <option>)
-  const extractText = (node: any): string => {
-    if (node == null) return '';
-    if (typeof node === 'string' || typeof node === 'number') return String(node);
-    if (Array.isArray(node)) return node.map(extractText).filter(Boolean).join(' ');
-    if (node && typeof node === 'object' && 'props' in node) {
-      return extractText(node.props.children);
-    }
-    return '';
-  };
-
-  const Select = ({ value, onValueChange, disabled, children }: any) => {
-    // Collect trigger id and content items from children
-    let triggerId = '';
-    let placeholder = 'Select...';
-    const items: Array<{ value: string; label: string }> = [];
-
-    const extractChildren = (node: any) => {
-      if (!node) return;
-      React.Children.forEach(node, (child: any) => {
-        if (!child || !child.props) return;
-        // SelectTrigger provides the id
-        if (child.props.id) triggerId = child.props.id;
-        // SelectValue provides placeholder
-        if (child.props.placeholder) placeholder = child.props.placeholder;
-        // SelectItem provides value/label pairs
-        if (child.props.value && child.type?.displayName === 'MockSelectItem') {
-          items.push({ value: child.props.value, label: extractText(child.props.children) });
-        }
-        // Recurse into children
-        if (child.props.children) extractChildren(child.props.children);
-      });
-    };
-    extractChildren(children);
-
-    return React.createElement('select', {
-      id: triggerId,
-      value: value || '',
-      onChange: (e: any) => onValueChange?.(e.target.value),
-      disabled,
-      role: 'combobox',
-    },
-      React.createElement('option', { value: '' }, placeholder),
-      items.map((item: any) =>
-        React.createElement('option', { key: item.value, value: item.value, role: 'option' }, item.label)
-      )
-    );
-  };
-
-  const SelectTrigger = React.forwardRef(({ children, id, ...props }: any, ref: any) =>
-    React.createElement('span', { ref, id, ...props }, children)
-  );
-  SelectTrigger.displayName = 'MockSelectTrigger';
-
-  const SelectValue = ({ placeholder }: any) =>
-    React.createElement('span', { placeholder }, placeholder);
-  SelectValue.displayName = 'MockSelectValue';
-
-  const SelectContent = ({ children }: any) =>
-    React.createElement(React.Fragment, null, children);
-  SelectContent.displayName = 'MockSelectContent';
-
-  const SelectItem = React.forwardRef(({ value, children, ...props }: any, ref: any) =>
-    React.createElement('option', { value, role: 'option', ref, ...props }, children)
-  );
-  SelectItem.displayName = 'MockSelectItem';
-
-  return { Select, SelectTrigger, SelectValue, SelectContent, SelectItem };
-});
-
 // Mock fetch globally
 global.fetch = jest.fn();
 
@@ -175,14 +101,17 @@ const defaultProps: StockAdjustmentFormProps = {
  */
 const selectProduct = async (_user: ReturnType<typeof userEvent.setup>, productName: string) => {
   const productSelect = screen.getByRole('combobox', { name: /product/i });
-  const options = Array.from(productSelect.querySelectorAll('option'));
+  fireEvent.click(productSelect);
+  
+  const listbox = await screen.findByRole('listbox', {}, { timeout: 3000 });
+  const options = within(listbox).getAllByRole('option');
   const targetOption = options.find(opt => opt.textContent?.toLowerCase().includes(productName.toLowerCase()));
   
   if (!targetOption) {
     throw new Error(`Could not find option with name containing "${productName}"`);
   }
   
-  fireEvent.change(productSelect, { target: { value: (targetOption as HTMLOptionElement).value } });
+  fireEvent.click(targetOption);
 };
 
 const selectAdjustmentType = async (user: ReturnType<typeof userEvent.setup>, type: string) => {
@@ -196,19 +125,23 @@ const selectAdjustmentType = async (user: ReturnType<typeof userEvent.setup>, ty
  */
 const selectReason = async (_user: ReturnType<typeof userEvent.setup>, reasonLabel: string) => {
   const reasonSelect = screen.getByRole('combobox', { name: /reason/i });
-  const options = Array.from(reasonSelect.querySelectorAll('option'));
+  fireEvent.click(reasonSelect);
+  
+  const listbox = await screen.findByRole('listbox', {}, { timeout: 3000 });
+  const options = within(listbox).getAllByRole('option');
   const targetOption = options.find(opt => opt.textContent?.toLowerCase().includes(reasonLabel.toLowerCase()));
   
   if (!targetOption) {
     throw new Error(`Could not find option with name containing "${reasonLabel}"`);
   }
   
-  fireEvent.change(reasonSelect, { target: { value: (targetOption as HTMLOptionElement).value } });
+  fireEvent.click(targetOption);
 };
 
-const setQuantity = (_user: ReturnType<typeof userEvent.setup>, quantity: number) => {
+const setQuantity = async (user: ReturnType<typeof userEvent.setup>, quantity: number) => {
   const quantityInput = screen.getByLabelText(/quantity change/i);
-  fireEvent.change(quantityInput, { target: { value: quantity.toString() } });
+  await user.clear(quantityInput);
+  await user.type(quantityInput, quantity.toString());
 };
 
 // ============================================================================
@@ -242,7 +175,12 @@ describeMain('StockAdjustmentForm', () => {
     it('should render all form fields', () => {
       render(<StockAdjustmentForm {...defaultProps} />);
       
-      expect(screen.getByRole('combobox', { name: /product/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/product/i)).toBeInTheDocument();
+      expect(screen.getByText(/adjustment type/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/quantity change/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/reason/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /adjust stock/i })).toBeInTheDocument();
     });
     
     it('should render all 6 adjustment type options', () => {
@@ -312,7 +250,7 @@ describeMain('StockAdjustmentForm', () => {
       
       await selectProduct(user, 'Tomato Seeds');
       
-      expect(screen.getByText(/in stock/i, { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+      expect(screen.getByText(/in stock/i)).toBeInTheDocument();
     });
     
     it('should display "Low Stock" badge for low stock levels', async () => {
@@ -404,8 +342,7 @@ describeMain('StockAdjustmentForm', () => {
       
       const notesTextarea = screen.getByLabelText(/notes/i);
       const longText = 'a'.repeat(501);
-      // Use fireEvent.change for large text to avoid userEvent keystroke timeout
-      fireEvent.change(notesTextarea, { target: { value: longText } });
+      await user.type(notesTextarea, longText);
       
       const submitButton = screen.getByRole('button', { name: /adjust stock/i });
       await user.click(submitButton);
@@ -413,11 +350,12 @@ describeMain('StockAdjustmentForm', () => {
       expect(await screen.findByText(/notes cannot exceed 500 characters/i)).toBeInTheDocument();
     });
     
-    it('should display character count for notes', () => {
+    it('should display character count for notes', async () => {
+      const user = userEvent.setup();
       render(<StockAdjustmentForm {...defaultProps} />);
       
       const notesTextarea = screen.getByLabelText(/notes/i);
-      fireEvent.change(notesTextarea, { target: { value: 'Test note' } });
+      await user.type(notesTextarea, 'Test note');
       
       expect(screen.getByText(/9 \/ 500 characters/i)).toBeInTheDocument();
     });
@@ -512,9 +450,6 @@ describeMain('StockAdjustmentForm', () => {
       const user = userEvent.setup();
       render(<StockAdjustmentForm {...defaultProps} />);
       
-      // Use 'sold' adjustment type which allows negative quantities
-      await selectAdjustmentType(user, 'Sold');
-      
       const minusButton = screen.getByRole('button', { name: /decrease quantity by 1/i });
       await user.click(minusButton);
       
@@ -576,7 +511,7 @@ describeMain('StockAdjustmentForm', () => {
       await selectReason(user, 'Purchase Order');
       
       const notesTextarea = screen.getByLabelText(/notes/i);
-      fireEvent.change(notesTextarea, { target: { value: 'Received from supplier XYZ' } });
+      await user.type(notesTextarea, 'Received from supplier XYZ');
       
       const submitButton = screen.getByRole('button', { name: /adjust stock/i });
       await user.click(submitButton);
@@ -754,7 +689,7 @@ describeMain('StockAdjustmentForm', () => {
     it('should have proper ARIA labels for all inputs', () => {
       render(<StockAdjustmentForm {...defaultProps} />);
       
-      expect(screen.getByRole('combobox', { name: /product/i })).toHaveAccessibleName();
+      expect(screen.getByLabelText(/product/i)).toHaveAccessibleName();
       expect(screen.getByLabelText(/quantity change/i)).toHaveAccessibleName();
       expect(screen.getByLabelText(/reason/i)).toHaveAccessibleName();
       expect(screen.getByLabelText(/notes/i)).toHaveAccessibleName();
@@ -763,13 +698,13 @@ describeMain('StockAdjustmentForm', () => {
     it('should mark required fields with asterisk', () => {
       render(<StockAdjustmentForm {...defaultProps} />);
       
-      const productLabel = screen.getByText(/^product/i, { selector: 'label' });
+      const productLabel = screen.getByText(/product/i).closest('label');
       expect(productLabel).toHaveTextContent('*');
       
-      const quantityLabel = screen.getByText(/^quantity change/i, { selector: 'label' });
+      const quantityLabel = screen.getByText(/quantity change/i).closest('label');
       expect(quantityLabel).toHaveTextContent('*');
       
-      const reasonLabel = screen.getByText(/^reason/i, { selector: 'label' });
+      const reasonLabel = screen.getByText(/reason/i).closest('label');
       expect(reasonLabel).toHaveTextContent('*');
     });
     
@@ -803,11 +738,6 @@ describeMain('StockAdjustmentForm', () => {
       render(<StockAdjustmentForm {...defaultProps} products={[]} />);
       
       expect(screen.getByRole('combobox', { name: /product/i })).toBeInTheDocument();
-      expect(screen.getByText(/adjustment type/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/quantity change/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/reason/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /adjust stock/i })).toBeInTheDocument();
     });
     
     it('should handle product with no lowStockThreshold', async () => {
@@ -826,7 +756,7 @@ describeMain('StockAdjustmentForm', () => {
       
       await selectProduct(user, 'Test Product');
       
-      expect(screen.getByText(/in stock/i, { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+      expect(screen.getByText(/in stock/i)).toBeInTheDocument();
     });
     
     it('should handle very large stock quantities', async () => {

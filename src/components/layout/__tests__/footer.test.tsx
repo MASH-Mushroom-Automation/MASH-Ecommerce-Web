@@ -10,9 +10,9 @@ jest.mock("@/hooks/useSanitySiteSettings", () => ({
 import { Footer } from "../footer";
 
 describe("Footer component layout changes", () => {
-  test("renders Accepted Payment Methods section", () => {
+  test("does not render Accepted Payments section", () => {
     render(<Footer />);
-    expect(screen.getByText(/Accepted Payment Methods/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Accepted Payments/i)).toBeNull();
   });
 
   test("renders larger logo fallback when no CMS logo is provided", () => {

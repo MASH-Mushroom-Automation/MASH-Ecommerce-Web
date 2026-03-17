@@ -23,6 +23,7 @@ function getUserId(): string | null {
     if (storedUser) {
       const parsed = JSON.parse(storedUser);
       if (parsed.id) {
+        console.log("[UserApi] Got user ID from localStorage:", parsed.id);
         return parsed.id;
       }
     }
@@ -40,12 +41,18 @@ function getUserId(): string | null {
         const payload = JSON.parse(atob(parts[1]));
         // Backend typically uses 'sub' for user ID
         if (payload.sub) {
+          console.log("[UserApi] Got user ID from JWT (sub):", payload.sub);
           return payload.sub;
         }
         if (payload.userId) {
+          console.log(
+            "[UserApi] Got user ID from JWT (userId):",
+            payload.userId
+          );
           return payload.userId;
         }
         if (payload.id) {
+          console.log("[UserApi] Got user ID from JWT (id):", payload.id);
           return payload.id;
         }
       }
@@ -54,6 +61,7 @@ function getUserId(): string | null {
     // Ignore decode errors
   }
 
+  console.warn("[UserApi] Could not get user ID");
   return null;
 }
 
@@ -144,10 +152,12 @@ function getCachedProfile(): UserProfile | null {
 
     // Check if cache is still valid
     if (now - timestamp < CACHE_TTL) {
+      console.log("[UserApi] Using cached profile");
       return data;
     }
 
     // Cache expired
+    console.log("[UserApi] Cache expired");
     return null;
   } catch {
     return null;
@@ -162,6 +172,7 @@ function setCachedProfile(profile: UserProfile): void {
       timestamp: Date.now(),
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+    console.log("[UserApi] Profile cached");
   } catch {
     // Ignore storage errors
   }
@@ -171,6 +182,7 @@ function clearProfileCache(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(CACHE_KEY);
+    console.log("[UserApi] Cache cleared");
   } catch {
     // Ignore storage errors
   }
@@ -190,26 +202,37 @@ export class UserApi {
   static async getProfile(options?: {
     skipCache?: boolean;
   }): Promise<ApiResponse<UserProfile>> {
+    console.log("[UserApi] getProfile called", {
+      skipCache: options?.skipCache,
+    });
+
     // Check cache first (unless skipCache is true)
     if (!options?.skipCache) {
       const cached = getCachedProfile();
       if (cached) {
+        console.log("[UserApi] Returning cached profile:", cached);
         return { data: cached, success: true };
       }
     }
+
+    console.log("[UserApi] API_ENDPOINT:", API_ENDPOINT);
 
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
       const userId = getUserId();
+      console.log("[UserApi] Auth token present:", !!token);
+      console.log("[UserApi] User ID:", userId);
 
       if (!userId) {
+        console.warn("[UserApi] No user ID available, falling back to mock");
         await delay(300);
         return { data: MOCK_USER_PROFILE, success: true };
       }
 
       // Backend expects /api/v1/users/:id/profile
       const url = `${API_ENDPOINT}/api/v1/users/${userId}/profile`;
+      console.log("[UserApi] Fetching from:", url);
 
       const { ok, json, status } = await tryFetch<unknown>(url, {
         method: "GET",
@@ -219,19 +242,29 @@ export class UserApi {
         },
       });
 
+      console.log("[UserApi] Response:", { ok, status, json });
+
       if (ok && json) {
         // Accept either {data: user} or raw user shape
         const data = extractData<UserProfile>(json);
+        console.log("[UserApi] Extracted data:", data);
 
         if (data) {
           // Cache the profile
           setCachedProfile(data);
           return { data, success: true };
+        } else {
+          console.warn("[UserApi] Failed to extract data from response");
         }
+      } else {
+        console.warn("[UserApi] API request failed:", { ok, status });
       }
+    } else {
+      console.warn("[UserApi] No API_ENDPOINT configured");
     }
 
     // Fallback to mock
+    console.log("[UserApi] Falling back to mock data");
     await delay(300);
     return { data: MOCK_USER_PROFILE, success: true };
   }
@@ -244,12 +277,15 @@ export class UserApi {
   static async updateProfile(
     profile: Partial<UserProfile>
   ): Promise<ApiResponse<UserProfile>> {
+    console.log("[UserApi] updateProfile called with:", profile);
+
     // If real API is configured, try it first
     if (API_ENDPOINT) {
       const token = getAuthToken();
       const userId = getUserId();
 
       if (!userId) {
+        console.warn("[UserApi] No user ID available for update");
         // Fallback to mock
         await delay(300);
         const updatedProfile = { ...MOCK_USER_PROFILE, ...profile };
@@ -258,6 +294,7 @@ export class UserApi {
 
       // Backend expects /api/v1/users/:id/profile
       const url = `${API_ENDPOINT}/api/v1/users/${userId}/profile`;
+      console.log("[UserApi] Updating profile at:", url);
 
       const { ok, json, status } = await tryFetch<unknown>(url, {
         method: "PUT",
@@ -267,6 +304,8 @@ export class UserApi {
         },
         body: JSON.stringify(profile),
       });
+
+      console.log("[UserApi] Update response:", { ok, status, json });
 
       if (ok && json) {
         const data = extractData<UserProfile>(json);

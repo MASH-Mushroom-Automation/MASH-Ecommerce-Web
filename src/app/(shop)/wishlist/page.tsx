@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
-import { useWishlistProducts } from "@/hooks/useWishlistProducts";
+import { useSanityProducts } from "@/hooks/useSanityProducts";
 import type { TransformedProduct } from "@/types/sanity";
 import {
   AlertDialog,
@@ -28,17 +28,35 @@ import {
 export default function WishlistPage() {
   const { wishlistIds, clearWishlist, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const [wishlistItems, setWishlistItems] = useState<TransformedProduct[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isAddingAll, setIsAddingAll] = useState(false);
   const router = useRouter();
 
-  // Fetch only wishlisted products from Sanity (optimized query)
-  const { products: wishlistItems, loading, error } = useWishlistProducts(wishlistIds);
+  // Fetch all products from Sanity
+  const { products, loading, error } = useSanityProducts();
 
   // Ensure we're on the client side
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Filter products by wishlist IDs - use 'id' not '_id' for TransformedProduct
+  useEffect(() => {
+    if (!isClient || !products) return;
+
+    if (wishlistIds.length === 0) {
+      setWishlistItems([]);
+      return;
+    }
+
+    // Filter products by wishlist IDs (TransformedProduct uses 'id', not '_id')
+    const filtered = products.filter((product) =>
+      wishlistIds.includes(product.id)
+    );
+    console.log('🛒 Wishlist filter:', { wishlistIds, filtered: filtered.length, total: products.length });
+    setWishlistItems(filtered);
+  }, [wishlistIds, products, isClient]);
 
   // Show error toast
   useEffect(() => {
@@ -50,7 +68,7 @@ export default function WishlistPage() {
   // Add all items to cart - use TransformedProduct properties
   const handleAddAllToCart = useCallback(async () => {
     if (wishlistItems.length === 0) return;
-
+    
     setIsAddingAll(true);
     let addedCount = 0;
     let failedCount = 0;
@@ -66,12 +84,10 @@ export default function WishlistPage() {
           stock: product.stock,
           grower: product.category,
           unit: product.unit ? `${product.weight}${product.unit}` : undefined,
-          sellerId: product.sellerId,
         }, 1);
-
+        
         if (success) {
           addedCount++;
-          removeFromWishlist(product.id);
         } else {
           failedCount++;
         }
@@ -83,37 +99,12 @@ export default function WishlistPage() {
     setIsAddingAll(false);
 
     if (addedCount > 0) {
-      toast.success(`Moved ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`);
+      toast.success(`Added ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`);
     }
     if (failedCount > 0) {
       toast.warning(`${failedCount} item${failedCount > 1 ? 's' : ''} couldn't be added (out of stock or already in cart)`);
     }
   }, [wishlistItems, addToCart]);
-
-  // Move single item to cart: add to cart + remove from wishlist
-  const handleMoveToCart = useCallback((product: TransformedProduct) => {
-    if (!product.isAvailable || product.stock <= 0) {
-      toast.error(`"${product.name}" is out of stock`);
-      return;
-    }
-    const success = addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image || "/mushroom-placeholder.png",
-      slug: product.slug || product.id,
-      stock: product.stock,
-      grower: product.category,
-      unit: product.unit ? `${product.weight}${product.unit}` : undefined,
-      sellerId: product.sellerId,
-    }, 1);
-    if (success) {
-      removeFromWishlist(product.id);
-      toast.success(`Moved "${product.name}" to cart`);
-    } else {
-      toast.warning(`"${product.name}" is already in cart`);
-    }
-  }, [addToCart, removeFromWishlist]);
 
   // Quick remove from wishlist
   const handleQuickRemove = useCallback((productId: string, productName: string) => {
@@ -142,7 +133,7 @@ export default function WishlistPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-              <Heart className="h-6 w-6 sm:h-7 sm:w-7 text-red-500 fill-red-500" />
+              <Heart className="h-6 w-6 sm:h-7 sm:w-7 text-primary fill-primary" />
               My Wishlist
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1">
@@ -166,7 +157,7 @@ export default function WishlistPage() {
                 )}
                 {isAddingAll ? "Adding..." : "Add All to Cart"}
               </Button>
-
+              
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -182,7 +173,7 @@ export default function WishlistPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Clear all items?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will remove all {wishlistItems.length} products from your wishlist.
+                      This will remove all {wishlistItems.length} products from your wishlist. 
                       You can always add them again from the catalog.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -244,9 +235,8 @@ export default function WishlistPage() {
                     stock={product.stock}
                     tags={product.productTags || []}
                     description={product.description}
-                    sellerId={product.sellerId}
                   />
-
+                  
                   {/* Quick Remove Button - Shows on hover */}
                   <Button
                     variant="secondary"
@@ -261,23 +251,6 @@ export default function WishlistPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-
-                  {/* Move to Cart Button - Shows on hover */}
-                  {product.isAvailable && product.stock > 0 && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleMoveToCart(product);
-                      }}
-                      className="absolute top-2 right-2 z-10 opacity-0 group-hover/wishlist:opacity-100 transition-opacity duration-200 bg-primary/90 text-primary-foreground backdrop-blur-sm hover:bg-primary shadow-sm"
-                      aria-label={`Move ${product.name} to cart`}
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
             </div>

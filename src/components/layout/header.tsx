@@ -21,6 +21,11 @@ import {
   Package,
   ChevronDown,
   Menu,
+  Facebook,
+  Instagram,
+  Youtube,
+  Twitter,
+  Linkedin,
   Store,
   Search,
 } from "lucide-react";
@@ -52,14 +57,13 @@ import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import { SocialLinks } from "@/components/common/social-links";
+import { TikTokIcon } from "@/components/ui/tiktok-icon";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import {
   useSanitySiteSettings,
   useSanityAnnouncementBar,
   useSanityNavigation,
 } from "@/hooks/useSanitySiteSettings";
-import { useSellerNavigation } from "@/hooks/useSellerNavigation";
 
 type SellerStatus = "approved" | "pending" | "none";
 
@@ -67,7 +71,6 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
   sellerStatus,
 }) => {
   const { settings } = useSanitySiteSettings();
-  const { handleSellerButtonClick } = useSellerNavigation();
 
   return (
     <div className="bg-primary text-primary-foreground text-xs sm:text-sm py-2">
@@ -85,21 +88,9 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
               Application Pending ⏳
             </span>
           ) : (
-            <>
-              <button
-                onClick={() => handleSellerButtonClick()}
-                className="hover:underline"
-              >
-                Start Selling
-              </button>
-              <span className="opacity-50">|</span>
-              <button
-                onClick={() => handleSellerButtonClick()}
-                className="hover:underline"
-              >
-                Seller Centre
-              </button>
-            </>
+            <Link href="/start-selling" className="hover:underline">
+              Start Selling
+            </Link>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-primary-foreground/90">
@@ -121,7 +112,74 @@ const SellerInfoBar: React.FC<{ sellerStatus: SellerStatus }> = ({
             CONTACT US
           </Link>
           <span className="hidden sm:inline opacity-50">•</span>
-          <SocialLinks variant="header" socialMedia={settings?.socialMedia} />
+          <div className="hidden sm:flex items-center gap-2">
+            {settings?.socialMedia?.facebook && (
+              <a
+                href={settings.socialMedia.facebook}
+                aria-label="Facebook"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Facebook size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.youtube && (
+              <a
+                href={settings.socialMedia.youtube}
+                aria-label="YouTube"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Youtube size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.instagram && (
+              <a
+                href={settings.socialMedia.instagram}
+                aria-label="Instagram"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Instagram size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.twitter && (
+              <a
+                href={settings.socialMedia.twitter}
+                aria-label="Twitter"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Twitter size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.linkedin && (
+              <a
+                href={settings.socialMedia.linkedin}
+                aria-label="LinkedIn"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Linkedin size={18} />
+              </a>
+            )}
+            {settings?.socialMedia?.tiktok && (
+              <a
+                href={settings.socialMedia.tiktok}
+                aria-label="TikTok"
+                className="hover:text-primary-foreground transition-opacity hover:opacity-80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <TikTokIcon size={18} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -206,7 +264,6 @@ export function SellerHeader() {
               width={150}
               height={50}
               className="h-16 w-auto sm:h-20"
-              style={{ width: "auto", height: "auto" }}
               priority
             />
           )}
@@ -252,7 +309,6 @@ export function SimpleHeader() {
               width={150}
               height={50}
               className="h-10 w-auto sm:h-12"
-              style={{ width: "auto", height: "auto" }}
               priority
             />
           )}
@@ -330,8 +386,6 @@ export function Header() {
       {announcementBar?.enabled && announcementBar?.message && (
         <div
           className="text-center py-2 px-4 text-sm font-medium flex items-center justify-center gap-2"
-          role="status"
-          aria-live="polite"
           style={{
             backgroundColor: announcementBar.backgroundColor || "#6A994E",
             color: announcementBar.textColor || "#ffffff",
@@ -367,7 +421,6 @@ export function Header() {
                 width={150}
                 height={50}
                 className="h-10 w-auto sm:h-12"
-                style={{ width: "auto", height: "auto" }}
                 priority
               />
             )}
@@ -379,7 +432,6 @@ export function Header() {
               placeholder="Search mushrooms, kits, dried..."
               showRecent={true}
               showTrending={true}
-              autoFocus={false}
             />
           </div>
 
@@ -395,7 +447,7 @@ export function Header() {
                 <Heart size={24} className="group-hover:text-primary" />
                 <span className="text-sm ml-1 hidden sm:block">Wishlist</span>
                 {wishlistCount > 0 && (
-                  <Badge className="absolute rounded-4xl -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground text-xs">
                     {wishlistCount}
                   </Badge>
                 )}
@@ -487,9 +539,9 @@ export function Header() {
                 <SheetDescription className="sr-only">
                   Main navigation menu for mobile devices
                 </SheetDescription>
-                <div className="flex flex-col space-y-6 p-4 pt-12">
+                <div className="flex flex-col space-y-4 p-4">
                   {/* Mobile Search Bar */}
-                  <div className="mb-4">
+                  <div className="mb-2">
                     <SearchAutocomplete
                       placeholder="Search products..."
                       showRecent={true}
@@ -497,17 +549,14 @@ export function Header() {
                     />
                   </div>
 
-                  <nav
-                    className="flex flex-col space-y-2"
-                    aria-label="Mobile Navigation"
-                  >
+                  <nav className="flex flex-col space-y-2">
                     {/* CMS-driven navigation for mobile */}
                     {headerNav?.items?.length ? (
                       headerNav.items.map((item) => (
                         <Link
                           key={item._key}
                           href={item.internalPath || item.externalUrl || "/"}
-                          className="text-base text-muted-foreground hover:text-primary"
+                          className="text-lg font-medium text-muted-foreground hover:text-primary"
                           target={item.openInNewTab ? "_blank" : undefined}
                           rel={
                             item.openInNewTab
@@ -561,10 +610,10 @@ export function Header() {
                   </nav>
                   <div className="border-t border-border pt-4 space-y-2">
                     <Link
-                      href="/cart"
+                      href="/checkout"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
-                      <ShoppingCart className="sm:h-5 h-4 w-4 sm:w-5" />
+                      <ShoppingCart className="h-5 w-5" />
                       <span>Cart</span>
                     </Link>
                     {isAuthenticated && (
@@ -572,7 +621,7 @@ export function Header() {
                         href="/wishlist"
                         className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                       >
-                        <Heart className="sm:h-5 h-4 w-4 sm:w-5" />
+                        <Heart className="h-5 w-5" />
                         <span>Wishlist</span>
                       </Link>
                     )}
@@ -580,16 +629,16 @@ export function Header() {
                       href="/seller/dashboard"
                       className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                     >
-                      <Store className="sm:h-5 h-4 w-4 sm:w-5" />
+                      <Store className="h-5 w-5" />
                       <span>Seller Dashboard</span>
                     </Link>
                     {isAuthenticated ? (
                       <>
                         <Link
                           href="/profile/my-information"
-                          className="flex items-center space-x-2 text-muted-foreground hover:text-primary pb-2"
+                          className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
                         >
-                          <UserCircle className="sm:h-5 h-4 w-4 sm:w-5" />
+                          <UserCircle className="h-5 w-5" />
                           <span>My Profile</span>
                         </Link>
                         <Button
@@ -612,20 +661,75 @@ export function Header() {
                   </div>
 
                   {/* Social Media Links - Mobile */}
-                  <SocialLinks
-                    variant="mobile"
-                    socialMedia={settings?.socialMedia}
-                  />
+                  <div className="border-t border-border pt-4 mt-4">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Follow Us
+                    </p>
+                    <div className="flex items-center gap-4">
+                      {settings?.socialMedia?.facebook && (
+                        <a
+                          href={settings.socialMedia.facebook}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-foreground hover:text-primary"
+                          aria-label="Facebook"
+                        >
+                          <Facebook size={24} />
+                        </a>
+                      )}
+                      {settings?.socialMedia?.youtube && (
+                        <a
+                          href={settings.socialMedia.youtube}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-foreground hover:text-primary"
+                          aria-label="YouTube"
+                        >
+                          <Youtube size={24} />
+                        </a>
+                      )}
+                      {settings?.socialMedia?.instagram && (
+                        <a
+                          href={settings.socialMedia.instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-foreground hover:text-primary"
+                          aria-label="Instagram"
+                        >
+                          <Instagram size={24} />
+                        </a>
+                      )}
+                      {settings?.socialMedia?.twitter && (
+                        <a
+                          href={settings.socialMedia.twitter}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-foreground hover:text-primary"
+                          aria-label="Twitter"
+                        >
+                          <Twitter size={24} />
+                        </a>
+                      )}
+                      {settings?.socialMedia?.tiktok && (
+                        <a
+                          href={settings.socialMedia.tiktok}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-foreground hover:text-primary"
+                          aria-label="TikTok"
+                        >
+                          <TikTokIcon size={24} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
 
-        <nav
-          className="border-t border-border hidden lg:block bg-card/60 backdrop-blur"
-          aria-label="Main Navigation"
-        >
+        <nav className="border-t border-border hidden lg:block bg-card/60 backdrop-blur">
           <div className="max-w-7xl mx-auto flex justify-center space-x-8 px-4 sm:px-6 lg:px-12 xl:px-16 h-14 items-center">
             {/* Fallback navigation when CMS is loading or unavailable */}
             {navLoading || !headerNav?.items?.length ? (

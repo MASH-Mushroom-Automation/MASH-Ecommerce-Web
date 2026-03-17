@@ -1,7 +1,6 @@
 /**
  * Sanity Schema Test Utilities
  * Helper functions for validating Sanity CMS schema definitions
- * NOTE: This is a utility module, not a test suite
  */
 
 /**

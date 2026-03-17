@@ -3,7 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { SellerSidebar } from "@/components/seller-sidebar";
-import { useSellerGuard } from "@/hooks/useSellerGuard";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 import {
   SidebarInset,
   SidebarProvider,
@@ -38,20 +38,26 @@ export default function SellerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isPublicSellerPage =
-    pathname === "/start-selling" || pathname === "/request-pending";
+  const isStartSellingPage = pathname === "/start-selling";
 
-  // Allow public seller onboarding pages for everyone (no seller/admin guard)
-  // - /start-selling: application form
-  // - /request-pending: waiting room after submission
-  if (isPublicSellerPage) {
-    return <>{children}</>;
+  // Allow start-selling page for everyone (no admin guard)
+  // This is where users apply to become sellers
+  if (isStartSellingPage) {
+    return (
+      <div className="min-h-screen">
+        <main>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
   }
 
-  // Seller/Admin role verification - only sellers and admins can access seller pages
-  const { hasAccess, loading } = useSellerGuard();
+  // Admin role verification - only admins can access other seller pages
+  const { isAdmin, loading } = useAdminGuard();
 
-  // Show loading state while verifying access
+  // Show loading state while verifying admin access
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -63,17 +69,20 @@ export default function SellerLayout({
     );
   }
 
-  // If not a seller or admin, useSellerGuard will handle redirect automatically
+  // If not admin, useAdminGuard will handle redirect automatically
   // Return null to prevent any flash of content
-  if (!hasAccess) {
+  if (!isAdmin) {
     return null;
   }
 
   return (
     <SidebarProvider>
-      <div className="flex w-full">
+      <div
+        className="flex w-full"
+      >
         <SellerSidebar />
-        <SidebarInset className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
+        <SidebarInset
+          className="flex-1 md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />

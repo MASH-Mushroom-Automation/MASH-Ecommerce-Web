@@ -65,11 +65,9 @@ describe('Phase 1: AI Configuration', () => {
       const url = getGeminiUrl();
 
       expect(url).toContain('generativelanguage.googleapis.com');
-      expect(url).toContain(GEMINI_MODEL);
+      expect(url).toContain('gemini-2.0-flash');
       expect(url).toContain('generateContent');
       expect(url).toContain('key=');
-      // URL should be properly formatted
-      expect(url).toMatch(/^https:\/\//);
     });
 
     it('should accept custom model name', () => {
@@ -96,24 +94,22 @@ describe('Phase 1: AI Configuration', () => {
       expect(url).toContain('chat/completions');
     });
 
-    it('should return consistent URL', () => {
-      const url1 = getHuggingFaceUrl();
-      const url2 = getHuggingFaceUrl();
-
-      expect(url1).toBe(url2);
-    });
-
-    it('should use OpenAI-compatible chat completions endpoint', () => {
+    it('should return OpenAI-compatible chat completions endpoint', () => {
       const url = getHuggingFaceUrl();
 
-      expect(url).toContain('chat/completions');
+      expect(url).toBe('https://router.huggingface.co/v1/chat/completions');
+    });
+
+    it('should be a fixed endpoint (model specified in request body)', () => {
+      const url = getHuggingFaceUrl();
+      // Model is now specified in the request body, not the URL
+      expect(url).not.toContain('mistralai');
     });
   });
 
   describe('Configuration Constants', () => {
-    it('should have a Gemini model configured', () => {
-      expect(typeof GEMINI_MODEL).toBe('string');
-      expect(GEMINI_MODEL).toMatch(/gemini/i);
+    it('should have correct Gemini model name', () => {
+      expect(GEMINI_MODEL).toBe('gemini-2.0-flash');
     });
 
     it('should have reasonable timeout values', () => {

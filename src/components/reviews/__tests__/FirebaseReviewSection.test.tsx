@@ -560,15 +560,12 @@ describe("FirebaseReviewSection", () => {
         stats: makeStats({ totalReviews: 1 }),
       });
       render(<FirebaseReviewSection {...defaultProps} />);
-      // Real-time indicator may have been removed or text changed
-      // Component renders successfully with reviews
-      expect(screen.getByText("Customer Reviews")).toBeInTheDocument();
+      expect(screen.getByText("Reviews update in real-time")).toBeInTheDocument();
     });
 
     it("does not show real-time message when no reviews", () => {
       render(<FirebaseReviewSection {...defaultProps} />);
-      // Component renders the no-reviews state (heading only shows when stats.totalReviews > 0)
-      expect(screen.getByText("No Reviews Yet")).toBeInTheDocument();
+      expect(screen.queryByText("Reviews update in real-time")).not.toBeInTheDocument();
     });
   });
 });

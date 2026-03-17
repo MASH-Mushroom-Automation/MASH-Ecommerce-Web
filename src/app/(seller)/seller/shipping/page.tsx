@@ -118,6 +118,9 @@ export default function ShippingChannel() {
   const handleSaveChannel = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // In a real application, you would send this data to your API
+    console.log("Shipping channel data to submit:", currentChannel);
+
     // Mock implementation to update the UI
     if (currentChannel.id) {
       // Edit existing channel

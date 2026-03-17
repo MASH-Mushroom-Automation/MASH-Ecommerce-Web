@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Trash2,
+  Minimize2,
   Maximize2,
   Minimize,
   X,
@@ -180,12 +181,23 @@ export function ChatDialog({
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold leading-tight truncate">MASH AI Assistant</h2>
             <p className="text-[11px] text-muted-foreground leading-tight flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
               <span>Powered by ML &mdash; Here to help you shop</span>
             </p>
           </div>
 
           {/* Window controls */}
           <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+              onClick={onToggleMinimize}
+              aria-label="Minimize"
+              data-testid="minimize-button"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -27,15 +27,11 @@ jest.unmock('@/contexts/AuthContext');
 import { AuthProvider, useAuth } from '../AuthContext';
 import { mockFirebaseAuth, mockFirebaseUser } from '@/__mocks__/firebase';
 import { mockApiRequest } from '@/__mocks__/api-client';
-import * as firebase from '@/lib/firebase';
+import * as firebaseAuth from '@/lib/firebase/auth';
 import * as authLib from '@/lib/auth';
 import * as tokenRefresh from '@/lib/token-refresh';
+import { FirebaseUserService } from '@/lib/firebase/users';
 import { toast } from 'sonner';
-
-// Alias firebase barrel as firebaseAuth so all existing test references work
-// AuthContext imports from @/lib/firebase (barrel), so the test must use the same mock
-const firebaseAuth = firebase;
-const { FirebaseUserService } = firebase;
 
 // Access global cookie mocks set up in jest.setupMocks.js
 const mockCookies = global.__mockCookies as {
@@ -50,7 +46,9 @@ const setCookie = mockCookies.setCookie;
 const getCookieJSON = mockCookies.getCookieJSON;
 const removeCookie = mockCookies.removeCookie;
 
-// @/lib/firebase, @/lib/firebase/auth, @/lib/firebase/users are mocked globally in jest.setupMocks.js
+// Mock dependencies
+jest.mock('@/lib/firebase/auth');
+jest.mock('@/lib/firebase/users');
 jest.mock('@/lib/auth');
 jest.mock('@/lib/token-refresh');
 // sonner is mocked globally in jest.setupMocks.js via global.__mockToast
@@ -242,7 +240,7 @@ describe('AuthContext', () => {
       expect(toast.loading).toHaveBeenCalledWith('Signing you in...', { id: 'google-signin' });
       expect(toast.dismiss).toHaveBeenCalledWith('google-signin');
       expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('Welcome'));
-    }, 15000);
+    });
 
     it('should handle comma-separated name', async () => {
       const userWithCommaSeparatedName = {
@@ -1371,18 +1369,15 @@ describe('AuthContext', () => {
   });
 
   describe('Session Management', () => {
-    it('should return session info', async () => {
-      (tokenRefresh.getTokenInfo as jest.Mock).mockResolvedValue({
+    it('should return session info', () => {
+      (tokenRefresh.getTokenInfo as jest.Mock).mockReturnValue({
         hasToken: true,
         expiresIn: '3600',
       });
       
       const TestSessionInfo = () => {
         const auth = useAuth();
-        const [info, setInfo] = React.useState<{ hasToken: boolean; expiresIn: string | null }>({ hasToken: false, expiresIn: null });
-        React.useEffect(() => {
-          auth.getSessionInfo().then(setInfo);
-        }, [auth]);
+        const info = auth.getSessionInfo();
         return (
           <div>
             <div data-testid="has-token">{info.hasToken ? 'true' : 'false'}</div>
@@ -1397,9 +1392,7 @@ describe('AuthContext', () => {
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('has-token')).toHaveTextContent('true');
-      });
+      expect(screen.getByTestId('has-token')).toHaveTextContent('true');
       expect(screen.getByTestId('expires-in')).toHaveTextContent('3600');
     });
   });

@@ -3,15 +3,13 @@
 /**
  * Login Page - Backend & Firebase Authentication
  *
+ *
  * Supports two sign-in methods:
  * - Email/Password (via NestJS Backend)
  * - Google OAuth (via Firebase)
- *
- * All auth logic is extracted to useLogin hook.
- * 2FA modal is extracted to TwoFactorModal component.
  */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,41 +28,358 @@ import {
   Loader2,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Controller } from "react-hook-form";
-import { TwoFactorModal } from "@/components/auth/TwoFactorModal";
-import { useLogin, getEmailStatus } from "@/hooks/useLogin";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthApi } from "@/lib/api/auth";
+import { setAuthToken } from "@/lib/auth";
+import { getPasswordRequirements } from '@/lib/auth/password';
+import { toast } from "sonner";
+
+// Password requirements are not needed for login
+
+const getEmailStatus = (email: string) => {
+  if (!email) {
+    return {
+      isValid: false,
+      message: "Enter email address",
+    };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (emailRegex.test(email)) {
+    return { isValid: true, message: "Valid email" };
+  }
+
+  return {
+    isValid: false,
+    message: "Please enter a valid email address",
+  };
+};
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .transform((val) => val.trim().toLowerCase()),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean(),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
+  const verifyParam = searchParams.get("verify");
+  const verifiedParam = searchParams.get("verified");
+
+  const {
+    user,
+    isAuthenticated,
+    signInWithEmailPassword,
+    resendVerificationEmail,
+    loading: authLoading,
+  } = useAuth();
+
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [hasError, setHasError] = useState(false);
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("[Login] User already authenticated, redirecting...");
+      const storedRedirect = sessionStorage.getItem("auth-redirect-url");
+      const destination = storedRedirect || redirectUrl || "/";
+
+      // Clean up stored redirect
+      if (storedRedirect) {
+        sessionStorage.removeItem("auth-redirect-url");
+      }
+
+      // Use window.location for reliable redirect
+      window.location.href = destination;
+    }
+  }, [isAuthenticated, user, redirectUrl]);
+
   const {
     register,
     handleSubmit,
     control,
-    errors,
-    isSubmitting,
+    formState: { errors, isSubmitting },
     setValue,
     clearErrors,
-    onSubmit,
-    email,
-    setEmail,
-    password,
-    setPassword,
-    showPassword,
-    setShowPassword,
-    authLoading,
-    contextualMessage,
-    verifyParam,
-    verifiedParam,
-    resendVerificationEmail,
-    show2FAModal,
-    twoFAPhoneNumber,
-    twoFAError,
-    isVerifying2FA,
-    rememberDevice,
-    setRememberDevice,
-    handle2FAVerifySuccess,
-    handle2FAResend,
-    handle2FAClose,
-  } = useLogin();
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+    mode: "onChange", // Validate on change for better UX
+  });
+
+  // Store redirect URL
+  useEffect(() => {
+    if (redirectUrl && typeof window !== "undefined") {
+      sessionStorage.setItem("auth-redirect-url", redirectUrl);
+    }
+  }, [redirectUrl]);
+
+  // Get contextual message based on redirect URL
+  const getContextualMessage = () => {
+    if (verifyParam === "true") {
+      return "Please verify your email before signing in. Check your inbox.";
+    }
+    if (verifiedParam === "true") {
+      return "Email verified! You can now sign in.";
+    }
+    if (!redirectUrl) return null;
+
+    if (redirectUrl.includes("/checkout")) {
+      return "Please sign in to complete your checkout";
+    }
+    if (redirectUrl.includes("/profile")) {
+      return "Please sign in to access your profile";
+    }
+    if (redirectUrl.includes("/wishlist")) {
+      return "Please sign in to view your wishlist";
+    }
+    if (redirectUrl.includes("/seller")) {
+      return "Please sign in to access the seller dashboard";
+    }
+    if (redirectUrl.includes("/onboarding")) {
+      return "Please sign in to continue your onboarding";
+    }
+    return "Please sign in to continue";
+  };
+
+  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
+    // Reset error state
+    setHasError(false);
+
+    try {
+      console.log("[Login] Starting login process...");
+      console.log("[Login] Email:", data.email);
+      console.log("[Login] Password length:", data.password.length);
+      console.log("[Login] Remember Me:", data.rememberMe);
+
+      // Use backend API for email/password login
+      const response = await AuthApi.login({
+        email: data.email.trim(),
+        password: data.password,
+        rememberMe: data.rememberMe || false,
+      });
+
+      console.log("[Login] Backend response received:", response);
+
+      // Handle both response formats (nested data or direct)
+      const user = response.data?.user || response.user;
+      const accessToken = response.data?.accessToken || response.accessToken;
+      const refreshToken = response.data?.refreshToken || response.refreshToken;
+
+      if (!user) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
+      console.log("[Login] User data:", {
+        email: user.email,
+        verified: user.emailVerified,
+      });
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        console.warn("[Login] Email not verified");
+        setHasError(true); // Mark as error to prevent navigation
+        sessionStorage.setItem("pendingVerificationEmail", data.email);
+
+        toast.warning("Email Verification Required", {
+          description: "Please verify your email address to continue.",
+          duration: 5000,
+          action: {
+            label: "Verify Now",
+            onClick: () => router.push("/verify-otp"),
+          },
+        });
+        return;
+      }
+
+      // Store tokens if available
+      if (accessToken) {
+        console.log("[Login] Storing access token...");
+        // Also store refresh token if available
+        if (refreshToken) {
+          console.log("[Login] Storing refresh token...");
+          setAuthToken(accessToken, refreshToken, data.rememberMe); // Use proper cookie storage
+        } else {
+          setAuthToken(accessToken, undefined, data.rememberMe); // Use proper cookie storage without refresh token
+          // Refresh token not stored in localStorage; managed via HTTP-only cookies
+        }
+      }
+
+      // Success notification
+      const displayName = user.firstName || user.email.split("@")[0];
+      toast.success("Login Successful!", {
+        description: `Welcome back, ${displayName}!`,
+        duration: 3000,
+      });
+
+      console.log("[Login] Login successful, redirecting...");
+
+      // Small delay for toast to show before navigation
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Only navigate if no errors occurred
+      if (!hasError) {
+        // Redirect to stored URL or home (NO page refresh)
+        const redirectUrl = sessionStorage.getItem("auth-redirect-url");
+        if (redirectUrl) {
+          sessionStorage.removeItem("auth-redirect-url");
+          console.log("[Login] Redirecting to:", redirectUrl);
+          router.push(redirectUrl);
+        } else {
+          console.log("[Login] Redirecting to home");
+          router.push("/");
+        }
+      }
+    } catch (error: any) {
+      // Set error flag to prevent navigation
+      setHasError(true);
+      console.error("[Login] Error:", error);
+      console.error("[Login] Error details:", {
+        message: error?.message,
+        response: error?.response,
+        status: error?.response?.status,
+        fullError: error?.response?.data,
+      });
+
+      // Extract error message from all possible paths (backend sends: data.error.message)
+      let errorMessage = "Unable to sign in. Please try again.";
+      let errorTitle = "Login Failed";
+
+      // Try nested error.message path first (correct backend structure)
+      if (error?.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error?.response?.data?.details?.message) {
+        errorMessage = error.response.data.details.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message && typeof error.message === "string") {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      // Ensure errorMessage is a string before calling string methods
+      if (typeof errorMessage !== "string") {
+        console.warn("[Login] errorMessage is not a string:", errorMessage);
+        errorMessage = JSON.stringify(errorMessage);
+      }
+
+      console.log("[Login] Error message:", errorMessage);
+
+      // Handle specific error cases (now safe to call .toLowerCase())
+      const lowerMsg = errorMessage.toLowerCase();
+      const statusCode = error?.response?.status || error?.response?.statusCode;
+
+      // Handle validation errors (400 Bad Request)
+      if (statusCode === 400 || lowerMsg.includes("validation")) {
+        console.log("[Login] Validation error detected");
+        toast.error("Invalid Request", {
+          description: "Please check your login information and try again.",
+          duration: 5000,
+        });
+        return;
+      }
+
+      if (
+        lowerMsg.includes("not verified") ||
+        lowerMsg.includes("email verification")
+      ) {
+        console.log("[Login] Email not verified (from error)");
+        sessionStorage.setItem("pendingVerificationEmail", data.email);
+        toast.error("Email Not Verified", {
+          description: "Please verify your email address to continue.",
+          duration: 6000,
+          action: {
+            label: "Verify Email",
+            onClick: () => router.push("/verify-otp"),
+          },
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (
+        lowerMsg.includes("invalid") ||
+        lowerMsg.includes("incorrect") ||
+        lowerMsg.includes("wrong") ||
+        lowerMsg.includes("credentials")
+      ) {
+        console.log("[Login] Invalid credentials detected");
+        toast.error("Invalid Credentials", {
+          description:
+            "The email or password you entered is incorrect. Please try again.",
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (
+        lowerMsg.includes("not found") ||
+        lowerMsg.includes("no user") ||
+        lowerMsg.includes("doesn't exist")
+      ) {
+        console.log("[Login] Account not found");
+        toast.error("Account Not Found", {
+          description:
+            "No account exists with this email. Would you like to sign up?",
+          duration: 6000,
+          action: {
+            label: "Sign Up",
+            onClick: () => router.push("/signup"),
+          },
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (lowerMsg.includes("network") || lowerMsg.includes("timeout")) {
+        console.log("[Login] Network/timeout error");
+        toast.error("Connection Error", {
+          description:
+            "Unable to reach the server. Please check your internet connection.",
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else if (
+        lowerMsg.includes("too many") ||
+        lowerMsg.includes("rate limit")
+      ) {
+        console.log("[Login] Rate limit exceeded");
+        toast.error("Too Many Attempts", {
+          description: "Please wait a few minutes before trying again.",
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      } else {
+        // Generic error with actual message
+        console.log("[Login] Generic error:", errorMessage);
+        toast.error(errorTitle, {
+          description: errorMessage,
+          duration: 5000,
+        });
+        return; // CRITICAL: Stop execution, don't navigate
+      }
+    } finally {
+      // Always log completion
+      console.log("[Login] Form submission completed (error:", hasError, ")");
+    }
+  };
+
+  const contextualMessage = getContextualMessage();
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-6 sm:py-8 md:py-12">
@@ -162,7 +477,6 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
-
               {/* Email Input */}
               <div>
                 <label
@@ -179,6 +493,7 @@ export default function LoginPage() {
                     const value = e.currentTarget.value;
                     setEmail(value);
                     setValue("email", value, { shouldValidate: true });
+                    // Clear errors when user starts typing
                     if (errors.email && value) {
                       clearErrors("email");
                     }
@@ -210,6 +525,7 @@ export default function LoginPage() {
                   </div>
                 )}
 
+                {/* Error Message */}
                 {errors.email && (
                   <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                     {String(errors.email.message)}
@@ -233,6 +549,7 @@ export default function LoginPage() {
                     onInput={(e) => {
                       const value = e.currentTarget.value;
                       setPassword(value);
+                      // Clear errors when user starts typing
                       if (errors.password && value) {
                         clearErrors("password");
                       }
@@ -259,6 +576,7 @@ export default function LoginPage() {
                   </button>
                 </div>
 
+                {/* Error Message */}
                 {errors.password && (
                   <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-destructive">
                     {String(errors.password.message)}
@@ -351,19 +669,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Two-Factor Authentication Modal */}
-      <TwoFactorModal
-        open={show2FAModal}
-        phoneNumber={twoFAPhoneNumber}
-        errorMessage={twoFAError}
-        isVerifying={isVerifying2FA}
-        rememberDevice={rememberDevice}
-        onRememberDeviceChange={setRememberDevice}
-        onVerifySuccess={handle2FAVerifySuccess}
-        onResend={handle2FAResend}
-        onClose={handle2FAClose}
-      />
     </div>
   );
 }

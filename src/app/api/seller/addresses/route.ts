@@ -16,11 +16,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const cookieHeader = request.headers.get("cookie") || "";
-    const response = await apiRequest<ApiResponse<any>>("/seller/addresses", {
-      method: "GET",
-      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
-    });
+    const response = await apiRequest<ApiResponse<any>>("/api/seller/addresses", { method: "GET" });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(
@@ -44,11 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     const address = await request.json();
-    const cookieHeader = request.headers.get("cookie") || "";
-    const response = await apiRequest<ApiResponse<any>>("/seller/addresses", {
+    const response = await apiRequest<ApiResponse<any>>("/api/seller/addresses", {
       method: "POST",
       body: JSON.stringify(address),
-      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
     });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
@@ -73,11 +67,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const { id, ...address } = await request.json();
-    const cookieHeader = request.headers.get("cookie") || "";
-    const response = await apiRequest<ApiResponse<any>>(`/seller/addresses/${id}`, {
+    const response = await apiRequest<ApiResponse<any>>(`/api/seller/addresses/${id}`, {
       method: "PUT",
       body: JSON.stringify(address),
-      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
     });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
@@ -111,11 +103,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const cookieHeader = request.headers.get("cookie") || "";
-    const response = await apiRequest<ApiResponse<any>>(`/seller/addresses/${id}`, {
-      method: "DELETE",
-      headers: { Cookie: cookieHeader, Authorization: `Bearer ${token}` },
-    });
+    const response = await apiRequest<ApiResponse<any>>(`/api/seller/addresses/${id}`, { method: "DELETE" });
     return NextResponse.json({ ...response, timestamp: new Date().toISOString(), requestId: `req_${Date.now()}` });
   } catch (error) {
     return NextResponse.json(

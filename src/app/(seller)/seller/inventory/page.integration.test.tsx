@@ -166,7 +166,7 @@ describe('InventoryOverviewPage Integration Tests', () => {
     // Setup default mock responses
     mockGetInventoryStats.mockResolvedValue(mockStats);
     mockGetLowStockProducts.mockResolvedValue({
-      items: mockLowStockProducts,
+      products: mockLowStockProducts,
       total: 2,
       hasMore: false,
     });
@@ -195,8 +195,8 @@ describe('InventoryOverviewPage Integration Tests', () => {
       expect(screen.getByText('Low Stock')).toBeInTheDocument();
       expect(screen.getByText('30')).toBeInTheDocument(); // Low Stock value
 
-      // Check low stock alerts table (multiple elements may have this text: sr-only h2 + card title)
-      expect(screen.getAllByText('Low Stock Alerts').length).toBeGreaterThan(0);
+      // Check low stock alerts table
+      expect(screen.getByText('Low Stock Alerts')).toBeInTheDocument();
       expect(screen.getByText('Oyster Mushroom')).toBeInTheDocument();
       expect(screen.getByText('Shiitake Mushroom')).toBeInTheDocument();
     });
@@ -213,15 +213,11 @@ describe('InventoryOverviewPage Integration Tests', () => {
 
     it('should handle error state gracefully', async () => {
       mockGetInventoryStats.mockRejectedValue(new Error('Network error'));
-      mockGetLowStockProducts.mockRejectedValue(new Error('Network error'));
-      mockGetStockValue.mockRejectedValue(new Error('Network error'));
-      mockGetCategoryInventory.mockRejectedValue(new Error('Network error'));
 
       render(<InventoryOverviewPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        const errorText = screen.queryByText(/network error/i) || screen.queryByText(/unable to load/i) || screen.queryByText(/failed to load/i);
-        expect(errorText).toBeInTheDocument();
+        expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
       }, WAITFOR_OPTIONS);
     });
   });
@@ -392,16 +388,9 @@ describe('InventoryOverviewPage Integration Tests', () => {
       }, WAITFOR_OPTIONS);
 
       // Check navigation link only if data loaded
-      const productName = screen.queryByText('Oyster Mushroom');
-      if (productName) {
-        // Product name is a <p> element; the link is a separate icon button
-        const viewLink = screen.queryByRole('link', { name: /view details for oyster mushroom/i });
-        if (viewLink) {
-          expect(viewLink).toHaveAttribute('href', '/product/oyster-mushroom');
-        } else {
-          // Link rendered but not accessible by role in jsdom - verify product is visible
-          expect(productName).toBeInTheDocument();
-        }
+      const productLink = screen.queryByText('Oyster Mushroom');
+      if (productLink) {
+        expect(productLink).toHaveAttribute('href', '/product/oyster-mushroom');
       } else {
         // Data didn't load - acceptable
         expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
@@ -556,36 +545,30 @@ describe('InventoryOverviewPage Integration Tests', () => {
       mockGetStockValue.mockRejectedValue(new Error('Connection timeout'));
       mockGetCategoryInventory.mockRejectedValue(new Error('Connection timeout'));
 
-      const { container } = render(<InventoryOverviewPage />, { wrapper: createWrapper() });
+      render(<InventoryOverviewPage />, { wrapper: createWrapper() });
 
-      // The component renders immediately - it will show loading skeletons initially
-      // Verify the container renders without crashing
-      expect(container).toBeInTheDocument();
-
-      // Wait for React Query to process the error (has retry:2 + exponential backoff)
-      // After retries complete (up to 6s), error state or loading state is shown
+      // Wait for React Query to process the error
       await waitFor(() => {
-        // Either shows loading skeletons or the DashboardError with 'Inventory Overview'
-        const hasContent = container.querySelector('[data-slot="skeleton"]') ||
-          screen.queryByText('Inventory Overview') ||
-          screen.queryByRole('alert') ||
-          screen.queryByText(/unable to load|failed/i);
-        expect(hasContent).toBeTruthy();
-      }, { timeout: 1000 });
+        // The component may show error state or stay in loading state
+        // Check for any indication the page is rendered
+        const pageTitle = screen.queryByText('Inventory Overview');
+        const errorAlert = screen.queryByRole('alert');
+        const errorText = screen.queryByText(/failed|error|unable|retry/i);
+        // Either the page renders with error state, or shows loading skeleton
+        expect(pageTitle || errorAlert || errorText).toBeTruthy();
+      }, { timeout: 5000 });
     });
 
     it('should show error when low stock products fetch fails', async () => {
       mockGetLowStockProducts.mockRejectedValue(new Error('Database error'));
 
-      const { container } = render(<InventoryOverviewPage />, { wrapper: createWrapper() });
+      render(<InventoryOverviewPage />, { wrapper: createWrapper() });
 
-      // Page renders immediately with loading skeletons or data from other queries
-      expect(container).toBeInTheDocument();
-
-      // The container always renders so just verify it's present
+      // Page might still render with partial data or show error
       await waitFor(() => {
-        expect(container).toBeInTheDocument();
-      }, { timeout: 1000 });
+        // Just verify page renders (partial error handling)
+        expect(screen.getByText('Inventory Overview')).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
 
     it('should handle network failures gracefully', async () => {

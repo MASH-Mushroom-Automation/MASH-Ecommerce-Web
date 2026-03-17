@@ -6,7 +6,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Package, MapPin, CreditCard, Truck, Calendar, User, Phone, Mail, AlertCircle, CheckCircle, XCircle, Banknote, Smartphone, Wallet, CircleDollarSign, Clock, RefreshCw } from "lucide-react";
+import { Package, MapPin, CreditCard, Truck, Calendar, User, Phone, Mail, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +16,6 @@ import { toast } from "sonner";
 import type { Order } from "@/hooks/useSanityOrders";
 import { OrdersApi } from "@/lib/api/orders";
 import { OrderRejectionModal } from "./OrderRejectionModal";
-import { PAYMENT_METHOD_LABELS } from "@/types/payment";
-import type { PaymentMethod } from "@/types/payment";
 
 interface OrderCardProps {
   order: Order;
@@ -84,56 +82,6 @@ const formatDate = (dateString: string) => {
 // Format currency
 const formatCurrency = (amount: number) => {
   return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
-};
-
-// Payment method icon map
-const SELLER_PAYMENT_ICON_MAP: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  cod: Banknote,
-  gcash: Smartphone,
-  grab_pay: Wallet,
-  card: CreditCard,
-  paymaya: CircleDollarSign,
-};
-
-/** Get icon component for a payment method */
-function getSellerPaymentIcon(method: string): React.ComponentType<{ className?: string }> {
-  return SELLER_PAYMENT_ICON_MAP[method?.toLowerCase()] ?? CreditCard;
-}
-
-/** Get human-readable label for payment method */
-function getSellerPaymentLabel(method: string): string {
-  const lower = method?.toLowerCase() ?? "";
-  return PAYMENT_METHOD_LABELS[lower as PaymentMethod] ?? method;
-}
-
-// Payment status display config
-const SELLER_PAYMENT_STATUS_CONFIG: Record<
-  string,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  paid: {
-    label: "Paid",
-    color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800",
-    icon: <CheckCircle className="h-3 w-3" />,
-  },
-  pending: {
-    label: "Pending",
-    color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-    icon: <Clock className="h-3 w-3" />,
-  },
-  failed: {
-    label: "Failed",
-    color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800",
-    icon: <XCircle className="h-3 w-3" />,
-  },
-  refunded: {
-    label: "Refunded",
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-    icon: <RefreshCw className="h-3 w-3" />,
-  },
 };
 
 /**
@@ -350,44 +298,16 @@ export function OrderCard({
         {/* Payment Information */}
         <div className="space-y-2">
           <h4 className="font-semibold text-sm flex items-center gap-2">
-            {(() => {
-              const PayIcon = getSellerPaymentIcon(order.paymentMethod);
-              return <PayIcon className="h-4 w-4" />;
-            })()}
+            <CreditCard className="h-4 w-4" />
             Payment Information
           </h4>
           <div className="grid grid-cols-2 gap-2 text-sm pl-6">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Method:</span>{" "}
-              <span className="font-medium" data-testid="seller-payment-method">
-                {getSellerPaymentLabel(order.paymentMethod)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Status:</span>{" "}
-              {(() => {
-                const cfg =
-                  SELLER_PAYMENT_STATUS_CONFIG[order.paymentStatus?.toLowerCase()];
-                return cfg ? (
-                  <Badge
-                    className={cn(
-                      "border text-[10px] font-semibold gap-0.5 px-1.5 py-0",
-                      cfg.color,
-                    )}
-                    data-testid="seller-payment-status-badge"
-                  >
-                    {cfg.icon}
-                    {cfg.label}
-                  </Badge>
-                ) : (
-                  <span className="font-medium">{order.paymentStatus}</span>
-                );
-              })()}
+            <div>
+              <span className="text-muted-foreground">Method:</span> {order.paymentMethod.toUpperCase()}
             </div>
             {order.paymentReference && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Reference:</span>{" "}
-                <span className="font-mono text-xs">{order.paymentReference}</span>
+              <div>
+                <span className="text-muted-foreground">Reference:</span> {order.paymentReference}
               </div>
             )}
           </div>

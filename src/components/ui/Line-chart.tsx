@@ -19,7 +19,7 @@ export const description = "A linear line chart"
 const chartConfig = {
   desktop: {
     label: "Desktop",
-    color: "var(--color-primary)",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 

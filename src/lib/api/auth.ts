@@ -92,10 +92,6 @@ export interface LoginResponse {
   success: boolean;
   statusCode?: number;
   message?: string;
-  // 2FA fields - returned when user has 2FA enabled
-  requiresTwoFactor?: boolean;
-  tempToken?: string;
-  phoneNumber?: string;
   data?: {
     accessToken: string;
     refreshToken: string;
@@ -109,10 +105,6 @@ export interface LoginResponse {
       role: string;
       emailVerified: boolean;
     };
-    // 2FA fields can also be nested in data
-    requiresTwoFactor?: boolean;
-    tempToken?: string;
-    phoneNumber?: string;
   };
   accessToken?: string;
   refreshToken?: string;

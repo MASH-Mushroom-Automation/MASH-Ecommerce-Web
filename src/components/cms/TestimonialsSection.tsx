@@ -22,7 +22,7 @@ import {
   TransformedTestimonial,
   formatTestimonialDate,
 } from '@/hooks/useSanityTestimonials';
-import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle, MapPin } from 'lucide-react';
+import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
 // STAR RATING COMPONENT
@@ -153,9 +153,8 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
               </p>
             )}
             {testimonial.location && (
-              <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                <MapPin className="w-3 h-3 flex-shrink-0" />
-                {testimonial.location}
+              <p className="text-xs text-muted-foreground truncate">
+                📍 {testimonial.location}
               </p>
             )}
           </div>
@@ -266,7 +265,6 @@ const TestimonialsCarousel: React.FC<TestimonialsCarouselProps> = ({ testimonial
                   ? 'w-6 bg-primary' 
                   : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
               }`}
-              aria-label={`Go to testimonials page ${index + 1}`}
             />
           ))}
         </div>
@@ -299,17 +297,17 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
   // Loading State
   if (loading) {
     return (
-      <section className="py-16 sm:py-20 lg:py-28 bg-muted/20">
+      <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-3">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               {title}
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
               {subtitle}
             </p>
           </div>
-          <div className="flex items-center justify-center min-h-[250px]">
+          <div className="flex items-center justify-center min-h-[300px]">
             <LoadingSpinner size="lg" />
           </div>
         </div>
@@ -323,20 +321,16 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
   }
   
   return (
-    <section className="py-16 sm:py-20 lg:py-28 bg-muted/20">
+    <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
         {/* Header */}
-        <div className="text-center mb-10 sm:mb-14">
-          <span className="inline-block px-4 py-1.5 text-xs font-semibold tracking-widest uppercase bg-primary/8 text-primary border border-primary/15 rounded-full mb-4">
-            Testimonials
-          </span>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-3">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             {title}
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             {subtitle}
           </p>
-          <div className="mt-5 mx-auto w-10 h-0.5 rounded-full bg-primary/30" />
         </div>
         
         {/* Testimonials */}
@@ -356,13 +350,9 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({
         
         {/* View All Link */}
         {showAllLink && (
-          <div className="text-center mt-10 sm:mt-14">
+          <div className="text-center mt-8 sm:mt-12">
             <Link href="/testimonials">
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-10 py-4 h-auto text-base font-semibold rounded-lg border-2 border-border hover:bg-foreground hover:text-background hover:border-foreground transition-all duration-200"
-              >
+              <Button variant="outline" className="px-6 sm:px-8 py-3 sm:py-4 h-auto text-base sm:text-lg rounded-lg font-semibold">
                 View All Reviews
               </Button>
             </Link>
