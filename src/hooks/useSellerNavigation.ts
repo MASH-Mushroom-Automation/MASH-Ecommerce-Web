@@ -1,12 +1,27 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiRequest } from "@/lib/api-client";
 
 interface SellerStatusResponse {
   hasPendingRequest: boolean;
   status: "none" | "pending" | "approved" | "rejected";
   requestId?: string;
   submittedAt?: Date;
+}
+
+type SellerStatusEnvelope = {
+  data?: SellerStatusResponse;
+  success?: boolean;
+  statusCode?: number;
+};
+
+function normalizeSellerStatus(
+  payload: SellerStatusResponse | SellerStatusEnvelope,
+): SellerStatusResponse {
+  const maybeEnvelope = payload as SellerStatusEnvelope;
+  if (maybeEnvelope && typeof maybeEnvelope === "object" && maybeEnvelope.data) {
+    return maybeEnvelope.data;
+  }
+  return payload as SellerStatusResponse;
 }
 
 export function useSellerNavigation() {
@@ -20,10 +35,15 @@ export function useSellerNavigation() {
     }
 
     try {
-      const res = await apiRequest<SellerStatusResponse>(
-        `/seller/my-status`,
-        { method: "GET" },
-      );
+      const statusRes = await fetch("/api/seller-status", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+      const raw = (await statusRes.json()) as
+        | SellerStatusResponse
+        | SellerStatusEnvelope;
+      const res = normalizeSellerStatus(raw);
 
       switch (res?.status) {
         case "approved":

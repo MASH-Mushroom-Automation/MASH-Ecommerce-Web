@@ -10,7 +10,6 @@ import { SuccessModal } from "./components/SuccessModal";
 import { useSellerApplicationForm } from "./hooks/useSellerApplicationForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUser";
-import { apiRequest } from "@/lib/api-client";
 
 // Re-export schema and types for components that need them
 export { sellerApplicationSchema, type SellerApplicationForm } from "./schema";
@@ -20,6 +19,22 @@ interface SellerStatusResponse {
   status: "none" | "pending" | "approved" | "rejected";
   requestId?: string;
   submittedAt?: Date;
+}
+
+type SellerStatusEnvelope = {
+  data?: SellerStatusResponse;
+  success?: boolean;
+  statusCode?: number;
+};
+
+function normalizeSellerStatus(
+  payload: SellerStatusResponse | SellerStatusEnvelope,
+): SellerStatusResponse {
+  const maybeEnvelope = payload as SellerStatusEnvelope;
+  if (maybeEnvelope && typeof maybeEnvelope === "object" && maybeEnvelope.data) {
+    return maybeEnvelope.data;
+  }
+  return payload as SellerStatusResponse;
 }
 
 export default function StartSellingPage() {
@@ -81,10 +96,16 @@ export default function StartSellingPage() {
         }
 
         // For non-admin users, check seller application status via backend API (JWT-scoped)
-        const res = await apiRequest<SellerStatusResponse>(
-          `/seller/my-status`,
-          { method: "GET" },
-        );
+        const statusRes = await fetch("/api/seller-status", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        const raw = (await statusRes.json()) as
+          | SellerStatusResponse
+          | SellerStatusEnvelope;
+        const res = normalizeSellerStatus(raw);
+        console.log("[StartSelling] seller status:", res);
 
         switch (res?.status) {
           case "approved":
