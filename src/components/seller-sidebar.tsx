@@ -78,16 +78,16 @@ const sidebarLinks = [
     icon: Box,
     label: "Products",
   },
-  {
-    href: "/seller/inventory",
-    icon: Package,
-    label: "Inventory",
-  },
-  {
-    href: "/seller/stock-management",
-    icon: PackageSearch,
-    label: "Stock Management",
-  },
+  // {
+  //   href: "/seller/inventory",
+  //   icon: Package,
+  //   label: "Inventory",
+  // },
+  // {
+  //   href: "/seller/stock-management",
+  //   icon: PackageSearch,
+  //   label: "Stock Management",
+  // },
   {
     href: "/seller/orders",
     icon: ShoppingBag,
@@ -113,11 +113,11 @@ const sidebarLinks = [
   //   icon: MessageSquare,
   //   label: "Review Moderation",
   // },
-  {
-    href: "/seller/analytics/reviews",
-    icon: BarChart3,
-    label: "Review Analytics",
-  },
+  // {
+  //   href: "/seller/analytics/reviews",
+  //   icon: BarChart3,
+  //   label: "Review Analytics",
+  // },
   // {
   //   href: "/seller/refund",
   //   icon: RotateCcw,
