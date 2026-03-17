@@ -135,7 +135,11 @@ describe('Phase 1: Gemini API Client', () => {
       expect(result.error).toContain('API key not configured');
 
       // Restore
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY = originalKey;
+      if (originalKey === undefined) {
+        delete process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      } else {
+        process.env.NEXT_PUBLIC_GEMINI_API_KEY = originalKey;
+      }
     });
 
     it('should handle API errors gracefully', async () => {

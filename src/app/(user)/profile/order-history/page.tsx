@@ -1,15 +1,17 @@
 /**
  * Order History Page (Firebase-powered)
- * 
+ *
  * Displays user's order history with real-time updates from Firebase.
  */
 
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Package,
   Loader2,
@@ -20,6 +22,23 @@ import {
   MapPin,
   ChevronRight,
   RefreshCw,
+  ShoppingBag,
+  CreditCard,
+  Receipt,
+  CalendarDays,
+  Copy,
+  Check,
+  ArrowRight,
+  Ban,
+  Navigation,
+  ShoppingCart,
+  FileText,
+  CalendarClock,
+  Banknote,
+  Smartphone,
+  Wallet,
+  CircleDollarSign,
+  Filter,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,74 +48,190 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserFirebaseOrders, useFirebaseOrder } from "@/hooks/useFirebaseOrders";
-import { type FirestoreOrder, type OrderStatus } from "@/lib/firebase/orders";
+import { useCart } from "@/contexts/CartContext";
+import {
+  useUserFirebaseOrders,
+  useFirebaseOrder,
+} from "@/hooks/useFirebaseOrders";
+import { type FirestoreOrder, type OrderStatus, FirebaseOrdersService } from "@/lib/firebase/orders";
+import type { AddToCartProduct } from "@/types/api";
+import { LALAMOVE_VEHICLES } from "@/lib/lalamove/vehicle-types";
+import { PAYMENT_METHOD_LABELS } from "@/types/payment";
+import type { PaymentMethod } from "@/types/payment";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
+import { toast } from "sonner";
 
 const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
 
-// Status configuration
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ReactNode; tab: string }> = {
+// ---------------------------------------------------------------------------
+// Payment method icon map (mirrors CheckoutStep3Payment / OrderSummary)
+// ---------------------------------------------------------------------------
+const PAYMENT_METHOD_ICON_MAP: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  cod: Banknote,
+  gcash: Smartphone,
+  grab_pay: Wallet,
+  card: CreditCard,
+  paymaya: CircleDollarSign,
+};
+
+/** Get icon component for a payment method, with fallback */
+function getPaymentIcon(method: string): React.ComponentType<{ className?: string }> {
+  return PAYMENT_METHOD_ICON_MAP[method] ?? CreditCard;
+}
+
+/** Get human-readable label for payment method */
+function getPaymentLabel(method: string): string {
+  return PAYMENT_METHOD_LABELS[method as PaymentMethod] ?? method;
+}
+
+// ---------------------------------------------------------------------------
+// Payment status configuration for badges
+// ---------------------------------------------------------------------------
+type FirestorePaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
+const PAYMENT_STATUS_CONFIG: Record<
+  FirestorePaymentStatus,
+  {
+    label: string;
+    color: string;
+    icon: React.ReactNode;
+  }
+> = {
+  paid: {
+    label: "Paid",
+    color:
+      "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800",
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  pending: {
+    label: "Pending",
+    color:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="h-3 w-3" />,
+  },
+  failed: {
+    label: "Failed",
+    color:
+      "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  refunded: {
+    label: "Refunded",
+    color:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    icon: <RefreshCw className="h-3 w-3" />,
+  },
+};
+
+/** Get COD-specific label based on delivery method */
+function getCodStatusLabel(
+  paymentStatus: string,
+  deliveryMethod: string,
+): string {
+  if (paymentStatus === "pending") {
+    return deliveryMethod === "pickup"
+      ? "Pay on Pickup"
+      : "Pay on Delivery";
+  }
+  return PAYMENT_STATUS_CONFIG[paymentStatus as FirestorePaymentStatus]?.label ?? paymentStatus;
+}
+
+type PaymentFilterType = "all" | "paid" | "pending" | "failed" | "refunded";
+
+// Status configuration with dark mode compatible colors
+const STATUS_CONFIG: Record<
+  OrderStatus,
+  {
+    label: string;
+    color: string;
+    iconColor: string;
+    icon: React.ReactNode;
+    tab: string;
+  }
+> = {
   pending_approval: {
     label: "Pending Approval",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    icon: <Clock className="h-4 w-4" />,
+    color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    icon: <Clock className="h-3.5 w-3.5" />,
     tab: "pending",
   },
   approved: {
     label: "Approved",
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-    icon: <CheckCircle className="h-4 w-4" />,
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
     tab: "pending",
   },
   rejected: {
     label: "Rejected",
-    color: "bg-red-100 text-red-800 border-red-200",
-    icon: <XCircle className="h-4 w-4" />,
+    color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800",
+    iconColor: "text-red-600 dark:text-red-400",
+    icon: <XCircle className="h-3.5 w-3.5" />,
     tab: "cancelled",
   },
   processing: {
     label: "Processing",
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-    icon: <Package className="h-4 w-4" />,
+    color: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+    iconColor: "text-purple-600 dark:text-purple-400",
+    icon: <Package className="h-3.5 w-3.5" />,
     tab: "active",
   },
   ready_for_pickup: {
     label: "Ready for Pickup",
-    color: "bg-cyan-100 text-cyan-800 border-cyan-200",
-    icon: <MapPin className="h-4 w-4" />,
+    color: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    icon: <MapPin className="h-3.5 w-3.5" />,
     tab: "active",
   },
   shipped: {
     label: "Shipped",
-    color: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    icon: <Truck className="h-4 w-4" />,
+    color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    icon: <Truck className="h-3.5 w-3.5" />,
     tab: "active",
   },
   delivered: {
     label: "Delivered",
-    color: "bg-green-100 text-green-800 border-green-200",
-    icon: <CheckCircle className="h-4 w-4" />,
+    color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800",
+    iconColor: "text-green-600 dark:text-green-400",
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
     tab: "completed",
   },
   completed: {
     label: "Completed",
-    color: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    icon: <CheckCircle className="h-4 w-4" />,
+    color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
     tab: "completed",
   },
   cancelled: {
     label: "Cancelled",
-    color: "bg-gray-100 text-gray-800 border-gray-200",
-    icon: <XCircle className="h-4 w-4" />,
+    color: "bg-gray-100 text-gray-700 dark:bg-gray-800/60 dark:text-gray-300 border-gray-200 dark:border-gray-700",
+    iconColor: "text-gray-500 dark:text-gray-400",
+    icon: <XCircle className="h-3.5 w-3.5" />,
     tab: "cancelled",
   },
 };
 
 type TabType = "all" | "pending" | "active" | "completed" | "cancelled";
 
-// Format currency
+const TAB_CONFIG: Record<
+  TabType,
+  { label: string; icon: React.ReactNode }
+> = {
+  all: { label: "All", icon: <Package className="h-4 w-4" /> },
+  pending: { label: "Pending", icon: <Clock className="h-4 w-4" /> },
+  active: { label: "Active", icon: <Truck className="h-4 w-4" /> },
+  completed: { label: "Completed", icon: <CheckCircle className="h-4 w-4" /> },
+  cancelled: { label: "Cancelled", icon: <XCircle className="h-4 w-4" /> },
+};
+
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -104,7 +239,6 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Format date
 const formatDate = (timestamp: unknown) => {
   if (!timestamp) return "N/A";
   const ts = timestamp as { toDate?: () => Date };
@@ -118,15 +252,32 @@ const formatDate = (timestamp: unknown) => {
   }).format(date);
 };
 
+const formatShortDate = (timestamp: unknown) => {
+  if (!timestamp) return "N/A";
+  const ts = timestamp as { toDate?: () => Date };
+  const date = ts.toDate ? ts.toDate() : new Date(timestamp as string);
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
+
 export default function OrderHistoryPage() {
   const { user, isAuthenticated } = useAuth();
   const { orders, loading, error } = useUserFirebaseOrders(user?.id || null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilterType>("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  // Calculate tab counts
   const tabCounts = useMemo(() => {
-    const counts = { all: 0, pending: 0, active: 0, completed: 0, cancelled: 0 };
+    const counts = {
+      all: 0,
+      pending: 0,
+      active: 0,
+      completed: 0,
+      cancelled: 0,
+    };
     orders.forEach((order) => {
       counts.all++;
       const tab = STATUS_CONFIG[order.status]?.tab || "all";
@@ -137,24 +288,39 @@ export default function OrderHistoryPage() {
     return counts;
   }, [orders]);
 
-  // Filter orders by tab
   const filteredOrders = useMemo(() => {
-    if (activeTab === "all") return orders;
-    return orders.filter((order) => STATUS_CONFIG[order.status]?.tab === activeTab);
-  }, [orders, activeTab]);
+    let result = orders;
+    if (activeTab !== "all") {
+      result = result.filter(
+        (order) => STATUS_CONFIG[order.status]?.tab === activeTab,
+      );
+    }
+    if (paymentFilter !== "all") {
+      result = result.filter(
+        (order) => order.paymentStatus === paymentFilter,
+      );
+    }
+    return result;
+  }, [orders, activeTab, paymentFilter]);
 
   if (!isAuthenticated) {
     return (
-      <Card className="bg-card">
-        <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Please log in to view your orders
+      <Card className="bg-card border-0 shadow-sm">
+        <CardContent className="p-8 sm:p-12 flex items-center justify-center min-h-[400px]">
+          <div className="text-center max-w-sm">
+            <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+              <Package className="h-8 w-8 text-muted-foreground/40" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Sign in to view your orders
             </h3>
-            <p className="text-muted-foreground">
-              Sign in to see your order history and track deliveries.
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Log in to track your deliveries, view order history, and manage
+              your purchases.
             </p>
+            <Button asChild className="mt-6">
+              <Link href="/login">Sign In</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -163,11 +329,15 @@ export default function OrderHistoryPage() {
 
   if (loading && orders.length === 0) {
     return (
-      <Card className="bg-card">
-        <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading your orders...</p>
+      <Card className="bg-card border-0 shadow-sm">
+        <CardContent className="p-8 sm:p-12 flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Loading your orders...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -176,15 +346,20 @@ export default function OrderHistoryPage() {
 
   if (error) {
     return (
-      <Card className="bg-card">
-        <CardContent className="p-6 sm:p-8 flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Package className="h-12 w-12 text-destructive/30 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Failed to load orders
+      <Card className="bg-card border-0 shadow-sm">
+        <CardContent className="p-8 sm:p-12 flex items-center justify-center min-h-[400px]">
+          <div className="text-center max-w-sm">
+            <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+              <XCircle className="h-8 w-8 text-destructive/50" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Something went wrong
             </h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>
+            <p className="text-muted-foreground text-sm mb-6">{error}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              variant="outline"
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
@@ -196,82 +371,195 @@ export default function OrderHistoryPage() {
 
   return (
     <>
-      <Card className="bg-white">
-        <CardContent className="p-6 sm:p-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Package className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold text-foreground">Order History</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Track your orders and view order details
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-green-50 border border-green-200">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-green-700">Live Updates</span>
-            </div>
-          </div>
+      <div className="space-y-4">
+        {/* Header Card */}
+        <Card className="bg-card border-0 shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            {/* Top gradient accent */}
+            <div className="h-1 bg-gradient-to-r from-primary via-green-400 to-emerald-500" />
 
-          {/* Tabs */}
-          <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto">
-            {(["all", "pending", "active", "completed", "cancelled"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "px-4 py-3 font-medium transition-colors relative whitespace-nowrap",
-                  activeTab === tab ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab === "all" && "All Orders"}
-                {tab === "pending" && "Pending"}
-                {tab === "active" && "Active"}
-                {tab === "completed" && "Completed"}
-                {tab === "cancelled" && "Cancelled"}
-                {tabCounts[tab] > 0 && (
-                  <span className={cn(
-                    "ml-2 px-1.5 py-0.5 text-xs rounded-full",
-                    activeTab === tab
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}>
-                    {tabCounts[tab]}
+            <div className="p-5 sm:p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                    <Receipt className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">
+                      Order History
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Track and manage your orders
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800">
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                    Live Updates
                   </span>
-                )}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              {orders.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-muted/40 dark:bg-muted/20 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-foreground">
+                      {tabCounts.all}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Total Orders
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                      {tabCounts.pending}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pending
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                      {tabCounts.active}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Active
+                    </p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                      {tabCounts.completed}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Completed
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tabs */}
+              <div className="flex gap-1.5 p-1 bg-muted/50 dark:bg-muted/20 rounded-xl overflow-x-auto">
+                {(
+                  [
+                    "all",
+                    "pending",
+                    "active",
+                    "completed",
+                    "cancelled",
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-1 justify-center",
+                      activeTab === tab
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                    )}
+                  >
+                    <span className="hidden sm:inline">{TAB_CONFIG[tab].icon}</span>
+                    {TAB_CONFIG[tab].label}
+                    {tabCounts[tab] > 0 && (
+                      <span
+                        className={cn(
+                          "ml-1 px-1.5 py-0.5 text-xs rounded-md font-semibold tabular-nums",
+                          activeTab === tab
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {tabCounts[tab]}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Status Filter */}
+        {orders.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap" data-testid="payment-status-filter">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground shrink-0">
+              <Filter className="h-3.5 w-3.5" />
+              Payment:
+            </div>
+            {(["all", "paid", "pending", "failed", "refunded"] as const).map(
+              (status) => (
+                <button
+                  key={status}
+                  onClick={() => setPaymentFilter(status)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
+                    paymentFilter === status
+                      ? status === "all"
+                        ? "bg-foreground text-background border-foreground"
+                        : PAYMENT_STATUS_CONFIG[status].color
+                      : "bg-muted/40 dark:bg-muted/20 text-muted-foreground border-transparent hover:bg-muted/60 dark:hover:bg-muted/30",
+                  )}
+                  data-testid={`payment-filter-${status}`}
+                >
+                  {status !== "all" && PAYMENT_STATUS_CONFIG[status].icon}
+                  {status === "all" ? "All" : PAYMENT_STATUS_CONFIG[status].label}
+                </button>
+              ),
+            )}
+          </div>
+        )}
+
+        {/* Orders List */}
+        {filteredOrders.length > 0 ? (
+          <div className="space-y-3">
+            {filteredOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                onViewDetails={() => setSelectedOrderId(order.id)}
+              />
             ))}
           </div>
-
-          {/* Orders List */}
-          {filteredOrders.length > 0 ? (
-            <div className="space-y-4">
-              {filteredOrders.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onViewDetails={() => setSelectedOrderId(order.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="font-medium text-foreground mb-2">No orders found</h3>
-              <p className="text-muted-foreground text-sm">
-                {activeTab === "all"
-                  ? "You haven't placed any orders yet."
-                  : `You don't have any ${activeTab} orders.`}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        ) : (
+          <Card className="bg-card border-0 shadow-sm">
+            <CardContent className="p-8 sm:p-12">
+              <div className="text-center max-w-sm mx-auto">
+                <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-muted/40 flex items-center justify-center">
+                  <ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2 text-lg">
+                  {activeTab === "all"
+                    ? "No orders yet"
+                    : `No ${activeTab} orders`}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+                  {activeTab === "all"
+                    ? "Start shopping to place your first order. Fresh mushrooms are waiting for you!"
+                    : `You don't have any ${activeTab} orders right now.`}
+                </p>
+                {activeTab === "all" ? (
+                  <Button asChild>
+                    <Link href="/shop">
+                      Browse Products
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab("all")}
+                  >
+                    View All Orders
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Order Detail Dialog */}
       {selectedOrderId && (
@@ -295,78 +583,215 @@ function OrderCard({
   const statusConfig = STATUS_CONFIG[order.status];
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="font-mono font-semibold text-sm">{order.orderNumber}</span>
-          <Badge className={cn("border text-xs", statusConfig.color)}>
-            {statusConfig.icon}
-            <span className="ml-1">{statusConfig.label}</span>
-          </Badge>
-        </div>
-        <span className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</span>
-      </div>
+    <Card
+      className="bg-card border-0 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
+      onClick={onViewDetails}
+    >
+      <CardContent className="p-0">
+        {/* Status accent line */}
+        <div
+          className={cn(
+            "h-0.5 transition-all duration-200",
+            order.status === "pending_approval" && "bg-amber-400",
+            order.status === "approved" && "bg-blue-400",
+            order.status === "rejected" && "bg-red-400",
+            order.status === "processing" && "bg-purple-400",
+            order.status === "ready_for_pickup" && "bg-cyan-400",
+            order.status === "shipped" && "bg-indigo-400",
+            order.status === "delivered" && "bg-green-400",
+            order.status === "completed" && "bg-emerald-400",
+            order.status === "cancelled" && "bg-gray-400",
+          )}
+        />
 
-      {/* Items Preview */}
-      <div className="flex items-center gap-3 mb-4">
-        {order.items.slice(0, 3).map((item, idx) => (
-          <div key={idx} className="relative">
-            <div className="w-14 h-14 bg-muted/30 rounded-lg overflow-hidden">
-              <Image
-                src={item.image || PLACEHOLDER_IMAGE}
-                alt={item.name}
-                width={56}
-                height={56}
-                className="w-full h-full object-cover"
-              />
+        <div className="p-4 sm:p-5">
+          {/* Header Row */}
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-mono font-bold text-sm text-foreground">
+                  {order.orderNumber}
+                </span>
+                <Badge
+                  className={cn(
+                    "border text-[11px] font-semibold gap-1 px-2 py-0.5",
+                    statusConfig.color,
+                  )}
+                >
+                  {statusConfig.icon}
+                  {statusConfig.label}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="h-3 w-3" />
+                {formatDate(order.createdAt)}
+              </div>
             </div>
-            {item.quantity > 1 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {item.quantity}
+
+            {/* Delivery badge */}
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium shrink-0",
+                order.deliveryMethod === "pickup"
+                  ? "bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400"
+                  : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400",
+              )}
+            >
+              {order.deliveryMethod === "pickup" ? (
+                <>
+                  <MapPin className="h-3 w-3" />
+                  Pickup
+                </>
+              ) : (
+                <>
+                  <Truck className="h-3 w-3" />
+                  Delivery
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Items Row */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center -space-x-2">
+              {order.items.slice(0, 4).map((item, idx) => (
+                <div
+                  key={idx}
+                  className="relative ring-2 ring-background rounded-lg"
+                  style={{ zIndex: 4 - idx }}
+                >
+                  <div className="w-12 h-12 bg-muted/40 rounded-lg overflow-hidden">
+                    <Image
+                      src={item.image || PLACEHOLDER_IMAGE}
+                      alt={item.name}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {item.quantity > 1 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold w-4.5 h-4.5 min-w-[18px] min-h-[18px] rounded-full flex items-center justify-center ring-2 ring-background">
+                      {item.quantity}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {order.items.length > 4 && (
+                <div
+                  className="w-12 h-12 rounded-lg bg-muted/60 dark:bg-muted/30 flex items-center justify-center ring-2 ring-background"
+                  style={{ zIndex: 0 }}
+                >
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    +{order.items.length - 4}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {order.items
+                  .slice(0, 2)
+                  .map((i) => i.name)
+                  .join(", ")}
+                {order.items.length > 2 && ` +${order.items.length - 2} more`}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {order.items.reduce((sum, i) => sum + i.quantity, 0)} item
+                {order.items.reduce((sum, i) => sum + i.quantity, 0) > 1
+                  ? "s"
+                  : ""}{" "}
+                total
+              </p>
+            </div>
+          </div>
+
+          {/* Payment Row */}
+          {(() => {
+            const PayIcon = getPaymentIcon(order.paymentMethod);
+            const paymentLabel = getPaymentLabel(order.paymentMethod);
+            const paymentStatusCfg =
+              PAYMENT_STATUS_CONFIG[order.paymentStatus as FirestorePaymentStatus];
+            const isCod = order.paymentMethod === "cod";
+            const statusLabel = isCod
+              ? getCodStatusLabel(order.paymentStatus, order.deliveryMethod)
+              : paymentStatusCfg?.label ?? order.paymentStatus;
+            return (
+              <div
+                className="flex items-center justify-between mb-3"
+                data-testid="order-card-payment"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted/60 dark:bg-muted/30">
+                    <PayIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {paymentLabel}
+                  </span>
+                </div>
+                {paymentStatusCfg && (
+                  <Badge
+                    className={cn(
+                      "border text-[10px] font-semibold gap-0.5 px-1.5 py-0",
+                      paymentStatusCfg.color,
+                    )}
+                    data-testid="payment-status-badge"
+                  >
+                    {paymentStatusCfg.icon}
+                    {statusLabel}
+                  </Badge>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-border/50">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="font-bold text-lg text-foreground">
+                {formatCurrency(order.total)}
               </span>
-            )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:text-primary font-medium gap-1 group-hover:bg-primary/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails();
+              }}
+            >
+              View Details
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Button>
           </div>
-        ))}
-        {order.items.length > 3 && (
-          <div className="w-14 h-14 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-            <span className="text-sm text-muted-foreground">+{order.items.length - 3}</span>
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground">
-            {order.items.length} item{order.items.length > 1 ? "s" : ""}
-          </p>
         </div>
-      </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-      {/* Delivery Info */}
-      <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-        {order.deliveryMethod === "pickup" ? (
-          <>
-            <MapPin className="h-4 w-4" />
-            <span>Pickup at {order.pickupLocation?.name || "MASH Location"}</span>
-          </>
-        ) : (
-          <>
-            <Truck className="h-4 w-4 text-green-600" />
-            <span>Lalamove Delivery</span>
-          </>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div>
-          <span className="text-sm text-muted-foreground">Total: </span>
-          <span className="font-bold text-lg">{formatCurrency(order.total)}</span>
-        </div>
-        <Button variant="outline" size="sm" onClick={onViewDetails}>
-          View Details
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
-      </div>
-    </div>
+// Copy to clipboard helper
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+      title="Copy order number"
+    >
+      {copied ? (
+        <Check className="h-3.5 w-3.5 text-green-500" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}
+    </button>
   );
 }
 
@@ -379,16 +804,152 @@ function OrderDetailDialog({
   onClose: () => void;
 }) {
   const { order, loading, error } = useFirebaseOrder(orderId);
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const router = useRouter();
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [reordering, setReordering] = useState(false);
+
+  const handleBuyAgain = () => {
+    if (!order) return;
+    setReordering(true);
+
+    let addedCount = 0;
+    let skippedCount = 0;
+
+    for (const item of order.items) {
+      const product: AddToCartProduct = {
+        id: item.productId,
+        name: item.name,
+        price: item.price,
+        image: item.image || PLACEHOLDER_IMAGE,
+        slug: item.productId,
+        stock: item.quantity * 10,
+        grower: item.grower,
+        unit: item.unit,
+      };
+
+      const success = addToCart(product, item.quantity);
+      if (success) {
+        addedCount++;
+      } else {
+        skippedCount++;
+      }
+    }
+
+    if (addedCount > 0 && skippedCount === 0) {
+      toast.success(`Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart`);
+    } else if (addedCount > 0 && skippedCount > 0) {
+      toast.warning(
+        `Added ${addedCount} item${addedCount > 1 ? "s" : ""} to cart. ${skippedCount} item${skippedCount > 1 ? "s" : ""} skipped (unavailable).`
+      );
+    } else {
+      toast.error("Could not add any items to cart");
+    }
+
+    setReordering(false);
+
+    if (addedCount > 0) {
+      onClose();
+      router.push("/cart");
+    }
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!order) return;
+
+    const receiptHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Receipt - ${order.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #16a34a; padding-bottom: 20px; }
+    .header h1 { font-size: 24px; color: #16a34a; margin-bottom: 4px; }
+    .header p { color: #666; font-size: 14px; }
+    .order-info { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
+    .order-info div { line-height: 1.6; }
+    .order-info strong { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { background: #f5f5f5; text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #ddd; }
+    td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #eee; }
+    td:last-child, th:last-child { text-align: right; }
+    .totals { width: 300px; margin-left: auto; }
+    .totals tr td { padding: 6px 0; border: none; }
+    .totals .total-row td { font-weight: 700; font-size: 16px; border-top: 2px solid #333; padding-top: 10px; }
+    .delivery-info { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+    .footer { text-align: center; color: #999; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>MASH Market</h1>
+    <p>Order Receipt</p>
+  </div>
+  <div class="order-info">
+    <div>
+      <strong>Order Number:</strong> ${order.orderNumber}<br>
+      <strong>Date:</strong> ${formatShortDate(order.createdAt)}<br>
+      <strong>Status:</strong> ${STATUS_CONFIG[order.status]?.label || order.status}
+    </div>
+    <div style="text-align: right;">
+      <strong>Customer:</strong> ${order.userName}<br>
+      <strong>Email:</strong> ${order.userEmail}<br>
+      <strong>Payment:</strong> ${order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod}
+    </div>
+  </div>
+  <div class="delivery-info">
+    <strong>${order.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}:</strong><br>
+    ${order.deliveryMethod === "pickup" ? `${order.pickupLocation?.name || ""} - ${order.pickupLocation?.address || ""}` : order.deliveryAddress?.address || "N/A"}
+  </div>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      ${order.items.map((item) => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>PHP ${item.price.toFixed(2)}</td><td>PHP ${(item.price * item.quantity).toFixed(2)}</td></tr>`).join("")}
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td>PHP ${order.subtotal.toFixed(2)}</td></tr>
+    <tr><td>Tax</td><td>PHP ${order.tax.toFixed(2)}</td></tr>
+    ${order.deliveryFee > 0 ? `<tr><td>Delivery Fee</td><td>PHP ${order.deliveryFee.toFixed(2)}</td></tr>` : ""}
+    <tr class="total-row"><td>Total</td><td>PHP ${order.total.toFixed(2)}</td></tr>
+  </table>
+  <div class="footer">
+    <p>Thank you for shopping with MASH Market!</p>
+    <p>www.mashmarket.app</p>
+  </div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+    const receiptWindow = window.open("", "_blank");
+    if (receiptWindow) {
+      receiptWindow.document.write(receiptHtml);
+      receiptWindow.document.close();
+    } else {
+      toast.error("Please allow popups to download your receipt");
+    }
+  };
 
   if (loading) {
     return (
       <Dialog open onOpenChange={onClose}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Loading Order Details</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex items-center justify-center py-16">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -398,13 +959,18 @@ function OrderDetailDialog({
   if (error || !order) {
     return (
       <Dialog open onOpenChange={onClose}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Error</DialogTitle>
           </DialogHeader>
-          <div className="text-center py-8">
-            <p className="text-destructive">Failed to load order details</p>
-            <Button variant="outline" onClick={onClose} className="mt-4">
+          <div className="text-center py-12">
+            <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <XCircle className="h-6 w-6 text-destructive/50" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Failed to load order details.
+            </p>
+            <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
           </div>
@@ -415,103 +981,318 @@ function OrderDetailDialog({
 
   const statusConfig = STATUS_CONFIG[order.status];
 
+  // Build the progress steps for the order lifecycle
+  const LIFECYCLE_STEPS: { status: OrderStatus; label: string }[] =
+    order.status === "cancelled" || order.status === "rejected"
+      ? []
+      : [
+          { status: "pending_approval", label: "Order Placed" },
+          { status: "approved", label: "Confirmed" },
+          { status: "processing", label: "Processing" },
+          ...(order.deliveryMethod === "pickup"
+            ? [
+                {
+                  status: "ready_for_pickup" as OrderStatus,
+                  label: "Ready for Pickup",
+                },
+              ]
+            : [{ status: "shipped" as OrderStatus, label: "Shipped" }]),
+          { status: "delivered", label: "Delivered" },
+        ];
+
+  const currentStepIndex = LIFECYCLE_STEPS.findIndex(
+    (s) => s.status === order.status,
+  );
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span>{order.orderNumber}</span>
-            <Badge className={cn("border", statusConfig.color)}>
-              {statusConfig.label}
-            </Badge>
-          </DialogTitle>
-          <DialogDescription>
-            Placed on {formatDate(order.createdAt)}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0">
+        {/* Header with gradient */}
+        <div className="sticky top-0 z-10 bg-background">
+          <div className="h-1 bg-gradient-to-r from-primary via-green-400 to-emerald-500" />
+          <DialogHeader className="p-5 pb-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle className="text-lg flex items-center gap-2">
+                  <span className="font-mono">{order.orderNumber}</span>
+                  <CopyButton text={order.orderNumber} />
+                </DialogTitle>
+                <DialogDescription className="flex items-center gap-1.5 mt-1">
+                  <CalendarDays className="h-3 w-3" />
+                  {formatDate(order.createdAt)}
+                </DialogDescription>
+              </div>
+              <Badge
+                className={cn(
+                  "border text-xs font-semibold gap-1 px-2.5 py-1 shrink-0",
+                  statusConfig.color,
+                )}
+              >
+                {statusConfig.icon}
+                {statusConfig.label}
+              </Badge>
+            </div>
+          </DialogHeader>
+          <Separator />
+        </div>
 
-        <div className="space-y-6 py-4">
+        <div className="p-5 space-y-5">
+          {/* Progress Bar (for non-cancelled/rejected) */}
+          {LIFECYCLE_STEPS.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">
+                Order Progress
+              </h4>
+              <div className="relative">
+                {/* Progress track */}
+                <div className="flex items-center justify-between mb-2">
+                  {LIFECYCLE_STEPS.map((step, idx) => {
+                    const isCompleted = idx <= currentStepIndex;
+                    const isCurrent = idx === currentStepIndex;
+                    return (
+                      <div
+                        key={step.status}
+                        className="flex flex-col items-center relative z-10"
+                        style={{
+                          width: `${100 / LIFECYCLE_STEPS.length}%`,
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all",
+                            isCompleted
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground",
+                            isCurrent &&
+                              "ring-4 ring-primary/20 dark:ring-primary/30",
+                          )}
+                        >
+                          {isCompleted && idx < currentStepIndex ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : (
+                            idx + 1
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            "text-[10px] mt-1.5 text-center leading-tight max-w-[60px]",
+                            isCurrent
+                              ? "font-semibold text-primary"
+                              : isCompleted
+                                ? "font-medium text-foreground"
+                                : "text-muted-foreground",
+                          )}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Line behind the steps */}
+                <div className="absolute top-3.5 left-[10%] right-[10%] h-0.5 bg-muted -translate-y-1/2">
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{
+                      width:
+                        currentStepIndex >= 0
+                          ? `${(currentStepIndex / (LIFECYCLE_STEPS.length - 1)) * 100}%`
+                          : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Timeline */}
           <div>
-            <h4 className="font-semibold mb-3">Order Status</h4>
-            <div className="space-y-3">
-              {order.statusHistory.map((entry, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className={cn(
-                    "w-3 h-3 mt-1 rounded-full flex-shrink-0",
-                    idx === order.statusHistory.length - 1
-                      ? "bg-primary"
-                      : "bg-muted-foreground/30"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      "font-medium text-sm",
-                      idx === order.statusHistory.length - 1 && "text-primary"
-                    )}>
-                      {STATUS_CONFIG[entry.status]?.label || entry.status}
-                    </p>
-                    {entry.note && (
-                      <p className="text-xs text-muted-foreground">{entry.note}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(entry.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <h4 className="text-sm font-semibold text-foreground mb-3">
+              Status History
+            </h4>
+            <div className="relative pl-5">
+              {/* Vertical line */}
+              <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+              <div className="space-y-3">
+                {order.statusHistory.map((entry, idx) => {
+                  const isLatest = idx === order.statusHistory.length - 1;
+                  const entryConfig = STATUS_CONFIG[entry.status];
+                  return (
+                    <div key={idx} className="flex items-start gap-3 relative">
+                      <div
+                        className={cn(
+                          "w-3.5 h-3.5 rounded-full flex-shrink-0 absolute -left-5 mt-0.5 ring-2 ring-background",
+                          isLatest ? "bg-primary" : "bg-muted-foreground/30",
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              isLatest
+                                ? "text-primary"
+                                : "text-foreground",
+                            )}
+                          >
+                            {entryConfig?.label || entry.status}
+                          </span>
+                        </div>
+                        {entry.note && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {entry.note}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                          {formatDate(entry.timestamp)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
+          <Separator />
+
           {/* Delivery Info */}
           <div>
-            <h4 className="font-semibold mb-2">Delivery</h4>
-            <div className="bg-muted rounded-lg p-3 text-sm">
+            <h4 className="text-sm font-semibold text-foreground mb-2">
+              Delivery
+            </h4>
+            <div className="bg-muted/40 dark:bg-muted/20 rounded-xl p-3.5 space-y-3">
               {order.deliveryMethod === "pickup" ? (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  </div>
                   <div>
-                    <p className="font-medium">Pickup</p>
-                    <p className="text-muted-foreground">
-                      {order.pickupLocation?.name} - {order.pickupLocation?.address}
+                    <p className="font-medium text-sm">Pickup</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {order.pickupLocation?.name} -{" "}
+                      {order.pickupLocation?.address}
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-green-600" />
-                  <div>
-                    <p className="font-medium">Lalamove Delivery</p>
-                    <p className="text-muted-foreground">
-                      {order.deliveryAddress?.address}
-                    </p>
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
+                      <Truck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">Lalamove Delivery</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {order.deliveryAddress?.address}
+                      </p>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Delivery Fee Breakdown */}
+                  {order.deliveryFee > 0 && (
+                    <div className="border-t border-border/50 pt-2.5 space-y-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fee Breakdown</p>
+                      {order.lalamoveVehicleType && (() => {
+                        const vehicle = LALAMOVE_VEHICLES.find(
+                          (v) => v.id === order.lalamoveVehicleType?.toLowerCase() || v.name.toUpperCase() === order.lalamoveVehicleType
+                        );
+                        return vehicle ? (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Vehicle: {vehicle.name}</span>
+                            <span className="text-foreground">{vehicle.image}</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Vehicle</span>
+                            <span className="text-foreground">{order.lalamoveVehicleType}</span>
+                          </div>
+                        );
+                      })()}
+                      {order.lalamoveDistance && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Distance</span>
+                          <span className="text-foreground">{order.lalamoveDistance}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-muted-foreground">Delivery Fee</span>
+                        <span className="text-foreground">{formatCurrency(order.deliveryFee)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lalamove Reference IDs */}
+                  {(order.lalamoveQuotationId || order.lalamoveOrderId) && (
+                    <div className="border-t border-border/50 pt-2.5 space-y-1">
+                      {order.lalamoveOrderId && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Lalamove Order ID</span>
+                          <span className="font-mono text-foreground">{order.lalamoveOrderId}</span>
+                        </div>
+                      )}
+                      {order.lalamoveQuotationId && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Quotation ID</span>
+                          <span className="font-mono text-foreground">{order.lalamoveQuotationId}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Scheduled Delivery Time */}
+                  {order.lalamoveScheduleAt && (
+                    <div className="border-t border-border/50 pt-2.5">
+                      <div className="flex items-center gap-2 text-xs">
+                        <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-muted-foreground">Scheduled:</span>
+                        <span className="font-medium text-foreground">
+                          {new Date(order.lalamoveScheduleAt).toLocaleString("en-PH", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
+          <Separator />
+
           {/* Order Items */}
           <div>
-            <h4 className="font-semibold mb-2">Items ({order.items.length})</h4>
-            <div className="border rounded-lg divide-y">
+            <h4 className="text-sm font-semibold text-foreground mb-2">
+              Items ({order.items.length})
+            </h4>
+            <div className="rounded-xl border overflow-hidden divide-y">
               {order.items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-3">
-                  <div className="w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 p-3 bg-card hover:bg-muted/30 transition-colors"
+                >
+                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted/40 flex-shrink-0">
                     <Image
                       src={item.image || PLACEHOLDER_IMAGE}
                       alt={item.name}
-                      width={48}
-                      height={48}
+                      width={56}
+                      height={56}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {formatCurrency(item.price)} x {item.quantity}
                     </p>
                   </div>
-                  <p className="font-semibold text-sm">
+                  <p className="font-semibold text-sm shrink-0">
                     {formatCurrency(item.price * item.quantity)}
                   </p>
                 </div>
@@ -520,42 +1301,248 @@ function OrderDetailDialog({
           </div>
 
           {/* Order Summary */}
-          <div className="bg-muted rounded-lg p-4 space-y-2 text-sm">
-            <div className="flex justify-between">
+          <div className="bg-muted/40 dark:bg-muted/20 rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
+              <span className="text-foreground">{formatCurrency(order.subtotal)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tax</span>
-              <span>{formatCurrency(order.tax)}</span>
+              <span className="text-foreground">{formatCurrency(order.tax)}</span>
             </div>
             {order.deliveryFee > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Delivery Fee</span>
-                <span>{formatCurrency(order.deliveryFee)}</span>
+                <span className="text-foreground">{formatCurrency(order.deliveryFee)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-base pt-2 border-t">
-              <span>Total</span>
-              <span className="text-primary">{formatCurrency(order.total)}</span>
+            <Separator className="my-2" />
+            <div className="flex justify-between items-baseline">
+              <span className="font-semibold text-foreground">Total</span>
+              <span className="font-bold text-lg text-primary">
+                {formatCurrency(order.total)}
+              </span>
             </div>
           </div>
 
           {/* Payment Info */}
-          <div className="text-sm">
-            <span className="text-muted-foreground">Payment Method: </span>
-            <span className="font-medium">
-              {order.paymentMethod === "cod" && "Cash on Delivery"}
-              {order.paymentMethod === "gcash" && "GCash"}
-              {order.paymentMethod === "card" && "Credit/Debit Card"}
-            </span>
-          </div>
+          {(() => {
+            const PayIcon = getPaymentIcon(order.paymentMethod);
+            const paymentLabel = getPaymentLabel(order.paymentMethod);
+            const paymentStatusCfg =
+              PAYMENT_STATUS_CONFIG[order.paymentStatus as FirestorePaymentStatus];
+            const isCod = order.paymentMethod === "cod";
+            const statusLabel = isCod
+              ? getCodStatusLabel(order.paymentStatus, order.deliveryMethod)
+              : paymentStatusCfg?.label ?? order.paymentStatus;
+            const paymentDetail = order.payment;
+            return (
+              <div
+                className="bg-muted/40 dark:bg-muted/20 rounded-xl p-4 space-y-3"
+                data-testid="order-detail-payment"
+              >
+                {/* Method + Status Row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                      <PayIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Payment Method
+                      </p>
+                      <p className="font-medium text-sm">{paymentLabel}</p>
+                    </div>
+                  </div>
+                  {paymentStatusCfg && (
+                    <Badge
+                      className={cn(
+                        "border text-[11px] font-semibold gap-1 px-2 py-0.5",
+                        paymentStatusCfg.color,
+                      )}
+                      data-testid="detail-payment-status-badge"
+                    >
+                      {paymentStatusCfg.icon}
+                      {statusLabel}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Transaction details for digital payments */}
+                {!isCod && (paymentDetail?.paymentId || paymentDetail?.sourceId) && (
+                  <div className="space-y-2 pt-2 border-t border-border/30">
+                    {paymentDetail?.paymentId && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Transaction ID
+                        </span>
+                        <span
+                          className="font-mono text-foreground"
+                          data-testid="payment-transaction-id"
+                        >
+                          {paymentDetail.paymentId}
+                        </span>
+                      </div>
+                    )}
+                    {paymentDetail?.sourceId && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          Reference
+                        </span>
+                        <span className="font-mono text-foreground">
+                          {paymentDetail.sourceId}
+                        </span>
+                      </div>
+                    )}
+                    {paymentDetail?.paidAt && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Paid Date</span>
+                        <span
+                          className="text-foreground"
+                          data-testid="payment-paid-date"
+                        >
+                          {formatDate(paymentDetail.paidAt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* COD specific messaging */}
+                {isCod && order.paymentStatus === "pending" && (
+                  <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                    {order.deliveryMethod === "pickup"
+                      ? "Please prepare exact amount for pickup."
+                      : "Please prepare exact amount for the delivery rider."}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
+        {/* Sticky footer with action buttons */}
+        <div className="sticky bottom-0 bg-background border-t p-4 space-y-2">
+          {/* Cancel Order Confirmation */}
+          {showCancelConfirm && (
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-destructive">Cancel this order?</p>
+              <input
+                type="text"
+                placeholder="Reason for cancellation (optional)"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full text-sm px-3 py-1.5 rounded-md border bg-background"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={cancelling}
+                  onClick={async () => {
+                    setCancelling(true);
+                    try {
+                      await FirebaseOrdersService.cancelOrder(
+                        orderId,
+                        user?.id || "customer",
+                        cancelReason || undefined
+                      );
+                      toast.success("Order cancelled successfully");
+                      setShowCancelConfirm(false);
+                      setCancelReason("");
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error ? err.message : "Failed to cancel order"
+                      );
+                    } finally {
+                      setCancelling(false);
+                    }
+                  }}
+                >
+                  {cancelling ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : null}
+                  Confirm Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowCancelConfirm(false);
+                    setCancelReason("");
+                  }}
+                >
+                  Keep Order
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {/* Track Delivery Button - visible for shipped delivery orders */}
+            {order.deliveryMethod !== "pickup" &&
+              ["shipped", "processing", "ready_for_pickup"].includes(order.status) && (
+                <Button asChild variant="default" className="flex-1">
+                  <Link href={`/profile/orders/${orderId}/track`}>
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Track Delivery
+                  </Link>
+                </Button>
+              )}
+
+            {/* Buy Again Button - visible for delivered/completed orders */}
+            {["delivered", "completed"].includes(order.status) && (
+              <Button
+                variant="default"
+                className="flex-1"
+                disabled={reordering}
+                onClick={handleBuyAgain}
+              >
+                {reordering ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                )}
+                Buy Again
+              </Button>
+            )}
+
+            {/* Download Receipt Button - visible for delivered/completed orders */}
+            {["delivered", "completed"].includes(order.status) && (
+              <Button
+                variant="outline"
+                onClick={handleDownloadReceipt}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Receipt
+              </Button>
+            )}
+
+            {/* Cancel Order Button - visible for cancellable statuses */}
+            {["pending_approval", "approved", "processing"].includes(order.status) &&
+              !showCancelConfirm && (
+                <Button
+                  variant="outline"
+                  className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/30"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Cancel Order
+                </Button>
+              )}
+
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className={
+                !["pending_approval", "approved", "processing", "shipped", "ready_for_pickup", "delivered", "completed"].includes(order.status)
+                  ? "w-full"
+                  : ""
+              }
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

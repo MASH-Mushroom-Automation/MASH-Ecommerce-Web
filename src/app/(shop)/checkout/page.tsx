@@ -1,22 +1,16 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem } from "@/components/ui/form";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUser";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { MapPin, Truck, Package, Banknote } from "lucide-react";
+import { Package } from "lucide-react";
 import {
-  AddressPicker,
-  LalamoveQuote,
   MASH_PICKUP_LOCATION,
   PICKUP_LOCATIONS,
   type SelectedAddress,
@@ -28,34 +22,23 @@ import {
   type CreateOrderData,
 } from "@/lib/firebase/orders";
 import { sendOrderConfirmationEmailViaAPI } from "@/lib/email/client";
-
-const PLACEHOLDER_IMAGE = "/mushroom-placeholder.png";
-
-const step1Schema = z.object({
-  deliveryMethod: z.enum(["pickup", "lalamove"]),
-  pickupLocation: z.string().optional(),
-});
-
-const step2Schema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z
-    .string()
-    .min(1, "Phone number is required")
-    .regex(
-      /^(\+63|0)?[0-9]{10,11}$/,
-      "Please enter a valid Philippine phone number (e.g., 09171234567 or +639171234567)"
-    )
-    .transform((val) => val.replace(/[\s\-()]/g, "")), // Remove spaces, dashes, parentheses
-});
-
-const step3Schema = z.object({
-  paymentMethod: z.enum(["cod"]), // Only COD payment allowed
-});
-
-type Step1FormValues = z.infer<typeof step1Schema>;
-type Step2FormValues = z.infer<typeof step2Schema>;
-type Step3FormValues = z.infer<typeof step3Schema>;
+import {
+  step1Schema,
+  step2Schema,
+  step3Schema,
+  type Step1FormValues,
+  type Step2FormValues,
+  type Step3FormValues,
+} from "@/components/checkout/checkout-schemas";
+import { toast } from "sonner";
+import { isCodMethod } from "@/types/payment";
+import type { PaymentMethod } from "@/types/payment";
+import { CheckoutProgress } from "@/components/checkout/CheckoutProgress";
+import { CheckoutStep1Delivery } from "@/components/checkout/CheckoutStep1Delivery";
+import { CheckoutStep2Contact } from "@/components/checkout/CheckoutStep2Contact";
+import { CheckoutStep3Payment } from "@/components/checkout/CheckoutStep3Payment";
+import { OrderSummary } from "@/components/checkout/OrderSummary";
+import { CheckoutSuccessModal } from "@/components/checkout/CheckoutSuccessModal";
 
 // Payment configuration - check if PayMongo is available
 const PAYMONGO_ENABLED = !!process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY;
@@ -74,12 +57,17 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState<SelectedAddress | null>(null);
   const [lalamoveQuote, setLalamoveQuote] = useState<LalamoveQuoteResult | null>(null);
+  const [lalamoveServiceType, setLalamoveServiceType] = useState<string>("MOTORCYCLE");
+  const [lalamoveScheduleAt, setLalamoveScheduleAt] = useState<string | undefined>(undefined);
   const [step1Data, setStep1Data] = useState<Step1FormValues | null>(null);
   const [step2Data, setStep2Data] = useState<Step2FormValues | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -103,7 +91,7 @@ export default function CheckoutPage() {
     if (userIsAuthenticated && user) {
       // Get phone from profile (if available) or user object
       const phoneNumber = profile?.phone || user.phone || "";
-      
+
       step2Form.reset({
         name: user.displayName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "",
         email: user.email || "",
@@ -193,14 +181,15 @@ export default function CheckoutPage() {
   };
 
   /**
-   * Process payment via PayMongo
+   * Process payment via PayMongo create-intent API.
+   * Returns the API response for the caller to handle (redirect, error, etc.).
    */
   const processPayment = async (
-    paymentMethod: "gcash" | "card",
+    paymentMethod: PaymentMethod,
     orderId: string,
     orderNumber: string,
     amount: number
-  ): Promise<{ success: boolean; checkoutUrl?: string; error?: string }> => {
+  ): Promise<{ success: boolean; checkoutUrl?: string; paymentId?: string; error?: string }> => {
     try {
       const response = await fetch("/api/payment/create-intent", {
         method: "POST",
@@ -226,12 +215,93 @@ export default function CheckoutPage() {
       return {
         success: true,
         checkoutUrl: data.checkoutUrl,
+        paymentId: data.paymentId,
       };
     } catch (error) {
-      console.error("Payment processing error:", error);
+      console.error("[Checkout] Payment processing error:", error);
       return { success: false, error: "Payment service unavailable" };
     }
   };
+
+  /**
+   * Store pending order in sessionStorage so the payment-success page
+   * can access order details after a redirect-based payment flow.
+   */
+  const storePendingOrder = (orderId: string, orderNumber: string, paymentId?: string) => {
+    try {
+      const method = step3Form.getValues("paymentMethod") as PaymentMethod;
+      // Determine the PayMongo resource type for status polling
+      const paymentType = method === "card" ? "checkout_session" : "source";
+      sessionStorage.setItem(
+        "pendingOrder",
+        JSON.stringify({
+          orderId,
+          orderNumber,
+          paymentId,
+          paymentType,
+          customerEmail: step2Data?.email,
+          customerName: step2Data?.name,
+          paymentMethod: method,
+          vendor: selectedVendor,
+          timestamp: Date.now(),
+          amount: totalWithDelivery,
+          subtotal: summary.subtotal,
+          deliveryFee,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          deliveryMethod: step1Data?.deliveryMethod,
+        })
+      );
+    } catch {
+      console.error("[Checkout] Failed to store pending order in sessionStorage");
+    }
+  };
+
+  /**
+   * Retry payment for an already-created order. Does NOT recreate the order.
+   */
+  const handleRetryPayment = useCallback(async () => {
+    if (!pendingOrderId) return;
+
+    const method = step3Form.getValues("paymentMethod") as PaymentMethod;
+    if (isCodMethod(method)) return;
+
+    setPaymentError(null);
+    setPaymentProcessing(true);
+    setLoadingMessage("Processing Payment...");
+
+    try {
+      const orderNumber = pendingOrderId.slice(-8).toUpperCase();
+      const result = await processPayment(
+        method,
+        pendingOrderId,
+        orderNumber,
+        totalWithDelivery
+      );
+
+      if (result.success && result.checkoutUrl) {
+        storePendingOrder(pendingOrderId, orderNumber, result.paymentId);
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
+      // Payment failed
+      const errorMsg = result.error || "Payment processing failed. Please try again.";
+      setPaymentError(errorMsg);
+      toast.error(errorMsg);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Payment failed. Please try again.";
+      setPaymentError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setPaymentProcessing(false);
+      setLoadingMessage(null);
+    }
+  }, [pendingOrderId, step3Form, totalWithDelivery, step2Data, selectedVendor]);
 
   const onStep3Submit = async (data: Step3FormValues) => {
     if (!step1Data || !step2Data) return;
@@ -240,92 +310,151 @@ export default function CheckoutPage() {
       return;
     }
 
+    const method = data.paymentMethod as PaymentMethod;
+
     setSubmitting(true);
     setError(null);
+    setPaymentError(null);
 
     try {
-      const selectedPickupLocation = step1Data.deliveryMethod === "pickup"
-        ? PICKUP_LOCATIONS.find(loc => loc.id === step1Data.pickupLocation)
-        : undefined;
+      // ---------------------------------------------------------------
+      // STEP A: Create the order (or reuse existing pending order)
+      // ---------------------------------------------------------------
+      let currentOrderId = pendingOrderId;
+      let orderNumber: string;
 
-      const orderData: CreateOrderData = {
-        userId: user.id,
-        userEmail: step2Data.email,
-        userName: step2Data.name,
-        userPhone: step2Data.phone,
-        items: items.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          grower: item.grower,
-          unit: item.unit,
-        })),
-        subtotal: summary.subtotal,
-        tax: summary.tax,
-        deliveryFee: deliveryFee,
-        total: totalWithDelivery,
-        deliveryMethod: step1Data.deliveryMethod,
-        pickupLocation: selectedPickupLocation,
-        deliveryAddress: step1Data.deliveryMethod === "lalamove" && deliveryAddress
-          ? {
-              address: deliveryAddress.formattedAddress,
-              lat: deliveryAddress.lat,
-              lng: deliveryAddress.lng,
-              name: step2Data.name,
-              phone: step2Data.phone,
-            }
-          : undefined,
-        lalamoveQuotationId: lalamoveQuote?.quotationId,
-        paymentMethod: data.paymentMethod,
-      };
+      if (!currentOrderId) {
+        setLoadingMessage("Creating Order...");
 
-      // Create the order first
-      const newOrderId = await FirebaseOrdersService.createOrder(orderData);
-      setOrderId(newOrderId);
-      const orderNumber = newOrderId.slice(-8).toUpperCase();
+        const selectedPickupLocation =
+          step1Data.deliveryMethod === "pickup"
+            ? PICKUP_LOCATIONS.find((loc) => loc.id === step1Data.pickupLocation)
+            : undefined;
 
-      // For COD orders, send confirmation email and show success
-      sendOrderConfirmationEmailViaAPI(step2Data.email, {
-        customerName: step2Data.name,
-        orderNumber: orderNumber,
-        orderId: newOrderId,
-        items: items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price * item.quantity,
-          image: item.image,
-        })),
-        subtotal: summary.subtotal,
-        deliveryFee: deliveryFee,
-        total: totalWithDelivery,
-        deliveryMethod: step1Data.deliveryMethod,
-        deliveryAddress: deliveryAddress?.formattedAddress,
-        pickupLocation: selectedPickupLocation?.name,
-        paymentMethod: data.paymentMethod,
-      }).catch((err) => {
-        console.error("Failed to send confirmation email:", err);
-        // Don't fail the order if email fails
-      });
+        const vendorItems = selectedVendor ? itemsByVendor[selectedVendor] || [] : items;
+        const orderSellerId = vendorItems[0]?.sellerId || undefined;
 
-      // Remove only this vendor's items from cart
-      if (selectedVendor) {
-        removeVendorItems(selectedVendor);
+        const orderData: CreateOrderData = {
+          userId: user.id,
+          userEmail: step2Data.email,
+          userName: step2Data.name,
+          userPhone: step2Data.phone,
+          items: vendorItems.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            grower: item.grower,
+            unit: item.unit,
+            sellerId: item.sellerId,
+          })),
+          subtotal: currentVendorSubtotal,
+          tax: summary.tax,
+          deliveryFee: deliveryFee,
+          total: currentVendorSubtotal + summary.tax + deliveryFee,
+          deliveryMethod: step1Data.deliveryMethod,
+          pickupLocation: selectedPickupLocation,
+          deliveryAddress:
+            step1Data.deliveryMethod === "lalamove" && deliveryAddress
+              ? {
+                  address: deliveryAddress.formattedAddress,
+                  lat: deliveryAddress.lat,
+                  lng: deliveryAddress.lng,
+                  name: step2Data.name,
+                  phone: step2Data.phone,
+                }
+              : undefined,
+          lalamoveQuotationId: lalamoveQuote?.quotationId,
+          lalamoveScheduleAt: lalamoveScheduleAt || undefined,
+          lalamoveVehicleType: lalamoveServiceType || undefined,
+          lalamoveDistance: lalamoveQuote?.distance || undefined,
+          paymentMethod: data.paymentMethod,
+          sellerId: orderSellerId,
+        };
+
+        currentOrderId = await FirebaseOrdersService.createOrder(orderData);
+        setPendingOrderId(currentOrderId);
+        orderNumber = currentOrderId.slice(-8).toUpperCase();
+        setOrderId(currentOrderId);
       } else {
-        clearCart();
+        orderNumber = currentOrderId.slice(-8).toUpperCase();
       }
-      setShowSuccessModal(true);
+
+      // ---------------------------------------------------------------
+      // STEP B: Branch by payment method
+      // ---------------------------------------------------------------
+
+      if (isCodMethod(method)) {
+        // -- COD: send email, clear cart, show success --
+        sendOrderConfirmationEmailViaAPI(step2Data.email, {
+          customerName: step2Data.name,
+          orderNumber,
+          orderId: currentOrderId,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            image: item.image,
+          })),
+          subtotal: summary.subtotal,
+          deliveryFee,
+          total: totalWithDelivery,
+          deliveryMethod: step1Data.deliveryMethod,
+          deliveryAddress: deliveryAddress?.formattedAddress,
+          pickupLocation:
+            step1Data.deliveryMethod === "pickup"
+              ? PICKUP_LOCATIONS.find((loc) => loc.id === step1Data.pickupLocation)?.name
+              : undefined,
+          paymentMethod: data.paymentMethod,
+        }).catch((err) => {
+          console.error("[Checkout] Failed to send confirmation email:", err);
+        });
+
+        // COD: safe to clear cart immediately
+        if (selectedVendor) {
+          removeVendorItems(selectedVendor);
+        } else {
+          clearCart();
+        }
+        setShowSuccessModal(true);
+      } else {
+        // -- E-wallet or Card: process payment --
+        setLoadingMessage("Processing Payment...");
+        setPaymentProcessing(true);
+
+        const result = await processPayment(
+          method,
+          currentOrderId,
+          orderNumber,
+          totalWithDelivery
+        );
+
+        if (result.success && result.checkoutUrl) {
+          // Store pending order for redirect return (include PayMongo paymentId for verification)
+          storePendingOrder(currentOrderId, orderNumber, result.paymentId);
+          // Redirect to PayMongo checkout (e-wallet) or 3DS page (card)
+          window.location.href = result.checkoutUrl;
+          return; // Don't reset submitting -- we're navigating away
+        }
+
+        // Payment creation failed
+        const errorMsg = result.error || "Payment processing failed. Please try again.";
+        setPaymentError(errorMsg);
+        toast.error(errorMsg);
+      }
     } catch (err) {
-      console.error("Order submission failed:", err);
-      setError(
+      console.error("[Checkout] Order submission failed:", err);
+      const errorMsg =
         err instanceof Error
           ? err.message
-          : "Failed to submit order. Please try again."
-      );
+          : "Failed to submit order. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
       setPaymentProcessing(false);
+      setLoadingMessage(null);
     }
   };
 
@@ -370,41 +499,22 @@ export default function CheckoutPage() {
     0
   );
 
+  const handleUseSavedAddress = useCallback(() => {
+    setUseNewAddress(false);
+    setDeliveryAddress(null);
+    setLalamoveQuote(null);
+    if (defaultAddress) {
+      handleSavedAddressSelect(defaultAddress.id);
+    }
+  }, [defaultAddress, handleSavedAddressSelect]);
+
+  const remainingVendors = Object.keys(itemsByVendor).filter(v => v !== selectedVendor);
+
   return (
     <>
       <div className="min-h-screen bg-background px-4 py-6 sm:py-8 md:px-6 lg:px-12 xl:px-16">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-              {currentStep === 1 && "Delivery Method"}
-              {currentStep === 2 && "Contact Information"}
-              {currentStep === 3 && "Payment & Review"}
-            </h1>
-            <div className="flex items-center gap-2">
-              {[1, 2, 3].map((step) => (
-                <div key={step} className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                      currentStep >= step
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {step}
-                  </div>
-                  {step < 3 && (
-                    <div
-                      className={cn(
-                        "w-12 h-1 rounded",
-                        currentStep > step ? "bg-primary" : "bg-muted"
-                      )}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <CheckoutProgress currentStep={currentStep} />
 
           {error && (
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -412,6 +522,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {/* Multi-Vendor Banner */}
           {hasMultipleVendors && (
             <div className="mb-6 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl shadow-sm">
               <div className="flex items-start gap-4">
@@ -423,16 +534,15 @@ export default function CheckoutPage() {
                     Multiple Vendors Detected ({vendorNames.length} stores)
                   </h3>
                   <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
-                    Your cart contains products from <strong>{vendorNames.length} different vendors</strong>. 
+                    Your cart contains products from <strong>{vendorNames.length} different vendors</strong>.
                     {watchDeliveryMethod === "pickup" && (
-                      <> Each vendor has a different pickup location - you'll need to pick up from each location separately.</>
+                      <> Each vendor has a different pickup location - you&apos;ll need to pick up from each location separately.</>
                     )}
                     {watchDeliveryMethod === "lalamove" && (
                       <> We recommend checking out separately for each vendor to ensure accurate delivery.</>
                     )}
                   </p>
-                  
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                  <div className="bg-card rounded-lg p-4 border border-amber-200 dark:border-amber-700">
                     <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-3">
                       Select vendor to checkout:
                     </p>
@@ -451,14 +561,14 @@ export default function CheckoutPage() {
                               "text-left p-3 rounded-lg border-2 transition-all",
                               selectedVendor === vendor
                                 ? "border-primary bg-primary/5 shadow-md"
-                                : "border-gray-200 dark:border-gray-700 hover:border-primary/50"
+                                : "border-border hover:border-primary/50"
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className={cn(
                                   "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                                  selectedVendor === vendor ? "border-primary" : "border-gray-300"
+                                  selectedVendor === vendor ? "border-primary" : "border-muted-foreground"
                                 )}>
                                   {selectedVendor === vendor && (
                                     <div className="w-2 h-2 rounded-full bg-primary" />
@@ -471,14 +581,14 @@ export default function CheckoutPage() {
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1 ml-6">
-                              Total: ₱{vendorTotal.toFixed(2)}
+                              Total: PHP {vendorTotal.toFixed(2)}
                             </p>
                           </button>
                         );
                       })}
                     </div>
                     <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 flex items-start gap-2">
-                      <span className="font-bold">💡</span>
+                      <span className="font-bold">Tip:</span>
                       <span>You can checkout other vendors after completing this order.</span>
                     </p>
                   </div>
@@ -487,6 +597,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {/* Empty Cart */}
           {isCartEmpty && (
             <div className="text-center py-12">
               <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -494,732 +605,113 @@ export default function CheckoutPage() {
               <p className="text-muted-foreground mb-4">
                 Add some products to your cart before checking out.
               </p>
-              <Button onClick={() => router.push("/shop")}>
-                Continue Shopping
-              </Button>
+              <Button onClick={() => router.push("/shop")}>Continue Shopping</Button>
             </div>
           )}
 
+          {/* Main Content */}
           {!isCartEmpty && (
             <div className="lg:flex lg:gap-8 xl:gap-12">
               <div className="lg:w-3/5 w-full space-y-6 sm:space-y-8 mb-8 lg:mb-0">
-                
                 {currentStep === 1 && (
-                  <>
-                    <Form {...step1Form}>
-                      <FormField
-                        control={step1Form.control}
-                        name="deliveryMethod"
-                        render={({ field }) => (
-                          <FormItem className="space-y-4">
-                            <div
-                              className={cn(
-                                "bg-card p-4 sm:p-6 rounded-lg shadow-sm border-2 cursor-pointer transition-all",
-                                field.value === "pickup"
-                                  ? "border-primary ring-2 ring-primary/20"
-                                  : "border-transparent hover:border-primary/30"
-                              )}
-                              onClick={() => field.onChange("pickup")}
-                            >
-                              <div className="flex items-start gap-4">
-                                <div className="p-3 bg-primary/10 rounded-full">
-                                  <MapPin className="h-6 w-6 text-primary" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-lg">Pickup (Free)</h3>
-                                    <div
-                                      className={cn(
-                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                                        field.value === "pickup"
-                                          ? "border-primary"
-                                          : "border-muted-foreground"
-                                      )}
-                                    >
-                                      {field.value === "pickup" && (
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    Pick up your order at one of our locations
-                                  </p>
-                                </div>
-                              </div>
-
-                              {field.value === "pickup" && (
-                                <div className="mt-4 pt-4 border-t space-y-3">
-                                  <FormField
-                                    control={step1Form.control}
-                                    name="pickupLocation"
-                                    render={({ field: pickupField }) => (
-                                      <FormItem>
-                                        {PICKUP_LOCATIONS.map((location) => (
-                                          <label
-                                            key={location.id}
-                                            className={cn(
-                                              "block p-4 rounded-lg border cursor-pointer transition-colors",
-                                              pickupField.value === location.id
-                                                ? "border-primary bg-primary/5"
-                                                : "border-border hover:border-primary/50"
-                                            )}
-                                          >
-                                            <input
-                                              type="radio"
-                                              value={location.id}
-                                              checked={pickupField.value === location.id}
-                                              onChange={() => pickupField.onChange(location.id)}
-                                              className="sr-only"
-                                            />
-                                            <div className="font-medium">{location.name}</div>
-                                            <div className="text-sm text-muted-foreground mt-1">
-                                              {location.address}
-                                            </div>
-                                          </label>
-                                        ))}
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            <div
-                              className={cn(
-                                "bg-card p-4 sm:p-6 rounded-lg shadow-sm border-2 cursor-pointer transition-all",
-                                field.value === "lalamove"
-                                  ? "border-primary ring-2 ring-primary/20"
-                                  : "border-transparent hover:border-primary/30"
-                              )}
-                              onClick={() => field.onChange("lalamove")}
-                            >
-                              <div className="flex items-start gap-4">
-                                <div className="p-3 bg-green-100 rounded-full">
-                                  <Truck className="h-6 w-6 text-green-600" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-lg">Same-Day Delivery</h3>
-                                    <div
-                                      className={cn(
-                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                                        field.value === "lalamove"
-                                          ? "border-primary"
-                                          : "border-muted-foreground"
-                                      )}
-                                    >
-                                      {field.value === "lalamove" && (
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    Get it delivered via Lalamove (Metro Manila only)
-                                  </p>
-                                </div>
-                              </div>
-
-                              {field.value === "lalamove" && (
-                                <div className="mt-4 pt-4 border-t space-y-4">
-                                  {/* Saved Addresses Section */}
-                                  {userIsAuthenticated && savedAddresses.length > 0 && !useNewAddress && (
-                                    <div className="space-y-3">
-                                      <h4 className="text-sm font-medium text-muted-foreground">
-                                        Select a saved address:
-                                      </h4>
-                                      <div className="space-y-2">
-                                        {savedAddresses.map((addr) => (
-                                          <label
-                                            key={addr.id}
-                                            className={cn(
-                                              "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                                              selectedSavedAddressId === addr.id
-                                                ? "border-primary bg-primary/5"
-                                                : "border-border hover:border-primary/50"
-                                            )}
-                                          >
-                                            <input
-                                              type="radio"
-                                              name="savedAddress"
-                                              checked={selectedSavedAddressId === addr.id}
-                                              onChange={() => handleSavedAddressSelect(addr.id)}
-                                              className="mt-1"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                              <div className="flex items-center gap-2">
-                                                <span className="font-medium">{addr.label}</span>
-                                                {addr.isDefault && (
-                                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                                    Default
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <p className="text-sm text-muted-foreground truncate">
-                                                {addr.formattedAddress}
-                                              </p>
-                                            </div>
-                                          </label>
-                                        ))}
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleAddNewAddressClick}
-                                        className="w-full"
-                                      >
-                                        <MapPin className="h-4 w-4 mr-2" />
-                                        Use a different address
-                                      </Button>
-                                    </div>
-                                  )}
-
-                                  {/* New Address Input */}
-                                  {(useNewAddress || savedAddresses.length === 0 || !userIsAuthenticated) && (
-                                    <div className="space-y-3">
-                                      {savedAddresses.length > 0 && userIsAuthenticated && (
-                                        <div className="flex items-center justify-between">
-                                          <h4 className="text-sm font-medium text-muted-foreground">
-                                            Enter a new address:
-                                          </h4>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                              setUseNewAddress(false);
-                                              setDeliveryAddress(null);
-                                              setLalamoveQuote(null);
-                                              // Re-select default if available
-                                              if (defaultAddress) {
-                                                handleSavedAddressSelect(defaultAddress.id);
-                                              }
-                                            }}
-                                          >
-                                            Use saved address
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <AddressPicker
-                                        onAddressSelect={handleAddressSelect}
-                                        placeholder="Enter your delivery address in Metro Manila..."
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  {deliveryAddress && (
-                                    <LalamoveQuote
-                                      pickupAddress={MASH_PICKUP_LOCATION}
-                                      deliveryAddress={{
-                                        ...deliveryAddress,
-                                        lat: deliveryAddress.lat,
-                                        lng: deliveryAddress.lng,
-                                        address: deliveryAddress.formattedAddress,
-                                      }}
-                                      onQuoteReceived={handleQuoteReceived}
-                                    />
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </Form>
-
-                    <div className="flex justify-between items-center pt-4">
-                      <Button variant="outline" onClick={handleBack}>
-                        Back to Cart
-                      </Button>
-                      <Button
-                        onClick={step1Form.handleSubmit(onStep1Submit)}
-                        disabled={
-                          watchDeliveryMethod === "lalamove" &&
-                          (!deliveryAddress || !lalamoveQuote)
-                        }
-                      >
-                        Continue to Contact Info
-                      </Button>
-                    </div>
-                  </>
+                  <CheckoutStep1Delivery
+                    form={step1Form}
+                    watchDeliveryMethod={watchDeliveryMethod}
+                    userIsAuthenticated={userIsAuthenticated}
+                    savedAddresses={savedAddresses}
+                    selectedSavedAddressId={selectedSavedAddressId}
+                    useNewAddress={useNewAddress}
+                    deliveryAddress={deliveryAddress}
+                    lalamoveQuote={lalamoveQuote}
+                    lalamoveServiceType={lalamoveServiceType}
+                    lalamoveScheduleAt={lalamoveScheduleAt}
+                    defaultAddress={defaultAddress}
+                    onSavedAddressSelect={handleSavedAddressSelect}
+                    onAddNewAddressClick={handleAddNewAddressClick}
+                    onAddressSelect={handleAddressSelect}
+                    onQuoteReceived={handleQuoteReceived}
+                    onServiceTypeChange={setLalamoveServiceType}
+                    onScheduleChange={setLalamoveScheduleAt}
+                    onUseSavedAddress={handleUseSavedAddress}
+                    onSubmit={onStep1Submit}
+                    onBack={handleBack}
+                  />
                 )}
 
                 {currentStep === 2 && (
-                  <>
-                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                          Contact Information
-                        </h2>
-                        {userIsAuthenticated && user && (
-                          <span className="text-xs sm:text-sm text-green-600 font-medium">
-                            Auto-filled from profile
-                          </span>
-                        )}
-                      </div>
-                      <Form {...step2Form}>
-                        <div className="space-y-4">
-                          <FormField
-                            control={step2Form.control}
-                            name="name"
-                            render={({ field, fieldState }) => (
-                              <FormItem>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                  Full Name <span className="text-destructive">*</span>
-                                </label>
-                                <input
-                                  {...field}
-                                  type="text"
-                                  placeholder="Juan Dela Cruz"
-                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
-                                />
-                                {fieldState.error && (
-                                  <p className="text-sm text-destructive mt-1">
-                                    {fieldState.error.message}
-                                  </p>
-                                )}
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={step2Form.control}
-                            name="phone"
-                            render={({ field, fieldState }) => (
-                              <FormItem>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                  Phone Number <span className="text-destructive">*</span>
-                                </label>
-                                <input
-                                  {...field}
-                                  type="tel"
-                                  inputMode="numeric"
-                                  pattern="[0-9+]*"
-                                  maxLength={15}
-                                  placeholder="09171234567"
-                                  onChange={(e) => {
-                                    // Only allow numbers, +, and common phone formatting characters
-                                    const cleaned = e.target.value.replace(/[^0-9+\-\s()]/g, "");
-                                    field.onChange(cleaned);
-                                  }}
-                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Format: 09XX XXX XXXX or +63 9XX XXX XXXX
-                                </p>
-                                {fieldState.error && (
-                                  <p className="text-sm text-destructive mt-1">
-                                    {fieldState.error.message}
-                                  </p>
-                                )}
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={step2Form.control}
-                            name="email"
-                            render={({ field, fieldState }) => (
-                              <FormItem>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                  Email Address <span className="text-destructive">*</span>
-                                </label>
-                                <input
-                                  {...field}
-                                  type="email"
-                                  placeholder="juan.delacruz@example.com"
-                                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-background"
-                                />
-                                {fieldState.error && (
-                                  <p className="text-sm text-destructive mt-1">
-                                    {fieldState.error.message}
-                                  </p>
-                                )}
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </Form>
-                    </section>
-
-                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                      <h3 className="text-base font-medium text-foreground mb-3">
-                        Delivery Method Selected
-                      </h3>
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        {step1Data?.deliveryMethod === "pickup" ? (
-                          <div className="flex items-start gap-3">
-                            <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                            <div>
-                              <p className="font-medium">
-                                Pickup at {getSelectedPickupLocation(step1Data?.pickupLocation)?.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {getSelectedPickupLocation(step1Data?.pickupLocation)?.address}
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-3">
-                            <Truck className="h-5 w-5 text-green-600 mt-0.5" />
-                            <div>
-                              <p className="font-medium">Same-Day Delivery via Lalamove</p>
-                              <p className="text-sm text-muted-foreground">{deliveryAddress?.formattedAddress}</p>
-                              {lalamoveQuote && (
-                                <p className="text-sm font-medium text-green-600 mt-1">
-                                  Delivery Fee: PHP {lalamoveQuote.price.toFixed(2)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </section>
-
-                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto px-8 py-3 border-border"
-                        onClick={handleBack}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-                        onClick={step2Form.handleSubmit(onStep2Submit)}
-                      >
-                        Continue to Payment
-                      </Button>
-                    </div>
-                  </>
+                  <CheckoutStep2Contact
+                    form={step2Form}
+                    userIsAuthenticated={userIsAuthenticated}
+                    userName={user?.displayName}
+                    step1Data={step1Data}
+                    deliveryAddress={deliveryAddress}
+                    lalamoveQuote={lalamoveQuote}
+                    lalamoveScheduleAt={lalamoveScheduleAt}
+                    onSubmit={onStep2Submit}
+                    onBack={handleBack}
+                  />
                 )}
 
                 {currentStep === 3 && (
-                  <>
-                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                      <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                        Payment Method
-                      </h2>
-                      <p className="text-sm sm:text-base text-muted-foreground">
-                        Cash payment only - Pay when you receive your order.
-                      </p>
-
-                      <Form {...step3Form}>
-                        <FormField
-                          control={step3Form.control}
-                          name="paymentMethod"
-                          render={({ field }) => (
-                            <FormItem className="mt-6 space-y-4">
-                              <label
-                                className={cn(
-                                  "block border-2 rounded-lg p-4 cursor-pointer transition-colors",
-                                  "border-primary bg-primary/5"
-                                )}
-                              >
-                                <input
-                                  type="radio"
-                                  value="cod"
-                                  checked={true}
-                                  onChange={() => field.onChange("cod")}
-                                  className="sr-only"
-                                />
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Banknote className="h-5 w-5 text-primary" />
-                                    <div className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center">
-                                      <div className="w-2 h-2 rounded-full bg-primary" />
-                                    </div>
-                                    <div className="font-medium text-foreground">
-                                      {step1Data?.deliveryMethod === "pickup" ? "Cash on Pickup" : "Cash on Delivery"}
-                                    </div>
-                                  </div>
-                                  <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                                    Default Payment
-                                  </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground mt-2 ml-7">
-                                  {step1Data?.deliveryMethod === "pickup" 
-                                    ? "Pay when you pick up your order at the selected location"
-                                    : "Pay the rider when your order is delivered"
-                                  }
-                                </p>
-                              </label>
-                            </FormItem>
-                          )}
-                        />
-                      </Form>
-                    </section>
-
-                    <section className="bg-card p-4 sm:p-6 rounded-lg shadow-sm">
-                      <h3 className="text-base font-medium text-foreground mb-4">
-                        Order Review
-                      </h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Contact</p>
-                            <p className="text-sm text-muted-foreground">{step2Data?.name}</p>
-                            <p className="text-sm text-muted-foreground">{step2Data?.email}</p>
-                            <p className="text-sm text-muted-foreground">{step2Data?.phone}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setCurrentStep(2)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-
-                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              {step1Data?.deliveryMethod === "pickup" ? "Pickup Location" : "Delivery Address"}
-                            </p>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {step1Data?.deliveryMethod === "pickup"
-                                ? getSelectedPickupLocation(step1Data?.pickupLocation)?.address
-                                : deliveryAddress?.formattedAddress
-                              }
-                            </p>
-                            {step1Data?.deliveryMethod === "pickup" && hasMultipleVendors && selectedVendor && (
-                              <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
-                                <p className="text-xs text-amber-800 dark:text-amber-200">
-                                  <strong>📍 Vendor:</strong> {selectedVendor} - Default MASH pickup location shown. Please coordinate with vendor for exact address.
-                                </p>
-                              </div>
-                            )}
-                            {step1Data?.deliveryMethod === "pickup" && getSelectedPickupLocation(step1Data?.pickupLocation) && (
-                              <div className="mt-3">
-                                <iframe
-                                  width="100%"
-                                  height="180"
-                                  frameBorder="0"
-                                  style={{ border: 0, borderRadius: "8px" }}
-                                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(getSelectedPickupLocation(step1Data?.pickupLocation)?.address || "MASH Philippines")}&zoom=15`}
-                                  allowFullScreen
-                                ></iframe>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setCurrentStep(1)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
-                    </section>
-
-                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 sm:gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto px-8 py-3 border-border"
-                        onClick={handleBack}
-                        disabled={submitting || paymentProcessing}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 font-semibold text-primary-foreground"
-                        disabled={submitting || paymentProcessing || items.length === 0}
-                        onClick={step3Form.handleSubmit(onStep3Submit)}
-                      >
-                        {submitting ? (
-                          "Creating Order..."
-                        ) : (
-                          "Place Order (Cash Payment)"
-                        )}
-                      </Button>
-                    </div>
-                  </>
+                  <CheckoutStep3Payment
+                    form={step3Form}
+                    step1Data={step1Data}
+                    step2Data={step2Data}
+                    deliveryAddress={deliveryAddress}
+                    hasMultipleVendors={hasMultipleVendors}
+                    selectedVendor={selectedVendor}
+                    submitting={submitting}
+                    paymentProcessing={paymentProcessing}
+                    itemCount={items.length}
+                    onSubmit={onStep3Submit}
+                    onBack={handleBack}
+                    onEditStep={setCurrentStep}
+                    paymentError={paymentError}
+                    onRetryPayment={pendingOrderId ? handleRetryPayment : undefined}
+                    loadingMessage={loadingMessage}
+                  />
                 )}
               </div>
 
-              <div className="lg:w-2/5 w-full">
-                <div className="bg-card rounded-lg p-4 sm:p-6 shadow-sm lg:sticky lg:top-24">
-                  <h2 className="text-lg sm:text-xl font-bold text-foreground border-b border-border pb-3 sm:pb-4">
-                    Summary
-                    {hasMultipleVendors && selectedVendor && (
-                      <span className="block text-sm font-normal text-muted-foreground mt-1">
-                        Checking out: {selectedVendor}
-                      </span>
-                    )}
-                  </h2>
-                  <div className="mt-4 space-y-4">
-                    {loading ? (
-                      <div className="text-center py-8">
-                        <LoadingSpinner className="mx-auto mb-4" />
-                        <p className="text-muted-foreground">Loading cart items...</p>
-                      </div>
-                    ) : currentVendorItems.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No items for this vendor</p>
-                      </div>
-                    ) : (
-                      <>
-                        {currentVendorItems.map((item) => (
-                          <div key={item.productId} className="flex items-start gap-3">
-                            <Image
-                              src={item.image || PLACEHOLDER_IMAGE}
-                              alt={item.name}
-                              width={56}
-                              height={56}
-                              className={cn(
-                                "w-12 h-12 sm:w-14 sm:h-14 rounded-md flex-shrink-0",
-                                item.image ? "object-cover" : "object-contain bg-muted p-1"
-                              )}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground text-sm sm:text-base line-clamp-2">
-                                {item.name}
-                              </p>
-                              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                                Quantity: {item.quantity}
-                              </p>
-                            </div>
-                            <p className="font-semibold text-foreground text-sm sm:text-base flex-shrink-0">
-                              PHP {(item.price * item.quantity).toFixed(2)}
-                            </p>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mt-6 border-t border-border pt-4 space-y-2 text-sm sm:text-base text-muted-foreground">
-                    <div className="flex justify-between">
-                      <p>
-                        Subtotal ({currentVendorItems.reduce((sum, item) => sum + item.quantity, 0)} items)
-                      </p>
-                      <p className="font-medium">PHP {currentVendorSubtotal.toFixed(2)}</p>
-                    </div>
-                    {deliveryFee > 0 && (
-                      <div className="flex justify-between">
-                        <p>Delivery (Lalamove)</p>
-                        <p className="font-medium">PHP {deliveryFee.toFixed(2)}</p>
-                      </div>
-                    )}
-                    {watchDeliveryMethod === "pickup" && (
-                      <div className="flex justify-between">
-                        <p>Pickup</p>
-                        <p className="font-medium text-green-600">Free</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-4 border-t border-border pt-4 flex justify-between items-center font-bold text-foreground text-base sm:text-lg">
-                    <p>Total</p>
-                    <p>PHP {totalWithDelivery.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
+              <OrderSummary
+                items={currentVendorItems}
+                subtotal={currentVendorSubtotal}
+                deliveryFee={deliveryFee}
+                total={totalWithDelivery}
+                deliveryMethod={watchDeliveryMethod}
+                vendorName={selectedVendor}
+                hasMultipleVendors={hasMultipleVendors}
+                loading={loading}
+                paymentMethod={
+                  currentStep >= 3
+                    ? (step3Form.watch("paymentMethod") as PaymentMethod)
+                    : null
+                }
+              />
             </div>
           )}
         </div>
       </div>
 
-      {showSuccessModal && (() => {
-        // Calculate remaining vendors after this checkout
-        const remainingVendors = Object.keys(itemsByVendor).filter(v => v !== selectedVendor);
-        const hasRemainingVendors = remainingVendors.length > 0;
-        
-        return (
-          <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 px-4">
-            <div className="bg-card rounded-2xl p-8 max-w-md w-full text-center shadow-xl border border-border/20">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Order placed successfully!
-              </h2>
-              <p className="text-muted-foreground mb-2">
-                {selectedVendor && `Your order from ${selectedVendor} has been confirmed.`}
-              </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                The seller will be notified about your new order!
-              </p>
-              
-              {hasRemainingVendors && (
-                <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                  <p className="text-sm font-medium text-foreground mb-2">
-                    🛒 You still have items from {remainingVendors.length} other {remainingVendors.length === 1 ? 'vendor' : 'vendors'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {remainingVendors.join(", ")}
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                {hasRemainingVendors ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowSuccessModal(false);
-                        router.push("/profile/order-history");
-                      }}
-                    >
-                      View Orders
-                    </Button>
-                    <Button
-                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                      onClick={() => {
-                        setShowSuccessModal(false);
-                        // Auto-select the next vendor
-                        setSelectedVendor(remainingVendors[0]);
-                        setCurrentStep(1);
-                      }}
-                    >
-                      Checkout Next Vendor →
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowSuccessModal(false);
-                        router.push("/shop");
-                      }}
-                    >
-                      Continue Shopping
-                    </Button>
-                    <Button
-                      className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                      onClick={() => {
-                        setShowSuccessModal(false);
-                        router.push("/profile/order-history");
-                      }}
-                    >
-                      View Orders
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {showSuccessModal && (
+        <CheckoutSuccessModal
+          vendorName={selectedVendor}
+          remainingVendors={remainingVendors}
+          onViewOrders={() => {
+            setShowSuccessModal(false);
+            router.push("/profile/order-history");
+          }}
+          onNextVendor={(vendor) => {
+            setShowSuccessModal(false);
+            setSelectedVendor(vendor);
+            setCurrentStep(1);
+          }}
+          onContinueShopping={() => {
+            setShowSuccessModal(false);
+            router.push("/shop");
+          }}
+        />
+      )}
     </>
   );
 }

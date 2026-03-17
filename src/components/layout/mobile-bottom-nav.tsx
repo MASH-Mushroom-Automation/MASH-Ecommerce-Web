@@ -3,8 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, User, Sprout, Bell } from "lucide-react";
+import { Home, ShoppingBag, ShoppingCart, User, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/contexts/CartContext";
 
 interface NavItem {
   href: string;
@@ -15,6 +16,8 @@ interface NavItem {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { items } = useCart();
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Don't show on auth pages, seller pages, or checkout
   const hideNav = pathname.startsWith("/login") || 
@@ -37,6 +40,12 @@ export function MobileBottomNav() {
       icon: ShoppingBag,
     },
     {
+      href: "/cart",
+      label: "Cart",
+      icon: ShoppingCart,
+      badge: cartCount,
+    },
+    {
       href: "/grower",
       label: "Growers",
       icon: Sprout,
@@ -49,7 +58,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40 safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40 safe-area-bottom" aria-label="Mobile Navigation">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -64,7 +73,7 @@ export function MobileBottomNav() {
                 "flex flex-col items-center justify-center flex-1 h-full transition-colors relative",
                 "active:bg-muted",
                 isActive
-                  ? "text-accent"
+                  ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

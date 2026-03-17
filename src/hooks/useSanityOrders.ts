@@ -210,17 +210,19 @@ export function useSanityOrders(filters?: OrderFilters) {
         };
 
         setSummary(orderSummary);
+
+        console.log(`[ORDERS] Loaded ${transformedOrders.length} orders`, {
+          pending,
+          processing,
+          shipped,
+          delivered,
+          revenue: totalRevenue,
+        });
       } else {
         setSummary(null);
+        console.log(`[ORDERS] Loaded 0 orders`);
       }
 
-      console.log(`✅ [ORDERS] Loaded ${transformedOrders.length} orders`, {
-        pending,
-        processing,
-        shipped,
-        delivered,
-        revenue: totalRevenue,
-      });
       setError(null);
     } catch (err) {
       console.error("❌ [ORDERS] Error fetching orders:", err);

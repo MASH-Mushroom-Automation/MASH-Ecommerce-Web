@@ -58,6 +58,15 @@ export function useUserProfile() {
       // For email/password users, fetch from backend API
       const res = await fetch("/api/user/profile", { method: "GET" });
       const json = await res.json().catch(() => null);
+
+      // 404 means user not found in backend DB (expected for Firebase/SSO users)
+      // Silently skip — don't throw, don't clear profile, just keep cookie data
+      if (res.status === 404) {
+        console.log("[useUser] Profile not found in backend (SSO user) — using cookie data");
+        setLoading(false);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(json?.error || "Failed to fetch profile");
       }
@@ -68,7 +77,7 @@ export function useUserProfile() {
         if (typeof globalThis.window !== "undefined") {
           setCookie("user", data, { maxAge: 60 * 60 * 24 * 30 });
         }
-      } catch {}
+      } catch { }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch profile");
       // Keep the profile from storage if API fails (don't set to null)
@@ -93,7 +102,7 @@ export function useUserProfile() {
         // update cookie
         try {
           setCookie("user", data, { maxAge: 60 * 60 * 24 * 30 });
-        } catch {}
+        } catch { }
         return { data, success: true };
       } catch (err) {
         throw new Error(err instanceof Error ? err.message : "Failed to update profile");
@@ -137,7 +146,7 @@ export function useUserProfile() {
     const checkAuth = () => {
       const hasAuthCookie = document.cookie.includes("auth-token=");
       const hasStoredUser = !!getCookie("user");
-      
+
       // If no auth cookie and no stored user, clear profile
       if (!hasAuthCookie && !hasStoredUser && profile) {
         clearProfile();

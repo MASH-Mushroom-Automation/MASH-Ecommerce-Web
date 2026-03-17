@@ -98,31 +98,31 @@ const sidebarLinks = [
     icon: MapPin,
     label: "Address Management",
   },
-  {
-    href: "/seller/handover",
-    icon: Store,
-    label: "Handover Center Pickup",
-  },
+  // {
+  //   href: "/seller/handover",
+  //   icon: Store,
+  //   label: "Handover Center Pickup",
+  // },
   {
     href: "/seller/my-reviews",
     icon: MessageSquare,
     label: "My Reviews",
   },
-  {
-    href: "/seller/reviews",
-    icon: MessageSquare,
-    label: "Review Moderation",
-  },
+  // {
+  //   href: "/seller/reviews",
+  //   icon: MessageSquare,
+  //   label: "Review Moderation",
+  // },
   {
     href: "/seller/analytics/reviews",
     icon: BarChart3,
     label: "Review Analytics",
   },
-  {
-    href: "/seller/refund",
-    icon: RotateCcw,
-    label: "Refund",
-  },
+  // {
+  //   href: "/seller/refund",
+  //   icon: RotateCcw,
+  //   label: "Refund",
+  // },
   {
     href: "/seller/settings",
     icon: Settings,

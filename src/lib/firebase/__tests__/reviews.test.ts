@@ -257,7 +257,7 @@ describe("FirebaseReviewService.createReview", () => {
 
     expect(result.title).toBe("Nice product");
     expect(result.content).toBe("Some nice review text here");
-    expect(result.userPhotoURL).toBeUndefined();
+    expect(result.userPhotoURL).toBeNull();
   });
 
   it("throws error if user already reviewed this entity", async () => {

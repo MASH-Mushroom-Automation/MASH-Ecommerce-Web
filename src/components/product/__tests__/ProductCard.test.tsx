@@ -208,6 +208,7 @@ describe("ProductCard", () => {
       expect(screen.getByText("Out of Stock")).toBeInTheDocument();
       const button = screen.getByRole("button", { name: /sold out/i });
       expect(button).toBeDisabled();
+      expect(screen.getByText("Sold Out")).toBeInTheDocument();
     });
 
     it("shows low stock warning when stock is 5 or less", () => {
@@ -436,6 +437,7 @@ describe("ProductCard", () => {
 
       const addButton = screen.getByRole("button", { name: /sold out/i });
       expect(addButton).toBeDisabled();
+      expect(screen.getByText("Sold Out")).toBeInTheDocument();
     });
 
     it("does not add to cart when already adding", async () => {

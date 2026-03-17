@@ -26,9 +26,9 @@ describe('GET /api/user/profile', () => {
   });
 
   it('should return Firestore profile when firebase-uid cookie present', async () => {
-    // Mock cookies to return firebase-uid
+    // Mock cookies to return firebase-auth cookie (used by the route)
     cookies.mockResolvedValue({
-      get: (name: string) => (name === 'firebase-uid' ? { value: 'fb-uid-123' } : undefined),
+      get: (name: string) => (name === 'firebase-auth' ? { value: 'fb-uid-123' } : undefined),
     });
 
     const mockProfile = { id: 'fb-uid-123', email: 'test@example.com', firstName: 'Test' };
@@ -44,7 +44,7 @@ describe('GET /api/user/profile', () => {
 
   it('should return 404 when profile not found in Firestore', async () => {
     cookies.mockResolvedValue({
-      get: (name: string) => (name === 'firebase-uid' ? { value: 'fb-uid-404' } : undefined),
+      get: (name: string) => (name === 'firebase-auth' ? { value: 'fb-uid-404' } : undefined),
     });
 
     (FirebaseUserService.getProfile as jest.Mock).mockResolvedValue(null);

@@ -1,6 +1,6 @@
 /**
  * Wishlist Context Unit Tests
- * Story: STORY-TEST-010
+ * Story: WISH-001 + STORY-TEST-010
  * 
  * Coverage:
  * - Add to wishlist
@@ -8,17 +8,33 @@
  * - Check if product in wishlist
  * - Clear wishlist
  * - Cookie persistence
- * - Cookie change handling (cross-tab sync)
+ * - Cookie change handling (cross-tab sync for guests)
  * - Wishlist count calculation
  * - Context error handling
+ * - Firebase sync on login (merge, subscribe, debounced save)
+ * - Firebase unsubscribe on logout
+ * - Clear Firebase wishlist for authenticated users
  * 
- * Target: 85%+ coverage
+ * Target: 90%+ coverage
  */
 
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WishlistProvider, useWishlist } from '../WishlistContext';
+import { FirebaseWishlistService } from '@/lib/firebase/wishlist';
+
+// Mock FirebaseWishlistService - define mocks INSIDE factory (required for @swc/jest hoisting)
+jest.mock('@/lib/firebase/wishlist', () => ({
+  FirebaseWishlistService: {
+    getWishlist: jest.fn().mockResolvedValue([]),
+    addItem: jest.fn().mockResolvedValue('mock-id'),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    clearWishlist: jest.fn().mockResolvedValue(undefined),
+    subscribeToWishlist: jest.fn().mockReturnValue(jest.fn()),
+    mergeLocalStorageWishlist: jest.fn().mockResolvedValue(undefined),
+  },
+}));
 
 // Access the SAME mock instance that WishlistContext uses
 // This is set up in jest.setupMocks.js BEFORE any module imports
@@ -32,6 +48,9 @@ const mockCookies = global.__mockCookies as {
 const getWishlistCookie = mockCookies.getWishlistCookie;
 const setWishlistCookie = mockCookies.setWishlistCookie;
 const clearWishlistCookie = mockCookies.clearWishlistCookie;
+
+// Access global auth mock
+const mockUseAuth = (global as any).__mockUseAuth as jest.Mock;
 
 // Test component to access wishlist context
 function TestComponent() {
@@ -77,21 +96,44 @@ describe('WishlistContext', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
-    // Default mock implementations - no cast needed, these are already jest.Mock
+    // Default: guest user (not authenticated)
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      loading: false,
+      signInWithGoogle: jest.fn(),
+      signInWithEmailPassword: jest.fn(),
+      signUpWithEmailPassword: jest.fn(),
+      signOut: jest.fn(),
+      signOutEverywhere: jest.fn(),
+      sendEmailSignInLink: jest.fn(),
+      completeEmailLinkSignIn: jest.fn(),
+      sendPasswordResetEmail: jest.fn(),
+      confirmPasswordReset: jest.fn(),
+      requestEmailVerification: jest.fn(),
+      verifyEmailCode: jest.fn(),
+    });
+    
+    // Default mock implementations
     getWishlistCookie.mockReturnValue(null);
     setWishlistCookie.mockImplementation(() => {});
     clearWishlistCookie.mockImplementation(() => {});
+    
+    // Reset Firebase mocks
+    (FirebaseWishlistService.getWishlist as jest.Mock).mockResolvedValue([]);
+    (FirebaseWishlistService.addItem as jest.Mock).mockResolvedValue('mock-id');
+    (FirebaseWishlistService.removeItem as jest.Mock).mockResolvedValue(undefined);
+    (FirebaseWishlistService.clearWishlist as jest.Mock).mockResolvedValue(undefined);
+    (FirebaseWishlistService.subscribeToWishlist as jest.Mock).mockReturnValue(jest.fn());
+    (FirebaseWishlistService.mergeLocalStorageWishlist as jest.Mock).mockResolvedValue(undefined);
   });
 
   describe('Context Provider', () => {
     it('should throw error when useWishlist is used outside WishlistProvider', () => {
-      // Suppress console.error for this test
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       expect(() => {
         render(<TestComponent />);
       }).toThrow('useWishlist must be used within a WishlistProvider');
-
       consoleError.mockRestore();
     });
 
@@ -101,7 +143,6 @@ describe('WishlistContext', () => {
           <TestComponent />
         </WishlistProvider>
       );
-
       expect(screen.getByTestId('wishlist-ids')).toHaveTextContent('[]');
       expect(screen.getByTestId('wishlist-count')).toHaveTextContent('0');
     });
@@ -114,7 +155,6 @@ describe('WishlistContext', () => {
           <TestComponent />
         </WishlistProvider>
       );
-
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
       expect(screen.getByTestId('wishlist-count').textContent).toBe('0');
     });
@@ -141,9 +181,7 @@ describe('WishlistContext', () => {
     });
 
     it('should handle corrupted cookie data gracefully', () => {
-      // Mock invalid wishlist structure
       getWishlistCookie.mockReturnValue({ invalid: 'data' });
-
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       render(
@@ -152,20 +190,16 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      // Should initialize with empty wishlist instead of crashing
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
-
       consoleError.mockRestore();
     });
 
     it('should handle missing cookie gracefully', () => {
-      // getWishlistCookie returns null by default
       render(
         <WishlistProvider>
           <TestComponent />
         </WishlistProvider>
       );
-
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
     });
   });
@@ -178,8 +212,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         const wishlistIds = JSON.parse(
@@ -197,11 +230,8 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton1 = screen.getByTestId('add-product-1');
-      const addButton2 = screen.getByTestId('add-product-2');
-
-      await userEvent.click(addButton1);
-      await userEvent.click(addButton2);
+      await userEvent.click(screen.getByTestId('add-product-1'));
+      await userEvent.click(screen.getByTestId('add-product-2'));
 
       await waitFor(() => {
         const wishlistIds = JSON.parse(
@@ -219,17 +249,14 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton = screen.getByTestId('add-product-1');
-
-      // Add same product twice
-      await userEvent.click(addButton);
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         const wishlistIds = JSON.parse(
           screen.getByTestId('wishlist-ids').textContent || '[]'
         );
-        expect(wishlistIds).toEqual(['product-1']); // Only once
+        expect(wishlistIds).toEqual(['product-1']);
         expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
       });
     });
@@ -243,8 +270,7 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('no');
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('yes');
@@ -267,8 +293,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
+      await userEvent.click(screen.getByTestId('remove-product-1'));
 
       await waitFor(() => {
         const wishlistIds = JSON.parse(
@@ -286,10 +311,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
-
-      // Should not crash
+      await userEvent.click(screen.getByTestId('remove-product-1'));
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
     });
 
@@ -309,8 +331,7 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('yes');
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
+      await userEvent.click(screen.getByTestId('remove-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('no');
@@ -333,8 +354,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const clearButton = screen.getByTestId('clear-wishlist');
-      await userEvent.click(clearButton);
+      await userEvent.click(screen.getByTestId('clear-wishlist'));
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
@@ -356,11 +376,48 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const clearButton = screen.getByTestId('clear-wishlist');
-      await userEvent.click(clearButton);
+      await userEvent.click(screen.getByTestId('clear-wishlist'));
 
       await waitFor(() => {
         expect(clearWishlistCookie).toHaveBeenCalled();
+      });
+    });
+
+    it('should clear Firebase wishlist when authenticated user clears', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user-123', email: 'test@example.com' },
+        isAuthenticated: true,
+        loading: false,
+        signInWithGoogle: jest.fn(),
+        signInWithEmailPassword: jest.fn(),
+        signUpWithEmailPassword: jest.fn(),
+        signOut: jest.fn(),
+        signOutEverywhere: jest.fn(),
+        sendEmailSignInLink: jest.fn(),
+        completeEmailLinkSignIn: jest.fn(),
+        sendPasswordResetEmail: jest.fn(),
+        confirmPasswordReset: jest.fn(),
+        requestEmailVerification: jest.fn(),
+        verifyEmailCode: jest.fn(),
+      });
+
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      getWishlistCookie.mockReturnValue(savedWishlist);
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      await userEvent.click(screen.getByTestId('clear-wishlist'));
+
+      await waitFor(() => {
+        expect(FirebaseWishlistService.clearWishlist).toHaveBeenCalledWith('user-123');
       });
     });
   });
@@ -372,7 +429,6 @@ describe('WishlistContext', () => {
           <TestComponent />
         </WishlistProvider>
       );
-
       expect(screen.getByTestId('wishlist-count').textContent).toBe('0');
     });
 
@@ -383,8 +439,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
@@ -398,11 +453,8 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton1 = screen.getByTestId('add-product-1');
-      const addButton2 = screen.getByTestId('add-product-2');
-
-      await userEvent.click(addButton1);
-      await userEvent.click(addButton2);
+      await userEvent.click(screen.getByTestId('add-product-1'));
+      await userEvent.click(screen.getByTestId('add-product-2'));
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-count').textContent).toBe('2');
@@ -425,8 +477,7 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('wishlist-count').textContent).toBe('2');
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
+      await userEvent.click(screen.getByTestId('remove-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
@@ -471,8 +522,7 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('no');
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('yes');
@@ -486,9 +536,8 @@ describe('WishlistContext', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      // Mock cookie to persist data
       getWishlistCookie.mockImplementation(() => savedWishlist);
-      setWishlistCookie.mockImplementation((wishlist) => {
+      setWishlistCookie.mockImplementation((wishlist: any) => {
         savedWishlist = wishlist;
       });
 
@@ -500,8 +549,7 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('yes');
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
+      await userEvent.click(screen.getByTestId('remove-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('no');
@@ -517,8 +565,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         expect(setWishlistCookie).toHaveBeenCalledWith(
@@ -544,8 +591,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const removeButton = screen.getByTestId('remove-product-1');
-      await userEvent.click(removeButton);
+      await userEvent.click(screen.getByTestId('remove-product-1'));
 
       await waitFor(() => {
         expect(setWishlistCookie).toHaveBeenCalledWith(
@@ -564,9 +610,8 @@ describe('WishlistContext', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      // Mock cookie to persist data
       getWishlistCookie.mockImplementation(() => savedWishlist);
-      setWishlistCookie.mockImplementation((wishlist) => {
+      setWishlistCookie.mockImplementation((wishlist: any) => {
         savedWishlist = wishlist;
       });
 
@@ -576,8 +621,7 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      const addButton = screen.getByTestId('add-product-1');
-      await userEvent.click(addButton);
+      await userEvent.click(screen.getByTestId('add-product-1'));
 
       await waitFor(() => {
         expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
@@ -585,22 +629,19 @@ describe('WishlistContext', () => {
 
       unmount();
 
-      // Re-mount component
       render(
         <WishlistProvider>
           <TestComponent />
         </WishlistProvider>
       );
 
-      // Should still have the product
       expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
       expect(screen.getByTestId('is-in-wishlist-product-1').textContent).toBe('yes');
     });
   });
 
-  describe('Cookie Change Handling (Cross-Tab Sync)', () => {
+  describe('Cookie Change Handling (Cross-Tab Sync - Guest Only)', () => {
     beforeEach(() => {
-      // Allow polling to run in these tests
       (global as any).__ENABLE_COOKIE_POLLING_IN_TESTS = true;
     });
 
@@ -609,10 +650,9 @@ describe('WishlistContext', () => {
       jest.useRealTimers();
     });
 
-    it('should sync wishlist when cookie updated from another tab', async () => {
+    it('should sync wishlist when cookie updated from another tab (guest)', async () => {
       jest.useFakeTimers();
       
-      // Start with empty wishlist
       getWishlistCookie.mockReturnValue(null);
 
       render(
@@ -623,7 +663,6 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
 
-      // Simulate cookie change from another tab
       const updatedWishlist = {
         version: 2 as const,
         items: ['product-1', 'product-2'],
@@ -631,7 +670,6 @@ describe('WishlistContext', () => {
       };
       getWishlistCookie.mockReturnValue(updatedWishlist);
 
-      // Fast-forward timer to trigger cookie polling
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
@@ -664,10 +702,8 @@ describe('WishlistContext', () => {
 
       expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
 
-      // Simulate cookie cleared from another tab
       getWishlistCookie.mockReturnValue(null);
 
-      // Fast-forward timer
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
@@ -688,16 +724,213 @@ describe('WishlistContext', () => {
         </WishlistProvider>
       );
 
-      // Simulate corrupted cookie data
       getWishlistCookie.mockReturnValue({ invalid: 'data' });
 
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
 
-      // Should not crash, wishlist remains empty
       expect(screen.getByTestId('wishlist-ids').textContent).toBe('[]');
 
+      jest.useRealTimers();
+    });
+  });
+
+  describe('Firebase Sync (Authenticated Users)', () => {
+    const authenticatedAuth = {
+      user: { id: 'user-123', email: 'test@example.com', displayName: 'Test User' },
+      isAuthenticated: true,
+      loading: false,
+      signInWithGoogle: jest.fn(),
+      signInWithEmailPassword: jest.fn(),
+      signUpWithEmailPassword: jest.fn(),
+      signOut: jest.fn(),
+      signOutEverywhere: jest.fn(),
+      sendEmailSignInLink: jest.fn(),
+      completeEmailLinkSignIn: jest.fn(),
+      sendPasswordResetEmail: jest.fn(),
+      confirmPasswordReset: jest.fn(),
+      requestEmailVerification: jest.fn(),
+      verifyEmailCode: jest.fn(),
+    };
+
+    it('should merge cookie wishlist with Firebase on login', async () => {
+      // User has items in cookie
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1', 'product-2'],
+        updatedAt: new Date().toISOString(),
+      };
+      getWishlistCookie.mockReturnValue(savedWishlist);
+
+      // Firebase returns additional items
+      (FirebaseWishlistService.getWishlist as jest.Mock).mockResolvedValue([
+        { id: 'product-2', productId: 'product-2', name: 'Product 2', price: 200 },
+        { id: 'product-3', productId: 'product-3', name: 'Product 3', price: 300 },
+      ]);
+
+      mockUseAuth.mockReturnValue(authenticatedAuth);
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      await waitFor(() => {
+        // Merge should be called with cookie items
+        expect(FirebaseWishlistService.mergeLocalStorageWishlist).toHaveBeenCalledWith(
+          'user-123',
+          expect.arrayContaining([
+            expect.objectContaining({ productId: 'product-1' }),
+            expect.objectContaining({ productId: 'product-2' }),
+          ])
+        );
+      });
+
+      await waitFor(() => {
+        // Merged result should contain union of cookie + Firebase IDs
+        const wishlistIds = JSON.parse(
+          screen.getByTestId('wishlist-ids').textContent || '[]'
+        );
+        expect(wishlistIds).toContain('product-1');
+        expect(wishlistIds).toContain('product-2');
+        expect(wishlistIds).toContain('product-3');
+      });
+    });
+
+    it('should subscribe to real-time Firebase updates on login', async () => {
+      mockUseAuth.mockReturnValue(authenticatedAuth);
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      await waitFor(() => {
+        expect(FirebaseWishlistService.subscribeToWishlist).toHaveBeenCalledWith(
+          'user-123',
+          expect.any(Function)
+        );
+      });
+    });
+
+    it('should unsubscribe from Firebase when user logs out', async () => {
+      const mockUnsubscribe = jest.fn();
+      (FirebaseWishlistService.subscribeToWishlist as jest.Mock).mockReturnValue(mockUnsubscribe);
+
+      mockUseAuth.mockReturnValue(authenticatedAuth);
+
+      const { rerender } = render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      await waitFor(() => {
+        expect(FirebaseWishlistService.subscribeToWishlist).toHaveBeenCalled();
+      });
+
+      // Simulate logout
+      mockUseAuth.mockReturnValue({
+        ...authenticatedAuth,
+        user: null,
+        isAuthenticated: false,
+      });
+
+      rerender(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      await waitFor(() => {
+        expect(mockUnsubscribe).toHaveBeenCalled();
+      });
+    });
+
+    it('should not start Firebase sync for invalid userId', async () => {
+      mockUseAuth.mockReturnValue({
+        ...authenticatedAuth,
+        user: { id: 'undefined' },
+      });
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      // Wait a bit to ensure no calls are made
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 100));
+      });
+
+      expect(FirebaseWishlistService.mergeLocalStorageWishlist).not.toHaveBeenCalled();
+      expect(FirebaseWishlistService.subscribeToWishlist).not.toHaveBeenCalled();
+    });
+
+    it('should handle Firebase merge errors gracefully', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      (FirebaseWishlistService.mergeLocalStorageWishlist as jest.Mock).mockRejectedValue(new Error('Firebase error'));
+      (FirebaseWishlistService.getWishlist as jest.Mock).mockRejectedValue(new Error('Firebase error'));
+      
+      const savedWishlist = {
+        version: 2 as const,
+        items: ['product-1'],
+        updatedAt: new Date().toISOString(),
+      };
+      getWishlistCookie.mockReturnValue(savedWishlist);
+
+      mockUseAuth.mockReturnValue(authenticatedAuth);
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      // Should not crash, should keep cookie items
+      await waitFor(() => {
+        expect(screen.getByTestId('wishlist-count').textContent).toBe('1');
+      });
+
+      consoleError.mockRestore();
+    });
+
+    it('should skip cookie polling for authenticated users', async () => {
+      (global as any).__ENABLE_COOKIE_POLLING_IN_TESTS = true;
+      jest.useFakeTimers();
+
+      mockUseAuth.mockReturnValue(authenticatedAuth);
+
+      render(
+        <WishlistProvider>
+          <TestComponent />
+        </WishlistProvider>
+      );
+
+      // Simulate cookie change
+      getWishlistCookie.mockReturnValue({
+        version: 2 as const,
+        items: ['should-not-appear'],
+        updatedAt: new Date().toISOString(),
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      // Cookie polling should not update state for authenticated users
+      // (Firebase handles sync instead)
+      const wishlistIds = JSON.parse(
+        screen.getByTestId('wishlist-ids').textContent || '[]'
+      );
+      expect(wishlistIds).not.toContain('should-not-appear');
+
+      delete (global as any).__ENABLE_COOKIE_POLLING_IN_TESTS;
       jest.useRealTimers();
     });
   });
