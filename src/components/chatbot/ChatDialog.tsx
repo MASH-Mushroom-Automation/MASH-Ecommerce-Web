@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Trash2,
+  Minimize2,
   Maximize2,
   Minimize,
   X,
@@ -186,6 +187,16 @@ export function ChatDialog({
 
           {/* Window controls */}
           <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+              onClick={onToggleMinimize}
+              aria-label="Minimize"
+              data-testid="minimize-button"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
