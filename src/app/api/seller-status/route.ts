@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { decodeJWT } from "@/lib/jwt";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
@@ -45,6 +46,8 @@ export async function GET() {
       return NextResponse.json(empty, { status: 200 });
     }
 
+    const decoded = decodeJWT(token);
+
     const res = await fetch(`${API_URL}/seller-verification/my-status`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
@@ -63,6 +66,24 @@ export async function GET() {
       | SellerStatusResponse
       | BackendEnvelope<SellerStatusResponse>;
     const data = normalizeSellerStatusResponse(raw);
+
+    // Temporary debug info to confirm which token/user is being used.
+    // This helps detect stale cookies (wrong account) during testing.
+    if (process.env.NODE_ENV !== "production") {
+      return NextResponse.json(
+        {
+          ...data,
+          _debug: {
+            apiBase: API_URL,
+            sub: decoded?.sub ?? null,
+            email: decoded?.email ?? null,
+            role: decoded?.role ?? null,
+          },
+        },
+        { status: 200 },
+      );
+    }
+
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("[Seller Status API] Error:", error);

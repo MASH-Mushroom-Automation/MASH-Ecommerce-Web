@@ -35,6 +35,20 @@ export function useSellerNavigation() {
     }
 
     try {
+      // Check admin role first (JWT-based)
+      const roleRes = await fetch("/api/auth/get-role", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (roleRes.ok) {
+        const roleData: { role?: string | null } = await roleRes.json();
+        const role = (roleData?.role || "").toUpperCase();
+        if (role === "ADMIN" || role === "SUPER_ADMIN") {
+          router.push("/seller/dashboard");
+          return;
+        }
+      }
+
       const statusRes = await fetch("/api/seller-status", {
         method: "GET",
         credentials: "include",

@@ -82,17 +82,11 @@ export default function StartSellingPage() {
           }
         }
 
-        // Wait for profile to finish loading so we can avoid a flash for admins
-        // (some providers may not have role in JWT consistently)
-        if (profileLoading) return;
-
-        // Fallback role check from backend user profile if available
-        if (profile) {
-          const role = (profile.role || "").toUpperCase();
-          if (role === "ADMIN" || role === "SUPER_ADMIN") {
-            router.push("/seller/dashboard");
-            return;
-          }
+        // Optional fallback role check (do not block on profile loading)
+        const profileRole = (profile?.role || "").toUpperCase();
+        if (profileRole === "ADMIN" || profileRole === "SUPER_ADMIN") {
+          router.push("/seller/dashboard");
+          return;
         }
 
         // For non-admin users, check seller application status via backend API (JWT-scoped)
@@ -125,10 +119,10 @@ export default function StartSellingPage() {
     };
 
     checkSellerStatus();
-  }, [router, user, authLoading, profile, profileLoading]);
+  }, [router, user, authLoading, profile]);
 
   // Show loading while auth, profile, or seller status is being resolved
-  if (authLoading || profileLoading || !statusChecked) {
+  if (authLoading || !statusChecked) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
