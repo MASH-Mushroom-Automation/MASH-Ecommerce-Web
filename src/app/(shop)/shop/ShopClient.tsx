@@ -13,9 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { FilterSidebar } from "@/components/shop/FilterSidebar";
-import { SlidersHorizontal, Grid, List, Search, X, LayoutGrid, Rows3 } from "lucide-react";
+import {
+  SlidersHorizontal,
+  Grid,
+  List,
+  Search,
+  X,
+  LayoutGrid,
+  Rows3,
+} from "lucide-react";
 import { useSanityProducts } from "@/hooks/useSanityProducts";
 import { useSanityCategories } from "@/hooks/useSanityCategories";
 import { ProductGridSkeleton } from "@/components/ui/loading-spinner";
@@ -33,12 +47,13 @@ export function ShopClient() {
 
   // Initialize state from URL search params
   const initialSearch = searchParams.get("search") || "";
-  const initialCategory = searchParams.get("category") || "";
-  const initialSort = (searchParams.get("sort") as ProductFilters["sortBy"]) || "featured";
+  const initialCategory = searchParams.getAll("category");
+  const initialSort =
+    (searchParams.get("sort") as ProductFilters["sortBy"]) || "featured";
 
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    initialCategory ? [initialCategory] : []
+    initialCategory.length > 0 ? initialCategory : [],
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 12000]);
@@ -51,7 +66,8 @@ export function ShopClient() {
   const [currentOffset, setCurrentOffset] = useState(0);
 
   // Quick view state
-  const [quickViewProduct, setQuickViewProduct] = useState<TransformedProduct | null>(null);
+  const [quickViewProduct, setQuickViewProduct] =
+    useState<TransformedProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Debounce search query to avoid excessive API calls
@@ -60,13 +76,16 @@ export function ShopClient() {
   const { addToCart } = useCart();
 
   // Quick view handlers
-  const handleQuickView = useCallback((productId: string, products: TransformedProduct[]) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      setQuickViewProduct(product);
-      setIsQuickViewOpen(true);
-    }
-  }, []);
+  const handleQuickView = useCallback(
+    (productId: string, products: TransformedProduct[]) => {
+      const product = products.find((p) => p.id === productId);
+      if (product) {
+        setQuickViewProduct(product);
+        setIsQuickViewOpen(true);
+      }
+    },
+    [],
+  );
 
   const closeQuickView = useCallback(() => {
     setIsQuickViewOpen(false);
@@ -81,7 +100,7 @@ export function ShopClient() {
       params.set("search", debouncedSearchQuery);
     }
     if (selectedCategories.length > 0) {
-      params.set("category", selectedCategories[0]);
+      selectedCategories.forEach((cat) => params.append("category", cat));
     }
     if (sort && sort !== "featured") {
       params.set("sort", sort);
@@ -107,7 +126,13 @@ export function ShopClient() {
   // Reset offset when filters change (not on offset/pageSize change itself)
   useEffect(() => {
     setCurrentOffset(0);
-  }, [debouncedSearchQuery, selectedCategories, selectedTags, priceRange, sort]);
+  }, [
+    debouncedSearchQuery,
+    selectedCategories,
+    selectedTags,
+    priceRange,
+    sort,
+  ]);
 
   // Check if any filters are active
   const hasActiveFilters =
@@ -131,7 +156,7 @@ export function ShopClient() {
 
   // Build filters for Sanity query
   const filters: ProductFilters = {
-    category: selectedCategories.length > 0 ? selectedCategories[0] : undefined,
+    categories: selectedCategories.length > 0 ? selectedCategories : undefined,
     minPrice: priceRange[0],
     maxPrice: priceRange[1],
     sortBy: sort,
@@ -145,14 +170,17 @@ export function ShopClient() {
   // Toggle tag selection
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
   // Fetch products from Sanity CMS with server-side pagination
-  const { products: fetchedProducts, loading, error, totalCount } = useSanityProducts(filters);
+  const {
+    products: fetchedProducts,
+    loading,
+    error,
+    totalCount,
+  } = useSanityProducts(filters);
 
   // Fetch categories from Sanity CMS
   const { categories: sanityCategories } = useSanityCategories();
@@ -170,8 +198,8 @@ export function ShopClient() {
       accumulatedRef.current = fetchedProducts;
     } else if (currentOffset !== prevOffsetRef.current) {
       // Load More - append new products (deduplicate by id)
-      const existingIds = new Set(accumulatedRef.current.map(p => p.id));
-      const newProducts = fetchedProducts.filter(p => !existingIds.has(p.id));
+      const existingIds = new Set(accumulatedRef.current.map((p) => p.id));
+      const newProducts = fetchedProducts.filter((p) => !existingIds.has(p.id));
       accumulatedRef.current = [...accumulatedRef.current, ...newProducts];
     }
     prevOffsetRef.current = currentOffset;
@@ -188,7 +216,7 @@ export function ShopClient() {
   // Filter out categories without valid slug
   const categories = sanityCategories.filter(
     (cat): cat is typeof cat & { slug: string; name: string } =>
-      Boolean(cat.slug) && Boolean(cat.name)
+      Boolean(cat.slug) && Boolean(cat.name),
   );
 
   // Toggle category by SLUG (used for filtering)
@@ -196,12 +224,12 @@ export function ShopClient() {
     setSelectedCategories((prev) =>
       prev.includes(categorySlug)
         ? prev.filter((c) => c !== categorySlug)
-        : [...prev, categorySlug]
+        : [...prev, categorySlug],
     );
   };
 
   const handleLoadMore = () => {
-    setCurrentOffset(prev => prev + pageSize);
+    setCurrentOffset((prev) => prev + pageSize);
   };
 
   return (
@@ -226,9 +254,6 @@ export function ShopClient() {
                 hasActiveFilters={hasActiveFilters}
                 clearAllFilters={clearAllFilters}
                 popularTags={popularTags}
-                getCategoryCount={(name) =>
-                  displayedProducts.filter((p) => p.category === name).length
-                }
               />
             </div>
           </aside>
@@ -257,7 +282,11 @@ export function ShopClient() {
               </div>
               {debouncedSearchQuery && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Showing results for &ldquo;<span className="font-medium text-foreground">{debouncedSearchQuery}</span>&rdquo;
+                  Showing results for &ldquo;
+                  <span className="font-medium text-foreground">
+                    {debouncedSearchQuery}
+                  </span>
+                  &rdquo;
                   {totalCount === 0 && !loading && " - No products found"}
                 </p>
               )}
@@ -265,11 +294,13 @@ export function ShopClient() {
               {/* Active Filter Chips */}
               {hasActiveFilters && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-medium">Active filters:</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Active filters:
+                  </span>
 
                   {/* Category chips */}
                   {selectedCategories.map((catSlug) => {
-                    const category = categories.find(c => c.slug === catSlug);
+                    const category = categories.find((c) => c.slug === catSlug);
                     return (
                       <button
                         key={catSlug}
@@ -284,7 +315,8 @@ export function ShopClient() {
 
                   {/* Tag chips */}
                   {selectedTags.map((tag) => {
-                    const tagLabel = popularTags.find(t => t.value === tag)?.label || tag;
+                    const tagLabel =
+                      popularTags.find((t) => t.value === tag)?.label || tag;
                     return (
                       <button
                         key={tag}
@@ -303,7 +335,8 @@ export function ShopClient() {
                       onClick={() => setPriceRange([0, 12000])}
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted text-foreground text-xs rounded-full hover:bg-muted/80 transition-colors group border border-border"
                     >
-                      ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
+                      ₱{priceRange[0].toLocaleString()} - ₱
+                      {priceRange[1].toLocaleString()}
                       <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
                     </button>
                   )}
@@ -332,7 +365,10 @@ export function ShopClient() {
                     Filters
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-full sm:w-80 p-0 overflow-y-auto">
+                <SheetContent
+                  side="left"
+                  className="w-full sm:w-80 p-0 overflow-y-auto"
+                >
                   <div className="p-5">
                     <div className="flex items-center justify-between mb-5">
                       <SheetTitle className="text-lg font-bold text-foreground">
@@ -347,7 +383,9 @@ export function ShopClient() {
                         </button>
                       )}
                     </div>
-                    <SheetDescription className="sr-only">Filter products by category, price, and tags</SheetDescription>
+                    <SheetDescription className="sr-only">
+                      Filter products by category, price, and tags
+                    </SheetDescription>
                     <FilterSidebar
                       variant="mobile"
                       categories={categories}
@@ -373,15 +411,24 @@ export function ShopClient() {
 
               {/* Sort and Items Per Page Controls */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
-                <Select value={sort} onValueChange={(value) => setSort(value as ProductFilters["sortBy"])}>
+                <Select
+                  value={sort}
+                  onValueChange={(value) =>
+                    setSort(value as ProductFilters["sortBy"])
+                  }
+                >
                   <SelectTrigger className="w-full sm:w-[200px] bg-background border-border text-foreground hover:bg-muted/30">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="featured">Featured First</SelectItem>
                     <SelectItem value="newest">Newest Arrivals</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    <SelectItem value="price-asc">
+                      Price: Low to High
+                    </SelectItem>
+                    <SelectItem value="price-desc">
+                      Price: High to Low
+                    </SelectItem>
                     <SelectItem value="name">Name: A to Z</SelectItem>
                   </SelectContent>
                 </Select>
@@ -413,7 +460,7 @@ export function ShopClient() {
                       "transition-all duration-200 active:scale-95",
                       viewMode === "list"
                         ? "bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
-                        : "bg-card hover:bg-muted/30 border-border"
+                        : "bg-card hover:bg-muted/30 border-border",
                     )}
                     aria-pressed={viewMode === "list"}
                     aria-label="Switch to list view"
@@ -428,7 +475,7 @@ export function ShopClient() {
                       "transition-all duration-200 active:scale-95",
                       viewMode === "grid"
                         ? "bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
-                        : "bg-card hover:bg-muted/30 border-border"
+                        : "bg-card hover:bg-muted/30 border-border",
                     )}
                     aria-pressed={viewMode === "grid"}
                     aria-label="Switch to grid view"
@@ -470,8 +517,18 @@ export function ShopClient() {
                 {/* Results Count */}
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium text-foreground">{displayedProducts.length}</span> of <span className="font-medium text-foreground">{totalCount}</span> products
-                    {hasActiveFilters && <span className="ml-1">(filtered)</span>}
+                    Showing{" "}
+                    <span className="font-medium text-foreground">
+                      {displayedProducts.length}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-foreground">
+                      {totalCount}
+                    </span>{" "}
+                    products
+                    {hasActiveFilters && (
+                      <span className="ml-1">(filtered)</span>
+                    )}
                   </p>
                   {hasMoreProducts && (
                     <p className="text-xs text-muted-foreground hidden sm:block">
@@ -488,7 +545,9 @@ export function ShopClient() {
                         id={product.id}
                         slug={product.slug}
                         name={product.name}
-                        farm={product.grower?.name || product.category || "MASH"}
+                        farm={
+                          product.grower?.name || product.category || "MASH"
+                        }
                         price={product.price}
                         comparePrice={product.compareAtPrice}
                         unit={product.unit || "250g"}
@@ -500,7 +559,9 @@ export function ShopClient() {
                         reviewCount={productRatings[product.id]?.totalReviews}
                         tags={product.productTags || []}
                         description={product.description}
-                        onQuickView={(id) => handleQuickView(id, displayedProducts)}
+                        onQuickView={(id) =>
+                          handleQuickView(id, displayedProducts)
+                        }
                         sellerId={product.sellerId}
                       />
                     ))}
@@ -527,11 +588,18 @@ export function ShopClient() {
                               {product.name}
                             </h3>
                             <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">
-                              {product.grower?.name || product.category || "MASH"}
+                              {product.grower?.name ||
+                                product.category ||
+                                "MASH"}
                             </p>
-                            <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
-                              {product.description || "Fresh, locally-sourced mushrooms perfect for any culinary creation."}
-                            </p>
+                            <p
+                              className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug [&_strong]:font-semibold [&_em]:italic"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  product.description ||
+                                  "Fresh, locally-sourced mushrooms perfect for any culinary creation.",
+                              }}
+                            />
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex items-baseline gap-1.5">
@@ -572,8 +640,12 @@ export function ShopClient() {
                                     cartProduct.unit = product.unit;
                                   }
 
-                                  if (product.compareAtPrice && product.compareAtPrice > 0) {
-                                    cartProduct.comparePrice = product.compareAtPrice;
+                                  if (
+                                    product.compareAtPrice &&
+                                    product.compareAtPrice > 0
+                                  ) {
+                                    cartProduct.comparePrice =
+                                      product.compareAtPrice;
                                   }
 
                                   if (product.sellerId) {

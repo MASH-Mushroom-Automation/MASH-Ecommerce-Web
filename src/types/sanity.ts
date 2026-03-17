@@ -114,7 +114,7 @@ export interface SanityPerson {
  * Used for filtering products in hooks
  */
 export interface ProductFilters {
-  category?: string; // Category slug
+  categories?: string[]; // Category slugs (supports multi-select)
   minPrice?: number;
   maxPrice?: number;
   featured?: boolean;

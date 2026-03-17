@@ -1,26 +1,33 @@
 /**
  * useSanityProducts Hook
- * 
+ *
  * Custom React hook for fetching products from Sanity CMS.
  * Supports filtering, sorting, and pagination.
- * 
+ *
  * ⚠️ QUOTA WARNING: Real-time subscriptions are DISABLED to avoid API quota limits.
  * Use refetch() to manually refresh data.
  */
 
-import { useEffect, useState, useCallback } from 'react';
-import { sanityClient, listenSafe } from '@/lib/sanity/client';
-import type { MutationEvent } from '@sanity/client';
-import type { SanityProduct, ProductFilters, TransformedProduct } from '@/types/sanity';
+import { useEffect, useState, useCallback } from "react";
+import { sanityClient, listenSafe } from "@/lib/sanity/client";
+import type { MutationEvent } from "@sanity/client";
+import type {
+  SanityProduct,
+  ProductFilters,
+  TransformedProduct,
+} from "@/types/sanity";
 
 // Memory cache to prevent duplicate API calls (1 minute TTL)
-const productCache = new Map<string, { data: TransformedProduct[]; totalCount: number; timestamp: number }>();
+const productCache = new Map<
+  string,
+  { data: TransformedProduct[]; totalCount: number; timestamp: number }
+>();
 const CACHE_TTL = 60000; // 1 minute
 
 // Clear cache on hot reload during development
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   productCache.clear();
-  console.log('🧹 Product cache cleared');
+  console.log("🧹 Product cache cleared");
 }
 
 interface UseSanityProductsReturn {
@@ -33,10 +40,10 @@ interface UseSanityProductsReturn {
 
 /**
  * Fetch products from Sanity CMS with filters
- * 
+ *
  * @param filters - Product filter options (category, price, featured, etc.)
  * @returns products, loading state, error, and refetch function
- * 
+ *
  * @example
  * const { products, loading, error } = useSanityProducts({
  *   category: 'oyster-mushroom',
@@ -45,14 +52,16 @@ interface UseSanityProductsReturn {
  *   featured: true
  * });
  */
-export function useSanityProducts(filters?: ProductFilters): UseSanityProductsReturn {
+export function useSanityProducts(
+  filters?: ProductFilters,
+): UseSanityProductsReturn {
   const [products, setProducts] = useState<TransformedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchProducts = useCallback(async () => {
-    console.log('🔍 Fetching products from Sanity with filters:', filters);
+    console.log("🔍 Fetching products from Sanity with filters:", filters);
     try {
       setLoading(true);
       setError(null);
@@ -65,9 +74,10 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
         query += ` && isAvailable == true`;
       }
 
-      // Filter by category
-      if (filters?.category) {
-        query += ` && category->slug.current == "${filters.category}"`;
+      // Filter by categories (multi-select: match any selected category)
+      if (filters?.categories && filters.categories.length > 0) {
+        const slugList = filters.categories.map((s) => `"${s}"`).join(", ");
+        query += ` && category->slug.current in [${slugList}]`;
       }
 
       // Filter by featured
@@ -91,7 +101,9 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       // Filter by tags
       if (filters?.tags && filters.tags.length > 0) {
         // Match products that have ALL selected tags
-        const tagConditions = filters.tags.map(tag => `"${tag}" in productTags`).join(' && ');
+        const tagConditions = filters.tags
+          .map((tag) => `"${tag}" in productTags`)
+          .join(" || ");
         query += ` && (${tagConditions})`;
       }
 
@@ -141,19 +153,19 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       // Add sorting
       if (filters?.sortBy) {
         switch (filters.sortBy) {
-          case 'price-asc':
+          case "price-asc":
             query += ` | order(price asc)`;
             break;
-          case 'price-desc':
+          case "price-desc":
             query += ` | order(price desc)`;
             break;
-          case 'name':
+          case "name":
             query += ` | order(name asc)`;
             break;
-          case 'newest':
+          case "newest":
             query += ` | order(_createdAt desc)`;
             break;
-          case 'featured':
+          case "featured":
             query += ` | order(isFeatured desc, _createdAt desc)`;
             break;
           default:
@@ -165,7 +177,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       }
 
       // Fetch from Sanity
-      console.log('📡 Executing GROQ query:', query.substring(0, 200) + '...');
+      console.log("📡 Executing GROQ query:", query.substring(0, 200) + "...");
 
       // Server-side pagination: apply GROQ slice when limit is specified
       let paginatedQuery = query;
@@ -176,10 +188,10 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
 
       // Build count query from the filter portion (everything before the projection)
       // Extract the filter part to build a count query
-      let countQuery = '';
+      let countQuery = "";
       if (filters?.limit !== undefined) {
         // Extract filter conditions from the original query (before projection)
-        const projectionStart = query.indexOf('] {');
+        const projectionStart = query.indexOf("] {");
         if (projectionStart !== -1) {
           countQuery = `count(${query.substring(0, projectionStart + 1)})`;
         }
@@ -188,21 +200,29 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       // Execute queries (paginated query + optional count query)
       const [data, serverCount] = await Promise.all([
         sanityClient.fetch<SanityProduct[]>(paginatedQuery),
-        countQuery ? sanityClient.fetch<number>(countQuery) : Promise.resolve(-1),
+        countQuery
+          ? sanityClient.fetch<number>(countQuery)
+          : Promise.resolve(-1),
       ]);
-      console.log('📥 Raw Sanity response:', data.length, 'products');
+      console.log("📥 Raw Sanity response:", data.length, "products");
       if (serverCount >= 0) {
-        console.log('📊 Total matching products:', serverCount);
+        console.log("📊 Total matching products:", serverCount);
       }
 
       // Client-side price filtering (more flexible than GROQ)
       let filteredData = data;
       if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
         filteredData = data.filter((product) => {
-          if (filters.minPrice !== undefined && product.price < filters.minPrice) {
+          if (
+            filters.minPrice !== undefined &&
+            product.price < filters.minPrice
+          ) {
             return false;
           }
-          if (filters.maxPrice !== undefined && product.price > filters.maxPrice) {
+          if (
+            filters.maxPrice !== undefined &&
+            product.price > filters.maxPrice
+          ) {
             return false;
           }
           return true;
@@ -210,21 +230,29 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
       }
 
       // Transform Sanity products to match component interface
-      const { transformSanityProduct } = await import('@/types/sanity');
+      const { transformSanityProduct } = await import("@/types/sanity");
       const transformedProducts = filteredData.map(transformSanityProduct);
 
-      console.log('🛒 Fetched products from Sanity:', transformedProducts.length);
+      console.log(
+        "🛒 Fetched products from Sanity:",
+        transformedProducts.length,
+      );
 
       // Store in cache BEFORE setting state (use transformed data directly)
       const cacheKey = JSON.stringify(filters || {});
-      const resolvedTotalCount = serverCount >= 0 ? serverCount : transformedProducts.length;
-      productCache.set(cacheKey, { data: transformedProducts, totalCount: resolvedTotalCount, timestamp: Date.now() });
+      const resolvedTotalCount =
+        serverCount >= 0 ? serverCount : transformedProducts.length;
+      productCache.set(cacheKey, {
+        data: transformedProducts,
+        totalCount: resolvedTotalCount,
+        timestamp: Date.now(),
+      });
 
       setProducts(transformedProducts);
       // Set total count: use server count if available, otherwise use array length
       setTotalCount(resolvedTotalCount);
     } catch (err) {
-      console.error('Error fetching products from Sanity:', err);
+      console.error("Error fetching products from Sanity:", err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -237,7 +265,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     const cached = productCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('📦 Using cached products:', cached.data.length);
+      console.log("📦 Using cached products:", cached.data.length);
       setProducts(cached.data);
       setTotalCount(cached.totalCount);
       setLoading(false);
@@ -255,8 +283,9 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     if (filters?.isAvailable !== false) {
       query += ` && isAvailable == true`;
     }
-    if (filters?.category) {
-      query += ` && category->slug.current == "${filters.category}"`;
+    if (filters?.categories && filters.categories.length > 0) {
+      const slugList = filters.categories.map((s: string) => `"${s}"`).join(', ');
+      query += ` && category->slug.current in [${slugList}]`;
     }
     if (filters?.featured) {
       query += ` && isFeatured == true`;
@@ -347,7 +376,7 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
     };
     */
   }, [
-    filters?.category,
+    filters?.categories,
     filters?.minPrice,
     filters?.maxPrice,
     filters?.featured,
@@ -370,10 +399,10 @@ export function useSanityProducts(filters?: ProductFilters): UseSanityProductsRe
 
 /**
  * Fetch single product by slug from Sanity CMS
- * 
+ *
  * @param slug - Product slug
  * @returns product, loading state, error
- * 
+ *
  * @example
  * const { product, loading } = useSanityProduct('fresh-oyster-mushroom-250g');
  */
@@ -488,16 +517,18 @@ export function useSanityProduct(slug: string) {
           }
         }`;
 
-        const data: SanityProduct | null = await sanityClient.fetch(query, { slug });
+        const data: SanityProduct | null = await sanityClient.fetch(query, {
+          slug,
+        });
 
         if (data) {
-          const { transformSanityProduct } = await import('@/types/sanity');
+          const { transformSanityProduct } = await import("@/types/sanity");
           setProduct(transformSanityProduct(data));
         } else {
           setProduct(null);
         }
       } catch (err) {
-        console.error('Error fetching product from Sanity:', err);
+        console.error("Error fetching product from Sanity:", err);
         setError(err as Error);
       } finally {
         setLoading(false);
@@ -569,22 +600,25 @@ export function useSanityProduct(slug: string) {
         }
       }`;
 
-      const subscription = listenSafe(query, {}, { includeResult: true })
-        .subscribe(async (update: MutationEvent<SanityProduct>) => {
-          if (update.type === 'mutation' && 'result' in update && update.result) {
-            const data = update.result as unknown as SanityProduct;
+      const subscription = listenSafe(
+        query,
+        {},
+        { includeResult: true },
+      ).subscribe(async (update: MutationEvent<SanityProduct>) => {
+        if (update.type === "mutation" && "result" in update && update.result) {
+          const data = update.result as unknown as SanityProduct;
 
-            if (data) {
-              const { transformSanityProduct } = await import('@/types/sanity');
-              setProduct(transformSanityProduct(data));
-              console.log('🔄 Product updated in real-time!', data.name);
-            }
+          if (data) {
+            const { transformSanityProduct } = await import("@/types/sanity");
+            setProduct(transformSanityProduct(data));
+            console.log("🔄 Product updated in real-time!", data.name);
           }
-        });
+        }
+      });
 
       return () => {
         subscription.unsubscribe();
-        console.log('🧹 Product subscription cleaned up');
+        console.log("🧹 Product subscription cleaned up");
       };
     }
   }, [slug]);
@@ -595,21 +629,23 @@ export function useSanityProduct(slug: string) {
 /**
  * Fetch suggested products automatically from the same grower/store
  * Replaces manual suggestedProducts field - automatically finds products from same farm
- * 
+ *
  * @param currentProductId - ID of the current product being viewed
  * @param growerId - ID of the grower/store to fetch products from
  * @param limit - Number of suggested products to fetch (default: 4)
  * @returns suggested products, loading state, error
- * 
+ *
  * @example
  * const { suggestedProducts, loading } = useSanitySuggestedProducts(productId, growerId, 4);
  */
 export function useSanitySuggestedProducts(
   currentProductId?: string,
   growerId?: string,
-  limit: number = 4
+  limit: number = 4,
 ) {
-  const [suggestedProducts, setSuggestedProducts] = useState<TransformedProduct[]>([]);
+  const [suggestedProducts, setSuggestedProducts] = useState<
+    TransformedProduct[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -650,19 +686,26 @@ export function useSanitySuggestedProducts(
           limit: limit - 1, // GROQ uses 0-based indexing
         };
 
-        console.log('🔍 Fetching suggested products from same grower:', { growerId, currentProductId, limit });
+        console.log("🔍 Fetching suggested products from same grower:", {
+          growerId,
+          currentProductId,
+          limit,
+        });
         const data: SanityProduct[] = await sanityClient.fetch(query, params);
 
         if (data && Array.isArray(data)) {
-          const { transformSanityProduct } = await import('@/types/sanity');
+          const { transformSanityProduct } = await import("@/types/sanity");
           const transformedProducts = data.map(transformSanityProduct);
           setSuggestedProducts(transformedProducts);
-          console.log('✅ Suggested products fetched:', { count: transformedProducts.length, grower: growerId });
+          console.log("✅ Suggested products fetched:", {
+            count: transformedProducts.length,
+            grower: growerId,
+          });
         } else {
           setSuggestedProducts([]);
         }
       } catch (err) {
-        console.error('Error fetching suggested products from Sanity:', err);
+        console.error("Error fetching suggested products from Sanity:", err);
         setError(err as Error);
         setSuggestedProducts([]);
       } finally {
@@ -680,10 +723,10 @@ export function useSanitySuggestedProducts(
  * Fetch featured products from Sanity CMS
  * Uses the featuredProducts singleton for curated selection
  * Falls back to products with isFeatured flag if singleton is empty
- * 
+ *
  * @param limit - Number of featured products to fetch (default: 8)
  * @returns featured products, loading state, error
- * 
+ *
  * @example
  * const { products, loading } = useSanityFeaturedProducts(6);
  */
@@ -729,14 +772,17 @@ export function useSanityFeaturedProducts(limit: number = 8) {
 
         if (singletonData?.products && singletonData.products.length > 0) {
           // Use products from singleton
-          const { transformSanityProduct } = await import('@/types/sanity');
+          const { transformSanityProduct } = await import("@/types/sanity");
           const transformedProducts = singletonData.products
             .filter((p: SanityProduct | null) => p !== null)
             .slice(0, limit)
             .map(transformSanityProduct);
 
           setProducts(transformedProducts);
-          console.log('✅ Featured products loaded from singleton:', transformedProducts.length);
+          console.log(
+            "✅ Featured products loaded from singleton:",
+            transformedProducts.length,
+          );
           return;
         }
 
@@ -765,13 +811,16 @@ export function useSanityFeaturedProducts(limit: number = 8) {
 
         const data: SanityProduct[] = await sanityClient.fetch(fallbackQuery);
 
-        const { transformSanityProduct } = await import('@/types/sanity');
+        const { transformSanityProduct } = await import("@/types/sanity");
         const transformedProducts = data.map(transformSanityProduct);
 
         setProducts(transformedProducts);
-        console.log('⚠️ Featured products loaded from isFeatured flag:', transformedProducts.length);
+        console.log(
+          "⚠️ Featured products loaded from isFeatured flag:",
+          transformedProducts.length,
+        );
       } catch (err) {
-        console.error('Error fetching featured products from Sanity:', err);
+        console.error("Error fetching featured products from Sanity:", err);
         setError(err as Error);
       } finally {
         setLoading(false);
@@ -783,16 +832,19 @@ export function useSanityFeaturedProducts(limit: number = 8) {
     // Set up real-time listener for featuredProducts singleton
     const singletonListenQuery = `*[_type == "featuredProducts"]`;
 
-    const subscription = listenSafe(singletonListenQuery, {}, { includeResult: true })
-      .subscribe(async () => {
-        // Refetch when featuredProducts singleton changes
-        console.log('🔄 Featured products singleton changed, refetching...');
-        fetchFeaturedProducts();
-      });
+    const subscription = listenSafe(
+      singletonListenQuery,
+      {},
+      { includeResult: true },
+    ).subscribe(async () => {
+      // Refetch when featuredProducts singleton changes
+      console.log("🔄 Featured products singleton changed, refetching...");
+      fetchFeaturedProducts();
+    });
 
     return () => {
       subscription.unsubscribe();
-      console.log('🧹 Featured products subscription cleaned up');
+      console.log("🧹 Featured products subscription cleaned up");
     };
   }, [limit]);
 

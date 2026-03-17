@@ -31,8 +31,6 @@ interface FilterSidebarProps {
   popularTags: TagItem[];
   /** 'desktop' renders inline with product counts; 'mobile' renders without counts */
   variant: "desktop" | "mobile";
-  /** Only used in desktop variant for per-category product counts */
-  getCategoryCount?: (categoryName: string) => number;
 }
 
 /**
@@ -54,7 +52,6 @@ export function FilterSidebar({
   clearAllFilters,
   popularTags,
   variant,
-  getCategoryCount,
 }: FilterSidebarProps) {
   const idPrefix = variant === "mobile" ? "mobile-" : "";
 
@@ -97,16 +94,12 @@ export function FilterSidebar({
               htmlFor={`${idPrefix}category-all`}
               className={cn(
                 "text-sm cursor-pointer font-normal",
-                variant === "desktop" ? "flex items-center justify-between w-full" : "",
                 selectedCategories.length === 0
                   ? "text-foreground font-medium"
                   : "text-muted-foreground"
               )}
             >
               All Products
-              {variant === "desktop" && (
-                <span className="text-xs text-muted-foreground">({totalCount})</span>
-              )}
             </Label>
           </div>
           {categories.map((category) => (
@@ -120,18 +113,12 @@ export function FilterSidebar({
                 htmlFor={`${idPrefix}category-${category.slug}`}
                 className={cn(
                   "text-sm cursor-pointer font-normal",
-                  variant === "desktop" ? "flex items-center justify-between w-full" : "",
                   selectedCategories.includes(category.slug)
                     ? "text-foreground font-medium"
                     : "text-muted-foreground"
                 )}
               >
                 {category.name}
-                {variant === "desktop" && getCategoryCount && (
-                  <span className="text-xs text-muted-foreground">
-                    ({getCategoryCount(category.name)})
-                  </span>
-                )}
               </Label>
             </div>
           ))}
