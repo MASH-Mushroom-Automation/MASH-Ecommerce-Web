@@ -19,7 +19,6 @@ const cspContent = [
   "font-src 'self' data: https://fonts.gstatic.com https://cal.com https://*.cal.com",
   "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://lalamove.com https://api.paymongo.com https://api.mashmarket.app https://cdn.sanity.io https://gerattrr.api.sanity.io https://gerattrr.apicdn.sanity.io https://router.huggingface.co https://cal.com https://*.cal.com https://app.cal.com https://generativelanguage.googleapis.com https://*.cloudinary.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
   "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://www.google.com https://maps.app.goo.gl https://www.google.com/maps https://cal.com https://*.cal.com https://app.cal.com https://www.google.com/recaptcha/ https://recaptcha.google.com https://www.recaptcha.net",
-  "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join("; ");

@@ -46,6 +46,11 @@ service cloud.firestore {
         // Users can only access their own addresses
         allow read, write: if isOwner(userId);
       }
+      
+      // Wishlist subcollection
+      match /wishlist/{wishlistItemId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     

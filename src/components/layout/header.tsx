@@ -414,8 +414,7 @@ export function Header() {
                         <Image
                           src={profile.avatar}
                           alt="Profile"
-                          fill
-                          className="object-cover"
+                          fill                            sizes="36px"                          className="object-cover"
                         />
                       ) : (
                         <User size={20} className="absolute inset-0 m-auto" />

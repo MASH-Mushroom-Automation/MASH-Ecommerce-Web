@@ -108,7 +108,7 @@ export function ChatDialog({
           onKeyDown={(e) => e.key === 'Enter' && onToggleMinimize?.()}
           aria-label="Restore chat window"
         >
-          <Image src="/logo.png" alt="MASH" width={24} height={24} className="rounded-full" />
+          <Image src="/logo.png" alt="MASH" width={24} height={24} className="rounded-full" style={{ width: 'auto', height: 'auto' }} />
           <span className="text-sm font-medium select-none">MASH AI</span>
           {loading && (
             <span className="flex gap-0.5" aria-label="Thinking">
@@ -177,6 +177,7 @@ export function ChatDialog({
             width={36}
             height={36}
             className="rounded-full flex-shrink-0"
+            style={{ width: 'auto', height: 'auto' }}
           />
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold leading-tight truncate">MASH AI Assistant</h2>
@@ -247,6 +248,7 @@ export function ChatDialog({
                   width={56}
                   height={56}
                   className="rounded-full mb-4 opacity-80"
+                  style={{ width: 'auto', height: 'auto' }}
                 />
                 <h3 className="text-base font-semibold mb-1">Welcome to MASH AI</h3>
                 <p className="text-sm text-muted-foreground mb-5 max-w-xs">
@@ -292,7 +294,7 @@ export function ChatDialog({
             {loading && (
               <div className="flex gap-2.5 items-start" data-testid="loading-indicator">
                 <div className="flex-shrink-0 h-7 w-7 rounded-full bg-white dark:bg-zinc-800 border border-border/60 flex items-center justify-center overflow-hidden">
-                  <Image src="/logo.png" alt="MASH" width={20} height={20} className="object-contain" />
+                  <Image src="/logo.png" alt="MASH" width={20} height={20} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
                 </div>
                 <div className="bg-secondary/60 rounded-2xl rounded-tl-sm px-4 py-2.5">
                   <div className="flex items-center gap-1.5">

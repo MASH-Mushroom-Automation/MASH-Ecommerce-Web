@@ -67,6 +67,7 @@ export function ChatButton({ isOpen, onClick, className, hasUnread = false }: Ch
             width={32}
             height={32}
             className="rounded-full object-contain"
+            style={{ width: 'auto', height: 'auto' }}
             priority
           />
         )}

@@ -139,10 +139,20 @@ export async function apiRequest<T>(
 
     if (isAuthEndpoint) {
       // Extract error message from backend structure
-      const errorMessage = data.error?.message ||
-        data.details?.message ||
-        data.message ||
-        "Validation failed";
+      let errorMessage = "Validation failed";
+      
+      if (data.error?.details?.message) {
+        errorMessage = data.error.details.message;
+      } else if (data.error?.details && typeof data.error.details === 'object') {
+        const firstKey = Object.keys(data.error.details)[0];
+        if (firstKey && data.error.details[firstKey]?.messages?.length > 0) {
+          errorMessage = data.error.details[firstKey].messages[0];
+        } else {
+          errorMessage = data.error?.message || data.details?.message || data.message || "Validation failed";
+        }
+      } else {
+        errorMessage = data.error?.message || data.details?.message || data.message || "Validation failed";
+      }
 
       // Ensure errorMessage is always a string
       const messageString = typeof errorMessage === 'string'
@@ -226,10 +236,20 @@ export async function apiRequest<T>(
     if (isAuthEndpoint) {
       // Extract error message from backend structure: data.error.message
       // Backend sends: {error: {message: "Invalid credentials"}}
-      const errorMessage = data.error?.message ||
-        data.details?.message ||
-        data.message ||
-        "Authentication failed";
+      let errorMessage = "Authentication failed";
+      
+      if (data.error?.details?.message) {
+        errorMessage = data.error.details.message;
+      } else if (data.error?.details && typeof data.error.details === 'object') {
+        const firstKey = Object.keys(data.error.details)[0];
+        if (firstKey && data.error.details[firstKey]?.messages?.length > 0) {
+          errorMessage = data.error.details[firstKey].messages[0];
+        } else {
+          errorMessage = data.error?.message || data.details?.message || data.message || "Authentication failed";
+        }
+      } else {
+        errorMessage = data.error?.message || data.details?.message || data.message || "Authentication failed";
+      }
 
       // Ensure errorMessage is always a string (defensive coding)
       const messageString = typeof errorMessage === 'string'

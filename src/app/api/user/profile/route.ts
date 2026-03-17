@@ -115,6 +115,25 @@ export async function GET(request: NextRequest) {
         { status: 404 },
       );
     }
+    
+    // Check if it's an Unauthorized error
+    const isUnauthorized = 
+      error instanceof Error && 
+      (error.message === "Unauthorized" || (error as any).statusCode === 401);
+      
+    if (isUnauthorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication expired or invalid",
+          },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 },
+      );
+    }
 
     return NextResponse.json(
       {
@@ -169,6 +188,25 @@ export async function PUT(request: NextRequest) {
       requestId: `req_${Date.now()}`,
     });
   } catch (error) {
+    // Check if it's an Unauthorized error
+    const isUnauthorized = 
+      error instanceof Error && 
+      (error.message === "Unauthorized" || (error as any).statusCode === 401);
+      
+    if (isUnauthorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication expired or invalid",
+          },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 },
+      );
+    }
+    
     return NextResponse.json(
       {
         success: false,

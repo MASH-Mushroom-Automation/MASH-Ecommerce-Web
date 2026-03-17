@@ -76,6 +76,7 @@ export function Message({
             width={20}
             height={20}
             className="object-contain"
+            style={{ width: 'auto', height: 'auto' }}
           />
         )}
       </div>

@@ -32,8 +32,13 @@ const signupSchema = z
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     email: z.string().email("Enter a valid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Confirm your password"),
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)"),
+    confirmPassword: z.string().min(8, "Confirm your password"),
     terms: z.boolean().refine((v) => v === true, {
       message: "You must agree to Terms & Conditions",
     }),
@@ -129,12 +134,22 @@ export default function SignupPage() {
         if ("statusCode" in err) {
           statusCode = (err as any).statusCode;
         }
-        // Check if error has response property (from api-client)
+          // Check if error has response property (from api-client)
         if ("response" in err) {
           const response = (err as any).response;
           // Backend format: { success: false, error: { message: "..." }, statusCode: 409 }
           errorMessage =
-            response?.error?.message || response?.message || err.message;
+            response?.error?.message || response?.message || response?.data?.message || err.message;
+            
+          // Try to get validation details
+          const details = response?.data?.details || response?.error?.details;
+          if (details && typeof details === 'object') {
+            const firstDetailKey = Object.keys(details)[0];
+            if (firstDetailKey && details[firstDetailKey]?.messages?.length > 0) {
+              errorMessage = details[firstDetailKey].messages[0];
+            }
+          }
+            
           statusCode = response?.statusCode || statusCode;
         }
       } else if (typeof err === "object" && err !== null) {
@@ -146,6 +161,16 @@ export default function SignupPage() {
         // Extract from nested error object
         errorMessage =
           errorObj.error?.message || errorObj.message || errorMessage;
+        
+        // Extract validation details if present
+        if (errorObj.error?.details) {
+          const details = errorObj.error.details;
+          const firstDetailKey = Object.keys(details)[0];
+          if (firstDetailKey && details[firstDetailKey]?.messages?.length > 0) {
+            errorMessage = details[firstDetailKey].messages[0];
+          }
+        }
+        
         statusCode = errorObj.statusCode || 500;
       }
 
