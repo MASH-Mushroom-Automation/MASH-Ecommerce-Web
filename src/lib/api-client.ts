@@ -6,7 +6,7 @@ const PRODUCTION_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:30000/api/v1";
 const LOCAL_API_URL =
   process.env.NEXT_PUBLIC_LOCAL_API_URL || "http://localhost:30000/api/v1";
-const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || "local";
+const EMAIL_SERVICE_ENV = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ENV || "production";
 const ENABLE_API_LOGGING =
   process.env.NEXT_PUBLIC_ENABLE_API_LOGGING === "true";
 
