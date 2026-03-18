@@ -2,13 +2,15 @@
  * Email Service Index
  *
  * Export all email-related functionality from a single location.
- * Uses Gmail SMTP via Nodemailer (not Resend).
+ * Uses Resend as primary provider, falls back to Gmail SMTP.
  */
 
-// Gmail SMTP client
+// Resend client (primary)
+export { resend, EMAIL_CONFIG, isEmailConfigured } from "./resend";
+
+// Gmail SMTP client (fallback)
 export {
   isGmailConfigured,
-  isGmailConfigured as isEmailConfigured,
   getFromAddress,
   sendRawEmail,
   verifyConnection,

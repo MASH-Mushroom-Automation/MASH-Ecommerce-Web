@@ -33,9 +33,9 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
           {/* Header */}
           <Section style={header}>
             <Img
-              src="https://mash.ph/logo.png"
-              width="120"
-              height="40"
+              src="https://res.cloudinary.com/dc4bfldl6/image/upload/mash-logo_f7cn5c"
+              width="80"
+              height="80"
               alt="MASH"
               style={logo}
             />

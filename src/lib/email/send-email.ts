@@ -2,11 +2,12 @@
  * Email Sending Service
  *
  * High-level service for sending order notification emails.
- * Uses Gmail SMTP via Nodemailer (not Resend).
+ * Uses Resend as primary provider, falls back to Gmail SMTP.
  * Handles template rendering with React Email and error logging.
  */
 
 import { render } from "@react-email/components";
+import { resend, EMAIL_CONFIG, isEmailConfigured } from "./resend";
 import {
   isGmailConfigured,
   sendRawEmail,
@@ -23,8 +24,41 @@ import {
 } from "./templates";
 
 // Re-export for backward compatibility
-export { isGmailConfigured as isEmailConfigured };
+export { isEmailConfigured, isGmailConfigured };
 export type { EmailType, SendEmailPayload, SendEmailResult };
+
+/**
+ * Send HTML email via Resend
+ */
+async function sendViaResend(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<SendEmailResult> {
+  if (!resend) {
+    return { success: false, error: "Resend not configured" };
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+    });
+    if (error) {
+      console.error("Resend error:", error);
+      return { success: false, error: error.message };
+    }
+    console.log(`✅ Email sent via Resend to ${options.to}:`, data?.id);
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    console.error("Resend exception:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown Resend error",
+    };
+  }
+}
 
 /**
  * Send an email based on type
@@ -32,9 +66,9 @@ export type { EmailType, SendEmailPayload, SendEmailResult };
 export async function sendEmail(
   payload: SendEmailPayload
 ): Promise<SendEmailResult> {
-  // Check if email service is configured
-  if (!isGmailConfigured()) {
-    console.warn("Gmail SMTP not configured, skipping email send");
+  // Check if any email service is configured
+  if (!isEmailConfigured() && !isGmailConfigured()) {
+    console.warn("No email service configured (Resend or Gmail SMTP), skipping email send");
     return {
       success: false,
       error: "Email service not configured",
@@ -143,18 +177,26 @@ export async function sendEmail(
     // Render React Email template to HTML
     const html = await render(reactElement);
 
-    // Send email via Gmail SMTP
-    const result = await sendRawEmail({
-      to,
-      subject,
-      html,
-    });
-
-    if (result.success) {
-      console.log(`✅ Email sent successfully: ${type} to ${to}`, result.messageId);
+    // Try Resend first (primary)
+    if (isEmailConfigured()) {
+      const resendResult = await sendViaResend({ to, subject, html });
+      if (resendResult.success) {
+        console.log(`✅ Email sent via Resend: ${type} to ${to}`, resendResult.messageId);
+        return resendResult;
+      }
+      console.warn(`[WARN] Resend failed, falling back to Gmail SMTP: ${resendResult.error}`);
     }
 
-    return result;
+    // Fallback to Gmail SMTP
+    if (isGmailConfigured()) {
+      const result = await sendRawEmail({ to, subject, html });
+      if (result.success) {
+        console.log(`✅ Email sent via Gmail SMTP (fallback): ${type} to ${to}`, result.messageId);
+      }
+      return result;
+    }
+
+    return { success: false, error: "All email providers failed or unconfigured" };
   } catch (error) {
     console.error("Email send error:", error);
     return {
