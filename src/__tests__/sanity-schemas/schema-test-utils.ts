@@ -151,3 +151,11 @@ export function assertFieldHasOptions(schema: any, fieldName: string, expectedVa
 export function countFields(schema: any): number {
   return schema.fields?.length ?? 0;
 }
+
+describe("schema test utils module", () => {
+  it("should export helper functions", () => {
+    expect(typeof findField).toBe("function");
+    expect(typeof getFieldNames).toBe("function");
+    expect(typeof countFields).toBe("function");
+  });
+});
