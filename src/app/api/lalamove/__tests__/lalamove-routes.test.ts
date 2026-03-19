@@ -46,10 +46,13 @@ jest.mock("@/lib/firebase/orders", () => ({
 }));
 jest.mock("firebase/firestore", () => ({
   collection: jest.fn(),
+  addDoc: jest.fn().mockResolvedValue({ id: "mock-id" }),
   query: jest.fn(),
   where: jest.fn(),
+  orderBy: jest.fn(),
   getDocs: jest.fn().mockResolvedValue({ docs: [] }),
   getFirestore: jest.fn(),
+  Timestamp: { now: jest.fn(() => ({ toDate: () => new Date("2026-03-19T00:00:00.000Z") })) },
   doc: jest.fn(),
   updateDoc: jest.fn(),
 }));
