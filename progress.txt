@@ -4885,3 +4885,31 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 5. Shop pagination: Server-side via useSanityProducts({offset,limit}) in ShopClient.tsx with Load More accumulation
 
 **Quality Gates:** [PASS] All features present and wired correctly
+
+## [2026-03-19 16:30] - LAMA-059 to LAMA-068
+**Completed:** DeliveryAddressPair reconciliation + new delivery components/hooks and tests
+**Stories:** LAMA-059, LAMA-060, LAMA-061, LAMA-062, LAMA-063, LAMA-064, LAMA-065, LAMA-066, LAMA-067, LAMA-068
+**Files Changed:**
+- src/components/delivery/DeliveryRatingCard.tsx
+- src/components/delivery/__tests__/DeliveryRatingCard.test.tsx
+- src/components/delivery/DeliveryVehicleInfo.tsx
+- src/components/delivery/__tests__/DeliveryVehicleInfo.test.tsx
+- src/hooks/useDeliveryFilters.ts
+- src/hooks/__tests__/useDeliveryFilters.test.ts
+- src/components/delivery/DeliveryScheduleBanner.tsx
+- src/components/delivery/__tests__/DeliveryScheduleBanner.test.tsx
+- src/components/delivery/index.ts
+- prd-lalamove-realtime.json
+
+**Implementation Notes:**
+- Reconciled PRD drift: DeliveryAddressPair component and tests already existed and pass story acceptance criteria.
+- Added DeliveryRatingCard with 5-star interaction, optional comment, submit callback, and submitted lock state.
+- Added DeliveryVehicleInfo with compact/full variants, capacity details, optional price badge, and icon override.
+- Added useDeliveryFilters hook with status/date/search filtering, clearFilters, and typed filter state.
+- Added DeliveryScheduleBanner with scheduled badge, upcoming countdown text, overdue state, and optional reschedule action.
+- Updated delivery barrel exports for newly added components.
+
+**Validation:**
+- npx jest src/components/delivery/__tests__/DeliveryAddressPair.test.tsx src/components/delivery/__tests__/DeliveryRatingCard.test.tsx src/components/delivery/__tests__/DeliveryVehicleInfo.test.tsx src/hooks/__tests__/useDeliveryFilters.test.ts src/components/delivery/__tests__/DeliveryScheduleBanner.test.tsx --runInBand
+- Result: PASS (5 suites, 35 tests)
+---
