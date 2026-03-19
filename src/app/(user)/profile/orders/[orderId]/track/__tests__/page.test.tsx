@@ -66,12 +66,14 @@ const createMockOrder = (overrides = {}) => ({
   lalamoveOrderId: 'llm-ord-456',
   lalamoveTracking: {
     status: 'ON_GOING',
-    driverId: 'driver-1',
-    driverName: 'Juan Cruz',
-    driverPhone: '+639171234567',
-    driverPlateNumber: 'ABC 1234',
-    driverPhoto: null,
-    driverLocation: { lat: 14.56, lng: 121.0, updatedAt: '2026-02-20T15:00:00Z' },
+    driver: {
+      id: 'driver-1',
+      name: 'Juan Cruz',
+      phone: '+639171234567',
+      plateNumber: 'ABC 1234',
+      photo: null,
+      coordinates: { lat: 14.56, lng: 121.0, updatedAt: '2026-02-20T15:00:00Z' },
+    },
     shareLink: 'https://share.lalamove.com/abc',
   },
   createdAt: '2026-02-20T10:00:00Z',
@@ -519,8 +521,11 @@ describe('FirebaseOrderTrackingPage', () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          driverPhoto: null,
-          driverName: 'Juan Cruz',
+          driver: {
+            ...createMockOrder().lalamoveTracking.driver,
+            photo: null,
+            name: 'Juan Cruz',
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
@@ -533,8 +538,11 @@ describe('FirebaseOrderTrackingPage', () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          driverPhoto: null,
-          driverName: null,
+          driver: {
+            ...createMockOrder().lalamoveTracking.driver,
+            photo: null,
+            name: null,
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
@@ -549,7 +557,10 @@ describe('FirebaseOrderTrackingPage', () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          driverPhoto: 'https://example.com/photo.jpg',
+          driver: {
+            ...createMockOrder().lalamoveTracking.driver,
+            photo: 'https://example.com/photo.jpg',
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
@@ -564,7 +575,10 @@ describe('FirebaseOrderTrackingPage', () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          driverPhone: null,
+          driver: {
+            ...createMockOrder().lalamoveTracking.driver,
+            phone: null,
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
@@ -587,52 +601,53 @@ describe('FirebaseOrderTrackingPage', () => {
   });
 
   describe('ETA display', () => {
-    it('shows pickup and delivery ETAs when available', async () => {
+    it('shows ETA and distance when tracking eta exists', async () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          pickupEta: '3:30 PM',
-          deliveryEta: '4:15 PM',
+          eta: {
+            minutes: 12,
+            distance: 3.4,
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
       await waitFor(() => {
-        expect(screen.getByText('Pickup ETA')).toBeInTheDocument();
-        expect(screen.getByText('3:30 PM')).toBeInTheDocument();
-        expect(screen.getByText('Delivery ETA')).toBeInTheDocument();
-        expect(screen.getByText('4:15 PM')).toBeInTheDocument();
+        expect(screen.getByText('ETA')).toBeInTheDocument();
+        expect(screen.getByText('12 min')).toBeInTheDocument();
+        expect(screen.getByText('Distance')).toBeInTheDocument();
+        expect(screen.getByText('3.4 km')).toBeInTheDocument();
       });
     });
 
-    it('shows only delivery ETA when no pickup ETA', async () => {
+    it('hides eta section when eta object is missing', async () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          pickupEta: null,
-          deliveryEta: '4:15 PM',
-        },
-      }));
-      render(<FirebaseOrderTrackingPage />);
-      await waitFor(() => {
-        expect(screen.queryByText('Pickup ETA')).not.toBeInTheDocument();
-        expect(screen.getByText('Delivery ETA')).toBeInTheDocument();
-      });
-    });
-
-    it('hides ETAs section when neither is available', async () => {
-      mockGetOrder.mockResolvedValue(createMockOrder({
-        lalamoveTracking: {
-          ...createMockOrder().lalamoveTracking,
-          pickupEta: null,
-          deliveryEta: null,
+          eta: null,
         },
       }));
       render(<FirebaseOrderTrackingPage />);
       await waitFor(() => {
         expect(screen.getByText('Track Your Order')).toBeInTheDocument();
       });
-      expect(screen.queryByText('Pickup ETA')).not.toBeInTheDocument();
-      expect(screen.queryByText('Delivery ETA')).not.toBeInTheDocument();
+      expect(screen.queryByText('ETA')).not.toBeInTheDocument();
+      expect(screen.queryByText('Distance')).not.toBeInTheDocument();
+    });
+
+    it('hides eta labels when eta object is undefined', async () => {
+      mockGetOrder.mockResolvedValue(createMockOrder({
+        lalamoveTracking: {
+          ...createMockOrder().lalamoveTracking,
+          eta: undefined,
+        },
+      }));
+      render(<FirebaseOrderTrackingPage />);
+      await waitFor(() => {
+        expect(screen.getByText('Track Your Order')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('ETA')).not.toBeInTheDocument();
+      expect(screen.queryByText('Distance')).not.toBeInTheDocument();
     });
   });
 
@@ -1041,11 +1056,11 @@ describe('FirebaseOrderTrackingPage', () => {
   });
 
   describe('no driver assigned (no driverId in tracking)', () => {
-    it('does not render driver card when no driverId', async () => {
+    it('does not render driver card when no driver data', async () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           status: 'ASSIGNING_DRIVER',
-          driverId: null,
+          driver: null,
           shareLink: null,
         },
       }));
@@ -1071,7 +1086,10 @@ describe('FirebaseOrderTrackingPage', () => {
       mockGetOrder.mockResolvedValue(createMockOrder({
         lalamoveTracking: {
           ...createMockOrder().lalamoveTracking,
-          driverLocation: null,
+          driver: {
+            ...createMockOrder().lalamoveTracking.driver,
+            coordinates: null,
+          },
         },
       }));
       render(<FirebaseOrderTrackingPage />);
