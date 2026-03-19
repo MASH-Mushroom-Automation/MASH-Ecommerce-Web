@@ -4912,4 +4912,23 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 **Validation:**
 - npx jest src/components/delivery/__tests__/DeliveryAddressPair.test.tsx src/components/delivery/__tests__/DeliveryRatingCard.test.tsx src/components/delivery/__tests__/DeliveryVehicleInfo.test.tsx src/hooks/__tests__/useDeliveryFilters.test.ts src/components/delivery/__tests__/DeliveryScheduleBanner.test.tsx --runInBand
 - Result: PASS (5 suites, 35 tests)
+
+## [2026-03-19 17:35] - LAMA-006 Stabilization
+**Completed:** Lalamove chat route test contract alignment after Firestore migration
+**Persona:** SENTINEL
+**Commit:** 2b841692
+**Files Changed:**
+- src/app/api/lalamove/chat/send/__tests__/chat-send-route.test.ts
+- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
+
+**Implementation Notes:**
+- Replaced stale simulation-response assertions with Firestore-backed route expectations.
+- Added explicit Firestore mocks (addDoc, getDocs, query, orderBy, Timestamp) in chat route tests.
+- Added missing Firestore mock exports in aggregate Lalamove route tests to prevent route-level 500s during unit runs.
+
+**Validation:**
+- Targeted tests: PASS (22 tests) for chat-send-route and lalamove-routes suites.
+- Build: PASS
+- Lint: PASS
+- Global typecheck/full test still have unrelated legacy blockers outside this scoped patch.
 ---
