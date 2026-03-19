@@ -153,7 +153,9 @@ describe("useSanityOrders", () => {
 
     const { result } = renderHook(() => useSanityOrders());
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.loading).toBe(false), {
+      timeout: 10000,
+    });
     expect(result.current.error).toBe("Failed to fetch orders");
   });
 

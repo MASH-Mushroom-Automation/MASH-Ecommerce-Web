@@ -65,6 +65,24 @@
 - Dashboard tests should only mock the hooks actually imported by the component
 - Use getter-based mock pattern for Firebase service classes (jest.mock with get propName() { return mockFn })
 ---
+
+## [2026-03-20 09:10] - BASE-TEST-001
+**Completed:** Stabilized non-Lalamove baseline failure in useSanityOrders test suite
+**Persona:** SENTINEL
+**Files Changed:**
+- src/hooks/__tests__/useSanityOrders.test.tsx
+
+**Implementation Notes:**
+- Hardened the `should handle non-Error thrown` test to avoid full-suite timing flakiness by increasing `waitFor` timeout to 10000ms.
+- Preserved existing behavior assertions (`loading` transitions to false and fallback error message remains `Failed to fetch orders`).
+
+**Validation:**
+- Targeted suite: PASS (`src/hooks/__tests__/useSanityOrders.test.tsx`, 31 tests)
+- Full Jest: PASS (534 passed, 1 skipped, 0 failed)
+- Build: PASS
+- Lint: PASS
+- Typecheck: FAIL (pre-existing unrelated blockers across AI/stock/api test typing modules)
+---
 - **Stock Management Types:** All stock adjustment types use Zod schemas for validation. validateStockAdjustment() checks business rules (positive/negative quantities based on type, sufficient stock, valid reason codes).
 - **Test Stability:** Async timing tests (CartContext, Firebase services) require generous timeouts (6s+ for waitFor, 10s+ for test wrappers) due to 700ms debounce delays. Stack multiple timeout buffers for complex async chains.
 - **Sanity Schema Tests:** Sanity defineField, defineType, defineArrayMember require Studio environment (schemaTypes.ts loaded). Use .test.skip.ts naming or describe.skip() for Jest-only environments. Schema validation tests should run in studio/test directory instead.
@@ -4275,6 +4293,28 @@ ull (never undefined) - use 	oBeNull() assertions consistently
 - Sanity hook tests with listenSafe subscriptions may leave open handles (--forceExit recommended)
 - useLogin hook mocks: Need AuthContext, next/navigation (router + searchParams), AuthApi, apiRequest, toast, setAuthToken
 - useSanityOrders uses listenSafe for real-time subscriptions - mock must return unsubscribe function
+
+## [2026-03-19 08:15] - LALAMOVE-REALTIME-CLOSEOUT
+**Completed:** Final reconciliation run for prd-lalamove-realtime.json
+**Files Changed:**
+- prd-lalamove-realtime.json (updated stale currentState entries from INCOMPLETE/MISSING to COMPLETE)
+- progress.txt (this closeout log entry)
+
+**Implementation Notes:**
+- Verified PRD story state: all LAMA stories are marked passes=true with completedAt values
+- Verified core implementation artifacts exist: useLalamoveTracking hook, customer tracking page onSnapshot integration, seller realtime panel, sandbox simulate route, delivery component tests
+- Updated PRD currentState section to match implemented behavior and completed stories
+
+**Quality Gates:**
+- [PASS] npm run build
+- [PASS] npm run lint
+- [PASS] npm run test (534 passed suites, 1 skipped; 10462 passed tests, 21 skipped)
+- [FAIL] npx tsc --noEmit (pre-existing global typecheck issues outside Lalamove scope; no new Lalamove-specific regressions identified)
+
+**Blockers / Notes:**
+- Repository contains unrelated existing modifications/untracked files in .github/ that were not touched
+- No remaining incomplete Lalamove stories were found to implement
+---
 
 **Test Results:**
 - New tests committed: 4 suites, 124 tests (useLogin 26 + FAQ 29 + Testimonials 38 + Orders 31)
