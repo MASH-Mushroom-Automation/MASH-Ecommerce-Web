@@ -96,14 +96,14 @@ const customJestConfig = {
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
 
-  // Verbose output
-  verbose: true,
+  // Reduce log overhead in large suites
+  verbose: false,
 
-  // Increase default test timeout for parallel runs (resource contention)
-  testTimeout: 15000,
+  // Keep a practical timeout while avoiding slow global defaults
+  testTimeout: 10000,
 
-  // Maximum workers (reduce concurrency to avoid OOM on CI)
-  maxWorkers: '25%',
+  // Increase local parallelism for faster runs while staying stable
+  maxWorkers: '50%',
 
   // Clear mocks between tests
   clearMocks: true,

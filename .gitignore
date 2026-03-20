@@ -61,6 +61,3 @@ studio/.env
 
 *.env.test
 *.md
-
-# Allow .github documentation files (must come AFTER *.md)
-!.github/*.md
