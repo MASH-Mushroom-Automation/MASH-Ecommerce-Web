@@ -1206,4 +1206,105 @@ describe("Lalamove lifecycle flow assertions", () => {
     expect(pickedUpPayload.timeline).toBeUndefined();
     expect(completedPayload.timeline).toBeUndefined();
   });
+
+  it("should enforce lifecycle payload parity with lastUpdated and no unintended fields", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-parity-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-parity-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-parity-1" }] });
+
+    const driverAssignedBody = JSON.stringify({
+      event: "DRIVER_ASSIGNED",
+      orderId: "LLM-PARITY-1",
+      timestamp: new Date().toISOString(),
+      data: {
+        driver: {
+          id: "drv-parity-1",
+          name: "Juan",
+          phone: "+639171111111",
+          plateNumber: "ABC 123",
+        },
+      },
+    });
+    const pickedUpBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-PARITY-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+    const completedBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-PARITY-1",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const req1 = createReq({ body: driverAssignedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req2 = createReq({ body: pickedUpBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req3 = createReq({ body: completedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req1.text.mockResolvedValue(driverAssignedBody);
+    req2.text.mockResolvedValue(pickedUpBody);
+    req3.text.mockResolvedValue(completedBody);
+
+    await webhookPOST(req1);
+    await webhookPOST(req2);
+    await webhookPOST(req3);
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    payloads.forEach((payload) => {
+      expect(payload.lastUpdated).toEqual(expect.any(Date));
+      expect(payload.timeline).toBeUndefined();
+      expect(payload.shareLink).toBeUndefined();
+      expect(payload.orderId).toBeUndefined();
+    });
+  });
+
+  it("should return deterministic 401 contract for empty-string signature", async () => {
+    if (!webhookPOST) return;
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-SIG-EMPTY-1",
+      timestamp: new Date().toISOString(),
+      data: { status: "ON_GOING" },
+    });
+
+    const req = createReq({ body: webhookBody, headers: { "X-Lalamove-Signature": "" } });
+    req.text.mockResolvedValue(webhookBody);
+
+    const res = await webhookPOST(req);
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual(expect.objectContaining({ success: false, message: "Missing signature" }));
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should keep ORDER_CANCELLED isolated from shipped/delivered mutation under malformed reason fields", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: "order-cancel-parity-1" }] });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_CANCELLED",
+      orderId: "LLM-CANCEL-PARITY-1",
+      timestamp: new Date().toISOString(),
+      data: { reason: null, cancelledBy: { actor: "system" } },
+    });
+
+    const req = createReq({ body: webhookBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req.text.mockResolvedValue(webhookBody);
+
+    const res = await webhookPOST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-cancel-parity-1",
+      expect.objectContaining({ status: "CANCELLED", lastUpdated: expect.any(Date) })
+    );
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
 });

@@ -1072,4 +1072,212 @@ describe("LalamoveTestPage", () => {
       expect(screen.getByTestId("status-timeline")).toHaveTextContent("CANCELED");
     });
   });
+
+  it("keeps final visible status deterministic after rapid Driver Assigned -> Picked Up -> Completed switching", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "ASSIGNING_DRIVER",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-rapid-switch-1",
+            price: "130",
+            distance: { value: 3900 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-rapid-switch-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValue({ json: async () => ({ success: true }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+      fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+      fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+    });
+
+    trackingState = {
+      status: "COMPLETED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+      expect(screen.getByTestId("status-timeline")).toHaveTextContent("COMPLETED");
+    });
+  });
+
+  it("keeps raw data panel visible and consistent across transitions and retries", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "ASSIGNING_DRIVER",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-raw-consistency-1",
+            price: "140",
+            distance: { value: 4100 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-raw-consistency-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Transient panel error" }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Raw API / Firestore Data"));
+    expect(screen.getByText("Quotation Response")).toBeInTheDocument();
+    expect(screen.getAllByText(/q-raw-consistency-1/).length).toBeGreaterThan(0);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Transient panel error")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+      fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+    });
+
+    trackingState = {
+      status: "PICKED_UP",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Quotation Response")).toBeInTheDocument();
+      expect(screen.getAllByText(/q-raw-consistency-1/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it("does not re-show stale error text after a successful subsequent simulator action", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-stale-error-1",
+            price: "135",
+            distance: { value: 3200 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-stale-error-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Stale simulator error" }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Stale simulator error")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Stale simulator error")).not.toBeInTheDocument();
+    });
+  });
 });

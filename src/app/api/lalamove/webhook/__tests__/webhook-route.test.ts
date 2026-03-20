@@ -735,6 +735,134 @@ describe("POST /api/lalamove/webhook — Malformed Payload Safety", () => {
     expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
     expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
   });
+
+  it("handles DRIVER_ASSIGNED replay after COMPLETED without crashing and without status mutation side effects", async () => {
+    mockFindOrder("order-replay-mix-1");
+
+    const completedReq = createSignedRequest({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-REPLAY-MIX-1",
+      timestamp: "2026-01-01",
+      data: { completionTime: "2026-01-01T12:00:00Z" },
+    });
+    const replayDriverAssignedReq = createSignedRequest({
+      event: "DRIVER_ASSIGNED",
+      orderId: "LLM-REPLAY-MIX-1",
+      timestamp: "2026-01-01",
+      data: {
+        driver: {
+          id: "drv-mix-1",
+          name: "Juan",
+          phone: "+639171111111",
+          plateNumber: "ABC 123",
+        },
+      },
+    });
+
+    const completedRes = await POST(completedReq);
+    const replayRes = await POST(replayDriverAssignedReq);
+
+    expect(completedRes.status).toBe(200);
+    expect(replayRes.status).toBe(200);
+    expect(await completedRes.json()).toEqual({ success: true });
+    expect(await replayRes.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-mix-1",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-mix-1",
+      expect.objectContaining({ status: "DRIVER_ASSIGNED" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledTimes(1);
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-mix-1",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("handles ORDER_CANCELLED replay after COMPLETED with deterministic envelopes and no new order status writes", async () => {
+    mockFindOrder("order-replay-mix-2");
+
+    const completedReq = createSignedRequest({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-REPLAY-MIX-2",
+      timestamp: "2026-01-01",
+      data: { completionTime: "2026-01-01T12:00:00Z" },
+    });
+    const cancelledReplayReq = createSignedRequest({
+      event: "ORDER_CANCELLED",
+      orderId: "LLM-REPLAY-MIX-2",
+      timestamp: "2026-01-01",
+      data: { reason: "late replay", cancelledBy: "system" },
+    });
+
+    const completedRes = await POST(completedReq);
+    const cancelledRes = await POST(cancelledReplayReq);
+
+    expect(completedRes.status).toBe(200);
+    expect(cancelledRes.status).toBe(200);
+    expect(await completedRes.json()).toEqual({ success: true });
+    expect(await cancelledRes.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-mix-2",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-mix-2",
+      expect.objectContaining({ status: "CANCELLED" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledTimes(1);
+    expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
+      "order-replay-mix-2",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("handles ORDER_STATUS_CHANGED undefined to valid sequence without crashes and without order status mutation", async () => {
+    mockFindOrder("order-replay-mix-3");
+
+    const undefinedStatusReq = createSignedRequest({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-REPLAY-MIX-3",
+      timestamp: "2026-01-01",
+      data: {},
+    });
+    const validStatusReq = createSignedRequest({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-REPLAY-MIX-3",
+      timestamp: "2026-01-01",
+      data: { status: "ON_GOING" },
+    });
+
+    const firstRes = await POST(undefinedStatusReq);
+    const secondRes = await POST(validStatusReq);
+
+    expect(firstRes.status).toBe(200);
+    expect(secondRes.status).toBe(200);
+    expect(await firstRes.json()).toEqual({ success: true });
+    expect(await secondRes.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-mix-3",
+      expect.objectContaining({ status: undefined })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-mix-3",
+      expect.objectContaining({ status: "ON_GOING" })
+    );
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
 });
 
 describe("GET /api/lalamove/webhook", () => {

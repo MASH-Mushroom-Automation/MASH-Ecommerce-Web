@@ -359,4 +359,52 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     expect(res.status).toBe(500);
     expect(json).toEqual({ success: false, message: "Transient firestore write failure" });
   });
+
+  it("keeps invalid and missing-event payloads on a consistent error envelope shape", async () => {
+    const missingEventRes = await POST(makeRequest({ orderId: "o-envelope-1" }));
+    const invalidEventRes = await POST(makeRequest({ orderId: "o-envelope-1", event: "NOT_VALID" }));
+
+    const missingEventJson = await missingEventRes.json();
+    const invalidEventJson = await invalidEventRes.json();
+
+    expect(missingEventRes.status).toBe(400);
+    expect(invalidEventRes.status).toBe(400);
+
+    expect(missingEventJson).toEqual(expect.objectContaining({ success: false, message: expect.any(String) }));
+    expect(invalidEventJson).toEqual(expect.objectContaining({ success: false, message: expect.any(String) }));
+
+    expect(Object.keys(missingEventJson).sort()).toEqual(["message", "success"]);
+    expect(Object.keys(invalidEventJson).sort()).toEqual(["message", "success"]);
+  });
+
+  it("keeps repeated ASSIGNING_DRIVER and repeated CANCELED payloads idempotent without driver leakage", async () => {
+    const orderId = "o-idempotent-shape-1";
+
+    await POST(makeRequest({ orderId, event: "ASSIGNING_DRIVER" }));
+    await POST(makeRequest({ orderId, event: "ASSIGNING_DRIVER" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    expect(payloads).toHaveLength(4);
+
+    expect(payloads[0]).toEqual(expect.objectContaining({ status: "ASSIGNING_DRIVER", lastUpdated: expect.any(Date) }));
+    expect(payloads[1]).toEqual(expect.objectContaining({ status: "ASSIGNING_DRIVER", lastUpdated: expect.any(Date) }));
+    expect(payloads[2]).toEqual(expect.objectContaining({ status: "CANCELED", lastUpdated: expect.any(Date) }));
+    expect(payloads[3]).toEqual(expect.objectContaining({ status: "CANCELED", lastUpdated: expect.any(Date) }));
+
+    payloads.forEach((payload) => {
+      expect(payload.driver).toBeUndefined();
+    });
+  });
+
+  it("returns deterministic 500 envelope on transient PICKED_UP write failure", async () => {
+    mockUpdateLalamoveTracking.mockRejectedValueOnce(new Error("Transient picked-up write failure"));
+
+    const res = await POST(makeRequest({ orderId: "o-transient-2", event: "PICKED_UP" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(json).toEqual({ success: false, message: "Transient picked-up write failure" });
+  });
 });
