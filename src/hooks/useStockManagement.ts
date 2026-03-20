@@ -80,6 +80,10 @@ interface StockHistoryResult {
   pageSize: number;
 }
 
+interface StockAdjustmentMutationContext {
+  previousHistory?: StockHistoryResult;
+}
+
 /**
  * Hook for creating stock adjustments
  * 
@@ -110,11 +114,11 @@ interface StockHistoryResult {
  * ```
  */
 export function useStockAdjustment(
-  options?: UseMutationOptions<StockAdjustmentResponse, Error, StockAdjustmentRequest>
+  options?: UseMutationOptions<StockAdjustmentResponse, Error, StockAdjustmentRequest, StockAdjustmentMutationContext>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<StockAdjustmentResponse, Error, StockAdjustmentRequest>({
+  return useMutation<StockAdjustmentResponse, Error, StockAdjustmentRequest, StockAdjustmentMutationContext>({
     mutationFn: async (adjustment: StockAdjustmentRequest) => {
       // Call API endpoint for stock adjustment
       const response = await fetch('/api/seller/stock/adjust', {

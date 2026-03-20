@@ -49,7 +49,7 @@ jest.mock('sonner', () => ({
   },
 }));
 
-const mockSanityFetch = sanityClient.fetch as jest.MockedFunction<typeof sanityClient.fetch>;
+const mockSanityFetch = sanityClient.fetch as unknown as jest.Mock;
 const mockToast = toast as jest.Mocked<typeof toast>;
 
 // ============================================================================
@@ -66,31 +66,13 @@ const mockStockAdjustmentRequest = {
 
 const mockStockAdjustmentResponse: StockAdjustmentResponse = {
   success: true,
-  adjustment: {
-    _id: 'adjustment-1',
-    _type: 'stockAdjustment',
-    _createdAt: '2026-02-02T10:00:00Z',
-    _updatedAt: '2026-02-02T10:00:00Z',
-    adjustmentType: 'received',
-    quantityChange: 50,
-    previousStock: 100,
-    newStock: 150,
-    reason: 'supplier_delivery',
-    notes: 'Weekly delivery from supplier',
-    adjustedBy: 'user-123',
-    adjustmentDate: '2026-02-02T10:00:00Z',
-    product: {
-      _ref: 'product-1',
-      _type: 'reference',
-    },
-  },
-  previousStock: 100,
+  adjustmentId: 'adjustment-1',
+  productId: 'product-1',
+  oldStock: 100,
   newStock: 150,
-  product: {
-    _id: 'product-1',
-    name: 'Shiitake Mushroom',
-    sku: 'SKU-001',
-  },
+  quantityChange: 50,
+  adjustmentDate: '2026-02-02T10:00:00Z',
+  message: 'Stock adjustment completed successfully',
 };
 
 const mockStockHistoryItems: StockAdjustmentHistory[] = [

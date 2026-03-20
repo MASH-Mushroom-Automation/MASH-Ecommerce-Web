@@ -110,42 +110,53 @@ export interface StockAdjustmentRequest {
  * Result after creating a stock adjustment
  */
 export interface StockAdjustmentResponse {
+  /** Operation status */
+  success: boolean;
+
   /** Adjustment ID (Sanity document ID) */
   adjustmentId: string;
-  
+
   /** Product ID */
   productId: string;
-  
+
   /** Previous stock quantity */
-  previousStock: number;
-  
+  oldStock: number;
+
   /** New stock quantity */
   newStock: number;
-  
+
+  /** Requested stock delta */
+  quantityChange: number;
+
   /** Adjustment timestamp */
-  timestamp: string;
-  
-  /** Success message */
-  message: string;
+  adjustmentDate: string;
+
+  /** Optional message */
+  message?: string;
 }
 
 /**
  * Stock history item
  * Represents a single stock adjustment in the audit trail
  */
-export interface StockHistoryItem {
+export interface StockAdjustmentHistory {
   /** Adjustment ID */
   _id: string;
   
   /** Created timestamp */
   _createdAt: string;
+
+  /** Updated timestamp */
+  _updatedAt?: string;
   
   /** Product reference */
   product: {
     _id: string;
     name: string;
     sku: string;
-    slug: string;
+    slug?: string;
+    mainImage?: string;
+    stockQuantity?: number;
   };
   
   /** Adjustment type */
@@ -153,9 +164,15 @@ export interface StockHistoryItem {
   
   /** Quantity change */
   quantityChange: number;
+
+  /** Adjustment timestamp */
+  adjustmentDate: string;
   
   /** Stock quantity after adjustment */
   newStock: number;
+
+  /** Stock quantity before adjustment */
+  previousStock: number;
   
   /** Reason code */
   reason: string;
@@ -164,8 +181,15 @@ export interface StockHistoryItem {
   notes?: string;
   
   /** User who made the adjustment */
-  adjustedBy?: string;
+  adjustedBy?: string | {
+    _id?: string;
+    name?: string;
+    email?: string;
+  };
 }
+
+/** Backward-compatible alias */
+export type StockHistoryItem = StockAdjustmentHistory;
 
 /**
  * Batch stock update request
