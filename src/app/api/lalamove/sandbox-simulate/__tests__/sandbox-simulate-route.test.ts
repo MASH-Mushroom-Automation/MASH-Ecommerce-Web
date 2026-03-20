@@ -208,6 +208,53 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     );
   });
 
+  it("handles full lifecycle progression on the same orderId", async () => {
+    const orderId = "o-seq-1";
+
+    await POST(makeRequest({ orderId, event: "ASSIGNING_DRIVER" }));
+    await POST(makeRequest({ orderId, event: "DRIVER_ASSIGNED" }));
+    await POST(makeRequest({ orderId, event: "PICKED_UP" }));
+    await POST(makeRequest({ orderId, event: "COMPLETED" }));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      orderId,
+      expect.objectContaining({ status: "ASSIGNING_DRIVER" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      orderId,
+      expect.objectContaining({ status: "ON_GOING" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      3,
+      orderId,
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      4,
+      orderId,
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+  });
+
+  it("keeps canceled branch isolated from completed status side effects", async () => {
+    const orderId = "o-cancel-iso-1";
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledTimes(1);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      orderId,
+      expect.objectContaining({ status: "CANCELED" })
+    );
+
+    const statuses = mockUpdateLalamoveTracking.mock.calls.map(
+      (call) => (call[1] as Record<string, unknown>).status
+    );
+    expect(statuses).not.toContain("COMPLETED");
+    expect(statuses).not.toContain("PICKED_UP");
+  });
+
   // ── Error handling ────────────────────────────────────────
 
   it("returns 500 when updateLalamoveTracking throws", async () => {

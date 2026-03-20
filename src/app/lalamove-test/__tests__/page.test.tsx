@@ -462,4 +462,249 @@ describe("LalamoveTestPage", () => {
     render(<LalamoveTestPage />);
     expect(screen.getByText("Raw API / Firestore Data")).toBeInTheDocument();
   });
+
+  it("keeps simulator buttons disabled before order and enables after order", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-enable",
+            price: "100",
+            distance: { value: 1500 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-enable-1", status: "ASSIGNING_DRIVER" },
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    expect(screen.getByText("Driver Assigned").closest("button")).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Driver Assigned").closest("button")).not.toBeDisabled();
+    expect(screen.getByText("Completed").closest("button")).not.toBeDisabled();
+  });
+
+  it("shows mixed flow: quotation success then order failure", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-mixed",
+            price: "110",
+            distance: { value: 3500 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: false,
+          message: "Order endpoint temporary failure",
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Order endpoint temporary failure")).toBeInTheDocument();
+    });
+  });
+
+  it("retries order after failure and succeeds on second attempt", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-retry",
+            price: "125",
+            distance: { value: 4100 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: false,
+          message: "First attempt failed",
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-retry-1", status: "ASSIGNING_DRIVER" },
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("First attempt failed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+      expect(screen.getByText("Subscribed to order: order-retry-1")).toBeInTheDocument();
+    });
+  });
+
+  it("shows mixed flow: quotation failure then retry success", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: false,
+          message: "Quotation unavailable",
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-after-retry",
+            price: "90",
+            distance: { value: 2600 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Quotation unavailable")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+      expect(screen.getByText(/q-after-retry/)).toBeInTheDocument();
+    });
+  });
+
+  it("disables all simulator buttons while one event is in progress", async () => {
+    let resolveSim: ((value: unknown) => void) | null = null;
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-sim-lock",
+            price: "80",
+            distance: { value: 1200 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-sim-lock", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSim = resolve;
+        })
+      );
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    const assigningButton = screen.getByRole("button", { name: "Assigning" });
+    const driverAssignedButton = screen.getByRole("button", { name: "Driver Assigned" });
+    const pickedUpButton = screen.getByRole("button", { name: "Picked Up" });
+    const completedButton = screen.getByRole("button", { name: "Completed" });
+    const canceledButton = screen.getByRole("button", { name: "Canceled" });
+
+    await act(async () => {
+      fireEvent.click(driverAssignedButton);
+    });
+
+    expect(assigningButton).toBeDisabled();
+    expect(driverAssignedButton).toBeDisabled();
+    expect(pickedUpButton).toBeDisabled();
+    expect(completedButton).toBeDisabled();
+    expect(canceledButton).toBeDisabled();
+
+    await act(async () => {
+      resolveSim?.({ json: async () => ({ success: true }) });
+    });
+
+    await waitFor(() => {
+      expect(driverAssignedButton).not.toBeDisabled();
+    });
+  });
+
+  it("shows explicit message when simulator event is clicked before order exists", async () => {
+    render(<LalamoveTestPage />);
+
+    // Call through component behavior: event buttons are disabled before order,
+    // so verify the guiding message remains present to prevent invalid flow.
+    expect(screen.getByText("Place an order first to enable simulation.")).toBeInTheDocument();
+    expect(screen.getByText("Assigning").closest("button")).toBeDisabled();
+  });
 });

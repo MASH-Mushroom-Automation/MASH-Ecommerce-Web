@@ -376,6 +376,111 @@ describe("POST /api/lalamove/webhook — Order Not Found Paths", () => {
 
 });
 
+describe("POST /api/lalamove/webhook — Lifecycle Contract Assertions", () => {
+  it("should emit expected tracking status progression contract", async () => {
+    mockFindOrder("order-flow-contract");
+
+    const statusChangedReq = createSignedRequest({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-FLOW-1",
+      timestamp: "2026-01-01",
+      data: { status: "ON_GOING" },
+    });
+
+    const pickedUpReq = createSignedRequest({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-FLOW-1",
+      timestamp: "2026-01-01",
+      data: { pickupTime: "2026-01-01T10:00:00Z" },
+    });
+
+    const completedReq = createSignedRequest({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-FLOW-1",
+      timestamp: "2026-01-01",
+      data: { completionTime: "2026-01-01T12:00:00Z" },
+    });
+
+    await POST(statusChangedReq);
+    await POST(pickedUpReq);
+    await POST(completedReq);
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-flow-contract",
+      expect.objectContaining({ status: "ON_GOING", lastUpdated: expect.any(Date) })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-flow-contract",
+      expect.objectContaining({ status: "PICKED_UP", lastUpdated: expect.any(Date) })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      3,
+      "order-flow-contract",
+      expect.objectContaining({ status: "COMPLETED", lastUpdated: expect.any(Date) })
+    );
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1]);
+    expect(payloads.every((p: Record<string, unknown>) => !("timeline" in p))).toBe(true);
+  });
+
+  it("should preserve driver identity across repeated DRIVER_LOCATION_UPDATED events", async () => {
+    mockFindOrder("order-location-contract");
+
+    const firstReq = createSignedRequest({
+      event: "DRIVER_LOCATION_UPDATED",
+      orderId: "LLM-LOC-1",
+      timestamp: "2026-01-01",
+      data: {
+        coordinates: { lat: 14.55, lng: 120.99 },
+        driver: { id: "drv-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" },
+      },
+    });
+
+    const secondReq = createSignedRequest({
+      event: "DRIVER_LOCATION_UPDATED",
+      orderId: "LLM-LOC-1",
+      timestamp: "2026-01-01",
+      data: {
+        coordinates: { lat: 14.56, lng: 121.01 },
+        driver: { id: "drv-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" },
+      },
+    });
+
+    await POST(firstReq);
+    await POST(secondReq);
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-location-contract",
+      expect.objectContaining({
+        driver: expect.objectContaining({
+          id: "drv-1",
+          name: "Juan",
+          phone: "+639171111111",
+          plateNumber: "ABC 123",
+          coordinates: expect.objectContaining({ lat: 14.55, lng: 120.99 }),
+        }),
+      })
+    );
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-location-contract",
+      expect.objectContaining({
+        driver: expect.objectContaining({
+          id: "drv-1",
+          name: "Juan",
+          phone: "+639171111111",
+          plateNumber: "ABC 123",
+          coordinates: expect.objectContaining({ lat: 14.56, lng: 121.01 }),
+        }),
+      })
+    );
+  });
+});
+
 describe("GET /api/lalamove/webhook", () => {
   it("should return success message", async () => {
     const res = await GET();
