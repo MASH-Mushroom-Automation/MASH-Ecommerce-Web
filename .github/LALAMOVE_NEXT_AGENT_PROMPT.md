@@ -67,14 +67,22 @@ Already completed in recent batch:
   - non-sandbox host blocks simulator (403)
   - sandbox-to-webhook transition DRIVER_PICKED_UP updates tracking + order status
   - ORDER_COMPLETED transition updates tracking + delivered status
+	- signature mismatch rejection for lifecycle webhook events
+	- missing Firestore order lookup behavior for lifecycle transitions
+	- ORDER_CANCELLED behavior confirms tracking update without shipped/delivered status mutation
+	- transition assertions ensure driver payload is not overwritten on PICKED_UP and COMPLETED updates
 
 Next batch required now:
-1. Add more route-level lifecycle tests for failure and edge transitions in src/app/api/lalamove/__tests__/lalamove-routes.test.ts:
-	- webhook signature mismatch path in lifecycle context
-	- order lookup miss during transition (no Firestore order)
-	- canceled lifecycle path confirms tracking cancel state without delivered/shipped status updates
-2. Add transition-focused assertions to ensure timeline/driver data is preserved when moving ON_GOING -> PICKED_UP -> COMPLETED where applicable.
-3. Add at least 8-12 new tests in this batch, focused on realistic sandbox flows.
+1. Add webhook timeline-focused assertions in src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts:
+	- verify status progression writes expected timeline order in update payload contracts if timeline is present
+	- verify location updates keep driver identity fields intact when coordinates change repeatedly
+2. Add sandbox simulator sequence tests in src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts:
+	- ASSIGNING_DRIVER -> DRIVER_ASSIGNED -> PICKED_UP -> COMPLETED progression on one order ID
+	- CANCELED branch confirms no delivered/shipped transition side effects
+3. Expand src/app/lalamove-test/__tests__/page.test.tsx with at least 6 more user-driven flow/error-path tests:
+	- retry behavior and mixed success/failure sequence
+	- verify event button disable/enable conditions before and after order creation
+4. Add at least 8-12 new tests in this next batch, focused on realistic sandbox flows.
 4. Run targeted tests for:
 	- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
 	- src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts

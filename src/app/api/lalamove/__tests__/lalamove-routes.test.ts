@@ -400,6 +400,16 @@ describe("Lalamove lifecycle flow assertions", () => {
   let simulatePOST: Function;
   let webhookPOST: Function;
 
+  beforeEach(() => {
+    const crypto = require("crypto");
+    (crypto.timingSafeEqual as jest.Mock).mockReset();
+    (crypto.timingSafeEqual as jest.Mock).mockReturnValue(true);
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockReset();
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: "order-default" }] });
+  });
+
   beforeAll(async () => {
     try {
       simulatePOST = (await import("@/app/api/lalamove/sandbox-simulate/route")).POST;
@@ -545,6 +555,279 @@ describe("Lalamove lifecycle flow assertions", () => {
     );
     expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
       "order-transition-2",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("should reject DRIVER_PICKED_UP lifecycle event when signature mismatches", async () => {
+    if (!webhookPOST) return;
+
+    const crypto = require("crypto");
+    (crypto.timingSafeEqual as jest.Mock).mockReturnValueOnce(false);
+
+    const webhookBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-BAD-SIG-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "invalid-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(401);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should reject ORDER_COMPLETED lifecycle event when signature mismatches", async () => {
+    if (!webhookPOST) return;
+
+    const crypto = require("crypto");
+    (crypto.timingSafeEqual as jest.Mock).mockReturnValueOnce(false);
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-BAD-SIG-2",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "invalid-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(401);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should skip PICKED_UP transition when Firestore order lookup misses", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: true, docs: [] });
+
+    const webhookBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-NO-ORDER-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should skip COMPLETED transition when Firestore order lookup misses", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: true, docs: [] });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-NO-ORDER-2",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should update CANCELLED tracking without shipped or delivered status transitions", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: "order-cancel-1" }] });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_CANCELLED",
+      orderId: "LLM-CANCEL-1",
+      timestamp: new Date().toISOString(),
+      data: { reason: "Customer changed mind", cancelledBy: "customer" },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-cancel-1",
+      expect.objectContaining({ status: "CANCELLED" })
+    );
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should preserve driver payload by not overwriting it during PICKED_UP transition", async () => {
+    if (!simulatePOST || !webhookPOST) return;
+
+    await simulatePOST(
+      createReq({
+        body: {
+          orderId: "order-preserve-1",
+          event: "DRIVER_ASSIGNED",
+        },
+      })
+    );
+
+    mockUpdateLalamoveTracking.mockClear();
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: "order-preserve-1" }] });
+
+    const webhookBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-PRESERVE-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    await webhookPOST(webhookReq);
+
+    const pickedUpPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    expect(pickedUpPayload.status).toBe("PICKED_UP");
+    expect(pickedUpPayload.driver).toBeUndefined();
+  });
+
+  it("should preserve driver payload by not overwriting it during COMPLETED transition", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: "order-preserve-2" }] });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-PRESERVE-2",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    await webhookPOST(webhookReq);
+
+    const completedPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    expect(completedPayload.status).toBe("COMPLETED");
+    expect(completedPayload.driver).toBeUndefined();
+  });
+
+  it("should preserve lifecycle order ON_GOING to PICKED_UP to COMPLETED for same order", async () => {
+    if (!simulatePOST || !webhookPOST) return;
+
+    await simulatePOST(
+      createReq({
+        body: {
+          orderId: "order-lifecycle-1",
+          event: "DRIVER_ASSIGNED",
+        },
+      })
+    );
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-lifecycle-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-lifecycle-1" }] });
+
+    const pickedUpBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-LIFECYCLE-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const completedBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-LIFECYCLE-1",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const pickedUpReq = createReq({
+      body: pickedUpBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    pickedUpReq.text.mockResolvedValue(pickedUpBody);
+
+    const completedReq = createReq({
+      body: completedBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    completedReq.text.mockResolvedValue(completedBody);
+
+    await webhookPOST(pickedUpReq);
+    await webhookPOST(completedReq);
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-lifecycle-1",
+      expect.objectContaining({ status: "ON_GOING" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-lifecycle-1",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      3,
+      "order-lifecycle-1",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      1,
+      "order-lifecycle-1",
+      "shipped",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      2,
+      "order-lifecycle-1",
       "delivered",
       "lalamove-webhook",
       expect.any(String)
