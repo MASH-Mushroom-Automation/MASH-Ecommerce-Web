@@ -435,6 +435,29 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     });
   });
 
+  it("preserves in-transit driver schema keys and strips driver in alternating terminal events", async () => {
+    const orderId = "o-driver-schema-strip-1";
+
+    await POST(makeRequest({ orderId, event: "DRIVER_ASSIGNED" }));
+    await POST(makeRequest({ orderId, event: "PICKED_UP" }));
+    await POST(makeRequest({ orderId, event: "COMPLETED" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    const [assigned, pickedUp, completed, canceled] = payloads;
+
+    expect(assigned.driver).toEqual(
+      expect.objectContaining({ id: "sandbox-driver-001", name: "John Doe (Sandbox)", phone: "+639171234567", plateNumber: "ABC 1234" })
+    );
+    expect(pickedUp.driver).toEqual(
+      expect.objectContaining({ id: "sandbox-driver-001", name: "John Doe (Sandbox)", phone: "+639171234567", plateNumber: "ABC 1234" })
+    );
+    expect(completed.driver).toBeUndefined();
+    expect(canceled.driver).toBeUndefined();
+    expect(completed.lastUpdated).toEqual(expect.any(Date));
+    expect(canceled.lastUpdated).toEqual(expect.any(Date));
+  });
+
   it("returns deterministic 500 envelope on transient PICKED_UP write failure", async () => {
     mockUpdateLalamoveTracking.mockRejectedValueOnce(new Error("Transient picked-up write failure"));
 

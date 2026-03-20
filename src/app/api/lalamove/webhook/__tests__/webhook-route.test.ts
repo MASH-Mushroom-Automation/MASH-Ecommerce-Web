@@ -105,6 +105,64 @@ function mockFindOrder(orderId: string | null) {
 }
 
 describe("POST /api/lalamove/webhook — Signature Verification", () => {
+  it("should accept valid signature from mixed-case header lookup", async () => {
+    mockFindOrder("order-mixed-header-1");
+    const payload = {
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-MIXED-HDR-1",
+      timestamp: "2026-01-01",
+      data: { status: "ON_GOING" },
+    };
+    const body = JSON.stringify(payload);
+    const sig = computeSignature(body);
+
+    const req = {
+      text: jest.fn().mockResolvedValue(body),
+      headers: {
+        get: jest.fn((name: string) =>
+          name.toLowerCase() === "x-lalamove-signature" ? sig : ""
+        ),
+        entries: jest.fn(() => [["x-lalamove-signature", sig]]),
+      },
+    } as any;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-mixed-header-1",
+      expect.objectContaining({ status: "ON_GOING" })
+    );
+  });
+
+  it("should reject whitespace-padded signature even when inner hash is valid", async () => {
+    const payload = {
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-WS-SIG-1",
+      timestamp: "2026-01-01",
+      data: { status: "ON_GOING" },
+    };
+    const body = JSON.stringify(payload);
+    const sig = computeSignature(body);
+    const req = createRawRequest(body, { "X-Lalamove-Signature": ` ${sig} ` });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: false, message: "Invalid signature" })
+    );
+  });
+
+  it("should return signature mismatch 401 before malformed JSON parsing", async () => {
+    const malformedBody = "{\"event\":\"ORDER_STATUS_CHANGED\",\"data\":";
+    const req = createRawRequest(malformedBody, { "X-Lalamove-Signature": "short-bad-signature" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual(
+      expect.objectContaining({ success: false, message: "Invalid signature" })
+    );
+  });
+
   it("should return 401 for invalid signature in production mode", async () => {
     process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
     const payload = { event: "ORDER_STATUS_CHANGED", orderId: "LLM001", timestamp: "2026-01-01", data: { status: "PICKED_UP" } };
@@ -482,6 +540,25 @@ describe("POST /api/lalamove/webhook — Lifecycle Contract Assertions", () => {
 });
 
 describe("POST /api/lalamove/webhook — Replay and Out-of-Order Assertions", () => {
+  it("keeps unknown event replay from mutating tracking or order status", async () => {
+    const payload = {
+      event: "UNKNOWN_REPLAY_EVENT",
+      orderId: "LLM-UNKNOWN-REPLAY-2",
+      timestamp: "2026-01-01",
+      data: { marker: "replayed" },
+    };
+
+    const firstRes = await POST(createSignedRequest(payload));
+    const secondRes = await POST(createSignedRequest(payload));
+
+    expect(firstRes.status).toBe(200);
+    expect(secondRes.status).toBe(200);
+    expect(await firstRes.json()).toEqual({ success: true });
+    expect(await secondRes.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
   it("keeps duplicate eventId replay for unknown events side-effect free", async () => {
     const payload = {
       event: "UNKNOWN_EVENT_REPLAY",

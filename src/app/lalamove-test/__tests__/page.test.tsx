@@ -1437,4 +1437,88 @@ describe("LalamoveTestPage", () => {
       expect(screen.queryByText("Stale simulator error")).not.toBeInTheDocument();
     });
   });
+
+  it("keeps latest state after rerender bursts and prevents stale success or error banner leakage", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "ASSIGNING_DRIVER",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-rerender-burst-1",
+            price: "140",
+            distance: { value: 3600 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-rerender-burst-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Burst fail A" }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Burst fail B" }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Burst fail A")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Burst fail A")).not.toBeInTheDocument();
+    });
+
+    trackingState = { status: "PICKED_UP", lastUpdated: new Date().toISOString(), driver: null };
+    view.rerender(<LalamoveTestPage />);
+    trackingState = { status: "COMPLETED", lastUpdated: new Date().toISOString(), driver: null };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Burst fail B")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Burst fail A")).not.toBeInTheDocument();
+  });
 });

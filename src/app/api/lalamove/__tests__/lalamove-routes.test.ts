@@ -1401,4 +1401,115 @@ describe("Lalamove lifecycle flow assertions", () => {
     );
     expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
   });
+
+  it("should enforce that status-only lifecycle payloads never carry driver fields", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-status-only-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-status-only-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-status-only-1" }] });
+
+    const statusChangedBody = JSON.stringify({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-STATUS-ONLY-1",
+      timestamp: new Date().toISOString(),
+      data: { status: "ON_GOING" },
+    });
+    const pickedUpBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-STATUS-ONLY-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+    const completedBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-STATUS-ONLY-1",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const req1 = createReq({ body: statusChangedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req2 = createReq({ body: pickedUpBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req3 = createReq({ body: completedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req1.text.mockResolvedValue(statusChangedBody);
+    req2.text.mockResolvedValue(pickedUpBody);
+    req3.text.mockResolvedValue(completedBody);
+
+    await webhookPOST(req1);
+    await webhookPOST(req2);
+    await webhookPOST(req3);
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    payloads.forEach((payload) => {
+      expect(payload.driver).toBeUndefined();
+    });
+  });
+
+  it("should enforce stable identity keys for driver-bearing lifecycle payloads", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-driver-keys-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-driver-keys-1" }] });
+
+    const assignedBody = JSON.stringify({
+      event: "DRIVER_ASSIGNED",
+      orderId: "LLM-DRIVER-KEYS-1",
+      timestamp: new Date().toISOString(),
+      data: { driver: { id: "drv-keys-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" } },
+    });
+    const locationBody = JSON.stringify({
+      event: "DRIVER_LOCATION_UPDATED",
+      orderId: "LLM-DRIVER-KEYS-1",
+      timestamp: new Date().toISOString(),
+      data: {
+        coordinates: { lat: 14.61, lng: 121.03 },
+        driver: { id: "drv-keys-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" },
+      },
+    });
+
+    const req1 = createReq({ body: assignedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req2 = createReq({ body: locationBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req1.text.mockResolvedValue(assignedBody);
+    req2.text.mockResolvedValue(locationBody);
+
+    await webhookPOST(req1);
+    await webhookPOST(req2);
+
+    const firstPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    const secondPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+    expect(firstPayload.driver).toEqual(
+      expect.objectContaining({ id: "drv-keys-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" })
+    );
+    expect(secondPayload.driver).toEqual(
+      expect.objectContaining({ id: "drv-keys-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" })
+    );
+  });
+
+  it("should return deterministic 401 for short and long mismatched signature lengths", async () => {
+    if (!webhookPOST) return;
+
+    const payloadBody = JSON.stringify({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-SIG-LEN-1",
+      timestamp: new Date().toISOString(),
+      data: { status: "ON_GOING" },
+    });
+
+    const shortReq = createReq({ body: payloadBody, headers: { "X-Lalamove-Signature": "abc" } });
+    const longReq = createReq({ body: payloadBody, headers: { "X-Lalamove-Signature": "x".repeat(128) } });
+    shortReq.text.mockResolvedValue(payloadBody);
+    longReq.text.mockResolvedValue(payloadBody);
+
+    const shortRes = await webhookPOST(shortReq);
+    const longRes = await webhookPOST(longReq);
+
+    expect(shortRes.status).toBe(401);
+    expect(longRes.status).toBe(401);
+    expect(shortRes.body).toEqual(expect.objectContaining({ success: false, message: "Invalid signature" }));
+    expect(longRes.body).toEqual(expect.objectContaining({ success: false, message: "Invalid signature" }));
+  });
 });
