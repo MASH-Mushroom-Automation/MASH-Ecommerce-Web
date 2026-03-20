@@ -5008,4 +5008,24 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 **Validation:**
 - Targeted suites: PASS (4 suites, 105 tests)
 - Scope: lalamove-routes, webhook-route, sandbox-simulate-route, lalamove-test page
+
+## [2026-03-20 21:05] - LAMA-TEST High-Value Lifecycle Gap Hardening Batch
+**Completed:** Added high-value webhook, route-contract, sandbox, and page-flow resilience tests for replay safety and deterministic terminal behavior
+**Persona:** SENTINEL
+**Files Changed:**
+- src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts
+- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
+- src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts
+- src/app/lalamove-test/__tests__/page.test.tsx
+
+**Implementation Notes:**
+- Added signed malformed payload safety tests for missing nested fields in webhook driver assignment/location events with deterministic 200 success envelope behavior.
+- Added deterministic ordering assertion for regressive DRIVER_LOCATION_UPDATED coordinates and unknown-event response shape consistency.
+- Added route-level contract parity assertions for lifecycle status structure consistency, near-limit payload acceptance, explicit 413 oversize rejection, and explicit 400 malformed JSON rejection.
+- Added simulator contract matrix assertion for all 5 sandbox events plus transient Firestore failure envelope validation.
+- Added page-flow hardening for error-banner clear-on-retry and terminal-state idempotency under rapid repeat COMPLETED/CANCELED triggers.
+
+**Validation:**
+- Targeted suites: PASS (4 suites, 117 tests)
+- Scope: lalamove-routes, webhook-route, sandbox-simulate-route, lalamove-test page
 ---

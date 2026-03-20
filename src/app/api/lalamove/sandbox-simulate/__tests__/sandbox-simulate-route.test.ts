@@ -229,6 +229,50 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     );
   });
 
+  it("writes minimum event-specific payload contracts for all simulator events", async () => {
+    const orderId = "o-contract-matrix-1";
+    const matrix: Array<{
+      event: "ASSIGNING_DRIVER" | "DRIVER_ASSIGNED" | "PICKED_UP" | "COMPLETED" | "CANCELED";
+      expectedStatus: string;
+      expectsDriver: boolean;
+    }> = [
+      { event: "ASSIGNING_DRIVER", expectedStatus: "ASSIGNING_DRIVER", expectsDriver: false },
+      { event: "DRIVER_ASSIGNED", expectedStatus: "ON_GOING", expectsDriver: true },
+      { event: "PICKED_UP", expectedStatus: "PICKED_UP", expectsDriver: true },
+      { event: "COMPLETED", expectedStatus: "COMPLETED", expectsDriver: false },
+      { event: "CANCELED", expectedStatus: "CANCELED", expectsDriver: false },
+    ];
+
+    for (const row of matrix) {
+      const res = await POST(makeRequest({ orderId, event: row.event }));
+      expect(res.status).toBe(200);
+    }
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map(
+      (call) => call[1] as Record<string, unknown>
+    );
+
+    matrix.forEach((row, index) => {
+      const payload = payloads[index];
+      expect(payload).toEqual(
+        expect.objectContaining({
+          status: row.expectedStatus,
+          lastUpdated: expect.any(Date),
+        })
+      );
+      if (row.expectsDriver) {
+        expect(payload.driver).toEqual(
+          expect.objectContaining({
+            id: "sandbox-driver-001",
+            name: "John Doe (Sandbox)",
+          })
+        );
+      } else {
+        expect(payload.driver).toBeUndefined();
+      }
+    });
+  });
+
   it("does not include driver payload for terminal events COMPLETED and CANCELED", async () => {
     await POST(makeRequest({ orderId: "o-shape-2", event: "COMPLETED" }));
     await POST(makeRequest({ orderId: "o-shape-2", event: "CANCELED" }));
@@ -304,5 +348,15 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     expect(res.status).toBe(500);
     expect(json.success).toBe(false);
     expect(json.message).toBe("Firestore offline");
+  });
+
+  it("returns deterministic 500 envelope on transient DRIVER_ASSIGNED write failure", async () => {
+    mockUpdateLalamoveTracking.mockRejectedValueOnce(new Error("Transient firestore write failure"));
+
+    const res = await POST(makeRequest({ orderId: "o-transient-1", event: "DRIVER_ASSIGNED" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(json).toEqual({ success: false, message: "Transient firestore write failure" });
   });
 });

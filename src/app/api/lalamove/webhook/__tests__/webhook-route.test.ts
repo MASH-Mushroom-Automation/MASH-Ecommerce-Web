@@ -608,6 +608,135 @@ describe("POST /api/lalamove/webhook — Replay and Out-of-Order Assertions", ()
   });
 });
 
+describe("POST /api/lalamove/webhook — Malformed Payload Safety", () => {
+  it("returns deterministic success for signed DRIVER_ASSIGNED payload missing nested driver object", async () => {
+    mockFindOrder("order-malformed-driver-1");
+
+    const req = createSignedRequest({
+      event: "DRIVER_ASSIGNED",
+      orderId: "LLM-MALFORMED-DRV-1",
+      timestamp: "2026-01-01",
+      data: {},
+    });
+
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns deterministic success for signed DRIVER_LOCATION_UPDATED payload missing coordinates", async () => {
+    mockFindOrder("order-malformed-location-1");
+
+    const req = createSignedRequest({
+      event: "DRIVER_LOCATION_UPDATED",
+      orderId: "LLM-MALFORMED-LOC-1",
+      timestamp: "2026-01-01",
+      data: {
+        driver: {
+          id: "drv-malformed-1",
+          name: "Juan",
+          phone: "+639170000000",
+          plateNumber: "ABC 123",
+        },
+      },
+    });
+
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("keeps deterministic write ordering when DRIVER_LOCATION_UPDATED coordinates regress", async () => {
+    mockFindOrder("order-location-regress-1");
+
+    await POST(
+      createSignedRequest({
+        event: "DRIVER_LOCATION_UPDATED",
+        orderId: "LLM-LOC-REGRESS-1",
+        timestamp: "2026-01-01T12:00:00.000Z",
+        data: {
+          coordinates: { lat: 14.6501, lng: 121.0501 },
+          driver: {
+            id: "drv-regress-1",
+            name: "Juan",
+            phone: "+639171111111",
+            plateNumber: "ABC 123",
+          },
+        },
+      })
+    );
+
+    await POST(
+      createSignedRequest({
+        event: "DRIVER_LOCATION_UPDATED",
+        orderId: "LLM-LOC-REGRESS-1",
+        timestamp: "2026-01-01T11:59:59.000Z",
+        data: {
+          coordinates: { lat: 14.6401, lng: 121.0401 },
+          driver: {
+            id: "drv-regress-1",
+            name: "Juan",
+            phone: "+639171111111",
+            plateNumber: "ABC 123",
+          },
+        },
+      })
+    );
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-location-regress-1",
+      expect.objectContaining({
+        driver: expect.objectContaining({
+          coordinates: expect.objectContaining({ lat: 14.6501, lng: 121.0501 }),
+        }),
+      })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-location-regress-1",
+      expect.objectContaining({
+        driver: expect.objectContaining({
+          coordinates: expect.objectContaining({ lat: 14.6401, lng: 121.0401 }),
+        }),
+      })
+    );
+  });
+
+  it("returns consistent response shape for unknown event payload variants", async () => {
+    const reqA = createSignedRequest({
+      event: "UNKNOWN_A",
+      orderId: "LLM-UNK-A",
+      timestamp: "2026-01-01",
+      data: {},
+    });
+    const reqB = createSignedRequest({
+      event: "UNKNOWN_B",
+      orderId: "LLM-UNK-B",
+      timestamp: "2026-01-01",
+      data: { nested: { anything: true } },
+    });
+
+    const resA = await POST(reqA);
+    const resB = await POST(reqB);
+
+    expect(resA.status).toBe(200);
+    expect(resB.status).toBe(200);
+    expect(await resA.json()).toEqual({ success: true });
+    expect(await resB.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/lalamove/webhook", () => {
   it("should return success message", async () => {
     const res = await GET();

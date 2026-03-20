@@ -950,4 +950,126 @@ describe("LalamoveTestPage", () => {
       expect(screen.getByTestId("status-timeline")).toHaveTextContent("COMPLETED");
     });
   });
+
+  it("clears quotation error banner after successful retry", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: false,
+          message: "Initial quotation failure",
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-error-clear-1",
+            price: "111",
+            distance: { value: 2200 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Initial quotation failure")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+      expect(screen.queryByText("Initial quotation failure")).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps terminal state deterministic on rapid re-trigger of COMPLETED and CANCELED", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "COMPLETED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-idempotent-1",
+            price: "109",
+            distance: { value: 1800 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-idempotent-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValue({ json: async () => ({ success: true }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+      fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+    });
+
+    trackingState = {
+      status: "COMPLETED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+      expect(screen.getByTestId("status-timeline")).toHaveTextContent("COMPLETED");
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Canceled" }));
+      fireEvent.click(screen.getByRole("button", { name: "Canceled" }));
+    });
+
+    trackingState = {
+      status: "CANCELED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("CANCELED").length).toBeGreaterThan(0);
+      expect(screen.getByTestId("status-timeline")).toHaveTextContent("CANCELED");
+    });
+  });
 });
