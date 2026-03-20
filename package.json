@@ -14,6 +14,7 @@
     "import-iot-tasks": "node scripts/github-iot-tasks-importer.js",
     "import-iot-tasks:dry-run": "node scripts/github-iot-tasks-importer.js --dry-run --verbose",
     "test": "jest --testPathIgnorePatterns=./e2e/",
+    "test:fast": "jest --testPathIgnorePatterns=./e2e/ --maxWorkers=50% --silent",
     "test:watch": "jest --watch --testPathIgnorePatterns=./e2e/",
     "test:coverage": "jest --coverage --testPathIgnorePatterns=./e2e/",
     "test:calendly": "jest --config jest.calendly.config.js",
