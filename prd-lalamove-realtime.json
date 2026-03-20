@@ -16,12 +16,12 @@
   "currentState": {
     "webhookHandler": "COMPLETE — src/app/api/lalamove/webhook/route.ts writes all 8 event types to Firestore",
     "firestoreSchema": "COMPLETE — lalamoveTracking subdocument in FirestoreOrder with status, driver, coordinates, timeline",
-    "trackingPagePolling": "INCOMPLETE — src/app/(user)/profile/orders/[orderId]/track/page.tsx uses setInterval(30000) instead of onSnapshot",
-    "sellerRealtimePanel": "MISSING — seller orders page shows Lalamove badge but no live delivery status panel",
-    "useLalamoveTrackingHook": "MISSING — no dedicated hook for Firestore real-time subscription",
-    "deliveryComponents": "PARTIAL — TrackingMap, StatusTimeline, PriorityDelivery, DeliveryChat components exist but have test gaps",
-    "sandboxTestRoute": "MISSING — no way to trigger sandbox delivery events from within the system for demos",
-    "chatSimulation": "INCOMPLETE — DeliveryChat/chat-send route has USE_TWILIO=false, simulation mode not fully wired up"
+    "trackingPagePolling": "COMPLETE — src/app/(user)/profile/orders/[orderId]/track/page.tsx uses useLalamoveTracking (Firestore onSnapshot), polling removed",
+    "sellerRealtimePanel": "COMPLETE — src/components/delivery/SellerDeliveryPanel.tsx integrated in seller orders UI",
+    "useLalamoveTrackingHook": "COMPLETE — src/hooks/useLalamoveTracking.ts provides real-time Firestore subscription",
+    "deliveryComponents": "COMPLETE — TrackingMap, StatusTimeline, PriorityDelivery, DeliveryChat implemented with tests",
+    "sandboxTestRoute": "COMPLETE — src/app/api/lalamove/sandbox-simulate/route.ts available for sandbox event simulation",
+    "chatSimulation": "COMPLETE — DeliveryChat and chat-send route wired for Firestore-backed simulation mode"
   },
   "successMetrics": {
     "build": "npm run build passes with zero errors",
