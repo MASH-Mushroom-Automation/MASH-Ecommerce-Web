@@ -482,6 +482,48 @@ describe("POST /api/lalamove/webhook — Lifecycle Contract Assertions", () => {
 });
 
 describe("POST /api/lalamove/webhook — Replay and Out-of-Order Assertions", () => {
+  it("keeps duplicate eventId replay for unknown events side-effect free", async () => {
+    const payload = {
+      event: "UNKNOWN_EVENT_REPLAY",
+      orderId: "LLM-UNKNOWN-REPLAY-1",
+      timestamp: "2026-01-01",
+      eventId: "evt-replay-unknown-1",
+      data: { metadata: { reason: "duplicate-delivery" } },
+    };
+
+    const firstRes = await POST(createSignedRequest(payload));
+    const secondRes = await POST(createSignedRequest(payload));
+
+    expect(firstRes.status).toBe(200);
+    expect(secondRes.status).toBe(200);
+    expect(await firstRes.json()).toEqual({ success: true });
+    expect(await secondRes.json()).toEqual({ success: true });
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("does not append timeline fields when duplicate DRIVER_PICKED_UP eventId is replayed", async () => {
+    mockFindOrder("order-replay-event-id-1");
+
+    const payload = {
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-REPLAY-EVTID-1",
+      timestamp: "2026-01-01",
+      eventId: "evt-pickedup-1",
+      data: { pickupTime: "2026-01-01T10:00:00Z" },
+    };
+
+    await POST(createSignedRequest(payload));
+    await POST(createSignedRequest(payload));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledTimes(2);
+    const firstPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    const secondPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+    expect(firstPayload.timeline).toBeUndefined();
+    expect(secondPayload.timeline).toBeUndefined();
+    expect(mockUpdateOrderStatus).toHaveBeenCalledTimes(2);
+  });
+
   it("replays duplicate DRIVER_PICKED_UP events with stable payload contract", async () => {
     mockFindOrder("order-replay-picked-up");
 

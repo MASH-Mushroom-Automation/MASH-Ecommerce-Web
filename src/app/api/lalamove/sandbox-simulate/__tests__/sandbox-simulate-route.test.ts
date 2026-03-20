@@ -398,6 +398,43 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     });
   });
 
+  it("keeps deterministic driver persistence rules across mixed event sequences", async () => {
+    const orderId = "o-mixed-driver-rules-1";
+
+    await POST(makeRequest({ orderId, event: "DRIVER_ASSIGNED" }));
+    await POST(makeRequest({ orderId, event: "PICKED_UP" }));
+    await POST(makeRequest({ orderId, event: "COMPLETED" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    expect(payloads[0]).toEqual(expect.objectContaining({ status: "ON_GOING" }));
+    expect(payloads[1]).toEqual(expect.objectContaining({ status: "PICKED_UP" }));
+    expect(payloads[2]).toEqual(expect.objectContaining({ status: "COMPLETED" }));
+    expect(payloads[3]).toEqual(expect.objectContaining({ status: "CANCELED" }));
+
+    expect(payloads[0].driver).toEqual(expect.objectContaining({ id: "sandbox-driver-001" }));
+    expect(payloads[1].driver).toEqual(expect.objectContaining({ id: "sandbox-driver-001" }));
+    expect(payloads[2].driver).toBeUndefined();
+    expect(payloads[3].driver).toBeUndefined();
+  });
+
+  it("converges repeated terminal COMPLETED and CANCELED events to stable payload shapes", async () => {
+    const orderId = "o-terminal-converge-1";
+
+    await POST(makeRequest({ orderId, event: "COMPLETED" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+    await POST(makeRequest({ orderId, event: "COMPLETED" }));
+    await POST(makeRequest({ orderId, event: "CANCELED" }));
+
+    const payloads = mockUpdateLalamoveTracking.mock.calls.map((call) => call[1] as Record<string, unknown>);
+    const statuses = payloads.map((payload) => payload.status);
+    expect(statuses).toEqual(["COMPLETED", "CANCELED", "COMPLETED", "CANCELED"]);
+    payloads.forEach((payload) => {
+      expect(payload.lastUpdated).toEqual(expect.any(Date));
+      expect(payload.driver).toBeUndefined();
+    });
+  });
+
   it("returns deterministic 500 envelope on transient PICKED_UP write failure", async () => {
     mockUpdateLalamoveTracking.mockRejectedValueOnce(new Error("Transient picked-up write failure"));
 

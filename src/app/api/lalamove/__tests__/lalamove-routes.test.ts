@@ -1262,6 +1262,100 @@ describe("Lalamove lifecycle flow assertions", () => {
     });
   });
 
+  it("should keep lastUpdated timestamps monotonic across lifecycle transitions", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-monotonic-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-monotonic-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-monotonic-1" }] });
+
+    const driverAssignedBody = JSON.stringify({
+      event: "DRIVER_ASSIGNED",
+      orderId: "LLM-MONOTONIC-1",
+      timestamp: "2026-03-20T10:00:01.000Z",
+      data: { driver: { id: "drv-1", name: "Juan", phone: "+639171111111", plateNumber: "ABC 123" } },
+    });
+    const pickedUpBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-MONOTONIC-1",
+      timestamp: "2026-03-20T10:00:02.000Z",
+      data: { pickupTime: "2026-03-20T10:00:02.000Z" },
+    });
+    const completedBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-MONOTONIC-1",
+      timestamp: "2026-03-20T10:00:03.000Z",
+      data: { completionTime: "2026-03-20T10:00:03.000Z" },
+    });
+
+    const req1 = createReq({ body: driverAssignedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req2 = createReq({ body: pickedUpBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req3 = createReq({ body: completedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req1.text.mockResolvedValue(driverAssignedBody);
+    req2.text.mockResolvedValue(pickedUpBody);
+    req3.text.mockResolvedValue(completedBody);
+
+    await webhookPOST(req1);
+    await webhookPOST(req2);
+    await webhookPOST(req3);
+
+    const timestamps = mockUpdateLalamoveTracking.mock.calls.map((call) => {
+      const payload = call[1] as { lastUpdated: Date };
+      return payload.lastUpdated.getTime();
+    });
+
+    expect(timestamps[1]).toBeGreaterThanOrEqual(timestamps[0]);
+    expect(timestamps[2]).toBeGreaterThanOrEqual(timestamps[1]);
+  });
+
+  it("should ignore malformed nested metadata payloads without mutating lifecycle contracts", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-meta-neg-1" }] })
+      .mockResolvedValueOnce({ empty: false, docs: [{ id: "order-meta-neg-1" }] });
+
+    const statusChangedBody = JSON.stringify({
+      event: "ORDER_STATUS_CHANGED",
+      orderId: "LLM-META-NEG-1",
+      timestamp: new Date().toISOString(),
+      data: {
+        status: "ON_GOING",
+        metadata: { nested: { unexpected: true, notes: ["x", "y"] } },
+      },
+    });
+    const cancelledBody = JSON.stringify({
+      event: "ORDER_CANCELLED",
+      orderId: "LLM-META-NEG-1",
+      timestamp: new Date().toISOString(),
+      data: {
+        reason: "ops",
+        cancelledBy: "system",
+        metadata: { nested: { bad: "shape" } },
+      },
+    });
+
+    const req1 = createReq({ body: statusChangedBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    const req2 = createReq({ body: cancelledBody, headers: { "X-Lalamove-Signature": "test-signature" } });
+    req1.text.mockResolvedValue(statusChangedBody);
+    req2.text.mockResolvedValue(cancelledBody);
+
+    await webhookPOST(req1);
+    await webhookPOST(req2);
+
+    const firstPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    const secondPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+
+    expect(firstPayload).toEqual(expect.objectContaining({ status: "ON_GOING", lastUpdated: expect.any(Date) }));
+    expect(secondPayload).toEqual(expect.objectContaining({ status: "CANCELLED", lastUpdated: expect.any(Date) }));
+    expect(firstPayload.metadata).toBeUndefined();
+    expect(secondPayload.metadata).toBeUndefined();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
   it("should return deterministic 401 contract for empty-string signature", async () => {
     if (!webhookPOST) return;
 

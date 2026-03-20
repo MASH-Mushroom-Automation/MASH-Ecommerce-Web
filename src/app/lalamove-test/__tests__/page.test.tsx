@@ -699,6 +699,68 @@ describe("LalamoveTestPage", () => {
     });
   });
 
+  it("prevents rapid simulator toggles from dispatching extra requests while one is pending", async () => {
+    let resolveSim: ((value: unknown) => void) | null = null;
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-rapid-toggle-1",
+            price: "101",
+            distance: { value: 1800 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-rapid-toggle-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSim = resolve;
+        })
+      );
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Picked Up" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Completed" })).toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+    fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      resolveSim?.({ json: async () => ({ success: true }) });
+    });
+  });
+
   it("shows explicit message when simulator event is clicked before order exists", async () => {
     render(<LalamoveTestPage />);
 
@@ -889,6 +951,101 @@ describe("LalamoveTestPage", () => {
     await waitFor(() => {
       expect(screen.getAllByText("PICKED_UP").length).toBeGreaterThan(0);
     });
+  });
+
+  it("keeps raw panel consistent under interleaved success and failure responses", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-raw-interleave-1",
+            price: "88",
+            distance: { value: 2400 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: false,
+          message: "Order create failed",
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-raw-interleave-1", status: "ASSIGNING_DRIVER" },
+        }),
+      });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Order create failed")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Raw API / Firestore Data"));
+    expect(screen.getByText("Quotation Response")).toBeInTheDocument();
+    expect(screen.queryByText("Order Response")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Order Response")).toBeInTheDocument();
+  });
+
+  it("does not re-show stale order success banner after a later failed order attempt", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-stale-success-1",
+            price: "122",
+            distance: { value: 2700 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Order failed attempt A" }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Order failed attempt B" }) });
+
+    render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Order failed attempt A")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("[PASS] Order placed")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Order failed attempt B")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("[PASS] Order placed")).not.toBeInTheDocument();
   });
 
   it("keeps terminal badge stable after rerender at COMPLETED state", async () => {
