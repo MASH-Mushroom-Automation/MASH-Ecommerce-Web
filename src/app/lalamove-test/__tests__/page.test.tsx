@@ -707,4 +707,247 @@ describe("LalamoveTestPage", () => {
     expect(screen.getByText("Place an order first to enable simulation.")).toBeInTheDocument();
     expect(screen.getByText("Assigning").closest("button")).toBeDisabled();
   });
+
+  it("runs end-to-end-style simulator chain through all 5 events and reflects final status transitions", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "ASSIGNING_DRIVER",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-e2e-seq",
+            price: "140",
+            distance: { value: 4800 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-e2e-seq-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValue({ json: async () => ({ success: true }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Quotation received")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    const chain: Array<{ label: string; event: string; expectedStatus: string }> = [
+      { label: "Assigning", event: "ASSIGNING_DRIVER", expectedStatus: "ASSIGNING_DRIVER" },
+      { label: "Driver Assigned", event: "DRIVER_ASSIGNED", expectedStatus: "ON_GOING" },
+      { label: "Picked Up", event: "PICKED_UP", expectedStatus: "PICKED_UP" },
+      { label: "Completed", event: "COMPLETED", expectedStatus: "COMPLETED" },
+      { label: "Canceled", event: "CANCELED", expectedStatus: "CANCELED" },
+    ];
+
+    for (const step of chain) {
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: step.label }));
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/lalamove/sandbox-simulate",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: "order-e2e-seq-1", event: step.event }),
+        })
+      );
+
+      trackingState = {
+        status: step.expectedStatus,
+        lastUpdated: new Date().toISOString(),
+        driver:
+          step.expectedStatus === "ON_GOING"
+            ? {
+                name: "Juan Santos",
+                phone: "+639171234567",
+                plateNumber: "ABC 1234",
+                coordinates: { lat: 14.5995, lng: 120.9842 },
+              }
+            : null,
+      };
+
+      view.rerender(<LalamoveTestPage />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText(step.expectedStatus).length).toBeGreaterThan(0);
+      });
+    }
+  });
+
+  it("handles mid-stream simulator failure and recovers on retry", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "ASSIGNING_DRIVER",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-mid-fail",
+            price: "120",
+            distance: { value: 3600 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-mid-fail-1", status: "ASSIGNING_DRIVER" },
+        }),
+      })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: false, message: "Sandbox transient error" }) })
+      .mockResolvedValueOnce({ json: async () => ({ success: true }) });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Driver Assigned" }));
+    });
+    trackingState = {
+      status: "ON_GOING",
+      lastUpdated: new Date().toISOString(),
+      driver: {
+        name: "Juan Santos",
+        phone: "+639171234567",
+        plateNumber: "ABC 1234",
+      },
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("ON_GOING").length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Sandbox transient error")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Picked Up" }));
+    });
+    trackingState = {
+      status: "PICKED_UP",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("PICKED_UP").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("keeps terminal badge stable after rerender at COMPLETED state", async () => {
+    let trackingState: Record<string, unknown> | null = {
+      status: "COMPLETED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+
+    mockUseLalamoveTracking.mockImplementation(() => ({
+      tracking: trackingState,
+      order: null,
+      loading: false,
+      error: null,
+    }));
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            quotationId: "q-terminal",
+            price: "99",
+            distance: { value: 2100 },
+            stops: [{ stopId: "s1" }, { stopId: "s2" }],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: { orderId: "order-terminal-1", status: "ASSIGNING_DRIVER" },
+        }),
+      });
+
+    const view = render(<LalamoveTestPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Get Quotation"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Place Order"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("[PASS] Order placed")).toBeInTheDocument();
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+    });
+
+    trackingState = {
+      status: "COMPLETED",
+      lastUpdated: new Date().toISOString(),
+      driver: null,
+    };
+    view.rerender(<LalamoveTestPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("COMPLETED").length).toBeGreaterThan(0);
+      expect(screen.getByTestId("status-timeline")).toHaveTextContent("COMPLETED");
+    });
+  });
 });

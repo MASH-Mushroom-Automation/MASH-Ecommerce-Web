@@ -4989,4 +4989,23 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 **Validation:**
 - Targeted suites: PASS (4 suites, 96 tests)
 - Scope: lalamove-routes, webhook-route, sandbox-simulate-route, lalamove-test page
+
+## [2026-03-20 20:36] - LAMA-TEST Lifecycle Replay Hardening Batch
+**Completed:** Replay and out-of-order webhook transition coverage plus page recovery and terminal-state stability assertions
+**Persona:** SENTINEL
+**Files Changed:**
+- src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts
+- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
+- src/app/lalamove-test/__tests__/page.test.tsx
+
+**Implementation Notes:**
+- Added replay-contract tests for duplicate `DRIVER_PICKED_UP` and duplicate `ORDER_COMPLETED` events to ensure idempotent lifecycle writes under repeated webhook delivery.
+- Added out-of-order contract test for `ORDER_COMPLETED` followed by `DRIVER_PICKED_UP` to verify handler behavior remains deterministic under reordered webhook timing.
+- Added lifecycle edge tests for signature mismatch rejection on cancel payloads, partial status payload handling, and optional driver-location fallback identity/coordinates writes.
+- Added explicit non-regression assertions that `ORDER_STATUS_CHANGED`, `DRIVER_ASSIGNED`, and `ORDER_CANCELLED` paths do not trigger delivered/shipped status mutation side-effects.
+- Added page-flow resilience tests for mid-stream simulator failure with successful retry recovery and terminal `COMPLETED` badge stability across rerenders.
+
+**Validation:**
+- Targeted suites: PASS (4 suites, 105 tests)
+- Scope: lalamove-routes, webhook-route, sandbox-simulate-route, lalamove-test page
 ---

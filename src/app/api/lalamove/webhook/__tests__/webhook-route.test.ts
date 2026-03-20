@@ -481,6 +481,133 @@ describe("POST /api/lalamove/webhook — Lifecycle Contract Assertions", () => {
   });
 });
 
+describe("POST /api/lalamove/webhook — Replay and Out-of-Order Assertions", () => {
+  it("replays duplicate DRIVER_PICKED_UP events with stable payload contract", async () => {
+    mockFindOrder("order-replay-picked-up");
+
+    const payload = {
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-REPLAY-PU-1",
+      timestamp: "2026-01-01",
+      data: { pickupTime: "2026-01-01T10:00:00Z", podImage: "pod-1.jpg" },
+    };
+
+    await POST(createSignedRequest(payload));
+    await POST(createSignedRequest(payload));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-picked-up",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-picked-up",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledTimes(2);
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-picked-up",
+      "shipped",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-picked-up",
+      "shipped",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("replays duplicate ORDER_COMPLETED events with stable terminal payload contract", async () => {
+    mockFindOrder("order-replay-completed");
+
+    const payload = {
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-REPLAY-COMP-1",
+      timestamp: "2026-01-01",
+      data: { completionTime: "2026-01-01T12:00:00Z", signature: "sig-a" },
+    };
+
+    await POST(createSignedRequest(payload));
+    await POST(createSignedRequest(payload));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-completed",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-completed",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledTimes(2);
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      1,
+      "order-replay-completed",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      2,
+      "order-replay-completed",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("handles out-of-order COMPLETED then PICKED_UP by preserving per-event contracts", async () => {
+    mockFindOrder("order-out-of-order-1");
+
+    const completedPayload = {
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-OOO-1",
+      timestamp: "2026-01-01",
+      data: { completionTime: "2026-01-01T12:00:00Z" },
+    };
+    const pickedUpPayload = {
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-OOO-1",
+      timestamp: "2026-01-01",
+      data: { pickupTime: "2026-01-01T10:00:00Z" },
+    };
+
+    await POST(createSignedRequest(completedPayload));
+    await POST(createSignedRequest(pickedUpPayload));
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      1,
+      "order-out-of-order-1",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateLalamoveTracking).toHaveBeenNthCalledWith(
+      2,
+      "order-out-of-order-1",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      1,
+      "order-out-of-order-1",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenNthCalledWith(
+      2,
+      "order-out-of-order-1",
+      "shipped",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+});
+
 describe("GET /api/lalamove/webhook", () => {
   it("should return success message", async () => {
     const res = await GET();
