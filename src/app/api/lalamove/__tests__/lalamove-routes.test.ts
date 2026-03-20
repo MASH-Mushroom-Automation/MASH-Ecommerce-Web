@@ -38,10 +38,18 @@ jest.mock("@/lib/api-client", () => ({
 jest.mock("@/lib/firebase/config", () => ({
   firebaseApp: {},
 }));
+const mockUpdateLalamoveTracking = jest.fn();
+const mockUpdateOrderStatus = jest.fn();
 jest.mock("@/lib/firebase/orders", () => ({
-  FirebaseOrdersService: jest.fn().mockImplementation(() => ({
-    updateOrder: jest.fn(),
-  })),
+  FirebaseOrdersService: Object.assign(
+    jest.fn().mockImplementation(() => ({
+      updateOrder: jest.fn(),
+    })),
+    {
+      updateLalamoveTracking: (...args: unknown[]) => mockUpdateLalamoveTracking(...args),
+      updateOrderStatus: (...args: unknown[]) => mockUpdateOrderStatus(...args),
+    }
+  ),
   updateOrderPaymentStatus: jest.fn(),
 }));
 jest.mock("firebase/firestore", () => ({
@@ -64,6 +72,7 @@ jest.mock("crypto", () => ({
       digest: jest.fn().mockReturnValue("test-signature"),
     }),
   }),
+  timingSafeEqual: jest.fn(() => true),
 }));
 
 // Mock lalamove client
@@ -114,6 +123,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   global.fetch = jest.fn();
   mockCookieStore.get.mockReturnValue({ value: "valid-token" });
+  process.env.LALAMOVE_API_SECRET = "test-secret";
+  process.env.LALAMOVE_HOST = "https://rest.sandbox.lalamove.com";
 });
 
 // ==================== QUOTATION ====================
@@ -381,5 +392,162 @@ describe("POST /api/lalamove/webhook", () => {
     expect(res).toBeDefined();
     
     process.env.LALAMOVE_HOST = originalHost;
+  });
+});
+
+// ==================== SANDBOX SIMULATE + LIFECYCLE ====================
+describe("Lalamove lifecycle flow assertions", () => {
+  let simulatePOST: Function;
+  let webhookPOST: Function;
+
+  beforeAll(async () => {
+    try {
+      simulatePOST = (await import("@/app/api/lalamove/sandbox-simulate/route")).POST;
+    } catch {
+      simulatePOST = null;
+    }
+
+    try {
+      webhookPOST = (await import("@/app/api/lalamove/webhook/route")).POST;
+    } catch {
+      webhookPOST = null;
+    }
+  });
+
+  it("should write ON_GOING tracking when sandbox DRIVER_ASSIGNED is simulated", async () => {
+    if (!simulatePOST) return;
+
+    const req = createReq({
+      body: {
+        orderId: "order-flow-1",
+        event: "DRIVER_ASSIGNED",
+      },
+    });
+
+    const res = await simulatePOST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-flow-1",
+      expect.objectContaining({
+        status: "ON_GOING",
+        driver: expect.objectContaining({
+          name: "John Doe (Sandbox)",
+          phone: "+639171234567",
+          plateNumber: "ABC 1234",
+        }),
+      })
+    );
+  });
+
+  it("should reject sandbox simulator when host is not sandbox", async () => {
+    if (!simulatePOST) return;
+
+    process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
+    const req = createReq({
+      body: {
+        orderId: "order-flow-2",
+        event: "ASSIGNING_DRIVER",
+      },
+    });
+
+    const res = await simulatePOST(req);
+    expect(res.status).toBe(403);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+  });
+
+  it("should transition sandbox-assigned order to PICKED_UP via webhook", async () => {
+    if (!simulatePOST || !webhookPOST) return;
+
+    // Step 1: sandbox simulation writes ON_GOING + driver info
+    const simReq = createReq({
+      body: {
+        orderId: "order-transition-1",
+        event: "DRIVER_ASSIGNED",
+      },
+    });
+    await simulatePOST(simReq);
+
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-transition-1",
+      expect.objectContaining({ status: "ON_GOING" })
+    );
+
+    mockUpdateLalamoveTracking.mockClear();
+
+    // Step 2: webhook resolves Lalamove order ID -> Firestore order ID
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ id: "order-transition-1" }],
+    });
+
+    const webhookBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-TRANS-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: {
+        "X-Lalamove-Signature": "test-signature",
+      },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-transition-1",
+      expect.objectContaining({ status: "PICKED_UP" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
+      "order-transition-1",
+      "shipped",
+      "lalamove-webhook",
+      expect.any(String)
+    );
+  });
+
+  it("should transition to delivered when ORDER_COMPLETED webhook arrives", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ id: "order-transition-2" }],
+    });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_COMPLETED",
+      orderId: "LLM-TRANS-2",
+      timestamp: new Date().toISOString(),
+      data: { completionTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: {
+        "X-Lalamove-Signature": "test-signature",
+      },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).toHaveBeenCalledWith(
+      "order-transition-2",
+      expect.objectContaining({ status: "COMPLETED" })
+    );
+    expect(mockUpdateOrderStatus).toHaveBeenCalledWith(
+      "order-transition-2",
+      "delivered",
+      "lalamove-webhook",
+      expect.any(String)
+    );
   });
 });
