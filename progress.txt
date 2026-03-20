@@ -4972,3 +4972,21 @@ Implemented, verified, and fixed test suites for 14 target components plus a ful
 - Lint: PASS
 - Global typecheck/full test still have unrelated legacy blockers outside this scoped patch.
 ---
+
+## [2026-03-20 12:30] - LAMA-TEST Flow Hardening Batch
+**Completed:** Route lifecycle + simulator payload contracts + end-to-end-style page simulator chain test
+**Persona:** SENTINEL
+**Files Changed:**
+- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
+- src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts
+- src/app/lalamove-test/__tests__/page.test.tsx
+
+**Implementation Notes:**
+- Added route-level lifecycle hardening tests for signature mismatch/missing-signature production path, order-lookup miss on cancel transition, and transition payload guards.
+- Added simulator payload-shape contract coverage to assert driver fields appear only on in-transit events and are omitted on assigning/completed/canceled payloads.
+- Added end-to-end-style page suite test that runs all five simulator events in sequence and verifies final status card transitions and endpoint payload calls.
+
+**Validation:**
+- Targeted suites: PASS (4 suites, 96 tests)
+- Scope: lalamove-routes, webhook-route, sandbox-simulate-route, lalamove-test page
+---

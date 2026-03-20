@@ -450,6 +450,68 @@ describe("Lalamove lifecycle flow assertions", () => {
     );
   });
 
+  it("should include driver payload only for DRIVER_ASSIGNED simulator event", async () => {
+    if (!simulatePOST) return;
+
+    const req = createReq({
+      body: {
+        orderId: "order-payload-1",
+        event: "DRIVER_ASSIGNED",
+      },
+    });
+
+    const res = await simulatePOST(req);
+    expect(res.status).toBe(200);
+
+    const payload = mockUpdateLalamoveTracking.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    expect(payload.status).toBe("ON_GOING");
+    expect(payload.driver).toEqual(
+      expect.objectContaining({
+        id: "sandbox-driver-001",
+        name: "John Doe (Sandbox)",
+        phone: "+639171234567",
+        plateNumber: "ABC 1234",
+        coordinates: expect.objectContaining({ lat: 14.5995, lng: 120.9842 }),
+      })
+    );
+  });
+
+  it("should not inject driver payload for ASSIGNING_DRIVER simulator event", async () => {
+    if (!simulatePOST) return;
+
+    const req = createReq({
+      body: {
+        orderId: "order-payload-2",
+        event: "ASSIGNING_DRIVER",
+      },
+    });
+
+    const res = await simulatePOST(req);
+    expect(res.status).toBe(200);
+
+    const payload = mockUpdateLalamoveTracking.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    expect(payload.status).toBe("ASSIGNING_DRIVER");
+    expect(payload.driver).toBeUndefined();
+  });
+
+  it("should not inject driver payload for COMPLETED simulator event", async () => {
+    if (!simulatePOST) return;
+
+    const req = createReq({
+      body: {
+        orderId: "order-payload-3",
+        event: "COMPLETED",
+      },
+    });
+
+    const res = await simulatePOST(req);
+    expect(res.status).toBe(200);
+
+    const payload = mockUpdateLalamoveTracking.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    expect(payload.status).toBe("COMPLETED");
+    expect(payload.driver).toBeUndefined();
+  });
+
   it("should reject sandbox simulator when host is not sandbox", async () => {
     if (!simulatePOST) return;
 
@@ -613,6 +675,31 @@ describe("Lalamove lifecycle flow assertions", () => {
     expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
   });
 
+  it("should reject lifecycle webhook in production when signature header is missing", async () => {
+    if (!webhookPOST) return;
+
+    process.env.LALAMOVE_HOST = "https://rest.lalamove.com";
+
+    const webhookBody = JSON.stringify({
+      event: "DRIVER_PICKED_UP",
+      orderId: "LLM-NO-SIG-PROD-1",
+      timestamp: new Date().toISOString(),
+      data: { pickupTime: new Date().toISOString() },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: {},
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(401);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
   it("should skip PICKED_UP transition when Firestore order lookup misses", async () => {
     if (!webhookPOST) return;
 
@@ -691,6 +778,32 @@ describe("Lalamove lifecycle flow assertions", () => {
       "order-cancel-1",
       expect.objectContaining({ status: "CANCELLED" })
     );
+    expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("should skip CANCELLED transition when Firestore order lookup misses", async () => {
+    if (!webhookPOST) return;
+
+    const getDocs = require("firebase/firestore").getDocs as jest.Mock;
+    getDocs.mockResolvedValue({ empty: true, docs: [] });
+
+    const webhookBody = JSON.stringify({
+      event: "ORDER_CANCELLED",
+      orderId: "LLM-NO-ORDER-CANCEL-1",
+      timestamp: new Date().toISOString(),
+      data: { reason: "No courier" },
+    });
+
+    const webhookReq = createReq({
+      body: webhookBody,
+      headers: { "X-Lalamove-Signature": "test-signature" },
+    });
+    webhookReq.text.mockResolvedValue(webhookBody);
+
+    const webhookRes = await webhookPOST(webhookReq);
+
+    expect(webhookRes.status).toBe(200);
+    expect(mockUpdateLalamoveTracking).not.toHaveBeenCalled();
     expect(mockUpdateOrderStatus).not.toHaveBeenCalled();
   });
 
@@ -832,5 +945,12 @@ describe("Lalamove lifecycle flow assertions", () => {
       "lalamove-webhook",
       expect.any(String)
     );
+
+    const pickedUpPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+    const completedPayload = mockUpdateLalamoveTracking.mock.calls[2][1] as Record<string, unknown>;
+    expect(pickedUpPayload.driver).toBeUndefined();
+    expect(completedPayload.driver).toBeUndefined();
+    expect(pickedUpPayload.timeline).toBeUndefined();
+    expect(completedPayload.timeline).toBeUndefined();
   });
 });

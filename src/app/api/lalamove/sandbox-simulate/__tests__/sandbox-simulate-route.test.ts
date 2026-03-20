@@ -165,6 +165,27 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
     );
   });
 
+  it("keeps simulator payload event-specific by including driver only for in-transit events", async () => {
+    await POST(makeRequest({ orderId: "o-shape-1", event: "DRIVER_ASSIGNED" }));
+    await POST(makeRequest({ orderId: "o-shape-1", event: "PICKED_UP" }));
+
+    const assignedPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    const pickedUpPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+
+    expect(assignedPayload.driver).toEqual(
+      expect.objectContaining({
+        id: "sandbox-driver-001",
+        name: "John Doe (Sandbox)",
+      })
+    );
+    expect(pickedUpPayload.driver).toEqual(
+      expect.objectContaining({
+        id: "sandbox-driver-001",
+        name: "John Doe (Sandbox)",
+      })
+    );
+  });
+
   it("handles PICKED_UP event with updated coordinates", async () => {
     const res = await POST(
       makeRequest({ orderId: "o-1", event: "PICKED_UP" })
@@ -206,6 +227,19 @@ describe("POST /api/lalamove/sandbox-simulate", () => {
       "o-1",
       expect.objectContaining({ status: "CANCELED" })
     );
+  });
+
+  it("does not include driver payload for terminal events COMPLETED and CANCELED", async () => {
+    await POST(makeRequest({ orderId: "o-shape-2", event: "COMPLETED" }));
+    await POST(makeRequest({ orderId: "o-shape-2", event: "CANCELED" }));
+
+    const completedPayload = mockUpdateLalamoveTracking.mock.calls[0][1] as Record<string, unknown>;
+    const canceledPayload = mockUpdateLalamoveTracking.mock.calls[1][1] as Record<string, unknown>;
+
+    expect(completedPayload.status).toBe("COMPLETED");
+    expect(canceledPayload.status).toBe("CANCELED");
+    expect(completedPayload.driver).toBeUndefined();
+    expect(canceledPayload.driver).toBeUndefined();
   });
 
   it("handles full lifecycle progression on the same orderId", async () => {

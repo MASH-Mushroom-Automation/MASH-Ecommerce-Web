@@ -61,34 +61,36 @@ Read first (in order):
 3) .github/LALAMOVE_NEXT_AGENT_PROMPT.md
 
 Already completed in recent batch:
-- Expanded src/app/lalamove-test/__tests__/page.test.tsx with stronger payload + flow assertions.
-- Added lifecycle assertions in src/app/api/lalamove/__tests__/lalamove-routes.test.ts:
-  - sandbox simulate DRIVER_ASSIGNED writes ON_GOING tracking
-  - non-sandbox host blocks simulator (403)
-  - sandbox-to-webhook transition DRIVER_PICKED_UP updates tracking + order status
-  - ORDER_COMPLETED transition updates tracking + delivered status
-	- signature mismatch rejection for lifecycle webhook events
-	- missing Firestore order lookup behavior for lifecycle transitions
-	- ORDER_CANCELLED behavior confirms tracking update without shipped/delivered status mutation
-	- transition assertions ensure driver payload is not overwritten on PICKED_UP and COMPLETED updates
+- Expanded src/app/lalamove-test/__tests__/page.test.tsx with an end-to-end-style simulator chain test that clicks all 5 events in order and verifies status transitions.
+- Added route-level lifecycle assertions in src/app/api/lalamove/__tests__/lalamove-routes.test.ts for:
+  - production lifecycle missing-signature rejection
+  - cancel transition order-lookup miss behavior
+  - transition payload guards (driver/timeline non-overwrite on PICKED_UP and COMPLETED)
+- Added simulator payload-shape contract tests in:
+  - src/app/api/lalamove/__tests__/lalamove-routes.test.ts
+  - src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts
+  ensuring driver fields are present only on in-transit events and absent for assigning/completed/canceled payloads.
+- Current targeted status: 4 suites passing, 96 tests passing.
 
 Next batch required now:
-1. Add webhook timeline-focused assertions in src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts:
-	- verify status progression writes expected timeline order in update payload contracts if timeline is present
-	- verify location updates keep driver identity fields intact when coordinates change repeatedly
-2. Add sandbox simulator sequence tests in src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts:
-	- ASSIGNING_DRIVER -> DRIVER_ASSIGNED -> PICKED_UP -> COMPLETED progression on one order ID
-	- CANCELED branch confirms no delivered/shipped transition side effects
-3. Expand src/app/lalamove-test/__tests__/page.test.tsx with at least 6 more user-driven flow/error-path tests:
-	- retry behavior and mixed success/failure sequence
-	- verify event button disable/enable conditions before and after order creation
+1. Add deeper route lifecycle failure matrix tests in src/app/api/lalamove/__tests__/lalamove-routes.test.ts:
+	- ORDER_STATUS_CHANGED malformed/partial payload contract behavior
+	- DRIVER_LOCATION_UPDATED with partial coordinates and fallback identity contract
+	- ORDER_CANCELLED reason/cancelledBy propagation contract coverage
+2. Add webhook transition integrity assertions in src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts:
+	- verify sequence integrity when duplicate events are replayed
+	- verify out-of-order events do not regress terminal COMPLETED state payload contracts
+3. Expand src/app/lalamove-test/__tests__/page.test.tsx with additional mixed-flow UI contract tests:
+	- simulator sequence with mid-stream failure then recovery
+	- raw panel JSON visibility consistency after multiple simulator transitions
+	- final terminal-state badge stability after rerender
 4. Add at least 8-12 new tests in this next batch, focused on realistic sandbox flows.
-4. Run targeted tests for:
+5. Run targeted tests for:
 	- src/app/api/lalamove/__tests__/lalamove-routes.test.ts
 	- src/app/api/lalamove/webhook/__tests__/webhook-route.test.ts
 	- src/app/api/lalamove/sandbox-simulate/__tests__/sandbox-simulate-route.test.ts
 	- src/app/lalamove-test/__tests__/page.test.tsx
-5. If all targeted tests pass, commit in one small technical commit.
+6. If all targeted tests pass, commit in one small technical commit.
 
 Commit message format:
 LAMA-TEST: <technical scope>
