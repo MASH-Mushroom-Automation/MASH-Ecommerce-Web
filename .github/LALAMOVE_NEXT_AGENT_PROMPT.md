@@ -23,7 +23,8 @@ Execution workflow:
 5. Run targeted tests immediately for each changed area.
 6. Update prd-lalamove-realtime.json and append concise notes to progress.txt after each completed story or story pair.
 7. Commit small and often.
-43FDEGR4Y7T5UJK6ILO7P8;[9'0-]3425E5698765432167879809-43566TY7567YU8T7UYT654Y7TRGHFD3426WEQSADZ12   Q1      1Qqa12  1231    Qa  Qadzwxc szvbedfnrtgmyh,uo/lP\ndatory quality gates:
+
+Mandatory quality gates:
 1. npm run build
 2. npm run lint
 3. npx tsc --noEmit
