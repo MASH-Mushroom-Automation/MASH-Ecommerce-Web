@@ -31,6 +31,16 @@ This project is part of a **University of Caloocan City thesis**. It resolves fr
 
 ---
 
+## 🎥 System Demonstration
+
+Click the video preview below to watch the complete workflow of the MASH Platform on YouTube.
+
+[![MASH System Demo Video](https://img.youtube.com/vi/CbzYfdPU3hw/maxresdefault.jpg)](https://www.youtube.com/watch?v=CbzYfdPU3hw "Click to Watch MASH Demo Video")
+
+*(For embedded viewing in supported environments, use [this embed link](https://www.youtube.com/embed/CbzYfdPU3hw?si=ORNbcNsFIp6bxAgm))*
+
+---
+
 ## ?? System Architecture
 
 MASH follows a modular web architecture:
