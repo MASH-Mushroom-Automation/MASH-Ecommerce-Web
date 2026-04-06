@@ -56,10 +56,6 @@ MASH follows a modular web architecture:
 
 ![Complete MASH System Architecture](./public/Complete%20MASH%20System%20Architecture.png)
 
-### Complete MASH System Architecture (No Connections)
-
-![Complete MASH System Architecture (No Connections)](./public/Complete%20MASH%20System%20Architecture%20%7Bno%20connections%7D.png)
-
 ### System Architecture Overview
 
 ![System Architecture](./public/System%20Architecture.png)
