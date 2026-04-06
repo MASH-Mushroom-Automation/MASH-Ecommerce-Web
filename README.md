@@ -1,4 +1,4 @@
-# MASH E-Commerce Platform
+﻿# MASH E-Commerce Platform
 
 [![Thesis Project](https://img.shields.io/badge/Thesis-University%20of%20Caloocan%20City-1f6f43?style=for-the-badge)](https://www.mashmarket.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -10,7 +10,7 @@
 
 MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platform bridging smart agriculture concepts with a scalable digital commerce ecosystem. This repository contains the public Next.js web application for storefront experiences, CMS integrations, and connected backend services.
 
-## ?? Quick Links
+## Quick Links
 
 | Resource | Link |
 | --- | --- |
@@ -23,7 +23,7 @@ MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platf
 
 ---
 
-## ?? About MASH
+## About MASH
 
 This project is part of a **University of Caloocan City thesis**. It resolves fragmented agribusiness workflows by providing a unified platform integrating cultivation guidance, product discovery, order handling, and content delivery.
 
@@ -31,7 +31,7 @@ This project is part of a **University of Caloocan City thesis**. It resolves fr
 
 ---
 
-## 🎥 System Demonstration
+## System Demonstration
 
 Click the video preview below to watch the complete workflow of the MASH Platform on YouTube.
 
@@ -41,49 +41,53 @@ Click the video preview below to watch the complete workflow of the MASH Platfor
 
 ---
 
-## ?? System Architecture
+## System Architecture
 
 MASH follows a modular web architecture:
 
-- **Presentation Layer**: Next.js 16 + React 19 (in `src/app` and `src/components`)
-- **Content Layer**: Sanity CMS (in `studio`)
+- **Presentation Layer**: Next.js 16 + React 19 (in src/app and src/components)
+- **Content Layer**: Sanity CMS (in studio)
 - **Identity & Data**: Firebase Auth + Firestore
 - **Business Logic**: NestJS API
 
-> **Note on Placeholders (ARCH-01 / METH-01 / EVAL-01):** Final diagrams (`system-architecture-overview.png`, `research-methodology-flow.png`, `results-and-evaluation.png`) should be placed in `docs/screenshots/` prior to final presentation. Below are visual placeholders:
+> **Note on Placeholders (ARCH-01 / METH-01 / EVAL-01):** Final diagrams (system-architecture-overview.png, research-methodology-flow.png, results-and-evaluation.png) should be placed in docs/screenshots/ prior to final presentation. Below are visual placeholders.
 
-| Architecture (ARCH-01) | Methodology (METH-01) | Evaluation (EVAL-01) |
-| :---: | :---: | :---: |
-| ![Architecture][1] | ![Methodology][2] | ![Evaluation][3] |
+### Architecture (ARCH-01)
 
-[1]: ./public/hero-1.jpg
-[2]: ./public/hero-2.jpg
-[3]: ./public/hero-1.jpg
+[![Architecture Diagram Placeholder](./public/hero-1.jpg)](./public/hero-1.jpg)
+
+### Methodology (METH-01)
+
+[![Methodology Flow Placeholder](./public/hero-2.jpg)](./public/hero-2.jpg)
+
+### Evaluation (EVAL-01)
+
+[![Evaluation Statistics Placeholder](./public/hero-1.jpg)](./public/hero-1.jpg)
 
 ---
 
-## ?? Development Setup
+## Development Setup
 
-**Requirements:** Node.js `20.19.0` (see `.nvmrc`)
+**Requirements:** Node.js 20.19.0 (see .nvmrc)
 
-1. **Install Dependencies:** `npm install`
+1. **Install Dependencies:** npm install
 2. **Build and Run:**
 
-   ```bash
+   `ash
    npm run build
    npm run dev
-   ```
+   `
 
 3. **Validate:**
 
-   ```bash
+   `ash
    npm run lint
    npm run test
-   ```
+   `
 
 ---
 
-## ?? Project Structure & Documentation
+## Project Structure & Documentation
 
 Key documentation artifacts for technical and academic review:
 
@@ -91,7 +95,7 @@ Key documentation artifacts for technical and academic review:
 - **Faculty Progress Status**: [FACULTY_STATUS_REPORT.md](./.github/FACULTY_STATUS_REPORT.md)
 - **Presentation Guide**: [PRESENTATION_GUIDE.md](./.github/PRESENTATION_GUIDE.md)
 
-For detailed layout overview, view the [`src/`](./src) and [`docs/`](./docs) directories.
+For detailed layout overview, view the src/ and docs/ directories.
 
 ---
 
@@ -99,13 +103,13 @@ For detailed layout overview, view the [`src/`](./src) and [`docs/`](./docs) dir
 
 If referring to this repository in an academic capacity:
 
-```bibtex
+`ibtex
 @misc{mash_ecommerce_2026,
   title        = {MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment},
   author       = {{MASH Thesis Team}},
   year         = {2026},
   url          = {https://github.com/ORG_OR_USER/MASH-Ecommerce}
 }
-```
+`
 
 *Licensed under the [MIT License](./LICENSE).*
