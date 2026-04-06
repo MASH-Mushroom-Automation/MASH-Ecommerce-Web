@@ -1,6 +1,6 @@
 ﻿# MASH E-Commerce Platform
 
-![MASH Banner Landscape](.../public/MASH%20Banner%20Landscape.png)
+![MASH Banner Landscape](../public/MASH%20Banner%20Landscape.png)
 
 [![Thesis Project](https://img.shields.io/badge/Thesis-University%20of%20Caloocan%20City-1f6f43?style=for-the-badge)](https://www.mashmarket.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
