@@ -72,7 +72,10 @@ MASH follows a modular web architecture:
 
 **Requirements:** Node.js 20.19.0 (see .nvmrc)
 
-1. **Install Dependencies:** npm install
+1. **Install Dependencies:** 
+   ```bash
+   npm install
+   ```
 2. **Build and Run:**
 
    ```bash
