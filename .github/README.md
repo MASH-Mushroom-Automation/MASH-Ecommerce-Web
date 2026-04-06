@@ -1,6 +1,6 @@
-# MASH E-Commerce Platform
+﻿# MASH E-Commerce Platform
 
-![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
+![MASH Banner Landscape](.../public/MASH%20Banner%20Landscape.png)
 
 [![Thesis Project](https://img.shields.io/badge/Thesis-University%20of%20Caloocan%20City-1f6f43?style=for-the-badge)](https://www.mashmarket.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -8,7 +8,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Sanity](https://img.shields.io/badge/Sanity-CMS-F03E2F?style=for-the-badge&logo=sanity&logoColor=white)](https://www.sanity.io/)
 [![NestJS API](https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2ea043?style=for-the-badge)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea043?style=for-the-badge)](../LICENSE)
 
 MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platform bridging smart agriculture concepts with a scalable digital commerce ecosystem. This repository contains the public Next.js web application for storefront experiences, CMS integrations, and connected backend services.
 
@@ -48,25 +48,25 @@ MASH follows a modular web architecture:
 
 ### Complete MASH System Architecture
 
-![Complete MASH System Architecture](./public/Complete%20MASH%20System%20Architecture.png)
+![Complete MASH System Architecture](../public/Complete%20MASH%20System%20Architecture.png)
 
 ### System Architecture Overview
 
-![System Architecture](./public/System%20Architecture.png)
+![System Architecture](../public/System%20Architecture.png)
 
 ## Brand Visuals & Alternate Banners
 
 ### MASH Banner (Standard)
 
-![MASH Banner](./public/MASH%20Banner.png)
+![MASH Banner](../public/MASH%20Banner.png)
 
 ### MASH Banner (Portrait)
 
-![MASH Banner Portrait](./public/MASH%20Banner%20Portrait.png)
+![MASH Banner Portrait](../public/MASH%20Banner%20Portrait.png)
 
 ### MASH Banner (Landscape)
 
-![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
+![MASH Banner Landscape](../public/MASH%20Banner%20Landscape.png)
 
 ## Development Setup
 
@@ -110,4 +110,4 @@ If referring to this repository in an academic capacity, please cite it as follo
 
 > MASH Thesis Team. (2026). *MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment*. GitHub. <https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web>
 
-*Licensed under the [MIT License](./LICENSE).*
+*Licensed under the [MIT License](../LICENSE).*
