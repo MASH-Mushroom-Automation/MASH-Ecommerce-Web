@@ -1,63 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# MASH E-Commerce Platform
 
-## 🚀 Production Deployment
+![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
 
-**Live URLs:**
-- **Frontend:** https://mash-ecommerce-web-production.up.railway.app
-- **Backend API:** https://mash-backend-production.up.railway.app
-- **Sanity Studio:** https://ppnamias.sanity.studio
-- **Firebase Console:** https://console.firebase.google.com/u/7/project/mash-ddf8d/
+[![Thesis Project](https://img.shields.io/badge/Thesis-University%20of%20Caloocan%20City-1f6f43?style=for-the-badge)](https://www.mashmarket.app)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Sanity](https://img.shields.io/badge/Sanity-CMS-F03E2F?style=for-the-badge&logo=sanity&logoColor=white)](https://www.sanity.io/)
+[![NestJS API](https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea043?style=for-the-badge)](./LICENSE)
 
-## ⚠️ CRITICAL: Build-First Development
+MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platform bridging smart agriculture concepts with a scalable digital commerce ecosystem. This repository contains the public Next.js web application for storefront experiences, CMS integrations, and connected backend services.
 
-**ALWAYS run build before starting development:**
+## Quick Links
 
-```bash
-# 1. MANDATORY: Build first to catch all errors
-npm run build
+| Resource | Link |
+| --- | --- |
+| **Live Production** | [MASH Market](https://www.mashmarket.app) |
+| **Development** | [MASH Market Dev](https://beta.mashmarket.app) |
+| **Admin Panel** | [MASH Admin](https://zen.mashmarket.app) |
+| **Backend API** | [API Docs](https://api.mashmarket.app/api/docs) |
+| **Thesis Soft Copy** | [Google Docs](https://docs.google.com/document/d/1MzVCAP95i2d0Zoid7Q5eyv25B26pIkgrsCAtq5rahqg/edit?usp=sharing) |
+| **Demo Video** | [Watch on YouTube](https://www.youtube.com/watch?v=CbzYfdPU3hw) |
 
-# 2. Fix ALL TypeScript/ESLint errors
+## About MASH
 
-# 3. Only then start development
-npm run dev
+This project is part of a **University of Caloocan City thesis**. It resolves fragmented agribusiness workflows by providing a unified platform integrating cultivation guidance, product discovery, order handling, and content delivery.
+
+**Scope inclusions**: E-commerce storefront, CMS-backed content delivery, user authentication, and API-based transactional flows.
+
+## System Demonstration
+
+Click the video preview below to watch the complete workflow of the MASH Platform on YouTube.
+
+[![MASH System Demo Video](https://img.youtube.com/vi/CbzYfdPU3hw/maxresdefault.jpg)](https://www.youtube.com/watch?v=CbzYfdPU3hw "Click to Watch MASH Demo Video")
+
+*(For embedded viewing in supported environments, use [this embed link](https://www.youtube.com/embed/CbzYfdPU3hw?si=ORNbcNsFIp6bxAgm))*
+
+## System Architecture
+
+MASH follows a modular web architecture:
+
+- **Presentation Layer**: Next.js 16 + React 19 (in src/app and src/components)
+- **Content Layer**: Sanity CMS (in studio)
+- **Identity & Data**: Firebase Auth + Firestore
+- **Business Logic**: NestJS API
+
+### Complete MASH System Architecture
+
+![Complete MASH System Architecture](./public/Complete%20MASH%20System%20Architecture.png)
+
+### System Architecture Overview
+
+![System Architecture](./public/System%20Architecture.png)
+
+## Brand Visuals & Alternate Banners
+
+### MASH Banner (Standard)
+
+![MASH Banner](./public/MASH%20Banner.png)
+
+### MASH Banner (Portrait)
+
+![MASH Banner Portrait](./public/MASH%20Banner%20Portrait.png)
+
+### MASH Banner (Landscape)
+
+![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
+
+## Development Setup
+
+**Requirements:** Node.js 20.19.0 (see .nvmrc)
+
+1. **Install Dependencies:** 
+   ```bash
+   npm install
+   ```
+2. **Build and Run:**
+
+   ```bash
+   npm run build
+   npm run dev
+   ```
+
+3. **Validate:**
+
+   ```bash
+   npm run lint
+   npm run test
+   ```
+
+
+### Citation
+
+If referring to this repository in an academic capacity, please cite it as follows:
+
+**BibTeX:**
+
+```bibtex
+@misc{mash_ecommerce_2026,
+  title        = {MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment},
+  author       = {{MASH Thesis Team}},
+  year         = {2026},
+  url          = {https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web}
+}
 ```
 
-**Why this matters:**
-- Production deployments will fail if build errors exist
-- Catches TypeScript errors early
-- Ensures code quality and deployment readiness
+**APA Format:**
 
-## Getting Started
+> MASH Thesis Team. (2026). *MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment*. GitHub. <https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web>
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Licensed under the [MIT License](./LICENSE).*
