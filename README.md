@@ -101,15 +101,21 @@ For detailed layout overview, view the src/ and docs/ directories.
 
 ### Citation
 
-If referring to this repository in an academic capacity:
+If referring to this repository in an academic capacity, please cite it as follows:
+
+**BibTeX:**
 
 ```bibtex
 @misc{mash_ecommerce_2026,
   title        = {MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment},
   author       = {{MASH Thesis Team}},
   year         = {2026},
-  url          = {https://github.com/ORG_OR_USER/MASH-Ecommerce}
+  url          = {https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web}
 }
 ```
+
+**APA Format:**
+
+> MASH Thesis Team. (2026). *MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment*. GitHub. <https://github.com/MASH-Mushroom-Automation/MASH-Ecommerce-Web>
 
 *Licensed under the [MIT License](./LICENSE).*
