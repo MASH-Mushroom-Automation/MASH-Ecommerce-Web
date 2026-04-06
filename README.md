@@ -54,15 +54,15 @@ MASH follows a modular web architecture:
 
 ### Architecture (ARCH-01)
 
-[![Architecture Diagram Placeholder](./public/hero-1.jpg)](./public/hero-1.jpg)
+![Architecture Diagram Placeholder](./public/hero-1.jpg)
 
 ### Methodology (METH-01)
 
-[![Methodology Flow Placeholder](./public/hero-2.jpg)](./public/hero-2.jpg)
+![Methodology Flow Placeholder](./public/hero-2.jpg)
 
 ### Evaluation (EVAL-01)
 
-[![Evaluation Statistics Placeholder](./public/hero-1.jpg)](./public/hero-1.jpg)
+![Evaluation Statistics Placeholder](./public/hero-1.jpg)
 
 ---
 
@@ -73,17 +73,17 @@ MASH follows a modular web architecture:
 1. **Install Dependencies:** npm install
 2. **Build and Run:**
 
-   `ash
+   ```bash
    npm run build
    npm run dev
-   `
+   ```
 
 3. **Validate:**
 
-   `ash
+   ```bash
    npm run lint
    npm run test
-   `
+   ```
 
 ---
 
@@ -103,13 +103,13 @@ For detailed layout overview, view the src/ and docs/ directories.
 
 If referring to this repository in an academic capacity:
 
-`ibtex
+```bibtex
 @misc{mash_ecommerce_2026,
   title        = {MASH E-Commerce Platform: Mushroom Automation with Smart Hydro-environment},
   author       = {{MASH Thesis Team}},
   year         = {2026},
   url          = {https://github.com/ORG_OR_USER/MASH-Ecommerce}
 }
-`
+```
 
 *Licensed under the [MIT License](./LICENSE).*
