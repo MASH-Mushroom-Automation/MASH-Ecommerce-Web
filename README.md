@@ -1,5 +1,7 @@
 ﻿# MASH E-Commerce Platform
 
+![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
+
 [![Thesis Project](https://img.shields.io/badge/Thesis-University%20of%20Caloocan%20City-1f6f43?style=for-the-badge)](https://www.mashmarket.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -50,19 +52,33 @@ MASH follows a modular web architecture:
 - **Identity & Data**: Firebase Auth + Firestore
 - **Business Logic**: NestJS API
 
-> **Note on Placeholders (ARCH-01 / METH-01 / EVAL-01):** Final diagrams (system-architecture-overview.png, research-methodology-flow.png, results-and-evaluation.png) should be placed in docs/screenshots/ prior to final presentation. Below are visual placeholders.
+### Complete MASH System Architecture
 
-### Architecture (ARCH-01)
+![Complete MASH System Architecture](./public/Complete%20MASH%20System%20Architecture.png)
 
-![Architecture Diagram Placeholder](./public/hero-1.jpg)
+### Complete MASH System Architecture (No Connections)
 
-### Methodology (METH-01)
+![Complete MASH System Architecture (No Connections)](./public/Complete%20MASH%20System%20Architecture%20%7Bno%20connections%7D.png)
 
-![Methodology Flow Placeholder](./public/hero-2.jpg)
+### System Architecture Overview
 
-### Evaluation (EVAL-01)
+![System Architecture](./public/System%20Architecture.png)
 
-![Evaluation Statistics Placeholder](./public/hero-1.jpg)
+---
+
+## Brand Visuals & Alternate Banners
+
+### MASH Banner (Standard)
+
+![MASH Banner](./public/MASH%20Banner.png)
+
+### MASH Banner (Portrait)
+
+![MASH Banner Portrait](./public/MASH%20Banner%20Portrait.png)
+
+### MASH Banner (Landscape)
+
+![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
 
 ---
 
