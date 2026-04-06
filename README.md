@@ -15,7 +15,7 @@ MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platf
 ## Quick Links
 
 | Resource | Link |
-| --- | --- |
+|  |  |
 | **Live Production** | [MASH Market](https://www.mashmarket.app) |
 | **Development** | [MASH Market Dev](https://beta.mashmarket.app) |
 | **Admin Panel** | [MASH Admin](https://zen.mashmarket.app) |
@@ -23,15 +23,11 @@ MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platf
 | **Thesis Soft Copy** | [Google Docs](https://docs.google.com/document/d/1MzVCAP95i2d0Zoid7Q5eyv25B26pIkgrsCAtq5rahqg/edit?usp=sharing) |
 | **Demo Video** | [Watch on YouTube](https://www.youtube.com/watch?v=CbzYfdPU3hw) |
 
----
-
 ## About MASH
 
 This project is part of a **University of Caloocan City thesis**. It resolves fragmented agribusiness workflows by providing a unified platform integrating cultivation guidance, product discovery, order handling, and content delivery.
 
 **Scope inclusions**: E-commerce storefront, CMS-backed content delivery, user authentication, and API-based transactional flows.
-
----
 
 ## System Demonstration
 
@@ -40,8 +36,6 @@ Click the video preview below to watch the complete workflow of the MASH Platfor
 [![MASH System Demo Video](https://img.youtube.com/vi/CbzYfdPU3hw/maxresdefault.jpg)](https://www.youtube.com/watch?v=CbzYfdPU3hw "Click to Watch MASH Demo Video")
 
 *(For embedded viewing in supported environments, use [this embed link](https://www.youtube.com/embed/CbzYfdPU3hw?si=ORNbcNsFIp6bxAgm))*
-
----
 
 ## System Architecture
 
@@ -60,8 +54,6 @@ MASH follows a modular web architecture:
 
 ![System Architecture](./public/System%20Architecture.png)
 
----
-
 ## Brand Visuals & Alternate Banners
 
 ### MASH Banner (Standard)
@@ -75,8 +67,6 @@ MASH follows a modular web architecture:
 ### MASH Banner (Landscape)
 
 ![MASH Banner Landscape](./public/MASH%20Banner%20Landscape.png)
-
----
 
 ## Development Setup
 
@@ -97,19 +87,6 @@ MASH follows a modular web architecture:
    npm run test
    ```
 
----
-
-## Project Structure & Documentation
-
-Key documentation artifacts for technical and academic review:
-
-- **Architecture & Implementation Plan**: [SDP_SOFTWARE_DEVELOPMENT_PLAN.md](./.github/SDP_SOFTWARE_DEVELOPMENT_PLAN.md)
-- **Faculty Progress Status**: [FACULTY_STATUS_REPORT.md](./.github/FACULTY_STATUS_REPORT.md)
-- **Presentation Guide**: [PRESENTATION_GUIDE.md](./.github/PRESENTATION_GUIDE.md)
-
-For detailed layout overview, view the src/ and docs/ directories.
-
----
 
 ### Citation
 
