@@ -15,7 +15,7 @@ MASH (Mushroom Automation with Smart Hydro-environment) is a thesis-driven platf
 ## Quick Links
 
 | Resource | Link |
-|  |  |
+| --- | --- |
 | **Live Production** | [MASH Market](https://www.mashmarket.app) |
 | **Development** | [MASH Market Dev](https://beta.mashmarket.app) |
 | **Admin Panel** | [MASH Admin](https://zen.mashmarket.app) |
