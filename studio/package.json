@@ -37,6 +37,6 @@
     "@sanity/eslint-config-studio": "^6.0.0",
     "@types/react": "^19.2.14",
     "p-timeout": "^7.0.1",
-    "typescript": "^5.9.2"
+    "typescript": "^7.0.2"
   }
 }
